@@ -1,0 +1,22 @@
+{
+  "extends": "./node_modules/@chemzqm/tsconfig/tsconfig.json",
+  "compilerOptions": {
+    "outDir": "lib",
+    "target": "es2016",
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "experimentalDecorators": true,
+    "lib": ["es2016", "es2015"],
+    "sourceMap": true,
+    "declaration": true,
+    "strictNullChecks": false,
+    "strictFunctionTypes": false,
+    "strictPropertyInitialization": false,
+    "plugins": []
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+  ]
+}

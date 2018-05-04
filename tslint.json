@@ -1,0 +1,6 @@
+{
+  "extends": "@chemzqm/tslint-config",
+  "rules": {
+    "no-console": [false, "log", "info", "warn", "error", "trace", "time", "timeEnd", "assert", "count", "dir", "table"]
+  }
+}

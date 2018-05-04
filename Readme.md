@@ -55,16 +55,19 @@ Configuration of complete.nvim:
 
 * `g:complete_auto_popup` set to `1` if you want the popup automatically shown
   on type.
-* `g:complete_souces` array of source names default to `['buffer', 'dictionary', 'path']`
 * `g:complete_lcn_file_types` array of file types to trigger completion request
   from [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 
   Note: you should install and configure LanguageClient-neovim correctlly to
   make it works.
 
+* `g:complete_sources` array of source names default to `['buffer', 'dictionary', 'path']`
 * `g:complete_fuzzy_match` set to `0` if you want to disable fuzzy match.
 * `g:complete_keywords_regex` javascript regex for identify words of buffer
   source, default to `[\w-_$]+`
+* `g:complete_timeout` timeout in milisecond for completion, default `300`
+* `g:complete_no_trace` set to `1` to disable send message on error or slow
+  completion
 
 ## Related projects
 

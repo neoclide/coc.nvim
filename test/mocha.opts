@@ -1,0 +1,4 @@
+--useColors true
+--timeout 7000
+--slow 2000
+./lib/test/**/*.test.js
