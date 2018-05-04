@@ -4,7 +4,7 @@ export declare class Buffers {
     constructor();
     addBuffer(bufnr: string, content: string): void;
     removeBuffer(bufnr: string): void;
-    getWords(bufnr: string, input: string): string[];
+    getWords(bufnr: string, input: string, filter: string): string[];
     getBuffer(bufnr: string): Buffer | null;
 }
 declare const buffers: Buffers;

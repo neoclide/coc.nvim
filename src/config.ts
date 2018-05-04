@@ -1,4 +1,5 @@
 import {Config} from './types'
+import {logger} from './util/logger'
 
 let config: Config = {
   fuzzyMatch: true,
@@ -23,9 +24,10 @@ export function setConfig(opts: {[index: string]: any}):void {
   if (regex && typeof regex === 'string') {
     config.keywordsRegex = new RegExp(regex, 'gi')
   }
-  if (opts.sources) {
+  if (opts.sources && Array.isArray(opts.sources)) {
     config.sources = opts.sources
   }
+  logger.debug(`config:${JSON.stringify(opts)}`)
 }
 
 export function getConfig(name: string):any {

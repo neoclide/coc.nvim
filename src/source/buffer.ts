@@ -13,6 +13,7 @@ export default class Buffer extends Source {
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+    if (!this.checkFileType(opt.filetype)) return false
     let {input} = opt
     if (input.length === 0) return false
     return true
@@ -20,7 +21,9 @@ export default class Buffer extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input} = opt
-    let words = buffers.getWords(bufnr, input)
+    let filter = this.getFilter()
+    filter = filter || 'fuzzy'
+    let words = buffers.getWords(bufnr, input, filter)
     return {
       items: words.map(word => {
         return {

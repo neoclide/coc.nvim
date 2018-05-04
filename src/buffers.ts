@@ -1,7 +1,5 @@
 import Buffer from './model/buffer'
-import {getConfig} from './config'
 import {filterWord, filterFuzzy} from './util/filter'
-import {fuzzySort} from './util/sorter'
 import unique = require('array-unique')
 import {logger} from './util/logger'
 
@@ -27,16 +25,14 @@ export class Buffers {
     }
   }
 
-  public getWords(bufnr: string, input: string):string[] {
-    let fuzzyMatch = getConfig('fuzzyMatch') as boolean
+  public getWords(bufnr: string, input: string, filter: string):string[] {
     let words: string[] = []
     for (let buf of this.buffers) {
       let arr = bufnr === buf.bufnr ? buf.moreWords : buf.words
       words = words.concat(arr)
     }
     words = unique(words)
-    words = fuzzyMatch ? filterFuzzy(words, input) : filterWord(words, input)
-    words = fuzzySort(words, input)
+    words = filter === 'word' ? filterWord(words, input) : filterFuzzy(words, input)
     return words.slice(0, 50)
   }
 

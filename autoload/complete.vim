@@ -14,7 +14,7 @@ function! complete#get_config(...)
         \ 'keywordsRegex': get(g:, 'complete_keywords_regex', v:null),
         \ 'noTrace': get(g:, 'complete_no_trace', v:null),
         \ 'timeout': get(g:, 'complete_timeout', v:null),
-        \ 'source': get(g:, 'complete_sources', v:null)
+        \ 'sources': get(g:, 'complete_sources', v:null)
         \}
 endfunction
 
@@ -50,16 +50,6 @@ function! complete#start()
         \ 'col': start,
         \})
   return ''
-endfunction
-
-" run complete for a specified source
-function! complete#complete_source(name, opt)
-  let handler = 'complete#source#'.a:name.'#complete'
-  if !exists('*'.handler)
-    echoerr 'complete handler not found from source '.a:name
-    return
-  endif
-  " TODO
 endfunction
 
 function! complete#menu_selected() abort

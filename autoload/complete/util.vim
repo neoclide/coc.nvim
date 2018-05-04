@@ -1,6 +1,6 @@
 
 function! complete#util#print_error(msg) abort
-  execute "echoerr '".substitute(a:msg, "'", "''", 'g')."'"
+  "execute "echoerr '".substitute(a:msg, "'", "''", 'g')."'"
 endfunction
 
 function! complete#util#print_errors(list)

@@ -6,7 +6,7 @@ export declare class Completes {
     completes: Complete[];
     constructor();
     createComplete(opts: CompleteOptionVim): Complete;
-    getSources(nvim: Neovim, filetype: string): Source[];
+    getSources(nvim: Neovim, filetype: string): Promise<Source[]>;
     reset(): void;
 }
 declare const _default: Completes;

@@ -40,6 +40,7 @@ export interface VimCompleteItem {
   dup?: number
   empty?: number
   user_data?: string
+  score?: number
 }
 
 export interface CompleteResult {

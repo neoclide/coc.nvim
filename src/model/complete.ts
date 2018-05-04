@@ -1,7 +1,15 @@
+/******************************************************************
+MIT License http://www.opensource.org/licenses/mit-license.php
+Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
+*******************************************************************/
 import {CompleteOption, VimCompleteItem, CompleteResult} from '../types'
+import { Neovim } from 'neovim'
 import {logger} from '../util/logger'
 import buffers from '../buffers'
 import Source from './source'
+import {getConfig} from '../config'
+import {score} from 'fuzzaldrin'
+import {wordSortItems} from '../util/sorter'
 
 export type Callback = () => void
 
@@ -14,8 +22,8 @@ export default class Complete {
   private input: string
   private word: string
   private filetype: string
-  private running: boolean
   private result: VimCompleteItem[] | null
+  private nvim: Neovim
   private callbacks: Callback[]
   constructor(opts: Partial<CompleteOption>) {
     let {bufnr, line, col, input, filetype, word} = opts
@@ -31,23 +39,8 @@ export default class Complete {
     this.col = col || 0
     this.input = input || ''
     this.filetype = filetype || ''
-    this.result = null
     this.callbacks = []
     let self = this
-    let running = false
-    Object.defineProperty(this, 'running', {
-      get():boolean {
-        return running
-      },
-      set(newValue: boolean):void {
-        running = newValue
-        if (newValue === false && self.callbacks.length) {
-          let callback = self.callbacks.pop()
-          callback()
-          self.callbacks = []
-        }
-      }
-    })
   }
 
   public getOption():CompleteOption | null {
@@ -82,38 +75,20 @@ export default class Complete {
           logger.warn(`Complete source '${source.name}' too slow!`)
           resolve(null)
         }
-      }, 300)
+      }, getConfig('timeout'))
     })
   }
 
   public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
-    if (this.result) return this.result
-    if (this.running === true) {
-      let p = new Promise(resolve => {
-        this.callbacks.push(() => {
-          resolve()
-        })
-        setTimeout(() => {
-          resolve()
-        }, 1000)
-      })
-      await p
-      return this.result
-    }
-    this.running = true
     let opts = this.getOption()
     if (opts === null) return [] as VimCompleteItem[]
+    if (this.result) return this.result
     sources.sort((a, b) => b.priority - a.priority)
     let {filetype, word, input} = this
     let valids: Source[] = []
-    logger.debug('input:' + opts.input)
-    logger.debug('len:' + opts.input.length)
     for (let s of sources) {
       let shouldRun = await s.shouldComplete(opts)
-      logger.debug('shouldRun:' + shouldRun)
       if (!shouldRun) continue
-      let {filetypes} = s
-      if (filetypes.length && filetypes.indexOf(filetype) == -1) continue
       valids.push(s)
     }
     if (valids.length == 0) {
@@ -122,10 +97,13 @@ export default class Complete {
     }
     let source = valids.find(s => s.engross === true)
     if (source) valids = [source]
+    logger.debug(`Enabled sources: ${valids.map(s => s.name).join(',')}`)
+    valids.sort((a, b) => b.priority - a.priority)
     let result = await Promise.all(valids.map(s => this.completeSource(s, opts)))
-
     let arr: VimCompleteItem[] = []
-    for (let res of result) {
+    let useFuzzy = getConfig('fuzzyMatch')
+    for (let i = 0, l = result.length; i < l; i++) {
+      let res = result[i]
       if (res == null) continue
       let {items, offsetLeft, offsetRight} = res
       let hasOffset = !!offsetLeft || !!offsetRight
@@ -133,17 +111,25 @@ export default class Complete {
         offsetLeft: offsetLeft || 0,
         offsetRight: offsetRight || 0
       }) : null
+      let s_score = Number(valids[i].priority)/100
       for (let item of items) {
         // filter unnecessary results
         if (item.word == word || item.word == input) continue
         if (user_data) {
           item.user_data = user_data
         }
+        if (useFuzzy) item.score = score(item.word, input) + s_score
         arr.push(item)
       }
     }
+    if (useFuzzy) {
+      arr.sort((a, b) => {
+        return b.score - a.score
+      })
+    } else {
+      arr = wordSortItems(arr, input)
+    }
     this.result = arr
-    this.running = false
     return arr
   }
 }

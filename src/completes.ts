@@ -3,10 +3,9 @@ import {getConfig} from './config'
 import Source from './model/source'
 import Complete from './model/complete'
 import {CompleteOptionVim} from './types'
-import BufferSource from './source/buffer'
 import {logger} from './util/logger'
-
-// TODO add dictionary & path
+import natives from './natives'
+import remotes from './remotes'
 
 export class Completes {
   public completes: Complete[]
@@ -15,7 +14,6 @@ export class Completes {
     this.completes = []
   }
   public createComplete(opts: CompleteOptionVim): Complete {
-    // let {bufnr, line, col, input, filetype} = opts
     let {bufnr, lnum, col, input, filetype, word} = opts
     let complete = new Complete({
       bufnr: bufnr.toString(),
@@ -37,14 +35,25 @@ export class Completes {
     return complete
   }
 
-  public getSources(nvim:Neovim, filetype: string): Source[] {
-    let sources = getConfig('sources')
+  public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
+    let source_names: string[] = getConfig('sources')
     let res: Source[] = []
-    for (let s of sources) {
-      if (s === 'buffer') {
-        res.push(new BufferSource(nvim))
+    for (let name of source_names) {
+      let source: Source | null
+      if (natives.has(name)) {
+        source = await natives.getSource(nvim, name)
+      } else if (remotes.has(name)) {
+        source = await remotes.getSource(nvim, name)
+      } else {
+        logger.error(`Source ${name} not found`)
+      }
+      if (source) {
+        res.push(source)
+      } else {
+        logger.error(`Source ${name} can not created`)
       }
     }
+    logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
   }
   // should be called when sources changed
