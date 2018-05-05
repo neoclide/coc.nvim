@@ -5,12 +5,15 @@ Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {CompleteOptionVim, VimCompleteItem} from './types'
 import {logger} from './util/logger'
-import {setConfig} from './config'
+import {setConfig, getConfig} from './config'
 import debounce = require('debounce')
 import buffers from './buffers'
 import completes from './completes'
 import remoteStore from './remote-store'
 import remotes from './remotes'
+
+import fundebug = require('fundebug-nodejs')
+fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
 @Plugin({dev: false})
 export default class CompletePlugin {
@@ -30,6 +33,16 @@ export default class CompletePlugin {
         nvim.call('complete#util#print_errors', [(reason as Error).stack.split(/\n/)]).catch(err => {
           logger.error(err.message)
         })
+        if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
+          fundebug.notifyError(reason)
+        }
+      }
+    })
+
+    process.on('uncaughtException', err => {
+      logger.error(err.stack)
+      if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
+        fundebug.notifyError(err)
       }
     })
   }

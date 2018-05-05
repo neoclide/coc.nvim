@@ -42,6 +42,7 @@
     "@types/pify": "^3.0.2",
     "array-unique": "^0.3.2",
     "debounce": "^1.1.0",
+    "fundebug-nodejs": "0.0.9",
     "fuzzaldrin": "^2.1.0",
     "neovim": "^3.5.2",
     "on-change": "^0.1.0",

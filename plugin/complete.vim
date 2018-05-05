@@ -9,23 +9,17 @@ let g:complete_lcn_file_types = get(g:, 'complete_lcn_file_types', [])
 function! s:OnBufferRead(bufnr)
   if !!search('\%u0000', 'wn') | return 1 | endif
   if s:IsInvalid(a:bufnr) | return | endif
-  if exists('*CompleteBufRead')
-    call CompleteBufRead(a:bufnr)
-  endif
+  call CompleteBufRead(a:bufnr)
 endfunction
 
 function! s:OnBufferChange(bufnr)
   if s:IsInvalid(a:bufnr) | return | endif
   if &paste != 0 | return | endif
-  if exists('*CompleteBufChange')
-    call CompleteBufChange(a:bufnr)
-  endif
+  call CompleteBufChange(a:bufnr)
 endfunction
 
 function! s:OnBufferUnload(bufnr)
-  if exists('*CompleteBufUnload')
-    call CompleteBufUnload(a:bufnr)
-  endif
+  call CompleteBufUnload(a:bufnr)
 endfunction
 
 function! s:IsInvalid(bufnr)
@@ -33,7 +27,7 @@ function! s:IsInvalid(bufnr)
   if t == 'terminal' || t == 'nofile' || t == 'quickfix'
     return 1
   endif
-  return !buflisted(a:bufnr)
+  return 0
 endfun
 
 augroup complete_nvim
