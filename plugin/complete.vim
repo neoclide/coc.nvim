@@ -9,17 +9,23 @@ let g:complete_lcn_file_types = get(g:, 'complete_lcn_file_types', [])
 function! s:OnBufferRead(bufnr)
   if !!search('\%u0000', 'wn') | return 1 | endif
   if s:IsInvalid(a:bufnr) | return | endif
-  call CompleteBufRead(a:bufnr)
+  if exists('*CompleteBufRead')
+    call CompleteBufRead(a:bufnr)
+  endif
 endfunction
 
 function! s:OnBufferChange(bufnr)
   if s:IsInvalid(a:bufnr) | return | endif
   if &paste != 0 | return | endif
-  call CompleteBufChange(a:bufnr)
+  if exists('*CompleteBufChange')
+    call CompleteBufChange(a:bufnr)
+  endif
 endfunction
 
 function! s:OnBufferUnload(bufnr)
-  call CompleteBufUnload(a:bufnr)
+  if exists('*CompleteBufUnload')
+    call CompleteBufUnload(a:bufnr)
+  endif
 endfunction
 
 function! s:IsInvalid(bufnr)
