@@ -16,7 +16,7 @@ Take [vim-plug](https://github.com/junegunn/vim-plug) as example:
 
 ``` vim
 Plug 'neoclide/complete.nvim', {
-    \ 'do': 'npm install',
+    \ 'do': 'make',
     \ }
 ```
 
