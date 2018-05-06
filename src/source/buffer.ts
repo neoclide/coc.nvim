@@ -8,8 +8,7 @@ export default class Buffer extends Source {
     super(nvim, {
       name: 'buffer',
       priority: 1,
-      shortcut: 'B',
-      filter: 'remote',
+      shortcut: 'B'
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -21,10 +20,9 @@ export default class Buffer extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input} = opt
-    let filter = this.getFilter()
-    filter = filter || 'fuzzy'
-    let words = buffers.getWords(bufnr, input, filter)
+    let words = buffers.getWords(bufnr)
     return {
+      firstMatch: true,
       items: words.map(word => {
         return {
           word,

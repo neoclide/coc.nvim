@@ -1,18 +1,16 @@
 
 function! complete#source#languageclient#init()
+  let filetypes = keys(get(g:, 'LanguageClient_serverCommands', {}))
+  let g:f = filetypes
   return {
         \'name': 'languageclient',
         \'shortcut': 'lc',
         \'priority': 9,
-        \'filetypes': get(g:, 'complete_lcn_file_types', []),
+        \'filetypes': filetypes,
         \}
 endfunction
 
-function! complete#source#languageclient#complete(opt, callback)
-  let res = [{
-        \ 'word': 'abcde'
-        \}, {
-        \ 'word': 'ffhhhali'
-        \}]
-  call call(a:callback, [res])
+function! complete#source#languageclient#complete(opt, cb) abort
+  let l:Callback = {res -> a:cb(get(res, 'result', []))}
+  call LanguageClient#omniComplete({'character': a:opt['col'] - 1}, l:Callback)
 endfunction

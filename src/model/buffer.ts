@@ -8,32 +8,33 @@ export default class Buffer {
   public words: string[]
   public moreWords: string[]
   public hash: string
-  constructor(public bufnr: string, public content: string) {
+  constructor(public bufnr: string, public content: string, public keywordRe : RegExp) {
     this.bufnr = bufnr
     this.content = content
+    this.keywordRe = keywordRe
     this.generateWords()
     this.genHash(content)
   }
   private generateWords(): void {
-    let {content} = this
+    let {content, keywordRe} = this
     if (content.length == 0) return
-    let regex: RegExp = getConfig('keywordsRegex') as RegExp
-    let words = content.match(regex) || []
+    // let regex: RegExp = getConfig('keywordsRegex') as RegExp
+    let words = content.match(keywordRe) || []
     words = words.filter(w => w.length > 1)
     words = unique(words) as string[]
     let arr = Array.from(words)
     for (let word of words) {
-      let ms = word.match(/^(\w+)-/)
+      let ms = word.match(/^(\w{2,})-/)
       if (ms && words.indexOf(ms[0]) === -1) {
         arr.unshift(ms[1])
       }
-      ms = word.match(/^(\w+)_/)
+      ms = word.match(/^(\w{2,})_/)
       if (ms && words.indexOf(ms[0]) === -1) {
         arr.unshift(ms[1])
       }
     }
     this.words = words
-    this.moreWords = arr
+    this.moreWords = unique(arr)
   }
   private genHash(content: string): void {
     this.hash = createHash('md5').update(content).digest('hex')

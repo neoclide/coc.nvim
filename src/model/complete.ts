@@ -2,7 +2,9 @@
 MIT License http://www.opensource.org/licenses/mit-license.php
 Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 *******************************************************************/
-import {CompleteOption, VimCompleteItem, CompleteResult} from '../types'
+import {CompleteOption,
+  VimCompleteItem,
+  CompleteResult} from '../types'
 import { Neovim } from 'neovim'
 import {logger} from '../util/logger'
 import buffers from '../buffers'
@@ -10,50 +12,65 @@ import Source from './source'
 import {getConfig} from '../config'
 import {score} from 'fuzzaldrin'
 import {wordSortItems} from '../util/sorter'
+import fuzzysearch = require('fuzzysearch')
 
 export type Callback = () => void
 
 export default class Complete {
   // identify this complete
   public id: string
+  public results: CompleteResult[] | null
   private bufnr: string
-  private line: number
+  private linenr: number
+  private colnr: number
+  private line: string
   private col: number
   private input: string
   private word: string
   private filetype: string
-  private result: VimCompleteItem[] | null
-  private nvim: Neovim
-  private callbacks: Callback[]
+  private fuzzy: boolean
   constructor(opts: Partial<CompleteOption>) {
-    let {bufnr, line, col, input, filetype, word} = opts
+    let {bufnr, line, linenr, colnr, col, input, filetype, word} = opts
     let buf = buffers.getBuffer(bufnr.toString())
     if (!buf) {
       this.id = ''
     } else {
-      this.id = `${buf.hash}|${line}|${col}`
+      this.id = `${buf.hash}|${linenr}`
     }
     this.word = word || ''
     this.bufnr = bufnr || ''
-    this.line = line || 0
+    this.linenr = linenr || 0
+    this.line = line || ''
     this.col = col || 0
+    this.colnr = colnr
     this.input = input || ''
     this.filetype = filetype || ''
-    this.callbacks = []
-    let self = this
+    this.fuzzy = getConfig('fuzzyMatch')
   }
 
   public getOption():CompleteOption | null {
     if (!this.id) return null
     return {
+      colnr: this.colnr,
       filetype: this.filetype,
       bufnr: this.bufnr,
+      linenr: this.linenr,
       line: this.line,
       col: this.col,
       input: this.input,
       id: this.id,
       word: this.word,
     }
+  }
+
+  public resuable(complete: Complete):boolean {
+    let {id, col, word, colnr, input, line, linenr} = complete
+    if (!id || id !== this.id || !this.results
+      || linenr !== this.linenr
+      || colnr < this.colnr
+      || !input.startsWith(this.input)
+      || col !== this.col) return false
+    return line.slice(0, col) == this.line.slice(0, col)
   }
 
   private completeSource(source: Source, opt: CompleteOption): Promise<CompleteResult | null> {
@@ -79,12 +96,51 @@ export default class Complete {
     })
   }
 
+  public filterResults(results: CompleteResult[], input: string, cword: string):VimCompleteItem[] {
+    let arr: VimCompleteItem[] = []
+    let {fuzzy} = this
+    let cFirst = input.length ? input[0].toLowerCase() : null
+    for (let i = 0, l = results.length; i < l; i++) {
+      let res = results[i]
+      if (res == null) continue
+      let {items, offsetLeft, offsetRight, firstMatch} = res
+      let hasOffset = !!offsetLeft || !!offsetRight
+      let user_data =  hasOffset ? JSON.stringify({
+        offsetLeft: offsetLeft || 0,
+        offsetRight: offsetRight || 0
+      }) : null
+      for (let item of items) {
+        let {word} = item
+        if (word.length <= 1) return
+        let first = word[0].toLowerCase()
+        // first must match for no kind
+        if (firstMatch && cFirst && cFirst !== first) continue
+        // filter unnecessary no kind results
+        if (!item.kind && (input.length == 0 || word == cword || word == input)) continue
+        if (input.length && !fuzzysearch(input, word)) continue
+
+        if (user_data) {
+          item.user_data = user_data
+        }
+        if (fuzzy) item.score = score(item.word, input) + (item.kind ? 0.01 : 0)
+        arr.push(item)
+      }
+    }
+    if (fuzzy) {
+      arr.sort((a, b) => {
+        return b.score - a.score
+      })
+    } else {
+      arr = wordSortItems(arr, input)
+    }
+    return arr
+  }
+
   public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
     let opts = this.getOption()
     if (opts === null) return [] as VimCompleteItem[]
-    if (this.result) return this.result
+    // if (this.result) return this.result
     sources.sort((a, b) => b.priority - a.priority)
-    let {filetype, word, input} = this
     let valids: Source[] = []
     for (let s of sources) {
       let shouldRun = await s.shouldComplete(opts)
@@ -95,41 +151,27 @@ export default class Complete {
       logger.debug('No source to complete')
       return []
     }
-    let source = valids.find(s => s.engross === true)
-    if (source) valids = [source]
+    let engrossIdx = valids.findIndex(s => s.engross === true)
     logger.debug(`Enabled sources: ${valids.map(s => s.name).join(',')}`)
-    valids.sort((a, b) => b.priority - a.priority)
-    let result = await Promise.all(valids.map(s => this.completeSource(s, opts)))
-    let arr: VimCompleteItem[] = []
-    let useFuzzy = getConfig('fuzzyMatch')
-    for (let i = 0, l = result.length; i < l; i++) {
-      let res = result[i]
-      if (res == null) continue
-      let {items, offsetLeft, offsetRight} = res
-      let hasOffset = !!offsetLeft || !!offsetRight
-      let user_data =  hasOffset ? JSON.stringify({
-        offsetLeft: offsetLeft || 0,
-        offsetRight: offsetRight || 0
-      }) : null
-      let s_score = Number(valids[i].priority)/100
-      for (let item of items) {
-        // filter unnecessary results
-        if (item.word == word || item.word == input) continue
-        if (user_data) {
-          item.user_data = user_data
-        }
-        if (useFuzzy) item.score = score(item.word, input) + s_score
-        arr.push(item)
+    let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
+
+    let isBad = false
+    results = results.filter(r => {
+      if (r == null) {
+        isBad = true
+        return false
       }
+      return true
+    })
+
+    if (engrossIdx && results[engrossIdx]) {
+      let {items} = results[engrossIdx]
+      if (items.length) results = [results[engrossIdx]]
     }
-    if (useFuzzy) {
-      arr.sort((a, b) => {
-        return b.score - a.score
-      })
-    } else {
-      arr = wordSortItems(arr, input)
+    if (!isBad) {
+      this.results = results
     }
-    this.result = arr
-    return arr
+    let {input, word} = this
+    return this.filterResults(results, input, word)
   }
 }

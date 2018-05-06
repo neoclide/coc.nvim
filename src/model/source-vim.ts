@@ -31,7 +31,7 @@ export default class VimSource extends Source {
     await this.nvim.call('complete#remote#do_complete', [this.name, opt])
     let {id, input} = opt
     let items = await remoteStore.getResult(id, this.name)
-    let filter = this.getFilter()
+    let {filter} = this
     for (let item of items) {
       item.menu = this.menu
     }

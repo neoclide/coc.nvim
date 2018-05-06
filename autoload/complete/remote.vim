@@ -10,10 +10,10 @@ function! complete#remote#do_complete(name, opt)
   let OneTime = complete#util#once(funcref('s:OnCompletionReceived', [a:name, a:opt]))
   " try finish job after 1s
   let cid = call(handler, [a:opt, OneTime])
-  if type(cid) == 0 && cid > 0 " valid channel id
-    let tid = timer_start(1000, funcref('s:TimerCallback', [cid]))
-    let s:timer_map[a:name] = tid
-  endif
+  "if type(cid) == 0 && cid > 0 " valid channel id
+  "  let tid = timer_start(1000, funcref('s:TimerCallback', [cid]))
+  "  let s:timer_map[a:name] = tid
+  "endif
 endfunction
 
 function! s:TimerCallback(job_id, ...)
@@ -24,6 +24,7 @@ function! s:TimerCallback(job_id, ...)
 endfunction
 
 function! s:OnCompletionReceived(name, opt, items)
+  let g:i = a:items
   call CompleteResult(a:opt.id, a:name, a:items)
   let tid = get(s:timer_map, a:name, 0)
   if tid

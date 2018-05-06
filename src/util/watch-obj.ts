@@ -22,8 +22,11 @@ export default function watchObject<T, K extends keyof T>(obj: T):{watched: T, a
   }
   return {
     watched: new Proxy(obj, handler),
-    addWatcher(key, cb):void {
+    addWatcher(key, cb):()=>void {
       callbackMap[key] = cb
+      return () => {
+        delete callbackMap[key]
+      }
     }
   }
 }

@@ -4,13 +4,6 @@ endif
 let did_complete_loaded = 1
 
 let g:complete_auto_popup = get(g:, 'complete_auto_popup', 0)
-let g:complete_lcn_file_types = get(g:, 'complete_lcn_file_types', [])
-
-function! s:OnBufferRead(bufnr)
-  if !!search('\%u0000', 'wn') | return 1 | endif
-  if s:IsInvalid(a:bufnr) | return | endif
-  call CompleteBufRead(a:bufnr)
-endfunction
 
 function! s:OnBufferChange(bufnr)
   if s:IsInvalid(a:bufnr) | return | endif
@@ -18,23 +11,30 @@ function! s:OnBufferChange(bufnr)
   call CompleteBufChange(a:bufnr)
 endfunction
 
-function! s:OnBufferUnload(bufnr)
-  call CompleteBufUnload(a:bufnr)
-endfunction
-
 function! s:IsInvalid(bufnr)
   let t = getbufvar(a:bufnr, '&buftype')
-  if t == 'terminal' || t == 'nofile' || t == 'quickfix'
+  if t == 'terminal' || t == 'nofile' || t == 'quickfix' || t == 'help'
     return 1
   endif
   return 0
 endfun
 
-augroup complete_nvim
+function! s:OnTextChangedI()
+  call complete#start(1)
+endfunction
+
+function! s:InitAutocmds()
+  augroup complete_nvim
+    autocmd!
+    autocmd TextChangedI * call complete#start(1)
+    autocmd BufUnload * call CompleteBufUnload(+expand('<abuf>'))
+    autocmd TextChanged,BufRead,BufWritePost * call s:OnBufferChange(+expand('<abuf>'))
+  augroup end
+endfunction
+
+augroup complete_init
   autocmd!
-  autocmd TextChanged,TextChangedI * call s:OnBufferChange(+expand('<abuf>'))
-  autocmd BufRead,BufNewFile * call s:OnBufferRead(+expand('<abuf>'))
-  autocmd BufUnload * call s:OnBufferUnload(+expand('<abuf>'))
+  autocmd user CompleteNvimInit call s:InitAutocmds()
 augroup end
 
 inoremap <silent> <expr> <Plug>(complete_start) complete#start()

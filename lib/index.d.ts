@@ -9,11 +9,10 @@ export default class CompletePlugin {
     private debouncedOnChange;
     constructor(nvim: Neovim);
     onVimEnter(): Promise<void>;
-    onBufferWrite(buf: string): Promise<void>;
     onBufUnload(args: any[]): Promise<void>;
-    onBufAdd(args: any[]): Promise<void>;
-    onBufChangeI(args: any[]): Promise<void>;
-    completeStart(args: CompleteOptionVim[]): Promise<null>;
+    onBufChange(args: any[]): Promise<void>;
+    completeStart(args: CompleteOptionVim[]): Promise<void>;
+    completeResume(args: CompleteOptionVim[]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     private onBufferChange(bufnr);
     private initConfig();

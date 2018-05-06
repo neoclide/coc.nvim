@@ -12,7 +12,6 @@ export default abstract class Source {
     protected readonly menu: string;
     constructor(nvim: Neovim, option: SourceOption);
     checkFileType(filetype: string): boolean;
-    getFilter(): 'word' | 'fuzzy' | null;
     abstract shouldComplete(opt: CompleteOption): Promise<boolean>;
     abstract doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }

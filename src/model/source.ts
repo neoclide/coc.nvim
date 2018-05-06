@@ -22,7 +22,7 @@ export default abstract class Source {
     this.priority = option.priority || 0
     this.filetypes = option.filetypes || null
     this.engross = !!option.engross
-    this.filter = option.filter
+    this.filter = option.filter == 'word' ? 'word' : 'fuzzy'
     if (option.shortcut) {
       this.menu = `[${option.shortcut}]`
     } else {
@@ -33,15 +33,6 @@ export default abstract class Source {
   public checkFileType(filetype: string):boolean {
     if (this.filetypes == null) return true
     return this.filetypes.indexOf(filetype) !== -1
-  }
-
-  public getFilter(): 'word' | 'fuzzy' | null {
-    let {filter} = this
-    if (!filter) return null
-    if (filter === 'remote') {
-      return getConfig('fuzzyMatch') ? 'fuzzy' : 'word'
-    }
-    return filter == 'word' ? 'word' : 'fuzzy'
   }
 
   public abstract shouldComplete(opt: CompleteOption): Promise<boolean>

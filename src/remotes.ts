@@ -6,6 +6,7 @@ import { Neovim } from 'neovim'
 import VimSource from './model/source-vim'
 import {SourceOption} from './types'
 import {logger} from './util/logger'
+import {echoWarning} from './util/index'
 import path = require('path')
 import pify = require('pify')
 import fs = require('fs')
@@ -46,18 +47,18 @@ export class Remotes {
             if (s.isFile()) {
               let name = path.basename(f, '.vim')
               if (this.names.indexOf(name) !== -1) {
-                logger.error(`Same name exists for ${name}`)
+                echoWarning(nvim, `source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
               } else {
                 pathMap[name] = fullpath
                 await nvim.command(`source ${fullpath}`)
                 await this.createSource(nvim, name)
+                logger.debug(`Source ${name} created: ${fullpath}`)
               }
             }
           }
         }
       } catch (e) {} // tslint:disable-line
     }
-    logger.debug(`pathMap: ${JSON.stringify(this.pathMap)}`)
     this.initailized = true
   }
 

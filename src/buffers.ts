@@ -1,5 +1,5 @@
 import Buffer from './model/buffer'
-import {filterWord, filterFuzzy} from './util/filter'
+import {getKeywordsRegEx} from './util/index'
 import unique = require('array-unique')
 import {logger} from './util/logger'
 
@@ -9,12 +9,13 @@ export class Buffers {
     this.buffers = []
   }
 
-  public addBuffer(bufnr: string, content: string): void{
+  public addBuffer(bufnr: string, content: string, keywordOption: string): void{
     let buf = this.buffers.find(buf => buf.bufnr === bufnr)
     if (buf) {
       buf.setContent(content)
     } else {
-      this.buffers.push(new Buffer(bufnr, content))
+      let keywordRe = getKeywordsRegEx(keywordOption)
+      this.buffers.push(new Buffer(bufnr, content, keywordRe))
     }
  }
 
@@ -25,15 +26,13 @@ export class Buffers {
     }
   }
 
-  public getWords(bufnr: string, input: string, filter: string):string[] {
+  public getWords(bufnr: string):string[] {
     let words: string[] = []
     for (let buf of this.buffers) {
       let arr = bufnr === buf.bufnr ? buf.moreWords : buf.words
       words = words.concat(arr)
     }
-    words = unique(words)
-    words = filter === 'word' ? filterWord(words, input) : filterFuzzy(words, input)
-    return words.slice(0, 50)
+    return unique(words)
   }
 
   public getBuffer(bufnr: string): Buffer | null {

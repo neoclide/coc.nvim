@@ -3,7 +3,6 @@ import {logger} from './util/logger'
 
 let config: Config = {
   fuzzyMatch: true,
-  keywordsRegex: /[\w-_$]{2,}/gi,
   noTrace: false,
   timeout: 300,
   sources: ['buffer', 'dictionary', 'path'],
@@ -19,10 +18,6 @@ export function setConfig(opts: {[index: string]: any}):void {
   }
   if (opts.timeout) {
     config.timeout = parseInt(opts.timeout, 10)
-  }
-  let regex = opts.keywordsRegex
-  if (regex && typeof regex === 'string') {
-    config.keywordsRegex = new RegExp(regex, 'gi')
   }
   if (opts.sources && Array.isArray(opts.sources)) {
     config.sources = opts.sources

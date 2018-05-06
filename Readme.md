@@ -53,21 +53,21 @@ by using `setl completeopt`
 
 Configuration of complete.nvim:
 
-* `g:complete_auto_popup` set to `1` if you want the popup automatically shown
+* `g:complete_popup_on_dot` set to `1` if you want the popup shown on dot
   on type.
-* `g:complete_lcn_file_types` array of file types to trigger completion request
-  from [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
-
-  Note: you should install and configure LanguageClient-neovim correctlly to
-  make it works.
-
 * `g:complete_sources` array of source names default to `['buffer', 'dictionary', 'path']`
 * `g:complete_fuzzy_match` set to `0` if you want to disable fuzzy match.
-* `g:complete_keywords_regex` javascript regex for identify words of buffer
-  source, default to `[\w-_$]+`
+  source, default to `[\w-_$]`
 * `g:complete_timeout` timeout in milisecond for completion, default `300`
 * `g:complete_no_trace` set to `1` to disable send message on error or slow
   completion
+
+* `g:complete_menu_one` when using increment filter, `menuone,no_insert` has to
+  be used in `completeopt`, but it's annoying to press a key to finish when
+  there's only one complete item, this setting helps your to complete
+  automatcaly.
+
+* `g:complete_git_check_ignore` not include the buffer when it's git ignored.
 
 ## Related projects
 

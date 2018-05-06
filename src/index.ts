@@ -5,6 +5,7 @@ Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {CompleteOptionVim, VimCompleteItem} from './types'
 import {logger} from './util/logger'
+import {echoErr, contextDebounce} from './util/index'
 import {setConfig, getConfig} from './config'
 import debounce = require('debounce')
 import buffers from './buffers'
@@ -22,10 +23,12 @@ export default class CompletePlugin {
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
-    this.debouncedOnChange = debounce((bufnr: string) => {
-      this.onBufferChange(bufnr)
+    this.debouncedOnChange = contextDebounce((bufnr: string) => {
+      this.onBufferChange(bufnr).catch(e => {
+        logger.error(e.message)
+      })
       logger.debug(`buffer ${bufnr} change`)
-    }, 800)
+    }, 500)
 
     process.on('unhandledRejection', (reason, p) => {
       logger.error('Unhandled Rejection at:', p, 'reason:', reason)
@@ -34,15 +37,16 @@ export default class CompletePlugin {
           logger.error(err.message)
         })
         if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
-          fundebug.notifyError(reason)
+          // fundebug.notifyError(reason)
         }
       }
     })
 
     process.on('uncaughtException', err => {
+      echoErr(nvim, err.message)
       logger.error(err.stack)
       if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
-        fundebug.notifyError(err)
+        // fundebug.notifyError(err)
       }
     })
   }
@@ -53,19 +57,20 @@ export default class CompletePlugin {
   })
   public async onVimEnter(): Promise<void> {
     let {nvim} = this
-    await this.initConfig()
-    await remotes.init(nvim)
-  }
-
-  @Autocmd('BufWritePost', {
-    sync: false,
-    pattern: '*',
-    eval: 'expand("<abuf>")',
-  })
-  public async onBufferWrite(buf: string): Promise<void> {
-    let buftype = await this.nvim.call('getbufvar', [Number(buf), '&buftype'])
-    if (!buftype) {
-      this.onBufferChange(buf)
+    try {
+      await this.initConfig()
+      await remotes.init(nvim)
+      await nvim.command('let g:complete_node_initailized=1')
+      await nvim.command('silent doautocmd User CompleteNvimInit')
+      logger.info('Complete service Initailized')
+      // required since BufRead triggered before VimEnter
+      let bufs:number[] = await nvim.call('complete#util#get_buflist', [])
+      for (let buf of bufs) {
+        this.debouncedOnChange(buf.toString())
+      }
+    } catch (err) {
+      logger.error(err.stack)
+      return echoErr(nvim, `Initailize failed, ${err.message}`)
     }
   }
 
@@ -76,50 +81,57 @@ export default class CompletePlugin {
     logger.debug(`buffer ${bufnr} remove`)
   }
 
-  @Function('CompleteBufRead', {sync: false})
-  public async onBufAdd(args: any[]):Promise<void> {
-    let bufnr = args[0].toString()
-    logger.debug(`buffer ${bufnr} read`)
-    this.onBufferChange(bufnr)
-  }
-
   @Function('CompleteBufChange', {sync: false})
-  public async onBufChangeI(args: any[]):Promise<void> {
+  public async onBufChange(args: any[]):Promise<void> {
     let bufnr = args[0].toString()
-    let curr: number = await this.nvim.call('bufnr', ['%'])
-    if (curr.toString() == bufnr) {
-      this.debouncedOnChange(bufnr)
-    } else {
-      logger.debug(`buffer ${bufnr} change`)
-      this.onBufferChange(bufnr)
-    }
+    this.debouncedOnChange(bufnr)
+    logger.debug(`buffer ${bufnr} change`)
   }
 
   @Function('CompleteStart', {sync: false})
-  public async completeStart(args: CompleteOptionVim[]):Promise<null> {
+  public async completeStart(args: CompleteOptionVim[]):Promise<void> {
     let opt = args[0]
     let start = Date.now()
-    if (opt) {
-      logger.debug(`options: ${JSON.stringify(opt)}`)
-      let {filetype, col} = opt
-      let complete = completes.createComplete(opt)
-      let sources = await completes.getSources(this.nvim, filetype)
-
-      complete.doComplete(sources).then(items => {
-        if (items === null) items = []
-        logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
-        if (items.length > 0) {
-          this.nvim.setVar('complete#_context', {
-            start: col,
-            candidates: items
-          })
-          this.nvim.call('complete#_do_complete', []).then(() => {
-            logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-          })
-        }
-      })
-      return null
-    }
+    if (!opt) return
+    logger.debug(`options: ${JSON.stringify(opt)}`)
+    let {filetype, col} = opt
+    let complete = completes.createComplete(opt)
+    let sources = await completes.getSources(this.nvim, filetype)
+    complete.doComplete(sources).then(items => {
+      if (items === null) items = []
+      logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
+      if (items.length > 0) {
+        this.nvim.setVar('complete#_context', {
+          start: col,
+          candidates: items
+        })
+        this.nvim.call('complete#_do_complete', []).then(() => {
+          logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+        })
+      }
+    })
+  }
+  @Function('CompleteResume', {sync: false})
+  public async completeResume(args: CompleteOptionVim[]):Promise<void> {
+    let opt = args[0]
+    if (!opt) return
+    let start = Date.now()
+    logger.debug(`options: ${JSON.stringify(opt)}`)
+    let {filetype, col, input, word} = opt
+    let complete = completes.getComplete(opt)
+    if (!complete) return
+    let {results} = complete
+    if (!results) return
+    let items = complete.filterResults(results, input, word)
+    logger.debug(`Resume items: ${JSON.stringify(items, null, 2)}`)
+    if (!items || items.length === 0) return
+    this.nvim.setVar('complete#_context', {
+      start: col,
+      candidates: items
+    })
+    this.nvim.call('complete#_do_complete', []).then(() => {
+      logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+    })
   }
 
   @Function('CompleteResult', {sync: false})
@@ -127,16 +139,16 @@ export default class CompletePlugin {
     let id = args[0] as string
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
+    logger.debug(`items:${JSON.stringify(items, null, 2)}`)
     remoteStore.setResult(id, name, items)
   }
 
-  private onBufferChange(bufnr: string):void {
-    this.nvim.call('getbufline', [Number(bufnr), 1, '$']).then(lines => {
-      let content = (lines as string[]).join('\n')
-      buffers.addBuffer(bufnr, content)
-    }, e => {
-      logger.error(e.message)
-    })
+  private async onBufferChange(bufnr: string):Promise<void> {
+    let lines: string[] = await this.nvim.call('getbufline', [Number(bufnr), 1, '$'])
+    let content = (lines as string[]).join('\n')
+    if (/\u0000/.test(content)) return
+    let keywordOption = await this.nvim.call('getbufvar', [Number(bufnr), '&iskeyword'])
+    buffers.addBuffer(bufnr, content, keywordOption)
   }
 
   private async initConfig(): Promise<void> {

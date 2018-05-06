@@ -1,4 +1,4 @@
-export type Filter = 'word' | 'fuzzy' | 'remote'
+export type Filter = 'word' | 'fuzzy'
 
 // options for init source
 export interface SourceOption {
@@ -13,17 +13,21 @@ export interface SourceOption {
 // option on complete & should_complete
 export interface CompleteOption {
   bufnr: string
-  line: number
+  linenr: number
+  line: string
   col: number
   id: string
   input: string
   filetype: string
   word: string
+  colnr: number
 }
 
 export interface CompleteOptionVim {
   word: string
+  colnr: number
   lnum: number
+  line: string
   bufnr: number
   col: number
   filetype: string
@@ -45,13 +49,13 @@ export interface VimCompleteItem {
 
 export interface CompleteResult {
   items: VimCompleteItem[]
+  firstMatch?: boolean
   offsetLeft?: number
   offsetRight?: number
 }
 
 export interface Config {
   fuzzyMatch: boolean
-  keywordsRegex: RegExp
   timeout: number
   noTrace: boolean
   sources: string[]

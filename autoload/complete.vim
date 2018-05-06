@@ -1,17 +1,8 @@
-" ============================================================================
-" Description: handler main logic of vim side
-" Author: Qiming Zhao <chemzqm@gmail.com>
-" Licence: MIT licence
-" Version: 0.1
-" Last Modified:  May 03, 2018
-" ============================================================================
-
 let g:complete#_context = {}
 
 function! complete#get_config(...)
   return {
         \ 'fuzzyMatch': get(g:, 'complete_fuzzy_match', v:null),
-        \ 'keywordsRegex': get(g:, 'complete_keywords_regex', v:null),
         \ 'noTrace': get(g:, 'complete_no_trace', v:null),
         \ 'timeout': get(g:, 'complete_timeout', v:null),
         \ 'sources': get(g:, 'complete_sources', v:null)
@@ -32,23 +23,31 @@ function! complete#_do_complete() abort
   call feedkeys("\<Plug>_", 'i')
 endfunction
 
-function! complete#start()
+function! complete#start(...)
+  let resume = get(a:, 1, 0)
   let pos = getcurpos()
   let line = getline('.')
   let start = pos[2] - 1
-  while start > 0 && line[start - 1] =~# '\w'
+  while start > 0 && line[start - 1] =~# '\k'
     let start -= 1
   endwhile
   let input = line[start : pos[2] - 2]
-  call CompleteStart({
-        \ 'word': expand('<cword>'),
+  let opt = {
+        \ 'word': matchstr(line[start:], '^\k\+'),
         \ 'input': input,
+        \ 'line': getline('.'),
         \ 'buftype': &buftype,
         \ 'filetype': &filetype,
         \ 'bufnr': bufnr('%'),
         \ 'lnum': pos[1],
+        \ 'colnr' : pos[2],
         \ 'col': start,
-        \})
+        \ }
+  if resume
+    call CompleteResume(opt)
+  else
+    call CompleteStart(opt)
+  endif
   return ''
 endfunction
 
@@ -64,4 +63,12 @@ function! s:GetCompletionCol(line, col)
   return len(substitute(content, '\k\+$', '', ''))
 endfunction
 
+function! complete#disable()
+  augroup complete_nvim
+    autocmd!
+  augroup end
+  echohl MoreMsg
+    echon 'complete.nvim disabled'
+  echohl None
+endfunction
 

@@ -5,7 +5,9 @@ import { CompleteOptionVim } from './types';
 export declare class Completes {
     completes: Complete[];
     constructor();
+    newComplete(opts: CompleteOptionVim): Complete;
     createComplete(opts: CompleteOptionVim): Complete;
+    getComplete(opts: CompleteOptionVim): Complete | null;
     getSources(nvim: Neovim, filetype: string): Promise<Source[]>;
     reset(): void;
 }

@@ -13,26 +13,36 @@ export class Completes {
   constructor() {
     this.completes = []
   }
-  public createComplete(opts: CompleteOptionVim): Complete {
-    let {bufnr, lnum, col, input, filetype, word} = opts
+
+  public newComplete(opts: CompleteOptionVim): Complete {
+    let {bufnr, lnum, line, col, colnr, input, filetype, word} = opts
     let complete = new Complete({
       bufnr: bufnr.toString(),
-      line: lnum,
+      linenr: lnum,
+      line,
       word,
       col,
+      colnr,
       input,
       filetype
     })
-    let {id} = complete
+    return complete
+  }
 
-    let exist = this.completes.find(o => o.id === id)
-
-    if (exist) return exist
-    if (this.completes.length > 10) {
+  public createComplete(opts: CompleteOptionVim): Complete {
+    let complete = this.newComplete(opts)
+    this.completes.push(complete)
+    if (this.completes.length > 30) {
       this.completes.shift()
     }
-    this.completes.push(complete)
     return complete
+  }
+
+  public getComplete(opts: CompleteOptionVim): Complete | null {
+    let complete = this.newComplete(opts)
+    return this.completes.find(c => {
+      return c.resuable(complete)
+    })
   }
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
@@ -56,6 +66,7 @@ export class Completes {
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
   }
+
   // should be called when sources changed
   public reset():void {
     this.completes = []
