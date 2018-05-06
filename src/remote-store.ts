@@ -26,6 +26,7 @@ export default {
     return new Promise((resolve, reject):void => {
       let remove:any = addWatcher(key, obj => {
         delete cached[key]
+        logger.debug(JSON.stringify(obj))
         resolve(obj)
       })
       setTimeout(() => {

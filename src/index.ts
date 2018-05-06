@@ -119,10 +119,8 @@ export default class CompletePlugin {
     logger.debug(`options: ${JSON.stringify(opt)}`)
     let {filetype, col, input, word} = opt
     let complete = completes.getComplete(opt)
-    if (!complete) return
-    let {results} = complete
-    if (!results) return
-    let items = complete.filterResults(results, input, word)
+    if (!complete || !complete.results || !complete.results.length) return
+    let items = complete.filterResults(complete.results, input, word)
     logger.debug(`Resume items: ${JSON.stringify(items, null, 2)}`)
     if (!items || items.length === 0) return
     this.nvim.setVar('complete#_context', {
@@ -141,6 +139,22 @@ export default class CompletePlugin {
     let items = args[2] as VimCompleteItem[]
     logger.debug(`items:${JSON.stringify(items, null, 2)}`)
     remoteStore.setResult(id, name, items)
+  }
+
+  @Function('CompleteCheck', {sync: true})
+  public async completeCheck():Promise<string[] | null> {
+    let {nvim} = this
+    await remotes.init(nvim, true)
+    let {names} = remotes
+    let success = true
+    for (let name of names) {
+      let source = remotes.createSource(nvim, name, true)
+      if (source == null) {
+        success = false
+        logger.debug(`Result: ${success}`)
+      }
+    }
+    return success ? names: null
   }
 
   private async onBufferChange(bufnr: string):Promise<void> {

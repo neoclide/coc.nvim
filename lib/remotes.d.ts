@@ -11,11 +11,12 @@ export declare class Remotes {
     initailized: boolean;
     private pathMap;
     constructor();
-    private readonly names;
+    readonly names: string[];
     has(name: any): boolean;
-    init(nvim: Neovim): Promise<void>;
-    checkFunctions(nvim: Neovim): Promise<string[]>;
-    private createSource(nvim, name);
+    init(nvim: Neovim, isCheck?: boolean): Promise<void>;
+    private reportError(nvim, name, msg, fullpath?);
+    private checkSource(nvim, name, isCheck?);
+    createSource(nvim: Neovim, name: string, isCheck?: boolean): Promise<VimSource | null>;
     getSource(nvim: Neovim, name: string): Promise<VimSource | null>;
 }
 declare const _default: Remotes;

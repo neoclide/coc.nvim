@@ -14,6 +14,7 @@ export default class CompletePlugin {
     completeStart(args: CompleteOptionVim[]): Promise<void>;
     completeResume(args: CompleteOptionVim[]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
+    completeCheck(): Promise<string[] | null>;
     private onBufferChange(bufnr);
     private initConfig();
 }

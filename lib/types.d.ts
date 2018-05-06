@@ -9,7 +9,6 @@ export interface SourceOption {
 }
 export interface CompleteOption {
     bufnr: string;
-    linenr: number;
     line: string;
     col: number;
     id: string;
@@ -17,6 +16,7 @@ export interface CompleteOption {
     filetype: string;
     word: string;
     colnr: number;
+    linenr: number;
 }
 export interface CompleteOptionVim {
     word: string;

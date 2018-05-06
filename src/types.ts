@@ -13,14 +13,15 @@ export interface SourceOption {
 // option on complete & should_complete
 export interface CompleteOption {
   bufnr: string
-  linenr: number
   line: string
   col: number
   id: string
   input: string
   filetype: string
   word: string
+  // cursor position
   colnr: number
+  linenr: number
 }
 
 export interface CompleteOptionVim {
