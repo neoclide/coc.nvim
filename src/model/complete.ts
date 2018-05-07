@@ -12,6 +12,7 @@ import Source from './source'
 import {getConfig} from '../config'
 import {score} from 'fuzzaldrin'
 import {wordSortItems} from '../util/sorter'
+import {uniqueItems} from '../util/unique'
 import fuzzysearch = require('fuzzysearch')
 
 export type Callback = () => void
@@ -20,6 +21,7 @@ export default class Complete {
   // identify this complete
   public id: string
   public results: CompleteResult[] | null
+  public finished: boolean
   private bufnr: string
   private linenr: number
   private colnr: number
@@ -46,6 +48,7 @@ export default class Complete {
     this.input = input || ''
     this.filetype = filetype || ''
     this.fuzzy = getConfig('fuzzyMatch')
+    this.finished = false
   }
 
   public getOption():CompleteOption | null {
@@ -64,13 +67,20 @@ export default class Complete {
   }
 
   public resuable(complete: Complete):boolean {
-    let {id, col, word, colnr, input, line, linenr} = complete
-    if (!id || id !== this.id || !this.results
+    let {id, col, colnr, input, line, linenr} = complete
+    let same = id !== this.id
+    if (!id
+      || id !== this.id
+      || !this.results
       || linenr !== this.linenr
       || colnr < this.colnr
       || !input.startsWith(this.input)
+      || line.slice(0, col) !== this.line.slice(0, col)
       || col !== this.col) return false
-    return line.slice(0, col) == this.line.slice(0, col)
+    let buf = buffers.getBuffer(this.bufnr.toString())
+    if (!buf) return false
+    let more = line.slice(col)
+    return buf.isWord(more)
   }
 
   private completeSource(source: Source, opt: CompleteOption): Promise<CompleteResult | null> {
@@ -96,7 +106,7 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[], input: string, cword: string):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[], input: string, cword: string, isResume: boolean):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
     let {fuzzy} = this
     let cFirst = input.length ? input[0].toLowerCase() : null
@@ -116,7 +126,9 @@ export default class Complete {
         // first must match for no kind
         if (firstMatch && cFirst && cFirst !== first) continue
         // filter unnecessary no kind results
-        if (!item.kind && (input.length == 0 || word == cword || word == input)) continue
+        if (!isResume
+          &&!item.kind
+          && (input.length == 0 || word == cword || word == input)) continue
         if (input.length && !fuzzysearch(input, word)) continue
 
         if (user_data) {
@@ -133,13 +145,12 @@ export default class Complete {
     } else {
       arr = wordSortItems(arr, input)
     }
-    return arr
+    return uniqueItems(arr)
   }
 
   public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
     let opts = this.getOption()
     if (opts === null) return [] as VimCompleteItem[]
-    // if (this.result) return this.result
     sources.sort((a, b) => b.priority - a.priority)
     let valids: Source[] = []
     for (let s of sources) {
@@ -155,23 +166,15 @@ export default class Complete {
     logger.debug(`Enabled sources: ${valids.map(s => s.name).join(',')}`)
     let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
 
-    let isBad = false
-    results = results.filter(r => {
-      if (r == null) {
-        isBad = true
-        return false
-      }
-      return true
-    })
-
+    this.finished = results.indexOf(null) == -1
+    results = results.filter(r => r !== null)
     if (engrossIdx && results[engrossIdx]) {
       let {items} = results[engrossIdx]
       if (items.length) results = [results[engrossIdx]]
     }
-    if (!isBad) {
-      this.results = results
-    }
+    // reuse it even it's bad
+    this.results = results
     let {input, word} = this
-    return this.filterResults(results, input, word)
+    return this.filterResults(results, input, word, false)
   }
 }

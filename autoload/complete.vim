@@ -2,6 +2,7 @@ let g:complete#_context = {}
 
 function! complete#get_config(...)
   return {
+        \ 'completeOpt': &completeopt,
         \ 'fuzzyMatch': get(g:, 'complete_fuzzy_match', v:null),
         \ 'noTrace': get(g:, 'complete_no_trace', v:null),
         \ 'timeout': get(g:, 'complete_timeout', v:null),

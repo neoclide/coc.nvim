@@ -56,9 +56,9 @@ export interface CompleteResult {
 }
 
 export interface Config {
+  completeOpt: string
   fuzzyMatch: boolean
   timeout: number
   noTrace: boolean
   sources: string[]
-  [index: string]: any
 }

@@ -12,6 +12,7 @@ export default class CompletePlugin {
     onBufUnload(args: any[]): Promise<void>;
     onBufChange(args: any[]): Promise<void>;
     completeStart(args: CompleteOptionVim[]): Promise<void>;
+    completeCharInsert(): Promise<void>;
     completeResume(args: CompleteOptionVim[]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;

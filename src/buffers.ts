@@ -1,7 +1,7 @@
 import Buffer from './model/buffer'
-import {getKeywordsRegEx} from './util/index'
-import unique = require('array-unique')
+import {getKeywordsRegStr} from './util/index'
 import {logger} from './util/logger'
+import unique = require('array-unique')
 
 export class Buffers {
   public buffers: Buffer[]
@@ -14,8 +14,8 @@ export class Buffers {
     if (buf) {
       buf.setContent(content)
     } else {
-      let keywordRe = getKeywordsRegEx(keywordOption)
-      this.buffers.push(new Buffer(bufnr, content, keywordRe))
+      let keywordRegStr = getKeywordsRegStr(keywordOption, 2)
+      this.buffers.push(new Buffer(bufnr, content, keywordRegStr))
     }
  }
 

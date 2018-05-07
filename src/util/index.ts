@@ -43,7 +43,7 @@ export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
   await nvim.call('complete#util#print_errors', lines)
 }
 
-export function getKeywordsRegEx(keywordOption: string):RegExp {
+export function getKeywordsRegStr(keywordOption: string, count: number):string {
   let parts = keywordOption.split(',')
   let str = ''
   for (let part of parts) {
@@ -56,5 +56,5 @@ export function getKeywordsRegEx(keywordOption: string):RegExp {
       str += `${String.fromCharCode(Number(ms[1]))}-${String.fromCharCode(Number(ms[2]))}`
     }
   }
-  return new RegExp(`[${str}]{2,}`, 'gi')
+  return `[${str}]`
 }

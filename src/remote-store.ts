@@ -10,7 +10,7 @@ export interface Cached {
   [index: string]: VimCompleteItem[]
 }
 
-const timeout = 5000
+const timeout = 2000
 const cached: Cached = {}
 let {watched, addWatcher} = watchObj(cached)
 
@@ -26,12 +26,11 @@ export default {
     return new Promise((resolve, reject):void => {
       let remove:any = addWatcher(key, obj => {
         delete cached[key]
-        logger.debug(JSON.stringify(obj))
         resolve(obj)
       })
       setTimeout(() => {
         remove()
-        reject(new Error(`Source ${name} timeout in ${timeout/5000}s`))
+        reject(new Error(`Source ${name} timeout in ${timeout/1000}s`))
       }, timeout)
     })
   },

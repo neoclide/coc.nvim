@@ -33,6 +33,8 @@ export default class VimSource extends Source {
     let items = await remoteStore.getResult(id, this.name)
     let {filter} = this
     for (let item of items) {
+      delete item.dup
+      delete item.icase
       item.menu = this.menu
     }
     if (filter === 'fuzzy') {

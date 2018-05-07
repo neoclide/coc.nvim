@@ -47,9 +47,9 @@ export interface CompleteResult {
     offsetRight?: number;
 }
 export interface Config {
+    completeOpt: string;
     fuzzyMatch: boolean;
     timeout: number;
     noTrace: boolean;
     sources: string[];
-    [index: string]: any;
 }

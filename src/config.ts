@@ -5,24 +5,30 @@ let config: Config = {
   fuzzyMatch: true,
   noTrace: false,
   timeout: 300,
+  completeOpt: 'menu,preview',
   sources: ['buffer', 'dictionary', 'path'],
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
-  let keys = ['fuzzyMatch', 'noTrace']
-  for (let key of keys) {
+  for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (val != null) {
-      config[key] = !!val
+    if (['fuzzyMatch', 'noTrace'].indexOf(key) !== -1) {
+      if (val != null) {
+        config[key] = !!val
+      }
+    }
+    if (key === 'timeout') {
+      config.timeout = Number(opts.timeout)
+      if (isNaN(config.timeout)) config.timeout = 300
+    }
+    if (key === 'source' && Array.isArray(opts.sources)) {
+      config.sources = val
+    }
+    if (key === 'completeOpt') {
+      config.completeOpt = opts.completeOpt
     }
   }
-  if (opts.timeout) {
-    config.timeout = parseInt(opts.timeout, 10)
-  }
-  if (opts.sources && Array.isArray(opts.sources)) {
-    config.sources = opts.sources
-  }
-  logger.debug(`config:${JSON.stringify(opts)}`)
+  logger.debug(`config:${JSON.stringify(config)}`)
 }
 
 export function getConfig(name: string):any {

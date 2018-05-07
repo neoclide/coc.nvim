@@ -8,6 +8,7 @@ export declare type Callback = () => void;
 export default class Complete {
     id: string;
     results: CompleteResult[] | null;
+    finished: boolean;
     private bufnr;
     private linenr;
     private colnr;
@@ -21,6 +22,6 @@ export default class Complete {
     getOption(): CompleteOption | null;
     resuable(complete: Complete): boolean;
     private completeSource(source, opt);
-    filterResults(results: CompleteResult[], input: string, cword: string): VimCompleteItem[];
+    filterResults(results: CompleteResult[], input: string, cword: string, isResume: boolean): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<VimCompleteItem[]>;
 }

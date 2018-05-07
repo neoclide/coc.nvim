@@ -85,7 +85,6 @@ export default class CompletePlugin {
   public async onBufChange(args: any[]):Promise<void> {
     let bufnr = args[0].toString()
     this.debouncedOnChange(bufnr)
-    logger.debug(`buffer ${bufnr} change`)
   }
 
   @Function('CompleteStart', {sync: false})
@@ -99,7 +98,7 @@ export default class CompletePlugin {
     let sources = await completes.getSources(this.nvim, filetype)
     complete.doComplete(sources).then(items => {
       if (items === null) items = []
-      logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
+      // logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
       if (items.length > 0) {
         this.nvim.setVar('complete#_context', {
           start: col,
@@ -111,22 +110,41 @@ export default class CompletePlugin {
       }
     })
   }
+
+  @Autocmd('InsertCharPre', {
+    pattern: '*',
+    sync: true,
+  })
+  public async completeCharInsert():Promise<void> {
+    // TODO save the current char
+    let ac = await this.nvim.getVvar('char')
+    logger.debug(`inserted:${ac}`)
+  }
+
   @Function('CompleteResume', {sync: false})
   public async completeResume(args: CompleteOptionVim[]):Promise<void> {
     let opt = args[0]
     if (!opt) return
     let start = Date.now()
-    logger.debug(`options: ${JSON.stringify(opt)}`)
+    logger.debug(`Resume options: ${JSON.stringify(opt)}`)
     let {filetype, col, input, word} = opt
     let complete = completes.getComplete(opt)
+    if (complete) {
+      logger.debug('Find complete')
+    }
     if (!complete || !complete.results || !complete.results.length) return
-    let items = complete.filterResults(complete.results, input, word)
-    logger.debug(`Resume items: ${JSON.stringify(items, null, 2)}`)
+    // TODO change input to only user input characters
+    let items = complete.filterResults(complete.results, input, word, true)
+    // logger.debug(`Resume items: ${JSON.stringify(items, null, 2)}`)
     if (!items || items.length === 0) return
+    let completeOpt = await this.nvim.getOption('completeopt')
+    setConfig({completeOpt})
     this.nvim.setVar('complete#_context', {
       start: col,
       candidates: items
     })
+    // TODO find out the way to restore completeopt
+    // await this.nvim.setOption('completeopt', 'menuone,noinsert')
     this.nvim.call('complete#_do_complete', []).then(() => {
       logger.debug(`Complete time cost: ${Date.now() - start}ms`)
     })
@@ -137,7 +155,8 @@ export default class CompletePlugin {
     let id = args[0] as string
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
-    logger.debug(`items:${JSON.stringify(items, null, 2)}`)
+    items = items || []
+    // logger.debug(`Remote items:${JSON.stringify(items, null, 2)}`)
     remoteStore.setResult(id, name, items)
   }
 
