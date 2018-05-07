@@ -8,10 +8,10 @@ import natives from './natives'
 import remotes from './remotes'
 
 export class Completes {
-  public completes: Complete[]
+  public complete: Complete | null
 
   constructor() {
-    this.completes = []
+    this.complete = null
   }
 
   public newComplete(opts: CompleteOptionVim): Complete {
@@ -31,18 +31,14 @@ export class Completes {
 
   public createComplete(opts: CompleteOptionVim): Complete {
     let complete = this.newComplete(opts)
-    this.completes.push(complete)
-    if (this.completes.length > 2) {
-      this.completes.shift()
-    }
+    this.complete = complete
     return complete
   }
 
   public getComplete(opts: CompleteOptionVim): Complete | null {
+    if (!this.complete) return null
     let complete = this.newComplete(opts)
-    return this.completes.find(c => {
-      return c.resuable(complete)
-    })
+    return this.complete.resuable(complete) ? this.complete: null
   }
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
@@ -65,11 +61,6 @@ export class Completes {
     }
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
-  }
-
-  // should be called when sources changed
-  public reset():void {
-    this.completes = []
   }
 }
 

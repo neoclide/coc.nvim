@@ -1,14 +1,13 @@
 export default class Buffer {
     bufnr: string;
     content: string;
-    keywordRegStr: string;
+    keywordOption: string;
     words: string[];
     hash: string;
-    keywordsRegex: RegExp;
-    keywordRegex: RegExp;
-    constructor(bufnr: string, content: string, keywordRegStr: string);
+    private chars;
+    constructor(bufnr: string, content: string, keywordOption: string);
     isWord(word: string): boolean;
-    private generateWords();
-    private genHash(content);
+    private generate();
+    setKeywordOption(option: string): void;
     setContent(content: string): void;
 }

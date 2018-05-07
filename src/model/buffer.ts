@@ -1,40 +1,37 @@
-import unique = require('array-unique')
 import crypto = require('crypto')
 import {logger} from '../util/logger'
+import {Chars} from './chars'
 const {createHash} = crypto
 
 export default class Buffer {
   public words: string[]
   public hash: string
-  public keywordsRegex: RegExp
-  public keywordRegex: RegExp
-  constructor(public bufnr: string, public content: string, public keywordRegStr : string) {
+  private chars: Chars
+  constructor(public bufnr: string, public content: string, public keywordOption : string) {
     this.bufnr = bufnr
     this.content = content
-    this.keywordsRegex = new RegExp(`${keywordRegStr}{3,}`, 'g')
-    this.keywordRegex = new RegExp(`^${keywordRegStr}+$`)
-    this.generateWords()
-    this.genHash(content)
+    this.chars = new Chars(keywordOption)
+    this.generate()
   }
 
   public isWord(word: string):boolean {
-    return this.keywordRegex.test(word)
+    return this.chars.isKeyword(word)
   }
 
-  private generateWords(): void {
-    let {content, keywordsRegex} = this
+  private generate(): void {
+    let {content} = this
     if (content.length == 0) return
-    let words = content.match(keywordsRegex) || []
-    this.words = unique(words)
+    this.words = this.chars.matchKeywords(content)
+    this.hash = createHash('md5').update(content).digest('hex')
   }
 
-  private genHash(content: string): void {
-    this.hash = createHash('md5').update(content).digest('hex')
+  public setKeywordOption(option: string):void {
+    this.chars = new Chars(option)
+    this.generate()
   }
 
   public setContent(content: string):void {
     this.content = content
-    this.generateWords()
-    this.genHash(content)
+    this.generate()
   }
 }

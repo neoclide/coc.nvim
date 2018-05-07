@@ -24,7 +24,7 @@ export default class Around extends Source {
     let buffer = await this.nvim.buffer
     let keywordOption = await buffer.getOption('iskeyword')
     let lines = await buffer.lines
-    let content = (lines as string[]).join('\n')
+    let content = lines.join('\n')
     let document = buffers.createDocument(uri, filetype, content, keywordOption)
     let words = document.getWords()
     return {

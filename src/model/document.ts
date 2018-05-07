@@ -1,33 +1,50 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-types'
 import unique = require('array-unique')
 import {logger} from '../util/logger'
+import {Chars} from './chars'
 
 export default class Doc {
   public doc: TextDocument
-  public keywordsRegex: RegExp
   public content: string
-  constructor(uri: string, filetype: string, version: number, content: string, keywordRegStr: string) {
-    this.keywordsRegex = new RegExp(`${keywordRegStr}{3,}`, 'g')
+  public uri: string
+  public filetype: string
+  public version: number
+  private chars: Chars
+  constructor(uri: string, filetype: string, version: number, content: string, keywordOption: string) {
     this.doc = TextDocument.create(uri, filetype, version, content)
+    this.uri = uri
+    this.filetype = filetype
     this.content = content
+    this.version = version
+    this.chars = new Chars(keywordOption)
   }
 
   public applyEdits(edits: TextEdit[]):string {
     return TextDocument.applyEdits(this.doc, edits)
   }
 
+  public setContent(content: string):void {
+    this.content = content
+    let version = this.version = this.version + 1
+    this.doc = TextDocument.create(this.uri, this.filetype, version, content)
+  }
+
+  public isWord(word: string):boolean {
+    return this.chars.isKeyword(word)
+  }
+
   public getWords():string[] {
-    let {content} = this
-    let {keywordsRegex} = this
+    let {content, chars} = this
     if (content.length == 0) return []
-    let words = content.match(keywordsRegex) || []
-    words = unique(words) as string[]
+    let words = this.chars.matchKeywords(content)
     for (let word of words) {
-      let ms = word.match(/^(\w{3,})[\\-_]/)
-      if (ms && words.indexOf(ms[0]) == -1) {
-        words.unshift(ms[1])
+      for (let ch of ['-', '_']) {
+        if (word.indexOf(ch) !== -1) {
+          let parts = word.split(ch)
+          words = words.concat(parts)
+        }
       }
     }
-    return words
+    return unique(words)
   }
 }

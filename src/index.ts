@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {CompleteOptionVim, VimCompleteItem} from './types'
 import {logger} from './util/logger'
@@ -121,10 +117,21 @@ export default class CompletePlugin {
     logger.debug(`inserted:${ac}`)
   }
 
+  @Autocmd('CompleteDone', {
+    pattern: '*',
+    sync: true,
+  })
+  public async completeDone():Promise<void> {
+    // TODO finish logic
+    let o = await this.nvim.getVvar('completed_item')
+    logger.debug(`Completed item:${JSON.stringify(o)}`)
+  }
+
   @Function('CompleteResume', {sync: false})
   public async completeResume(args: CompleteOptionVim[]):Promise<void> {
     let opt = args[0]
     // TODO disable for now
+    logger.debug('TextChangedI fires')
     if (opt) return
     let start = Date.now()
     logger.debug(`Resume options: ${JSON.stringify(opt)}`)

@@ -4,6 +4,11 @@ Make complete works as expected in [neovim](https://github.com/neovim/neovim)
 
 W.I.P.
 
+**WARNING** main features still not working!
+
+* Popup should shown as less as possible
+* The user input required shoud be as less as possible
+
 ## Features
 
 * Async generate complete items in parallel.

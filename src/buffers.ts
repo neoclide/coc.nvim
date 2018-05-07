@@ -1,6 +1,5 @@
 import Buffer from './model/buffer'
 import Doc from './model/document'
-import {getKeywordsRegStr} from './util/index'
 import {logger} from './util/logger'
 import unique = require('array-unique')
 
@@ -17,10 +16,7 @@ export class Buffers {
     let version = this.versions[uri]
     version = version ? version + 1 : 1
     this.versions[uri] = version
-    let keywordRegStr = getKeywordsRegStr(keywordOption)
-    logger.debug(`str:${keywordRegStr}`)
-    let doc = new Doc(uri, filetype, version, content, keywordRegStr)
-    logger.debug(`abc`)
+    let doc = new Doc(uri, filetype, version, content, keywordOption)
     this.document = doc
     return doc
   }
@@ -30,8 +26,7 @@ export class Buffers {
     if (buf) {
       buf.setContent(content)
     } else {
-      let keywordRegStr = getKeywordsRegStr(keywordOption)
-      this.buffers.push(new Buffer(bufnr, content, keywordRegStr))
+      this.buffers.push(new Buffer(bufnr, content, keywordOption))
     }
  }
 

@@ -46,9 +46,9 @@ export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
 
 function escapeChar(s:string):string {
   if (/^\w/.test(s)) return ''
-  if (s === '-') return '\\\\-'
-  if (s === '.') return '\\\\.'
-  if (s === ':') return '\\\\:'
+  if (s === '-') return '\\-'
+  if (s === '.') return '\\.'
+  if (s === ':') return '\\:'
   return s
 }
 
@@ -60,10 +60,11 @@ export function getKeywordsRegStr(keywordOption: string):string {
   parts = unique(parts)
   for (let part of parts) {
     if (part == '@') {
-      str += 'A-Za-z'
+      str += '\\w'
     } else if (/^(\d+)-(\d+)$/.test(part)) {
+      if (part === '48-57') continue
       let ms = part.match(/^(\d+)-(\d+)$/)
-      str += `${String.fromCharCode(Number(ms[1]))}-${String.fromCharCode(Number(ms[2]))}`
+      // str += `${String.fromCharCode(Number(ms[1]))}-${String.fromCharCode(Number(ms[2]))}`
     } else if (/^\d+$/.test(part)) {
       chars.push(escapeChar(String.fromCharCode(Number(part))))
     } else if (part.length == 1) {
@@ -71,6 +72,5 @@ export function getKeywordsRegStr(keywordOption: string):string {
     }
   }
   str += unique(chars).join('')
-  logger.debug(`str:${str}`)
   return `[${str}]`
 }

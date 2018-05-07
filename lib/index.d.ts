@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import { Neovim } from 'neovim';
 import { CompleteOptionVim } from './types';
 export default class CompletePlugin {
@@ -13,6 +9,7 @@ export default class CompletePlugin {
     onBufChange(args: any[]): Promise<void>;
     completeStart(args: CompleteOptionVim[]): Promise<void>;
     completeCharInsert(): Promise<void>;
+    completeDone(): Promise<void>;
     completeResume(args: CompleteOptionVim[]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
