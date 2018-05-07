@@ -6,7 +6,7 @@ let config: Config = {
   noTrace: false,
   timeout: 300,
   completeOpt: 'menu,preview',
-  sources: ['buffer', 'dictionary', 'path'],
+  sources: ['around', 'buffer', 'dictionary', 'path'],
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
@@ -21,8 +21,8 @@ export function setConfig(opts: {[index: string]: any}):void {
       config.timeout = Number(opts.timeout)
       if (isNaN(config.timeout)) config.timeout = 300
     }
-    if (key === 'source' && Array.isArray(opts.sources)) {
-      config.sources = val
+    if (key === 'sources' && Array.isArray(opts.sources)) {
+      config.sources = config.sources.concat(opts.sources)
     }
     if (key === 'completeOpt') {
       config.completeOpt = opts.completeOpt

@@ -1,12 +1,28 @@
 import Buffer from './model/buffer'
+import Doc from './model/document'
 import {getKeywordsRegStr} from './util/index'
 import {logger} from './util/logger'
 import unique = require('array-unique')
 
 export class Buffers {
   public buffers: Buffer[]
+  public versions: {[index: string] : number}
+  public document: Doc
   constructor() {
     this.buffers = []
+    this.versions = {}
+  }
+
+  public createDocument(uri: string, filetype: string, content: string, keywordOption: string):Doc {
+    let version = this.versions[uri]
+    version = version ? version + 1 : 1
+    this.versions[uri] = version
+    let keywordRegStr = getKeywordsRegStr(keywordOption)
+    logger.debug(`str:${keywordRegStr}`)
+    let doc = new Doc(uri, filetype, version, content, keywordRegStr)
+    logger.debug(`abc`)
+    this.document = doc
+    return doc
   }
 
   public addBuffer(bufnr: string, content: string, keywordOption: string): void{
@@ -14,7 +30,7 @@ export class Buffers {
     if (buf) {
       buf.setContent(content)
     } else {
-      let keywordRegStr = getKeywordsRegStr(keywordOption, 2)
+      let keywordRegStr = getKeywordsRegStr(keywordOption)
       this.buffers.push(new Buffer(bufnr, content, keywordRegStr))
     }
  }
@@ -29,8 +45,8 @@ export class Buffers {
   public getWords(bufnr: string):string[] {
     let words: string[] = []
     for (let buf of this.buffers) {
-      let arr = bufnr === buf.bufnr ? buf.moreWords : buf.words
-      words = words.concat(arr)
+      if (bufnr === buf.bufnr) continue
+      words = words.concat(buf.words)
     }
     return unique(words)
   }

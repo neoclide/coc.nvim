@@ -55,7 +55,6 @@ by using `setl completeopt`
 
 Configuration of complete.nvim:
 
-* `g:complete_sources` array of source names default to `['buffer', 'dictionary', 'path']`
 * `g:complete_fuzzy_match` set to `0` if you want to disable fuzzy match.
 * `g:complete_timeout` timeout in milisecond for completion, default `300`
 * `g:complete_no_trace` set to `1` to disable send message on error

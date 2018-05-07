@@ -30,9 +30,8 @@ function! s:checkInitailize() abort
     return 1
   endif
   call health#report_error('service could not be initailized', [
-        \ 'To get the detail information'
-        \ 'set environment variable $NVIM_COMPLETE_LOG_FILE to a log file'
-        \ 'and restart your neovim'
+        \ 'You may not have neovim package installed correctly,',
+        \ 'check out https://github.com/neovim/node-client#debugging--troubleshooting',
         \])
   return 0
 endfunction

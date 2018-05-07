@@ -2,7 +2,6 @@ export declare type Filter = 'word' | 'fuzzy';
 export interface SourceOption {
     name: string;
     shortcut?: string;
-    priority: number;
     filetypes?: string[];
     engross?: boolean | number;
     filter?: Filter;

@@ -19,7 +19,6 @@ export default abstract class Source {
     this.nvim = nvim
     this.name = option.name
     this.shortcut = option.shortcut
-    this.priority = option.priority || 0
     this.filetypes = option.filetypes || null
     this.engross = !!option.engross
     this.filter = option.filter == 'word' ? 'word' : 'fuzzy'

@@ -16,7 +16,7 @@ import remotes from './remotes'
 import fundebug = require('fundebug-nodejs')
 fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
-@Plugin({dev: false})
+@Plugin({dev: true})
 export default class CompletePlugin {
   public nvim: Neovim
   private debouncedOnChange: (bufnr: string)=>void
@@ -98,7 +98,7 @@ export default class CompletePlugin {
     let sources = await completes.getSources(this.nvim, filetype)
     complete.doComplete(sources).then(items => {
       if (items === null) items = []
-      // logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
+      logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
       if (items.length > 0) {
         this.nvim.setVar('complete#_context', {
           start: col,
@@ -124,7 +124,8 @@ export default class CompletePlugin {
   @Function('CompleteResume', {sync: false})
   public async completeResume(args: CompleteOptionVim[]):Promise<void> {
     let opt = args[0]
-    if (!opt) return
+    // TODO disable for now
+    if (opt) return
     let start = Date.now()
     logger.debug(`Resume options: ${JSON.stringify(opt)}`)
     let {filetype, col, input, word} = opt

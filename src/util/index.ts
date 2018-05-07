@@ -1,6 +1,7 @@
 import {Neovim } from 'neovim'
 import debounce = require('debounce')
 import {logger} from './logger'
+import unique = require('array-unique')
 
 export type Callback =(arg: string) => void
 
@@ -43,18 +44,33 @@ export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
   await nvim.call('complete#util#print_errors', lines)
 }
 
-export function getKeywordsRegStr(keywordOption: string, count: number):string {
+function escapeChar(s:string):string {
+  if (/^\w/.test(s)) return ''
+  if (s === '-') return '\\\\-'
+  if (s === '.') return '\\\\.'
+  if (s === ':') return '\\\\:'
+  return s
+}
+
+export function getKeywordsRegStr(keywordOption: string):string {
   let parts = keywordOption.split(',')
   let str = ''
+  let chars = []
+
+  parts = unique(parts)
   for (let part of parts) {
     if (part == '@') {
       str += 'A-Za-z'
-    } else if (part.length == 1) {
-      str += part.replace(/\[/g, '\\[').replace(/\]/g, '\\]')
-    } else if (/^\d+-\d+$/.test(part)) {
+    } else if (/^(\d+)-(\d+)$/.test(part)) {
       let ms = part.match(/^(\d+)-(\d+)$/)
       str += `${String.fromCharCode(Number(ms[1]))}-${String.fromCharCode(Number(ms[2]))}`
+    } else if (/^\d+$/.test(part)) {
+      chars.push(escapeChar(String.fromCharCode(Number(part))))
+    } else if (part.length == 1) {
+      chars.push(escapeChar(part))
     }
   }
+  str += unique(chars).join('')
+  logger.debug(`str:${str}`)
   return `[${str}]`
 }

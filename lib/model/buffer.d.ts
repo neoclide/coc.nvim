@@ -3,7 +3,6 @@ export default class Buffer {
     content: string;
     keywordRegStr: string;
     words: string[];
-    moreWords: string[];
     hash: string;
     keywordsRegex: RegExp;
     keywordRegex: RegExp;

@@ -32,7 +32,7 @@ export class Completes {
   public createComplete(opts: CompleteOptionVim): Complete {
     let complete = this.newComplete(opts)
     this.completes.push(complete)
-    if (this.completes.length > 30) {
+    if (this.completes.length > 2) {
       this.completes.shift()
     }
     return complete

@@ -1,10 +1,10 @@
 import unique = require('array-unique')
 import crypto = require('crypto')
+import {logger} from '../util/logger'
 const {createHash} = crypto
 
 export default class Buffer {
   public words: string[]
-  public moreWords: string[]
   public hash: string
   public keywordsRegex: RegExp
   public keywordRegex: RegExp
@@ -12,7 +12,7 @@ export default class Buffer {
     this.bufnr = bufnr
     this.content = content
     this.keywordsRegex = new RegExp(`${keywordRegStr}{3,}`, 'g')
-    this.keywordRegex = new RegExp(`^${keywordRegStr}+$`, 'g')
+    this.keywordRegex = new RegExp(`^${keywordRegStr}+$`)
     this.generateWords()
     this.genHash(content)
   }
@@ -25,20 +25,7 @@ export default class Buffer {
     let {content, keywordsRegex} = this
     if (content.length == 0) return
     let words = content.match(keywordsRegex) || []
-    words = unique(words) as string[]
-    let arr = Array.from(words)
-    for (let word of words) {
-      let ms = word.match(/^(\w{3,})-/)
-      if (ms && words.indexOf(ms[0]) === -1) {
-        arr.unshift(ms[1])
-      }
-      ms = word.match(/^(\w{3,})_/)
-      if (ms && words.indexOf(ms[0]) === -1) {
-        arr.unshift(ms[1])
-      }
-    }
-    this.words = words
-    this.moreWords = unique(arr)
+    this.words = unique(words)
   }
 
   private genHash(content: string): void {

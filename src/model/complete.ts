@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import {CompleteOption,
   VimCompleteItem,
   CompleteResult} from '../types'
@@ -113,28 +109,24 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       if (res == null) continue
-      let {items, offsetLeft, offsetRight, firstMatch} = res
+      let {items, offsetLeft, offsetRight} = res
       let hasOffset = !!offsetLeft || !!offsetRight
       let user_data =  hasOffset ? JSON.stringify({
         offsetLeft: offsetLeft || 0,
         offsetRight: offsetRight || 0
       }) : null
       for (let item of items) {
-        let {word} = item
-        if (word.length <= 1) return
+        let {word, kind, info} = item
+        if (!word || word.length <= 2) continue
         let first = word[0].toLowerCase()
         // first must match for no kind
-        if (firstMatch && cFirst && cFirst !== first) continue
+        if (!kind && cFirst && cFirst !== first) continue
+        if (!kind && input.length == 0) continue
         // filter unnecessary no kind results
-        if (!isResume
-          &&!item.kind
-          && (input.length == 0 || word == cword || word == input)) continue
+        if (!kind && !isResume && (word == cword || word == input)) continue
         if (input.length && !fuzzysearch(input, word)) continue
-
-        if (user_data) {
-          item.user_data = user_data
-        }
-        if (fuzzy) item.score = score(item.word, input) + (item.kind ? 0.01 : 0)
+        if (user_data) item.user_data = user_data
+        if (fuzzy) item.score = score(word, input) + (kind || info ? 0.01 : 0)
         arr.push(item)
       }
     }
