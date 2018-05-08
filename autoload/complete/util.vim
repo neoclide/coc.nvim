@@ -34,16 +34,5 @@ function! complete#util#once(callback) abort
 endfunction
 
 function! complete#util#check_state() abort
-  if s:disabled | return 0 | endif
   return get(g:, 'complete_node_channel_id', 0)
-endfunction
-
-function! complete#util#disable()
-  let s:disabled = 1
-  augroup complete_nvim
-    autocmd!
-  augroup end
-  echohl MoreMsg
-    echon 'complete.nvim disabled'
-  echohl None
 endfunction

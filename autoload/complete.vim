@@ -63,3 +63,12 @@ function! s:GetCompletionCol(line, col)
   " find the last none keyword character column
   return len(substitute(content, '\k\+$', '', ''))
 endfunction
+
+function! complete#disable()
+  augroup complete_nvim
+    autocmd!
+  augroup end
+  echohl MoreMsg
+    echon 'complete.nvim disabled'
+  echohl None
+endfunction
