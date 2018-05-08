@@ -46,10 +46,8 @@
     "fuzzysearch": "^1.0.3",
     "neovim": "^3.5.2",
     "pify": "^3.0.0",
-    "rxjs": "^6.0.0",
     "tslib": "^1.9.0",
     "typescript": "^2.8.3",
-    "vscode-languageclient": "^4.1.3",
     "vscode-languageserver-types": "^3.7.1",
     "winston": "^2.4.2"
   }
