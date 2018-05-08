@@ -6,6 +6,7 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
+    "importHelpers": true,
     "lib": ["es2016", "es2015"],
     "sourceMap": true,
     "declaration": true,
