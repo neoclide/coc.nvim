@@ -9,6 +9,7 @@ export declare class Completes {
     createComplete(opts: CompleteOptionVim): Complete;
     getComplete(opts: CompleteOptionVim): Complete | null;
     getSources(nvim: Neovim, filetype: string): Promise<Source[]>;
+    reset(): void;
 }
 declare const _default: Completes;
 export default _default;

@@ -37,23 +37,19 @@ export default class CompletePlugin {
 
     process.on('unhandledRejection', (reason, p) => {
       logger.error('Unhandled Rejection at:', p, 'reason:', reason)
-      if (reason instanceof Error) {
-        nvim.call('complete#util#print_errors', [(reason as Error).stack.split(/\n/)]).catch(err => {
-          logger.error(err.message)
-        })
-        if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
-          // fundebug.notifyError(reason)
-        }
-      }
+      if (reason instanceof Error) this.handleError(reason)
     })
+    process.on('uncaughtException', this.handleError)
+  }
 
-    process.on('uncaughtException', err => {
-      echoErr(nvim, err.message)
-      logger.error(err.stack)
-      if (!getConfig('noTrace') && process.env.NODE_ENV !== 'test') {
-        // fundebug.notifyError(err)
-      }
+  private handleError(err: Error):void {
+    let {nvim} = this
+    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
+      logger.error(err.message)
     })
+    if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
+      fundebug.notifyError(err)
+    }
   }
 
   @Autocmd('VimEnter', {
@@ -174,7 +170,6 @@ export default class CompletePlugin {
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
     items = items || []
-    // logger.debug(`Remote items:${JSON.stringify(items, null, 2)}`)
     remoteStore.setResult(id, name, items)
   }
 
@@ -219,9 +214,10 @@ export default class CompletePlugin {
   }
 
   @Function('CompleteSourceToggle', {sync: true})
-  public async completeSourceToggle(args: any):Promise<void> {
+  public async completeSourceToggle(args: any):Promise<string> {
     let name = args[0].toString()
-    toggleSource(name)
+    if (!name) return
+    return toggleSource(name)
   }
 
   @Function('CompleteSourceRefresh', {sync: true})

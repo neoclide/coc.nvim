@@ -4,9 +4,9 @@ function! complete#get_config(...)
   return {
         \ 'completeOpt': &completeopt,
         \ 'fuzzyMatch': get(g:, 'complete_fuzzy_match', v:null),
-        \ 'noTrace': get(g:, 'complete_no_trace', v:null),
+        \ 'traceError': get(g:, 'complete_trace_error', v:null),
         \ 'timeout': get(g:, 'complete_timeout', v:null),
-        \ 'sources': get(g:, 'complete_sources', v:null)
+        \ 'checkGit': get(g:, 'complete_ignore_git_ignore', v:null),
         \}
 endfunction
 

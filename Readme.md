@@ -76,14 +76,12 @@ set completeopt=menu,preview
 
 ### Global configuration of complete.nvim:
 
-* `g:complete_fuzzy_match` set to `0` if you want to disable fuzzy match.
-* `g:complete_timeout` timeout in milisecond for completion, default `300`
-* `g:complete_no_trace` set to `1` to disable send messages on error
-
-* `g:complete_check_git_ignore` set to `1` to not include the buffer when it's a
-  git ignored file.
-* `g:complete_popup_on_dot` set to `1` if you want the popup shown on dot
-  on type.
+Name                           | Description                                             | Default
+------------                   | -------------                                           | ------------
+`g:complete_fuzzy_match`       | Use fuzzy match for words                               | 1
+`g:complete_timeout`           | Timeout in milisecond for completion                    | 300
+`g:complete_trace_error`       | Trace issue and send back to fundebug                   | 0
+`g:complete_ignore_git_ignore` | Ignore buffers (buffer souce only) that are git ignored | 0
 
 ### Functions & commands of complete.nvim
 
@@ -109,13 +107,17 @@ autocmd user CompleteNvimInit call s:ConfigComplete()
 
   Refresh `name` source, or all sources without argument.
 
+* **complete#source#toggle(name)**
+
+  Toggale `name` source state (enable/disable)
+
 * **complete#disable()**
 
   Disable complete.nvim from listening autocmd.
 
 * **:Denite completes**
 
-  Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim)
+  Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
 
 ## Similar projects
 

@@ -54,7 +54,8 @@ export interface Config {
     completeOpt: string;
     fuzzyMatch: boolean;
     timeout: number;
-    noTrace: boolean;
+    traceError: boolean;
+    checkGit: boolean;
     disabled: string[];
     sources: {
         [index: string]: SourceConfig;

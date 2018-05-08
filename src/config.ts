@@ -3,17 +3,18 @@ import {logger} from './util/logger'
 
 let config: Config = {
   fuzzyMatch: true,
-  noTrace: false,
+  traceError: false,
+  checkGit: false,
   timeout: 300,
   completeOpt: 'menu,preview',
   disabled: ['languageclient'],
-  sources: {}
+  sources: {},
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
   for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (['fuzzyMatch', 'noTrace'].indexOf(key) !== -1) {
+    if (['fuzzyMatch', 'traceError', 'checkGit'].indexOf(key) !== -1) {
       if (val != null) {
         config[key] = !!val
       }
@@ -61,12 +62,13 @@ export function getSourceConfig(name: string):SourceConfig | null {
   return obj
 }
 
-export function toggleSource(name: string):void {
+export function toggleSource(name: string):string {
   let {disabled} = config
   if (disabled.indexOf(name) == -1) {
     disabled.push(name)
-  } else {
-    let idx = disabled.findIndex(s => s === name)
-    disabled.splice(idx, 1)
+    return 'disabled'
   }
+  let idx = disabled.findIndex(s => s === name)
+  disabled.splice(idx, 1)
+  return 'enabled'
 }

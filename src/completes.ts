@@ -65,6 +65,10 @@ export class Completes {
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
   }
+
+  public reset():void {
+    this.complete = null
+  }
 }
 
 export default new Completes()
