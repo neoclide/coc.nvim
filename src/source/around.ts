@@ -8,7 +8,8 @@ export default class Around extends Source {
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'around',
-      shortcut: 'A'
+      shortcut: 'A',
+      priority: 2,
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

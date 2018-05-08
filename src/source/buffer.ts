@@ -7,7 +7,8 @@ export default class Buffer extends Source {
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'buffer',
-      shortcut: 'B'
+      shortcut: 'B',
+      priority: 1,
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

@@ -9,6 +9,7 @@ export interface SourceOption {
     shortcut?: string;
     filetypes?: string[];
     engross?: boolean | number;
+    priority?: number;
 }
 export interface CompleteOption {
     bufnr: string;

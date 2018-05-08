@@ -13,6 +13,7 @@ export interface SourceOption {
   shortcut?: string
   filetypes?: string[]
   engross?: boolean | number
+  priority?: number
 }
 
 // option on complete & should_complete

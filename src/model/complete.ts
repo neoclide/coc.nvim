@@ -1,15 +1,15 @@
+import {score} from 'fuzzaldrin'
+import { Neovim } from 'neovim'
 import {CompleteOption,
   VimCompleteItem,
   CompleteResult} from '../types'
-import { Neovim } from 'neovim'
-import {logger} from '../util/logger'
 import buffers from '../buffers'
 import Source from './source'
 import {getConfig} from '../config'
-import {score} from 'fuzzaldrin'
+import {logger} from '../util/logger'
 import {wordSortItems} from '../util/sorter'
 import {uniqueItems} from '../util/unique'
-import fuzzysearch = require('fuzzysearch')
+import {filterFuzzy, filterWord} from '../util/filter'
 
 export type Callback = () => void
 
@@ -45,21 +45,6 @@ export default class Complete {
     this.filetype = filetype || ''
     this.fuzzy = getConfig('fuzzyMatch')
     this.finished = false
-  }
-
-  public getOption():CompleteOption | null {
-    if (!this.id) return null
-    return {
-      colnr: this.colnr,
-      filetype: this.filetype,
-      bufnr: this.bufnr,
-      linenr: this.linenr,
-      line: this.line,
-      col: this.col,
-      input: this.input,
-      id: this.id,
-      word: this.word,
-    }
   }
 
   public resuable(complete: Complete):boolean {
@@ -106,6 +91,8 @@ export default class Complete {
     let arr: VimCompleteItem[] = []
     let {fuzzy} = this
     let cFirst = input.length ? input[0].toLowerCase() : null
+    let filter = fuzzy ? filterFuzzy : filterWord
+    let icase = !/[A-Z]/.test(input)
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       if (res == null) continue
@@ -124,7 +111,7 @@ export default class Complete {
         if (!kind && input.length == 0) continue
         // filter unnecessary no kind results
         if (!kind && !isResume && (word == cword || word == input)) continue
-        if (input.length && !fuzzysearch(input, word)) continue
+        if (input.length && !filter(input, word, icase)) continue
         if (user_data) item.user_data = user_data
         if (fuzzy) item.score = score(word, input) + (kind || info ? 0.01 : 0)
         arr.push(item)
@@ -141,9 +128,19 @@ export default class Complete {
   }
 
   public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
-    let opts = this.getOption()
-    if (opts === null) return [] as VimCompleteItem[]
-    sources.sort((a, b) => b.priority - a.priority)
+    let {id} = this
+    if (id == null) return [] as VimCompleteItem[]
+    let opts:CompleteOption = {
+      colnr: this.colnr,
+      filetype: this.filetype,
+      bufnr: this.bufnr,
+      linenr: this.linenr,
+      line: this.line,
+      col: this.col,
+      input: this.input,
+      id: this.id,
+      word: this.word,
+    }
     let valids: Source[] = []
     for (let s of sources) {
       let shouldRun = await s.shouldComplete(opts)
@@ -154,12 +151,12 @@ export default class Complete {
       logger.debug('No source to complete')
       return []
     }
+    valids.sort((a, b) => b.priority - a.priority)
     let engrossIdx = valids.findIndex(s => s.engross === true)
     logger.debug(`Working sources: ${valids.map(s => s.name).join(',')}`)
     let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
-
     this.finished = results.indexOf(null) == -1
-    results = results.filter(r => r !== null)
+    results = results.filter(r => r != null)
     if (engrossIdx && results[engrossIdx]) {
       let {items} = results[engrossIdx]
       if (items.length) results = [results[engrossIdx]]

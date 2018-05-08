@@ -2,11 +2,11 @@ import { Neovim } from 'neovim';
 import { SourceOption, CompleteOption, CompleteResult } from '../types';
 export default abstract class Source {
     readonly name: string;
-    readonly shortcut?: string;
-    readonly priority: number;
-    readonly filetypes: string[] | null | undefined;
-    readonly engross: boolean;
-    readonly nvim: Neovim;
+    shortcut?: string;
+    filetypes: string[] | null | undefined;
+    engross: boolean;
+    priority: number;
+    protected readonly nvim: Neovim;
     constructor(nvim: Neovim, option: SourceOption);
     readonly menu: string;
     checkFileType(filetype: string): boolean;

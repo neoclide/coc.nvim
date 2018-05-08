@@ -8,7 +8,7 @@ export function uniqueItems(results: VimCompleteItem[]):VimCompleteItem[] {
       if (!kind && obj.kind) return true
       if (!info && obj.info) return true
       if (!abbr && obj.abbr) return true
-      return index < idx
+      return idx < index
     })
     return better == null ? true : false
   })

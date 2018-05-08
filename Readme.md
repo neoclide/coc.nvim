@@ -12,7 +12,7 @@ Design principle:
 ## Features
 
 * Async generate complete items in parallel.
-* Fuzzy match with score by default.
+* Smart case fuzzy match with score by default.
 * Minimal configuration required to work.
 * Works great with `set completeopt=menu,preview`
 * Support `text_edit` and `snippet` described in LSP 2.0.
@@ -28,7 +28,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
     \})
 ```
 
-[nodejs](http://nodejs.org/) version > 9.0 && neovim version > 0.2.2 is required.
+[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.2.2 is required.
 
 Run **`:checkhealth`** when you get any trouble.
 

@@ -15,7 +15,6 @@ export default class Complete {
     private filetype;
     private fuzzy;
     constructor(opts: Partial<CompleteOption>);
-    getOption(): CompleteOption | null;
     resuable(complete: Complete): boolean;
     private completeSource(source, opt);
     filterResults(results: CompleteResult[], input: string, cword: string, isResume: boolean): VimCompleteItem[];
