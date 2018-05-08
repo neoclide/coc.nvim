@@ -4,16 +4,18 @@ Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
 *******************************************************************/
 import { Neovim } from 'neovim';
 import Source from './model/source';
+export interface Native {
+    Clz: typeof Source;
+    filepath: string;
+    name: string;
+    instance: Source | null;
+}
 export declare class Natives {
-    sourceMap: {
-        [index: string]: Source;
-    };
-    classMap: {
-        [index: string]: typeof Source;
-    };
-    names: string[];
+    list: Native[];
     constructor();
+    init(): Promise<void>;
     has(name: any): boolean;
+    readonly names: string[];
     private createSource(nvim, name);
     getSource(nvim: Neovim, name: string): Promise<Source | null>;
 }

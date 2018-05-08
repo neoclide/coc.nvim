@@ -12,31 +12,36 @@ import path = require('path')
 import pify = require('pify')
 import fs = require('fs')
 
+export interface Remote {
+  filepath: string
+  name: string
+  instance: VimSource | null
+}
+
 export class Remotes {
-  public sourceMap: {[index: string] : VimSource}
-  public initailized: boolean
-  private pathMap: {[index: string] : string}
+  public list: Remote[]
 
   constructor() {
-    this.sourceMap = {}
-    this.pathMap = {}
-    this.initailized = false
+    this.list = []
   }
 
   public get names(): string[] {
-    return Object.keys(this.pathMap)
+    return this.list.map(o => o.name)
   }
 
   public has(name):boolean{
-    if (!this.initailized) return false
-    return this.names.indexOf(name) !== -1
+    return this.list.findIndex(o => o.name == name) !== -1
+  }
+
+  private getFilepath(name):string|null {
+    let remote = this.list.find(o => o.name == name)
+    return remote ? remote.filepath : null
   }
 
   public async init(nvim: Neovim, isCheck?: boolean):Promise<void> {
-    if (this.initailized) return
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
-    let {pathMap} = this
+    let {list} = this
     let dups: {[index: string]: string[]} = {}
     for (let p of paths) {
       let folder = path.join(p, 'autoload/complete/source')
@@ -68,10 +73,14 @@ export class Remotes {
                 }
                 continue
               }
-              let valid = await this.checkSource(nvim, name, isCheck)
+              let valid = await this.checkSource(nvim, name, fullpath, isCheck)
               if (valid) {
-                pathMap[name] = fullpath
                 logger.debug(`Source ${name} verified: ${fullpath}`)
+                this.list.push({
+                  name,
+                  filepath: fullpath,
+                  instance: null
+                })
               }
             }
           }
@@ -88,18 +97,17 @@ export class Remotes {
         await nvim.call('health#report_info', [`Activted vim sources: ${this.names.join(',')}`])
       }
     }
-    this.initailized = true
   }
 
   private async reportError(nvim: Neovim, name: string, msg: string, fullpath?: string): Promise<void> {
-    let path = fullpath || this.pathMap[name]
+    let path = fullpath || this.getFilepath(name)
     await nvim.call('health#report_error',
       [`${name} source error: ${msg}`,
-      [`Check the file ${fullpath}`, 'report error to author!']
+      path ? [`Check the file ${fullpath}`, 'report error to author!'] : []
     ])
   }
 
-  private async checkSource(nvim: Neovim, name: string, isCheck?: boolean):Promise<boolean> {
+  private async checkSource(nvim: Neovim, name: string, fullpath: string, isCheck?: boolean):Promise<boolean> {
     let fns = ['init', 'complete']
     let valid = true
     for (let fname of fns) {
@@ -109,7 +117,7 @@ export class Remotes {
         valid = false
         let msg =  `Function ${fname} not found for '${name}' source`
         if (isCheck) {
-          await this.reportError(nvim, name, msg)
+          await this.reportError(nvim, name, msg, fullpath)
         } else {
           await echoErr(nvim, msg)
         }
@@ -132,26 +140,19 @@ export class Remotes {
       return null
     }
     let {filetypes, shortcut} = config
-    config.name = name
-    config.engross = !!config.engross
-    if (!Array.isArray(filetypes)) {
-      config.filetypes = null
-    }
-    if (!shortcut) {
-      config.shortcut = name.slice(0, 3).toUpperCase()
-    } else {
-      config.shortcut = shortcut.slice(0, 3).toUpperCase()
-    }
-    let source = new VimSource(nvim, config)
-    this.sourceMap[name] = source
+    let source = new VimSource(nvim, {... config, name})
     return source
   }
 
   public async getSource(nvim: Neovim, name: string): Promise<VimSource | null> {
-    let source = this.sourceMap[name]
-    if (source) return source
-    let {pathMap} = this
-    source =  await this.createSource(nvim, name)
+    let remote = this.list.find(o => o.name == name)
+    if (!remote) {
+      logger.error(`Remote source ${name} not found`)
+      return null
+    }
+    if (remote.instance) return remote.instance
+    let source =  await this.createSource(nvim, name)
+    remote.instance = source
     return source
   }
 }

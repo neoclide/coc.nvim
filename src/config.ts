@@ -7,6 +7,7 @@ let config: Config = {
   timeout: 300,
   completeOpt: 'menu,preview',
   sources: ['around', 'buffer', 'dictionary', 'path'],
+  disabled: [],
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
@@ -33,4 +34,14 @@ export function setConfig(opts: {[index: string]: any}):void {
 
 export function getConfig(name: string):any {
   return config[name]
+}
+
+export function toggleSource(name: string):void {
+  let {disabled} = config
+  if (disabled.indexOf(name) !== -1) {
+    disabled.push(name)
+  } else {
+    let idx = disabled.findIndex(s => s === name)
+    disabled.splice(idx, 1)
+  }
 }

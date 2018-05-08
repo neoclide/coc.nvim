@@ -1,5 +1,5 @@
 import { Neovim } from 'neovim';
-import { CompleteOptionVim } from './types';
+import { SourceStat, CompleteOptionVim } from './types';
 export default class CompletePlugin {
     nvim: Neovim;
     private debouncedOnChange;
@@ -13,6 +13,8 @@ export default class CompletePlugin {
     completeResume(args: CompleteOptionVim[]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
+    completeSourceStat(): Promise<SourceStat[]>;
+    completeSourceToggle(args: any): Promise<void>;
     private onBufferChange(bufnr);
     private initConfig();
 }

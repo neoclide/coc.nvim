@@ -1,7 +1,6 @@
 import { Neovim } from 'neovim'
 import {getConfig} from '../config'
 import {SourceOption,
-  Filter,
   CompleteOption,
   CompleteResult} from '../types'
 
@@ -11,27 +10,32 @@ export default abstract class Source {
   public readonly priority: number
   public readonly filetypes: string[] | null | undefined
   public readonly engross: boolean
-  public readonly filter?: Filter
   public readonly nvim: Neovim
-  public disabled: boolean
-  protected readonly menu: string
   constructor(nvim: Neovim, option: SourceOption) {
+    let {shortcut, filetypes, name}  = option
     this.nvim = nvim
-    this.name = option.name
-    this.shortcut = option.shortcut
-    this.filetypes = option.filetypes || null
+    this.name = name
+    this.filetypes = Array.isArray(filetypes) ? filetypes : null
     this.engross = !!option.engross
-    this.filter = option.filter == 'word' ? 'word' : 'fuzzy'
-    if (option.shortcut) {
-      this.menu = `[${option.shortcut}]`
+    if (!shortcut) {
+      this.shortcut = name.slice(0, 3).toUpperCase()
     } else {
-      this.menu = `[${option.name.slice(0, 5)}]`
+      this.shortcut = shortcut.slice(0, 3).toUpperCase()
     }
-    this.disabled = false
   }
+
+  public get menu():string {
+    return `[${this.shortcut}]`
+  }
+
   public checkFileType(filetype: string):boolean {
     if (this.filetypes == null) return true
     return this.filetypes.indexOf(filetype) !== -1
+  }
+
+  // some source could overwrite it
+  public async refresh():Promise<void> {
+    // do nothing
   }
 
   public abstract shouldComplete(opt: CompleteOption): Promise<boolean>

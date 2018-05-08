@@ -51,4 +51,11 @@ export interface Config {
     timeout: number;
     noTrace: boolean;
     sources: string[];
+    disabled: string[];
+}
+export interface SourceStat {
+    name: string;
+    type: 'remote' | 'native';
+    disabled: boolean;
+    filepath: string;
 }

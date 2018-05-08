@@ -1,13 +1,20 @@
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
-import {CompleteOptionVim, VimCompleteItem} from './types'
+import {
+  SourceStat,
+  CompleteOptionVim,
+  VimCompleteItem} from './types'
 import {logger} from './util/logger'
 import {echoErr, contextDebounce} from './util/index'
-import {setConfig, getConfig} from './config'
+import {
+  setConfig,
+  toggleSource,
+  getConfig} from './config'
 import debounce = require('debounce')
 import buffers from './buffers'
 import completes from './completes'
 import remoteStore from './remote-store'
 import remotes from './remotes'
+import natives from './natives'
 
 import fundebug = require('fundebug-nodejs')
 fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
@@ -55,6 +62,7 @@ export default class CompletePlugin {
     let {nvim} = this
     try {
       await this.initConfig()
+      await natives.init()
       await remotes.init(nvim)
       await nvim.command('let g:complete_node_initailized=1')
       await nvim.command('silent doautocmd User CompleteNvimInit')
@@ -182,6 +190,37 @@ export default class CompletePlugin {
       }
     }
     return success ? names: null
+  }
+
+  @Function('CompleteSourceStat', {sync: true})
+  public async completeSourceStat():Promise<SourceStat[]> {
+    let disabled = getConfig('disabled')
+    let res: SourceStat[] = []
+    for (let item of natives.list) {
+      let {name, filepath} = item
+      res.push({
+        name,
+        type: 'native',
+        disabled: disabled.indexOf(name) !== -1,
+        filepath
+      })
+    }
+    for (let item of remotes.list) {
+      let {name, filepath} = item
+      res.push({
+        name,
+        type: 'remote',
+        disabled: disabled.indexOf(name) !== -1,
+        filepath
+      })
+    }
+    return res
+  }
+
+  @Function('CompleteSourceToggle', {sync: true})
+  public async completeSourceToggle(args: any):Promise<void> {
+    let name = args[0].toString()
+    toggleSource(name)
   }
 
   private async onBufferChange(bufnr: string):Promise<void> {

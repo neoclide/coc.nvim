@@ -28,14 +28,15 @@ function! s:InitAutocmds()
     autocmd!
     autocmd TextChangedI * call complete#start(1)
     autocmd BufUnload * call CompleteBufUnload(+expand('<abuf>'))
-    autocmd TextChanged,BufRead,BufWritePost * call s:OnBufferChange(+expand('<abuf>'))
+    autocmd TextChanged,BufLeave * call s:OnBufferChange(+expand('<abuf>'))
+    autocmd BufRead,BufWritePost * call s:OnBufferChange(+expand('<abuf>'))
   augroup end
+
+  inoremap <silent> <expr> <Plug>(complete_start) complete#start()
+  inoremap <silent> <Plug>_ <C-r>=complete#_complete()<CR>
 endfunction
 
 augroup complete_init
   autocmd!
   autocmd user CompleteNvimInit call s:InitAutocmds()
 augroup end
-
-inoremap <silent> <expr> <Plug>(complete_start) complete#start()
-inoremap <silent> <Plug>_ <C-r>=complete#_complete()<CR>

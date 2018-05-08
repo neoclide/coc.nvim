@@ -43,34 +43,3 @@ export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
 export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
   await nvim.call('complete#util#print_errors', lines)
 }
-
-function escapeChar(s:string):string {
-  if (/^\w/.test(s)) return ''
-  if (s === '-') return '\\-'
-  if (s === '.') return '\\.'
-  if (s === ':') return '\\:'
-  return s
-}
-
-export function getKeywordsRegStr(keywordOption: string):string {
-  let parts = keywordOption.split(',')
-  let str = ''
-  let chars = []
-
-  parts = unique(parts)
-  for (let part of parts) {
-    if (part == '@') {
-      str += '\\w'
-    } else if (/^(\d+)-(\d+)$/.test(part)) {
-      if (part === '48-57') continue
-      let ms = part.match(/^(\d+)-(\d+)$/)
-      // str += `${String.fromCharCode(Number(ms[1]))}-${String.fromCharCode(Number(ms[2]))}`
-    } else if (/^\d+$/.test(part)) {
-      chars.push(escapeChar(String.fromCharCode(Number(part))))
-    } else if (part.length == 1) {
-      chars.push(escapeChar(part))
-    }
-  }
-  str += unique(chars).join('')
-  return `[${str}]`
-}
