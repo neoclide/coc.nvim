@@ -7,6 +7,7 @@ export declare class Range {
 export declare class Chars {
     ranges: Range[];
     constructor(keywordOption: string);
+    addKeyword(ch: string): void;
     matchKeywords(content: string, min?: number): string[];
     isKeywordChar(ch: string): boolean;
     isKeyword(word: string): boolean;

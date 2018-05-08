@@ -16,7 +16,9 @@ export default class Doc {
     this.filetype = filetype
     this.content = content
     this.version = version
-    this.chars = new Chars(keywordOption)
+    let chars = this.chars = new Chars(keywordOption)
+    chars.addKeyword('_')
+    chars.addKeyword('-')
   }
 
   public applyEdits(edits: TextEdit[]):string {
@@ -41,6 +43,7 @@ export default class Doc {
       for (let ch of ['-', '_']) {
         if (word.indexOf(ch) !== -1) {
           let parts = word.split(ch)
+          parts.pop()
           words = words.concat(parts)
         }
       }

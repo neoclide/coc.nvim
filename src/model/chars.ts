@@ -8,6 +8,7 @@ export class Range {
     this.start = start
     this.end = end ? end : start
   }
+
   public contains(c: number):boolean {
     return c >= this.start && c <= this.end
   }
@@ -30,10 +31,20 @@ export class Chars {
         ranges.push(new Range(Number(part)))
       } else {
         let c = part.charCodeAt(0)
-        ranges.push(new Range(c))
+        if (!ranges.some(o => o.contains(c))) {
+          ranges.push(new Range(c))
+        }
       }
     }
     this.ranges = ranges
+  }
+
+  public addKeyword(ch: string):void {
+    let c = ch.charCodeAt(0)
+    let {ranges} = this
+    if (!ranges.some(o => o.contains(c))) {
+      ranges.push(new Range(c))
+    }
   }
 
   public matchKeywords(content: string, min = 3):string[] {
