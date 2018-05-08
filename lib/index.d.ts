@@ -14,7 +14,9 @@ export default class CompletePlugin {
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
     completeSourceStat(): Promise<SourceStat[]>;
+    completeSourceConfig(args: any): Promise<void>;
     completeSourceToggle(args: any): Promise<void>;
+    completeSourceRefresh(args: any): Promise<void>;
     private onBufferChange(bufnr);
     private initConfig();
 }

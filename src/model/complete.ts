@@ -155,7 +155,7 @@ export default class Complete {
       return []
     }
     let engrossIdx = valids.findIndex(s => s.engross === true)
-    logger.debug(`Enabled sources: ${valids.map(s => s.name).join(',')}`)
+    logger.debug(`Working sources: ${valids.map(s => s.name).join(',')}`)
     let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
 
     this.finished = results.indexOf(null) == -1

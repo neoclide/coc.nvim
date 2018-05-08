@@ -1,4 +1,4 @@
-import {Config} from './types'
+import {Config, SourceConfig} from './types'
 import {logger} from './util/logger'
 
 let config: Config = {
@@ -6,8 +6,8 @@ let config: Config = {
   noTrace: false,
   timeout: 300,
   completeOpt: 'menu,preview',
-  sources: ['around', 'buffer', 'dictionary', 'path'],
-  disabled: [],
+  disabled: ['languageclient'],
+  sources: {}
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
@@ -22,9 +22,6 @@ export function setConfig(opts: {[index: string]: any}):void {
       config.timeout = Number(opts.timeout)
       if (isNaN(config.timeout)) config.timeout = 300
     }
-    if (key === 'sources' && Array.isArray(opts.sources)) {
-      config.sources = config.sources.concat(opts.sources)
-    }
     if (key === 'completeOpt') {
       config.completeOpt = opts.completeOpt
     }
@@ -36,9 +33,37 @@ export function getConfig(name: string):any {
   return config[name]
 }
 
+export function configSource(name: string, opt: any):void {
+  let {disabled, filetypes, shortcut} = opt
+  let {sources} = config
+  sources[name] = sources[name] || {}
+  if (disabled === 1) {
+    if (config.disabled.indexOf(name) == -1) {
+      config.disabled.push(name)
+    }
+  }
+  if (disabled === 0) {
+    let idx = config.disabled.findIndex(s => s == name)
+    config.disabled.splice(idx, 1)
+  }
+  if (Array.isArray(filetypes)) {
+    sources[name].filetypes = filetypes
+  }
+  if (typeof shortcut == 'string') {
+    sources[name].shortcut = shortcut
+  }
+}
+
+export function getSourceConfig(name: string):SourceConfig | null {
+  let {sources} = config
+  let obj = sources[name]
+  if (!obj || Object.keys(obj).length === 0) return null
+  return obj
+}
+
 export function toggleSource(name: string):void {
   let {disabled} = config
-  if (disabled.indexOf(name) !== -1) {
+  if (disabled.indexOf(name) == -1) {
     disabled.push(name)
   } else {
     let idx = disabled.findIndex(s => s === name)

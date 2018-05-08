@@ -13,6 +13,8 @@ export interface Native {
 export declare class Natives {
     list: Native[];
     constructor();
+    findSource(name: string): Source | null;
+    readonly sources: Source[];
     init(): Promise<void>;
     has(name: any): boolean;
     readonly names: string[];

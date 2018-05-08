@@ -1,6 +1,7 @@
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {
   SourceStat,
+  SourceConfig,
   CompleteOptionVim,
   VimCompleteItem} from './types'
 import {logger} from './util/logger'
@@ -8,6 +9,7 @@ import {echoErr, contextDebounce} from './util/index'
 import {
   setConfig,
   toggleSource,
+  configSource,
   getConfig} from './config'
 import debounce = require('debounce')
 import buffers from './buffers'
@@ -63,14 +65,14 @@ export default class CompletePlugin {
     try {
       await this.initConfig()
       await natives.init()
-      await remotes.init(nvim)
-      await nvim.command('let g:complete_node_initailized=1')
+      await remotes.init(nvim, natives.names)
+      await nvim.command(`let g:complete_node_channel_id=${(nvim as any)._channel_id}`)
       await nvim.command('silent doautocmd User CompleteNvimInit')
       logger.info('Complete service Initailized')
       // required since BufRead triggered before VimEnter
       let bufs:number[] = await nvim.call('complete#util#get_buflist', [])
       for (let buf of bufs) {
-        this.debouncedOnChange(buf.toString())
+        await buffers.addBuffer(nvim, buf.toString())
       }
     } catch (err) {
       logger.error(err.stack)
@@ -179,14 +181,13 @@ export default class CompletePlugin {
   @Function('CompleteCheck', {sync: true})
   public async completeCheck():Promise<string[] | null> {
     let {nvim} = this
-    await remotes.init(nvim, true)
+    await remotes.init(nvim, natives.names, true)
     let {names} = remotes
     let success = true
     for (let name of names) {
       let source = remotes.createSource(nvim, name, true)
       if (source == null) {
         success = false
-        logger.debug(`Result: ${success}`)
       }
     }
     return success ? names: null
@@ -196,25 +197,25 @@ export default class CompletePlugin {
   public async completeSourceStat():Promise<SourceStat[]> {
     let disabled = getConfig('disabled')
     let res: SourceStat[] = []
-    for (let item of natives.list) {
+    let items:any = natives.list.concat(remotes.list as any)
+    for (let item of items) {
       let {name, filepath} = item
       res.push({
         name,
-        type: 'native',
-        disabled: disabled.indexOf(name) !== -1,
-        filepath
-      })
-    }
-    for (let item of remotes.list) {
-      let {name, filepath} = item
-      res.push({
-        name,
-        type: 'remote',
+        type: natives.has(name) ? 'native' : 'remote',
         disabled: disabled.indexOf(name) !== -1,
         filepath
       })
     }
     return res
+  }
+
+  @Function('CompleteSourceConfig', {sync: false})
+  public async completeSourceConfig(args: any):Promise<void> {
+    let name:string = args[0]
+    let config:SourceConfig = args[1]
+    if (!name) return
+    configSource(name, config)
   }
 
   @Function('CompleteSourceToggle', {sync: true})
@@ -223,12 +224,29 @@ export default class CompletePlugin {
     toggleSource(name)
   }
 
+  @Function('CompleteSourceRefresh', {sync: true})
+  public async completeSourceRefresh(args: any):Promise<void> {
+    let name = args[0].toString()
+    if (name) {
+      for (let m of [remotes, natives]) {
+        let source = m.findSource(name)
+        if (source) {
+          source.refresh()
+          break
+        }
+      }
+    } else {
+      for (let m of [remotes, natives]) {
+        for (let s of m.sources) {
+          if (s) s.refresh()
+        }
+      }
+    }
+  }
+
   private async onBufferChange(bufnr: string):Promise<void> {
-    let lines: string[] = await this.nvim.call('getbufline', [Number(bufnr), 1, '$'])
-    let content = (lines as string[]).join('\n')
-    if (/\u0000/.test(content)) return
-    let keywordOption = await this.nvim.call('getbufvar', [Number(bufnr), '&iskeyword'])
-    buffers.addBuffer(bufnr, content, keywordOption)
+    let listed = await this.nvim.call('getbufvar', [Number(bufnr), '&buflisted'])
+    if (listed) await buffers.addBuffer(this.nvim, bufnr)
   }
 
   private async initConfig(): Promise<void> {

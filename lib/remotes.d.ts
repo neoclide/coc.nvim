@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import { Neovim } from 'neovim';
 import VimSource from './model/source-vim';
 export interface Remote {
@@ -13,9 +9,11 @@ export declare class Remotes {
     list: Remote[];
     constructor();
     readonly names: string[];
-    has(name: any): boolean;
+    readonly sources: VimSource[];
+    has(name: string): boolean;
+    findSource(name: string): VimSource | null;
     private getFilepath(name);
-    init(nvim: Neovim, isCheck?: boolean): Promise<void>;
+    init(nvim: Neovim, nativeNames: string[], isCheck?: boolean): Promise<void>;
     private reportError(nvim, name, msg, fullpath?);
     private checkSource(nvim, name, fullpath, isCheck?);
     createSource(nvim: Neovim, name: string, isCheck?: boolean): Promise<VimSource | null>;

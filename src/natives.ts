@@ -25,6 +25,17 @@ export class Natives {
     this.list = []
   }
 
+  public findSource(name: string): Source | null{
+    let o = this.list.find(o => o.name == name)
+    let names = this.list.map(o => o.name)
+    return o ? o.instance : null
+  }
+
+  public get sources():Source[] {
+    let arr = this.list.map(o => o.instance)
+    return arr.filter(o => o != null)
+  }
+
   public async init():Promise<void> {
     let root = path.join(__dirname, 'source')
     let files = await pify(fs.readdir)(root, 'utf8')

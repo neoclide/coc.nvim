@@ -1,5 +1,5 @@
 import { Neovim } from 'neovim'
-import {getConfig} from '../config'
+import {getSourceConfig} from '../config'
 import {SourceOption,
   CompleteOption,
   CompleteResult} from '../types'
@@ -13,10 +13,13 @@ export default abstract class Source {
   public readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
     let {shortcut, filetypes, name}  = option
+    filetypes = Array.isArray(filetypes) ? filetypes : null
     this.nvim = nvim
     this.name = name
-    this.filetypes = Array.isArray(filetypes) ? filetypes : null
     this.engross = !!option.engross
+    let opt = getSourceConfig(name) || {}
+    shortcut = opt.shortcut || shortcut
+    this.filetypes = opt.filetypes || filetypes
     if (!shortcut) {
       this.shortcut = name.slice(0, 3).toUpperCase()
     } else {

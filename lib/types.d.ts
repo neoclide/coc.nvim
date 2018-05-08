@@ -1,10 +1,14 @@
 export declare type Filter = 'word' | 'fuzzy';
+export interface SourceConfig {
+    shortcut?: string;
+    filetypes?: string[];
+    disabled?: boolean;
+}
 export interface SourceOption {
     name: string;
     shortcut?: string;
     filetypes?: string[];
     engross?: boolean | number;
-    filter?: Filter;
 }
 export interface CompleteOption {
     bufnr: string;
@@ -50,8 +54,10 @@ export interface Config {
     fuzzyMatch: boolean;
     timeout: number;
     noTrace: boolean;
-    sources: string[];
     disabled: string[];
+    sources: {
+        [index: string]: SourceConfig;
+    };
 }
 export interface SourceStat {
     name: string;

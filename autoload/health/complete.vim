@@ -25,7 +25,7 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkInitailize() abort
-  if get(g:, 'complete_node_initailized', 0)
+  if get(g:, 'complete_node_channel_id', 0)
     call health#report_ok('Service initailized')
     return 1
   endif

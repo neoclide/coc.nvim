@@ -3,8 +3,6 @@ if exists('did_complete_loaded') || v:version < 700
 endif
 let did_complete_loaded = 1
 
-let g:complete_auto_popup = get(g:, 'complete_auto_popup', 0)
-
 function! s:OnBufferChange(bufnr)
   if s:IsInvalid(a:bufnr) | return | endif
   if &paste != 0 | return | endif

@@ -1,3 +1,4 @@
+import { Neovim } from 'neovim'
 import Buffer from './model/buffer'
 import Doc from './model/document'
 import {logger} from './util/logger'
@@ -21,8 +22,12 @@ export class Buffers {
     return doc
   }
 
-  public addBuffer(bufnr: string, content: string, keywordOption: string): void{
-    let buf = this.buffers.find(buf => buf.bufnr === bufnr)
+  public async addBuffer(nvim: Neovim, bufnr: string): Promise<void>{
+    let lines: string[] = await nvim.call('getbufline', [Number(bufnr), 1, '$'])
+    let content = (lines as string[]).join('\n')
+    if (/\u0000/.test(content)) return
+    let keywordOption = await nvim.call('getbufvar', [Number(bufnr), '&iskeyword'])
+    let buf = this.buffers.find(buf => buf.bufnr == bufnr)
     if (buf) {
       buf.setContent(content)
     } else {
@@ -49,6 +54,15 @@ export class Buffers {
   public getBuffer(bufnr: string): Buffer | null {
     let buf = this.buffers.find(o => o.bufnr == bufnr)
     return buf || null
+  }
+
+  public async refresh(nvim: Neovim):Promise<void> {
+    let bufs:number[] = await nvim.call('complete#util#get_buflist', [])
+    this.buffers = []
+    for (let buf of bufs) {
+      await this.addBuffer(nvim, buf.toString())
+    }
+    logger.debug('Buffers refreshed')
   }
 }
 

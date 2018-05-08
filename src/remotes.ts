@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import { Neovim } from 'neovim'
 import VimSource from './model/source-vim'
 import {SourceOption} from './types'
@@ -29,8 +25,18 @@ export class Remotes {
     return this.list.map(o => o.name)
   }
 
-  public has(name):boolean{
+  public get sources():VimSource[] {
+    let arr = this.list.map(o => o.instance)
+    return arr.filter(o => o != null)
+  }
+
+  public has(name: string):boolean {
     return this.list.findIndex(o => o.name == name) !== -1
+  }
+
+  public findSource(name: string): VimSource | null{
+    let remote = this.list.find(o => o.name == name)
+    return remote ? remote.instance : null
   }
 
   private getFilepath(name):string|null {
@@ -38,7 +44,7 @@ export class Remotes {
     return remote ? remote.filepath : null
   }
 
-  public async init(nvim: Neovim, isCheck?: boolean):Promise<void> {
+  public async init(nvim: Neovim, nativeNames: string[], isCheck?: boolean):Promise<void> {
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
     let {list} = this
@@ -54,13 +60,19 @@ export class Remotes {
           let s = await statAsync(fullpath)
           if (s && s.isFile()) {
             let name = path.basename(f, '.vim')
-            if (this.names.indexOf(name) !== -1) {
+            if (nativeNames.indexOf(name) !== -1) {
+              if (isCheck) {
+                await this.reportError(nvim, name, 'Name conflict with native sources' , fullpath)
+              } else {
+                await echoErr(nvim, `Vim source ${name} ignored, name conflict with native sources`)
+              }
+            } else if (this.names.indexOf(name) !== -1) {
               if (isCheck) {
                 let paths = dups[name] || []
                 paths.push(fullpath)
                 dups[name] = paths
               } else {
-                echoWarning(nvim, `source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
+                await echoWarning(nvim, `Source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
               }
             } else {
               try {
@@ -103,7 +115,7 @@ export class Remotes {
     let path = fullpath || this.getFilepath(name)
     await nvim.call('health#report_error',
       [`${name} source error: ${msg}`,
-      path ? [`Check the file ${fullpath}`, 'report error to author!'] : []
+      path ? [`Check file ${fullpath}`, 'report error to author!'] : []
     ])
   }
 

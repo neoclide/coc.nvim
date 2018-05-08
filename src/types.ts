@@ -1,12 +1,18 @@
 export type Filter = 'word' | 'fuzzy'
 
+// user could set
+export interface SourceConfig {
+  shortcut?: string
+  filetypes?: string[]
+  disabled?: boolean
+}
+
 // options for init source
 export interface SourceOption {
   name: string
   shortcut?: string
   filetypes?: string[]
   engross?: boolean | number
-  filter?: Filter
 }
 
 // option on complete & should_complete
@@ -59,8 +65,8 @@ export interface Config {
   fuzzyMatch: boolean
   timeout: number
   noTrace: boolean
-  sources: string[]
   disabled: string[]
+  sources: {[index:string]: SourceConfig}
 }
 
 export interface SourceStat {

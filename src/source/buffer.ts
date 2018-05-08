@@ -17,6 +17,10 @@ export default class Buffer extends Source {
     return true
   }
 
+  public async refresh():Promise<void> {
+    await buffers.refresh(this.nvim)
+  }
+
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input} = opt
     let words = buffers.getWords(bufnr)

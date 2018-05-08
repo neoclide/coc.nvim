@@ -43,21 +43,24 @@ export class Completes {
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
     let source_names: string[] = getConfig('sources')
+    let disabled = getConfig('disabled')
     let res: Source[] = []
-    for (let name of source_names) {
+    let names = natives.names
+    logger.debug(`Disabled sources:${disabled}`)
+    names = names.concat(remotes.names)
+    for (let name of names) {
       let source: Source | null
-      if (natives.has(name)) {
-        source = await natives.getSource(nvim, name)
-      } else if (remotes.has(name)) {
-        source = await remotes.getSource(nvim, name)
-      } else {
-        logger.error(`Source ${name} not found`)
+      if (disabled.indexOf(name) !== -1) continue
+      try {
+        if (natives.has(name)) {
+          source = await natives.getSource(nvim, name)
+        } else {
+          source = await remotes.getSource(nvim, name)
+        }
+      } catch (e) {
+        logger.error(`Source ${name} can not be created`)
       }
-      if (source) {
-        res.push(source)
-      } else {
-        logger.error(`Source ${name} can not created`)
-      }
+      res.push(source)
     }
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
