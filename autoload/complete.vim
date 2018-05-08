@@ -28,13 +28,13 @@ function! complete#start(...)
   let resume = get(a:, 1, 0)
   let pos = getcurpos()
   let line = getline('.')
-  let start = pos[2] - 1
-  while start > 0 && line[start - 1] =~# '\k'
-    let start -= 1
+  let l:start = pos[2] - 1
+  while l:start > 0 && line[l:start - 1] =~# '\k'
+    let l:start -= 1
   endwhile
-  let input = line[start : pos[2] - 2]
+  let input = line[l:start : pos[2] - 2]
   let opt = {
-        \ 'word': matchstr(line[start:], '^\k\+'),
+        \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
         \ 'line': getline('.'),
         \ 'buftype': &buftype,
@@ -42,7 +42,7 @@ function! complete#start(...)
         \ 'bufnr': bufnr('%'),
         \ 'lnum': pos[1],
         \ 'colnr' : pos[2],
-        \ 'col': start,
+        \ 'col': l:start,
         \ }
   if resume
     call CompleteResume(opt)

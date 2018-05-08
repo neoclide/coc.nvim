@@ -11,7 +11,10 @@ endfunction
 
 function! s:IsInvalid(bufnr)
   let t = getbufvar(a:bufnr, '&buftype')
-  if t == 'terminal' || t == 'nofile' || t == 'quickfix' || t == 'help'
+  if t ==# 'terminal'
+        \|| t ==# 'nofile'
+        \|| t ==# 'quickfix'
+        \|| t ==# 'help'
     return 1
   endif
   return 0

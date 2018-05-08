@@ -20,7 +20,7 @@ function! s:TimerCallback(job_id, Handler,...)
     let res = jobwait([a:job_id], 20)
     if res[0] == -1
       try
-        call jobstop(job_id)
+        call jobstop(a:job_id)
       catch /.*/
       endtry
     endif
