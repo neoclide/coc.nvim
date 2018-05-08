@@ -48,7 +48,11 @@ export class Remotes {
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
     let {list} = this
+    if (isCheck) {
+      list = this.list = []
+    }
     let dups: {[index: string]: string[]} = {}
+    let names = []
     for (let p of paths) {
       let folder = path.join(p, 'autoload/complete/source')
       let stat = await statAsync(folder)
@@ -66,7 +70,7 @@ export class Remotes {
               } else {
                 await echoErr(nvim, `Vim source ${name} ignored, name conflict with native sources`)
               }
-            } else if (this.names.indexOf(name) !== -1) {
+            } else if (names.indexOf(name) !== -1) {
               if (isCheck) {
                 let paths = dups[name] || []
                 paths.push(fullpath)
@@ -75,6 +79,7 @@ export class Remotes {
                 await echoWarning(nvim, `Source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
               }
             } else {
+              names.push(name)
               try {
                 await nvim.command(`source ${fullpath}`)
               } catch (e) {
@@ -87,7 +92,6 @@ export class Remotes {
               }
               let valid = await this.checkSource(nvim, name, fullpath, isCheck)
               if (valid) {
-                logger.debug(`Source ${name} verified: ${fullpath}`)
                 this.list.push({
                   name,
                   filepath: fullpath,
@@ -98,16 +102,16 @@ export class Remotes {
           }
         }
       }
-      if (isCheck) {
-        for (let name of Object.keys(dups)) {
-          let paths = dups[name]
-          await nvim.call('health#report_warn', [
-            `Same source ${name} found in multiple runtimes`,
-            ['Consider remove the duplicates: '].concat(paths)
-          ])
-        }
-        await nvim.call('health#report_info', [`Activted vim sources: ${this.names.join(',')}`])
+    }
+    if (isCheck) {
+      for (let name of Object.keys(dups)) {
+        let paths = dups[name]
+        await nvim.call('health#report_warn', [
+          `Same source ${name} found in multiple runtimes`,
+          ['Consider remove the duplicates: '].concat(paths)
+        ])
       }
+      await nvim.call('health#report_info', [`Activted vim sources: ${this.names.join(',')}`])
     }
   }
 
