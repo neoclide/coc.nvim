@@ -143,9 +143,6 @@ export default class CompletePlugin {
     logger.debug(`Resume options: ${JSON.stringify(opt)}`)
     let {filetype, col, input, word} = opt
     let complete = completes.getComplete(opt)
-    if (complete) {
-      logger.debug('Find complete')
-    }
     if (!complete || !complete.results || !complete.results.length) return
     // TODO change input to only user input characters
     let items = complete.filterResults(complete.results, input, word, true)
@@ -158,6 +155,7 @@ export default class CompletePlugin {
       candidates: items
     })
     // TODO find out the way to restore completeopt
+    // not use setOption add :noa
     // await this.nvim.setOption('completeopt', 'menuone,noinsert')
     this.nvim.call('complete#_do_complete', []).then(() => {
       logger.debug(`Complete time cost: ${Date.now() - start}ms`)

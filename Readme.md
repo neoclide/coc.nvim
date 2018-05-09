@@ -82,6 +82,7 @@ Name                           | Description                                    
 `g:complete_timeout`           | Timeout in milisecond for completion                    | 300
 `g:complete_trace_error`       | Trace issue and send back to fundebug                   | 0
 `g:complete_ignore_git_ignore` | Ignore buffers (buffer souce only) that are git ignored | 0
+`g:complete_source_disabled`   | Names of disabled sources                               | []
 
 ### Functions & commands of complete.nvim
 

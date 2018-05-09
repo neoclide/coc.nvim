@@ -7,6 +7,7 @@ function! complete#get_config(...)
         \ 'traceError': get(g:, 'complete_trace_error', v:null),
         \ 'timeout': get(g:, 'complete_timeout', v:null),
         \ 'checkGit': get(g:, 'complete_ignore_git_ignore', v:null),
+        \ 'disabled': get(g:, 'complete_source_disabled', v:null),
         \}
 endfunction
 

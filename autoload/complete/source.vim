@@ -3,7 +3,7 @@ function! s:checkService() abort
   let chan_id = get(g:, 'complete_node_channel_id', 0)
   if !chan_id
     echohl Error
-    echon '[complete.nvim] Service unavailable, autocmd CompleteNvimInit not triggered'
+    echon '[complete.nvim] Service unavailable'
     echohl None
     return 0
   endif
@@ -19,7 +19,7 @@ function! complete#source#refresh(...) abort
   if !s:checkService() | return | endif
   let name = get(a:, 1, '')
   call CompleteSourceRefresh(name)
-  echohl MoreMsg 
+  echohl MoreMsg
   echom '[complete.nvim] Source '.name. ' refreshed'
   echohl None
 endfunction
@@ -27,7 +27,7 @@ endfunction
 function! complete#source#toggle(name) abort
   if !s:checkService() | return | endif
   let state = CompleteSourceToggle(a:name)
-  echohl MoreMsg 
+  echohl MoreMsg
   echom '[complete.nvim] Source '.a:name. ' '.state
   echohl None
 endfunction

@@ -7,7 +7,7 @@ let config: Config = {
   checkGit: false,
   timeout: 300,
   completeOpt: 'menu,preview',
-  disabled: ['languageclient'],
+  disabled: [],
   sources: {},
 }
 
@@ -25,6 +25,9 @@ export function setConfig(opts: {[index: string]: any}):void {
     }
     if (key === 'completeOpt') {
       config.completeOpt = opts.completeOpt
+    }
+    if (key === 'disabled' && Array.isArray(opts.disabled)) {
+      config.disabled  = opts.disabled
     }
   }
   logger.debug(`config:${JSON.stringify(config)}`)
