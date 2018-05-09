@@ -49,7 +49,7 @@ export class Completes {
     logger.debug(`Disabled sources:${disabled}`)
     names = names.concat(remotes.names)
     for (let name of names) {
-      let source: Source | null
+      let source: any
       if (disabled.indexOf(name) !== -1) continue
       try {
         if (natives.has(name)) {

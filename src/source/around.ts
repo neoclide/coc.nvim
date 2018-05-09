@@ -20,8 +20,7 @@ export default class Around extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input, filetype} = opt
-    let filepath = await this.nvim.call('expand', ['%:p'])
-    let uri = `file://${filepath}`
+    let uri = `buffer://${bufnr}`
     let buffer = await this.nvim.buffer
     let keywordOption = await buffer.getOption('iskeyword')
     let lines = await buffer.lines
