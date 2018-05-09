@@ -1,13 +1,9 @@
 import { Neovim } from 'neovim';
 import { CompleteOption, CompleteResult } from '../types';
 import Source from '../model/source';
-export default class Dictionary extends Source {
-    private dicts;
-    private dictOption;
+export default class Module extends Source {
     constructor(nvim: Neovim);
+    private onInit();
     shouldComplete(opt: CompleteOption): Promise<boolean>;
-    refresh(): Promise<void>;
-    getWords(dicts: string[]): Promise<string[]>;
-    private getDictWords(file);
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }

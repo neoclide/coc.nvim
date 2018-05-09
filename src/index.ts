@@ -2,7 +2,7 @@ import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {
   SourceStat,
   SourceConfig,
-  CompleteOptionVim,
+  CompleteOption,
   VimCompleteItem} from './types'
 import {logger} from './util/logger'
 import {echoErr, contextDebounce} from './util/index'
@@ -17,9 +17,8 @@ import completes from './completes'
 import remoteStore from './remote-store'
 import remotes from './remotes'
 import natives from './natives'
-
-import fundebug = require('fundebug-nodejs')
-fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
+// import fundebug = require('fundebug-nodejs')
+// fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
 @Plugin({dev: true})
 export default class CompletePlugin {
@@ -44,12 +43,12 @@ export default class CompletePlugin {
 
   private handleError(err: Error):void {
     let {nvim} = this
-    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
-      logger.error(err.message)
-    })
-    if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
-      fundebug.notifyError(err)
-    }
+    logger.debug('555555')
+    logger.error(err.message)
+    logger.error(err.stack)
+    // if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
+    //   fundebug.notifyError(err)
+    // }
   }
 
   @Autocmd('VimEnter', {
@@ -90,7 +89,7 @@ export default class CompletePlugin {
   }
 
   @Function('CompleteStart', {sync: false})
-  public async completeStart(args: CompleteOptionVim[]):Promise<void> {
+  public async completeStart(args: [CompleteOption]):Promise<void> {
     let opt = args[0]
     let start = Date.now()
     if (!opt) return
@@ -134,7 +133,7 @@ export default class CompletePlugin {
   }
 
   @Function('CompleteResume', {sync: false})
-  public async completeResume(args: CompleteOptionVim[]):Promise<void> {
+  public async completeResume(args: [CompleteOption, any]):Promise<void> {
     let opt = args[0]
     // TODO disable for now
     logger.debug('TextChangedI fires')

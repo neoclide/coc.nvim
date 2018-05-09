@@ -13,6 +13,7 @@ interface Dicts {
 
 export default class Dictionary extends Source {
   private dicts: Dicts
+  private dictOption: string
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'dictionary',
@@ -20,10 +21,14 @@ export default class Dictionary extends Source {
       priority: 1,
     })
     this.dicts = {}
+    this.dictOption = ''
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {input} = opt
+    let {input, bufnr} = opt
     if (input.length === 0) return false
+    let dictOption: string = await this.nvim.call('getbufvar', [Number(bufnr), '&dictionary'])
+    dictOption = this.dictOption = dictOption.trim()
+    if (!dictOption) return false
     return true
   }
 
@@ -53,9 +58,12 @@ export default class Dictionary extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input, filetype} = opt
-    let dictOption = await this.nvim.call('getbufvar', [Number(bufnr), '&dictionary'])
-    let dicts = dictOption.split(',')
-    let words = await this.getWords(dicts)
+    let {dictOption} = this
+    let words = []
+    if (dictOption) {
+      let dicts = dictOption.split(',')
+      words = await this.getWords(dicts)
+    }
     return {
       items: words.map(word => {
         return {

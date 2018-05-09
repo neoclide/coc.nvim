@@ -35,11 +35,13 @@ function! complete#start(...)
   endwhile
   let input = line[l:start : pos[2] - 2]
   let opt = {
+        \ 'id': localtime(),
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
         \ 'line': getline('.'),
         \ 'buftype': &buftype,
         \ 'filetype': &filetype,
+        \ 'filepath': expand('%:p'),
         \ 'bufnr': bufnr('%'),
         \ 'lnum': pos[1],
         \ 'colnr' : pos[2],

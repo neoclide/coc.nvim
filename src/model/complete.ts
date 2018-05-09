@@ -15,50 +15,23 @@ export type Callback = () => void
 
 export default class Complete {
   // identify this complete
-  public id: string
   public results: CompleteResult[] | null
   public finished: boolean
-  private bufnr: string
-  private linenr: number
-  private colnr: number
-  private line: string
-  private col: number
-  private input: string
-  private word: string
-  private filetype: string
-  private fuzzy: boolean
-  constructor(opts: Partial<CompleteOption>) {
-    let {bufnr, line, linenr, colnr, col, input, filetype, word} = opts
-    let buf = buffers.getBuffer(bufnr.toString())
-    if (!buf) {
-      this.id = ''
-    } else {
-      this.id = `${buf.hash}|${linenr}`
-    }
-    this.word = word || ''
-    this.bufnr = bufnr || ''
-    this.linenr = linenr || 0
-    this.line = line || ''
-    this.col = col || 0
-    this.colnr = colnr
-    this.input = input || ''
-    this.filetype = filetype || ''
-    this.fuzzy = getConfig('fuzzyMatch')
+  public option: CompleteOption
+  constructor(opts: CompleteOption) {
     this.finished = false
+    this.option = opts
   }
 
   public resuable(complete: Complete):boolean {
-    let {id, col, colnr, input, line, linenr} = complete
-    let same = id !== this.id
-    if (!id
-      || id !== this.id
-      || !this.results
-      || linenr !== this.linenr
-      || colnr < this.colnr
-      || !input.startsWith(this.input)
-      || line.slice(0, col) !== this.line.slice(0, col)
-      || col !== this.col) return false
-    let buf = buffers.getBuffer(this.bufnr.toString())
+    let {col, colnr, input, line, linenr} = complete.option
+    if (!this.results
+      || linenr !== this.option.linenr
+      || colnr < this.option.colnr
+      || !input.startsWith(this.option.input)
+      || line.slice(0, col) !== this.option.line.slice(0, col)
+      || col !== this.option.col) return false
+    let buf = buffers.getBuffer(this.option.bufnr.toString())
     if (!buf) return false
     let more = line.slice(col)
     return buf.isWord(more)
@@ -89,7 +62,7 @@ export default class Complete {
 
   public filterResults(results: CompleteResult[], input: string, cword: string, isResume: boolean):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
-    let {fuzzy} = this
+    let fuzzy = getConfig('fuzzyMatch')
     let cFirst = input.length ? input[0].toLowerCase() : null
     let filter = fuzzy ? filterFuzzy : filterWord
     let icase = !/[A-Z]/.test(input)
@@ -128,19 +101,7 @@ export default class Complete {
   }
 
   public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
-    let {id} = this
-    if (id == null) return [] as VimCompleteItem[]
-    let opts:CompleteOption = {
-      colnr: this.colnr,
-      filetype: this.filetype,
-      bufnr: this.bufnr,
-      linenr: this.linenr,
-      line: this.line,
-      col: this.col,
-      input: this.input,
-      id: this.id,
-      word: this.word,
-    }
+    let opts = this.option
     let valids: Source[] = []
     for (let s of sources) {
       let shouldRun = await s.shouldComplete(opts)
@@ -163,7 +124,7 @@ export default class Complete {
     }
     // reuse it even it's bad
     this.results = results
-    let {input, word} = this
+    let {input, word} = this.option
     return this.filterResults(results, input, word, false)
   }
 }

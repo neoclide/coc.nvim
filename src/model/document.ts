@@ -43,7 +43,6 @@ export default class Doc {
       for (let ch of ['-', '_']) {
         if (word.indexOf(ch) !== -1) {
           let parts = word.split(ch)
-          parts.pop()
           words = words.concat(parts)
         }
       }

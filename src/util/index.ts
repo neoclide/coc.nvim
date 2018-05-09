@@ -29,7 +29,12 @@ export function wait(ms: number):Promise<void> {
 }
 
 async function echoMsg(nvim:Neovim, line: string, hl: string):Promise<void> {
-  return await nvim.command(`echohl ${hl} | echomsg '[complete.nvim] ${escapeSingleQuote(line)}' | echohl None"`)
+  try {
+    await nvim.command(`echohl ${hl} | echomsg '[complete.nvim] ${escapeSingleQuote(line)}' | echohl None"`)
+  } catch (e) {
+    logger.error(e.stack)
+  }
+  return
 }
 
 export async function echoErr(nvim: Neovim, line: string):Promise<void> {

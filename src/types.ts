@@ -18,27 +18,17 @@ export interface SourceOption {
 
 // option on complete & should_complete
 export interface CompleteOption {
+  id: string
   bufnr: string
   line: string
   col: number
-  id: string
   input: string
   filetype: string
+  filepath: string
   word: string
   // cursor position
   colnr: number
   linenr: number
-}
-
-export interface CompleteOptionVim {
-  word: string
-  colnr: number
-  lnum: number
-  line: string
-  bufnr: number
-  col: number
-  filetype: string
-  input: string
 }
 
 export interface VimCompleteItem {

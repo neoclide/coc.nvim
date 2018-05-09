@@ -167,7 +167,14 @@ export class Remotes {
       return null
     }
     if (remote.instance) return remote.instance
-    let source =  await this.createSource(nvim, name)
+    let source = null
+    try {
+      source = await this.createSource(nvim, name)
+    } catch (e) {
+      let msg = `Create source ${name} error: ${e.message}`
+      await echoErr(nvim, msg)
+      logger.error(e.stack)
+    }
     remote.instance = source
     return source
   }

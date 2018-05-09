@@ -12,7 +12,7 @@
     "declaration": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "strictPropertyInitialization": false,
+    "strictPropertyInitialization": true,
     "plugins": []
   },
   "include": [

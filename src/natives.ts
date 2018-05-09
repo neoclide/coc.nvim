@@ -6,6 +6,7 @@ import { Neovim } from 'neovim'
 import Source from './model/source'
 import {SourceOption} from './types'
 import {logger} from './util/logger'
+import {echoErr} from './util/index'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
@@ -69,14 +70,26 @@ export class Natives {
     let o: Native = this.list.find(o => o.name == name)
     if (!o) return null
     let Clz:any = o.Clz
-    return new Clz(nvim)
+    let instance = new Clz(nvim)
+    if (typeof instance.onInit == 'function') {
+      await instance.onInit()
+    }
+    return instance
   }
 
   public async getSource(nvim: Neovim, name: string): Promise<Source | null> {
     let o: Native = this.list.find(o => o.name == name)
     if (!o) return null
     if (o.instance) return o.instance
-    let instance = o.instance  = await this.createSource(nvim, name)
+    let instance
+    try {
+      instance = o.instance  = await this.createSource(nvim, name)
+    } catch (e) {
+      let msg = `Create source ${name} error: ${e.message}`
+      // await echoErr(nvim, msg)
+      logger.error(e.stack)
+      return null
+    }
     return instance
   }
 }

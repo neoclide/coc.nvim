@@ -30,7 +30,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 [nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.2.2 is required.
 
-See [trouble shooting](#trouble-shooting) if you got runtime issue.
+See [trouble shooting](#trouble-shooting) if you have runtime issue.
 
 ### Set trigger for completion
 
@@ -51,6 +51,25 @@ inoremap <silent><expr> <TAB>
       \ <SID>check_back_space() ? "\<TAB>" :
       \ complete#refresh()
 ```
+
+## Sources
+
+Navtie source are provided in javascript code and are enabled by default.
+
+
+Name         | Description                             | Use cache
+------------ | -------------                           | ------------
+`around`     | Words of current buffer                 | false
+`buffer`     | Words of none current buffer            | true
+`dictionary` | Words from files of `dictionary` option | true
+`module`     | Words of module names                   | false
+`path`       | File paths relatives to current file    | false
+
+Note: `module` source could only support javascript/typescript files, please
+consider help by sending PR.
+
+Note: Completion of full path works for javascript, typescript, html,
+wxml files.
 
 ## Configuration
 
