@@ -30,8 +30,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 [nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.2.2 is required.
 
-Run **`:checkhealth`** when you get any trouble.
-
+See [trouble shooting](#trouble-shooting) if you got runtime issue.
 
 ### Set trigger for completion
 
@@ -119,6 +118,20 @@ autocmd user CompleteNvimInit call s:ConfigComplete()
 * **:Denite completes**
 
   Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
+
+## Trouble shooting
+
+When you find the plugin is not workig as you would expected, run command
+`:checkhealth` and make use that output from `complete.nvim` are `OK`.
+
+To get the log file, run shell command:
+
+    node -e 'console.log(path.join(os.tmpdir(), "nvim-complete.log"))'
+
+You can also use environment variable to change logger behaviour:
+
+* `$NVIM_COMPLETE_LOG_LEVEL` set to `debug` for debug messages.
+* `$NVIM_COMPLETE_LOG_FILE` set the file path of log file.
 
 ## Similar projects
 
