@@ -63,8 +63,8 @@ Name         | Description                                           | Use cache
 `buffer`     | Words of none current buffer                          | true | all
 `dictionary` | Words from files of `dictionary` option               | true | all
 `omni`       | Words from `omnifunc` of current buffer               | false | User defined
-`module`     | Words of module names                                 | false | [Limited](/tree/master/src/source/module_resolve)
-`path`       | Relative file paths completion, use `ag` or `ripgrep` | false | [Limited](/tree/master/src/source/path_resolve)
+`module`     | Words of module names                                 | false | [Limited](/src/source/module_resolve)
+`path`       | Relative file paths completion, use `ag` or `ripgrep` | false | [Limited](/src/source/path_resolve)
 
 Note: `module` & `path` source only have support for quite limited filetypes, please consider help.
 
