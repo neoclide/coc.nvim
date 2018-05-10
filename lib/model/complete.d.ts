@@ -9,5 +9,5 @@ export default class Complete {
     resuable(complete: Complete): boolean;
     private completeSource(source, opt);
     filterResults(results: CompleteResult[], isResume: boolean): VimCompleteItem[];
-    doComplete(sources: Source[]): Promise<VimCompleteItem[]>;
+    doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
 }

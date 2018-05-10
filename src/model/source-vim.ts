@@ -44,25 +44,33 @@ export default class VimSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let fn = `complete#source#${this.name}#get_offset`
+    let {colnr, col, id, input} = opt
+    let fn = `complete#source#${this.name}#get_startcol`
     let exists = await this.nvim.call('exists', [`*${fn}`])
-    let offsets: null | {offsetLeft: number, offsetRight: number} = null
+    let startcol:number | null = null
     if (exists == 1) {
       try {
-        offsets = await this.nvim.call(fn, [opt])
+        startcol = await this.nvim.call(fn, [opt])
+        startcol = Number(startcol)
+        if (isNaN(startcol) || startcol < 0 || startcol > colnr) return null
       } catch (e) {
         await this.echoError(e.message)
         return null
       }
     }
+    if (startcol && startcol !== col) {
+      opt = Object.assign({}, opt, {col: startcol})
+    }
     await this.nvim.call('complete#remote#do_complete', [this.name, opt])
-    let {id, input} = opt
     let items = await remoteStore.getResult(id, this.name)
     let filter = getConfig('filter')
     for (let item of items) {
       // not use these
       delete item.dup
       delete item.icase
+      if (item.menu && !item.info) {
+        item.info = item.menu
+      }
       item.menu = this.menu
     }
     if (items.length) {
@@ -73,9 +81,9 @@ export default class VimSource extends Source {
       }
     }
     let res: CompleteResult = { items }
-    if (offsets) {
-      res.offsetLeft = offsets.offsetLeft || 0
-      res.offsetRight = offsets.offsetRight || 0
+    if (startcol !== col) {
+      res.startcol = startcol
+      res.engross = items.length != 0
     }
     return res
   }

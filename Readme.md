@@ -155,6 +155,7 @@ Note: Complete.nvim would disable itself when there is vim error during autocmd.
 * [asyncomplete.vim](https://github.com/prabirshrestha/asyncomplete.vim)
 * [vim-mucomplete](https://github.com/lifepillar/vim-mucomplete/)
 * [nvim-completion-manager](https://github.com/roxma/nvim-completion-manager)
+* [completor.vim](https://github.com/maralla/completor.vim)
 
 ## LICENSE
 

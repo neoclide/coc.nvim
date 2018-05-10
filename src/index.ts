@@ -97,7 +97,7 @@ export default class CompletePlugin {
     let {filetype, col} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(this.nvim, filetype)
-    complete.doComplete(sources).then(items => {
+    complete.doComplete(sources).then(([startcol, items])=> {
       logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
       if (items.length == 0) {
         // no items found
@@ -106,7 +106,7 @@ export default class CompletePlugin {
       }
       completes.firstItem = items[0]
       this.nvim.setVar('complete#_context', {
-        start: col,
+        start: startcol,
         candidates: items
       })
       this.nvim.call('complete#_do_complete', []).then(() => {

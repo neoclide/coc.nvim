@@ -17,6 +17,7 @@ export interface CompleteOption {
     line: string;
     col: number;
     input: string;
+    buftype: string;
     filetype: string;
     filepath: string;
     word: string;
@@ -37,9 +38,8 @@ export interface VimCompleteItem {
 }
 export interface CompleteResult {
     items: VimCompleteItem[];
-    firstMatch?: boolean;
-    offsetLeft?: number;
-    offsetRight?: number;
+    engross?: boolean;
+    startcol?: number;
 }
 export interface Config {
     completeOpt: string;

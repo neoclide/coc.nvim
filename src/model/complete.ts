@@ -38,11 +38,15 @@ export default class Complete {
   }
 
   private completeSource(source: Source, opt: CompleteOption): Promise<CompleteResult | null> {
+    let {engross} = source
     return new Promise(resolve => {
       let called = false
       let start = Date.now()
       source.doComplete(opt).then(result => {
         called = true
+        if (engross && result.items && result.items.length) {
+          result.engross = true
+        }
         resolve(result)
         logger.info(`Complete '${source.name}' takes ${Date.now() - start}ms`)
       }, error => {
@@ -71,13 +75,7 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       if (res == null) continue
-      let {items, offsetLeft, offsetRight} = res
-      let hasOffset = !!offsetLeft || !!offsetRight
-
-      let offsets= hasOffset ? {
-        offsetLeft: offsetLeft || 0,
-        offsetRight: offsetRight || 0
-      } : {}
+      let {items} = res
       for (let item of items) {
         let {word, kind, info, user_data} = item
         let data = {}
@@ -94,7 +92,7 @@ export default class Complete {
             data = JSON.parse(user_data)
           } catch (e) {} // tslint:disable-line
         }
-        data = Object.assign(data, offsets, {
+        data = Object.assign(data, {
           id,
           source: 'complete'
         })
@@ -113,8 +111,9 @@ export default class Complete {
     return uniqueItems(arr)
   }
 
-  public async doComplete(sources: Source[]): Promise<VimCompleteItem[]> {
+  public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
+    let {col} = opts
     let valids: Source[] = []
     for (let s of sources) {
       let shouldRun = await s.shouldComplete(opts)
@@ -123,20 +122,26 @@ export default class Complete {
     }
     if (valids.length == 0) {
       logger.debug('No source to complete')
-      return []
+      return [col, null]
     }
     valids.sort((a, b) => b.priority - a.priority)
-    let engrossIdx = valids.findIndex(s => s.engross === true)
     logger.debug(`Working sources: ${valids.map(s => s.name).join(',')}`)
     let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
     this.finished = results.indexOf(null) == -1
-    results = results.filter(r => r != null)
-    if (engrossIdx && results[engrossIdx]) {
-      let {items} = results[engrossIdx]
-      if (items.length) results = [results[engrossIdx]]
+    results = results.filter(r => {
+      return r != null && r.items && r.items.length
+    })
+    let engrossResult = results.find(r => r.engross === true)
+    if (engrossResult) {
+      if (engrossResult.startcol != null) {
+        col = engrossResult.startcol
+      }
+      results = [engrossResult]
+      logger.debug(`Engross source activted`)
     }
     // reuse it even it's bad
     this.results = results
-    return this.filterResults(results, false)
+    let filteredResults = this.filterResults(results, false)
+    return [col, filteredResults]
   }
 }
