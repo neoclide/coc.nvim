@@ -10,6 +10,7 @@ export interface SourceOption {
     filetypes?: string[];
     engross?: boolean | number;
     priority?: number;
+    optionalFns?: string[];
 }
 export interface CompleteOption {
     id: number;

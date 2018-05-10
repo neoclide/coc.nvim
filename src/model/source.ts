@@ -10,15 +10,17 @@ export default abstract class Source {
   public filetypes: string[] | null | undefined
   public engross: boolean
   public priority: number
+  public optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {shortcut, filetypes, name, priority}  = option
+    let {shortcut, filetypes, name, priority, optionalFns}  = option
     this.nvim = nvim
     this.name = name
     this.priority = priority || 0
     this.engross = !!option.engross
     let opt = getSourceConfig(name) || {}
     shortcut = opt.shortcut || shortcut
+    this.optionalFns = optionalFns || []
     this.filetypes = opt.filetypes || Array.isArray(filetypes) ? filetypes : null
     this.shortcut = shortcut ? shortcut.slice(0, 3) : name.slice(0, 3)
   }

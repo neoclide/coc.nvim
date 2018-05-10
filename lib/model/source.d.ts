@@ -6,6 +6,7 @@ export default abstract class Source {
     filetypes: string[] | null | undefined;
     engross: boolean;
     priority: number;
+    optionalFns: string[];
     protected readonly nvim: Neovim;
     constructor(nvim: Neovim, option: SourceOption);
     readonly menu: string;

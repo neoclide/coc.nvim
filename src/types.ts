@@ -14,6 +14,7 @@ export interface SourceOption {
   filetypes?: string[]
   engross?: boolean | number
   priority?: number
+  optionalFns?: string[]
 }
 
 // option on complete & should_complete

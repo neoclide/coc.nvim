@@ -137,6 +137,19 @@ export class Remotes {
     return valid
   }
 
+  public async getOptionalFns(nvim: Neovim, name: string):Promise<string[]> {
+    let fns = ['should_complete', 'refresh', 'get_startcol']
+    let res = []
+    for (let fname of fns) {
+      let fn = `complete#source#${name}#${fname}`
+      let exists = await nvim.call('exists', [`*${fn}`])
+      if (exists == 1) {
+        res.push(fname)
+      }
+    }
+    return res
+  }
+
   public async createSource(nvim: Neovim, name: string, isCheck?: boolean):Promise<VimSource | null> {
     let fn = `complete#source#${name}#init`
     let config: SourceOption | null
@@ -150,8 +163,8 @@ export class Remotes {
       }
       return null
     }
-    let {filetypes, shortcut} = config
-    let source = new VimSource(nvim, {... config, name})
+    let optionalFns = await this.getOptionalFns(nvim, name)
+    let source = new VimSource(nvim, {... config, name, optionalFns})
     return source
   }
 

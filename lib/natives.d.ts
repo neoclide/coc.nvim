@@ -1,7 +1,3 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import { Neovim } from 'neovim';
 import Source from './model/source';
 export interface Native {
