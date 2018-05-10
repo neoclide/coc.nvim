@@ -98,17 +98,20 @@ export default class CompletePlugin {
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(this.nvim, filetype)
     complete.doComplete(sources).then(items => {
-      if (items === null) items = []
       logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
-      if (items.length > 0) {
-        this.nvim.setVar('complete#_context', {
-          start: col,
-          candidates: items
-        })
-        this.nvim.call('complete#_do_complete', []).then(() => {
-          logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-        })
+      if (items.length == 0) {
+        // no items found
+        completes.reset()
+        return
       }
+      completes.firstItem = items[0]
+      this.nvim.setVar('complete#_context', {
+        start: col,
+        candidates: items
+      })
+      this.nvim.call('complete#_do_complete', []).then(() => {
+        logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+      })
     })
   }
 
@@ -132,6 +135,16 @@ export default class CompletePlugin {
     logger.debug(`Completed item:${JSON.stringify(o)}`)
   }
 
+  @Autocmd('TextChangedI', {
+    pattern: '*',
+    sync: true
+  })
+  public async completeTextChangeI():Promise<void> {
+    let {complete} = completes
+    if (!complete) return
+    await this.nvim.call('complete#start', [1])
+  }
+
   @Function('CompleteResume', {sync: false})
   public async completeResume(args: [CompleteOption, any]):Promise<void> {
     let opt = args[0]
@@ -140,12 +153,15 @@ export default class CompletePlugin {
     if (opt) return
     let start = Date.now()
     logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-    let {filetype, col, input, word} = opt
-    let complete = completes.getComplete(opt)
-    if (!complete || !complete.results || !complete.results.length) return
+
+    let {col} = opt
+    let oldComplete = completes.complete
+    if (!oldComplete) return
+    let {results} = oldComplete
+    if (!results || results.length == 0) return
+    let complete = completes.newComplete(opt)
     // TODO change input to only user input characters
-    let items = complete.filterResults(complete.results, input, word, true)
-    // logger.debug(`Resume items: ${JSON.stringify(items, null, 2)}`)
+    let items = oldComplete.filterResults(results, true)
     if (!items || items.length === 0) return
     let completeOpt = await this.nvim.getOption('completeopt')
     setConfig({completeOpt})
@@ -163,7 +179,7 @@ export default class CompletePlugin {
 
   @Function('CompleteResult', {sync: false})
   public async completeResult(args: any[]):Promise<void> {
-    let id = args[0] as string
+    let id = Number(args[0])
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
     items = items || []
@@ -213,28 +229,35 @@ export default class CompletePlugin {
   @Function('CompleteSourceToggle', {sync: true})
   public async completeSourceToggle(args: any):Promise<string> {
     let name = args[0].toString()
-    if (!name) return
+    if (!name) return ''
+    if (!natives.has(name) && !remotes.has(name)) {
+      await echoErr(this.nvim, `Source ${name} not found`)
+      return ''
+    }
     return toggleSource(name)
   }
 
   @Function('CompleteSourceRefresh', {sync: true})
-  public async completeSourceRefresh(args: any):Promise<void> {
+  public async completeSourceRefresh(args: any):Promise<boolean> {
     let name = args[0].toString()
     if (name) {
-      for (let m of [remotes, natives]) {
-        let source = m.findSource(name)
-        if (source) {
-          source.refresh()
-          break
-        }
+      let m = natives.has(name) ? natives : remotes
+      let source = await m.getSource(this.nvim, name)
+      if (!source) {
+        await echoErr(this.nvim, `Source ${name} not found`)
+        return false
       }
+      await source.refresh()
     } else {
       for (let m of [remotes, natives]) {
         for (let s of m.sources) {
-          if (s) s.refresh()
+          if (s) {
+            await s.refresh()
+          }
         }
       }
     }
+    return true
   }
 
   private async onBufferChange(bufnr: string):Promise<void> {

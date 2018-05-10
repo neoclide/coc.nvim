@@ -11,7 +11,6 @@ export declare class Remotes {
     readonly names: string[];
     readonly sources: VimSource[];
     has(name: string): boolean;
-    findSource(name: string): VimSource | null;
     private getFilepath(name);
     init(nvim: Neovim, nativeNames: string[], isCheck?: boolean): Promise<void>;
     private reportError(nvim, name, msg, fullpath?);

@@ -7,7 +7,7 @@ export default class Dictionary extends Source {
     constructor(nvim: Neovim);
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     refresh(): Promise<void>;
-    getWords(dicts: string[]): Promise<string[]>;
+    getWords(files: string[]): Promise<string[]>;
     private getDictWords(file);
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }

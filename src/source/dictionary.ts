@@ -2,6 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import {logger} from '../util/logger'
+import {statAsync} from '../util/fs'
 import buffers from '../buffers'
 import * as fs from 'fs'
 import unique = require('array-unique')
@@ -12,7 +13,7 @@ interface Dicts {
 }
 
 export default class Dictionary extends Source {
-  private dicts: Dicts
+  private dicts: Dicts | null
   private dictOption: string
   constructor(nvim: Neovim) {
     super(nvim, {
@@ -20,7 +21,7 @@ export default class Dictionary extends Source {
       shortcut: 'D',
       priority: 1,
     })
-    this.dicts = {}
+    this.dicts = null
     this.dictOption = ''
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -33,25 +34,34 @@ export default class Dictionary extends Source {
   }
 
   public async refresh():Promise<void> {
-    this.dicts = {}
+    this.dicts = null
+    let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
+    if (!dictOption) return
+    let files = dictOption.split(',')
+    await this.getWords(files)
+    logger.debug('dict refreshed')
   }
 
-  public async getWords(dicts: string[]):Promise<string[]> {
-    if (dicts.length == 0) return []
-    let arr = await Promise.all(dicts.map(dict => this.getDictWords(dict)))
+  public async getWords(files: string[]):Promise<string[]> {
+    if (files.length == 0) return []
+    let arr = await Promise.all(files.map(file => this.getDictWords(file)))
     return unique([].concat.apply([], arr))
   }
 
   private async getDictWords(file: string):Promise<string[]> {
-    let res = this.dicts[file]
-    if (res) return res
-    let words = []
+    if (!file) return []
+    let {dicts} = this
+    let words = dicts ? dicts[file] : []
+    if (words) return words
+    let stat = await statAsync(file)
+    if (!stat || !stat.isFile()) return []
     try {
       let content = await pify(fs.readFile)(file, 'utf8')
       words = content.split('\n')
     } catch (e) {
       logger.error(`Can't read file: ${file}`)
     }
+    this.dicts = this.dicts || {}
     this.dicts[file] = words
     return words
   }

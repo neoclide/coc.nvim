@@ -34,11 +34,6 @@ export class Remotes {
     return this.list.findIndex(o => o.name == name) !== -1
   }
 
-  public findSource(name: string): VimSource | null{
-    let remote = this.list.find(o => o.name == name)
-    return remote ? remote.instance : null
-  }
-
   private getFilepath(name):string|null {
     let remote = this.list.find(o => o.name == name)
     return remote ? remote.filepath : null

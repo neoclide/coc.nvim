@@ -7,7 +7,7 @@ export interface Cached {
     [index: string]: VimCompleteItem[];
 }
 declare const _default: {
-    getResult(id: string, name: string): Promise<VimCompleteItem[]>;
-    setResult(id: string, name: string, res: VimCompleteItem[]): void;
+    getResult(id: number, name: string): Promise<VimCompleteItem[]>;
+    setResult(id: number, name: string, res: VimCompleteItem[]): void;
 };
 export default _default;

@@ -92,7 +92,7 @@ set completeopt=menu,preview
 </details>
 
 
-### Global configuration of complete.nvim:
+### Global variables
 
 Name                           | Description                                             | Default
 ------------                   | -------------                                           | ------------
@@ -102,16 +102,27 @@ Name                           | Description                                    
 `g:complete_ignore_git_ignore` | Ignore buffers (buffer souce only) that are git ignored | 0
 `g:complete_source_disabled`   | Names of disabled sources                               | []
 
-### Functions & commands of complete.nvim
+### Commands
 
-Functions could change complete.nvim behavour on the fly, since complete.nvim
-initailzed in async, you could only use them after autocmd `CompleteNvimInit`
-triggered, like:
+Commands are used change the service status on the fly.
+
+Name                        | Description
+------------                | -------------
+`:CompleteRefresh [name]`   | Refresh `name` source, or all sources without argument.
+`:CompleteToggle name`      | Toggle `name` source state (enable/disable).
+`:CompleteDisable`          | Disable complete.nvim
+`:CompleteEnable`           | Enable complete.nvim
+`:Denite completes`         | Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
+
+### Functions
+
+Since complete.nvim initailzed in async, you could only use functions/commands after autocmd
+`CompleteNvimInit` triggered, like:
 
 ``` vim
 function s:ConfigComplete()
   call complete#source#config('dictionary', {
-      \ 'disabled': 1
+      \ 'filetypes': ['javascript', 'typescript']
       \})
 endfunction
 autocmd user CompleteNvimInit call s:ConfigComplete()
@@ -121,22 +132,6 @@ autocmd user CompleteNvimInit call s:ConfigComplete()
 
   Set configuration for `name` source, `options` could contains fields like
   `filetypes`, `disabled`
-
-* **complete#source#refresh([name])**
-
-  Refresh `name` source, or all sources without argument.
-
-* **complete#source#toggle(name)**
-
-  Toggale `name` source state (enable/disable)
-
-* **complete#disable()**
-
-  Disable complete.nvim from listening autocmd.
-
-* **:Denite completes**
-
-  Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
 
 ## Trouble shooting
 
@@ -151,6 +146,8 @@ You can also use environment variable to change logger behaviour:
 
 * `$NVIM_COMPLETE_LOG_LEVEL` set to `debug` for debug messages.
 * `$NVIM_COMPLETE_LOG_FILE` set the file path of log file.
+
+Note: Complete.nvim would disable itself when there is vim error during autocmd.
 
 ## Similar projects
 

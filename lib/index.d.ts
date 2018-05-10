@@ -11,13 +11,14 @@ export default class CompletePlugin {
     completeStart(args: [CompleteOption]): Promise<void>;
     completeCharInsert(): Promise<void>;
     completeDone(): Promise<void>;
+    completeTextChangeI(): Promise<void>;
     completeResume(args: [CompleteOption, any]): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
     completeSourceStat(): Promise<SourceStat[]>;
     completeSourceConfig(args: any): Promise<void>;
     completeSourceToggle(args: any): Promise<string>;
-    completeSourceRefresh(args: any): Promise<void>;
+    completeSourceRefresh(args: any): Promise<boolean>;
     private onBufferChange(bufnr);
     private initConfig();
 }

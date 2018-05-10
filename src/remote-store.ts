@@ -15,7 +15,7 @@ const cached: Cached = {}
 let {watched, addWatcher} = watchObj(cached)
 
 export default {
-  getResult(id: string, name: string):Promise<VimCompleteItem[]> {
+  getResult(id: number, name: string):Promise<VimCompleteItem[]> {
     let key= `${id}-${name}`
     let res = cached[key]
     if (res) {
@@ -34,7 +34,7 @@ export default {
       }, timeout)
     })
   },
-  setResult(id: string, name: string, res: VimCompleteItem[]):void {
+  setResult(id: number, name: string, res: VimCompleteItem[]):void {
     let key= `${id}-${name}`
     watched[key] = res
   }

@@ -9,14 +9,6 @@ import path = require('path')
 import pify = require('pify')
 import findRoot = require('find-root')
 
-/**
- * shouldResolve
- *
- * @public
- * @param {string} line: content of current line
- * @param {number} colnr: cursor column nr
- * @returns {boolean}
- */
 export async function shouldResolve(opt: CompleteOption):Promise<boolean> {
   let {line, colnr} = opt
   let end = line.slice(colnr - 1)
@@ -30,7 +22,6 @@ export async function shouldResolve(opt: CompleteOption):Promise<boolean> {
 export async function resolve(opt: CompleteOption):Promise<string[]> {
   let {filepath} = opt
   let cwd = path.dirname(filepath)
-  logger.debug(filepath)
   let root
   try {
     root = findRoot(cwd)

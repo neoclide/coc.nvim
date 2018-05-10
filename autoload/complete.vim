@@ -1,5 +1,6 @@
 let g:complete#_context = {}
 
+" private
 function! complete#get_config(...)
   return {
         \ 'completeOpt': &completeopt,
@@ -26,6 +27,7 @@ function! complete#_do_complete() abort
 endfunction
 
 function! complete#start(...)
+  if !get(g:, 'complete_enabled', 0) | return '' | endif
   let resume = get(a:, 1, 0)
   let pos = getcurpos()
   let line = getline('.')
@@ -42,7 +44,7 @@ function! complete#start(...)
         \ 'buftype': &buftype,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
-        \ 'bufnr': bufnr('%'),
+        \ 'bufnr': bufnr('%').'',
         \ 'lnum': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
@@ -65,13 +67,4 @@ function! s:GetCompletionCol(line, col)
   let content = a:line[0:pos[2] - 2]
   " find the last none keyword character column
   return len(substitute(content, '\k\+$', '', ''))
-endfunction
-
-function! complete#disable()
-  augroup complete_nvim
-    autocmd!
-  augroup end
-  echohl MoreMsg
-    echon 'complete.nvim disabled'
-  echohl None
 endfunction

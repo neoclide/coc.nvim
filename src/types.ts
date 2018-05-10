@@ -18,7 +18,7 @@ export interface SourceOption {
 
 // option on complete & should_complete
 export interface CompleteOption {
-  id: string
+  id: number
   bufnr: string
   line: string
   col: number

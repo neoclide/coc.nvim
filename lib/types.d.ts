@@ -12,7 +12,7 @@ export interface SourceOption {
     priority?: number;
 }
 export interface CompleteOption {
-    id: string;
+    id: number;
     bufnr: string;
     line: string;
     col: number;

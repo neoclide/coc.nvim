@@ -2,13 +2,14 @@ import { Neovim } from 'neovim'
 import {getConfig} from './config'
 import Source from './model/source'
 import Complete from './model/complete'
-import {CompleteOption} from './types'
+import {CompleteOption, VimCompleteItem} from './types'
 import {logger} from './util/logger'
 import natives from './natives'
 import remotes from './remotes'
 
 export class Completes {
   public complete: Complete | null
+  public firstItem: VimCompleteItem | null
 
   constructor() {
     this.complete = null
@@ -23,12 +24,6 @@ export class Completes {
     let complete = this.newComplete(opts)
     this.complete = complete
     return complete
-  }
-
-  public getComplete(opts: CompleteOption): Complete | null {
-    if (!this.complete) return null
-    let complete = this.newComplete(opts)
-    return this.complete.resuable(complete) ? this.complete: null
   }
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
@@ -51,6 +46,7 @@ export class Completes {
 
   public reset():void {
     this.complete = null
+    this.firstItem = null
   }
 }
 
