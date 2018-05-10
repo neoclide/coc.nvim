@@ -62,7 +62,7 @@ export class Buffers {
     for (let buf of bufs) {
       await this.addBuffer(nvim, buf.toString())
     }
-    logger.debug('Buffers refreshed')
+    logger.info('Buffers refreshed')
   }
 }
 

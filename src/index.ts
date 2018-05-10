@@ -17,8 +17,8 @@ import completes from './completes'
 import remoteStore from './remote-store'
 import remotes from './remotes'
 import natives from './natives'
-// import fundebug = require('fundebug-nodejs')
-// fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
+import fundebug = require('fundebug-nodejs')
+fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
 @Plugin({dev: true})
 export default class CompletePlugin {
@@ -43,12 +43,12 @@ export default class CompletePlugin {
 
   private handleError(err: Error):void {
     let {nvim} = this
-    logger.debug('555555')
-    logger.error(err.message)
-    logger.error(err.stack)
-    // if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
-    //   fundebug.notifyError(err)
-    // }
+    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
+      logger.error(err.message)
+    })
+    if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
+      // fundebug.notifyError(err)
+    }
   }
 
   @Autocmd('VimEnter', {

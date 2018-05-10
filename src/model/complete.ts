@@ -8,6 +8,7 @@ import Source from './source'
 import {getConfig} from '../config'
 import {logger} from '../util/logger'
 import {wordSortItems} from '../util/sorter'
+import {equalChar} from '../util/index'
 import {uniqueItems} from '../util/unique'
 import {filterFuzzy, filterWord} from '../util/filter'
 
@@ -44,7 +45,10 @@ export default class Complete {
       let start = Date.now()
       source.doComplete(opt).then(result => {
         called = true
-        if (engross && result.items && result.items.length) {
+        if (engross
+          && result != null
+          && result.items
+          && result.items.length) {
           result.engross = true
         }
         resolve(result)
@@ -69,7 +73,7 @@ export default class Complete {
     let {input, id} = this.option
     let cword = this.option.word
     let fuzzy = getConfig('fuzzyMatch')
-    let cFirst = input.length ? input[0].toLowerCase() : null
+    let cFirst = input.length ? input[0] : null
     let filter = fuzzy ? filterFuzzy : filterWord
     let icase = !/[A-Z]/.test(input)
     for (let i = 0, l = results.length; i < l; i++) {
@@ -77,13 +81,11 @@ export default class Complete {
       if (res == null) continue
       let {items} = res
       for (let item of items) {
-        let {word, kind, info, user_data} = item
+        let {word, kind, abbr, info, user_data} = item
         let data = {}
-        if (!word || word.length <= 2) continue
-        let first = word[0].toLowerCase()
-        // first must match for no kind
-        if (!kind && cFirst && cFirst !== first) continue
-        if (!kind && input.length == 0) continue
+        if (!word || word.length < 3) continue
+        if (!kind && cFirst && !equalChar(word[0], cFirst, icase)) continue
+        if (!kind && !abbr && !info && input.length == 0) continue
         // filter unnecessary no kind results
         if (!kind && !isResume && (word == cword || word == input)) continue
         if (input.length && !filter(input, word, icase)) continue
@@ -122,7 +124,7 @@ export default class Complete {
     }
     if (valids.length == 0) {
       logger.debug('No source to complete')
-      return [col, null]
+      return [col, []]
     }
     valids.sort((a, b) => b.priority - a.priority)
     logger.debug(`Working sources: ${valids.map(s => s.name).join(',')}`)
@@ -141,7 +143,9 @@ export default class Complete {
     }
     // reuse it even it's bad
     this.results = results
+    logger.debug(JSON.stringify(results))
     let filteredResults = this.filterResults(results, false)
+    logger.debug(JSON.stringify(filteredResults))
     return [col, filteredResults]
   }
 }

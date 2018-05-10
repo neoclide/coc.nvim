@@ -57,19 +57,19 @@ inoremap <silent><expr> <TAB>
 Navtie source are provided in javascript code and are enabled by default.
 
 
-Name         | Description                             | Use cache
------------- | -------------                           | ------------
-`around`     | Words of current buffer                 | false
-`buffer`     | Words of none current buffer            | true
-`dictionary` | Words from files of `dictionary` option | true
-`module`     | Words of module names                   | false
-`path`       | File paths relatives to current file    | false
+Name         | Description                                           | Use cache | Supported filetypes
+------------ | -------------                                         | ------------|------------
+`around`     | Words of current buffer                               | false | all
+`buffer`     | Words of none current buffer                          | true | all
+`dictionary` | Words from files of `dictionary` option               | true | all
+`omni`       | Words from `omnifunc` of current buffer               | false | User defined
+`module`     | Words of module names                                 | false | [Limited](/tree/master/src/source/module_resolve)
+`path`       | Relative file paths completion, use `ag` or `ripgrep` | false | [Limited](/tree/master/src/source/path_resolve)
 
-Note: `module` source could only support javascript/typescript files, please
-consider help by sending PR.
+Note: `module` & `path` source only have support for quite limited filetypes, please consider help.
 
-Note: Completion of full path works for javascript, typescript, html,
-wxml files.
+Note: `omni` could block vim's UI, it's `filetypes` option is empty by default,
+to make `omni` source works, you should set `g:complete_omni_filetypes`.
 
 ## Configuration
 
@@ -101,6 +101,7 @@ Name                           | Description                                    
 `g:complete_trace_error`       | Trace issue and send back to fundebug                   | 0
 `g:complete_ignore_git_ignore` | Ignore buffers (buffer souce only) that are git ignored | 0
 `g:complete_source_disabled`   | Names of disabled sources                               | []
+`g:complete_omni_filetypes `   | List of filetypes for using omni source                 | []
 
 ### Commands
 

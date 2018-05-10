@@ -39,7 +39,7 @@ export default class Dictionary extends Source {
     if (!dictOption) return
     let files = dictOption.split(',')
     await this.getWords(files)
-    logger.debug('dict refreshed')
+    logger.info('dict refreshed')
   }
 
   public async getWords(files: string[]):Promise<string[]> {

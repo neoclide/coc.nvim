@@ -9,6 +9,11 @@ function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
 }
 
+export function equalChar(a: string, b:string, icase:boolean):boolean {
+  if (icase) return a.toLowerCase() === b.toLowerCase()
+  return a === b
+}
+
 // create dobounce funcs for each arg
 export function contextDebounce(func: Callback, timeout: number):Callback {
   let funcMap: {[index: string] : Callback | null} = {}

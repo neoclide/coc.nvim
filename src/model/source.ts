@@ -1,6 +1,8 @@
+import {logger} from '../util/logger'
 import { Neovim } from 'neovim'
 import {getSourceConfig} from '../config'
 import {SourceOption,
+  VimCompleteItem,
   CompleteOption,
   CompleteResult} from '../types'
 
@@ -11,6 +13,7 @@ export default abstract class Source {
   public engross: boolean
   public priority: number
   public optionalFns: string[]
+   [index: string]: any
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
     let {shortcut, filetypes, name, priority, optionalFns}  = option
@@ -29,6 +32,21 @@ export default abstract class Source {
     return `[${this.shortcut.toUpperCase()}]`
   }
 
+  protected convertToItems(list:any[], extra: any = {}):VimCompleteItem[] {
+    let {menu} = this
+    let res = []
+    for (let item of list) {
+      if (typeof item == 'string') {
+        res.push(Object.assign({word: item, menu}, extra))
+      }
+      if (item.hasOwnProperty('word')) {
+        if (item.menu) extra.info = item.menu
+        res.push(Object.assign(item, {menu}, extra))
+      }
+    }
+    return res
+  }
+
   public checkFileType(filetype: string):boolean {
     if (this.filetypes == null) return true
     return this.filetypes.indexOf(filetype) !== -1
@@ -41,5 +59,5 @@ export default abstract class Source {
 
   public abstract shouldComplete(opt: CompleteOption): Promise<boolean>
 
-  public abstract doComplete(opt: CompleteOption): Promise<CompleteResult>
+  public abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>
 }

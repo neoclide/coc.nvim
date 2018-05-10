@@ -67,9 +67,9 @@ export default class VimSource extends Source {
       }
     }
     let res: CompleteResult = { items }
-    if (startcol !== col) {
+    if (startcol !== col && items.length != 0) {
       res.startcol = startcol
-      res.engross = items.length != 0
+      res.engross = true
     }
     return res
   }

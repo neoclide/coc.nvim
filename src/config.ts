@@ -50,11 +50,9 @@ export function configSource(name: string, opt: any):void {
     let idx = config.disabled.findIndex(s => s == name)
     config.disabled.splice(idx, 1)
   }
-  if (Array.isArray(filetypes)) {
-    sources[name].filetypes = filetypes
-  }
-  if (typeof shortcut == 'string') {
-    sources[name].shortcut = shortcut
+  for (let key of Object.keys(opt)) {
+    if (key === 'disabled') continue
+    sources[name][key] = opt[key]
   }
 }
 

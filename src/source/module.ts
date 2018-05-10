@@ -19,7 +19,7 @@ export default class Module extends Source {
     })
   }
 
-  private async onInit(): Promise<void> {
+  public async onInit(): Promise<void> {
     let files = await pify(fs.readdir)(baseDir)
     files = files.filter(f => /\.js$/.test(f))
     let filetypes = files.map(f => f.replace(/\.js$/, ''))
