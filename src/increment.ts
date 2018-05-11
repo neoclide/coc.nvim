@@ -37,9 +37,9 @@ export class Increment {
     this.activted = false
   }
 
-  public isKeyword(ch: string):boolean {
+  public isKeyword(str: string):boolean {
     let {document} = buffers
-    return document ? document.isWord(ch) : /\w/.test(ch)
+    return document ? document.isWord(str) : /^\w$/.test(str)
   }
 
   public async stop(nvim:Neovim):Promise<void> {
@@ -102,7 +102,6 @@ export class Increment {
       character: ch,
       timestamp: Date.now()
     }
-    logger.debug(`inserted:${ch}`)
     let {activted, input} = this
     if (activted && !this.isKeyword(ch)) {
       await this.stop(nvim)
@@ -132,6 +131,7 @@ export class Increment {
       let {input, col, linenr} = option
       if (done && ts - done.timestamp < 50) {
         if (changedtick - done.changedtick !== 1) return false
+        if (done.word && !this.isKeyword(done.word)) return false
         if (lastInsert && ts - lastInsert.timestamp < 50) {
           // user add one charactor on complete
           this.input = new Input(nvim, linenr, input, done.word, col)

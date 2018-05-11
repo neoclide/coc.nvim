@@ -25,7 +25,7 @@ export declare class Increment {
     option: CompleteOption | null | undefined;
     changedI: ChangedI | null | undefined;
     constructor();
-    isKeyword(ch: string): boolean;
+    isKeyword(str: string): boolean;
     stop(nvim: Neovim): Promise<void>;
     start(nvim: Neovim): Promise<void>;
     setOption(opt: CompleteOption): void;
