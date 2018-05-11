@@ -48,8 +48,7 @@ export default class CompletePlugin {
 
   private handleError(err: Error):void {
     let {nvim} = this
-    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
-      logger.error(err.message)
+    echoErr(nvim ,`Service error: ${err.message}`).catch(err => { logger.error(err.message)
     })
     if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
       // fundebug.notifyError(err)
@@ -152,44 +151,44 @@ export default class CompletePlugin {
   })
   public async completeTextChangeI():Promise<void> {
     let {complete} = completes
+    let {nvim} = this
     if (!complete) return
-    let shouldStart = await increment.onTextChangeI(this.nvim)
+    let shouldStart = await increment.onTextChangeI(nvim)
     if (shouldStart) {
-      await this.completeResume()
-    }
-  }
+      if (!increment.activted) return
+      let {input, option, changedI} = increment
+      let opt = Object.assign({}, option, {
+        changedtick: changedI.changedtick,
+        input: input.input
+      })
+      let oldComplete = completes.complete || ({} as {[index:string]:any})
+      let {results} = oldComplete
+      if (!results || results.length == 0) {
+        await increment.stop(nvim)
+        return
+      }
 
-  public async completeResume():Promise<void> {
-    if (!increment.activted) return
-    let {input, option, changedI} = increment
-    let opt = Object.assign({}, option, {
-      changedtick: changedI.changedtick,
-      input: input.input
-    })
-    let oldComplete = completes.complete || ({} as {[index:string]:any})
-    let {results} = oldComplete
-    if (!results || results.length == 0) {
-      await increment.stop(this.nvim)
-      return
+      let start = Date.now()
+      logger.debug(`Resume options: ${JSON.stringify(opt)}`)
+      let {startcol, icase} = oldComplete
+      let complete = completes.newComplete(opt)
+      let items = complete.filterResults(results, icase)
+      logger.debug(`Filtered items:${JSON.stringify(items)}`)
+      if (!items || items.length === 0) {
+        await increment.stop(nvim)
+        return
+      }
+      if (items.length == 1) {
+        await increment.stop(nvim)
+      }
+      nvim.setVar('complete#_context', {
+        start: startcol,
+        candidates: items
+      })
+      nvim.call('complete#_do_complete', []).then(() => {
+        logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+      })
     }
-
-    let start = Date.now()
-    logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-    let {startcol, icase} = oldComplete
-    let complete = completes.newComplete(opt)
-    let items = complete.filterResults(results, icase)
-    logger.debug(`Filtered items:${JSON.stringify(items)}`)
-    if (!items || items.length === 0) {
-      await increment.stop(this.nvim)
-      return
-    }
-    this.nvim.setVar('complete#_context', {
-      start: startcol,
-      candidates: items
-    })
-    this.nvim.call('complete#_do_complete', []).then(() => {
-      logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-    })
   }
 
   @Function('CompleteResult', {sync: false})

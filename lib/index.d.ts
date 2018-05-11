@@ -13,7 +13,6 @@ export default class CompletePlugin {
     completeDone(): Promise<void>;
     completeLeave(): Promise<void>;
     completeTextChangeI(): Promise<void>;
-    completeResume(): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
     completeSourceStat(): Promise<SourceStat[]>;
