@@ -31,6 +31,7 @@ export interface CompleteOption {
   // cursor position
   colnr: number
   linenr: number
+  [index: string]: any
 }
 
 export interface VimCompleteItem {
@@ -50,6 +51,7 @@ export interface CompleteResult {
   items: VimCompleteItem[]
   engross?: boolean
   startcol?: number
+  source?: string
 }
 
 export interface Config {

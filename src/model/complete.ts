@@ -10,6 +10,7 @@ import {wordSortItems} from '../util/sorter'
 import {equalChar} from '../util/index'
 import {uniqueItems} from '../util/unique'
 import {filterFuzzy, filterWord} from '../util/filter'
+import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -36,33 +37,52 @@ export default class Complete {
     return buf.isWord(more)
   }
 
-  private completeSource(source: Source, opt: CompleteOption): Promise<CompleteResult | null> {
+  private completeSource(source: Source, opt: CompleteOption): Promise<any> {
     let {engross} = source
-    return new Promise(resolve => {
-      let called = false
-      let start = Date.now()
-      source.doComplete(opt).then(result => {
-        called = true
+    let start = Date.now()
+    let s = new Serial()
+    // new option for each source
+    let option = Object.assign({}, opt)
+    s.timeout(Math.max(getConfig('timeout'), 300))
+    s.add((done, ctx) => {
+      source.shouldComplete(option).then(res => {
+        ctx.shouldRun = res
+        done()
+      }, done)
+    })
+    s.add((done, ctx) => {
+      if (!ctx.shouldRun) {
+        logger.debug(`Source ${source.name} skipped`)
+        return done()
+      }
+      source.doComplete(option).then(result => {
         if (engross
           && result != null
           && result.items
           && result.items.length) {
           result.engross = true
         }
-        resolve(result)
-        logger.info(`Complete '${source.name}' takes ${Date.now() - start}ms`)
-      }, error => {
-        called = true
-        logger.error(`Complete error of source '${source.name}'`)
-        logger.error(error.stack)
-        resolve(null)
-      })
-      setTimeout(() => {
-        if (!called) {
-          logger.warn(`Complete source '${source.name}' too slow!`)
-          resolve(null)
+        if (result == null) {
+          result = {items: []}
         }
-      }, getConfig('timeout'))
+        result.source = source.name
+        ctx.result = result
+        done()
+      }, done)
+    })
+    return new Promise(resolve => {
+      s.done((err, ctx) => {
+        if (err) {
+          logger.error(`Complete error of source '${source.name}'`)
+          logger.error(err.stack)
+          resolve(false)
+          return
+        }
+        if (ctx.result) {
+          logger.info(`Complete '${source.name}' takes ${Date.now() - start}ms`)
+        }
+        resolve(ctx.result || null)
+      })
     })
   }
 
@@ -103,33 +123,29 @@ export default class Complete {
   public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
     let {col} = opts
-    let valids: Source[] = []
-    for (let s of sources) {
-      let shouldRun = await s.shouldComplete(opts)
-      if (!shouldRun) continue
-      valids.push(s)
-    }
-    if (valids.length == 0) {
-      logger.debug('No source to complete')
-      return [col, []]
-    }
-    valids.sort((a, b) => b.priority - a.priority)
-    logger.debug(`Working sources: ${valids.map(s => s.name).join(',')}`)
-    let results = await Promise.all(valids.map(s => this.completeSource(s, opts)))
+    sources.sort((a, b) => b.priority - a.priority)
+    let results = await Promise.all(sources.map(s => this.completeSource(s, opts)))
     results = results.filter(r => {
-      return r != null && r.items && r.items.length
+      // error source
+      if (r ===false) return false
+      if (r == null) return false
+      return r.items && r.items.length > 0
     })
+    logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
+
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
       if (engrossResult.startcol != null) {
         col = engrossResult.startcol
       }
       results = [engrossResult]
-      logger.debug(`Engross source activted`)
+      logger.debug(`Engross source ${engrossResult.source} activted`)
     }
+    logger.debug(`resultes: ${JSON.stringify(results)}`)
     // use it even it's bad
     this.results = results
     let filteredResults = this.filterResults(results, false)
+    logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
   }
 }

@@ -17,7 +17,6 @@ import {
 import debounce = require('debounce')
 import buffers from './buffers'
 import completes from './completes'
-import remoteStore from './remote-store'
 import remotes from './remotes'
 import natives from './natives'
 import fundebug = require('fundebug-nodejs')
@@ -102,7 +101,6 @@ export default class CompletePlugin {
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(this.nvim, filetype)
     complete.doComplete(sources).then(([startcol, items])=> {
-      logger.debug(`items: ${JSON.stringify(items, null, 2)}`)
       if (items.length == 0) {
         // no items found
         completes.reset()

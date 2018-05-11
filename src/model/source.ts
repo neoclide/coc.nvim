@@ -63,7 +63,6 @@ export default abstract class Source {
       if (!word || word.length < 3) continue
       if (cFirst && !equalChar(word[0], cFirst, icase)) continue
       if (word == cword || word == input) continue
-      if (!filter(input, word, icase)) continue
       res.push(word)
     }
     return res

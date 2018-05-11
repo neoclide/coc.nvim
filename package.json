@@ -47,6 +47,7 @@
     "fuzzysearch": "^1.0.3",
     "log4js": "^2.5.3",
     "neovim": "^3.5.2",
+    "node-serial": "^0.1.1",
     "pify": "^3.0.0",
     "tslib": "^1.9.0",
     "typescript": "^2.8.3",

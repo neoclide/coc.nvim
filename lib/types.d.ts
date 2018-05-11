@@ -24,6 +24,7 @@ export interface CompleteOption {
     word: string;
     colnr: number;
     linenr: number;
+    [index: string]: any;
 }
 export interface VimCompleteItem {
     word: string;
@@ -41,6 +42,7 @@ export interface CompleteResult {
     items: VimCompleteItem[];
     engross?: boolean;
     startcol?: number;
+    source?: string;
 }
 export interface Config {
     completeOpt: string;
