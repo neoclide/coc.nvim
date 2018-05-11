@@ -20,6 +20,8 @@ import completes from './completes'
 import remotes from './remotes'
 import natives from './natives'
 import fundebug = require('fundebug-nodejs')
+import remoteStore from './remote-store'
+import increment from './increment'
 const logger = require('./util/logger')('index')
 fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
@@ -107,6 +109,9 @@ export default class CompletePlugin {
         return
       }
       completes.firstItem = items[0]
+      if (items.length > 1) {
+        increment.setOption(opt)
+      }
       this.nvim.setVar('complete#_context', {
         start: startcol,
         candidates: items
@@ -122,9 +127,7 @@ export default class CompletePlugin {
     sync: true,
   })
   public async completeCharInsert():Promise<void> {
-    // TODO save the current char
-    let ac = await this.nvim.getVvar('char')
-    logger.debug(`inserted:${ac}`)
+    await increment.onCharInsert(this.nvim)
   }
 
   @Autocmd('CompleteDone', {
@@ -132,9 +135,15 @@ export default class CompletePlugin {
     sync: true,
   })
   public async completeDone():Promise<void> {
-    // TODO finish logic
-    let o = await this.nvim.getVvar('completed_item')
-    logger.debug(`Completed item:${JSON.stringify(o)}`)
+    await increment.onComplete(this.nvim)
+  }
+
+  @Autocmd('InsertLeave', {
+    pattern: '*',
+    sync: true,
+  })
+  public async completeLeave():Promise<void> {
+    await increment.stop(this.nvim)
   }
 
   @Autocmd('TextChangedI', {
@@ -144,36 +153,40 @@ export default class CompletePlugin {
   public async completeTextChangeI():Promise<void> {
     let {complete} = completes
     if (!complete) return
-    await this.nvim.call('complete#start', [1])
+    let shouldStart = await increment.onTextChangeI(this.nvim)
+    if (shouldStart) {
+      await this.completeResume()
+    }
   }
 
-  @Function('CompleteResume', {sync: false})
-  public async completeResume(args: [CompleteOption, any]):Promise<void> {
-    let opt = args[0]
-    // TODO disable for now
-    logger.debug('TextChangedI fires')
-    if (opt) return
+  public async completeResume():Promise<void> {
+    if (!increment.activted) return
+    let {input, option, changedI} = increment
+    let opt = Object.assign({}, option, {
+      changedtick: changedI.changedtick,
+      input: input.input
+    })
+    let oldComplete = completes.complete || ({} as {[index:string]:any})
+    let {results} = oldComplete
+    if (!results || results.length == 0) {
+      await increment.stop(this.nvim)
+      return
+    }
+
     let start = Date.now()
     logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-
-    let {col} = opt
-    let oldComplete = completes.complete
-    if (!oldComplete) return
-    let {results} = oldComplete
-    if (!results || results.length == 0) return
+    let {startcol, icase} = oldComplete
     let complete = completes.newComplete(opt)
-    // TODO change input to only user input characters
-    let items = oldComplete.filterResults(results, true)
-    if (!items || items.length === 0) return
-    let completeOpt = await this.nvim.getOption('completeopt')
-    setConfig({completeOpt})
+    let items = complete.filterResults(results, icase)
+    logger.debug(`Filtered items:${JSON.stringify(items)}`)
+    if (!items || items.length === 0) {
+      await increment.stop(this.nvim)
+      return
+    }
     this.nvim.setVar('complete#_context', {
-      start: col,
+      start: startcol,
       candidates: items
     })
-    // TODO find out the way to restore completeopt
-    // not use setOption add :noa
-    // await this.nvim.setOption('completeopt', 'menuone,noinsert')
     this.nvim.call('complete#_do_complete', []).then(() => {
       logger.debug(`Complete time cost: ${Date.now() - start}ms`)
     })

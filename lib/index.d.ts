@@ -11,8 +11,9 @@ export default class CompletePlugin {
     completeStart(args: [CompleteOption]): Promise<void>;
     completeCharInsert(): Promise<void>;
     completeDone(): Promise<void>;
+    completeLeave(): Promise<void>;
     completeTextChangeI(): Promise<void>;
-    completeResume(args: [CompleteOption, any]): Promise<void>;
+    completeResume(): Promise<void>;
     completeResult(args: any[]): Promise<void>;
     completeCheck(): Promise<string[] | null>;
     completeSourceStat(): Promise<SourceStat[]>;

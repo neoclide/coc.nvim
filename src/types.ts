@@ -28,6 +28,7 @@ export interface CompleteOption {
   filetype: string
   filepath: string
   word: string
+  changedtick: number
   // cursor position
   colnr: number
   linenr: number

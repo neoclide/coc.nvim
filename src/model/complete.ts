@@ -19,30 +19,19 @@ export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
   public option: CompleteOption
+  public startcol?: number
+  public icase: boolean
   constructor(opts: CompleteOption) {
     this.option = opts
+    this.icase = true
   }
 
-  public resuable(complete: Complete):boolean {
-    let {col, colnr, input, line, linenr} = complete.option
-    if (!this.results
-      || linenr !== this.option.linenr
-      || colnr < this.option.colnr
-      || !input.startsWith(this.option.input)
-      || line.slice(0, col) !== this.option.line.slice(0, col)
-      || col !== this.option.col) return false
-    let buf = buffers.getBuffer(this.option.bufnr.toString())
-    if (!buf) return false
-    let more = line.slice(col)
-    return buf.isWord(more)
-  }
-
-  private completeSource(source: Source, opt: CompleteOption): Promise<any> {
+  private completeSource(source: Source): Promise<any> {
     let {engross} = source
     let start = Date.now()
     let s = new Serial()
     // new option for each source
-    let option = Object.assign({}, opt)
+    let option = Object.assign({}, this.option)
     s.timeout(Math.max(getConfig('timeout'), 300))
     s.add((done, ctx) => {
       source.shouldComplete(option).then(res => {
@@ -86,12 +75,11 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[], isResume: boolean):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[], icase: boolean):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
     let {input, id} = this.option
     let fuzzy = getConfig('fuzzyMatch')
     let filter = fuzzy ? filterFuzzy : filterWord
-    let icase = !/[A-Z]/.test(input)
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let {items} = res
@@ -122,9 +110,9 @@ export default class Complete {
 
   public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
-    let {col} = opts
+    let {col, input} = opts
     sources.sort((a, b) => b.priority - a.priority)
-    let results = await Promise.all(sources.map(s => this.completeSource(s, opts)))
+    let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => {
       // error source
       if (r ===false) return false
@@ -144,7 +132,9 @@ export default class Complete {
     logger.debug(`resultes: ${JSON.stringify(results)}`)
     // use it even it's bad
     this.results = results
-    let filteredResults = this.filterResults(results, false)
+    this.startcol = col
+    let icase = this.icase = !/[A-Z]/.test(input)
+    let filteredResults = this.filterResults(results, icase)
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
   }

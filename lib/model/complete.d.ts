@@ -4,9 +4,10 @@ export declare type Callback = () => void;
 export default class Complete {
     results: CompleteResult[] | null;
     option: CompleteOption;
+    startcol?: number;
+    icase: boolean;
     constructor(opts: CompleteOption);
-    resuable(complete: Complete): boolean;
-    private completeSource(source, opt);
-    filterResults(results: CompleteResult[], isResume: boolean): VimCompleteItem[];
+    private completeSource(source);
+    filterResults(results: CompleteResult[], icase: boolean): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
 }

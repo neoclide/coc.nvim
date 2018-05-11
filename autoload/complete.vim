@@ -38,6 +38,7 @@ function! complete#start(...)
   let input = line[l:start : pos[2] - 2]
   let opt = {
         \ 'id': localtime(),
+        \ 'changedtick': b:changedtick,
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
         \ 'line': getline('.'),
@@ -45,15 +46,11 @@ function! complete#start(...)
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
         \ 'bufnr': bufnr('%').'',
-        \ 'lnum': pos[1],
+        \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
         \ }
-  if resume
-    call CompleteResume(opt)
-  else
-    call CompleteStart(opt)
-  endif
+  call CompleteStart(opt)
   return ''
 endfunction
 

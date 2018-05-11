@@ -22,6 +22,7 @@ export interface CompleteOption {
     filetype: string;
     filepath: string;
     word: string;
+    changedtick: number;
     colnr: number;
     linenr: number;
     [index: string]: any;
