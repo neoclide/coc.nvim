@@ -2,6 +2,8 @@ import { Neovim } from 'neovim'
 import Buffer from './model/buffer'
 import Doc from './model/document'
 import unique = require('array-unique')
+import {getConfig} from './config'
+import {isGitIgnored} from './util/fs'
 const logger = require('./util/logger')('buffers')
 
 export class Buffers {
@@ -23,11 +25,17 @@ export class Buffers {
   }
 
   public async addBuffer(nvim: Neovim, bufnr: string): Promise<void>{
+    let buf = this.buffers.find(buf => buf.bufnr == bufnr)
+    let checkGit = getConfig('checkGit')
+    if (!buf && checkGit) {
+      let fullpath = await nvim.call('complete#util#get_fullpath', [Number(bufnr)])
+      let ignored = await isGitIgnored(fullpath)
+      if (ignored) return
+    }
     let lines: string[] = await nvim.call('getbufline', [Number(bufnr), 1, '$'])
     let content = (lines as string[]).join('\n')
-    if (/\u0000/.test(content)) return
+    if (/\u0000/.test(content) || !content) return
     let keywordOption = await nvim.call('getbufvar', [Number(bufnr), '&iskeyword'])
-    let buf = this.buffers.find(buf => buf.bufnr == bufnr)
     if (buf) {
       buf.setContent(content)
     } else {

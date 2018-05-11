@@ -1,4 +1,8 @@
-let s:disabled = 0
+function! complete#util#get_fullpath(bufnr)
+  let fname = bufname(a:bufnr)
+  if empty(fname) | return '' | endif
+  return fnamemodify(fname, ':p')
+endfunction
 
 function! complete#util#get_buflist() abort
   let buflist = []

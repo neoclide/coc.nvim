@@ -52,7 +52,7 @@ export default class Dictionary extends Source {
   private async getDictWords(file: string):Promise<string[]> {
     if (!file) return []
     let {dicts} = this
-    let words = dicts ? dicts[file] : []
+    let words = dicts ? dicts[file] : null
     if (words && words.length) return words
     let stat = await statAsync(file)
     if (!stat || !stat.isFile()) return []

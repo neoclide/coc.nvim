@@ -54,7 +54,7 @@ inoremap <silent><expr> <TAB>
 
 ## Sources
 
-Navtie source are provided in javascript code and are enabled by default.
+Navtie sources are impletemented in javascript and are enabled by default.
 
 
 Name         | Description                                           | Use cache   | Supported filetypes
@@ -62,14 +62,14 @@ Name         | Description                                           | Use cache
 `around`     | Words of current buffer                               | ✗           | all
 `buffer`     | Keywords of none current buffer                       | ✓           | all
 `dictionary` | Words from files of `dictionary` option               | ✓           | all
+`file`       | Filename completion                                   | ✗           | all
 `omni`       | Words from `omnifunc` of current buffer               | ✗           | User defined
 `module`     | Words of module names                                 | ✗           | [Limited](/src/source/module_resolve)
-`path`       | Relative file paths completion, use `ag` or `ripgrep` | ✗           | [Limited](/src/source/path_resolve)
+`include`    | Full path completion for include other files          | ✗           | [Limited](/src/source/include_resolve)
 
-Note: `module` & `path` source only have support for quite limited filetypes, please consider help.
+Note: `module` & `path` source only have support for quite limited filetypes, need help.
 
-Note: `omni` could block vim's UI, it's `filetypes` option is empty by default,
-to make `omni` source works, you should set `g:complete_omni_filetypes`.
+Note: `filetypes` option of `omni` is empty by default, you have to set `g:complete_omni_filetypes` to make it work.
 
 ## Configuration
 
