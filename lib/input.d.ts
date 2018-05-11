@@ -1,16 +1,15 @@
+import { Neovim } from 'neovim';
 export default class Input {
     input: string;
     word: string;
     positions: number[];
-    /**
-     * constructor
-     *
-     * @public
-     * @param {string} input - user input for complete
-     * @param {string} word - selected complete item
-     */
-    constructor(input: string, word: string);
-    removeCharactor(): boolean;
-    addCharactor(c: string): void;
-    isEmpty(): boolean;
+    private linenr;
+    private nvim;
+    private startcol;
+    private match?;
+    constructor(nvim: Neovim, linenr: any, input: string, word: string, startcol: number);
+    removeCharactor(): Promise<boolean>;
+    addCharactor(c: string): Promise<void>;
+    private getMatchPos();
+    clear(): Promise<void>;
 }

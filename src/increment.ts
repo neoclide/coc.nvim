@@ -46,6 +46,7 @@ export class Increment {
     if (!this.activted) return
     logger.debug('increment stop')
     this.activted = false
+    if (this.input) await this.input.clear()
     this.done = this.input = this.option = this.changedI = null
     let completeOpt = getConfig('completeOpt')
     completes.reset()
@@ -128,19 +129,20 @@ export class Increment {
     }
     let ts = Date.now()
     if (!activted) {
+      let {input, col, linenr} = option
       if (done && ts - done.timestamp < 50) {
         if (changedtick - done.changedtick !== 1) return false
         if (lastInsert && ts - lastInsert.timestamp < 50) {
           // user add one charactor on complete
-          this.input = new Input(option.input, done.word)
-          this.input.addCharactor(lastInsert.character)
+          this.input = new Input(nvim, linenr, input, done.word, col)
+          await this.input.addCharactor(lastInsert.character)
           await this.start(nvim)
           return true
         }
         if (done.colnr - colnr === 1) {
           // user remove one charactor on complete
-          this.input = new Input(option.input, done.word)
-          let invalid = this.input.removeCharactor()
+          this.input = new Input(nvim, linenr, input, done.word, col)
+          let invalid = await this.input.removeCharactor()
           if (!invalid) {
             await this.start(nvim)
             return true
@@ -150,11 +152,11 @@ export class Increment {
     } else {
       if (lastInsert && ts - lastInsert.timestamp < 50
         && colnr - lastChanged.colnr === 1) {
-        this.input.addCharactor(lastInsert.character)
+        await this.input.addCharactor(lastInsert.character)
         return true
       }
       if (lastChanged.colnr - colnr === 1) {
-        let invalid = this.input.removeCharactor()
+        let invalid = await this.input.removeCharactor()
         if (invalid) {
           await this.stop(nvim)
           return false

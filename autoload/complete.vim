@@ -26,9 +26,8 @@ function! complete#_do_complete() abort
   call feedkeys("\<Plug>_", 'i')
 endfunction
 
-function! complete#start(...)
+function! complete#start()
   if !get(g:, 'complete_enabled', 0) | return '' | endif
-  let resume = get(a:, 1, 0)
   let pos = getcurpos()
   let line = getline('.')
   let l:start = pos[2] - 1

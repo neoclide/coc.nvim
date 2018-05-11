@@ -83,6 +83,7 @@ function! s:Enable()
     autocmd TextChanged,BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
     autocmd BufRead,BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'))
   augroup end
+  exec "highlight default CompleteChars guifg=white guibg=magenta ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
   let g:complete_enabled = 1
 endfunction
 

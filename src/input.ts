@@ -1,19 +1,16 @@
+import {Neovim} from 'neovim'
 const logger = require('./util/logger')('input')
 
 export default class Input {
   public input: string
   public word: string
   public positions: number[]
+  private linenr: number
+  private nvim:Neovim
+  private startcol: number
+  private match?: number
 
-  /**
-   * constructor
-   *
-   * @public
-   * @param {string} input - user input for complete
-   * @param {string} word - selected complete item
-   */
-  constructor(input: string, word: string) {
-    this.word = word
+  constructor(nvim:Neovim, linenr, input: string, word: string, startcol: number) {
     let positions = []
     let index = 0
     for (let i = 0, l = input.length; i < l; i++) {
@@ -26,11 +23,15 @@ export default class Input {
         index++
       }
     }
+    this.linenr = linenr
+    this.word = word
+    this.nvim = nvim
+    this.startcol = startcol
     this.input = input
     this.positions = positions
   }
 
-  public removeCharactor():boolean {
+  public async removeCharactor():Promise<boolean> {
     let {word, input} = this
     if (!input.length) return true
     let {positions} = this
@@ -38,17 +39,36 @@ export default class Input {
       positions.pop()
       this.input = this.input.slice(0, -1)
       this.word = word.slice(0, -1)
+      let plist = this.getMatchPos()
+      await this.clear()
+      if (plist.length) {
+        this.match = await this.nvim.call('matchaddpos', ['CompleteChars', plist])
+      }
     }
     if (positions.length == 0) return true
   }
 
-  public addCharactor(c: string):void {
+  public async addCharactor(c: string):Promise<void> {
     this.input = this.input + c
     this.word = this.word + c
     this.positions.push(this.word.length - 1)
+    let plist = this.getMatchPos()
+    await this.clear()
+    logger.debug(JSON.stringify(plist))
+    this.match = await this.nvim.call('matchaddpos', ['CompleteChars', plist])
   }
 
-  public isEmpty():boolean {
-    return this.positions.length == 0
+  private getMatchPos():number[][] {
+    let {startcol, positions, linenr} = this
+    return positions.map(p => {
+      return [linenr, startcol + p + 1]
+    })
+  }
+
+  public async clear():Promise<void> {
+    if (this.match) {
+      await this.nvim.call('matchdelete', [this.match])
+      this.match = null
+    }
   }
 }
