@@ -115,25 +115,6 @@ Name                        | Description
 `:CompleteEnable`           | Enable complete.nvim
 `:Denite completes`         | Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
 
-### Functions
-
-Since complete.nvim initailzed in async, you could only use functions/commands after autocmd
-`CompleteNvimInit` triggered, like:
-
-``` vim
-function s:ConfigComplete()
-  call complete#source#config('dictionary', {
-      \ 'filetypes': ['javascript', 'typescript']
-      \})
-endfunction
-autocmd user CompleteNvimInit call s:ConfigComplete()
-```
-
-* **complete#source#config(name, options)**
-
-  Set configuration for `name` source, `options` could contains fields like
-  `filetypes`, `disabled`
-
 ## Trouble shooting
 
 When you find the plugin is not workig as you would expected, run command
