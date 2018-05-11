@@ -12,6 +12,7 @@ export default abstract class Source {
     constructor(nvim: Neovim, option: SourceOption);
     readonly menu: string;
     protected convertToItems(list: any[], extra?: any): VimCompleteItem[];
+    protected filterWords(words: string[], opt: CompleteOption): string[];
     checkFileType(filetype: string): boolean;
     refresh(): Promise<void>;
     abstract shouldComplete(opt: CompleteOption): Promise<boolean>;

@@ -1,10 +1,6 @@
-/******************************************************************
-MIT License http://www.opensource.org/licenses/mit-license.php
-Author Qiming Zhao <chemzqm@gmail> (https://github.com/chemzqm)
-*******************************************************************/
 import {VimCompleteItem} from './types'
 import watchObj from './util/watch-obj'
-import {logger} from './util/logger'
+const logger = require('./util/logger')('remote-store')
 
 export interface Cached {
   [index: string]: VimCompleteItem[]

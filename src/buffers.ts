@@ -1,8 +1,8 @@
 import { Neovim } from 'neovim'
 import Buffer from './model/buffer'
 import Doc from './model/document'
-import {logger} from './util/logger'
 import unique = require('array-unique')
+const logger = require('./util/logger')('buffers')
 
 export class Buffers {
   public buffers: Buffer[]

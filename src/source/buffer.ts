@@ -2,6 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import buffers from '../buffers'
+const logger = require('../util/logger')('source-buffer')
 
 export default class Buffer extends Source {
   constructor(nvim: Neovim) {
@@ -25,6 +26,7 @@ export default class Buffer extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, input} = opt
     let words = buffers.getWords(bufnr)
+    words = this.filterWords(words, opt)
     return {
       items: words.map(word => {
         return {

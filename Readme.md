@@ -57,14 +57,14 @@ inoremap <silent><expr> <TAB>
 Navtie source are provided in javascript code and are enabled by default.
 
 
-Name         | Description                                           | Use cache | Supported filetypes
+Name         | Description                                           | Use cache   | Supported filetypes
 ------------ | -------------                                         | ------------|------------
-`around`     | Words of current buffer                               | false | all
-`buffer`     | Words of none current buffer                          | true | all
-`dictionary` | Words from files of `dictionary` option               | true | all
-`omni`       | Words from `omnifunc` of current buffer               | false | User defined
-`module`     | Words of module names                                 | false | [Limited](/src/source/module_resolve)
-`path`       | Relative file paths completion, use `ag` or `ripgrep` | false | [Limited](/src/source/path_resolve)
+`around`     | Words of current buffer                               | ✗           | all
+`buffer`     | Keywords of none current buffer                       | ✓           | all
+`dictionary` | Words from files of `dictionary` option               | ✓           | all
+`omni`       | Words from `omnifunc` of current buffer               | ✗           | User defined
+`module`     | Words of module names                                 | ✗           | [Limited](/src/source/module_resolve)
+`path`       | Relative file paths completion, use `ag` or `ripgrep` | ✗           | [Limited](/src/source/path_resolve)
 
 Note: `module` & `path` source only have support for quite limited filetypes, please consider help.
 

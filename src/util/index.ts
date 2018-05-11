@@ -1,7 +1,7 @@
 import {Neovim } from 'neovim'
 import debounce = require('debounce')
-import {logger} from './logger'
 import unique = require('array-unique')
+const logger = require('./logger')()
 
 export type Callback =(arg: string) => void
 

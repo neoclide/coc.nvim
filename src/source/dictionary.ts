@@ -1,12 +1,12 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
-import {logger} from '../util/logger'
 import {statAsync} from '../util/fs'
 import buffers from '../buffers'
 import * as fs from 'fs'
 import unique = require('array-unique')
 import pify = require('pify')
+const logger = require('../util/logger')('source-dictionary')
 
 interface Dicts {
   [index: string] : string[]
@@ -24,10 +24,11 @@ export default class Dictionary extends Source {
     this.dicts = null
     this.dictOption = ''
   }
+
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {input, bufnr} = opt
+    let {input} = opt
     if (input.length === 0) return false
-    let dictOption: string = await this.nvim.call('getbufvar', [Number(bufnr), '&dictionary'])
+    let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
     dictOption = this.dictOption = dictOption.trim()
     if (!dictOption) return false
     return true
@@ -52,7 +53,7 @@ export default class Dictionary extends Source {
     if (!file) return []
     let {dicts} = this
     let words = dicts ? dicts[file] : []
-    if (words) return words
+    if (words && words.length) return words
     let stat = await statAsync(file)
     if (!stat || !stat.isFile()) return []
     try {
@@ -73,6 +74,7 @@ export default class Dictionary extends Source {
     if (dictOption) {
       let dicts = dictOption.split(',')
       words = await this.getWords(dicts)
+      words = this.filterWords(words, opt)
     }
     return {
       items: words.map(word => {

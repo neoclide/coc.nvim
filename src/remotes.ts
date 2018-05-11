@@ -1,12 +1,12 @@
 import { Neovim } from 'neovim'
 import VimSource from './model/source-vim'
 import {SourceOption} from './types'
-import {logger} from './util/logger'
 import {echoWarning, echoErr} from './util/index'
 import {statAsync} from './util/fs'
 import path = require('path')
 import pify = require('pify')
 import fs = require('fs')
+const logger = require('./util/logger')('remotes')
 
 export interface Remote {
   filepath: string

@@ -1,10 +1,13 @@
+// umask is blacklisted by node-client
+process.umask = ()=> {
+  return 18
+}
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {
   SourceStat,
   SourceConfig,
   CompleteOption,
   VimCompleteItem} from './types'
-import {logger} from './util/logger'
 import {echoErr, contextDebounce} from './util/index'
 import {
   setConfig,
@@ -18,6 +21,7 @@ import remoteStore from './remote-store'
 import remotes from './remotes'
 import natives from './natives'
 import fundebug = require('fundebug-nodejs')
+const logger = require('./util/logger')('index')
 fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
 @Plugin({dev: true})

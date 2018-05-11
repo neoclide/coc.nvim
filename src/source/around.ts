@@ -1,8 +1,8 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
-import {logger} from '../util/logger'
 import buffers from '../buffers'
+const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
   constructor(nvim: Neovim) {
@@ -27,6 +27,7 @@ export default class Around extends Source {
     let content = lines.join('\n')
     let document = buffers.createDocument(uri, filetype, content, keywordOption)
     let words = document.getWords()
+    words = this.filterWords(words, opt)
     return {
       items: words.map(word => {
         return {

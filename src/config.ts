@@ -1,5 +1,5 @@
 import {Config, SourceConfig} from './types'
-import {logger} from './util/logger'
+const logger = require('./util/logger')('config')
 
 let config: Config = {
   fuzzyMatch: true,

@@ -4,7 +4,7 @@ import {getConfig} from '../config'
 import Source from './source'
 import {filterItemWord, filterItemFuzzy} from '../util/filter'
 import {echoErr, echoWarning} from '../util/index'
-import {logger} from '../util/logger'
+const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
 

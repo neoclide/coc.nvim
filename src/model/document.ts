@@ -1,7 +1,7 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-types'
 import unique = require('array-unique')
-import {logger} from '../util/logger'
 import {Chars} from './chars'
+const logger = require('../util/logger')('model-document')
 
 export default class Doc {
   public doc: TextDocument

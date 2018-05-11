@@ -3,9 +3,9 @@ import {getConfig} from './config'
 import Source from './model/source'
 import Complete from './model/complete'
 import {CompleteOption, VimCompleteItem} from './types'
-import {logger} from './util/logger'
 import natives from './natives'
 import remotes from './remotes'
+const logger = require('./util/logger')('completes')
 
 export class Completes {
   public complete: Complete | null

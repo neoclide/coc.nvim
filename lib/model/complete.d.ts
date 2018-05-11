@@ -3,7 +3,6 @@ import Source from './source';
 export declare type Callback = () => void;
 export default class Complete {
     results: CompleteResult[] | null;
-    finished: boolean;
     option: CompleteOption;
     constructor(opts: CompleteOption);
     resuable(complete: Complete): boolean;

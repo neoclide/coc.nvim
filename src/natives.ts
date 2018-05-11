@@ -1,11 +1,11 @@
 import { Neovim } from 'neovim'
 import Source from './model/source'
 import {SourceOption} from './types'
-import {logger} from './util/logger'
 import {echoErr} from './util/index'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
+const logger = require('./util/logger')('natives')
 
 export interface Native {
   Clz: typeof Source

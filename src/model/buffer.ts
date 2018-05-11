@@ -1,7 +1,7 @@
 import crypto = require('crypto')
-import {logger} from '../util/logger'
 import {Chars} from './chars'
 const {createHash} = crypto
+const logger = require('../util/logger')('model-buffer')
 
 export default class Buffer {
   public words: string[]

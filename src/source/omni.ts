@@ -1,11 +1,11 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, VimCompleteItem, CompleteResult} from '../types'
 import Source from '../model/source'
-import {logger} from '../util/logger'
 import {echoWarning} from '../util/index'
 import * as fs from 'fs'
 import path = require('path')
 import pify = require('pify')
+const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
   constructor(nvim: Neovim) {
