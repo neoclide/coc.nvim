@@ -1,5 +1,5 @@
 {
-  "name": "complete.nvim",
+  "name": "coc.nvim",
   "version": "0.0.1",
   "description": "Completetion manage for neovim",
   "main": "./lib/index.js",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/neoclide/complete.nvim.git"
+    "url": "git+https://github.com/neoclide/coc.nvim.git"
   },
   "keywords": [
     "complete",
@@ -21,9 +21,9 @@
   "author": "Qiming Zhao <chemzqm@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/neoclide/complete.nvim/issues"
+    "url": "https://github.com/neoclide/coc.nvim/issues"
   },
-  "homepage": "https://github.com/neoclide/complete.nvim#readme",
+  "homepage": "https://github.com/neoclide/coc.nvim#readme",
   "devDependencies": {
     "@chemzqm/tsconfig": "0.0.2",
     "@chemzqm/tslint-config": "^1.0.11",

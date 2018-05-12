@@ -15,7 +15,7 @@ export default class VimSource extends Source {
   private async callOptinalFunc(fname: string, args: any[]):Promise<any> {
     let exists = this.optionalFns.indexOf(fname) !== -1
     if (!exists) return null
-    let name = `complete#source#${this.name}#${fname}`
+    let name = `coc#source#${this.name}#${fname}`
     let res
     try {
       res = await this.nvim.call(name, args)
@@ -47,7 +47,7 @@ export default class VimSource extends Source {
         opt = Object.assign({}, opt, {col: startcol})
       }
     }
-    await this.nvim.call('complete#remote#do_complete', [this.name, opt])
+    await this.nvim.call('coc#remote#do_complete', [this.name, opt])
     let items = await remoteStore.getResult(id, this.name)
     let filter = getConfig('filter')
     for (let item of items) {

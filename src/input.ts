@@ -42,7 +42,7 @@ export default class Input {
       let plist = this.getMatchPos()
       await this.clear()
       if (plist.length) {
-        this.match = await this.nvim.call('matchaddpos', ['CompleteChars', plist])
+        this.match = await this.nvim.call('matchaddpos', ['CocChars', plist])
       }
     }
     if (positions.length == 0) return true
@@ -55,7 +55,7 @@ export default class Input {
     let plist = this.getMatchPos()
     await this.clear()
     logger.debug(JSON.stringify(plist))
-    this.match = await this.nvim.call('matchaddpos', ['CompleteChars', plist])
+    this.match = await this.nvim.call('matchaddpos', ['CocChars', plist])
   }
 
   private getMatchPos():number[][] {

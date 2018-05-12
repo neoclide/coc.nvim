@@ -28,7 +28,7 @@ export class Buffers {
     let buf = this.buffers.find(buf => buf.bufnr == bufnr)
     let checkGit = getConfig('checkGit')
     if (!buf && checkGit) {
-      let fullpath = await nvim.call('complete#util#get_fullpath', [Number(bufnr)])
+      let fullpath = await nvim.call('coc#util#get_fullpath', [Number(bufnr)])
       let ignored = await isGitIgnored(fullpath)
       if (ignored) return
     }
@@ -65,7 +65,7 @@ export class Buffers {
   }
 
   public async refresh(nvim: Neovim):Promise<void> {
-    let bufs:number[] = await nvim.call('complete#util#get_buflist', [])
+    let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
     this.buffers = []
     for (let buf of bufs) {
       await this.addBuffer(nvim, buf.toString())

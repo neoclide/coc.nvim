@@ -4,9 +4,9 @@ import * as log4js from 'log4js'
 
 const MAX_LOG_SIZE = 1024 * 1024
 const MAX_LOG_BACKUPS = 10
-const LOG_FILE_PATH = process.env.NVIM_COMPLETE_LOG_FILE || path.join(os.tmpdir(), 'nvim-complete.log')
+const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
 
-const level = process.env.NVIM_COMPLETE_LOG_LEVEL || 'info'
+const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
 log4js.configure({
   appenders: {
@@ -28,6 +28,6 @@ log4js.configure({
   }
 })
 
-module.exports = (name = 'nvim-complete'):log4js.Logger => {
+module.exports = (name = 'coc-nvim'):log4js.Logger => {
   return log4js.getLogger(name)
 }

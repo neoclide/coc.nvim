@@ -49,7 +49,7 @@ export class Remotes {
     let dups: {[index: string]: string[]} = {}
     let names = []
     for (let p of paths) {
-      let folder = path.join(p, 'autoload/complete/source')
+      let folder = path.join(p, 'autoload/coc/source')
       let stat = await statAsync(folder)
       if (stat && stat.isDirectory()) {
         let files = await pify(fs.readdir)(folder)
@@ -122,7 +122,7 @@ export class Remotes {
     let fns = ['init', 'complete']
     let valid = true
     for (let fname of fns) {
-      let fn = `complete#source#${name}#${fname}`
+      let fn = `coc#source#${name}#${fname}`
       let exists = await nvim.call('exists', [`*${fn}`])
       if (exists != 1) {
         valid = false
@@ -141,7 +141,7 @@ export class Remotes {
     let fns = ['should_complete', 'refresh', 'get_startcol']
     let res = []
     for (let fname of fns) {
-      let fn = `complete#source#${name}#${fname}`
+      let fn = `coc#source#${name}#${fname}`
       let exists = await nvim.call('exists', [`*${fn}`])
       if (exists == 1) {
         res.push(fname)
@@ -151,7 +151,7 @@ export class Remotes {
   }
 
   public async createSource(nvim: Neovim, name: string, isCheck?: boolean):Promise<VimSource | null> {
-    let fn = `complete#source#${name}#init`
+    let fn = `coc#source#${name}#init`
     let config: SourceOption | null
     try {
       config = await nvim.call(fn, [])

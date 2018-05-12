@@ -35,7 +35,7 @@ export function wait(ms: number):Promise<void> {
 
 async function echoMsg(nvim:Neovim, line: string, hl: string):Promise<void> {
   try {
-    await nvim.command(`echohl ${hl} | echomsg '[complete.nvim] ${escapeSingleQuote(line)}' | echohl None"`)
+    await nvim.command(`echohl ${hl} | echomsg '[coc.nvim] ${escapeSingleQuote(line)}' | echohl None"`)
   } catch (e) {
     logger.error(e.stack)
   }
@@ -51,5 +51,5 @@ export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
 }
 
 export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
-  await nvim.call('complete#util#print_errors', lines)
+  await nvim.call('coc#util#print_errors', lines)
 }

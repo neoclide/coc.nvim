@@ -1,5 +1,5 @@
 # ============================================================================
-# FILE: completes.py
+# FILE: coc.py
 # AUTHOR: Qiming Zhao <chemzqm@gmail.com>
 # License: MIT license
 # ============================================================================
@@ -14,36 +14,36 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
 
-        self.name = 'completes'
+        self.name = 'coc'
         self.matchers = ['matcher_fuzzy']
         self.sorters = []
-        self.kind = CompleteKind(vim)
+        self.kind = CocKind(vim)
 
     def define_syntax(self):
         self.vim.command('syntax case ignore')
-        self.vim.command(r'syntax match deniteSource_CompletesHeader /\v^.*$/ containedin=' + self.syntax_name)
-        self.vim.command(r'syntax match deniteSource_CompletesStar /\v^\%1c.*\%3c/ contained '
-                r'containedin=deniteSource_CompletesHeader')
-        self.vim.command(r'syntax match deniteSource_CompletesName /\%4c.*\%22c/ contained '
-                r'containedin=deniteSource_CompletesHeader')
-        self.vim.command(r'syntax match deniteSource_CompletesType /\%25c.*\%31c/ contained '
-                r'containedin=deniteSource_CompletesHeader')
-        self.vim.command(r'syntax match deniteSource_CompletesPath /\%32c.*$/ contained '
-                r'containedin=deniteSource_CompletesHeader')
+        self.vim.command(r'syntax match deniteSource_CocHeader /\v^.*$/ containedin=' + self.syntax_name)
+        self.vim.command(r'syntax match deniteSource_CocStar /\v^\%1c.*\%3c/ contained '
+                r'containedin=deniteSource_CocHeader')
+        self.vim.command(r'syntax match deniteSource_CocName /\%4c.*\%22c/ contained '
+                r'containedin=deniteSource_CocHeader')
+        self.vim.command(r'syntax match deniteSource_CocType /\%25c.*\%31c/ contained '
+                r'containedin=deniteSource_CocHeader')
+        self.vim.command(r'syntax match deniteSource_CocPath /\%32c.*$/ contained '
+                r'containedin=deniteSource_CocHeader')
 
     def highlight(self):
-        self.vim.command('highlight default link deniteSource_CompletesStar Special')
-        self.vim.command('highlight default link deniteSource_CompletesName Type')
-        self.vim.command('highlight default link deniteSource_CompletesType Statement')
-        self.vim.command('highlight default link deniteSource_CompletesPath Comment')
+        self.vim.command('highlight default link deniteSource_CocStar Special')
+        self.vim.command('highlight default link deniteSource_CocName Type')
+        self.vim.command('highlight default link deniteSource_CocType Statement')
+        self.vim.command('highlight default link deniteSource_CocPath Comment')
 
     def gather_candidates(self, context):
-        items = self.vim.eval('CompleteSourceStat()')
+        items = self.vim.eval('CocSourceStat()')
         candidates = []
         for item in items:
             name = item['name']
             prefix = '   ' if item['disabled'] else ' * '
-            t = '[vim] ' if item['type'] == 'remote' else '[node]'
+            t = '[VIM]' if item['type'] == 'remote' else '[JS]'
             filepath = item['filepath']
             candidates.append({
                 'word': name,
@@ -55,7 +55,7 @@ class Source(Base):
         return candidates
 
 
-class CompleteKind(FileKind):
+class CocKind(FileKind):
 
     def __init__(self, vim):
         super().__init__(vim)
@@ -65,8 +65,8 @@ class CompleteKind(FileKind):
 
     def action_toggle(self, context):
         target = context['targets'][0]
-        self.vim.call('CompleteSourceToggle', target['source__name'])
+        self.vim.call('CocSourceToggle', target['source__name'])
 
     def action_refresh(self, context):
         target = context['targets'][0]
-        self.vim.call('CompleteSourceRefresh', target['source__name'])
+        self.vim.call('CocSourceRefresh', target['source__name'])

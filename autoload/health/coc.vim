@@ -25,7 +25,7 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkInitailize() abort
-  if get(g:, 'complete_node_channel_id', 0)
+  if get(g:, 'coc_node_channel_id', 0)
     call health#report_ok('Service initailized')
     return 1
   endif
@@ -36,11 +36,11 @@ function! s:checkInitailize() abort
   return 0
 endfunction
 
-function! health#complete#check() abort
+function! health#coc#check() abort
     call s:checkEnvironment()
     let valid = s:checkInitailize()
     if valid
-      let names = CompleteCheck()
+      let names = CocCheck()
       if !empty(names)
         call health#report_ok('Vim sources '.join(names, ',').' activted')
       endif

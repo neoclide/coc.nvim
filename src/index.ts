@@ -19,9 +19,9 @@ import buffers from './buffers'
 import completes from './completes'
 import remotes from './remotes'
 import natives from './natives'
-import fundebug = require('fundebug-nodejs')
 import remoteStore from './remote-store'
 import increment from './increment'
+import fundebug = require('fundebug-nodejs')
 const logger = require('./util/logger')('index')
 fundebug.apikey='08fef3f3304dc6d9acdb5568e4bf65edda6bf3ce41041d40c60404f16f72b86e'
 
@@ -48,7 +48,8 @@ export default class CompletePlugin {
 
   private handleError(err: Error):void {
     let {nvim} = this
-    echoErr(nvim ,`Service error: ${err.message}`).catch(err => { logger.error(err.message)
+    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
+      logger.error(err.message)
     })
     if (getConfig('traceError') && process.env.NODE_ENV !== 'test') {
       // fundebug.notifyError(err)
@@ -65,11 +66,11 @@ export default class CompletePlugin {
       await this.initConfig()
       await natives.init()
       await remotes.init(nvim, natives.names)
-      await nvim.command(`let g:complete_node_channel_id=${(nvim as any)._channel_id}`)
-      await nvim.command('silent doautocmd User CompleteNvimInit')
+      await nvim.command(`let g:coc_node_channel_id=${(nvim as any)._channel_id}`)
+      await nvim.command('silent doautocmd User CocNvimInit')
       logger.info('Complete service Initailized')
       // required since BufRead triggered before VimEnter
-      let bufs:number[] = await nvim.call('complete#util#get_buflist', [])
+      let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
         await buffers.addBuffer(nvim, buf.toString())
       }
@@ -79,21 +80,21 @@ export default class CompletePlugin {
     }
   }
 
-  @Function('CompleteBufUnload', {sync: false})
-  public async onBufUnload(args: any[]):Promise<void> {
+  @Function('CocBufUnload', {sync: false})
+  public async cocBufUnload(args: any[]):Promise<void> {
     let bufnr = args[0].toString()
     buffers.removeBuffer(bufnr)
     logger.debug(`buffer ${bufnr} remove`)
   }
 
-  @Function('CompleteBufChange', {sync: false})
-  public async onBufChange(args: any[]):Promise<void> {
+  @Function('CocBufChange', {sync: false})
+  public async cocBufChange(args: any[]):Promise<void> {
     let bufnr = args[0].toString()
     this.debouncedOnChange(bufnr)
   }
 
-  @Function('CompleteStart', {sync: false})
-  public async completeStart(args: [CompleteOption]):Promise<void> {
+  @Function('CocStart', {sync: false})
+  public async cocStart(args: [CompleteOption]):Promise<void> {
     let opt = args[0]
     let start = Date.now()
     if (!opt) return
@@ -111,11 +112,11 @@ export default class CompletePlugin {
       if (items.length > 1) {
         increment.setOption(opt)
       }
-      this.nvim.setVar('complete#_context', {
+      this.nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
       })
-      this.nvim.call('complete#_do_complete', []).then(() => {
+      this.nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       })
     })
@@ -125,7 +126,7 @@ export default class CompletePlugin {
     pattern: '*',
     sync: true,
   })
-  public async completeCharInsert():Promise<void> {
+  public async cocCharInsert():Promise<void> {
     await increment.onCharInsert(this.nvim)
   }
 
@@ -133,7 +134,7 @@ export default class CompletePlugin {
     pattern: '*',
     sync: true,
   })
-  public async completeDone():Promise<void> {
+  public async cocDone():Promise<void> {
     await increment.onComplete(this.nvim)
   }
 
@@ -141,7 +142,7 @@ export default class CompletePlugin {
     pattern: '*',
     sync: true,
   })
-  public async completeLeave():Promise<void> {
+  public async cocLeave():Promise<void> {
     await increment.stop(this.nvim)
   }
 
@@ -149,7 +150,7 @@ export default class CompletePlugin {
     pattern: '*',
     sync: true
   })
-  public async completeTextChangeI():Promise<void> {
+  public async cocTextChangeI():Promise<void> {
     let {complete} = completes
     let {nvim} = this
     if (!complete) return
@@ -181,18 +182,19 @@ export default class CompletePlugin {
       if (items.length == 1) {
         await increment.stop(nvim)
       }
-      nvim.setVar('complete#_context', {
+      nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
       })
-      nvim.call('complete#_do_complete', []).then(() => {
+      nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       })
     }
   }
 
-  @Function('CompleteResult', {sync: false})
-  public async completeResult(args: any[]):Promise<void> {
+  // callback for remote sources
+  @Function('CocResult', {sync: false})
+  public async cocResult(args: any[]):Promise<void> {
     let id = Number(args[0])
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
@@ -200,8 +202,9 @@ export default class CompletePlugin {
     remoteStore.setResult(id, name, items)
   }
 
-  @Function('CompleteCheck', {sync: true})
-  public async completeCheck():Promise<string[] | null> {
+  // Used for :checkhealth
+  @Function('CocCheck', {sync: true})
+  public async cocCheck():Promise<string[] | null> {
     let {nvim} = this
     await remotes.init(nvim, natives.names, true)
     let {names} = remotes
@@ -215,8 +218,8 @@ export default class CompletePlugin {
     return success ? names: null
   }
 
-  @Function('CompleteSourceStat', {sync: true})
-  public async completeSourceStat():Promise<SourceStat[]> {
+  @Function('CocSourceStat', {sync: true})
+  public async cocSourceStat():Promise<SourceStat[]> {
     let disabled = getConfig('disabled')
     let res: SourceStat[] = []
     let items:any = natives.list.concat(remotes.list as any)
@@ -232,16 +235,17 @@ export default class CompletePlugin {
     return res
   }
 
-  @Function('CompleteSourceConfig', {sync: false})
-  public async completeSourceConfig(args: any):Promise<void> {
+  // TODO remove this
+  @Function('CocSourceConfig', {sync: false})
+  public async cocSourceConfig(args: any):Promise<void> {
     let name:string = args[0]
     let config:SourceConfig = args[1]
     if (!name) return
     configSource(name, config)
   }
 
-  @Function('CompleteSourceToggle', {sync: true})
-  public async completeSourceToggle(args: any):Promise<string> {
+  @Function('CocSourceToggle', {sync: true})
+  public async cocSourceToggle(args: any):Promise<string> {
     let name = args[0].toString()
     if (!name) return ''
     if (!natives.has(name) && !remotes.has(name)) {
@@ -251,8 +255,8 @@ export default class CompletePlugin {
     return toggleSource(name)
   }
 
-  @Function('CompleteSourceRefresh', {sync: true})
-  public async completeSourceRefresh(args: any):Promise<boolean> {
+  @Function('CocSourceRefresh', {sync: true})
+  public async cocSourceRefresh(args: any):Promise<boolean> {
     let name = args[0].toString()
     if (name) {
       let m = natives.has(name) ? natives : remotes
@@ -281,7 +285,7 @@ export default class CompletePlugin {
 
   private async initConfig(): Promise<void> {
     let {nvim} = this
-    let opts: {[index: string]: any} = await nvim.call('complete#get_config', [])
+    let opts: {[index: string]: any} = await nvim.call('coc#get_config', [])
     setConfig(opts)
   }
 }

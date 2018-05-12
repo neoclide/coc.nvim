@@ -30,7 +30,7 @@ export default class Around extends Source {
     let ms = part.match(pathRe)
     if (ms) {
       opt.pathstr = ms[0]
-      opt.fullpath = await this.nvim.call('complete#util#get_fullpath', [Number(bufnr)])
+      opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [Number(bufnr)])
       logger.debug(opt.fullpath)
       opt.cwd = await this.nvim.call('getcwd', [])
     }

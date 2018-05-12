@@ -1,13 +1,13 @@
-# Complete.nvim
+# [C](#)onqure [o](#)f  [C](#)ompletion
 
 Improved complete experience for [neovim](https://github.com/neovim/neovim)
+
+W.I.P.
 
 Design principle:
 
 * Popup should shown as less as possible
 * User input required shoud as less as possible
-
-**WARNING** main features still not working!
 
 ## Features
 
@@ -23,7 +23,7 @@ Design principle:
 Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 ``` vim
- call dein#add('neoclide/complete.nvim', {
+ call dein#add('neoclide/coc.nvim', {
     \ 'build': 'make'
     \})
 ```
@@ -34,11 +34,7 @@ See [trouble shooting](#trouble-shooting) if you have runtime issue.
 
 ### Set trigger for completion
 
-``` vim
-imap <c-space> <Plug>(complete_start)
-```
-
-**Use tab**
+**Tab is awesome**
 
 ``` vim
 function! s:check_back_space() abort
@@ -49,7 +45,13 @@ endfunction
 inoremap <silent><expr> <TAB>
       \ pumvisible() ? "\<C-n>" :
       \ <SID>check_back_space() ? "\<TAB>" :
-      \ complete#refresh()
+      \ coc#refresh()
+```
+
+**Use custom key**
+
+``` vim
+imap <c-space> <Plug>(coc_start)
 ```
 
 ## Sources
@@ -57,19 +59,17 @@ inoremap <silent><expr> <TAB>
 Navtie sources are impletemented in javascript and are enabled by default.
 
 
-Name         | Description                                           | Use cache   | Supported filetypes
------------- | -------------                                         | ------------|------------
-`around`     | Words of current buffer                               | ✗           | all
-`buffer`     | Keywords of none current buffer                       | ✓           | all
-`dictionary` | Words from files of `dictionary` option               | ✓           | all
-`file`       | Filename completion                                   | ✗           | all
-`omni`       | Words from `omnifunc` of current buffer               | ✗           | User defined
-`module`     | Words of module names                                 | ✗           | [Limited](/src/source/module_resolve)
-`include`    | Full path completion for include other files          | ✗           | [Limited](/src/source/include_resolve)
+Name         | Description                                             | Use cache   | Supported filetypes
+------------ | -------------                                           | ------------|------------
+`around`     | Words of current buffer.                                | ✗           | all
+`buffer`     | Words of none current buffer.                           | ✓           | all
+`dictionary` | Words from files of local `dictionary` option.          | ✓           | all
+`file`       | Filename completion, auto detected.                     | ✗           | all
+`omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | User defined
+`module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
+`include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
 Note: `module` & `path` source only have support for quite limited filetypes, need help.
-
-Note: `filetypes` option of `omni` is empty by default, you have to set `g:complete_omni_filetypes` to make it work.
 
 ## Configuration
 
@@ -86,7 +86,7 @@ inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<cr>"
 " Auto close preview window when completion is done.
 autocmd! CompleteDone * if pumvisible() == 0 | pclose | endif
 
-" Recommanded completeopt setting see `:h completeopt`
+" The completeopt coc works best with, see `:h completeopt`
 set completeopt=menu,preview
 ```
 </details>
@@ -94,42 +94,42 @@ set completeopt=menu,preview
 
 ### Global variables
 
-Name                           | Description                                             | Default
-------------                   | -------------                                           | ------------
-`g:complete_fuzzy_match`       | Use fuzzy match for words                               | 1
-`g:complete_timeout`           | Timeout in milisecond for completion                    | 300
-`g:complete_trace_error`       | Trace issue and send back to fundebug                   | 0
-`g:complete_ignore_git_ignore` | Ignore buffers (buffer souce only) that are git ignored | 0
-`g:complete_source_disabled`   | Names of disabled sources                               | []
-`g:complete_omni_filetypes `   | List of filetypes for using omni source                 | []
+Name                      | Description                                               | Default
+------------              | -------------                                             | ------------
+`g:coc_fuzzy_match`       | Use fuzzy match for words                                 | 1
+`g:coc_timeout`           | Timeout in milisecond for completion                      | 300
+`g:coc_trace_error`       | Trace issue and send back to fundebug                     | 0
+`g:coc_ignore_git_ignore` | Ignore collect words from buffers that are git ignored    | 0
+`g:coc_source_disabled`   | Names of disabled sources                                 | []
+`g:coc_source_config`     | Configuration for coc sources, see `:h coc_source_config` | []
 
 ### Commands
 
 Commands are used change the service status on the fly.
 
-Name                        | Description
-------------                | -------------
-`:CompleteRefresh [name]`   | Refresh `name` source, or all sources without argument.
-`:CompleteToggle name`      | Toggle `name` source state (enable/disable).
-`:CompleteDisable`          | Disable complete.nvim
-`:CompleteEnable`           | Enable complete.nvim
-`:Denite completes`         | Open `completes` source in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
+Name                 | Description
+------------         | -------------
+`:CocRefresh [name]` | Refresh `name` source, or all sources without argument.
+`:CocToggle name`    | Toggle `name` source state (enable/disable).
+`:CocDisable`        | Disable coc.nvim
+`:CocEnable`         | Enable coc.nvim
+`:Denite coc`        | Open coc sources in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
 
 ## Trouble shooting
 
 When you find the plugin is not workig as you would expected, run command
-`:checkhealth` and make use that output from `complete.nvim` are `OK`.
+`:checkhealth` and make use that output from `coc.nvim` are `OK`.
 
 To get the log file, run shell command:
 
-    node -e 'console.log(path.join(os.tmpdir(), "nvim-complete.log"))'
+    node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
 
 You can also use environment variable to change logger behaviour:
 
-* `$NVIM_COMPLETE_LOG_LEVEL` set to `debug` for debug messages.
-* `$NVIM_COMPLETE_LOG_FILE` set the file path of log file.
+* `$NVIM_COC_LOG_LEVEL` set to `debug` for debug messages.
+* `$NVIM_COC_LOG_FILE` set the file path of log file.
 
-Note: Complete.nvim would disable itself when there is vim error during autocmd.
+Note: Coc would disable itself when there is vim error during autocmd.
 
 ## Similar projects
 

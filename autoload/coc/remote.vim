@@ -1,13 +1,13 @@
 let s:timer_map = {}
 
 " run complete for a specified source
-function! complete#remote#do_complete(name, opt)
-  let handler = 'complete#source#'.a:name.'#complete'
+function! coc#remote#do_complete(name, opt)
+  let handler = 'coc#source#'.a:name.'#complete'
   if !exists('*'.handler)
-    echoerr 'complete handler not found from source '.a:name
+    echoerr 'complete function not found from source '.a:name
     return
   endif
-  let OneTime = complete#util#once(funcref('s:OnCompletionReceived', [a:name, a:opt]))
+  let OneTime = coc#util#once(funcref('s:OnCompletionReceived', [a:name, a:opt]))
   " finish job & invoke callback after 2s
   let cid = call(handler, [a:opt, OneTime])
   let cid = type(cid) == 0 && cid > 0 ? cid : 0
@@ -29,7 +29,7 @@ function! s:TimerCallback(job_id, Handler,...)
 endfunction
 
 function! s:OnCompletionReceived(name, opt, items)
-  call CompleteResult(a:opt.id, a:name, a:items)
+  call CocResult(a:opt.id, a:name, a:items)
   let tid = get(s:timer_map, a:name, 0)
   if tid
     try
