@@ -9,7 +9,6 @@ const logger = require('./util/logger')('completes')
 
 export class Completes {
   public complete: Complete | null
-  public firstItem: VimCompleteItem | null
 
   constructor() {
     this.complete = null
@@ -46,7 +45,6 @@ export class Completes {
 
   public reset():void {
     this.complete = null
-    this.firstItem = null
   }
 }
 

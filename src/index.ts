@@ -7,7 +7,10 @@ import {
   SourceStat,
   CompleteOption,
   VimCompleteItem} from './types'
-import {echoErr, contextDebounce} from './util/index'
+import {
+  wait,
+  echoErr,
+  contextDebounce} from './util/index'
 import {
   setConfig,
   toggleSource,
@@ -20,6 +23,7 @@ import remotes from './remotes'
 import natives from './natives'
 import remoteStore from './remote-store'
 import increment from './increment'
+import Input from './input'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: true})
@@ -91,28 +95,61 @@ export default class CompletePlugin {
   public async cocStart(args: [CompleteOption]):Promise<void> {
     let opt = args[0]
     let start = Date.now()
-    if (!opt) return
+    let {nvim} = this
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype, col} = opt
+    let {filetype, col, linenr} = opt
     let complete = completes.createComplete(opt)
-    let sources = await completes.getSources(this.nvim, filetype)
-    complete.doComplete(sources).then(([startcol, items])=> {
+    let sources = await completes.getSources(nvim, filetype)
+    complete.doComplete(sources).then(async ([startcol, items])=> {
       if (items.length == 0) {
         // no items found
         completes.reset()
         return
       }
-      completes.firstItem = items[0]
       if (items.length > 1) {
         increment.setOption(opt)
       }
-      this.nvim.setVar('coc#_context', {
+      let first = items[0]
+      nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
       })
-      this.nvim.call('coc#_do_complete', []).then(() => {
+      nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       })
+      if (items.length> 1) {
+        await wait(50)
+        let visible = await nvim.call('pumvisible')
+        if (visible == 1) {
+          let firstWord = first.word
+          let len = firstWord.length
+          let [_, lnum, col] = await nvim.call('getpos', ['.'])
+          if (lnum != linenr) return
+          let word = await nvim.call('coc#util#get_insertedword', [col, len])
+          if (word == firstWord) {
+            let input = new Input(nvim, lnum, opt.input, word, opt.col)
+            increment.input = input
+            input.highlight()
+            // TODO remove this if there's TextChangedP
+            let interval = setInterval(() => {
+              nvim.call('getline', ['.']).then(line => {
+                let word = line.slice(col - len - 1, col - 1)
+                if (word !== firstWord) {
+                  input.clear()
+                  clearInterval(interval)
+                }
+              }, () => {
+                input.clear()
+                clearInterval(interval)
+              })
+            }, 500)
+            setTimeout(() => {
+              input.clear()
+              clearInterval(interval)
+            }, 3000)
+          }
+        }
+      }
     })
   }
 
@@ -193,6 +230,7 @@ export default class CompletePlugin {
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
     items = items || []
+    logger.debug(`Remote ${name} result count: ${items.length}`)
     remoteStore.setResult(id, name, items)
   }
 

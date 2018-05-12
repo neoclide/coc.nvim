@@ -31,6 +31,14 @@ export default class Input {
     this.positions = positions
   }
 
+  public async highlight():Promise<void> {
+    await this.clear()
+    let plist = this.getMatchPos()
+    if (plist.length) {
+      this.match = await this.nvim.call('matchaddpos', ['CocChars', plist, 99])
+    }
+  }
+
   public async removeCharactor():Promise<boolean> {
     let {word, input} = this
     if (!input.length) return true
@@ -39,11 +47,7 @@ export default class Input {
       positions.pop()
       this.input = this.input.slice(0, -1)
       this.word = word.slice(0, -1)
-      let plist = this.getMatchPos()
-      await this.clear()
-      if (plist.length) {
-        this.match = await this.nvim.call('matchaddpos', ['CocChars', plist])
-      }
+      await this.highlight()
     }
     if (positions.length == 0) return true
   }
@@ -52,10 +56,7 @@ export default class Input {
     this.input = this.input + c
     this.word = this.word + c
     this.positions.push(this.word.length - 1)
-    let plist = this.getMatchPos()
-    await this.clear()
-    logger.debug(JSON.stringify(plist))
-    this.match = await this.nvim.call('matchaddpos', ['CocChars', plist])
+    await this.highlight()
   }
 
   private getMatchPos():number[][] {

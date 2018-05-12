@@ -84,10 +84,10 @@ function! s:Enable()
     autocmd BufRead,BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'))
   augroup end
 
-  command! -nargs=0 CocDisable :call s:Disable()
-  command! -nargs=0 CocEnable :call s:Enable()
   command! -nargs=1 -complete=customlist,s:CocSourceNames CocToggle :call s:ToggleSource(<f-args>)
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
+  command! -nargs=0 CocDisable :call s:Disable()
+  command! -nargs=0 CocEnable :call s:Enable()
   exec "highlight default CocChars guifg=white guibg=magenta ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
   let g:coc_enabled = 1
 endfunction

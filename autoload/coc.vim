@@ -16,6 +16,7 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#_complete() abort
+  let g:coc#_context.content = join(getline(1, '$'), "\n")
   call complete(g:coc#_context.start + 1,
       \ g:coc#_context.candidates)
   return ''

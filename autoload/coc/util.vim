@@ -40,3 +40,11 @@ endfunction
 function! coc#util#check_state() abort
   return get(g:, 'coc_node_channel_id', 0)
 endfunction
+
+function! coc#util#get_insertedword(col, len)
+  let line = getline('.')
+  let start = a:col - a:len
+  if start < 1 | return '' | endif
+  if a:col < 2 | return '' | endif
+  return line[start - 1 : a:col - 2]
+endfunction

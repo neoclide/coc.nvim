@@ -8,6 +8,7 @@ export default class Input {
     private startcol;
     private match?;
     constructor(nvim: Neovim, linenr: any, input: string, word: string, startcol: number);
+    highlight(): Promise<void>;
     removeCharactor(): Promise<boolean>;
     addCharactor(c: string): Promise<void>;
     private getMatchPos();

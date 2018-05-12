@@ -28,6 +28,7 @@ export default class VimSource extends Source {
 
   public async shouldComplete(opt: CompleteOption):Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
+    if (this.optionalFns.indexOf('should_complete') === -1) return true
     let res = await this.callOptinalFunc('should_complete', [opt])
     return !!res
   }
@@ -51,9 +52,10 @@ export default class VimSource extends Source {
     let items = await remoteStore.getResult(id, this.name)
     let filter = getConfig('filter')
     for (let item of items) {
-      // not use these
-      delete item.dup
-      delete item.icase
+      if (!item.kind) {
+        delete item.dup
+        delete item.icase
+      }
       if (item.menu && !item.info) {
         item.info = item.menu
       }

@@ -110,6 +110,7 @@ export class Increment {
 
   public async onTextChangeI(nvim:Neovim):Promise<boolean> {
     let {option, activted, done, lastInsert} = this
+    if (this.input) this.input.clear()
     if (!option) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
     let bufnr = await nvim.call('bufnr', ['%'])

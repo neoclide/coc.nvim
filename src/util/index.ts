@@ -27,9 +27,11 @@ export function contextDebounce(func: Callback, timeout: number):Callback {
   }
 }
 
-export function wait(ms: number):Promise<void> {
+export function wait(ms: number):Promise<any> {
   return new Promise(resolve => {
-    setTimeout(resolve, ms)
+    setTimeout(() => {
+      resolve()
+    }, ms)
   })
 }
 

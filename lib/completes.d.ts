@@ -1,10 +1,9 @@
 import { Neovim } from 'neovim';
 import Source from './model/source';
 import Complete from './model/complete';
-import { CompleteOption, VimCompleteItem } from './types';
+import { CompleteOption } from './types';
 export declare class Completes {
     complete: Complete | null;
-    firstItem: VimCompleteItem | null;
     constructor();
     newComplete(opts: CompleteOption): Complete;
     createComplete(opts: CompleteOption): Complete;
