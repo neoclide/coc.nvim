@@ -46,6 +46,7 @@
     "fuzzaldrin": "^2.1.0",
     "fuzzysearch": "^1.0.3",
     "log4js": "^2.5.3",
+    "matcher": "^1.1.0",
     "neovim": "^3.5.2",
     "node-serial": "^0.1.1",
     "pify": "^3.0.0",
