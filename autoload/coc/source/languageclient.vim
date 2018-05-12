@@ -1,9 +1,9 @@
 
 function! coc#source#languageclient#init()
-  let filetypes = keys(get(g:, 'LanguageClient_serverCommands', {}))
+  " user should set the filetypes
   return {
         \'shortcut': 'LC',
-        \'filetypes': filetypes,
+        \'filetypes': [],
         \}
 endfunction
 

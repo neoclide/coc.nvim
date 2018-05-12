@@ -12,6 +12,7 @@ export default class Around extends Source {
       priority: 2,
     })
   }
+
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {input} = opt
     if (input.length === 0) return false

@@ -1,15 +1,14 @@
 import { Neovim } from 'neovim';
-import { SourceOption, VimCompleteItem, CompleteOption, CompleteResult } from '../types';
+import { SourceOption, SourceConfig, VimCompleteItem, CompleteOption, CompleteResult } from '../types';
 export default abstract class Source {
     readonly name: string;
-    shortcut?: string;
-    filetypes: string[] | null | undefined;
-    engross: boolean;
-    priority: number;
-    optionalFns: string[];
-    [index: string]: any;
+    readonly config: SourceConfig;
+    protected readonly optionalFns: string[];
     protected readonly nvim: Neovim;
     constructor(nvim: Neovim, option: SourceOption);
+    readonly priority: number;
+    readonly engross: boolean;
+    readonly filetypes: string[] | null;
     readonly menu: string;
     protected convertToItems(list: any[], extra?: any): VimCompleteItem[];
     protected filterWords(words: string[], opt: CompleteOption): string[];

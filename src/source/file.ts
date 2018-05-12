@@ -13,7 +13,7 @@ let pathRe = /((\.\.\/)+|\.\/|([a-z0-9_.@()-]+)?\/)([a-z0-9_.@()-]+\/)*[a-z0-9_.
 
 // from current file  => src of current cwd => current cwd
 
-export default class Around extends Source {
+export default class File extends Source {
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'file',
@@ -21,7 +21,7 @@ export default class Around extends Source {
       priority: 2,
       engross: 1,
     })
-    this.trimSameExts = ['.ts', '.js']
+    this.config.trimSameExts = ['.ts', '.js']
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {line, colnr, bufnr} = opt
@@ -81,7 +81,7 @@ export default class Around extends Source {
     roots = unique(roots)
     let items = await this.getItemsFromRoots(pathstr, roots)
     let ext = fullpath ? path.extname(path.basename(fullpath)) :''
-    let trimExt = this.trimSameExts.indexOf(ext) != -1
+    let trimExt = this.config.trimSameExts.indexOf(ext) != -1
     logger.debug(ext)
     return {
       items: items.map(item => {

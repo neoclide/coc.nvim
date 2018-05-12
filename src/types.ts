@@ -1,10 +1,12 @@
 export type Filter = 'word' | 'fuzzy'
 
-// user could set
+// Config property of source
 export interface SourceConfig {
-  shortcut?: string
-  filetypes?: string[]
-  disabled?: boolean
+  shortcut: string
+  priority: number
+  engross: boolean
+  filetypes: string[] | null
+  [index: string]: any
 }
 
 // options for init source
@@ -15,6 +17,7 @@ export interface SourceOption {
   engross?: boolean | number
   priority?: number
   optionalFns?: string[]
+  [index: string]: any
 }
 
 // option on complete & should_complete
@@ -62,7 +65,7 @@ export interface Config {
   traceError: boolean
   checkGit: boolean
   disabled: string[]
-  sources: {[index:string]: SourceConfig}
+  sources: {[index:string]: Partial<SourceConfig>}
 }
 
 export interface SourceStat {

@@ -8,7 +8,7 @@ function! coc#get_config(...)
         \ 'traceError': get(g:, 'coc_trace_error', v:null),
         \ 'timeout': get(g:, 'coc_timeout', v:null),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
-        \ 'disabled': get(g:, 'coc_source_disabled', v:null),
+        \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
         \}
 endfunction
 

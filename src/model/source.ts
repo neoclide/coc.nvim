@@ -4,6 +4,7 @@ import {getConfig} from '../config'
 import {getSourceConfig} from '../config'
 import {filterFuzzy, filterWord} from '../util/filter'
 import {SourceOption,
+  SourceConfig,
   VimCompleteItem,
   CompleteOption,
   CompleteResult} from '../types'
@@ -11,28 +12,43 @@ const logger = require('../util/logger')('model-source')
 
 export default abstract class Source {
   public readonly name: string
-  public shortcut?: string
-  public filetypes: string[] | null | undefined
-  public engross: boolean
-  public priority: number
-  public optionalFns: string[]
-   [index: string]: any
+  public readonly config: SourceConfig
+  // exists opitonnal function names for remote source
+  protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {shortcut, filetypes, name, priority, optionalFns}  = option
+    let {name, optionalFns}  = option
+    delete option.name
+    delete option.optionalFns
     this.nvim = nvim
-    this.name = name
-    this.priority = priority || 0
-    this.engross = !!option.engross
-    let opt = getSourceConfig(name) || {}
-    shortcut = opt.shortcut || shortcut
     this.optionalFns = optionalFns || []
-    this.filetypes = opt.filetypes || Array.isArray(filetypes) ? filetypes : null
-    this.shortcut = shortcut ? shortcut.slice(0, 3) : name.slice(0, 3)
+    this.name = name
+    option.engross = !!option.engross
+    // user options
+    let opt = getSourceConfig(name) || {}
+    this.config = Object.assign({
+      shortcut: name.slice(0, 3),
+      priority: 0,
+      engross: false,
+      filetypes: null
+    }, option, opt)
+  }
+
+  public get priority():number {
+    return Number(this.config.priority)
+  }
+
+  public get engross():boolean {
+    return !!this.config.engross
+  }
+
+  public get filetypes():string[] | null {
+    return this.config.filetypes
   }
 
   public get menu():string {
-    return `[${this.shortcut.toUpperCase()}]`
+    let {shortcut} = this.config
+    return `[${shortcut.slice(0,3).toUpperCase()}]`
   }
 
   protected convertToItems(list:any[], extra: any = {}):VimCompleteItem[] {

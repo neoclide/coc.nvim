@@ -22,7 +22,7 @@ export default class Module extends Source {
     let files = await pify(fs.readdir)(baseDir)
     files = files.filter(f => /\.js$/.test(f))
     let filetypes = files.map(f => f.replace(/\.js$/, ''))
-    this.filetypes = filetypes
+    this.config.filetypes = filetypes
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

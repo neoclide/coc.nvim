@@ -5,7 +5,6 @@ process.umask = ()=> {
 import { Plugin, Autocmd, Function, Neovim } from 'neovim'
 import {
   SourceStat,
-  SourceConfig,
   CompleteOption,
   VimCompleteItem} from './types'
 import {echoErr, contextDebounce} from './util/index'
@@ -239,7 +238,7 @@ export default class CompletePlugin {
   @Function('CocSourceConfig', {sync: false})
   public async cocSourceConfig(args: any):Promise<void> {
     let name:string = args[0]
-    let config:SourceConfig = args[1]
+    let config:{[index:string]: any} = args[1]
     if (!name) return
     configSource(name, config)
   }

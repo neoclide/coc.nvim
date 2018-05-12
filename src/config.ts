@@ -26,8 +26,10 @@ export function setConfig(opts: {[index: string]: any}):void {
     if (key === 'completeOpt') {
       config.completeOpt = opts.completeOpt
     }
-    if (key === 'disabled' && Array.isArray(opts.disabled)) {
-      config.disabled  = opts.disabled
+    if (key === 'sourceConfig' && !!val) {
+      for (let name of Object.keys(val)) {
+        configSource(name, val[name])
+      }
     }
   }
   logger.debug(`config:${JSON.stringify(config)}`)
@@ -38,7 +40,7 @@ export function getConfig(name: string):any {
 }
 
 export function configSource(name: string, opt: any):void {
-  let {disabled, filetypes, shortcut} = opt
+  let {disabled} = opt
   let {sources} = config
   sources[name] = sources[name] || {}
   if (disabled === 1) {
@@ -56,10 +58,10 @@ export function configSource(name: string, opt: any):void {
   }
 }
 
-export function getSourceConfig(name: string):SourceConfig | null {
+export function getSourceConfig(name: string):Partial<SourceConfig> {
   let {sources} = config
   let obj = sources[name]
-  if (!obj || Object.keys(obj).length === 0) return null
+  if (!obj || Object.keys(obj).length === 0) return {}
   return obj
 }
 

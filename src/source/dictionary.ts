@@ -12,16 +12,15 @@ interface Dicts {
   [index: string] : string[]
 }
 
+let dicts:Dicts = {}
+
 export default class Dictionary extends Source {
-  private dicts: Dicts | null
-  private dictOption: string
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'dictionary',
       shortcut: 'D',
       priority: 1,
     })
-    this.dicts = null
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -34,7 +33,7 @@ export default class Dictionary extends Source {
   }
 
   public async refresh():Promise<void> {
-    this.dicts = null
+    dicts = {}
     let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
     if (!dictOption) return
     let files = dictOption.split(',')
@@ -50,8 +49,7 @@ export default class Dictionary extends Source {
 
   private async getDictWords(file: string):Promise<string[]> {
     if (!file) return []
-    let {dicts} = this
-    let words = dicts ? dicts[file] : null
+    let words = dicts[file] || null
     if (words && words.length) return words
     let stat = await statAsync(file)
     if (!stat || !stat.isFile()) return []
@@ -61,8 +59,7 @@ export default class Dictionary extends Source {
     } catch (e) {
       logger.error(`Can't read file: ${file}`)
     }
-    this.dicts = this.dicts || {}
-    this.dicts[file] = words
+    dicts[file] = words
     return words
   }
 
@@ -70,8 +67,8 @@ export default class Dictionary extends Source {
     let {bufnr, input, filetype, dictOption} = opt
     let words = []
     if (dictOption) {
-      let dicts = dictOption.split(',')
-      words = await this.getWords(dicts)
+      let files = dictOption.split(',')
+      words = await this.getWords(files)
       words = this.filterWords(words, opt)
     }
     return {

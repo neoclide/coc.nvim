@@ -12,6 +12,7 @@ export default class Buffer extends Source {
       priority: 1,
     })
   }
+
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
     let {input} = opt

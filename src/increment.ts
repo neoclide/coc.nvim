@@ -131,7 +131,7 @@ export class Increment {
       let {input, col, linenr} = option
       if (done && ts - done.timestamp < 50) {
         if (changedtick - done.changedtick !== 1) return false
-        if (done.word && !this.isKeyword(done.word)) return false
+        // if (done.word && !this.isKeyword(done.word)) return false
         if (lastInsert && ts - lastInsert.timestamp < 50) {
           // user add one charactor on complete
           this.input = new Input(nvim, linenr, input, done.word, col)

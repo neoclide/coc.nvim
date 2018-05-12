@@ -17,34 +17,29 @@ export default class OmniSource extends Source {
     })
   }
 
-  public async onInit(): Promise<void> {
-    let res = await this.nvim.getVar('complete_omni_filetypes')
-    if (Array.isArray(res)) {
-      this.filetypes = res
-    }
-  }
-
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {filetype} = opt
-    if (!this.filetypes) return false
-    if (this.filetypes.indexOf(filetype) === -1) return false
+    if (!this.checkFileType(filetype)) return false
     let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
-    return typeof func == 'string' && func.length != 0
+    opt.func = func
+    if (typeof func == 'string' && func.length != 0) return true
+    await echoWarning(this.nvim, 'omnifunc option is empty, omni source skipped')
+    return false
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {line, colnr, col} = opt
-    let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
+  public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
+    let {line, colnr, col, func} = opt
+    let {nvim} = this
     if (['LanguageClient#complete'].indexOf('func') !== -1) {
-      echoWarning(this.nvim, `omnifunc ${func} is broken, skipped!`)
-      return {items: []}
+      echoWarning(nvim, `omnifunc ${func} is broken, skipped!`)
+      return null
     }
-    let startcol: number = await this.nvim.call(func, [1, ''])
+    let startcol: number = await nvim.call(func, [1, ''])
     startcol = Number(startcol)
     // invalid startcol
     if (isNaN(startcol) || startcol < 0 || startcol > colnr) return null
     let text = line.slice(startcol, colnr)
-    let words = await this.nvim.call(func, [0, text])
+    let words = await nvim.call(func, [0, text])
     if (words.hasOwnProperty('words')) {
       words = words.words
     }

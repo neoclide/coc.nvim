@@ -1,8 +1,10 @@
 export declare type Filter = 'word' | 'fuzzy';
 export interface SourceConfig {
-    shortcut?: string;
-    filetypes?: string[];
-    disabled?: boolean;
+    shortcut: string;
+    priority: number;
+    engross: boolean;
+    filetypes: string[] | null;
+    [index: string]: any;
 }
 export interface SourceOption {
     name: string;
@@ -11,6 +13,7 @@ export interface SourceOption {
     engross?: boolean | number;
     priority?: number;
     optionalFns?: string[];
+    [index: string]: any;
 }
 export interface CompleteOption {
     id: number;
@@ -53,7 +56,7 @@ export interface Config {
     checkGit: boolean;
     disabled: string[];
     sources: {
-        [index: string]: SourceConfig;
+        [index: string]: Partial<SourceConfig>;
     };
 }
 export interface SourceStat {
