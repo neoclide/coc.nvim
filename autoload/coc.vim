@@ -5,7 +5,6 @@ function! coc#get_config(...)
   return {
         \ 'completeOpt': &completeopt,
         \ 'fuzzyMatch': get(g:, 'coc_fuzzy_match', v:null),
-        \ 'traceError': get(g:, 'coc_trace_error', v:null),
         \ 'timeout': get(g:, 'coc_timeout', v:null),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
         \ 'sourceConfig': get(g:, 'coc_source_config', v:null),

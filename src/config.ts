@@ -3,7 +3,6 @@ const logger = require('./util/logger')('config')
 
 let config: Config = {
   fuzzyMatch: true,
-  traceError: false,
   checkGit: false,
   timeout: 300,
   completeOpt: 'menu,preview',
@@ -14,7 +13,7 @@ let config: Config = {
 export function setConfig(opts: {[index: string]: any}):void {
   for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (['fuzzyMatch', 'traceError', 'checkGit'].indexOf(key) !== -1) {
+    if (['fuzzyMatch', 'checkGit'].indexOf(key) !== -1) {
       if (val != null) {
         config[key] = !!val
       }

@@ -62,7 +62,6 @@ export interface Config {
   completeOpt: string
   fuzzyMatch: boolean
   timeout: number
-  traceError: boolean
   checkGit: boolean
   disabled: string[]
   sources: {[index:string]: Partial<SourceConfig>}

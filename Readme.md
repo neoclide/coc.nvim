@@ -98,7 +98,6 @@ Name                      | Description                                         
 ------------              | -------------                                             | ------------
 `g:coc_fuzzy_match`       | Use fuzzy match for words                                 | 1
 `g:coc_timeout`           | Timeout in milisecond for completion                      | 300
-`g:coc_trace_error`       | Trace issue and send back to fundebug                     | 0
 `g:coc_ignore_git_ignore` | Ignore collect words from buffers that are git ignored    | 0
 `g:coc_source_config`     | Configuration for coc sources, see `:h coc_source_config` | []
 

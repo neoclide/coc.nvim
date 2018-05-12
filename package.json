@@ -42,7 +42,6 @@
     "builtin-modules": "^2.0.0",
     "debounce": "^1.1.0",
     "find-root": "^1.1.0",
-    "fundebug-nodejs": "0.0.9",
     "fuzzaldrin": "^2.1.0",
     "fuzzysearch": "^1.0.3",
     "log4js": "^2.5.3",
