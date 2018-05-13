@@ -1,13 +1,12 @@
 # [C](#)onqure [o](#)f  [C](#)ompletion
 
-Improved complete experience for [neovim](https://github.com/neovim/neovim)
+COC is a **fast**, **reliable** and **flexible** completion framework of
+[neovim](https://github.com/neovim/neovim).
+
+It also tried hard to have better support for web development and completion
+specifications in [language server protocol](https://github.com/Microsoft/language-server-protocol)
 
 W.I.P.
-
-Design principle:
-
-* Popup should shown as less as possible
-* User input required shoud as less as possible
 
 ## Features
 
@@ -30,7 +29,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 [nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.2.2 is required.
 
-See [trouble shooting](#trouble-shooting) if you have runtime issue.
+See [trouble Shooting](#trouble-shooting) if you have runtime issue.
 
 ### Set trigger for completion
 
@@ -56,7 +55,7 @@ imap <c-space> <Plug>(coc_start)
 
 ## Sources
 
-Navtie sources are impletemented in javascript and are enabled by default.
+Native sources are implemented in javascript and are enabled by default.
 
 
 Name         | Description                                             | Use cache   | Supported filetypes
@@ -66,6 +65,8 @@ Name         | Description                                             | Use cac
 `dictionary` | Words from files of local `dictionary` option.          | ✓           | all
 `file`       | Filename completion, auto detected.                     | ✗           | all
 `omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | User defined
+`word`       | Words from google 10000 english repo.                   | ✓           | User defined
+`emoji`      | Eomji characters.                                       | ✓           | User defined
 `module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
 `include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
@@ -117,7 +118,7 @@ Name                 | Description
 
 ## Trouble shooting
 
-When you find the plugin is not workig as you would expected, run command
+When you find the plugin is not working as you would expected, run command
 `:checkhealth` and make use that output from `coc.nvim` are `OK`.
 
 To get the log file, run shell command:

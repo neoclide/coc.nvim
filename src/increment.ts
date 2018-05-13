@@ -25,6 +25,8 @@ export interface ChangedI {
   changedtick: number
 }
 
+const MAX_DURATION = 50
+
 export class Increment {
   public activted: boolean
   public input: Input | null | undefined
@@ -54,6 +56,7 @@ export class Increment {
   }
 
   public async start(nvim:Neovim):Promise<void> {
+    logger.debug('increment start')
     this.activted = true
     let completeOpt = await nvim.getOption('completeopt')
     setConfig({completeOpt})
@@ -120,7 +123,6 @@ export class Increment {
     }
     let changedtick = await nvim.eval('b:changedtick')
     changedtick = Number(changedtick)
-    logger.debug(changedtick)
     let lastChanged = Object.assign({}, this.changedI)
     this.changedI = {
       linenr,
@@ -130,10 +132,10 @@ export class Increment {
     let ts = Date.now()
     if (!activted) {
       let {input, col, linenr} = option
-      if (done && ts - done.timestamp < 50) {
+      if (done && ts - done.timestamp < MAX_DURATION) {
         if (changedtick - done.changedtick !== 1) return false
         // if (done.word && !this.isKeyword(done.word)) return false
-        if (lastInsert && ts - lastInsert.timestamp < 50) {
+        if (lastInsert && ts - lastInsert.timestamp < MAX_DURATION) {
           // user add one charactor on complete
           this.input = new Input(nvim, linenr, input, done.word, col)
           await this.input.addCharactor(lastInsert.character)
@@ -151,12 +153,13 @@ export class Increment {
         }
       }
     } else {
-      if (lastInsert && ts - lastInsert.timestamp < 50
+      if (lastInsert && ts - lastInsert.timestamp < MAX_DURATION
         && colnr - lastChanged.colnr === 1) {
         await this.input.addCharactor(lastInsert.character)
         return true
       }
-      if (lastChanged.colnr - colnr === 1) {
+      if (lastChanged.colnr - colnr === 1
+        && !(ts - done.timestamp < MAX_DURATION && done.word)) {
         let invalid = await this.input.removeCharactor()
         if (invalid) {
           await this.stop(nvim)

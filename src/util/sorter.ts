@@ -19,8 +19,8 @@ export function fuzzySortItems(items: VimCompleteItem[], input: string): VimComp
 
 export function wordSortItems(items: VimCompleteItem[], input?: string): VimCompleteItem[] {
   return items.sort((a, b) => {
-    let wa = a.word.toLowerCase()
-    let wb = b.word.toLowerCase()
+    let wa = (a.abbr || a.word).toLowerCase()
+    let wb = (b.abbr || b.word).toLowerCase()
     if (wa < wb) {
       return - 1
     }

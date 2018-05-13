@@ -130,7 +130,7 @@ export default class CompletePlugin {
             let input = new Input(nvim, lnum, opt.input, word, opt.col)
             increment.input = input
             input.highlight()
-            // TODO remove this if there's TextChangedP
+            // TODO disable this suck code if there's TextChangedP
             let interval = setInterval(() => {
               nvim.call('getline', ['.']).then(line => {
                 let word = line.slice(col - len - 1, col - 1)

@@ -30,6 +30,7 @@ export default class Complete {
     let {engross} = source
     let start = Date.now()
     let s = new Serial()
+    let {col} = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
     s.timeout(Math.max(getConfig('timeout'), 300))
@@ -46,9 +47,7 @@ export default class Complete {
       }
       source.doComplete(option).then(result => {
         if (engross
-          && result != null
-          && result.items
-          && result.items.length) {
+          || result.startcol && result.startcol != col) {
           result.engross = true
         }
         if (result == null) {
@@ -84,9 +83,10 @@ export default class Complete {
       let res = results[i]
       let {items} = res
       for (let item of items) {
-        let {word, kind, info, user_data} = item
+        let {word, kind, abbr, info, user_data} = item
+        let verb = abbr ? abbr : word
         let data = {}
-        if (input.length && !filter(input, word, icase)) continue
+        if (input.length && !filter(input, verb, icase)) continue
         if (user_data) {
           try {
             data = JSON.parse(user_data)
@@ -94,7 +94,7 @@ export default class Complete {
         }
         data = Object.assign(data, { cid: id })
         item.user_data = JSON.stringify(data)
-        if (fuzzy) item.score = score(word, input) + (kind || info ? 0.01 : 0)
+        if (fuzzy) item.score = score(verb, input) + (kind || info ? 0.01 : 0)
         arr.push(item)
       }
     }
