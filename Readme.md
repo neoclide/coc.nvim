@@ -100,6 +100,8 @@ Name                      | Description                                         
 `g:coc_timeout`           | Timeout in milisecond for completion                      | 300
 `g:coc_ignore_git_ignore` | Ignore collect words from buffers that are git ignored    | 0
 `g:coc_source_config`     | Configuration for coc sources, see `:h coc_source_config` | []
+`g:coc_chars_guifg`       | Foreground color of user input in increment search        | white
+`g:coc_chars_guibg`       | Background color of user input in increment search        | magenta
 
 ### Commands
 

@@ -88,7 +88,10 @@ function! s:Enable()
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()
-  exec "highlight default CocChars guifg=white guibg=magenta ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
+
+  let guifg = get(g:, 'coc_chars_guifg', 'white')
+  let guibg = get(g:, 'coc_chars_guibg', 'magenta')
+  exec "highlight default CocChars guifg=".guifg." guibg=".guibg." ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
   let g:coc_enabled = 1
 endfunction
 
