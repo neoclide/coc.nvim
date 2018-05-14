@@ -11,7 +11,6 @@ export interface CompleteDone {
   timestamp: number
   colnr: number
   linenr: number
-  changedtick: number
 }
 
 export interface InsertedChar {
@@ -82,6 +81,8 @@ export default class Increment {
       let opt = this.getNoinsertOption()
       await nvim.call('execute', [`noa set completeopt=${opt}`])
       logger.debug('increment started')
+    } else {
+      this.option = this.changedI = null
     }
   }
 
@@ -105,7 +106,6 @@ export default class Increment {
     let {option, nvim} = this
     if (!option) return null
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
-    let changedtick = await nvim.eval('b:changedtick')
     let item = await nvim.getVvar('completed_item')
     if (Object.keys(item).length && !this.isCompleteItem(item)) {
       await this.stop()
@@ -120,7 +120,6 @@ export default class Increment {
       timestamp: Date.now(),
       colnr: Number(colnr),
       linenr: Number(lnum),
-      changedtick: Number(changedtick)
     }
     logger.debug(JSON.stringify(this.done))
   }
@@ -135,21 +134,20 @@ export default class Increment {
     if (!activted) return
     let isKeyword = this.isKeyword(ch)
     if (!isKeyword) return await this.stop()
-    let visible = await this.nvim.call('pumvisible')
-    if (visible != 1) return await this.stop()
     // vim would attamp to match the string
     // if vim find match, no TextChangeI would fire
     // we should disable this behavior by
     // hide the popup
-    await this.nvim.call('coc#_hide')
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) await this.nvim.call('coc#_hide')
   }
 
+  // keep other options
   private getNoinsertOption():string {
     let opt = getConfig('completeOpt')
     let parts = opt.split(',')
     parts.filter(s => s != 'menu')
-    if (parts.indexOf('menu') === -1
-      && parts.indexOf('menuone') === -1) {
+    if (parts.indexOf('menuone') === -1) {
       parts.push('menuone')
     }
     if (parts.indexOf('noinsert') === -1) {
@@ -160,59 +158,35 @@ export default class Increment {
 
   public async onTextChangeI():Promise<boolean> {
     let {option, activted, done, lastInsert, nvim} = this
-    if (!option) return false
+    if (!option || !activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
-    let bufnr = await nvim.call('bufnr', ['%'])
-    if (bufnr.toString() != option.bufnr || linenr != option.linenr) {
+    let ts = Date.now()
+    if (linenr != option.linenr) {
       await this.stop()
       return false
     }
-    let changedtick = (await nvim.eval('b:changedtick') as number)
     let lastChanged = Object.assign({}, this.changedI)
     this.changedI = {
       linenr,
       colnr
     }
-    let ts = Date.now()
-    if (!activted) {
-      // check start
-      let {input, col, linenr} = option
-      if (done && ts - done.timestamp < MAX_DURATION) {
-        let {word} = done
-        if (changedtick - done.changedtick !== 1) return false
-        // if (done.word && !this.isKeyword(done.word)) return false
-        if (lastInsert && ts - lastInsert.timestamp < MAX_DURATION) {
-          let ch = lastInsert.character
-          await this.start(input + ch, word + ch)
-          return true
-        }
-        if (done.colnr - colnr === 1
-          && word
-          && input.length > 0) {
-          await this.start(input.slice(0, -1), done.word.slice(0, -1))
-          return true
-        }
-      }
+    // check continue
+    if (lastInsert
+      && ts - lastInsert.timestamp < MAX_DURATION
+      && colnr - lastChanged.colnr === 1) {
+      await this.input.addCharactor(lastInsert.character)
+      return true
     }
-    if (activted) {
-      // check continue
-      if (lastInsert
-        && this.input
-        && ts - lastInsert.timestamp < MAX_DURATION
-        && colnr - lastChanged.colnr === 1) {
-        await this.input.addCharactor(lastInsert.character)
-        return true
-      }
-      if (lastChanged.colnr - colnr === 1
-        && this.input
-        && ts - done.timestamp < MAX_DURATION) {
-        let invalid = await this.input.removeCharactor()
-        if (!invalid) return true
-      }
-      logger.debug(777)
-      await this.stop()
-      return false
+    // could be not called when user remove one character
+    // maybe we could just remove more character then?
+    // TODO improve this
+    if (lastChanged.colnr - colnr === 1
+      && ts - done.timestamp < MAX_DURATION) {
+      let invalid = await this.input.removeCharactor()
+      if (!invalid) return true
     }
+    logger.debug('increment failed')
+    await this.stop()
     return false
   }
 }

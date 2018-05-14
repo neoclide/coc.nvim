@@ -76,8 +76,9 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[], icase: boolean, only?:string):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[], icase: boolean):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
+    let only = this.getOnlySourceName(results)
     let {input, id} = this.option
     let fuzzy = getConfig('fuzzyMatch')
     let filter = fuzzy ? filterFuzzy : filterWord
@@ -125,7 +126,6 @@ export default class Complete {
       if (r == null) return false
       return r.items && r.items.length > 0
     })
-    let onlySource = results.filter(r => r.only === true).map(r => r.source)
     logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
 
     let engrossResult = results.find(r => r.engross === true)
@@ -141,8 +141,13 @@ export default class Complete {
     this.results = results
     this.startcol = col
     let icase = this.icase = !/[A-Z]/.test(input)
-    let filteredResults = this.filterResults(results, icase, onlySource[0])
+    let filteredResults = this.filterResults(results, icase)
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
+  }
+
+  private getOnlySourceName(results: CompleteResult[]):string {
+    let r = results.find(r => r.only === true)
+    return r ? r.source : ''
   }
 }

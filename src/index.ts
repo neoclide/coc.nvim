@@ -104,30 +104,19 @@ export default class CompletePlugin {
   public async cocStart(args: [CompleteOption]):Promise<void> {
     let opt = args[0]
     let start = Date.now()
-    let {nvim} = this
+    let {nvim, increment} = this
     logger.debug(`options: ${JSON.stringify(opt)}`)
     let {filetype, col, linenr, colnr, input} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
-    let {increment} = this
     complete.doComplete(sources).then(async ([startcol, items])=> {
       if (items.length == 0) {
         // no items found
         completes.reset()
         return
       }
-      increment.setOption(opt)
       let first = items[0]
       let completeOpt = getConfig('completeOpt')
-      if ((first.noinsert && items.length > 1 )
-        || /menuone/.test(completeOpt)) {
-        // let's start
-        increment.changedI = {
-          linenr,
-          colnr
-        }
-        await increment.start(input, input)
-      }
       nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
@@ -135,24 +124,20 @@ export default class CompletePlugin {
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       })
-      if (items.length > 1 && !this.increment.activted) {
-        await wait(50)
-        let visible = await nvim.call('pumvisible')
-        if (visible == 1) {
-          let firstWord = first.word
-          let len = firstWord.length
-          let [_, lnum, col] = await nvim.call('getpos', ['.'])
-          if (lnum != linenr) return
-          let word = await nvim.call('coc#util#get_insertedword', [col, len])
-          // make sure word is not changed
-          if (word == firstWord) {
-            let input = new Input(nvim, opt.input, word, lnum, opt.col)
-            if (!input.isValid) return
-            input.highlight()
-            increment.input = input
-          }
-        }
+      await increment.stop()
+      await wait(50)
+      let visible = await nvim.call('pumvisible')
+      let [_, lnum, col] = await nvim.call('getpos', ['.'])
+      if (visible != 1 || lnum != linenr) return
+      let line = await nvim.call('getline', ['.'])
+      let word = col > opt.col ? line.slice(opt.col, col - 1): ''
+      // let's start
+      increment.changedI = {
+        linenr: lnum,
+        colnr: col
       }
+      increment.setOption(opt)
+      await increment.start(input, word)
     })
   }
 
@@ -210,10 +195,6 @@ export default class CompletePlugin {
       if (!items || items.length === 0) {
         await increment.stop()
         return
-      }
-      let completeOpt = getConfig('completeOpt')
-      if (items.length == 1 && !/menuone/.test(completeOpt)) {
-        await increment.stop()
       }
       nvim.setVar('coc#_context', {
         start: startcol,

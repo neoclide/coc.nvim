@@ -6,7 +6,6 @@ export interface CompleteDone {
     timestamp: number;
     colnr: number;
     linenr: number;
-    changedtick: number;
 }
 export interface InsertedChar {
     character: string;
