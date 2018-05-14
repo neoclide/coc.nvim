@@ -66,3 +66,15 @@ export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
 export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
   await nvim.call('coc#util#print_errors', lines)
 }
+
+export function isCocItem(item: any):boolean {
+    if (!item) return false
+    let {user_data} = item
+    if (!user_data) return false
+    try {
+      let res = JSON.parse(user_data)
+      return res.cid != null
+    } catch (e) {
+      return false
+    }
+}

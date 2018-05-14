@@ -90,38 +90,16 @@ export default class Increment {
     this.option = opt
   }
 
-  private isCompleteItem(item: any):boolean {
-    if (!item) return false
-    let {user_data} = item
-    if (!user_data) return false
-    try {
-      let res = JSON.parse(user_data)
-      return res.cid != null
-    } catch (e) {
-      return false
-    }
-  }
-
-  public async onCompleteDone():Promise<VimCompleteItem | null> {
-    let {option, nvim} = this
-    if (!option) return null
+  public async onCompleteDone(item: VimCompleteItem | null):Promise<void> {
+    let {nvim} = this
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
-    let item = await nvim.getVvar('completed_item')
-    if (Object.keys(item).length && !this.isCompleteItem(item)) {
-      await this.stop()
-      return null
-    }
-    if (this.input && !this.activted) {
-      this.input = null
-      await this.input.clear()
-    }
     this.done = {
-      word: item ? (item as VimCompleteItem).word || '' : '',
+      word: item ? item.word || '' : '',
       timestamp: Date.now(),
-      colnr: Number(colnr),
-      linenr: Number(lnum),
+      colnr: colnr as number,
+      linenr: lnum as number,
     }
-    logger.debug(JSON.stringify(this.done))
+    logger.debug('complete done')
   }
 
   public async onCharInsert():Promise<void> {
@@ -161,7 +139,9 @@ export default class Increment {
     if (!option || !activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
     let ts = Date.now()
-    if (linenr != option.linenr) {
+    if (!done
+      || linenr != option.linenr
+      || ts - done.timestamp > MAX_DURATION) {
       await this.stop()
       return false
     }
@@ -180,8 +160,7 @@ export default class Increment {
     // could be not called when user remove one character
     // maybe we could just remove more character then?
     // TODO improve this
-    if (lastChanged.colnr - colnr === 1
-      && ts - done.timestamp < MAX_DURATION) {
+    if (lastChanged.colnr - colnr === 1) {
       let invalid = await this.input.removeCharactor()
       if (!invalid) return true
     }

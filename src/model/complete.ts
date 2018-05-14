@@ -144,7 +144,7 @@ export default class Complete {
   }
 
   private getOnlySourceName(results: CompleteResult[]):string {
-    let r = results.find(r => r.only)
+    let r = results.find(r => !!r.only)
     return r ? r.source : ''
   }
 }

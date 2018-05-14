@@ -1,8 +1,6 @@
 import {CompleteOption, CompleteResult} from '../types'
 import remoteStore from '../remote-store'
-import {getConfig} from '../config'
 import Source from './source'
-import {filterItemWord, filterItemFuzzy} from '../util/filter'
 import {echoErr} from '../util/index'
 const logger = require('../util/logger')('model-source-vim') // tslint:disable-line
 
@@ -38,38 +36,28 @@ export default class VimSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let {colnr, col, id, input} = opt
+    let {col, id} = opt
     let startcol:number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       startcol = Number(startcol)
       // invalid startcol
-      if (isNaN(startcol) || startcol < 0 || startcol > colnr) return null
+      if (isNaN(startcol) || startcol < 0) startcol = col
       if (startcol !== col) {
         opt = Object.assign({}, opt, {col: startcol})
       }
     }
     await this.nvim.call('coc#remote#do_complete', [this.name, opt])
     let items = await remoteStore.getResult(id, this.name)
-    let filter = getConfig('filter')
     for (let item of items) {
       if (!item.kind) {
         delete item.dup
         delete item.icase
       }
-      if (item.menu && !item.info) {
-        item.info = item.menu
-      }
-      item.menu = this.menu
-    }
-    if (items.length) {
-      if (filter === 'word') {
-        items = filterItemWord(items, input)
-      } else {
-        items = filterItemFuzzy(items, input)
-      }
+      let menu = item.menu || ''
+      item.menu = `${menu} ${this.menu}`
     }
     let res: CompleteResult = { items }
-    if (startcol !== col && items.length != 0) {
+    if (startcol && startcol !== col && items.length != 0) {
       res.startcol = startcol
       res.engross = true
     }

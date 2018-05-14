@@ -2,7 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import buffers from '../buffers'
-// const logger = require('../util/logger')('source-around')
+const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
   constructor(nvim: Neovim) {

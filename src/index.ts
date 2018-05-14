@@ -10,6 +10,7 @@ import {
 import {
   wait,
   echoErr,
+  isCocItem,
   contextDebounce} from './util/index'
 import {
   setConfig,
@@ -109,11 +110,20 @@ export default class CompletePlugin {
     let {filetype} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
-    complete.doComplete(sources).then(([startcol, items])=> {
+    complete.doComplete(sources).then(async ([startcol, items])=> {
       if (items.length == 0) {
         // no items found
         completes.reset()
         return
+      }
+      let first = items[0]
+      increment.setOption(opt)
+      if (first.noinsert && items.length > 1) {
+        increment.changedI = {
+          linenr: opt.linenr,
+          colnr: opt.colnr
+        }
+        await increment.start(opt.input, opt.input)
       }
       nvim.setVar('coc#_context', {
         start: startcol,
@@ -130,6 +140,7 @@ export default class CompletePlugin {
     let {linenr, input} = opt
     let {nvim, increment} = this
     await wait(50)
+    logger.debug('starting')
     let visible = await nvim.call('pumvisible')
     let [_, lnum, col] = await nvim.call('getpos', ['.'])
     if (visible != 1 || lnum != linenr) return
@@ -140,7 +151,6 @@ export default class CompletePlugin {
       linenr: lnum,
       colnr: col
     }
-    increment.setOption(opt)
     await increment.start(input, word)
   }
 
@@ -157,7 +167,15 @@ export default class CompletePlugin {
     sync: true,
   })
   public async cocCompleteDone():Promise<void> {
-    await this.increment.onCompleteDone()
+    let {nvim, increment} = this
+    let item = await nvim.getVvar('completed_item')
+    if (!Object.keys(item).length) item = null
+    if (item && !isCocItem(item)) {
+      await increment.stop()
+    }
+    if (increment.activted) {
+      await increment.onCompleteDone(item as VimCompleteItem)
+    }
   }
 
   @Autocmd('InsertLeave', {
@@ -198,6 +216,10 @@ export default class CompletePlugin {
       if (!items || items.length === 0) {
         await increment.stop()
         return
+      }
+      let completeOpt = getConfig('completeOpt')
+      if (items.length == 1 && !/menuone/.test(completeOpt)) {
+        await increment.stop()
       }
       nvim.setVar('coc#_context', {
         start: startcol,
