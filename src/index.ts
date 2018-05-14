@@ -106,7 +106,7 @@ export default class CompletePlugin {
     let start = Date.now()
     let {nvim} = this
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype, col, linenr, input} = opt
+    let {filetype, col, linenr, colnr, input} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
     let {increment} = this
@@ -118,7 +118,14 @@ export default class CompletePlugin {
       }
       increment.setOption(opt)
       let first = items[0]
-      if (items.length > 1 && first.noinsert) {
+      let completeOpt = getConfig('completeOpt')
+      if ((first.noinsert && items.length > 1 )
+        || /menuone/.test(completeOpt)) {
+        // let's start
+        increment.changedI = {
+          linenr,
+          colnr
+        }
         await increment.start(input, input)
       }
       nvim.setVar('coc#_context', {
@@ -186,7 +193,6 @@ export default class CompletePlugin {
       if (!increment.activted) return
       let {input, option, changedI} = increment
       let opt = Object.assign({}, option, {
-        changedtick: changedI.changedtick,
         input: input.input
       })
       let oldComplete = completes.complete || ({} as {[index:string]:any})
@@ -195,7 +201,6 @@ export default class CompletePlugin {
         await increment.stop()
         return
       }
-
       let start = Date.now()
       logger.debug(`Resume options: ${JSON.stringify(opt)}`)
       let {startcol, icase} = oldComplete
@@ -206,7 +211,8 @@ export default class CompletePlugin {
         await increment.stop()
         return
       }
-      if (items.length == 1) {
+      let completeOpt = getConfig('completeOpt')
+      if (items.length == 1 && !/menuone/.test(completeOpt)) {
         await increment.stop()
       }
       nvim.setVar('coc#_context', {

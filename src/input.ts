@@ -1,5 +1,6 @@
 import {Neovim} from 'neovim'
 import {echoErr} from './util/index'
+import {getConfig} from './config'
 const logger = require('./util/logger')('input')
 
 export default class Input {
@@ -43,6 +44,8 @@ export default class Input {
   public async highlight():Promise<void> {
     await this.clear()
     let plist = this.getMatchPos()
+    let completeOpt = getConfig('completeOpt')
+    if (/menuone/.test(completeOpt)) return
     if (plist.length) {
       this.match = await this.nvim.call('matchaddpos', ['CocChars', plist, 99])
     }

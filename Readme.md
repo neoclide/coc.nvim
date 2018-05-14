@@ -6,14 +6,14 @@ COC is a **fast**, **reliable** and **flexible** completion framework of
 It also tries hard to have better support for web development and completion
 specifications in [language server protocol](https://github.com/Microsoft/language-server-protocol)
 
-W.I.P.
+W.I.P.🐒
 
 ## Features
 
 * Async generate complete items in parallel.
 * Smart case fuzzy match with score by default.
 * Minimal configuration required to work.
-* Works great with `set completeopt=menu,preview`
+* Always respect your `completeopt`.
 * Support `text_edit` and `snippet` described in LSP 2.0.
 * Custom sources using vim script.
 
@@ -29,9 +29,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 [nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
 
-See [trouble Shooting](#trouble-shooting) if you have runtime issue.
-
-**Note** `set completeopt=menu,preview` should be used for best user experience.
+See [trouble Shooting](#trouble-shooting) if you have runtime issue. 
 
 ### Set trigger for completion
 

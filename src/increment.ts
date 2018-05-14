@@ -1,6 +1,6 @@
 import {Neovim} from 'neovim'
 import {CompleteOption, VimCompleteItem} from './types'
-import {setConfig, getConfig} from './config'
+import {getConfig} from './config'
 import Input from './input'
 import buffers from './buffers'
 import completes from './completes'
@@ -22,7 +22,6 @@ export interface InsertedChar {
 export interface ChangedI {
   linenr: number
   colnr: number
-  changedtick: number
 }
 
 const MAX_DURATION = 50
@@ -54,7 +53,6 @@ export default class Increment {
     let completeOpt = getConfig('completeOpt')
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
-    logger.debug(`${completeOpt}`)
     logger.debug('increment stoped')
   }
 
@@ -81,9 +79,8 @@ export default class Increment {
       this.activted = true
       this.input = inputTarget
       await inputTarget.highlight()
-      let completeOpt = await nvim.getOption('completeopt')
-      setConfig({completeOpt})
-      await nvim.call('execute', [`noa set completeopt=menuone,noinsert`])
+      let opt = this.getNoinsertOption()
+      await nvim.call('execute', [`noa set completeopt=${opt}`])
       logger.debug('increment started')
     }
   }
@@ -147,6 +144,20 @@ export default class Increment {
     await this.nvim.call('coc#_hide')
   }
 
+  private getNoinsertOption():string {
+    let opt = getConfig('completeOpt')
+    let parts = opt.split(',')
+    parts.filter(s => s != 'menu')
+    if (parts.indexOf('menu') === -1
+      && parts.indexOf('menuone') === -1) {
+      parts.push('menuone')
+    }
+    if (parts.indexOf('noinsert') === -1) {
+      parts.push('noinsert')
+    }
+    return parts.join(',')
+  }
+
   public async onTextChangeI():Promise<boolean> {
     let {option, activted, done, lastInsert, nvim} = this
     if (!option) return false
@@ -156,13 +167,11 @@ export default class Increment {
       await this.stop()
       return false
     }
-    let changedtick = await nvim.eval('b:changedtick')
-    changedtick = Number(changedtick)
+    let changedtick = (await nvim.eval('b:changedtick') as number)
     let lastChanged = Object.assign({}, this.changedI)
     this.changedI = {
       linenr,
-      colnr,
-      changedtick
+      colnr
     }
     let ts = Date.now()
     if (!activted) {
@@ -200,6 +209,7 @@ export default class Increment {
         let invalid = await this.input.removeCharactor()
         if (!invalid) return true
       }
+      logger.debug(777)
       await this.stop()
       return false
     }

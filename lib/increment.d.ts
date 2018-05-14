@@ -15,7 +15,6 @@ export interface InsertedChar {
 export interface ChangedI {
     linenr: number;
     colnr: number;
-    changedtick: number;
 }
 export default class Increment {
     private nvim;
@@ -41,5 +40,6 @@ export default class Increment {
     private isCompleteItem(item);
     onCompleteDone(): Promise<VimCompleteItem | null>;
     onCharInsert(): Promise<void>;
+    private getNoinsertOption();
     onTextChangeI(): Promise<boolean>;
 }
