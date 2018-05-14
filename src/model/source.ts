@@ -18,7 +18,7 @@ export default abstract class Source {
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {name, optionalFns, noinsert}  = option
+    let {name, optionalFns, noinsert, only}  = option
     delete option.name
     delete option.optionalFns
     delete option.noinsert
@@ -35,10 +35,15 @@ export default abstract class Source {
       engross: false,
       filetypes: null
     }, option, opt)
+    if (only) this.config.priority = 0
   }
 
   public get priority():number {
     return Number(this.config.priority)
+  }
+
+  public get isOnly():boolean {
+    return this.config.only === true ? true : false
   }
 
   public get engross():boolean {

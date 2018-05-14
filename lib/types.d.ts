@@ -13,6 +13,7 @@ export interface SourceOption {
     engross?: boolean | number;
     priority?: number;
     optionalFns?: string[];
+    only?: boolean;
     [index: string]: any;
 }
 export interface CompleteOption {
@@ -49,6 +50,7 @@ export interface CompleteResult {
     startcol?: number;
     source?: string;
     noinsert?: boolean;
+    only?: boolean;
 }
 export interface Config {
     completeOpt: string;

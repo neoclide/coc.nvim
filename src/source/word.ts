@@ -18,6 +18,7 @@ export default class Word extends Source {
       shortcut: '10k',
       priority: 0,
       filetypes: [],
+      only: true,
     })
   }
 

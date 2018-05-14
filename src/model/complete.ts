@@ -27,7 +27,7 @@ export default class Complete {
   }
 
   private completeSource(source: Source): Promise<any> {
-    let {engross} = source
+    let {engross, isOnly} = source
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
@@ -53,6 +53,7 @@ export default class Complete {
         if (result == null) {
           result = {items: []}
         }
+        result.only = isOnly
         result.source = source.name
         if (source.noinsert) result.noinsert = true
         ctx.result = result
@@ -75,14 +76,16 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[], icase: boolean):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[], icase: boolean, only?:string):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
     let {input, id} = this.option
     let fuzzy = getConfig('fuzzyMatch')
     let filter = fuzzy ? filterFuzzy : filterWord
+    let count = 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let {items, source, noinsert} = res
+      if (count != 0 && source == only) break
       for (let item of items) {
         let {word, kind, abbr, info, user_data} = item
         let verb = abbr ? abbr : word
@@ -98,6 +101,7 @@ export default class Complete {
         if (noinsert) item.noinsert = true
         if (fuzzy) item.score = score(verb, input) + (kind || info ? 0.01 : 0)
         arr.push(item)
+        count = count + 1
       }
     }
     if (fuzzy) {
@@ -121,6 +125,7 @@ export default class Complete {
       if (r == null) return false
       return r.items && r.items.length > 0
     })
+    let onlySource = results.filter(r => r.only === true).map(r => r.source)
     logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
 
     let engrossResult = results.find(r => r.engross === true)
@@ -136,7 +141,7 @@ export default class Complete {
     this.results = results
     this.startcol = col
     let icase = this.icase = !/[A-Z]/.test(input)
-    let filteredResults = this.filterResults(results, icase)
+    let filteredResults = this.filterResults(results, icase, onlySource[0])
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
   }

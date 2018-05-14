@@ -8,6 +8,6 @@ export default class Complete {
     icase: boolean;
     constructor(opts: CompleteOption);
     private completeSource(source);
-    filterResults(results: CompleteResult[], icase: boolean): VimCompleteItem[];
+    filterResults(results: CompleteResult[], icase: boolean, only?: string): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
 }
