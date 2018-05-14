@@ -22,13 +22,14 @@ import completes from './completes'
 import remotes from './remotes'
 import natives from './natives'
 import remoteStore from './remote-store'
-import increment from './increment'
+import Increment from './increment'
 import Input from './input'
 const logger = require('./util/logger')('index')
 
-@Plugin({dev: true})
+@Plugin({dev: false})
 export default class CompletePlugin {
   public nvim: Neovim
+  public increment: Increment
   private debouncedOnChange: (bufnr: string)=>void
 
   constructor(nvim: Neovim) {
@@ -39,7 +40,7 @@ export default class CompletePlugin {
       })
       logger.debug(`buffer ${bufnr} change`)
     }, 500)
-
+    this.increment = new Increment(nvim)
     process.on('unhandledRejection', (reason, p) => {
       logger.error('Unhandled Rejection at:', p, 'reason:', reason)
       if (reason instanceof Error) this.handleError(reason)
@@ -54,11 +55,19 @@ export default class CompletePlugin {
     })
   }
 
-  @Autocmd('VimEnter', {
-    sync: false,
-    pattern: '*'
-  })
-  public async onVimEnter(): Promise<void> {
+  @Function('CocInitAsync', {sync: false})
+  public async cocInitAsync():Promise<void> {
+    this.onInit().catch(err => {
+      logger.error(err.stack)
+    })
+  }
+
+  @Function('CocInitSync', {sync: true})
+  public async cocInitSync():Promise<void> {
+    await this.onInit()
+  }
+
+  private async onInit(): Promise<void> {
     let {nvim} = this
     try {
       await this.initConfig()
@@ -66,7 +75,7 @@ export default class CompletePlugin {
       await remotes.init(nvim, natives.names)
       await nvim.command(`let g:coc_node_channel_id=${(nvim as any)._channel_id}`)
       await nvim.command('silent doautocmd User CocNvimInit')
-      logger.info('Complete service Initailized')
+      logger.info('Coc service Initailized')
       // required since BufRead triggered before VimEnter
       let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
@@ -97,19 +106,21 @@ export default class CompletePlugin {
     let start = Date.now()
     let {nvim} = this
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype, col, linenr} = opt
+    let {filetype, col, linenr, input} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
+    let {increment} = this
     complete.doComplete(sources).then(async ([startcol, items])=> {
       if (items.length == 0) {
         // no items found
         completes.reset()
         return
       }
-      if (items.length > 1) {
-        increment.setOption(opt)
-      }
+      increment.setOption(opt)
       let first = items[0]
+      if (items.length > 1 && first.noinsert) {
+        await increment.start(input, input)
+      }
       nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
@@ -117,7 +128,7 @@ export default class CompletePlugin {
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       })
-      if (items.length> 1) {
+      if (items.length > 1 && !this.increment.activted) {
         await wait(50)
         let visible = await nvim.call('pumvisible')
         if (visible == 1) {
@@ -126,27 +137,12 @@ export default class CompletePlugin {
           let [_, lnum, col] = await nvim.call('getpos', ['.'])
           if (lnum != linenr) return
           let word = await nvim.call('coc#util#get_insertedword', [col, len])
+          // make sure word is not changed
           if (word == firstWord) {
-            let input = new Input(nvim, lnum, opt.input, word, opt.col)
-            increment.input = input
+            let input = new Input(nvim, opt.input, word, lnum, opt.col)
+            if (!input.isValid) return
             input.highlight()
-            // TODO disable this suck code if there's TextChangedP
-            let interval = setInterval(() => {
-              nvim.call('getline', ['.']).then(line => {
-                let word = line.slice(col - len - 1, col - 1)
-                if (word !== firstWord) {
-                  input.clear()
-                  clearInterval(interval)
-                }
-              }, () => {
-                input.clear()
-                clearInterval(interval)
-              })
-            }, 500)
-            setTimeout(() => {
-              input.clear()
-              clearInterval(interval)
-            }, 3000)
+            increment.input = input
           }
         }
       }
@@ -158,23 +154,23 @@ export default class CompletePlugin {
     sync: true,
   })
   public async cocCharInsert():Promise<void> {
-    await increment.onCharInsert(this.nvim)
+    await this.increment.onCharInsert()
   }
 
   @Autocmd('CompleteDone', {
     pattern: '*',
     sync: true,
   })
-  public async cocDone():Promise<void> {
-    await increment.onComplete(this.nvim)
+  public async cocCompleteDone():Promise<void> {
+    await this.increment.onCompleteDone()
   }
 
   @Autocmd('InsertLeave', {
     pattern: '*',
     sync: true,
   })
-  public async cocLeave():Promise<void> {
-    await increment.stop(this.nvim)
+  public async cocInsertLeave():Promise<void> {
+    await this.increment.stop()
   }
 
   @Autocmd('TextChangedI', {
@@ -183,9 +179,9 @@ export default class CompletePlugin {
   })
   public async cocTextChangeI():Promise<void> {
     let {complete} = completes
-    let {nvim} = this
+    let {nvim, increment} = this
     if (!complete) return
-    let shouldStart = await increment.onTextChangeI(nvim)
+    let shouldStart = await increment.onTextChangeI()
     if (shouldStart) {
       if (!increment.activted) return
       let {input, option, changedI} = increment
@@ -196,7 +192,7 @@ export default class CompletePlugin {
       let oldComplete = completes.complete || ({} as {[index:string]:any})
       let {results} = oldComplete
       if (!results || results.length == 0) {
-        await increment.stop(nvim)
+        await increment.stop()
         return
       }
 
@@ -207,11 +203,11 @@ export default class CompletePlugin {
       let items = complete.filterResults(results, icase)
       logger.debug(`Filtered items:${JSON.stringify(items)}`)
       if (!items || items.length === 0) {
-        await increment.stop(nvim)
+        await increment.stop()
         return
       }
       if (items.length == 1) {
-        await increment.stop(nvim)
+        await increment.stop()
       }
       nvim.setVar('coc#_context', {
         start: startcol,
@@ -265,15 +261,6 @@ export default class CompletePlugin {
       })
     }
     return res
-  }
-
-  // TODO remove this
-  @Function('CocSourceConfig', {sync: false})
-  public async cocSourceConfig(args: any):Promise<void> {
-    let name:string = args[0]
-    let config:{[index:string]: any} = args[1]
-    if (!name) return
-    configSource(name, config)
   }
 
   @Function('CocSourceToggle', {sync: true})

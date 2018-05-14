@@ -76,6 +76,22 @@ function! s:CocSourceNames(A, L, P)
   return filter(map(items, 'v:val["name"]'), 'v:val =~ "^'.a:A.'"')
 endfunction
 
+function! s:Init(sync)
+  let func = a:sync ? 'CocInitSync' : 'CocInitAsync'
+  if a:sync
+    echohl MoreMsg
+    echon '[coc.nvim] Lazyload takes more time for initailize, consider switch'
+    echohl None
+  endif
+  try
+    execute 'call '.func.'()'
+  catch /.*/
+    echohl Error 
+    echom '[coc.nvim] Unable to initailize, try :UpdateRemotePlugins and restart'
+    echohl None
+  endtry
+endfunction
+
 function! s:Enable()
   augroup coc_nvim
     autocmd!
@@ -102,3 +118,9 @@ augroup end
 
 inoremap <silent> <expr> <Plug>(coc_start) coc#start()
 inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
+
+if has('vim_starting')
+  autocmd VimEnter * call s:Init(0)
+else
+  call s:Init(1)
+endif

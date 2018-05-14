@@ -54,6 +54,7 @@ export default class Complete {
           result = {items: []}
         }
         result.source = source.name
+        if (source.noinsert) result.noinsert = true
         ctx.result = result
         done()
       }, done)
@@ -81,7 +82,7 @@ export default class Complete {
     let filter = fuzzy ? filterFuzzy : filterWord
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
-      let {items} = res
+      let {items, source, noinsert} = res
       for (let item of items) {
         let {word, kind, abbr, info, user_data} = item
         let verb = abbr ? abbr : word
@@ -92,8 +93,9 @@ export default class Complete {
             data = JSON.parse(user_data)
           } catch (e) {} // tslint:disable-line
         }
-        data = Object.assign(data, { cid: id })
+        data = Object.assign(data, { cid: id, source })
         item.user_data = JSON.stringify(data)
+        if (noinsert) item.noinsert = true
         if (fuzzy) item.score = score(verb, input) + (kind || info ? 0.01 : 0)
         arr.push(item)
       }

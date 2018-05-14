@@ -12,16 +12,19 @@ const logger = require('../util/logger')('model-source')
 
 export default abstract class Source {
   public readonly name: string
+  public readonly noinsert: boolean
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {name, optionalFns}  = option
+    let {name, optionalFns, noinsert}  = option
     delete option.name
     delete option.optionalFns
+    delete option.noinsert
     this.nvim = nvim
     this.optionalFns = optionalFns || []
+    this.noinsert = noinsert
     this.name = name
     option.engross = !!option.engross
     // user options

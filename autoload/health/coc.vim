@@ -1,8 +1,8 @@
 function! s:checkEnvironment() abort
   let valid = 1
-  if !has('nvim') || !has('nvim-0.2.2')
+  if !has('nvim') || !has('nvim-0.3.0')
     let valid = 0
-    call health#report_error('Neovim version not satisfied, 0.2.2 and above required')
+    call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
   if !executable('node') || !executable('npm')
     let valid = 0

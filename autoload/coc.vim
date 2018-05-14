@@ -26,6 +26,10 @@ function! coc#_do_complete() abort
   call feedkeys("\<Plug>_", 'i')
 endfunction
 
+function! coc#_hide() abort
+  call feedkeys("\<C-e>", 'i')
+endfunction
+
 function! coc#start()
   if !get(g:, 'coc_enabled', 0) 
     echohl Error | echon '[coc.nvim] Service disabled' | echohl None

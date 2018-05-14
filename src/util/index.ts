@@ -1,3 +1,4 @@
+import {VimCompleteItem} from '../types'
 import {Neovim } from 'neovim'
 import debounce = require('debounce')
 import unique = require('array-unique')
@@ -7,6 +8,17 @@ export type Callback =(arg: string) => void
 
 function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
+}
+
+export function getUserData(item:VimCompleteItem):{[index: string]: any} | null {
+  let userData = item.user_data
+  if (!userData) return null
+  try {
+    let res = JSON.parse(userData)
+    return res.hasOwnProperty('cid') ? res : null
+  } catch (e) {
+    return null
+  }
 }
 
 export function equalChar(a: string, b:string, icase:boolean):boolean {

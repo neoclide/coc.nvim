@@ -26,7 +26,7 @@ export default class Around extends Source {
     let keywordOption = await buffer.getOption('iskeyword')
     let lines = await buffer.lines
     let content = lines.join('\n')
-    let document = buffers.createDocument(uri, filetype, content, keywordOption)
+    let document = buffers.createDocument(uri, filetype, content, keywordOption as string)
     let words = document.getWords()
     words = this.filterWords(words, opt)
     return {

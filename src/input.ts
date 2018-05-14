@@ -1,4 +1,5 @@
 import {Neovim} from 'neovim'
+import {echoErr} from './util/index'
 const logger = require('./util/logger')('input')
 
 export default class Input {
@@ -10,13 +11,14 @@ export default class Input {
   private startcol: number
   private match?: number
 
-  constructor(nvim:Neovim, linenr, input: string, word: string, startcol: number) {
+  constructor(nvim:Neovim, input: string, word: string, linenr:number, startcol: number) {
     let positions = []
     let index = 0
+    let icase = !/[A-Z]/.test(input)
     for (let i = 0, l = input.length; i < l; i++) {
       let ch = input[i]
       while (index < word.length) {
-        if (word[index].toLowerCase() == ch.toLowerCase()) {
+        if (this.caseEqual(word[index], ch, icase)) {
           positions.push(index)
           break
         }
@@ -29,6 +31,13 @@ export default class Input {
     this.startcol = startcol
     this.input = input
     this.positions = positions
+  }
+
+  private caseEqual(a:string, b:string, icase: boolean):boolean {
+    if (icase) {
+      return a.toLowerCase() == b.toLowerCase()
+    }
+    return a === b
   }
 
   public async highlight():Promise<void> {
@@ -64,6 +73,10 @@ export default class Input {
     return positions.map(p => {
       return [linenr, startcol + p + 1]
     })
+  }
+
+  public get isValid():boolean {
+    return this.input.length === this.positions.length
   }
 
   public async clear():Promise<void> {

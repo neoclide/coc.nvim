@@ -41,12 +41,14 @@ export interface VimCompleteItem {
     empty?: number;
     user_data?: string;
     score?: number;
+    noinsert?: boolean;
 }
 export interface CompleteResult {
     items: VimCompleteItem[];
     engross?: boolean;
     startcol?: number;
     source?: string;
+    noinsert?: boolean;
 }
 export interface Config {
     completeOpt: string;

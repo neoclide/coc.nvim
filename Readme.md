@@ -3,7 +3,7 @@
 COC is a **fast**, **reliable** and **flexible** completion framework of
 [neovim](https://github.com/neovim/neovim).
 
-It also tried hard to have better support for web development and completion
+It also tries hard to have better support for web development and completion
 specifications in [language server protocol](https://github.com/Microsoft/language-server-protocol)
 
 W.I.P.
@@ -27,9 +27,11 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
     \})
 ```
 
-[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.2.2 is required.
+[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
 
 See [trouble Shooting](#trouble-shooting) if you have runtime issue.
+
+**Note** `set completeopt=menu,preview` should be used for best user experience.
 
 ### Set trigger for completion
 

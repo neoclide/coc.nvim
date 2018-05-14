@@ -49,6 +49,7 @@ export interface VimCompleteItem {
   empty?: number
   user_data?: string
   score?: number
+  noinsert?: boolean
 }
 
 export interface CompleteResult {
@@ -56,6 +57,7 @@ export interface CompleteResult {
   engross?: boolean
   startcol?: number
   source?: string
+  noinsert?: boolean
 }
 
 export interface Config {

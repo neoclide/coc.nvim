@@ -2,6 +2,7 @@ import { Neovim } from 'neovim';
 import { SourceOption, SourceConfig, VimCompleteItem, CompleteOption, CompleteResult } from '../types';
 export default abstract class Source {
     readonly name: string;
+    readonly noinsert: boolean;
     readonly config: SourceConfig;
     protected readonly optionalFns: string[];
     protected readonly nvim: Neovim;

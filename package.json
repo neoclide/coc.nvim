@@ -7,8 +7,8 @@
     "clean": "rimraf lib",
     "test": "mocha",
     "lint": "tslint -c tslint.json -p .",
-    "build": "tsc",
-    "watch": "tsc -w"
+    "build": "tsc --pretty -p tsconfig.json",
+    "watch": "tsc --pretty -p tsconfig.json --watch true"
   },
   "repository": {
     "type": "git",
