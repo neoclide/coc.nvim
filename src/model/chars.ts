@@ -1,5 +1,5 @@
 import unique = require('array-unique')
-const logger = require('../util/logger')('model-chars')
+// const logger = require('../util/logger')('model-chars')
 
 export class Range {
   public start: number

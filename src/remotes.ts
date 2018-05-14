@@ -42,9 +42,8 @@ export class Remotes {
   public async init(nvim: Neovim, nativeNames: string[], isCheck?: boolean):Promise<void> {
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
-    let {list} = this
     if (isCheck) {
-      list = this.list = []
+      this.list = []
     }
     let dups: {[index: string]: string[]} = {}
     let names = []
@@ -81,7 +80,7 @@ export class Remotes {
                 if (isCheck) {
                   await this.reportError(nvim, name, `vim script error ${e.message}` , fullpath)
                 } else {
-                  echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
+                  await echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
                 }
                 continue
               }
@@ -159,7 +158,7 @@ export class Remotes {
       if (isCheck) {
         await this.reportError(nvim, name, `vim script error on init ${e.message}`)
       } else {
-        echoErr(nvim, `Vim error on init from source ${name}: ${e.message}`)
+        await echoErr(nvim, `Vim error on init from source ${name}: ${e.message}`)
       }
       return null
     }

@@ -2,12 +2,12 @@
  * Provide the function to find javscript module names
  */
 import builtinModules = require('builtin-modules')
-import {CompleteOption, CompleteResult} from '../../types'
+import {CompleteOption} from '../../types'
 import * as fs from 'fs'
 import path = require('path')
 import pify = require('pify')
 import findRoot = require('find-root')
-const logger = require('../../util/logger')('module-resolve-javascript')
+// const logger = require('../../util/logger')('module-resolve-javascript')
 
 export async function shouldResolve(opt: CompleteOption):Promise<boolean> {
   let {line, colnr} = opt

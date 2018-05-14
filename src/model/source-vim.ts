@@ -3,8 +3,8 @@ import remoteStore from '../remote-store'
 import {getConfig} from '../config'
 import Source from './source'
 import {filterItemWord, filterItemFuzzy} from '../util/filter'
-import {echoErr, echoWarning} from '../util/index'
-const logger = require('../util/logger')('model-source-vim')
+import {echoErr} from '../util/index'
+const logger = require('../util/logger')('model-source-vim') // tslint:disable-line
 
 export default class VimSource extends Source {
 

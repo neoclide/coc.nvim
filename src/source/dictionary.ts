@@ -2,7 +2,6 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import {statAsync} from '../util/fs'
-import buffers from '../buffers'
 import * as fs from 'fs'
 import unique = require('array-unique')
 import pify = require('pify')
@@ -64,7 +63,7 @@ export default class Dictionary extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr, input, filetype, dictOption} = opt
+    let {dictOption} = opt
     let words = []
     if (dictOption) {
       let files = dictOption.split(',')

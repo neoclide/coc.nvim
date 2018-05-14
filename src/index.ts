@@ -14,9 +14,7 @@ import {
 import {
   setConfig,
   toggleSource,
-  configSource,
   getConfig} from './config'
-import debounce = require('debounce')
 import buffers from './buffers'
 import completes from './completes'
 import remotes from './remotes'
@@ -45,7 +43,8 @@ export default class CompletePlugin {
       logger.error('Unhandled Rejection at:', p, 'reason:', reason)
       if (reason instanceof Error) this.handleError(reason)
     })
-    process.on('uncaughtException', this.handleError)
+    process.on('uncaughtException', this.handleError.bind(this))
+    this.handleError = this.handleError.bind(this)
   }
 
   private handleError(err: Error):void {
@@ -105,40 +104,44 @@ export default class CompletePlugin {
     let opt = args[0]
     let start = Date.now()
     let {nvim, increment} = this
+    await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype, col, linenr, colnr, input} = opt
+    let {filetype} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
-    complete.doComplete(sources).then(async ([startcol, items])=> {
+    complete.doComplete(sources).then(([startcol, items])=> {
       if (items.length == 0) {
         // no items found
         completes.reset()
         return
       }
-      let first = items[0]
-      let completeOpt = getConfig('completeOpt')
       nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
-      })
+      }).catch(this.handleError)
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      })
-      await increment.stop()
-      await wait(50)
-      let visible = await nvim.call('pumvisible')
-      let [_, lnum, col] = await nvim.call('getpos', ['.'])
-      if (visible != 1 || lnum != linenr) return
-      let line = await nvim.call('getline', ['.'])
-      let word = col > opt.col ? line.slice(opt.col, col - 1): ''
-      // let's start
-      increment.changedI = {
-        linenr: lnum,
-        colnr: col
-      }
-      increment.setOption(opt)
-      await increment.start(input, word)
-    })
+      }).catch(this.handleError)
+      this.onCompleteStart(opt).catch(this.handleError)
+    }, this.handleError)
+  }
+
+  private async onCompleteStart(opt: CompleteOption):Promise<void> {
+    let {linenr, input} = opt
+    let {nvim, increment} = this
+    await wait(50)
+    let visible = await nvim.call('pumvisible')
+    let [_, lnum, col] = await nvim.call('getpos', ['.'])
+    if (visible != 1 || lnum != linenr) return
+    let line = await nvim.call('getline', ['.'])
+    let word = col > opt.col ? line.slice(opt.col, col - 1): ''
+    // let's start
+    increment.changedI = {
+      linenr: lnum,
+      colnr: col
+    }
+    increment.setOption(opt)
+    await increment.start(input, word)
   }
 
   @Autocmd('InsertCharPre', {
@@ -176,7 +179,7 @@ export default class CompletePlugin {
     let shouldStart = await increment.onTextChangeI()
     if (shouldStart) {
       if (!increment.activted) return
-      let {input, option, changedI} = increment
+      let {input, option} = increment
       let opt = Object.assign({}, option, {
         input: input.input
       })
@@ -199,10 +202,10 @@ export default class CompletePlugin {
       nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
-      })
+      }).catch(this.handleError)
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      })
+      }).catch(this.handleError)
     }
   }
 

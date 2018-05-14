@@ -1,7 +1,5 @@
 import {Neovim} from 'neovim'
-import {echoErr} from './util/index'
 import {getConfig} from './config'
-const logger = require('./util/logger')('input')
 
 export default class Input {
   public input: string

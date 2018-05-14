@@ -13,6 +13,7 @@ export default class CompletePlugin {
     cocBufUnload(args: any[]): Promise<void>;
     cocBufChange(args: any[]): Promise<void>;
     cocStart(args: [CompleteOption]): Promise<void>;
+    private onCompleteStart(opt);
     cocCharInsert(): Promise<void>;
     cocCompleteDone(): Promise<void>;
     cocInsertLeave(): Promise<void>;

@@ -1,11 +1,10 @@
 import { Neovim } from 'neovim'
 import Source from './model/source'
-import {SourceOption} from './types'
 import {echoErr} from './util/index'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
-const logger = require('./util/logger')('natives')
+const logger = require('./util/logger')('natives') // tslint:disable-line
 
 export interface Native {
   Clz: typeof Source
@@ -76,7 +75,7 @@ export class Natives {
       instance = o.instance  = await this.createSource(nvim, name)
     } catch (e) {
       let msg = `Create source ${name} error: ${e.message}`
-      // await echoErr(nvim, msg)
+      await echoErr(nvim, msg)
       logger.error(e.stack)
       return null
     }

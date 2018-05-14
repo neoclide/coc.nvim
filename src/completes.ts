@@ -2,7 +2,7 @@ import { Neovim } from 'neovim'
 import {getConfig} from './config'
 import Source from './model/source'
 import Complete from './model/complete'
-import {CompleteOption, VimCompleteItem} from './types'
+import {CompleteOption} from './types'
 import natives from './natives'
 import remotes from './remotes'
 const logger = require('./util/logger')('completes')
@@ -26,7 +26,6 @@ export class Completes {
   }
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
-    let source_names: string[] = getConfig('sources')
     let disabled = getConfig('disabled')
     let nativeNames = natives.names
     logger.debug(`Disabled sources:${disabled}`)

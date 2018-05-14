@@ -12,8 +12,7 @@
     "declaration": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "strictPropertyInitialization": true,
-    "plugins": []
+    "strictPropertyInitialization": true
   },
   "include": [
     "src/**/*.ts"

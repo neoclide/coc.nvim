@@ -1,13 +1,10 @@
 import {score} from 'fuzzaldrin'
-import { Neovim } from 'neovim'
 import {CompleteOption,
   VimCompleteItem,
   CompleteResult} from '../types'
-import buffers from '../buffers'
 import Source from './source'
 import {getConfig} from '../config'
 import {wordSortItems} from '../util/sorter'
-import {equalChar} from '../util/index'
 import {uniqueItems} from '../util/unique'
 import {filterFuzzy, filterWord} from '../util/filter'
 import Serial = require('node-serial')
@@ -147,7 +144,7 @@ export default class Complete {
   }
 
   private getOnlySourceName(results: CompleteResult[]):string {
-    let r = results.find(r => r.only === true)
+    let r = results.find(r => r.only)
     return r ? r.source : ''
   }
 }

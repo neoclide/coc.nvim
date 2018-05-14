@@ -75,18 +75,16 @@ export default abstract class Source {
   }
 
   protected filterWords(words:string[], opt:CompleteOption):string[] {
-    let fuzzy = getConfig('fuzzyMatch')
     let res = []
-    let {input} = opt
+    let {input, word} = opt
     let cword = opt.word
     let cFirst = input.length ? input[0] : null
     let icase = !/[A-Z]/.test(input)
-    let filter = fuzzy ? filterFuzzy : filterWord
-    for (let word of words) {
+    for (let w of words) {
       if (!cFirst) continue
-      if (!word || word.length < 3) continue
-      if (cFirst && !equalChar(word[0], cFirst, icase)) continue
-      if (word == cword || word == input) continue
+      if (!w || w.length < 3) continue
+      if (cFirst && !equalChar(w[0], cFirst, icase)) continue
+      if (w == word || w == input) continue
       res.push(word)
     }
     return res

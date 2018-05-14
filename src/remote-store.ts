@@ -1,6 +1,6 @@
 import {VimCompleteItem} from './types'
 import watchObj from './util/watch-obj'
-const logger = require('./util/logger')('remote-store')
+// const logger = require('./util/logger')('remote-store')
 
 export interface Cached {
   [index: string]: VimCompleteItem[]

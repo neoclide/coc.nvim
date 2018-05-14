@@ -1,7 +1,6 @@
 import {VimCompleteItem} from '../types'
 import {Neovim } from 'neovim'
 import debounce = require('debounce')
-import unique = require('array-unique')
 const logger = require('./logger')()
 
 export type Callback =(arg: string) => void

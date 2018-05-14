@@ -1,11 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, VimCompleteItem, CompleteResult} from '../types'
+import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import {echoWarning} from '../util/index'
-import * as fs from 'fs'
-import path = require('path')
-import pify = require('pify')
-const logger = require('../util/logger')('source-omni')
+// const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
   constructor(nvim: Neovim) {
@@ -31,7 +28,7 @@ export default class OmniSource extends Source {
     let {line, colnr, col, func} = opt
     let {nvim} = this
     if (['LanguageClient#complete'].indexOf('func') !== -1) {
-      echoWarning(nvim, `omnifunc ${func} is broken, skipped!`)
+      await echoWarning(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
     let startcol: number = await nvim.call(func, [1, ''])

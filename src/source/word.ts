@@ -2,11 +2,10 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import {statAsync} from '../util/fs'
 import Source from '../model/source'
-import buffers from '../buffers'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
-const logger = require('../util/logger')('source-word')
+// const logger = require('../util/logger')('source-word')
 
 let words = null
 let file = path.resolve(__dirname, '../../data/10k.txt')

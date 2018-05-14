@@ -1,6 +1,9 @@
 {
-  "extends": "@chemzqm/tslint-config",
+  "extends": "./node_modules/@chemzqm/tslint-config/tslint.json",
   "rules": {
+    "no-unbound-method": false,
+    "return-undefined": false,
+    "no-unused-variable": [true, {"ignore-pattern": "^(_|logger)"}],
     "no-console": [false, "log", "info", "warn", "error", "trace", "time", "timeEnd", "assert", "count", "dir", "table"]
   }
 }

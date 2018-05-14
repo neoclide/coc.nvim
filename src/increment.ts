@@ -112,8 +112,8 @@ export default class Increment {
       return null
     }
     if (this.input && !this.activted) {
-      this.input.clear()
       this.input = null
+      await this.input.clear()
     }
     this.done = {
       word: item ? (item as VimCompleteItem).word || '' : '',
@@ -130,7 +130,7 @@ export default class Increment {
       character: ch,
       timestamp: Date.now()
     }
-    let {activted, input} = this
+    let {activted} = this
     if (!activted) return
     let isKeyword = this.isKeyword(ch)
     if (!isKeyword) return await this.stop()

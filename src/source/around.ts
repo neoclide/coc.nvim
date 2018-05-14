@@ -2,7 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import buffers from '../buffers'
-const logger = require('../util/logger')('source-around')
+// const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
   constructor(nvim: Neovim) {
@@ -20,7 +20,7 @@ export default class Around extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr, input, filetype} = opt
+    let {bufnr, filetype} = opt
     let uri = `buffer://${bufnr}`
     let buffer = await this.nvim.buffer
     let keywordOption = await buffer.getOption('iskeyword')
