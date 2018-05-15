@@ -1,7 +1,6 @@
 import pify = require('pify')
 import fs = require('fs')
 import path = require('path')
-import findRoot = require('find-root')
 const exec = require('child_process').exec
 
 export async function statAsync(filepath:string):Promise<fs.Stats|null> {
@@ -28,8 +27,13 @@ export async function isGitIgnored(fullpath:string):Promise<boolean> {
   return false
 }
 
-export async function findSourceDir(fullpath:string):Promise<string|null> {
-  return findRoot(fullpath, dir => {
-    return path.basename(dir) === 'src'
-  })
+export function findSourceDir(fullpath:string):string|null {
+  let obj = path.parse(fullpath)
+  if (!obj || !obj.root) return null
+  let {root, dir} = obj
+  let p = dir.slice(root.length)
+  let parts = p.split(path.sep)
+  let idx = parts.findIndex(s => s == 'src')
+  if (idx === -1) return null
+  return `${root}${parts.slice(0, idx + 1).join(path.sep)}`
 }

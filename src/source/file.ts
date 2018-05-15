@@ -22,6 +22,7 @@ export default class File extends Source {
       trimSameExts: ['.ts', '.js'],
       ignoreHidden: true,
       ignorePatterns: [],
+      noinsert: true,
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -55,8 +56,6 @@ export default class File extends Source {
 
   public filterFiles(files:string[]):string[] {
     let {ignoreHidden, ignorePatterns} = this.config
-    logger.debug('patterns')
-    logger.debug(ignorePatterns)
     return files.filter(f => {
       if (f == null) return false
       if (ignoreHidden && /^\./.test(f)) return false

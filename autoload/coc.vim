@@ -4,6 +4,7 @@ let g:coc#_context = {}
 function! coc#get_config(...)
   return {
         \ 'completeOpt': &completeopt,
+        \ 'hasUserData': has('nvim-0.2.3'),
         \ 'fuzzyMatch': get(g:, 'coc_fuzzy_match', v:null),
         \ 'timeout': get(g:, 'coc_timeout', v:null),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),

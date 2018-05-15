@@ -12,34 +12,43 @@ const logger = require('../util/logger')('model-source')
 
 export default abstract class Source {
   public readonly name: string
-  public readonly noinsert: boolean
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {name, optionalFns, noinsert, only}  = option
+    let {name, optionalFns, only}  = option
     delete option.name
     delete option.optionalFns
-    delete option.noinsert
     this.nvim = nvim
     this.optionalFns = optionalFns || []
-    this.noinsert = noinsert
     this.name = name
-    option.engross = !!option.engross
+    ;['engross', 'noinsert', 'firstMatch'].forEach(name => {
+      option[name] = option[name] == '0' ? false : !!option[name]
+    })
     // user options
     let opt = getSourceConfig(name) || {}
     this.config = Object.assign({
       shortcut: name.slice(0, 3),
       priority: 0,
       engross: false,
-      filetypes: null
+      filetypes: null,
+      noinsert: false,
+      firstMatch: false
     }, option, opt)
     if (only) this.config.priority = 0
   }
 
   public get priority():number {
     return Number(this.config.priority)
+  }
+
+  public get noinsert():boolean {
+    return !!this.config.noinsert
+  }
+
+  public get firstMatch():boolean {
+    return !!this.config.firstMatch
   }
 
   public get isOnly():boolean {

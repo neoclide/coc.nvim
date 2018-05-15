@@ -1,7 +1,7 @@
 import {CompleteOption, CompleteResult} from '../types'
 import remoteStore from '../remote-store'
 import Source from './source'
-import {echoErr} from '../util/index'
+import {echoErr, equalChar} from '../util/index'
 const logger = require('../util/logger')('model-source-vim') // tslint:disable-line
 
 export default class VimSource extends Source {
@@ -36,7 +36,7 @@ export default class VimSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let {col, id} = opt
+    let {col, id, input} = opt
     let startcol:number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       startcol = Number(startcol)
@@ -48,6 +48,10 @@ export default class VimSource extends Source {
     }
     await this.nvim.call('coc#remote#do_complete', [this.name, opt])
     let items = await remoteStore.getResult(id, this.name)
+    if (this.firstMatch && input.length) {
+      let ch = input[0]
+      items = items.filter(item => equalChar(item.word[0], ch, /[a-z]/.test(ch)))
+    }
     for (let item of items) {
       if (!item.kind) {
         delete item.dup

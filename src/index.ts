@@ -168,10 +168,10 @@ export default class CompletePlugin {
   })
   public async cocCompleteDone():Promise<void> {
     let {nvim, increment} = this
-    let item = await nvim.getVvar('completed_item')
+    let item:any = await nvim.getVvar('completed_item')
     if (!Object.keys(item).length) item = null
-    if (item && !isCocItem(item)) {
-      await increment.stop()
+    if (item && isCocItem(item)) {
+      completes.addRecent(item.word)
     }
     if (increment.activted) {
       await increment.onCompleteDone(item as VimCompleteItem)
@@ -218,7 +218,8 @@ export default class CompletePlugin {
         return
       }
       let completeOpt = getConfig('completeOpt')
-      if (items.length == 1 && !/menuone/.test(completeOpt)) {
+      // menu in completeopt, let vim insert
+      if (items.length == 1 && /menu(?!one)/.test(completeOpt)) {
         await increment.stop()
       }
       nvim.setVar('coc#_context', {

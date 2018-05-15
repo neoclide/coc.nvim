@@ -6,6 +6,9 @@ export interface SourceConfig {
   priority: number
   engross: boolean
   filetypes: string[] | null
+  noinsert: boolean
+  // remote source only
+  firstMatch: boolean
   [index: string]: any
 }
 
@@ -18,7 +21,14 @@ export interface SourceOption {
   priority?: number
   optionalFns?: string[]
   only?: boolean
+  noinsert?: boolean
+  // remote source only
+  firstMatch?: boolean
   [index: string]: any
+}
+
+export interface RecentScore {
+  [index:string]: number
 }
 
 // option on complete & should_complete
@@ -63,6 +73,7 @@ export interface CompleteResult {
 }
 
 export interface Config {
+  hasUserData: boolean
   completeOpt: string
   fuzzyMatch: boolean
   timeout: number

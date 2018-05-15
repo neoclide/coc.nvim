@@ -8,12 +8,13 @@ let config: Config = {
   completeOpt: 'menu,preview',
   disabled: [],
   sources: {},
+  hasUserData: false,
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
   for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (['fuzzyMatch', 'checkGit'].indexOf(key) !== -1) {
+    if (['fuzzyMatch', 'checkGit', 'hasUserData'].indexOf(key) !== -1) {
       if (val != null) {
         config[key] = !!val
       }

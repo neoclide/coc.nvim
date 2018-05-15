@@ -6,6 +6,8 @@ import {getConfig} from './config'
 import {isGitIgnored} from './util/fs'
 const logger = require('./util/logger')('buffers')
 
+let checkdFiles:string[] = []
+
 export class Buffers {
   public buffers: Buffer[]
   public versions: {[index: string] : number}
@@ -29,8 +31,11 @@ export class Buffers {
     let checkGit = getConfig('checkGit')
     if (!buf && checkGit) {
       let fullpath = await nvim.call('coc#util#get_fullpath', [Number(bufnr)])
-      let ignored = await isGitIgnored(fullpath)
-      if (ignored) return
+      if (checkdFiles.indexOf(fullpath) !== -1) {
+        let ignored = await isGitIgnored(fullpath)
+        if (ignored) return
+        checkdFiles.push(fullpath)
+      }
     }
     let lines: string[] = await nvim.call('getbufline', [Number(bufnr), 1, '$'])
     let content = (lines as string[]).join('\n')
@@ -70,6 +75,7 @@ export class Buffers {
     for (let buf of bufs) {
       await this.addBuffer(nvim, buf.toString())
     }
+    checkdFiles = []
     logger.info('Buffers refreshed')
   }
 }

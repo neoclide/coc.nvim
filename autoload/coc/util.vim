@@ -1,7 +1,7 @@
 function! coc#util#get_fullpath(bufnr)
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif
-  return fnamemodify(fname, ':p')
+  return resolve(fnamemodify(fname, ':p'))
 endfunction
 
 function! coc#util#get_buflist() abort
@@ -39,4 +39,17 @@ endfunction
 
 function! coc#util#check_state() abort
   return get(g:, 'coc_node_channel_id', 0)
+endfunction
+
+function! coc#util#get_listfile_command()
+  if exists('g:coc_listfile_command')
+    return g:coc_listfile_command
+  endif
+  if executable('rg')
+    return 'rg --color never --files'
+  endif
+  if executable('ag')
+    return 'ag --follow --nogroup --nocolor -g .'
+  endif
+  return ''
 endfunction

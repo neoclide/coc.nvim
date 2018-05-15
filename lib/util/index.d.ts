@@ -1,6 +1,6 @@
 import { VimCompleteItem } from '../types';
 import { Neovim } from 'neovim';
-export declare type Callback = (arg: string) => void;
+export declare type Callback = (arg: number | string) => void;
 export declare function getUserData(item: VimCompleteItem): {
     [index: string]: any;
 } | null;

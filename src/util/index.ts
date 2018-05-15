@@ -1,9 +1,10 @@
 import {VimCompleteItem} from '../types'
 import {Neovim } from 'neovim'
+import {getConfig} from '../config'
 import debounce = require('debounce')
 const logger = require('./logger')()
 
-export type Callback =(arg: string) => void
+export type Callback = (arg: number|string) => void
 
 function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
@@ -28,11 +29,11 @@ export function equalChar(a: string, b:string, icase:boolean):boolean {
 // create dobounce funcs for each arg
 export function contextDebounce(func: Callback, timeout: number):Callback {
   let funcMap: {[index: string] : Callback | null} = {}
-  return (arg: string): void => {
+  return (arg: string | number): void => {
     let fn = funcMap[arg]
     if (fn == null) {
-      fn = debounce(func.bind(null, arg), timeout, true)
-      funcMap[arg] = fn
+      fn = debounce(func.bind(null, arg), timeout, false)
+      funcMap[arg.toString()] = fn
     }
     fn(arg)
   }
@@ -68,13 +69,17 @@ export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
 }
 
 export function isCocItem(item: any):boolean {
-    if (!item) return false
-    let {user_data} = item
-    if (!user_data) return false
-    try {
-      let res = JSON.parse(user_data)
-      return res.cid != null
-    } catch (e) {
-      return false
-    }
+  if (!item ||!item.hasOwnProperty('word')) return false
+  if (Object.keys(item).length == 0) return false
+  let hasUserData = getConfig('hasUserData')
+  // NVIM doesn't support user_data
+  if (!hasUserData) return true
+  let {user_data} = item
+  if (!user_data) return false
+  try {
+    let res = JSON.parse(user_data)
+    return res.cid != null
+  } catch (e) {
+    return false
+  }
 }

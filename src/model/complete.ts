@@ -1,6 +1,8 @@
 import {score} from 'fuzzaldrin'
-import {CompleteOption,
+import {
+  CompleteOption,
   VimCompleteItem,
+  RecentScore,
   CompleteResult} from '../types'
 import Source from './source'
 import {getConfig} from '../config'
@@ -18,9 +20,11 @@ export default class Complete {
   public option: CompleteOption
   public startcol?: number
   public icase: boolean
+  public recentScores: RecentScore
   constructor(opts: CompleteOption) {
     this.option = opts
     this.icase = true
+    this.recentScores = {}
   }
 
   private completeSource(source: Source): Promise<any> {
@@ -85,7 +89,7 @@ export default class Complete {
       let {items, source, noinsert} = res
       if (count != 0 && source == only) break
       for (let item of items) {
-        let {word, kind, abbr, info, user_data} = item
+        let {word, abbr, user_data} = item
         let verb = abbr ? abbr : word
         let data = {}
         if (input.length && !filter(input, verb, icase)) continue
@@ -97,7 +101,7 @@ export default class Complete {
         data = Object.assign(data, { cid: id, source })
         item.user_data = JSON.stringify(data)
         if (noinsert) item.noinsert = true
-        if (fuzzy) item.score = score(verb, input) + (kind || info ? 0.01 : 0)
+        if (fuzzy) item.score = score(verb, input) + this.getRecentScore(word)
         arr.push(item)
         count = count + 1
       }
@@ -133,7 +137,7 @@ export default class Complete {
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
-    logger.debug(`resultes: ${JSON.stringify(results)}`)
+    // logger.debug(`resultes: ${JSON.stringify(results)}`)
     // use it even it's bad
     this.results = results
     this.startcol = col
@@ -146,5 +150,12 @@ export default class Complete {
   private getOnlySourceName(results: CompleteResult[]):string {
     let r = results.find(r => !!r.only)
     return r ? r.source : ''
+  }
+
+  private getRecentScore(word: string):number {
+    if (word == 'expect') {
+      logger.debug(this.recentScores[word])
+    }
+    return this.recentScores[word] || 0
   }
 }

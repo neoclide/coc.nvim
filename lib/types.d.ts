@@ -4,6 +4,8 @@ export interface SourceConfig {
     priority: number;
     engross: boolean;
     filetypes: string[] | null;
+    noinsert: boolean;
+    firstMatch: boolean;
     [index: string]: any;
 }
 export interface SourceOption {
@@ -14,7 +16,12 @@ export interface SourceOption {
     priority?: number;
     optionalFns?: string[];
     only?: boolean;
+    noinsert?: boolean;
+    firstMatch?: boolean;
     [index: string]: any;
+}
+export interface RecentScore {
+    [index: string]: number;
 }
 export interface CompleteOption {
     id: number;
@@ -53,6 +60,7 @@ export interface CompleteResult {
     only?: boolean;
 }
 export interface Config {
+    hasUserData: boolean;
     completeOpt: string;
     fuzzyMatch: boolean;
     timeout: number;
