@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim';
 import { CompleteOption, VimCompleteItem } from './types';
-import Input from './input';
+import Input from './model/input';
 export interface CompleteDone {
     word: string;
     timestamp: number;
@@ -23,8 +23,8 @@ export default class Increment {
     lastInsert: InsertedChar | null | undefined;
     option: CompleteOption | null | undefined;
     changedI: ChangedI | null | undefined;
+    maxDoneCount: number;
     constructor(nvim: Neovim);
-    isKeyword(str: string): boolean;
     stop(): Promise<void>;
     /**
      * start
@@ -34,9 +34,9 @@ export default class Increment {
      * @param {string} word - the word before cursor
      * @returns {Promise<void>}
      */
-    start(input: string, word: string): Promise<void>;
+    start(input: string, word: string, hasInsert: boolean): Promise<void>;
     setOption(opt: CompleteOption): void;
-    onCompleteDone(item: VimCompleteItem | null): Promise<void>;
+    onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<boolean>;
     onCharInsert(): Promise<void>;
     private getNoinsertOption();
     onTextChangeI(): Promise<boolean>;

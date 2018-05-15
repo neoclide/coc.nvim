@@ -22,7 +22,6 @@ import remotes from './remotes'
 import natives from './natives'
 import remoteStore from './remote-store'
 import Increment from './increment'
-import Input from './input'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
@@ -118,12 +117,13 @@ export default class CompletePlugin {
       }
       let first = items[0]
       increment.setOption(opt)
+      // the first item not allowed for auto insert
       if (first.noinsert && items.length > 1) {
         increment.changedI = {
           linenr: opt.linenr,
           colnr: opt.colnr
         }
-        await increment.start(opt.input, opt.input)
+        await increment.start(opt.input, opt.input, false)
       }
       nvim.setVar('coc#_context', {
         start: startcol,
@@ -132,6 +132,7 @@ export default class CompletePlugin {
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       }).catch(this.handleError)
+      completes.calculateChars()
       this.onCompleteStart(opt).catch(this.handleError)
     }, this.handleError)
   }
@@ -140,10 +141,11 @@ export default class CompletePlugin {
     let {linenr, input} = opt
     let {nvim, increment} = this
     await wait(50)
-    logger.debug('starting')
     let visible = await nvim.call('pumvisible')
     let [_, lnum, col] = await nvim.call('getpos', ['.'])
     if (visible != 1 || lnum != linenr) return
+    if (increment.activted) return
+
     let line = await nvim.call('getline', ['.'])
     let word = col > opt.col ? line.slice(opt.col, col - 1): ''
     // let's start
@@ -151,7 +153,10 @@ export default class CompletePlugin {
       linenr: lnum,
       colnr: col
     }
-    await increment.start(input, word)
+    let completeOpt = getConfig('completeOpt')
+    let hasInsert = !/noinsert/.test(completeOpt)
+      // menu in completeopt, reset compelteopt, make vim insert
+    await increment.start(input, word, hasInsert)
   }
 
   @Autocmd('InsertCharPre', {
@@ -170,11 +175,20 @@ export default class CompletePlugin {
     let {nvim, increment} = this
     let item:any = await nvim.getVvar('completed_item')
     if (!Object.keys(item).length) item = null
-    if (item && isCocItem(item)) {
-      completes.addRecent(item.word)
-    }
+    let isCoc = isCocItem(item)
+    logger.debug(`Item:${JSON.stringify(item)}`)
     if (increment.activted) {
-      await increment.onCompleteDone(item as VimCompleteItem)
+      await increment.onCompleteDone(item as VimCompleteItem, isCoc)
+    }
+    if (item && isCoc) {
+      completes.addRecent(item.word)
+      if (item.user_data) {
+        let data = JSON.parse(item.user_data)
+        let source = await completes.getSource(nvim, data.source)
+        if (source) {
+          await source.onCompleteDone(item as VimCompleteItem)
+        }
+      }
     }
   }
 
@@ -218,7 +232,7 @@ export default class CompletePlugin {
         return
       }
       let completeOpt = getConfig('completeOpt')
-      // menu in completeopt, let vim insert
+      // menu in completeopt, reset compelteopt, make vim insert
       if (items.length == 1 && /menu(?!one)/.test(completeOpt)) {
         await increment.stop()
       }

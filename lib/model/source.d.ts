@@ -17,6 +17,7 @@ export default abstract class Source {
     protected filterWords(words: string[], opt: CompleteOption): string[];
     checkFileType(filetype: string): boolean;
     refresh(): Promise<void>;
+    onCompleteDone(item: VimCompleteItem): Promise<void>;
     abstract shouldComplete(opt: CompleteOption): Promise<boolean>;
     abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>;
 }

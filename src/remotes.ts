@@ -137,7 +137,7 @@ export class Remotes {
   }
 
   public async getOptionalFns(nvim: Neovim, name: string):Promise<string[]> {
-    let fns = ['should_complete', 'refresh', 'get_startcol']
+    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete']
     let res = []
     for (let fname of fns) {
       let fn = `coc#source#${name}#${fname}`
@@ -170,7 +170,7 @@ export class Remotes {
   public async getSource(nvim: Neovim, name: string): Promise<VimSource | null> {
     let remote = this.list.find(o => o.name == name)
     if (!remote) {
-      logger.error(`Remote source ${name} not found`)
+      await echoErr(nvim, `Remote source ${name} not found`)
       return null
     }
     if (remote.instance) return remote.instance

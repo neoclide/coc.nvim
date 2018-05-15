@@ -110,6 +110,10 @@ export default abstract class Source {
     // do nothing
   }
 
+  public async onCompleteDone(item:VimCompleteItem):Promise<void> {
+    // do nothing
+  }
+
   public abstract shouldComplete(opt: CompleteOption): Promise<boolean>
 
   public abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>

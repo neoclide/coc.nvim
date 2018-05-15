@@ -89,7 +89,7 @@ export default class Complete {
       let {items, source, noinsert} = res
       if (count != 0 && source == only) break
       for (let item of items) {
-        let {word, abbr, user_data} = item
+        let {word, abbr, user_data, kind} = item
         let verb = abbr ? abbr : word
         let data = {}
         if (input.length && !filter(input, verb, icase)) continue
@@ -101,7 +101,7 @@ export default class Complete {
         data = Object.assign(data, { cid: id, source })
         item.user_data = JSON.stringify(data)
         if (noinsert) item.noinsert = true
-        if (fuzzy) item.score = score(verb, input) + this.getRecentScore(word)
+        if (fuzzy) item.score = score(verb, input) + this.getRecentScore(word) + (kind ? 0.1 : 0)
         arr.push(item)
         count = count + 1
       }

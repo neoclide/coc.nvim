@@ -3,7 +3,8 @@ import {
   getUserData,
   equalChar,
   contextDebounce,
-  wait
+  wait,
+  isCocItem
 } from '../src/util/index'
 import {
   filterFuzzy,
@@ -132,11 +133,11 @@ describe('contextDebounce test',async () => {
     await wait(30)
     fn(1)
     expect(i).toBe(0)
-    await wait(100)
+    await wait(110)
     expect(i).toBe(1)
     fn(1)
     expect(i).toBe(1)
-    await wait(100)
+    await wait(110)
     expect(i).toBe(2)
   })
 
@@ -152,7 +153,7 @@ describe('contextDebounce test',async () => {
     fn(2)
     expect(i).toBe(0)
     expect(j).toBe(0)
-    await wait(100)
+    await wait(110)
     expect(i).toBe(1)
     expect(j).toBe(1)
     fn(2)
@@ -160,9 +161,26 @@ describe('contextDebounce test',async () => {
     fn(1)
     expect(i).toBe(1)
     expect(j).toBe(1)
-    await wait(100)
+    await wait(110)
     expect(i).toBe(2)
     expect(j).toBe(2)
+  })
+})
+
+describe('isCocItem test', () => {
+  test('should be coc item', () => {
+    let item = {
+      word: 'f', 
+      user_data: '{"cid": 123}'
+    }
+    expect(isCocItem(item)).toBeTruthy
+  })
+
+  test('shoud not be coc item', () => {
+    expect(isCocItem(null)).toBeFalsy
+    expect(isCocItem({})).toBeFalsy
+    expect(isCocItem({word: ''})).toBeFalsy
+    expect(isCocItem({word: '', user_data: 'abc'})).toBeFalsy
   })
 })
 

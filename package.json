@@ -6,8 +6,8 @@
   "scripts": {
     "clean": "rimraf lib",
     "lint": "tslint -c tslint.json -p .",
-    "build": "tsc --pretty -p tsconfig.json",
-    "watch": "tsc --pretty -p tsconfig.json --watch true",
+    "build": "tsc tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch true",
     "test": "npm run build && jest --runInBand"
   },
   "repository": {

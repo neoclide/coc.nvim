@@ -10,6 +10,18 @@ function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
 }
 
+export async function echoErr(nvim: Neovim, line: string):Promise<void> {
+  return await echoMsg(nvim, line, 'Error')
+}
+
+export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
+  return await echoMsg(nvim, line, 'WarningMsg')
+}
+
+export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
+  await nvim.call('coc#util#print_errors', lines)
+}
+
 export function getUserData(item:VimCompleteItem):{[index: string]: any} | null {
   let userData = item.user_data
   if (!userData) return null
@@ -54,18 +66,6 @@ async function echoMsg(nvim:Neovim, line: string, hl: string):Promise<void> {
     logger.error(e.stack)
   }
   return
-}
-
-export async function echoErr(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'Error')
-}
-
-export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'WarningMsg')
-}
-
-export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
-  await nvim.call('coc#util#print_errors', lines)
 }
 
 export function isCocItem(item: any):boolean {

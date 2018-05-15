@@ -1,8 +1,7 @@
 import {Neovim} from 'neovim'
 import {CompleteOption, VimCompleteItem} from './types'
 import {getConfig} from './config'
-import Input from './input'
-import buffers from './buffers'
+import Input from './model/input'
 import completes from './completes'
 const logger = require('./util/logger')('increment')
 
@@ -33,15 +32,12 @@ export default class Increment {
   public lastInsert: InsertedChar | null | undefined
   public option: CompleteOption | null | undefined
   public changedI: ChangedI | null | undefined
+  public maxDoneCount: number
 
   constructor(nvim:Neovim) {
     this.activted = false
     this.nvim = nvim
-  }
-
-  public isKeyword(str: string):boolean {
-    let {document} = buffers
-    return document ? document.isWord(str) : /^\w$/.test(str)
+    this.maxDoneCount = 0
   }
 
   public async stop():Promise<void> {
@@ -49,10 +45,11 @@ export default class Increment {
     this.activted = false
     if (this.input) await this.input.clear()
     this.done = this.input = this.option = this.changedI = null
+    this.maxDoneCount = 0
     let completeOpt = getConfig('completeOpt')
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
-    logger.debug('increment stoped')
+    logger.debug('increment stopped')
   }
 
   /**
@@ -63,7 +60,7 @@ export default class Increment {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public async start(input: string, word: string):Promise<void> {
+  public async start(input: string, word: string, hasInsert:boolean):Promise<void> {
     let {nvim, activted, option} = this
     if (activted || !option) return
     let {linenr, col} = option
@@ -75,6 +72,7 @@ export default class Increment {
 
     let inputTarget = new Input(nvim, input, word, linenr, col)
     if (inputTarget.isValid) {
+      this.maxDoneCount = hasInsert ? 1 : 0
       this.activted = true
       this.input = inputTarget
       await inputTarget.highlight()
@@ -90,16 +88,22 @@ export default class Increment {
     this.option = opt
   }
 
-  public async onCompleteDone(item: VimCompleteItem | null):Promise<void> {
-    let {nvim} = this
+  public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<boolean> {
+    let {nvim, maxDoneCount} = this
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
+    if (isCoc && maxDoneCount == 0) {
+      logger.debug('complete done, increment stopped')
+      await this.stop()
+      return false
+    }
+    if (isCoc) this.maxDoneCount = maxDoneCount - 1
     this.done = {
       word: item ? item.word || '' : '',
       timestamp: Date.now(),
       colnr: colnr as number,
       linenr: lnum as number,
     }
-    logger.debug('complete done')
+    return isCoc
   }
 
   public async onCharInsert():Promise<void> {
@@ -108,14 +112,19 @@ export default class Increment {
       character: ch,
       timestamp: Date.now()
     }
+    logger.debug('char insert')
     let {activted} = this
     if (!activted) return
-    let isKeyword = this.isKeyword(ch)
-    if (!isKeyword) return await this.stop()
+    let {chars} = completes
+    if (chars.indexOf(ch) == -1) {
+      logger.debug('character not found')
+      await this.stop()
+      return
+    }
     // vim would attamp to match the string
     // if vim find match, no TextChangeI would fire
     // we should disable this behavior by
-    // hide the popup
+    // send <C-e> to hide the popup
     let visible = await this.nvim.call('pumvisible')
     if (visible) await this.nvim.call('coc#_hide')
   }
@@ -135,8 +144,9 @@ export default class Increment {
   }
 
   public async onTextChangeI():Promise<boolean> {
+    logger.debug('text changed')
     let {option, activted, done, lastInsert, nvim} = this
-    if (!option || !activted) return false
+    if (!activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
     let ts = Date.now()
     if (!done
@@ -157,9 +167,7 @@ export default class Increment {
       await this.input.addCharactor(lastInsert.character)
       return true
     }
-    // could be not called when user remove one character
-    // maybe we could just remove more character then?
-    // TODO improve this
+    // TODO might be need to improve
     if (lastChanged.colnr - colnr === 1) {
       let invalid = await this.input.removeCharactor()
       if (!invalid) return true

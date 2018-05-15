@@ -1,5 +1,5 @@
 import {Neovim} from 'neovim'
-import {getConfig} from './config'
+import {getConfig} from '../config'
 
 export default class Input {
   public input: string
@@ -43,7 +43,7 @@ export default class Input {
     await this.clear()
     let plist = this.getMatchPos()
     let completeOpt = getConfig('completeOpt')
-    if (/menuone/.test(completeOpt)) return
+    if (/noinsert/.test(completeOpt)) return
     if (plist.length) {
       this.match = await this.nvim.call('matchaddpos', ['CocChars', plist, 99])
     }

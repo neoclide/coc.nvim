@@ -28,7 +28,7 @@ function! coc#_do_complete() abort
 endfunction
 
 function! coc#_hide() abort
-  call feedkeys("\<C-e>", 'i')
+  call feedkeys("\<C-e>", 'in')
 endfunction
 
 function! coc#start()

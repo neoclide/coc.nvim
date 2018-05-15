@@ -10,18 +10,21 @@ const logger = require('./util/logger')('completes')
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
+  // unique characters in result
+  public chars:string[]
 
   constructor() {
     this.complete = null
     this.recentScores = {}
+    this.chars = []
   }
 
   public addRecent(word: string):void {
     let val = this.recentScores[word]
     if (!val) {
-      this.recentScores[word] = 0.01
+      this.recentScores[word] = 0.05
     } else {
-      this.recentScores[word] = val + 0.01
+      this.recentScores[word] = Math.max(val + 0.05, 0.2)
     }
   }
 
@@ -54,8 +57,35 @@ export class Completes {
     return res
   }
 
+  public async getSource(nvim:Neovim, name:string):Promise<Source | null> {
+    if (natives.has(name)) return await natives.getSource(nvim, name)
+    if (remotes.has(name)) return await remotes.getSource(nvim, name)
+    return null
+  }
+
   public reset():void {
     this.complete = null
+    this.chars = []
+  }
+
+  public calculateChars():void {
+    let {results} = this.complete
+    if (!results.length) return
+    let chars = []
+    for (let res of results) {
+      let {items} = res
+      if (!items) break
+      for (let item of items) {
+        let word = item.abbr ? item.abbr : item.word
+        for (let ch of word) {
+          if (chars.indexOf(ch) == -1) {
+            chars.push(ch)
+          }
+        }
+
+      }
+    }
+    this.chars = chars
   }
 }
 

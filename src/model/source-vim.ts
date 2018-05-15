@@ -1,4 +1,7 @@
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  VimCompleteItem,
+  CompleteOption,
+  CompleteResult} from '../types'
 import remoteStore from '../remote-store'
 import Source from './source'
 import {echoErr, equalChar} from '../util/index'
@@ -33,6 +36,11 @@ export default class VimSource extends Source {
 
   public async refresh():Promise<void> {
     await this.callOptinalFunc('refresh', [])
+  }
+
+  public async onCompleteDone(item: VimCompleteItem):Promise<void> {
+    if (this.optionalFns.indexOf('on_complete') === -1) return
+    await this.callOptinalFunc('on_complete', [item])
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
