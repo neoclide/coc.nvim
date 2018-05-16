@@ -45,10 +45,9 @@ export default class File extends Source {
     if (stat) {
       let trim = trimExt && ext == path.extname(filename)
       let abbr = stat.isDirectory() ? filename + '/' : filename
-      return {
-        word: trim ? filename.slice(0, - ext.length) : filename,
-        abbr
-      }
+      let word = trim ? filename.slice(0, - ext.length) : filename
+      word = stat.isDirectory() ? word + '/' : word
+      return { word, abbr }
     }
     return null
   }
