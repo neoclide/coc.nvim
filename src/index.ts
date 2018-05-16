@@ -2,7 +2,7 @@
 process.umask = ()=> {
   return 18
 }
-import { Plugin, Autocmd, Function, Neovim } from 'neovim'
+import { Plugin, Function, Neovim } from 'neovim'
 import {
   SourceStat,
   CompleteOption,
@@ -33,7 +33,7 @@ export default class CompletePlugin {
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
-    this.debouncedOnChange = contextDebounce((bufnr: string) => {
+    this.debouncedOnChange = contextDebounce((bufnr: number) => {
       this.onBufferChange(bufnr).catch(e => {
         logger.error(e.message)
       })
@@ -79,7 +79,7 @@ export default class CompletePlugin {
       // required since BufRead triggered before VimEnter
       let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
-        await buffers.addBuffer(nvim, buf.toString())
+        await buffers.addBuffer(nvim, buf)
       }
     } catch (err) {
       logger.error(err.stack)
@@ -142,27 +142,22 @@ export default class CompletePlugin {
     }
   }
 
-  @Autocmd('InsertCharPre', {
-    pattern: '*',
-    sync: true,
-  })
-  public async cocCharInsert():Promise<void> {
-    await this.increment.onCharInsert()
+  @Function('CocInsertCharPre', {sync: false})
+  public async cocInsertCharPre(args: any[]):Promise<void> {
+    logger.debug(555)
+    // await this.increment.onCharInsert(args[0] as string)
   }
 
-  @Autocmd('CompleteDone', {
-    pattern: '*',
-    sync: true,
-  })
-  public async cocCompleteDone():Promise<void> {
+  @Function('CocCompleteDone', {sync: true})
+  public async cocCompleteDone(args: any[]):Promise<void> {
     logger.debug('complete done')
     let {nvim, increment} = this
-    let item:any = await nvim.getVvar('completed_item')
-    if (!Object.keys(item).length) item = null
+    let item:VimCompleteItem = args[0]
+    if (!item || Object.keys(item).length == 0) item = null
     let isCoc = isCocItem(item)
-    logger.debug(`Item:${JSON.stringify(item)}`)
+    logger.debug(`complete item:${JSON.stringify(item)}`)
     if (increment.activted) {
-      await increment.onCompleteDone(item as VimCompleteItem, isCoc)
+      await increment.onCompleteDone(item, isCoc)
     }
     if (item && isCoc) {
       completes.addRecent(item.word)
@@ -170,33 +165,23 @@ export default class CompletePlugin {
         let data = JSON.parse(item.user_data)
         let source = await completes.getSource(nvim, data.source)
         if (source) {
-          await source.onCompleteDone(item as VimCompleteItem)
+          await source.onCompleteDone(item)
         }
       }
     }
   }
 
-  @Autocmd('InsertLeave', {
-    pattern: '*',
-    sync: true,
-  })
-  public async cocInsertLeave():Promise<void> {
-    await this.increment.stop()
-  }
-
-  @Autocmd('TextChangedP', {
-    pattern: '*',
-    sync: true
-  })
-  public async cocTextChangeP():Promise<void> {
+  @Function('CocTextChangedP', {sync: true})
+  public async cocTextChangedP():Promise<void> {
     logger.debug('TextChangedP')
-    await this.increment.onTextChangedP()
+    let {latestTextChangedI} = this.increment
+    if (!latestTextChangedI) {
+      await this.increment.stop()
+      // navigation change
+    }
   }
 
-  @Autocmd('TextChangedI', {
-    pattern: '*',
-    sync: true
-  })
+  @Function('CocTextChangedI', {sync: true})
   public async cocTextChangedI():Promise<void> {
     let {complete} = completes
     let {nvim, increment} = this
@@ -316,7 +301,7 @@ export default class CompletePlugin {
     return true
   }
 
-  private async onBufferChange(bufnr: string):Promise<void> {
+  private async onBufferChange(bufnr: number):Promise<void> {
     let listed = await this.nvim.call('getbufvar', [Number(bufnr), '&buflisted'])
     if (listed) await buffers.addBuffer(this.nvim, bufnr)
   }

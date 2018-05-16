@@ -2,6 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import buffers from '../buffers'
+import {echoWarning} from '../util/index'
 const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
@@ -23,10 +24,13 @@ export default class Around extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, filetype} = opt
     let uri = `buffer://${bufnr}`
-    let buffer = await this.nvim.buffer
-    let keywordOption = await buffer.getOption('iskeyword')
-    let lines = await buffer.lines
-    let content = lines.join('\n')
+    let {nvim} = this
+    let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
+    if (count > 2000) {
+      await echoWarning(nvim, `File too big, loading file from disk`)
+    }
+    let keywordOption = await nvim.call('getbufvar', [bufnr, '&iskeyword'])
+    let content = await buffers.loadBufferContent(nvim, bufnr, 300)
     let document = buffers.createDocument(uri, filetype, content, keywordOption as string)
     let words = document.getWords()
     words = this.filterWords(words, opt)

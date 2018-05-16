@@ -58,7 +58,7 @@ function! coc#start()
         \ 'buftype': &buftype,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
-        \ 'bufnr': bufnr('%').'',
+        \ 'bufnr': bufnr('%'),
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,

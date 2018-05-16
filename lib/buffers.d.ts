@@ -9,10 +9,11 @@ export declare class Buffers {
     document: Doc;
     constructor();
     createDocument(uri: string, filetype: string, content: string, keywordOption: string): Doc;
-    addBuffer(nvim: Neovim, bufnr: string): Promise<void>;
-    removeBuffer(bufnr: string): void;
-    getWords(bufnr: string): string[];
-    getBuffer(bufnr: string): Buffer | null;
+    addBuffer(nvim: Neovim, bufnr: number): Promise<void>;
+    loadBufferContent(nvim: Neovim, bufnr: number, timeout?: number): Promise<string>;
+    removeBuffer(bufnr: number): void;
+    getWords(bufnr: number): string[];
+    getBuffer(bufnr: number): Buffer | null;
     refresh(nvim: Neovim): Promise<void>;
 }
 declare const buffers: Buffers;

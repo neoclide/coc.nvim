@@ -50,13 +50,13 @@ export default class Increment {
     logger.debug('increment stopped')
   }
 
-  private get latestDone():CompleteDone|null {
+  public get latestDone():CompleteDone|null {
     let {done} = this
     if (!done || Date.now() - done.timestamp > MAX_DURATION) return null
     return done
   }
 
-  private get latestTextChangedI():ChangedI|null{
+  public get latestTextChangedI():ChangedI|null{
     let {changedI} = this
     if (!changedI || Date.now() - changedI.timestamp > MAX_DURATION) return null
     return changedI
@@ -100,9 +100,8 @@ export default class Increment {
     }
   }
 
-  public async onCharInsert():Promise<void> {
+  public async onCharInsert(ch:string):Promise<void> {
     if (!this.activted) return
-    let ch:string = (await this.nvim.getVvar('char') as string)
     this.lastInsert = {
       character: ch,
       timestamp: Date.now()
@@ -166,13 +165,5 @@ export default class Increment {
     logger.debug('increment failed')
     await this.stop()
     return false
-  }
-
-  public async onTextChangedP():Promise<void> {
-    let {latestTextChangedI} = this
-    if (latestTextChangedI) return
-    // TODO we can implement doHover here
-    logger.debug('changed by navigate')
-    await this.stop()
   }
 }

@@ -34,7 +34,7 @@ export interface RecentScore {
 // option on complete & should_complete
 export interface CompleteOption {
   id: number
-  bufnr: string
+  bufnr: number
   line: string
   col: number
   input: string

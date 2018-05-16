@@ -14,10 +14,9 @@ export default class CompletePlugin {
     cocBufChange(args: any[]): Promise<void>;
     cocStart(args: [CompleteOption]): Promise<void>;
     private onCompleteStart(opt, autoComplete, items);
-    cocCharInsert(): Promise<void>;
-    cocCompleteDone(): Promise<void>;
-    cocInsertLeave(): Promise<void>;
-    cocTextChangeP(): Promise<void>;
+    cocInsertCharPre(args: any[]): Promise<void>;
+    cocCompleteDone(args: any[]): Promise<void>;
+    cocTextChangedP(): Promise<void>;
     cocTextChangedI(): Promise<void>;
     cocResult(args: any[]): Promise<void>;
     cocCheck(): Promise<string[] | null>;

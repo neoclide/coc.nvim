@@ -37,3 +37,15 @@ export function findSourceDir(fullpath:string):string|null {
   if (idx === -1) return null
   return `${root}${parts.slice(0, idx + 1).join(path.sep)}`
 }
+
+export function readFile(fullpath:string, encoding:string, timeout = 1000):Promise<string> {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      reject(new Error(`Read file ${fullpath} timeout`))
+    }, timeout)
+    fs.readFile(fullpath, encoding, (err, content) => {
+      if (err) reject(err)
+      resolve(content)
+    })
+  })
+}

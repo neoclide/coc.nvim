@@ -1,13 +1,10 @@
-import crypto = require('crypto')
 import {Chars} from './chars'
-const {createHash} = crypto
 const logger = require('../util/logger')('model-buffer')
 
 export default class Buffer {
   public words: string[]
-  public hash: string
   private chars: Chars
-  constructor(public bufnr: string, public content: string, public keywordOption : string) {
+  constructor(public bufnr: number, public content: string, public keywordOption : string) {
     this.bufnr = bufnr
     this.content = content
     this.chars = new Chars(keywordOption)
@@ -21,8 +18,8 @@ export default class Buffer {
   private generate(): void {
     let {content} = this
     if (content.length == 0) return
+    // TODO for performance, this have to be implemented in C code
     this.words = this.chars.matchKeywords(content)
-    this.hash = createHash('md5').update(content).digest('hex')
   }
 
   public setKeywordOption(option: string):void {

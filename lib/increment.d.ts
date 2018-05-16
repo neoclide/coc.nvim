@@ -26,8 +26,8 @@ export default class Increment {
     changedI: ChangedI | null | undefined;
     constructor(nvim: Neovim);
     stop(): Promise<void>;
-    private readonly latestDone;
-    private readonly latestTextChangedI;
+    readonly latestDone: CompleteDone | null;
+    readonly latestTextChangedI: ChangedI | null;
     /**
      * start
      *
@@ -38,8 +38,7 @@ export default class Increment {
      */
     start(option: CompleteOption): Promise<void>;
     onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<void>;
-    onCharInsert(): Promise<void>;
+    onCharInsert(ch: string): Promise<void>;
     private getStartOption();
     onTextChangedI(): Promise<boolean>;
-    onTextChangedP(): Promise<void>;
 }

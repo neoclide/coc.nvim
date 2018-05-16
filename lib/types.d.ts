@@ -25,7 +25,7 @@ export interface RecentScore {
 }
 export interface CompleteOption {
     id: number;
-    bufnr: string;
+    bufnr: number;
     line: string;
     col: number;
     input: string;

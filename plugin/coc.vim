@@ -80,7 +80,7 @@ function! s:Init(sync)
   let func = a:sync ? 'CocInitSync' : 'CocInitAsync'
   if a:sync
     echohl MoreMsg
-    echon '[coc.nvim] Lazyload takes more time for initailize, consider switch'
+    echon '[coc.nvim] Lazyload takes more time for initailize, consider disable lazyload'
     echohl None
   endif
   try
@@ -95,6 +95,22 @@ endfunction
 function! s:Enable()
   augroup coc_nvim
     autocmd!
+    autocmd InsertCharPre *
+          \ if !&paste && get(g:,'coc_enabled', 0)
+          \|  call CocInsertCharPre(v:char) 
+          \|endif
+    autocmd CompleteDone *
+          \ if get(g:,'coc_enabled', 0)
+          \|  call CocCompleteDone(v:completed_item) 
+          \|endif
+    autocmd TextChangedP *
+          \ if get(g:,'coc_enabled', 0)
+          \|  call CocTextChangedP() 
+          \|endif
+    autocmd TextChangedI *
+          \ if get(g:,'coc_enabled', 0)
+          \|  call CocTextChangedI() 
+          \|endif
     autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
     autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
     autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>')) | endif

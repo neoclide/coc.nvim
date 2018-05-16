@@ -20,6 +20,7 @@ export class Completes {
   }
 
   public addRecent(word: string):void {
+    if (!word.length) return
     let val = this.recentScores[word]
     if (!val) {
       this.recentScores[word] = 0.05
