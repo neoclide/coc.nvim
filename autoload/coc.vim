@@ -9,6 +9,7 @@ function! coc#get_config(...)
         \ 'timeout': get(g:, 'coc_timeout', v:null),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
         \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
+        \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null)
         \}
 endfunction
 
@@ -29,6 +30,10 @@ endfunction
 
 function! coc#_hide() abort
   call feedkeys("\<C-e>", 'in')
+endfunction
+
+function! coc#_confirm() abort
+  call feedkeys("\<C-y>", 'in')
 endfunction
 
 function! coc#start()

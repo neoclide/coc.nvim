@@ -66,6 +66,7 @@ export interface Config {
     timeout: number;
     checkGit: boolean;
     disabled: string[];
+    incrementHightlight: boolean;
     sources: {
         [index: string]: Partial<SourceConfig>;
     };

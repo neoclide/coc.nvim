@@ -23,7 +23,6 @@ export default class Increment {
     lastInsert: InsertedChar | null | undefined;
     option: CompleteOption | null | undefined;
     changedI: ChangedI | null | undefined;
-    maxDoneCount: number;
     constructor(nvim: Neovim);
     stop(): Promise<void>;
     /**
@@ -34,10 +33,10 @@ export default class Increment {
      * @param {string} word - the word before cursor
      * @returns {Promise<void>}
      */
-    start(input: string, word: string, hasInsert: boolean): Promise<void>;
+    start(input: string, word: string, noselect: boolean): Promise<void>;
     setOption(opt: CompleteOption): void;
-    onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<boolean>;
+    onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<void>;
     onCharInsert(): Promise<void>;
-    private getNoinsertOption();
+    private getStartOption(noselect);
     onTextChangeI(): Promise<boolean>;
 }

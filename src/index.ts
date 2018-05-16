@@ -15,6 +15,7 @@ import {
 import {
   setConfig,
   toggleSource,
+  shouldAutoComplete,
   getConfig} from './config'
 import buffers from './buffers'
 import completes from './completes'
@@ -115,15 +116,15 @@ export default class CompletePlugin {
         completes.reset()
         return
       }
-      let first = items[0]
-      increment.setOption(opt)
-      // the first item not allowed for auto insert
-      if (first.noinsert && items.length > 1) {
+      let autoComplete = items.length == 1 && shouldAutoComplete()
+      if (!autoComplete) {
+        increment.setOption(opt)
+        // always start increment
         increment.changedI = {
           linenr: opt.linenr,
           colnr: opt.colnr
         }
-        await increment.start(opt.input, opt.input, false)
+        await increment.start(opt.input, opt.input, items.length > 1)
       }
       nvim.setVar('coc#_context', {
         start: startcol,
@@ -133,30 +134,18 @@ export default class CompletePlugin {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       }).catch(this.handleError)
       completes.calculateChars()
-      this.onCompleteStart(opt).catch(this.handleError)
+      this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }, this.handleError)
   }
 
-  private async onCompleteStart(opt: CompleteOption):Promise<void> {
-    let {linenr, input} = opt
-    let {nvim, increment} = this
-    await wait(50)
+  private async onCompleteStart(opt:CompleteOption, autoComplete:boolean, items:VimCompleteItem[]):Promise<void> {
+    let {nvim} = this
+    await wait(20)
     let visible = await nvim.call('pumvisible')
-    let [_, lnum, col] = await nvim.call('getpos', ['.'])
-    if (visible != 1 || lnum != linenr) return
-    if (increment.activted) return
-
-    let line = await nvim.call('getline', ['.'])
-    let word = col > opt.col ? line.slice(opt.col, col - 1): ''
-    // let's start
-    increment.changedI = {
-      linenr: lnum,
-      colnr: col
+    if (!autoComplete && !visible) {
+      // TODO find out the way to trigger completeDone
+      // if no way to trigger completeDone, handle it here
     }
-    let completeOpt = getConfig('completeOpt')
-    let hasInsert = !/noinsert/.test(completeOpt)
-      // menu in completeopt, reset compelteopt, make vim insert
-    await increment.start(input, word, hasInsert)
   }
 
   @Autocmd('InsertCharPre', {
@@ -172,6 +161,7 @@ export default class CompletePlugin {
     sync: true,
   })
   public async cocCompleteDone():Promise<void> {
+    logger.debug('complete done')
     let {nvim, increment} = this
     let item:any = await nvim.getVvar('completed_item')
     if (!Object.keys(item).length) item = null
@@ -198,6 +188,14 @@ export default class CompletePlugin {
   })
   public async cocInsertLeave():Promise<void> {
     await this.increment.stop()
+  }
+
+  @Autocmd('TextChangedP', {
+    pattern: '*',
+    sync: true
+  })
+  public async cocTextChangeP():Promise<void> {
+    logger.debug('TextChangedP')
   }
 
   @Autocmd('TextChangedI', {
@@ -231,9 +229,8 @@ export default class CompletePlugin {
         await increment.stop()
         return
       }
-      let completeOpt = getConfig('completeOpt')
-      // menu in completeopt, reset compelteopt, make vim insert
-      if (items.length == 1 && /menu(?!one)/.test(completeOpt)) {
+      let autoComplete = items.length == 1 && shouldAutoComplete()
+      if (autoComplete) {
         await increment.stop()
       }
       nvim.setVar('coc#_context', {
@@ -243,6 +240,7 @@ export default class CompletePlugin {
       nvim.call('coc#_do_complete', []).then(() => {
         logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       }).catch(this.handleError)
+      this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }
   }
 

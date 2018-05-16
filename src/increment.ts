@@ -32,12 +32,10 @@ export default class Increment {
   public lastInsert: InsertedChar | null | undefined
   public option: CompleteOption | null | undefined
   public changedI: ChangedI | null | undefined
-  public maxDoneCount: number
 
   constructor(nvim:Neovim) {
     this.activted = false
     this.nvim = nvim
-    this.maxDoneCount = 0
   }
 
   public async stop():Promise<void> {
@@ -45,7 +43,6 @@ export default class Increment {
     this.activted = false
     if (this.input) await this.input.clear()
     this.done = this.input = this.option = this.changedI = null
-    this.maxDoneCount = 0
     let completeOpt = getConfig('completeOpt')
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
@@ -60,7 +57,7 @@ export default class Increment {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public async start(input: string, word: string, hasInsert:boolean):Promise<void> {
+  public async start(input:string, word:string, noselect:boolean):Promise<void> {
     let {nvim, activted, option} = this
     if (activted || !option) return
     let {linenr, col} = option
@@ -72,11 +69,10 @@ export default class Increment {
 
     let inputTarget = new Input(nvim, input, word, linenr, col)
     if (inputTarget.isValid) {
-      this.maxDoneCount = hasInsert ? 1 : 0
       this.activted = true
       this.input = inputTarget
       await inputTarget.highlight()
-      let opt = this.getNoinsertOption()
+      let opt = this.getStartOption(noselect)
       await nvim.call('execute', [`noa set completeopt=${opt}`])
       logger.debug('increment started')
     } else {
@@ -88,22 +84,19 @@ export default class Increment {
     this.option = opt
   }
 
-  public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<boolean> {
-    let {nvim, maxDoneCount} = this
+  public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<void> {
+    let {nvim} = this
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
-    if (isCoc && maxDoneCount == 0) {
+    if (isCoc) {
       logger.debug('complete done, increment stopped')
       await this.stop()
-      return false
     }
-    if (isCoc) this.maxDoneCount = maxDoneCount - 1
     this.done = {
       word: item ? item.word || '' : '',
       timestamp: Date.now(),
       colnr: colnr as number,
       linenr: lnum as number,
     }
-    return isCoc
   }
 
   public async onCharInsert():Promise<void> {
@@ -130,7 +123,7 @@ export default class Increment {
   }
 
   // keep other options
-  private getNoinsertOption():string {
+  private getStartOption(noselect:boolean):string {
     let opt = getConfig('completeOpt')
     let parts = opt.split(',')
     parts.filter(s => s != 'menu')
@@ -139,6 +132,9 @@ export default class Increment {
     }
     if (parts.indexOf('noinsert') === -1) {
       parts.push('noinsert')
+    }
+    if (noselect && parts.indexOf('noselect') === -1) {
+      parts.push('noselect')
     }
     return parts.join(',')
   }
