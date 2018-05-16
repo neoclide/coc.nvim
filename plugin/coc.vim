@@ -85,7 +85,7 @@ function! s:Init(sync)
   endif
   try
     execute 'call '.func.'()'
-  catch /.*/
+  catch /^Vim\%((\a\+)\)\=:E117/
     echohl Error 
     echom '[coc.nvim] Unable to initailize, try :UpdateRemotePlugins and restart'
     echohl None

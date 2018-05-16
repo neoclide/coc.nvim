@@ -109,9 +109,7 @@ export default class Complete {
       }
     }
     if (fuzzy) {
-      arr.sort((a, b) => {
-        return b.score - a.score
-      })
+      arr.sort((a, b) => b.score - a.score)
     } else {
       arr = wordSortItems(arr, input)
     }

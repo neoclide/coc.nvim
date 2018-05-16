@@ -7,6 +7,8 @@ import natives from './natives'
 import remotes from './remotes'
 const logger = require('./util/logger')('completes')
 
+const VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()[]{}-_=+\\|~`\'":;<,>.?/'.split(/\s*/)
+
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
@@ -77,9 +79,9 @@ export class Completes {
       let {items} = res
       if (!items) break
       for (let item of items) {
-        let word = item.abbr ? item.abbr : item.word
-        for (let ch of word) {
-          if (chars.indexOf(ch) == -1) {
+        let s = item.abbr ? item.abbr : item.word
+        for (let ch of s) {
+          if (VALID_CHARS.indexOf(ch) !== -1 && chars.indexOf(ch) === -1) {
             chars.push(ch)
           }
         }

@@ -142,10 +142,9 @@ export default class CompletePlugin {
     }
   }
 
-  @Function('CocInsertCharPre', {sync: false})
+  @Function('CocInsertCharPre', {sync: true})
   public async cocInsertCharPre(args: any[]):Promise<void> {
-    logger.debug(555)
-    // await this.increment.onCharInsert(args[0] as string)
+    await this.increment.onCharInsert(args[0] as string)
   }
 
   @Function('CocCompleteDone', {sync: true})
