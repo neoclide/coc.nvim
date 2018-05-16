@@ -9,7 +9,8 @@ function! coc#get_config(...)
         \ 'timeout': get(g:, 'coc_timeout', v:null),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
         \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
-        \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null)
+        \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null),
+        \ 'noSelect': get(g:, 'coc_use_noselect', v:null),
         \}
 endfunction
 

@@ -119,7 +119,7 @@ export default class CompletePlugin {
       }
       let autoComplete = items.length == 1 && shouldAutoComplete()
       if (!autoComplete) {
-        await increment.start(opt, items.length > 1)
+        await increment.start(opt)
       }
       await nvim.setVar('coc#_context', {
         start: startcol,

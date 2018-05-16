@@ -81,6 +81,7 @@ export interface Config {
   checkGit: boolean
   disabled: string[]
   incrementHightlight: boolean
+  noSelect: boolean
   sources: {[index:string]: Partial<SourceConfig>}
 }
 

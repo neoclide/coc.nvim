@@ -10,12 +10,17 @@ let config: Config = {
   sources: {},
   hasUserData: false,
   incrementHightlight: false,
+  noSelect: false,
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
   for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (['fuzzyMatch', 'checkGit', 'hasUserData', 'incrementHightlight'].indexOf(key) !== -1) {
+    if (['fuzzyMatch',
+      'noSelect',
+      'checkGit',
+      'hasUserData',
+      'incrementHightlight'].indexOf(key) !== -1) {
       if (val != null) {
         config[key] = !!val
       }

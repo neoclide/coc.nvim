@@ -36,10 +36,10 @@ export default class Increment {
      * @param {string} word - the word before cursor
      * @returns {Promise<void>}
      */
-    start(option: CompleteOption, noselect: boolean): Promise<void>;
+    start(option: CompleteOption): Promise<void>;
     onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<void>;
     onCharInsert(): Promise<void>;
-    private getStartOption(noselect);
+    private getStartOption();
     onTextChangedI(): Promise<boolean>;
     onTextChangedP(): Promise<void>;
 }

@@ -101,7 +101,8 @@ Name                        | Description                                       
 `g:coc_timeout`             | Timeout in milisecond for completion                      | 300
 `g:coc_ignore_git_ignore`   | Ignore collect words from buffers that are git ignored    | 0
 `g:coc_source_config`       | Configuration for coc sources, see `:h coc_source_config` | []
-`g:coc_increment_highlight` | Enable highlight for increment search characters          | false
+`g:coc_use_noselect`        | Add `noselect` to `completeopt` when popup menu is shown  | 0
+`g:coc_increment_highlight` | Enable highlight for increment search characters          | 0
 `g:coc_chars_guifg`         | Foreground color of user input in increment search        | white
 `g:coc_chars_guibg`         | Background color of user input in increment search        | magenta
 

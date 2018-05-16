@@ -70,7 +70,7 @@ export default class Increment {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public async start(option:CompleteOption, noselect:boolean):Promise<void> {
+  public async start(option:CompleteOption):Promise<void> {
     let {nvim, activted} = this
     if (activted) return
     this.option = option
@@ -80,7 +80,7 @@ export default class Increment {
     this.activted = true
     this.input = inputTarget
     await inputTarget.highlight()
-    let opt = this.getStartOption(noselect)
+    let opt = this.getStartOption()
     await nvim.call('execute', [`noa set completeopt=${opt}`])
     logger.debug('increment started')
   }
@@ -121,8 +121,9 @@ export default class Increment {
   }
 
   // keep other options
-  private getStartOption(noselect:boolean):string {
+  private getStartOption():string {
     let opt = getConfig('completeOpt')
+    let useNoSelect = getConfig('noSelect')
     let parts = opt.split(',')
     parts.filter(s => s != 'menu')
     if (parts.indexOf('menuone') === -1) {
@@ -131,7 +132,7 @@ export default class Increment {
     if (parts.indexOf('noinsert') === -1) {
       parts.push('noinsert')
     }
-    if (noselect && parts.indexOf('noselect') === -1) {
+    if (useNoSelect && parts.indexOf('noselect') === -1) {
       parts.push('noselect')
     }
     return parts.join(',')
