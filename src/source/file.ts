@@ -44,11 +44,11 @@ export default class File extends Source {
     let f = path.join(root, filename)
     let stat = await statAsync(f)
     if (stat) {
-      if (ext == path.extname(filename) && trimExt) {
-        filename = filename.slice(0, - ext.length)
-      }
+      let trim = trimExt && ext == path.extname(filename)
+      let abbr = stat.isDirectory() ? filename + '/' : filename
       return {
-        word: filename + (stat.isDirectory() ? '/' : '')
+        word: trim ? filename.slice(0, - ext.length) : filename,
+        abbr
       }
     }
     return null
@@ -87,7 +87,10 @@ export default class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {pathstr, fullpath, cwd, ext} = opt
+    let {pathstr, fullpath, cwd, ext, colnr} = opt
+
+    let line = await this.nvim.call('getline', ['.'])
+    let noSlash = line[colnr - 1] === '/'
     let roots = []
     if (!fullpath) {
       roots = [path.join(cwd, 'src'), cwd]
@@ -106,6 +109,7 @@ export default class File extends Source {
       items: items.map(item => {
         let ex = path.extname(item.word)
         item.word = trimExt && ex === ext ? item.word.replace(ext, '') : item.word
+        if (noSlash) item.word = item.word.replace(/\/$/, '')
         return {
           ...item,
           menu: this.menu

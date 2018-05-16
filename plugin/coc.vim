@@ -96,7 +96,8 @@ function! s:Enable()
   augroup coc_nvim
     autocmd!
     autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
-    autocmd TextChanged,BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
+    autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
+    autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>')) | endif
     autocmd BufRead,BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'))
   augroup end
 
