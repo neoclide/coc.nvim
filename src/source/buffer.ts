@@ -10,6 +10,7 @@ export default class Buffer extends Source {
       name: 'buffer',
       shortcut: 'B',
       priority: 1,
+      firstMatch: true,
     })
   }
 

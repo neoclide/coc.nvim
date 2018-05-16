@@ -28,7 +28,7 @@ export default class Complete {
   }
 
   private completeSource(source: Source): Promise<any> {
-    let {engross, isOnly} = source
+    let {engross, isOnly, firstMatch} = source
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
@@ -56,6 +56,7 @@ export default class Complete {
         }
         result.only = isOnly
         result.source = source.name
+        result.firstMatch = firstMatch
         if (source.noinsert) result.noinsert = true
         ctx.result = result
         done()
@@ -86,7 +87,8 @@ export default class Complete {
     let count = 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
-      let {items, source, noinsert} = res
+      let {items, source, noinsert, firstMatch} = res
+      if (firstMatch && input.length == 0) break
       if (count != 0 && source == only) break
       for (let item of items) {
         let {word, abbr, user_data, kind} = item

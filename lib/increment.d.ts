@@ -14,6 +14,7 @@ export interface InsertedChar {
 export interface ChangedI {
     linenr: number;
     colnr: number;
+    timestamp: number;
 }
 export default class Increment {
     private nvim;
@@ -25,6 +26,8 @@ export default class Increment {
     changedI: ChangedI | null | undefined;
     constructor(nvim: Neovim);
     stop(): Promise<void>;
+    private readonly latestDone;
+    private readonly latestTextChangedI;
     /**
      * start
      *
@@ -33,10 +36,10 @@ export default class Increment {
      * @param {string} word - the word before cursor
      * @returns {Promise<void>}
      */
-    start(input: string, word: string, noselect: boolean): Promise<void>;
-    setOption(opt: CompleteOption): void;
+    start(option: CompleteOption, noselect: boolean): Promise<void>;
     onCompleteDone(item: VimCompleteItem | null, isCoc: boolean): Promise<void>;
     onCharInsert(): Promise<void>;
     private getStartOption(noselect);
-    onTextChangeI(): Promise<boolean>;
+    onTextChangedI(): Promise<boolean>;
+    onTextChangedP(): Promise<void>;
 }

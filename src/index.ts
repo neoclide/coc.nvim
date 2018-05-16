@@ -40,12 +40,12 @@ export default class CompletePlugin {
       logger.debug(`buffer ${bufnr} change`)
     }, 500)
     this.increment = new Increment(nvim)
+    this.handleError = this.handleError.bind(this)
     process.on('unhandledRejection', (reason, p) => {
       logger.error('Unhandled Rejection at:', p, 'reason:', reason)
       if (reason instanceof Error) this.handleError(reason)
     })
-    process.on('uncaughtException', this.handleError.bind(this))
-    this.handleError = this.handleError.bind(this)
+    process.on('uncaughtException', this.handleError)
   }
 
   private handleError(err: Error):void {
@@ -105,6 +105,7 @@ export default class CompletePlugin {
     let opt = args[0]
     let start = Date.now()
     let {nvim, increment} = this
+    // may happen
     await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
     let {filetype} = opt
@@ -118,21 +119,14 @@ export default class CompletePlugin {
       }
       let autoComplete = items.length == 1 && shouldAutoComplete()
       if (!autoComplete) {
-        increment.setOption(opt)
-        // always start increment
-        increment.changedI = {
-          linenr: opt.linenr,
-          colnr: opt.colnr
-        }
-        await increment.start(opt.input, opt.input, items.length > 1)
+        await increment.start(opt, items.length > 1)
       }
-      nvim.setVar('coc#_context', {
+      await nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
-      }).catch(this.handleError)
-      nvim.call('coc#_do_complete', []).then(() => {
-        logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      }).catch(this.handleError)
+      })
+      await nvim.call('coc#_do_complete', [])
+      logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       completes.calculateChars()
       this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }, this.handleError)
@@ -196,22 +190,22 @@ export default class CompletePlugin {
   })
   public async cocTextChangeP():Promise<void> {
     logger.debug('TextChangedP')
+    await this.increment.onTextChangedP()
   }
 
   @Autocmd('TextChangedI', {
     pattern: '*',
     sync: true
   })
-  public async cocTextChangeI():Promise<void> {
+  public async cocTextChangedI():Promise<void> {
     let {complete} = completes
     let {nvim, increment} = this
     if (!complete) return
-    let shouldStart = await increment.onTextChangeI()
+    let shouldStart = await increment.onTextChangedI()
     if (shouldStart) {
-      if (!increment.activted) return
       let {input, option} = increment
       let opt = Object.assign({}, option, {
-        input: input.input
+        input: input.search
       })
       let oldComplete = completes.complete || ({} as {[index:string]:any})
       let {results} = oldComplete
@@ -231,15 +225,15 @@ export default class CompletePlugin {
       }
       let autoComplete = items.length == 1 && shouldAutoComplete()
       if (autoComplete) {
+        // let vim complete it
         await increment.stop()
       }
-      nvim.setVar('coc#_context', {
+      await nvim.setVar('coc#_context', {
         start: startcol,
         candidates: items
-      }).catch(this.handleError)
-      nvim.call('coc#_do_complete', []).then(() => {
-        logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      }).catch(this.handleError)
+      })
+      await nvim.call('coc#_do_complete', [])
+      logger.debug(`Complete time cost: ${Date.now() - start}ms`)
       this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }
   }

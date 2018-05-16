@@ -18,6 +18,7 @@ export default class Word extends Source {
       priority: 0,
       filetypes: [],
       only: true,
+      firstMatch: true,
     })
   }
 

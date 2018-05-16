@@ -70,6 +70,7 @@ export interface CompleteResult {
   source?: string
   noinsert?: boolean
   only?: boolean
+  firstMatch?: boolean
 }
 
 export interface Config {

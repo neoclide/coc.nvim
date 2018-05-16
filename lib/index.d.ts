@@ -18,7 +18,7 @@ export default class CompletePlugin {
     cocCompleteDone(): Promise<void>;
     cocInsertLeave(): Promise<void>;
     cocTextChangeP(): Promise<void>;
-    cocTextChangeI(): Promise<void>;
+    cocTextChangedI(): Promise<void>;
     cocResult(args: any[]): Promise<void>;
     cocCheck(): Promise<string[] | null>;
     cocSourceStat(): Promise<SourceStat[]>;

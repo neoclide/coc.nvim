@@ -84,7 +84,6 @@ export default abstract class Source {
   }
 
   protected filterWords(words:string[], opt:CompleteOption):string[] {
-    let fuzzy = getConfig('fuzzyMatch')
     let res = []
     let {input} = opt
     let cword = opt.word

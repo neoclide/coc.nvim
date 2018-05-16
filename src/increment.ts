@@ -20,6 +20,7 @@ export interface InsertedChar {
 export interface ChangedI {
   linenr: number
   colnr: number
+  timestamp: number
 }
 
 const MAX_DURATION = 50
@@ -49,6 +50,18 @@ export default class Increment {
     logger.debug('increment stopped')
   }
 
+  private get latestDone():CompleteDone|null {
+    let {done} = this
+    if (!done || Date.now() - done.timestamp > MAX_DURATION) return null
+    return done
+  }
+
+  private get latestTextChangedI():ChangedI|null{
+    let {changedI} = this
+    if (!changedI || Date.now() - changedI.timestamp > MAX_DURATION) return null
+    return changedI
+  }
+
   /**
    * start
    *
@@ -57,31 +70,19 @@ export default class Increment {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public async start(input:string, word:string, noselect:boolean):Promise<void> {
-    let {nvim, activted, option} = this
-    if (activted || !option) return
-    let {linenr, col} = option
-    // clear beginning input
-    if (this.input) {
-      await this.input.clear()
-      this.input = null
-    }
-
-    let inputTarget = new Input(nvim, input, word, linenr, col)
-    if (inputTarget.isValid) {
-      this.activted = true
-      this.input = inputTarget
-      await inputTarget.highlight()
-      let opt = this.getStartOption(noselect)
-      await nvim.call('execute', [`noa set completeopt=${opt}`])
-      logger.debug('increment started')
-    } else {
-      this.option = this.changedI = null
-    }
-  }
-
-  public setOption(opt: CompleteOption):void {
-    this.option = opt
+  public async start(option:CompleteOption, noselect:boolean):Promise<void> {
+    let {nvim, activted} = this
+    if (activted) return
+    this.option = option
+    let {linenr, colnr, input, col} = option
+    this.changedI = {linenr, colnr, timestamp: Date.now()}
+    let inputTarget = new Input(nvim, input, linenr, col)
+    this.activted = true
+    this.input = inputTarget
+    await inputTarget.highlight()
+    let opt = this.getStartOption(noselect)
+    await nvim.call('execute', [`noa set completeopt=${opt}`])
+    logger.debug('increment started')
   }
 
   public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<void> {
@@ -100,23 +101,20 @@ export default class Increment {
   }
 
   public async onCharInsert():Promise<void> {
+    if (!this.activted) return
     let ch:string = (await this.nvim.getVvar('char') as string)
     this.lastInsert = {
       character: ch,
       timestamp: Date.now()
     }
-    logger.debug('char insert')
-    let {activted} = this
-    if (!activted) return
-    let {chars} = completes
-    if (chars.indexOf(ch) == -1) {
+    if (completes.chars.indexOf(ch) == -1) {
       logger.debug('character not found')
       await this.stop()
       return
     }
     // vim would attamp to match the string
     // if vim find match, no TextChangeI would fire
-    // we should disable this behavior by
+    // we have to disable this behavior by
     // send <C-e> to hide the popup
     let visible = await this.nvim.call('pumvisible')
     if (visible) await this.nvim.call('coc#_hide')
@@ -139,23 +137,19 @@ export default class Increment {
     return parts.join(',')
   }
 
-  public async onTextChangeI():Promise<boolean> {
-    logger.debug('text changed')
-    let {option, activted, done, lastInsert, nvim} = this
+  public async onTextChangedI():Promise<boolean> {
+    let {option, activted, latestDone, lastInsert, nvim} = this
     if (!activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
-    let ts = Date.now()
-    if (!done
-      || linenr != option.linenr
-      || ts - done.timestamp > MAX_DURATION) {
+    if (!latestDone || linenr != option.linenr) {
       await this.stop()
       return false
     }
+    logger.debug('text changedI')
+
+    let ts = Date.now()
     let lastChanged = Object.assign({}, this.changedI)
-    this.changedI = {
-      linenr,
-      colnr
-    }
+    this.changedI = { linenr, colnr, timestamp: Date.now() }
     // check continue
     if (lastInsert
       && ts - lastInsert.timestamp < MAX_DURATION
@@ -171,5 +165,13 @@ export default class Increment {
     logger.debug('increment failed')
     await this.stop()
     return false
+  }
+
+  public async onTextChangedP():Promise<void> {
+    let {latestTextChangedI} = this
+    if (latestTextChangedI) return
+    // TODO we can implement doHover here
+    logger.debug('changed by navigate')
+    await this.stop()
   }
 }
