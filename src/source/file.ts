@@ -6,7 +6,6 @@ import Source from '../model/source'
 import {statAsync, findSourceDir} from '../util/fs'
 import matcher = require('matcher')
 import path = require('path')
-import unique = require('array-unique')
 import pify = require('pify')
 import fs = require('fs')
 const logger = require('../util/logger')('source-file')
@@ -102,7 +101,6 @@ export default class File extends Source {
       roots = [findSourceDir(fullpath) || cwd]
     }
     roots = roots.filter(r => typeof r === 'string')
-    roots = unique(roots)
     let items = await this.getItemsFromRoots(pathstr, roots, ext)
     let trimExt = this.config.trimSameExts.indexOf(ext) != -1
     return {

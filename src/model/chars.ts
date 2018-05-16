@@ -1,5 +1,4 @@
-import unique = require('array-unique')
-// const logger = require('../util/logger')('model-chars')
+const logger = require('../util/logger')('model-chars')
 
 export class Range {
   public start: number
@@ -61,8 +60,8 @@ export class Chars {
         str = ''
       }
     }
-    if (str.length >= min) res.push(str)
-    return unique(res)
+    if (str.length >= min && res.indexOf(str) == -1) res.push(str)
+    return res
   }
 
   public isKeywordChar(ch: string):boolean {

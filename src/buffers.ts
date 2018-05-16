@@ -1,7 +1,6 @@
 import { Neovim } from 'neovim'
 import Buffer from './model/buffer'
 import Doc from './model/document'
-import unique = require('array-unique')
 import {getConfig} from './config'
 import {
   isGitIgnored,
@@ -53,12 +52,12 @@ export class Buffers {
   public async loadBufferContent(nvim:Neovim, bufnr:number, timeout = 1000):Promise<string> {
     let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
     let content = ''
-    if (count > 2000) {
+    if (count > 3000) {
       // file too big, read file from disk
       let filepath = await nvim.call('coc#util#get_fullpath', [bufnr])
-      if (!filepath) return
+      if (!filepath) return ''
       let stat = await statAsync(filepath)
-      if (!stat) return
+      if (!stat) return ''
       let encoding = await nvim.call('getbufvar', [bufnr, '&fileencoding'])
       content = await readFile(filepath, encoding, timeout)
     } else {
@@ -79,9 +78,13 @@ export class Buffers {
     let words: string[] = []
     for (let buf of this.buffers) {
       if (bufnr == buf.bufnr) continue
-      words = words.concat(buf.words)
+      for (let word of buf.words) {
+        if (words.indexOf(word) == -1) {
+          words.push(word)
+        }
+      }
     }
-    return unique(words)
+    return words
   }
 
   public getBuffer(bufnr: number): Buffer | null {

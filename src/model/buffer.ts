@@ -18,7 +18,6 @@ export default class Buffer {
   private generate(): void {
     let {content} = this
     if (content.length == 0) return
-    // TODO for performance, this have to be implemented in C code
     this.words = this.chars.matchKeywords(content)
   }
 

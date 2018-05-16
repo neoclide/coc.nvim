@@ -1,5 +1,4 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-types'
-import unique = require('array-unique')
 import {Chars} from './chars'
 // const logger = require('../util/logger')('model-document')
 
@@ -39,14 +38,20 @@ export default class Doc {
     let {content, chars} = this
     if (content.length == 0) return []
     let words = chars.matchKeywords(content)
-    for (let word of words) {
-      for (let ch of ['-', '_']) {
-        if (word.indexOf(ch) !== -1) {
-          let parts = word.split(ch)
-          words = words.concat(parts)
+    if (words.length < 10000) {
+      for (let word of words) {
+        for (let ch of ['-', '_']) {
+          if (word.indexOf(ch) !== -1) {
+            let parts = word.split(ch)
+            for (let part of parts) {
+              if (words.indexOf(part) === -1) {
+                words.push(part)
+              }
+            }
+          }
         }
       }
     }
-    return unique(words)
+    return words
   }
 }

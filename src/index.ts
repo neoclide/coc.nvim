@@ -29,7 +29,7 @@ const logger = require('./util/logger')('index')
 export default class CompletePlugin {
   public nvim: Neovim
   public increment: Increment
-  private debouncedOnChange: (bufnr: string)=>void
+  private debouncedOnChange: (bufnr: number)=>void
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
@@ -89,14 +89,14 @@ export default class CompletePlugin {
 
   @Function('CocBufUnload', {sync: false})
   public async cocBufUnload(args: any[]):Promise<void> {
-    let bufnr = args[0].toString()
+    let bufnr = Number(args[0])
     buffers.removeBuffer(bufnr)
     logger.debug(`buffer ${bufnr} remove`)
   }
 
   @Function('CocBufChange', {sync: false})
   public async cocBufChange(args: any[]):Promise<void> {
-    let bufnr = args[0].toString()
+    let bufnr = Number(args[0])
     this.debouncedOnChange(bufnr)
   }
 

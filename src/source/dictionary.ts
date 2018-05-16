@@ -3,7 +3,6 @@ import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import {statAsync} from '../util/fs'
 import * as fs from 'fs'
-import unique = require('array-unique')
 import pify = require('pify')
 const logger = require('../util/logger')('source-dictionary')
 
@@ -44,7 +43,15 @@ export default class Dictionary extends Source {
   public async getWords(files: string[]):Promise<string[]> {
     if (files.length == 0) return []
     let arr = await Promise.all(files.map(file => this.getDictWords(file)))
-    return unique([].concat.apply([], arr))
+    let res = []
+    for (let words of arr) {
+      for (let word of words) {
+        if (res.indexOf(word) === -1) {
+          res.push(word)
+        }
+      }
+    }
+    return res
   }
 
   private async getDictWords(file: string):Promise<string[]> {
