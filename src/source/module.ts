@@ -4,7 +4,7 @@ import Source from '../model/source'
 import * as fs from 'fs'
 import path = require('path')
 import pify = require('pify')
-// const logger = require('../util/logger')('source-module')
+const logger = require('../util/logger')('source-module')
 const baseDir = path.join(__dirname, 'module_resolve')
 
 export default class Module extends Source {

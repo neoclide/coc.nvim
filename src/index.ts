@@ -138,7 +138,8 @@ export default class CompletePlugin {
     let visible = await nvim.call('pumvisible')
     if (!autoComplete && !visible) {
       // TODO find out the way to trigger completeDone
-      // if no way to trigger completeDone, handle it here
+      // if no way to trigger completeDone,
+      // handle it here
     }
   }
 
@@ -160,9 +161,7 @@ export default class CompletePlugin {
     if (!item || Object.keys(item).length == 0) item = null
     let isCoc = isCocItem(item)
     logger.debug(`complete item:${JSON.stringify(item)}`)
-    if (increment.activted) {
-      await increment.onCompleteDone(item, isCoc)
-    }
+    await increment.onCompleteDone(item, isCoc)
     if (item && isCoc) {
       completes.addRecent(item.word)
       if (item.user_data) {

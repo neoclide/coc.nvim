@@ -86,6 +86,7 @@ export default class Increment {
   }
 
   public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<void> {
+    if (!this.activted) return
     let {nvim} = this
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
     if (isCoc) {
