@@ -105,7 +105,7 @@ export default class Complete {
         data = Object.assign(data, { cid: id, source })
         item.user_data = JSON.stringify(data)
         if (noinsert) item.noinsert = true
-        if (fuzzy) item.score = score(verb, input) + this.getBonusScore(item)
+        if (fuzzy) item.score = score(verb, input) + this.getBonusScore(input, item)
         arr.push(item)
         count = count + 1
       }
@@ -155,9 +155,10 @@ export default class Complete {
     return r ? r.source : ''
   }
 
-  private getBonusScore(item: VimCompleteItem):number {
+  private getBonusScore(input:string, item: VimCompleteItem):number {
     let {word, abbr, kind, info} = item
-    let score = this.recentScores[word || abbr] || 0
+    let key = `${input.slice(0,3)}|${word}`
+    let score = this.recentScores[key] || 0
     score += kind ? 0.1 : 0
     score += abbr ? 0.001 : 0
     score += info ? 0.001 : 0

@@ -15,6 +15,7 @@ const VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
+  // first time option
   public option: CompleteOption | null
   // unique characters in result
   public chars:string[]
@@ -28,11 +29,13 @@ export class Completes {
 
   public addRecent(word: string):void {
     if (!word.length) return
-    let val = this.recentScores[word]
+    let {input} = this.option
+    let key = `${input.slice(0,3)}|${word}`
+    let val = this.recentScores[key]
     if (!val) {
-      this.recentScores[word] = 0.05
+      this.recentScores[key] = 0.1
     } else {
-      this.recentScores[word] = Math.max(val + 0.05, 0.2)
+      this.recentScores[key] = Math.max(val + 0.1, 0.3)
     }
   }
 
@@ -42,9 +45,11 @@ export class Completes {
     return complete
   }
 
+  // complete on start
   public createComplete(opts: CompleteOption): Complete {
     let complete = this.newComplete(opts)
     this.complete = complete
+    this.option = opts
     return complete
   }
 
@@ -78,6 +83,7 @@ export class Completes {
 
   public calculateChars(items:VimCompleteItem[]):void {
     let chars = []
+    if (!this.complete) return
     let {icase} = this.complete
     for (let item of items) {
       let s = item.abbr ? item.abbr : item.word
