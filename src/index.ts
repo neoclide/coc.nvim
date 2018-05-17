@@ -127,7 +127,7 @@ export default class CompletePlugin {
       })
       await nvim.call('coc#_do_complete', [])
       logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      completes.calculateChars()
+      completes.calculateChars(items)
       this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }, this.handleError)
   }

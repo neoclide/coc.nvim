@@ -2,7 +2,10 @@ import { Neovim } from 'neovim'
 import {getConfig} from './config'
 import Source from './model/source'
 import Complete from './model/complete'
-import {CompleteOption, RecentScore} from './types'
+import {
+  CompleteOption,
+  VimCompleteItem,
+  RecentScore} from './types'
 import natives from './natives'
 import remotes from './remotes'
 const logger = require('./util/logger')('completes')
@@ -12,11 +15,13 @@ const VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
+  public option: CompleteOption | null
   // unique characters in result
   public chars:string[]
 
   constructor() {
     this.complete = null
+    this.option = null
     this.recentScores = {}
     this.chars = []
   }
@@ -71,21 +76,24 @@ export class Completes {
     this.chars = []
   }
 
-  public calculateChars():void {
-    let {results} = this.complete
-    if (!results.length) return
+  public calculateChars(items:VimCompleteItem[]):void {
     let chars = []
-    for (let res of results) {
-      let {items} = res
-      if (!items) break
-      for (let item of items) {
-        let s = item.abbr ? item.abbr : item.word
-        for (let ch of s) {
-          if (VALID_CHARS.indexOf(ch) !== -1 && chars.indexOf(ch) === -1) {
+    let {icase} = this.complete
+    for (let item of items) {
+      let s = item.abbr ? item.abbr : item.word
+      for (let ch of s) {
+        if (VALID_CHARS.indexOf(ch) !== -1) {
+          if (icase && /[A-Za-z]/.test(ch)) {
+            let arr = [ch.toUpperCase(), ch.toLowerCase()]
+            for (let c of arr) {
+              if (chars.indexOf(c) === -1) {
+                chars.push(c)
+              }
+            }
+          } else if (chars.indexOf(ch) === -1) {
             chars.push(ch)
           }
         }
-
       }
     }
     this.chars = chars

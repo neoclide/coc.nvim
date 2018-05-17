@@ -107,6 +107,7 @@ export default class Increment {
       timestamp: Date.now()
     }
     if (completes.chars.indexOf(ch) == -1) {
+      logger.debug(`character ${ch} not found`)
       await this.stop()
       return
     }

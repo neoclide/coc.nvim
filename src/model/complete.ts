@@ -7,6 +7,7 @@ import {
 import Source from './source'
 import {getConfig} from '../config'
 import {wordSortItems} from '../util/sorter'
+import {uniqueItems} from '../util/unique'
 import {filterFuzzy, filterWord} from '../util/filter'
 import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
@@ -114,7 +115,8 @@ export default class Complete {
     } else {
       arr = wordSortItems(arr, input)
     }
-    return arr.slice(0, MAX_ITEM_COUNT)
+    arr = arr.slice(0, MAX_ITEM_COUNT)
+    return uniqueItems(arr)
   }
 
   public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
@@ -156,7 +158,7 @@ export default class Complete {
   private getBonusScore(item: VimCompleteItem):number {
     let {word, abbr, kind, info} = item
     let score = this.recentScores[word || abbr] || 0
-    score += kind ? 0.001 : 0
+    score += kind ? 0.1 : 0
     score += abbr ? 0.001 : 0
     score += info ? 0.001 : 0
     return score
