@@ -47,6 +47,7 @@ export class Chars {
   }
 
   public matchKeywords(content: string, min = 3):string[] {
+    content = content + '\n'
     let res:string[] = []
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
@@ -54,13 +55,12 @@ export class Chars {
       if (this.isKeywordChar(ch)) {
         str = str + ch
       } else {
-        if (str.length >= min) {
+        if (str.length >= min && res.indexOf(str) == -1) {
           res.push(str)
         }
         str = ''
       }
     }
-    if (str.length >= min && res.indexOf(str) == -1) res.push(str)
     return res
   }
 

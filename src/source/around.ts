@@ -22,18 +22,19 @@ export default class Around extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr} = opt
+    let {bufnr, filetype} = opt
     let {nvim} = this
     let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
-    let keywordOption = await nvim.call('getbufvar', [bufnr, '&iskeyword'])
+    let keywordOption:string = await nvim.call('getbufvar', [bufnr, '&iskeyword'])
     let words:string[] = []
     if (count > 10000) {
       let buf = buffers.getBuffer(bufnr)
       if (buf) words = buf.words
     }  else {
+      let uri = `buffer://${bufnr}`
       let content = await buffers.loadBufferContent(nvim, bufnr, 300)
-      let buffer = new Buffer(bufnr, content, keywordOption)
-      words = buffer.words
+      let document = buffers.createDocument(uri, filetype, content, keywordOption)
+      words = document.getWords()
     }
     words = this.filterWords(words, opt)
     return {

@@ -49,7 +49,7 @@ export default class Input {
 
   public async clear():Promise<void> {
     if (this.match) {
-      await this.nvim.call('matchdelete', [this.match])
+      await this.nvim.command(`silent! call matchdelete(${this.match})`)
       this.match = null
     }
   }

@@ -24,3 +24,17 @@ export function uniqueItems(results: VimCompleteItem[]):VimCompleteItem[] {
     return better == null ? true : false
   })
 }
+
+export function hasBetter(word:string,
+  abbr:string|null,
+  info:string|null,
+  kind:string|null,
+  list:VimCompleteItem[]):boolean {
+    return list.findIndex(item => {
+      if (word !== item.word) return false
+      if (!isEqual(item.kind, kind)) return fieldCompare(item.kind, kind)
+      if (!isEqual(item.info, info)) return fieldCompare(item.info, info)
+      if (!isEqual(item.abbr, abbr)) return fieldCompare(item.abbr, abbr)
+      return true
+    }) !== -1
+}

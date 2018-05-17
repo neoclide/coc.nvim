@@ -111,6 +111,10 @@ function! s:Enable()
           \ if get(g:,'coc_enabled', 0)
           \|  call CocTextChangedI() 
           \|endif
+    autocmd InsertLeave *
+          \ if get(g:,'coc_enabled', 0)
+          \|  call CocInsertLeave() 
+          \|endif
     autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
     autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
     autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>')) | endif

@@ -147,6 +147,11 @@ export default class CompletePlugin {
     await this.increment.onCharInsert(args[0] as string)
   }
 
+  @Function('CocInsertLeave', {sync: true})
+  public async cocInsertLeave():Promise<void> {
+    await this.increment.stop()
+  }
+
   @Function('CocCompleteDone', {sync: true})
   public async cocCompleteDone(args: any[]):Promise<void> {
     logger.debug('complete done')

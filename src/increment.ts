@@ -23,7 +23,7 @@ export interface ChangedI {
   timestamp: number
 }
 
-const MAX_DURATION = 50
+const MAX_DURATION = 200
 
 export default class Increment {
   private nvim:Neovim
@@ -107,7 +107,6 @@ export default class Increment {
       timestamp: Date.now()
     }
     if (completes.chars.indexOf(ch) == -1) {
-      logger.debug('character not found')
       await this.stop()
       return
     }
@@ -124,7 +123,7 @@ export default class Increment {
     let opt = getConfig('completeOpt')
     let useNoSelect = getConfig('noSelect')
     let parts = opt.split(',')
-    parts.filter(s => s != 'menu')
+    parts.filter(s => s != 'menu' && s != 'longest')
     if (parts.indexOf('menuone') === -1) {
       parts.push('menuone')
     }
@@ -138,26 +137,21 @@ export default class Increment {
   }
 
   public async onTextChangedI():Promise<boolean> {
-    let {option, activted, latestDone, lastInsert, nvim} = this
+    let {option, activted, lastInsert, nvim} = this
     if (!activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
-    if (!latestDone || linenr != option.linenr) {
+    if (linenr != option.linenr) {
       await this.stop()
       return false
     }
     logger.debug('text changedI')
-
-    let ts = Date.now()
     let lastChanged = Object.assign({}, this.changedI)
     this.changedI = { linenr, colnr, timestamp: Date.now() }
     // check continue
-    if (lastInsert
-      && ts - lastInsert.timestamp < MAX_DURATION
-      && colnr - lastChanged.colnr === 1) {
+    if (lastInsert && colnr - lastChanged.colnr === 1) {
       await this.input.addCharactor(lastInsert.character)
       return true
     }
-    // TODO might be need to improve
     if (lastChanged.colnr - colnr === 1) {
       let invalid = await this.input.removeCharactor()
       if (!invalid) return true
