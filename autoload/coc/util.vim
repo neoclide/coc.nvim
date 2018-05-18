@@ -22,7 +22,9 @@ function! coc#util#print_errors(list) abort
   call filter(lines, 'v:val !=# ""')
   call setline(1, '[coc.nvim] Error occored:')
   call setline(2, lines[0])
-  call append(2, lines[1:])
+  if len(lines) > 1
+    call append(2, lines[1:])
+  endif
   setl buftype=nofile bufhidden=wipe nobuflisted readonly
 endfunction
 
