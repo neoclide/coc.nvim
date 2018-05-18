@@ -1,7 +1,10 @@
 import pify = require('pify')
 import fs = require('fs')
 import path = require('path')
+import readline = require('readline')
 const exec = require('child_process').exec
+
+export type OnReadLine = (line:string) => void
 
 export async function statAsync(filepath:string):Promise<fs.Stats|null> {
   let stat = null
@@ -47,5 +50,27 @@ export function readFile(fullpath:string, encoding:string, timeout = 1000):Promi
       if (err) reject(err)
       resolve(content)
     })
+  })
+}
+
+export function readFileByLine(fullpath:string, onLine: OnReadLine, limit = 50000):Promise<void> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(fullpath),
+    crlfDelay: Infinity
+  } as any)
+  let n = 0
+  rl.on('line', line => {
+    n = n + 1
+    if (n === limit) {
+      rl.close()
+    } else {
+      onLine(line)
+    }
+  })
+  return new Promise((resolve, reject) => {
+    rl.on('close', () => {
+      resolve()
+    })
+    rl.on('error', reject)
   })
 }

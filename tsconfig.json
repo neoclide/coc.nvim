@@ -12,7 +12,13 @@
     "declaration": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "strictPropertyInitialization": true
+    "strictPropertyInitialization": true,
+    "plugins": [
+      {
+        "name": "tslint-language-service",
+        "configFile": "./tslint.json"
+      }
+    ]
   },
   "include": [
     "src/**/*.ts"

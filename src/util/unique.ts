@@ -24,3 +24,15 @@ export function uniqueItems(results: VimCompleteItem[]):VimCompleteItem[] {
     return better == null ? true : false
   })
 }
+
+export function uniqeWordsList(list:string[][]):string[] {
+  let res = []
+  for (let item of list) {
+    for (let word of item) {
+      if (res.indexOf(word) === -1) {
+        res.push(word)
+      }
+    }
+  }
+  return res
+}

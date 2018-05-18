@@ -1,24 +1,25 @@
-import {uniqueItems} from '../src/util/unique'
+import {uniqueItems, uniqeWordsList} from '../util/unique'
 import {
   getUserData,
   equalChar,
   contextDebounce,
   wait,
   isCocItem
-} from '../src/util/index'
+} from '../util/index'
 import {
   filterFuzzy,
   filterWord
-} from '../src/util/filter'
+} from '../util/filter'
 import {
+  readFileByLine,
   statAsync,
   isGitIgnored,
   findSourceDir
-} from '../src/util/fs'
+} from '../util/fs'
 import {
   wordSortItems
-} from '../src/util/sorter'
-import watchObj from '../src/util/watch-obj'
+} from '../util/sorter'
+import watchObj from '../util/watch-obj'
 import path = require('path')
 
 describe('equalChar test', () => {
@@ -72,18 +73,26 @@ describe('unique test', () => {
     expect(res[0].abbr).toBe('bar')
   })
 
+  test('should unique words list', () => {
+    let list = [['foo', 'bar'], ['foo']]
+    let res = uniqeWordsList(list)
+    expect(res.length).toBe(2)
+    expect(res[0]).toBe('foo')
+    expect(res[1]).toBe('bar')
+  })
+
   test('should find out better abbr #1', async () => {
     let items = [
       {
-        info: "",
+        info: '',
         additionalTextEdits: null,
-        word: "getConfig",
-        kind: "",
-        abbr: "getConfig",
+        word: 'getConfig',
+        kind: '',
+        abbr: 'getConfig',
         score: 0.13
       },
       {
-        word: "getConfig",
+        word: 'getConfig',
         score: 0.13
       }
     ]
@@ -170,7 +179,7 @@ describe('contextDebounce test',async () => {
 describe('isCocItem test', () => {
   test('should be coc item', () => {
     let item = {
-      word: 'f', 
+      word: 'f',
       user_data: '{"cid": 123}'
     }
     expect(isCocItem(item)).toBeTruthy
@@ -213,34 +222,34 @@ describe('filter test', () => {
 })
 
 describe('fs test', () => {
-  test('fs statAsync', async() => {
+  test('fs statAsync', async () => {
     let res = await statAsync(__filename)
     expect(res).toBeDefined
     expect(res.isFile()).toBe(true)
   })
 
-  test('fs statAsync #1', async() => {
+  test('fs statAsync #1', async () => {
     let res = await statAsync(path.join(__dirname, 'file_not_exist'))
     expect(res).toBeNull
   })
 
-  test('should be not ignored', async() => {
+  test('should be not ignored', async () => {
     let res = await isGitIgnored(__filename)
     expect(res).toBeFalsy
   })
 
-  test('should be ignored', async() => {
+  test('should be ignored', async () => {
     let res = await isGitIgnored(path.resolve(__dirname, '../lib/index.js.map'))
     expect(res).toBeTruthy
   })
 
-  test('should find source directory', async() => {
-    let dir = await findSourceDir(path.resolve(__dirname, '../src/util/index.js'))
-    expect(dir).toBe(path.resolve(__dirname, '../src'))
+  test('should find source directory', async () => {
+    let dir = findSourceDir(path.resolve(__dirname, '../util/index.js'))
+    expect(dir).toBe(path.resolve(__dirname, '..'))
   })
 
-  test('should not find source directory', async() => {
-    let dir = await findSourceDir(__filename)
+  test('should not find source directory', async () => {
+    let dir = findSourceDir(__filename)
     expect(dir).toBeNull
   })
 })
@@ -259,7 +268,7 @@ describe('watchObj test', () => {
     const cached: {[index: string]: string} = {}
     let {watched, addWatcher} = watchObj(cached)
     let result:string|null = null
-    addWatcher('foo', (res) => {
+    addWatcher('foo',res => {
       result = res
     })
     watched.foo = 'bar'
@@ -270,11 +279,21 @@ describe('watchObj test', () => {
     const cached: {[index: string]: string} = {}
     let {watched, addWatcher} = watchObj(cached)
     let result:string|null = null
-    addWatcher('foo', (res) => {
+    addWatcher('foo',res => {
       result = res
     })
     watched.bar = 'bar'
     delete watched.bar
     expect(result).toBeNull
+  })
+})
+
+describe('readFileByLine', () => {
+  test('should read file', async () => {
+    let lines = []
+    await readFileByLine(path.join(__dirname, 'tags'), line => {
+      lines.push(line)
+    })
+    expect(lines.length > 0).toBeTruthy
   })
 })

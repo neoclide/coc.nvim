@@ -63,6 +63,7 @@ Name         | Description                                             | Use cac
 `around`     | Words of current buffer.                                | ✗           | all
 `buffer`     | Words of none current buffer.                           | ✓           | all
 `dictionary` | Words from files of local `dictionary` option.          | ✓           | all
+`tag`        | Words from `taglist` of current buffer.                 | ✓           | all
 `file`       | Filename completion, auto detected.                     | ✗           | all
 `omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | User defined
 `word`       | Words from google 10000 english repo.                   | ✓           | User defined
