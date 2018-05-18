@@ -38,6 +38,10 @@ export default class VimSource extends Source {
     await this.callOptinalFunc('refresh', [])
   }
 
+  public async onEvent(event:string):Promise<void> {
+    await this.callOptinalFunc('on_event', [event])
+  }
+
   public async onCompleteDone(item: VimCompleteItem):Promise<void> {
     if (this.optionalFns.indexOf('on_complete') === -1) return
     await this.callOptinalFunc('on_complete', [item])

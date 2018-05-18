@@ -97,6 +97,8 @@ export default class CompletePlugin {
   @Function('CocBufChange', {sync: false})
   public async cocBufChange(args: any[]):Promise<void> {
     let bufnr = Number(args[0])
+    let event = args[1]
+    logger.debug(event)
     this.debouncedOnChange(bufnr)
   }
 

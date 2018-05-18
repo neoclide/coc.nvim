@@ -1,3 +1,6 @@
 rplugin/node
 *.map
 coverage
+__pycache__
+.pyc
+.log

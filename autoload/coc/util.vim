@@ -12,9 +12,14 @@ function! coc#util#get_buflist() abort
   return buflist
 endfunction
 
+function! coc#util#err_message(msg) abort
+  echohl Error | echom '[coc.nvim] '.a:msg | echohl None
+endfunction
+
 function! coc#util#print_errors(list) abort
   execute 'keepalt below 4new [Sketch File]'
   let lines = copy(a:list)
+  call filter(lines, 'v:val !=# ""')
   call setline(1, '[coc.nvim] Error occored:')
   call setline(2, lines[0])
   call append(2, lines[1:])

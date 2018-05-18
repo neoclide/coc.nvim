@@ -137,7 +137,7 @@ export class Remotes {
   }
 
   public async getOptionalFns(nvim: Neovim, name: string):Promise<string[]> {
-    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete']
+    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_event']
     let res = []
     for (let fname of fns) {
       let fn = `coc#source#${name}#${fname}`

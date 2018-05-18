@@ -3,24 +3,23 @@ if exists('did_coc_loaded') || v:version < 700
 endif
 let did_coc_loaded = 1
 
-function! s:OnBuffer(event, bufnr)
+function! s:OnBuffer(type, bufnr, event) abort
   if s:IsInvalid(a:bufnr) | return | endif
   try
-    execute 'call CocBuf'.a:event.'('.a:bufnr.')'
-  catch /.*/
+    execute 'call CocBuf'.a:type.'('.a:bufnr.',"'.a:event.'")'
+  catch /^Vim\%((\a\+)\)\=:E117/
     call s:OnError()
-    call s:Disable()
   endtry
 endfunction
 
-function! s:OnError()
+function! s:OnError() abort
   echohl Error
-  echon '[coc.nvim] Vim error: ' .v:errmsg
-  echon '[coc.nvim] Plugin disabled'
+  echom '[coc.nvim] Vim error, function not found'
   echohl None
+  call s:Disable()
 endfunction
 
-function! s:IsInvalid(bufnr)
+function! s:IsInvalid(bufnr) abort
   let t = getbufvar(a:bufnr, '&buftype')
   if t ==# 'terminal'
         \|| t ==# 'nofile'
@@ -31,7 +30,7 @@ function! s:IsInvalid(bufnr)
   return 0
 endfun
 
-function! s:Disable()
+function! s:Disable() abort
   augroup coc_nvim
     autocmd!
   augroup end
@@ -41,7 +40,7 @@ function! s:Disable()
   let g:coc_enabled = 0
 endfunction
 
-function! s:ToggleSource(name)
+function! s:ToggleSource(name) abort
   if !s:CheckState() | return | endif
   let state = CocSourceToggle(a:name)
   if !empty(state)
@@ -51,7 +50,7 @@ function! s:ToggleSource(name)
   endif
 endfunction
 
-function! s:RefreshSource(...)
+function! s:RefreshSource(...) abort
   if !s:CheckState() | return | endif
   let name = get(a:, 1, '')
   let succeed = CocSourceRefresh(name)
@@ -62,7 +61,7 @@ function! s:RefreshSource(...)
   endif
 endfunction
 
-function! s:CheckState()
+function! s:CheckState() abort
   let enabled = get(g:, 'coc_enabled', 0)
   if !enabled
     echohl Error | echon '[coc.nvim] Service disabled' | echohl None
@@ -70,7 +69,7 @@ function! s:CheckState()
   return enabled
 endfunction
 
-function! s:CocSourceNames(A, L, P)
+function! s:CocSourceNames(A, L, P) abort
   if !s:CheckState() | return | endif
   let items = CocSourceStat()
   return filter(map(items, 'v:val["name"]'), 'v:val =~ "^'.a:A.'"')
@@ -115,10 +114,11 @@ function! s:Enable()
           \ if get(g:,'coc_enabled', 0)
           \|  call CocInsertLeave() 
           \|endif
-    autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
-    autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'))
-    autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>')) | endif
-    autocmd BufRead,BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'))
+    autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'), 'BufUnload')
+    autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'), 'BufLeave')
+    autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>'), 'TextChanged') | endif
+    autocmd BufRead * call s:OnBuffer('Change', +expand('<abuf>'), 'BufRead')
+    autocmd BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'), 'BufWritePost')
   augroup end
 
   command! -nargs=1 -complete=customlist,s:CocSourceNames CocToggle :call s:ToggleSource(<f-args>)

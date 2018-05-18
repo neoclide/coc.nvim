@@ -8,6 +8,11 @@ function! coc#source#ultisnips#init() abort
         \}
 endfunction
 
+function! coc#source#ultisnips#should_complete(opt) abort
+  if !get(g:, 'did_plugin_ultisnips', 0) | return 0 | endif
+  return 1
+endfunction
+
 function! coc#source#ultisnips#complete(opt, cb) abort
   let snips = UltiSnips#SnippetsInCurrentScope()
   if type(snips) == 3

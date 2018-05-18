@@ -1,8 +1,8 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
-import {echoWarning} from '../util/index'
-// const logger = require('../util/logger')('source-omni')
+import {echoErr, echoWarning} from '../util/index'
+const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
   constructor(nvim: Neovim) {
@@ -27,12 +27,18 @@ export default class OmniSource extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
     let {line, colnr, col, func} = opt
     let {nvim} = this
-    if (['LanguageClient#complete'].indexOf('func') !== -1) {
+    if (['LanguageClient#complete', 'jedi#completes'].indexOf('func') !== -1) {
       await echoWarning(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
-    let startcol: number = await nvim.call(func, [1, ''])
-    startcol = Number(startcol)
+    let startcol:number = col
+    try {
+      startcol = await nvim.call(func, [1, ''])
+      startcol = Number(startcol)
+    } catch (e) {
+      await echoErr(nvim, `vim error from ${func} :${e.message}`)
+      return null
+    }
     // invalid startcol
     if (isNaN(startcol) || startcol < 0 || startcol > colnr) return null
     let text = line.slice(startcol, colnr)

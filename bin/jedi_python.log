@@ -1,0 +1,38 @@
+2018-05-18 21:49:57,086 [ERROR][jedi_server] `line` parameter is not in a valid range.
+Traceback (most recent call last):
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 90, in run
+    process_request(args)
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 28, in process_request
+    column=args['col'], path=args['filename'])
+  File "/usr/local/lib/python2.7/site-packages/jedi/api/__init__.py", line 97, in __init__
+    raise ValueError('`line` parameter is not in a valid range.')
+ValueError: `line` parameter is not in a valid range.
+2018-05-18 21:49:59,626 [ERROR][jedi_server] `line` parameter is not in a valid range.
+Traceback (most recent call last):
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 90, in run
+    process_request(args)
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 28, in process_request
+    column=args['col'], path=args['filename'])
+  File "/usr/local/lib/python2.7/site-packages/jedi/api/__init__.py", line 97, in __init__
+    raise ValueError('`line` parameter is not in a valid range.')
+ValueError: `line` parameter is not in a valid range.
+2018-05-18 21:50:20,481 [ERROR][jedi_server] `line` parameter is not in a valid range.
+Traceback (most recent call last):
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 90, in run
+    process_request(args)
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 28, in process_request
+    column=args['col'], path=args['filename'])
+  File "/usr/local/lib/python2.7/site-packages/jedi/api/__init__.py", line 97, in __init__
+    raise ValueError('`line` parameter is not in a valid range.')
+ValueError: `line` parameter is not in a valid range.
+2018-05-18 21:51:28,515 [ERROR][jedi_server] No JSON object could be decoded
+Traceback (most recent call last):
+  File "/Users/chemzqm/work/complete.nvim/bin/jedi_server.py", line 84, in run
+    try:
+  File "/usr/local/Cellar/python@2/2.7.14_3/Frameworks/Python.framework/Versions/2.7/lib/python2.7/json/__init__.py", line 339, in loads
+    return _default_decoder.decode(s)
+  File "/usr/local/Cellar/python@2/2.7.14_3/Frameworks/Python.framework/Versions/2.7/lib/python2.7/json/decoder.py", line 364, in decode
+    obj, end = self.raw_decode(s, idx=_w(s, 0).end())
+  File "/usr/local/Cellar/python@2/2.7.14_3/Frameworks/Python.framework/Versions/2.7/lib/python2.7/json/decoder.py", line 382, in raw_decode
+    raise ValueError("No JSON object could be decoded")
+ValueError: No JSON object could be decoded
