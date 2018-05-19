@@ -5,6 +5,8 @@ let did_coc_loaded = 1
 
 function! s:OnBuffer(type, bufnr, event) abort
   if s:IsInvalid(a:bufnr) | return | endif
+  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 20)
+  if res[0] != -1 | return | endif
   try
     execute 'call CocBuf'.a:type.'('.a:bufnr.',"'.a:event.'")'
   catch /^Vim\%((\a\+)\)\=:E117/
@@ -95,25 +97,29 @@ function! s:Enable()
   augroup coc_nvim
     autocmd!
     autocmd InsertCharPre *
-          \ if !&paste && get(g:,'coc_enabled', 0)
-          \|  call CocInsertCharPre(v:char) 
-          \|endif
+          \ if !&paste && get(g:,'coc_enabled', 0) |
+          \   call CocInsertCharPre(v:char) |
+          \ endif
     autocmd CompleteDone *
-          \ if get(g:,'coc_enabled', 0)
-          \|  call CocCompleteDone(v:completed_item) 
-          \|endif
+          \ if get(g:,'coc_enabled', 0) |
+          \   call CocCompleteDone(v:completed_item) |
+          \ endif
     autocmd TextChangedP *
-          \ if get(g:,'coc_enabled', 0)
-          \|  call CocTextChangedP() 
-          \|endif
+          \ if get(g:,'coc_enabled', 0)|
+          \   call CocTextChangedP()|
+          \ endif
     autocmd TextChangedI *
-          \ if get(g:,'coc_enabled', 0)
-          \|  call CocTextChangedI() 
-          \|endif
+          \ if get(g:,'coc_enabled', 0)|
+          \   call CocTextChangedI()|
+          \ endif
     autocmd InsertLeave *
-          \ if get(g:,'coc_enabled', 0)
-          \|  call CocInsertLeave() 
-          \|endif
+          \ if get(g:,'coc_enabled', 0)|
+          \   call CocInsertLeave()|
+          \ endif
+    autocmd FileType *
+          \ if get(g:,'coc_enabled', 0)|
+          \   call CocFileTypeChange(expand('<amatch>'))|
+          \ endif
     autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'), 'BufUnload')
     autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'), 'BufLeave')
     autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>'), 'TextChanged') | endif

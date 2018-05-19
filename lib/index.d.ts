@@ -24,6 +24,8 @@ export default class CompletePlugin {
     cocSourceStat(): Promise<SourceStat[]>;
     cocSourceToggle(args: any): Promise<string>;
     cocSourceRefresh(args: any): Promise<boolean>;
+    cocFileTypeChange(args: any): Promise<void>;
+    private onFileType(filetype);
     private onBufferChange(bufnr);
     private initConfig();
 }

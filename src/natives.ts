@@ -1,9 +1,10 @@
 import { Neovim } from 'neovim'
 import Source from './model/source'
-import {echoErr} from './util/index'
+import { echoErr } from './util/index'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
+import {serviceMap} from './source/service'
 const logger = require('./util/logger')('natives') // tslint:disable-line
 
 export interface Native {
@@ -43,6 +44,17 @@ export class Natives {
         } catch (e) {
           logger.error(`Native source ${name} error: ${e.message}`)
         }
+      }
+    }
+    for (let key of Object.keys(serviceMap)) {
+      let arr = serviceMap[key]
+      for (let name of arr) {
+        this.list.push({
+          name,
+          Clz: require(`./source/service/${name}`).default,
+          filepath: path.join(root, `./service/${name}.js`),
+          instance: null
+        })
       }
     }
   }

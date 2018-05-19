@@ -2,16 +2,17 @@
 import EventEmitter = require('events');
 import { VimCompleteItem } from '../types';
 export declare type Callback = (msg: string) => void;
-export default class StdioService extends EventEmitter {
-    command: string;
+export default class IpcService extends EventEmitter {
+    modulePath: string;
     args: string[];
+    private cb;
     private child;
     private running;
-    constructor(command: string, args?: string[]);
+    constructor(modulePath: string, args?: string[]);
     readonly isRunnning: boolean;
     start(): void;
     request(data: {
         [index: string]: any;
-    }): Promise<VimCompleteItem[] | null>;
+    }): Promise<VimCompleteItem[]>;
     stop(): void;
 }

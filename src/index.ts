@@ -25,6 +25,10 @@ import natives from './natives'
 import remoteStore from './remote-store'
 import Increment from './increment'
 import {MAX_CODE_LINES} from './constant'
+import {
+  serviceMap,
+  supportedTypes
+} from './source/service'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
@@ -82,6 +86,10 @@ export default class CompletePlugin {
       let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
         await buffers.addBuffer(nvim, buf)
+      }
+      let filetypes:string[] = await nvim.call('coc#util#get_filetypes', [])
+      for (let filetype of filetypes) {
+        await this.onFileType(filetype)
       }
     } catch (err) {
       logger.error(err.stack)
@@ -311,6 +319,23 @@ export default class CompletePlugin {
       }
     }
     return true
+  }
+
+  @Function('CocFileTypeChange', {sync: true})
+  public async cocFileTypeChange(args: any):Promise<void> {
+    let filetype = args[0]
+    await this.onFileType(filetype)
+  }
+
+  private async onFileType(filetype:string):Promise<void> {
+    if (!filetype || supportedTypes.indexOf(filetype) === -1) return
+    let names = serviceMap[filetype]
+    let disabled = getConfig('disabled')
+    for (let name of names) {
+      if (disabled.indexOf(name) === -1) {
+        await natives.getSource(this.nvim, name)
+      }
+    }
   }
 
   private async onBufferChange(bufnr: number):Promise<void> {

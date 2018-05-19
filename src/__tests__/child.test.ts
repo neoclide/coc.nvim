@@ -19,7 +19,7 @@ describe('child model test', () => {
     let result = ''
     let res = await ch.request({
       action: 'complete',
-      line: 2,
+      line: 3,
       col: 'datetime.da'.length,
       filename: 'example.py',
       content: '\nimport datetime\ndatetime.da',

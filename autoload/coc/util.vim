@@ -12,6 +12,19 @@ function! coc#util#get_buflist() abort
   return buflist
 endfunction
 
+function! coc#util#get_filetypes() abort
+  let res = []
+  for i in range(tabpagenr('$'))
+    for bnr in tabpagebuflist(i + 1)
+      let filetype = getbufvar(bnr, "&filetype")
+      if index(res, filetype) == -1
+        call add(res, filetype)
+      endif
+    endfor
+  endfor
+  return res
+endfunction
+
 function! coc#util#err_message(msg) abort
   echohl Error | echom '[coc.nvim] '.a:msg | echohl None
 endfunction

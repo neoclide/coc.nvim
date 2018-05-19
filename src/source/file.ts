@@ -25,6 +25,7 @@ export default class File extends Source {
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+    if (!this.checkFileType(opt.filetype)) return false
     let {line, colnr, bufnr} = opt
     let part = line.slice(0, colnr - 1)
     if (!part) return false

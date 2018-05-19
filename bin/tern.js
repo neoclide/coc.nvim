@@ -164,70 +164,58 @@ function startServer(dir, config) {
   return server
 }
 
-require('neovim/scripts/nvim').then(nvim => {
-  let server = startServer(PROJECT_DIR, genConfig())
-  nvim.channelId.then(chan_id => {
-    nvim.command('let g:coc_tern_chan_id=' + chan_id)
-  })
+let server = startServer(PROJECT_DIR, genConfig())
 
-  function complete(filename, line, col, content, callback) {
-    let query = {
-      type: 'completions',
-      types: true,
-      guess: false,
-      docs: true,
-      file: '#0',
-      filter: true,
-      expandWordForward: false,
-      inLiteral: false,
-      end: {line: line, ch: col},
-    }
-
-    let file = {
-      type: 'full',
-      name: filename,
-      text: content,
-    }
-    let doc = {query: query, files: [file]}
-    server.request(doc, function(err, res) {
-      if (err) return callback(err)
-      let info = []
-      for (let i = 0; i < res.completions.length; i++) {
-        let completion = res.completions[i]
-        let comp = {word: completion.name, menu: completion.type}
-
-        if (completion.guess) {
-          comp.menu += ' ' + completion.guess
-        }
-        if (completion.doc) {
-          comp.info = completion.doc
-        }
-        info.push(comp)
-      }
-      callback(null, info)
-    })
+function complete(filename, line, col, content, callback) {
+  let query = {
+    type: 'completions',
+    types: true,
+    guess: false,
+    docs: true,
+    file: '#0',
+    filter: true,
+    expandWordForward: false,
+    inLiteral: false,
+    end: {line: line, ch: col},
   }
 
+  let file = {
+    type: 'full',
+    name: filename,
+    text: content,
+  }
+  let doc = {query: query, files: [file]}
+  server.request(doc, function(err, res) {
+    if (err) return callback(err)
+    let info = []
+    for (let i = 0; i < res.completions.length; i++) {
+      let completion = res.completions[i]
+      let comp = {word: completion.name, menu: completion.type}
 
-  nvim.on('notification', (method, args) => {
-    if (method == 'complete') {
-      let {filename, line, col, content} = args[0]
-      console.log(args[0])
-      let cb = function (items) {
-        nvim.call('coc#source#tern#set_results', [items]).catch(function (err) {
-          console.error(err.stack)
-        })
+      if (completion.guess) {
+        comp.menu += ' ' + completion.guess
       }
-      let timeout = setTimeout(function () {
-        cb([])
-      }, 3000)
-      complete(filename, line, col, content, function (err, items) {
-        clearTimeout(timeout)
-        if (err) {
-          console.error(err.stack)
-        }
-        cb(items || [])
-      })
+      if (completion.doc) {
+        comp.info = completion.doc
+      }
+      info.push(comp)
     }
+    callback(null, info)
   })
+}
+
+process.on('message', message => {
+  let {action, filename, line, col, content} = JSON.parse(message)
+  if (action == 'complete') {
+    let timeout = setTimeout(function () {
+      process.send(JSON.stringify([]))
+    }, 3000)
+    complete(filename, line, col, content, function (err, items) {
+      clearTimeout(timeout)
+      if (err) {
+        console.error(err.stack)
+      }
+      process.send(JSON.stringify(items || []))
+    })
+  }
 })

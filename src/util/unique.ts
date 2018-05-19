@@ -36,3 +36,13 @@ export function uniqeWordsList(list:string[][]):string[] {
   }
   return res
 }
+
+export function unique(list:string[]):string[] {
+  let res = []
+  for (let s of list) {
+    if (res.indexOf(s) === -1) {
+      res.push(s)
+    }
+  }
+  return res
+}
