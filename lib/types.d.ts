@@ -36,6 +36,8 @@ export interface CompleteOption {
     changedtick: number;
     colnr: number;
     linenr: number;
+    linecount: number;
+    iskeyword: string;
     [index: string]: any;
 }
 export interface VimCompleteItem {

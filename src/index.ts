@@ -11,6 +11,7 @@ import {
   wait,
   echoErr,
   isCocItem,
+  echoWarning,
   contextDebounce} from './util/index'
 import {
   setConfig,
@@ -23,6 +24,7 @@ import remotes from './remotes'
 import natives from './natives'
 import remoteStore from './remote-store'
 import Increment from './increment'
+import {MAX_CODE_LINES} from './constant'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
@@ -110,7 +112,12 @@ export default class CompletePlugin {
     // may happen
     await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype} = opt
+    let {filetype, linecount} = opt
+    if (linecount > MAX_CODE_LINES) {
+      await echoWarning(nvim, `Buffer line count exceeded ${MAX_CODE_LINES}, completion stopped`)
+      return
+    }
+    await buffers.createDocument(nvim, opt)
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
     complete.doComplete(sources).then(async ([startcol, items])=> {

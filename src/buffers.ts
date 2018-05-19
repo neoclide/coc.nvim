@@ -1,7 +1,9 @@
 import { Neovim } from 'neovim'
+import {CompleteOption} from './types'
 import Buffer from './model/buffer'
 import Doc from './model/document'
 import {getConfig} from './config'
+import {MAX_CODE_LINES} from './constant'
 import {
   isGitIgnored,
   readFile,
@@ -19,13 +21,17 @@ export class Buffers {
     this.versions = {}
   }
 
-  public createDocument(uri: string, filetype: string, content: string, keywordOption: string):Doc {
+  public async createDocument(nvim:Neovim, opt:CompleteOption):Promise<void> {
+    let ts = Date.now()
+    let {filetype, bufnr, iskeyword} = opt
+    let uri = `buffer://${bufnr}`
+    let content = await this.loadBufferContent(nvim, bufnr)
     let version = this.versions[uri]
     version = version ? version + 1 : 1
     this.versions[uri] = version
-    let doc = new Doc(uri, filetype, version, content, keywordOption)
+    let doc = new Doc(uri, filetype, version, content, iskeyword)
     this.document = doc
-    return doc
+    logger.debug(`Content load cost: ${Date.now() - ts}`)
   }
 
   public async addBuffer(nvim: Neovim, bufnr: number): Promise<void>{
@@ -49,22 +55,10 @@ export class Buffers {
     }
   }
 
-  public async loadBufferContent(nvim:Neovim, bufnr:number, timeout = 1000):Promise<string> {
+  public async loadBufferContent(nvim:Neovim, bufnr:number, timeout = 1000):Promise<string|null> {
     let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
-    let content = ''
-    if (count > 3000) {
-      // file too big, read file from disk
-      let filepath = await nvim.call('coc#util#get_fullpath', [bufnr])
-      if (!filepath) return ''
-      let stat = await statAsync(filepath)
-      if (!stat) return ''
-      let encoding = await nvim.call('getbufvar', [bufnr, '&fileencoding'])
-      content = await readFile(filepath, encoding, timeout)
-    } else {
-      let lines: string[] = await nvim.call('nvim_buf_get_lines', [bufnr, 0, -1, 0])
-      content = (lines as string[]).join('\n')
-    }
-    return content
+    if (count > MAX_CODE_LINES) return null
+    return await nvim.call('coc#util#get_content', [bufnr])
   }
 
   public removeBuffer(bufnr: number): void {

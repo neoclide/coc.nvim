@@ -101,7 +101,7 @@ Name                        | Description                                       
 `g:coc_fuzzy_match`         | Use fuzzy match for words                                 | 1
 `g:coc_timeout`             | Timeout in milisecond for completion                      | 300
 `g:coc_ignore_git_ignore`   | Ignore collect words from buffers that are git ignored    | 0
-`g:coc_source_config`       | Configuration for coc sources, see `:h coc_source_config` | []
+`g:coc_source_config`       | Configuration for coc sources, see `:h coc_source_config` | {}
 `g:coc_use_noselect`        | Add `noselect` to `completeopt` when popup menu is shown  | 0
 `g:coc_increment_highlight` | Enable highlight for increment search characters          | 0
 `g:coc_chars_guifg`         | Foreground color of user input in increment search        | white

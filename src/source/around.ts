@@ -26,16 +26,7 @@ export default class Around extends Source {
     let {nvim} = this
     let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
     let keywordOption:string = await nvim.call('getbufvar', [bufnr, '&iskeyword'])
-    let words:string[] = []
-    if (count > 10000) {
-      let buf = buffers.getBuffer(bufnr)
-      if (buf) words = buf.words
-    }  else {
-      let uri = `buffer://${bufnr}`
-      let content = await buffers.loadBufferContent(nvim, bufnr, 300)
-      let document = buffers.createDocument(uri, filetype, content, keywordOption)
-      words = document.getWords()
-    }
+    let words = buffers.document.getWords()
     words = this.filterWords(words, opt)
     return {
       items: words.map(word => {

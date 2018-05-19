@@ -60,3 +60,8 @@ function! coc#util#get_listfile_command()
   endif
   return ''
 endfunction
+
+" we shuould transfer string to node, it's 10x times faster
+function! coc#util#get_content(bufnr)
+  return join(nvim_buf_get_lines(a:bufnr, 0, -1, v:false), "\n")
+endfunction

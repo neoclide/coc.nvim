@@ -19,7 +19,6 @@ function! coc#refresh() abort
 endfunction
 
 function! coc#_complete() abort
-  let g:coc#_context.content = join(getline(1, '$'), "\n")
   call complete(g:coc#_context.start + 1,
       \ g:coc#_context.candidates)
   return ''
@@ -62,6 +61,8 @@ function! coc#start()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
+        \ 'linecount': line('$'),
+        \ 'iskeyword': &iskeyword,
         \ }
   call CocStart(opt)
   return ''

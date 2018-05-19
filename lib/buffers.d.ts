@@ -1,4 +1,5 @@
 import { Neovim } from 'neovim';
+import { CompleteOption } from './types';
 import Buffer from './model/buffer';
 import Doc from './model/document';
 export declare class Buffers {
@@ -8,9 +9,9 @@ export declare class Buffers {
     };
     document: Doc;
     constructor();
-    createDocument(uri: string, filetype: string, content: string, keywordOption: string): Doc;
+    createDocument(nvim: Neovim, opt: CompleteOption): Promise<void>;
     addBuffer(nvim: Neovim, bufnr: number): Promise<void>;
-    loadBufferContent(nvim: Neovim, bufnr: number, timeout?: number): Promise<string>;
+    loadBufferContent(nvim: Neovim, bufnr: number, timeout?: number): Promise<string | null>;
     removeBuffer(bufnr: number): void;
     getWords(bufnr: number): string[];
     getBuffer(bufnr: number): Buffer | null;
