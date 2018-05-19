@@ -5,7 +5,7 @@ import Source from '../model/source'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
-// const logger = require('../util/logger')('source-word')
+const logger = require('../util/logger')('source-emoji')
 
 export interface Item {
   description: string
@@ -28,12 +28,12 @@ export default class Emoji extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    if (!this.checkFileType(opt.filetype)) return false
+    let {filetype, line} = opt
+    if (!this.checkFileType(filetype)) return false
     let {col, input} = opt
     if (input.length === 0) return false
     let stat = await statAsync(file)
     if (!stat || !stat.isFile()) return false
-    let line = await this.nvim.call('getline', ['.'])
     if (line[col] === ':') {
       opt.startcol = col
       return true

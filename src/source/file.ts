@@ -86,9 +86,7 @@ export default class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {pathstr, fullpath, cwd, ext, colnr} = opt
-
-    let line = await this.nvim.call('getline', ['.'])
+    let {pathstr, fullpath, cwd, ext, colnr, line} = opt
     let noSlash = line[colnr - 1] === '/'
     let roots = []
     if (!fullpath) {
