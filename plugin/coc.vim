@@ -2,11 +2,11 @@ if exists('did_coc_loaded') || v:version < 700
   finish
 endif
 let did_coc_loaded = 1
+let s:timer = 0
 
 function! s:OnBuffer(type, bufnr, event) abort
   if s:IsInvalid(a:bufnr) | return | endif
-  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 20)
-  if res[0] != -1 | return | endif
+  if !get(g:, 'coc_enabled', 0) | return | endif
   try
     execute 'call CocBuf'.a:type.'('.a:bufnr.',"'.a:event.'")'
   catch /^Vim\%((\a\+)\)\=:E117/
@@ -33,6 +33,9 @@ function! s:IsInvalid(bufnr) abort
 endfun
 
 function! s:Disable() abort
+  if get(g:, 'coc_enabled', 0) == 0
+    return
+  endif
   augroup coc_nvim
     autocmd!
   augroup end
@@ -40,6 +43,9 @@ function! s:Disable() abort
     echon '[coc.nvim] Disabled'
   echohl None
   let g:coc_enabled = 0
+  if get(s:, 'timer', 0)
+    call timer_stop(s:timer)
+  endif
 endfunction
 
 function! s:ToggleSource(name) abort
@@ -94,6 +100,9 @@ function! s:Init(sync)
 endfunction
 
 function! s:Enable()
+  if get(g:, 'coc_enabled', 0) == 1
+    return
+  endif
   augroup coc_nvim
     autocmd!
     autocmd InsertCharPre *
@@ -136,6 +145,17 @@ function! s:Enable()
   let guibg = get(g:, 'coc_chars_guibg', 'magenta')
   exec "highlight default CocChars guifg=".guifg." guibg=".guibg." ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
   let g:coc_enabled = 1
+  let s:timer = timer_start(5000, function('s:CheckStatus'), {
+        \ 'repeat': -1
+        \})
+endfunction
+
+function! s:CheckStatus(...)
+  " check the node process is running
+  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 20)
+  if res[0] != -1
+    call s:Disable()
+  endif
 endfunction
 
 augroup coc_init

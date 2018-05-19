@@ -55,7 +55,7 @@ imap <c-space> <Plug>(coc_start)
 
 ## Sources
 
-Native sources are implemented in javascript and are enabled by default.
+### Common sources
 
 
 Name         | Description                                             | Use cache   | Supported filetypes
@@ -71,7 +71,31 @@ Name         | Description                                             | Use cac
 `module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
 `include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
-Note: `module` & `path` source only have support for quite limited filetypes, need help.
+
+`User defined` filetypes means the source is not always activted, it requires user
+configuration for filetypes to work.
+
+### Language sources
+
+COC could manage child processes to make specified language completion in async.
+
+Name                                   |Filetype     | Requirement
+------------                           |------------ | -------------
+[tern](https://github.com/ternjs/tern) |javascript   | None
+[jedi](https://jedi.readthedocs.io/)   |python       | `pip3 install jedi`
+
+The child process for language completion would automatic started in async when specified
+filetype detected.
+
+### Vim sources
+
+Vim sources are implemented in viml, and usually requires other vim plugin to
+work.
+
+Name           |Description                |Filetype     | Requirement
+------------   |------------               |------------ | -------------
+ultisnips      |Snippets completion        |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
+languageclient |Completion from LSP service|user defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 
 ## Configuration
 
