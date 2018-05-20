@@ -220,9 +220,9 @@ export default class CompletePlugin {
       }
       let start = Date.now()
       logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-      let {startcol, icase} = oldComplete
+      let {startcol} = oldComplete
       let complete = completes.newComplete(opt)
-      let items = complete.filterResults(results, icase)
+      let items = complete.filterResults(results)
       logger.debug(`Filtered items:${JSON.stringify(items)}`)
       if (!items || items.length === 0) {
         await increment.stop()

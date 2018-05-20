@@ -26,7 +26,6 @@ function! s:IsInvalid(bufnr) abort
   if t ==# 'terminal'
         \|| t ==# 'nofile'
         \|| t ==# 'quickfix'
-        \|| t ==# 'help'
     return 1
   endif
   return 0
@@ -152,7 +151,7 @@ endfunction
 
 function! s:CheckStatus(...)
   " check the node process is running
-  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 20)
+  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 10)
   if res[0] != -1
     call s:Disable()
   endif

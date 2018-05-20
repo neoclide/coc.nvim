@@ -1,8 +1,7 @@
-import {equalChar} from '../util/index'
 import { Neovim } from 'neovim'
 import {getConfig} from '../config'
 import {getSourceConfig} from '../config'
-import {filterFuzzy, filterWord} from '../util/filter'
+import {fuzzyChar} from '../util/fuzzy'
 import {SourceOption,
   SourceConfig,
   VimCompleteItem,
@@ -88,11 +87,10 @@ export default abstract class Source {
     let {input} = opt
     let cword = opt.word
     let cFirst = input.length ? input[0] : null
-    let icase = !/[A-Z]/.test(input)
     for (let word of words) {
       if (!cFirst) continue
       if (!word || word.length < 3) continue
-      if (cFirst && !equalChar(word[0], cFirst, icase)) continue
+      if (cFirst && !fuzzyChar(cFirst, word[0])) continue
       if (word == cword || word == input) continue
       res.push(word)
     }

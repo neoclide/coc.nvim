@@ -8,18 +8,12 @@ export class Range {
     this.end = end ? end : start
   }
 
-  public contains(c: number):boolean {
-    return c >= this.start && c <= this.end
-  }
-}
-
-export class Chars {
-  public ranges: Range[]
-  constructor(keywordOption: string) {
+  public static fromKeywordOption(keywordOption:string):Range[] {
     let parts = keywordOption.split(',')
     let ranges: Range[] = []
     for (let part of parts) {
       if (part == '@') {
+        // number and letters
         ranges.push(new Range(65, 90))
         ranges.push(new Range(97, 122))
         ranges.push(new Range(192, 255))
@@ -35,7 +29,18 @@ export class Chars {
         }
       }
     }
-    this.ranges = ranges
+    return ranges
+  }
+
+  public contains(c: number):boolean {
+    return c >= this.start && c <= this.end
+  }
+}
+
+export class Chars {
+  public ranges: Range[]
+  constructor(keywordOption: string) {
+    this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
   public addKeyword(ch: string):void {
@@ -44,6 +49,10 @@ export class Chars {
     if (!ranges.some(o => o.contains(c))) {
       ranges.push(new Range(c))
     }
+  }
+
+  public setKeywordOption(keywordOption:string):void {
+    this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
   public matchKeywords(content: string, min = 3):string[] {

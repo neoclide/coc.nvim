@@ -4,7 +4,8 @@ import {
   CompleteResult} from '../types'
 import remoteStore from '../remote-store'
 import Source from './source'
-import {echoErr, equalChar} from '../util/index'
+import {fuzzyChar} from '../util/fuzzy'
+import {echoErr} from '../util/index'
 const logger = require('../util/logger')('model-source-vim') // tslint:disable-line
 
 export default class VimSource extends Source {
@@ -62,13 +63,14 @@ export default class VimSource extends Source {
     let items = await remoteStore.getResult(id, this.name)
     if (this.firstMatch && input.length) {
       let ch = input[0]
-      items = items.filter(item => equalChar(item.word[0], ch, /[a-z]/.test(ch)))
+      items = items.filter(item => {
+        let cfirst = item.abbr ? item.abbr[0] : item.word[0]
+        return fuzzyChar(ch, cfirst)
+      })
     }
     for (let item of items) {
-      if (!item.kind) {
-        delete item.dup
-        delete item.icase
-      }
+      delete item.dup
+      delete item.icase
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
     }

@@ -1,15 +1,16 @@
 import {uniqueItems, uniqeWordsList} from '../util/unique'
 import {
   getUserData,
-  equalChar,
   contextDebounce,
   wait,
-  isCocItem
+  isCocItem,
+  filterWord
 } from '../util/index'
 import {
-  filterFuzzy,
-  filterWord
-} from '../util/filter'
+  getCharCodes,
+  fuzzyMatch,
+  fuzzyChar
+} from '../util/fuzzy'
 import {
   readFileByLine,
   statAsync,
@@ -21,20 +22,6 @@ import {
 } from '../util/sorter'
 import watchObj from '../util/watch-obj'
 import path = require('path')
-
-describe('equalChar test', () => {
-  test('should not ignore case', () => {
-    expect(equalChar('a', 'b', false)).toBeFalsy
-    expect(equalChar('a', 'A', false)).toBeFalsy
-    expect(equalChar('a', 'a', false)).toBeTruthy
-  })
-
-  test('should ignore case', () => {
-    expect(equalChar('a', 'b', false)).toBeFalsy
-    expect(equalChar('a', 'A', false)).toBeTruthy
-    expect(equalChar('a', 'a', false)).toBeTruthy
-  })
-})
 
 describe('getUserData test', () => {
   test('should return null if no data', () => {
@@ -194,30 +181,35 @@ describe('isCocItem test', () => {
 })
 
 describe('filter test', () => {
-  test('filter fuzzy #1', () => {
-    expect(filterFuzzy('fo', 'foo', false)).toBeTruthy
-    expect(filterFuzzy('fo', 'Foo', false)).toBeFalsy
-    expect(filterFuzzy('fo', 'ofo', false)).toBeTruthy
-    expect(filterFuzzy('fo', 'oof', false)).toBeFalsy
-  })
-
-  test('filter fuzzy #2', () => {
-    expect(filterFuzzy('fo', 'foo', true)).toBeTruthy
-    expect(filterFuzzy('fo', 'Foo', true)).toBeTruthy
-    expect(filterFuzzy('fo', 'oFo', true)).toBeTruthy
-    expect(filterFuzzy('fo', 'oof', true)).toBeFalsy
-  })
-
-  test('filter word #1', () => {
-    expect(filterWord('fo', 'foo', false)).toBeTruthy
-    expect(filterWord('fo', 'Foo', false)).toBeFalsy
-    expect(filterWord('fo', 'ofo', false)).toBeFalsy
-  })
 
   test('filter word #2', () => {
     expect(filterWord('fo', 'foo', true)).toBeTruthy
     expect(filterWord('fo', 'Foo', true)).toBeTruthy
     expect(filterWord('fo', 'oFo', true)).toBeFalsy
+  })
+})
+
+describe('fuzzy match test', () => {
+  test('should be fuzzy match', () => {
+    let needle = 'aBc'
+    let codes = getCharCodes(needle)
+    expect(fuzzyMatch(codes, 'abc')).toBeFalsy
+    expect(fuzzyMatch(codes, 'ab')).toBeFalsy
+    expect(fuzzyMatch(codes, 'addbdd')).toBeFalsy
+    expect(fuzzyMatch(codes, 'abbbBc')).toBeTruthy
+    expect(fuzzyMatch(codes, 'daBc')).toBeTruthy
+    expect(fuzzyMatch(codes, 'ABCz')).toBeTruthy
+  })
+
+  test('should be fuzzy for character', () => {
+    expect(fuzzyChar('a', 'a')).toBeTruthy
+    expect(fuzzyChar('a', 'A')).toBeTruthy
+    expect(fuzzyChar('z', 'z')).toBeTruthy
+    expect(fuzzyChar('z', 'Z')).toBeTruthy
+    expect(fuzzyChar('A', 'a')).toBeFalsy
+    expect(fuzzyChar('A', 'A')).toBeTruthy
+    expect(fuzzyChar('Z', 'z')).toBeFalsy
+    expect(fuzzyChar('Z', 'Z')).toBeTruthy
   })
 })
 

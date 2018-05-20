@@ -33,11 +33,6 @@ export function getUserData(item:VimCompleteItem):{[index: string]: any} | null 
   }
 }
 
-export function equalChar(a: string, b:string, icase:boolean):boolean {
-  if (icase) return a.toLowerCase() === b.toLowerCase()
-  return a === b
-}
-
 // create dobounce funcs for each arg
 export function contextDebounce(func: Callback, timeout: number):Callback {
   let funcMap: {[index: string] : Callback | null} = {}
@@ -82,4 +77,9 @@ export function isCocItem(item: any):boolean {
   } catch (e) {
     return false
   }
+}
+
+export function filterWord(input: string, word: string, icase: boolean):boolean {
+  if (!icase) return word.startsWith(input)
+  return word.toLowerCase().startsWith(input.toLowerCase())
 }

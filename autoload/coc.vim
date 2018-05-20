@@ -15,7 +15,7 @@ function! coc#get_config(...)
 endfunction
 
 function! coc#refresh() abort
-    return coc#menu_selected() ? "\<c-y>\<c-r>=coc#start()\<CR>" : "\<c-r>=coc#start()\<CR>"
+    return pumvisible() ? "\<c-e>\<c-r>=coc#start()\<CR>" : "\<c-r>=coc#start()\<CR>"
 endfunction
 
 function! coc#_complete() abort
@@ -66,8 +66,4 @@ function! coc#start()
         \ }
   call CocStart(opt)
   return ''
-endfunction
-
-function! coc#menu_selected() abort
-    return pumvisible() && !empty(v:completed_item)
 endfunction

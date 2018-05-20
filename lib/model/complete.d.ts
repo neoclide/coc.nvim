@@ -5,11 +5,10 @@ export default class Complete {
     results: CompleteResult[] | null;
     option: CompleteOption;
     startcol?: number;
-    icase: boolean;
     recentScores: RecentScore;
     constructor(opts: CompleteOption);
     private completeSource(source);
-    filterResults(results: CompleteResult[], icase: boolean): VimCompleteItem[];
+    filterResults(results: CompleteResult[]): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
     private getOnlySourceName(results);
     private getBonusScore(input, item);

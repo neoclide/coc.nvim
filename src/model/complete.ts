@@ -8,7 +8,11 @@ import Source from './source'
 import {getConfig} from '../config'
 import {wordSortItems} from '../util/sorter'
 import {uniqueItems} from '../util/unique'
-import {filterFuzzy, filterWord} from '../util/filter'
+import {filterWord} from '../util/index'
+import {
+  getCharCodes,
+  fuzzyMatch
+} from '../util/fuzzy'
 import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
@@ -21,11 +25,9 @@ export default class Complete {
   public results: CompleteResult[] | null
   public option: CompleteOption
   public startcol?: number
-  public icase: boolean
   public recentScores: RecentScore
   constructor(opts: CompleteOption) {
     this.option = opts
-    this.icase = true
     this.recentScores = {}
   }
 
@@ -80,12 +82,17 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[], icase: boolean):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[]):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
     let only = this.getOnlySourceName(results)
     let {input, id} = this.option
     let fuzzy = getConfig('fuzzyMatch')
-    let filter = fuzzy ? filterFuzzy : filterWord
+    let codes = fuzzy ? getCharCodes(input) : []
+    let filter = fuzzy ? (_, verb) => {
+      return fuzzyMatch(codes, verb)
+    } : (input, verb) => {
+      return filterWord(input, verb, !/A-Z/.test(input))
+    }
     let count = 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
@@ -96,7 +103,7 @@ export default class Complete {
         let {word, abbr, user_data} = item
         let verb = abbr ? abbr : word
         let data = {}
-        if (input.length && !filter(input, verb, icase)) continue
+        if (input.length && !filter(input, verb)) continue
         if (user_data) {
           try {
             data = JSON.parse(user_data)
@@ -140,12 +147,10 @@ export default class Complete {
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
-    // logger.debug(`resultes: ${JSON.stringify(results)}`)
     // use it even it's bad
     this.results = results
     this.startcol = col
-    let icase = this.icase = !/[A-Z]/.test(input)
-    let filteredResults = this.filterResults(results, icase)
+    let filteredResults = this.filterResults(results)
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
   }
