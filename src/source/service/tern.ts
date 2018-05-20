@@ -38,10 +38,10 @@ export default class Tern extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr, filepath, linenr, line, col, colnr, input} = opt
+    let {bufnr, filepath, linenr, col, input} = opt
     let {content} = buffers.document
     let {nvim, menu} = this
-    if (input.length && line[colnr - 2] !== '.') {
+    if (input.length) {
       // limit result
       col = col + 1
     }

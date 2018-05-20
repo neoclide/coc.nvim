@@ -9,7 +9,7 @@ import logging
 import os.path
 import sys
 
-log_file = os.path.join(tempfile.gettempdir(), 'coc_jedi.log')
+log_file = os.path.join(tempfile.gettempdir(), 'coc-jedi.log')
 logger = logging.getLogger('python-jedi')
 handler = logging.FileHandler(log_file, delay=1)
 handler.setLevel(logging.INFO)

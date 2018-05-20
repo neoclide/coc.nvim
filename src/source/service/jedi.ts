@@ -39,7 +39,7 @@ export default class Jedi extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {filetype} = opt
+    let {filetype, input, line, colnr} = opt
     if (!this.checkFileType(filetype) || this.disabled) return false
     if (!this.service || !this.service.isRunnning) {
       await this.onInit()
@@ -48,10 +48,10 @@ export default class Jedi extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr, filepath, linenr, line, col, colnr, input} = opt
+    let {bufnr, filepath, linenr, col, input} = opt
     let {content} = buffers.document
     let {nvim, menu} = this
-    if (input.length && line[colnr - 2] !== '.') {
+    if (input.length) {
       // limit result
       col = col + 1
     }
