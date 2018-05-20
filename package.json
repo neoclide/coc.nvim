@@ -66,7 +66,6 @@
     "debounce": "^1.1.0",
     "find-root": "^1.1.0",
     "fuzzaldrin": "^2.1.0",
-    "fuzzysearch": "^1.0.3",
     "glob": "^7.1.2",
     "log4js": "^2.6.1",
     "matcher": "^1.1.0",

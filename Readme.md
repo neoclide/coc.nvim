@@ -79,10 +79,11 @@ configuration for filetypes to work.
 
 COC could manage child processes to make specified language completion in async.
 
-Name                                   |Filetype     | Requirement
-------------                           |------------ | -------------
-[tern](https://github.com/ternjs/tern) |javascript   | None
-[jedi](https://jedi.readthedocs.io/)   |python       | `pip3 install jedi`
+Name                                         |Filetype     | Requirement
+------------                                 |------------ | -------------
+[tern](https://github.com/ternjs/tern)       |javascript   | None
+[jedi](https://jedi.readthedocs.io/)         |python       | `pip3 install jedi`
+[gocode](https://github.com/mdempsky/gocode) |go           | See [Setup of gocode](https://github.com/mdempsky/gocode#setup)
 
 The child process for language completion would automatic started in async when specified
 filetype detected.

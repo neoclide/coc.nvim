@@ -1,15 +1,17 @@
-import { TextDocument, TextEdit } from 'vscode-languageserver-types'
+import {
+  TextDocument,
+  TextEdit } from 'vscode-languageserver-types'
 import {Chars} from './chars'
-// const logger = require('../util/logger')('model-document')
+const logger = require('../util/logger')('model-document')
 
 export default class Doc {
-  public content: string
-  public uri: string
-  public filetype: string
-  public version: number
-  private chars: Chars
-  constructor(uri: string, filetype: string, version: number, content: string, keywordOption: string) {
-    // this.doc = TextDocument.create(uri, filetype, version, content)
+  public content:string
+  public uri:string
+  public filetype:string
+  public version:number
+  public doc:TextDocument
+  private chars:Chars
+  constructor(uri:string, filetype:string, version:number, content:string, keywordOption:string) {
     this.uri = uri
     this.filetype = filetype
     this.content = content
@@ -17,11 +19,19 @@ export default class Doc {
     let chars = this.chars = new Chars(keywordOption)
     chars.addKeyword('_')
     chars.addKeyword('-')
+    this.doc = TextDocument.create(uri, filetype, version, content)
   }
 
-  // public applyEdits(edits: TextEdit[]):string {
-  //   return TextDocument.applyEdits(this.doc, edits)
-  // }
+  public applyEdits(edits: TextEdit[]):string {
+    return TextDocument.applyEdits(this.doc, edits)
+  }
+
+  public getOffset(lnum:number, col:number):number {
+    return this.doc.offsetAt({
+      line: lnum - 1,
+      character: col
+    })
+  }
 
   // public setContent(content: string):void {
   //   this.content = content
