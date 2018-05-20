@@ -1,13 +1,15 @@
 import IpcService from '../model/ipcService'
 import {wait} from '../util/index'
+import {ROOT} from '../constant'
 import path = require('path')
 
 describe('child model test', () => {
   let ch:IpcService
 
   beforeAll(() => {
-    let file = path.resolve(__dirname, '../../bin/tern.js')
-    ch = new IpcService(file)
+    const file = path.resolve(__dirname, '../../bin/tern.js')
+    const ternRoot = path.join(ROOT, 'node_modules/tern')
+    ch = new IpcService(file, process.cwd(), [ternRoot])
     ch.start()
   })
 

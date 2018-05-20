@@ -11,10 +11,11 @@ export default class IpcService extends EventEmitter {
   private child:ChildProcess
   private running:boolean
 
-  constructor(public modulePath:string, public args?:string[]) {
+  constructor(public modulePath:string, public cwd:string, public args?:string[]) {
     super()
     this.modulePath = modulePath
     this.args = args || []
+    this.cwd = cwd
     this.cb = () => { } // tslint:disable-line
   }
 
@@ -25,6 +26,7 @@ export default class IpcService extends EventEmitter {
   public start():void {
     if (this.running) return
     this.child = cp.fork(this.modulePath, this.args, {
+      cwd: this.cwd,
       stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
     })
     this.running = true

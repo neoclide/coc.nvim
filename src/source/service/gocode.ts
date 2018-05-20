@@ -15,18 +15,22 @@ export default class Gocode extends Source {
       name: 'gocode',
       shortcut: 'GOC',
       priority: 8,
-      filetypes: ['go']
+      filetypes: ['go'],
+      command: 'gocode',
     })
     this.disabled = false
   }
 
   public async onInit():Promise<void> {
-    try {
-      which.sync('gocode')
-    } catch (e) {
-      await echoWarning(this.nvim, 'Could not find gocode in $PATH')
-      this.disabled = true
-      return
+    let {command} = this.config
+    if (command === 'gocode') {
+      try {
+        which.sync('gocode')
+      } catch (e) {
+        await echoWarning(this.nvim, 'Could not find gocode in $PATH')
+        this.disabled = true
+        return
+      }
     }
   }
 
@@ -46,7 +50,8 @@ export default class Gocode extends Source {
       col = col + 1
     }
     let offset = document.getOffset(linenr, col)
-    const child = spawn('gocode', ['-f=vim', 'autocomplete', filepath, `c${offset}`])
+    let {command} = this.config
+    const child = spawn(command, ['-f=vim', 'autocomplete', filepath, `c${offset}`])
     return new Promise((resolve:(CompleteResult)=>void, reject):void => {
       let output = ''
       let exited = false
@@ -57,7 +62,6 @@ export default class Gocode extends Source {
         let exited = true
         if (!output) return resolve(null)
         try {
-          output = output.replace(/''/g, '\\"')
           let list = JSON.parse(output.replace(/'/g, '"'))
           logger.debug(list)
           if (list.length < 2) return resolve(null)

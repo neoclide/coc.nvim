@@ -19,20 +19,22 @@ export default class Jedi extends Source {
       name: 'jedi',
       shortcut: 'JD',
       priority: 8,
-      filetypes: ['python']
+      filetypes: ['python'],
+      command: 'python',
     })
     this.disabled = false
   }
 
   public async onInit(): Promise<void> {
+    let {command} = this.config
     try {
-      cp.execSync('python -c "import jedi"')
+      cp.execSync(`${command} -c "import jedi"`)
     } catch (e) {
-      await echoWarning(this.nvim, 'Could not import jedi')
+      await echoWarning(this.nvim, `${command} could not import jedi`)
       this.disabled = true
       return
     }
-    this.service = new StdioService('python', [execPath])
+    this.service = new StdioService(command, [execPath])
     this.service.start()
     await wait(100)
     logger.info('starting jedi server')

@@ -1,24 +1,15 @@
-let fs = require('fs')
-let glob = require('glob')
-let minimatch = require('minimatch')
-let path = require('path')
-let readline = require('readline')
-let resolveFrom = require('resolve-from')
-let tern = require('tern')
-let findRoot = require('find-root')
+const fs = require('fs')
+const glob = require('glob')
+const minimatch = require('minimatch')
+const path = require('path')
+const readline = require('readline')
+const resolveFrom = require('resolve-from')
+const findRoot = require('find-root')
 const net = require('net')
 const os = require('os')
-
-let DIST_DIR = path.resolve(__dirname,'../node_modules/tern')
-let PROJECT_FILE_NAME = '.tern-project'
-let PROJECT_DIR = ''
-try {
-  PROJECT_DIR = findRoot(process.cwd(), (dir) => {
-    return fs.existsSync(path.join(dir, PROJECT_FILE_NAME))
-  })
-} catch (e) {
-  PROJECT_DIR = process.cwd()
-}
+const ternRoot = process.argv[2]
+const tern = require(ternRoot)
+const ROOT = process.cwd()
 
 function genConfig() {
   let defaultConfig = {
@@ -29,7 +20,6 @@ function genConfig() {
     ecmaVersion: 6,
     dependencyBudget: tern.defaultOptions.dependencyBudget
   }
-
   function merge(base, value) {
     if (!base) return value
     if (!value) return base
@@ -38,7 +28,6 @@ function genConfig() {
     for (let prop in value) result[prop] = value[prop]
     return result
   }
-
   function readConfig(fileName) {
     let data = readJSON(fileName)
     for (let option in defaultConfig) {
@@ -49,17 +38,14 @@ function genConfig() {
     }
     return data
   }
-
   let home = process.env.HOME || process.env.USERPROFILE
   if (home && fs.existsSync(path.resolve(home, '.tern-config'))) {
     defaultConfig = readConfig(path.resolve(home, '.tern-config'))
   }
-
-  let projectFile = path.resolve(PROJECT_DIR, PROJECT_FILE_NAME)
+  let projectFile = path.resolve(ROOT, '.tern-project')
   if (fs.existsSync(projectFile)) {
     return readConfig(projectFile)
   }
-
   return defaultConfig
 }
 
@@ -91,7 +77,7 @@ function findDefs(projectDir, config) {
   for (let i = 0; i < src.length; ++i) {
     let file = src[i]
     file = /\.json$/.test(file) ? file : `${file}.json`
-    let found = findFile(file, projectDir, path.resolve(DIST_DIR, 'defs'))
+    let found = findFile(file, projectDir, path.resolve(ternRoot, 'defs'))
     if (!found) {
       try {
         found = require.resolve('tern-' + src[i])
@@ -111,7 +97,7 @@ function loadPlugins(projectDir, config) {
   for (let plugin in plugins) {
     let val = plugins[plugin]
     if (!val) continue
-    let found = findFile(plugin + '.js', projectDir, path.resolve(DIST_DIR, 'plugin'))
+    let found = findFile(plugin + '.js', projectDir, path.resolve(ternRoot, 'plugin'))
         || resolveFrom(projectDir, 'tern-' + plugin)
     if (!found) {
       try {
@@ -122,7 +108,7 @@ function loadPlugins(projectDir, config) {
       }
     }
     let mod = require(found)
-    if (mod.hasOwnProperty('initialize')) mod.initialize(DIST_DIR)
+    if (mod.hasOwnProperty('initialize')) mod.initialize(ternRoot)
     options[path.basename(plugin)] = val
   }
 
@@ -164,7 +150,7 @@ function startServer(dir, config) {
   return server
 }
 
-let server = startServer(PROJECT_DIR, genConfig())
+let server = startServer(ROOT, genConfig())
 
 function complete(filename, line, col, content, callback) {
   let query = {

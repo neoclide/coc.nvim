@@ -6,9 +6,12 @@ import {ROOT} from '../../constant'
 import buffers from '../../buffers'
 import path = require('path')
 import {wait} from '../../util'
+import findRoot = require('find-root')
+import fs = require('fs')
 const logger = require('../../util/logger')('source-tern')
 
 const modulePath = path.join(ROOT, 'bin/tern.js')
+const ternRoot = path.join(ROOT, 'node_modules/tern')
 
 export default class Tern extends Source {
   private service:IpcService | null
@@ -17,15 +20,28 @@ export default class Tern extends Source {
       name: 'tern',
       shortcut: 'TERN',
       priority: 8,
-      filetypes: ['javascript']
+      filetypes: ['javascript'],
+      ternRoot,
     })
   }
 
-  public async onInit(): Promise<void> {
-    this.service = new IpcService(modulePath)
+  public async onInit():Promise<void> {
+    let {ternRoot} = this.config
+    let cwd = await this.nvim.call('getcwd')
+    let root = this.findProjectRoot(cwd)
+    this.service = new IpcService(modulePath, root, [ternRoot])
     this.service.start()
-    await wait(100)
     logger.info('starting tern server')
+  }
+
+  private findProjectRoot(cwd:string):string {
+    try {
+      return findRoot(cwd, dir => {
+        return fs.existsSync(path.join(dir, '.tern-project'))
+      })
+    } catch (e) {
+      return cwd
+    }
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

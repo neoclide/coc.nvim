@@ -5,6 +5,7 @@ export default class Tern extends Source {
     private service;
     constructor(nvim: Neovim);
     onInit(): Promise<void>;
+    private findProjectRoot(cwd);
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }
