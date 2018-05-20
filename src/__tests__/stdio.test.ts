@@ -17,13 +17,14 @@ describe('child model test', () => {
 
   test('jedi server works', async () => {
     let result = ''
-    let res = await ch.request({
+    let res = await ch.request(JSON.stringify({
       action: 'complete',
       line: 3,
       col: 'datetime.da'.length,
       filename: 'example.py',
       content: '\nimport datetime\ndatetime.da',
-    })
-    expect(res.length).toBeGreaterThan(1)
+    }))
+    let items = JSON.parse(res)
+    expect(items.length).toBeGreaterThan(1)
   })
 })

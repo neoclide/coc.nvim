@@ -5,7 +5,7 @@ import Source from '../../model/source'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import buffers from '../../buffers'
-import {wait, echoWarning} from '../../util'
+import {echoWarning} from '../../util'
 import * as cp from 'child_process'
 const logger = require('../../util/logger')('source-jedi')
 
@@ -36,7 +36,6 @@ export default class Jedi extends Source {
     }
     this.service = new StdioService(command, [execPath])
     this.service.start()
-    await wait(100)
     logger.info('starting jedi server')
   }
 
@@ -57,13 +56,19 @@ export default class Jedi extends Source {
       // limit result
       col = col + 1
     }
-    let items = await this.service.request({
+    let result = await this.service.request(JSON.stringify({
       action: 'complete',
       line: linenr,
       col,
       filename: filepath,
       content
-    })
+    }))
+    let items = []
+    try {
+      items = JSON.parse(result)
+    } catch (e) {
+      logger.error(`Bad result from jedi ${result}`)
+    }
     return {
       items: items.map(item => {
         return {

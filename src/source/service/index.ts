@@ -3,6 +3,7 @@ import {getConfig} from '../../config'
 export const serviceMap = {
   go: ['gocode'],
   python: ['jedi'],
+  rust: ['racer'],
   javascript: ['tern']
 }
 

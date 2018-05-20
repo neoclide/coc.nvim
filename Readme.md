@@ -77,16 +77,15 @@ configuration for filetypes to work.
 
 ### Language sources
 
-COC could manage child processes to make specified language completion in async.
+COC have build support for some languages, compare to the using of `omnifunc`,
+they runs in async and just works.
 
 Name                                         |Filetype     | Requirement
 ------------                                 |------------ | -------------
 [tern](https://github.com/ternjs/tern)       |javascript   | None
 [jedi](https://jedi.readthedocs.io/)         |python       | `pip install jedi`
 [gocode](https://github.com/mdempsky/gocode) |go           | See [Setup of gocode](https://github.com/mdempsky/gocode#setup)
-
-The child process for language completion would automatic started in async when specified
-filetype detected.
+[racer](https://github.com/racer-rust/racer) |rust         | See [Setup of racer](https://github.com/racer-rust/racer#installation)
 
 ### Vim sources
 

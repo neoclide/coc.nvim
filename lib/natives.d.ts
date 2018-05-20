@@ -5,6 +5,7 @@ export interface Native {
     filepath: string;
     name: string;
     instance: Source | null;
+    service: boolean;
 }
 export declare class Natives {
     list: Native[];
@@ -12,6 +13,7 @@ export declare class Natives {
     readonly sources: Source[];
     init(): Promise<void>;
     has(name: any): boolean;
+    getSourceNamesOfFiletype(filetype: string): string[];
     readonly names: string[];
     private createSource(nvim, name);
     getSource(nvim: Neovim, name: string): Promise<Source | null>;

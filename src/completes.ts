@@ -55,7 +55,7 @@ export class Completes {
 
   public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
     let disabled = getConfig('disabled')
-    let nativeNames = natives.names
+    let nativeNames = natives.getSourceNamesOfFiletype(filetype)
     logger.debug(`Disabled sources:${disabled}`)
     let names = nativeNames.concat(remotes.names)
     names = names.filter(n => disabled.indexOf(n) === -1)

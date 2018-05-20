@@ -38,8 +38,8 @@ endfunction
 
 function! coc#start()
   if !get(g:, 'coc_enabled', 0) 
-    echohl Error | echon '[coc.nvim] Service disabled' | echohl None
-    return 
+    echohl Error | echon '[coc.nvim] Service not running' | echohl None
+    return ''
   endif
   let pos = getcurpos()
   let line = getline('.')

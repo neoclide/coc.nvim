@@ -12,6 +12,7 @@ export interface Native {
   filepath: string
   name: string
   instance: Source | null
+  service: boolean
 }
 
 // controll instances of native sources
@@ -39,6 +40,7 @@ export class Natives {
             name,
             Clz,
             filepath: path.join(root, file),
+            service: false,
             instance: null
           })
         } catch (e) {
@@ -53,6 +55,7 @@ export class Natives {
           name,
           Clz: require(`./source/service/${name}`).default,
           filepath: path.join(root, `./service/${name}.js`),
+          service: true,
           instance: null
         })
       }
@@ -61,6 +64,14 @@ export class Natives {
 
   public has(name):boolean{
     return this.list.findIndex(o => o.name == name) != -1
+  }
+
+  public getSourceNamesOfFiletype(filetype:string):string[] {
+    let list = this.list.filter(o => !o.service)
+    let names = list.map(o => o.name)
+    let services = serviceMap[filetype]
+    if (services) names = names.concat(services)
+    return names
   }
 
   public get names():string[] {

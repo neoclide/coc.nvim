@@ -19,7 +19,7 @@ logger.addHandler(handler)
 
 
 def write(msg):
-    print(msg)
+    print(msg + '\nEND')
     sys.stdout.flush()
 
 

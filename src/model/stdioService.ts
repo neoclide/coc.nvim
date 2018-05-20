@@ -30,8 +30,13 @@ export default class StdioService extends EventEmitter {
       logger.error(str)
       this.emit('error', str)
     })
+    let msgs = ''
     this.child.stdout.on('data', msg => {
-      this.emit('message', msg)
+      msgs = msgs + msg.toString()
+      if (msgs.trim().slice(-3) === 'END') {
+        this.emit('message', msgs.trim().slice(0, -3))
+        msgs = ''
+      }
     })
     this.child.on('exit', (code, signal) => {
       this.running = false
@@ -42,20 +47,15 @@ export default class StdioService extends EventEmitter {
     })
   }
 
-  public request(data:{[index:string]: any}):Promise<VimCompleteItem[]|null> {
+  public request(data:string):Promise<string|null> {
     if (!this.running) return
-    this.child.stdin.write(JSON.stringify(data) + '\n')
+    this.child.stdin.write(data + '\n')
     return new Promise((resolve, reject) => {
       setTimeout(() => {
         reject(new Error('Request time out'))
       }, 3000)
       this.once('message', msg => {
-        logger.debug(msg.toString())
-        try {
-          resolve(JSON.parse(msg.toString()))
-        } catch (e) {
-          reject(new Error('invalid result'))
-        }
+        resolve(msg)
       })
     })
   }

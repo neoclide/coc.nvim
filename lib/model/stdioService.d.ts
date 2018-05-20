@@ -1,6 +1,5 @@
 /// <reference types="node" />
 import EventEmitter = require('events');
-import { VimCompleteItem } from '../types';
 export declare type Callback = (msg: string) => void;
 export default class StdioService extends EventEmitter {
     command: string;
@@ -10,8 +9,6 @@ export default class StdioService extends EventEmitter {
     constructor(command: string, args?: string[]);
     readonly isRunnning: boolean;
     start(): void;
-    request(data: {
-        [index: string]: any;
-    }): Promise<VimCompleteItem[] | null>;
+    request(data: string): Promise<string | null>;
     stop(): void;
 }
