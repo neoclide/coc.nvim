@@ -25,7 +25,7 @@ function! coc#util#get_filetypes() abort
   return res
 endfunction
 
-function! coc#util#err_message(msg) abort
+function! coc#util#on_error(msg) abort
   echohl Error | echom '[coc.nvim] '.a:msg | echohl None
 endfunction
 
@@ -101,12 +101,19 @@ function! coc#util#get_queryoption() abort
 endfunction
 
 function! coc#util#jump_to(filepath, lnum, col) abort
+  if empty(a:filepath)
+    return
+  endif
   let lnum = a:lnum + 1
   let col = a:col + 1
-  if a:filepath ==# expand('%:p')
-    normal! m`
-    call cursor(lnum, col)
-  else
-    execute 'edit +call\ cursor('.lnum.','.col.') '.substitute(a:filepath, '\s', '\\ ', 'g')
+  normal! m`
+  if a:filepath !=# expand('%:p')
+    try
+      exec 'keepjumps e ' . fnameescape(a:filepath)
+    catch /^Vim\%((\a\+)\)\=:E37/
+      " When the buffer is not saved, E37 is thrown.  We can ignore it.
+    endtry
   endif
+  call cursor(lnum, col)
+  normal! zz
 endfunction

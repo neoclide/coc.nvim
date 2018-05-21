@@ -25,9 +25,7 @@ function! s:OnBuffer(type, bufnr, event) abort
 endfunction
 
 function! s:OnFuncUndefined() abort
-  echohl Error
-  echom '[coc.nvim] Vim error, function not found'
-  echohl None
+  call coc#util#on_error('Vim error, function not found')
   call s:Disable()
 endfunction
 
@@ -49,7 +47,7 @@ function! s:Disable() abort
     autocmd!
   augroup end
   echohl MoreMsg
-    echon '[coc.nvim] Disabled'
+    echom '[coc.nvim] Disabled'
   echohl None
   let g:coc_enabled = 0
   if get(s:, 'timer', 0)
@@ -81,7 +79,7 @@ endfunction
 function! s:CheckState() abort
   let enabled = get(g:, 'coc_enabled', 0)
   if !enabled
-    echohl Error | echon '[coc.nvim] Service disabled' | echohl None
+    call coc#util#on_error('Service disabled')
   endif
   return enabled
 endfunction
@@ -96,15 +94,13 @@ function! s:Init(sync)
   let func = a:sync ? 'CocInitSync' : 'CocInitAsync'
   if a:sync
     echohl MoreMsg
-    echon '[coc.nvim] Lazyload takes more time for initailize, consider disable lazyload'
+    echom '[coc.nvim] Lazyload takes more time for initailize, consider disable lazyload'
     echohl None
   endif
   try
     execute 'call '.func.'()'
   catch /^Vim\%((\a\+)\)\=:E117/
-    echohl Error 
-    echom '[coc.nvim] Unable to initailize, try :UpdateRemotePlugins and restart'
-    echohl None
+    call coc#util#on_error('Initailize failed, try :UpdateRemotePlugins and restart')
   endtry
 endfunction
 

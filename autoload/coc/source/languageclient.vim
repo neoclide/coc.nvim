@@ -21,7 +21,7 @@ function! s:FilterResult(res) abort
   let error = get(a:res, 'error', {})
   if !empty(error)
     let message = get(error, 'message', '')
-    echohl Error | echom '[coc.nvim] error from languageclient source: '.message | echohl None
+    call coc#util#on_error('languageclient source error: '.message)
     return []
   endif
   return get(a:res, 'result', [])

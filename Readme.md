@@ -23,7 +23,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 ``` vim
  call dein#add('neoclide/coc.nvim', {
-    \ 'build': 'make'
+    \ 'build': 'npm install --only=production'
     \})
 ```
 
@@ -75,6 +75,16 @@ Name         | Description                                             | Use cac
 `User defined` filetypes means the source is not always activted, it requires user
 configuration for filetypes to work.
 
+### Vim sources
+
+Vim sources are implemented in viml, and usually requires other vim plugin to
+work.
+
+Name           |Description                |Filetype     | Requirement
+------------   |------------               |------------ | -------------
+ultisnips      |Snippets name completion   |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
+languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
+
 ### Language sources
 
 COC have service support for some languages, compare to the using of `omnifunc`,
@@ -111,16 +121,6 @@ Using [racer](https://github.com/racer-rust/racer) as engine.
 
 See [Setup of racer](https://github.com/racer-rust/racer#installation) for
 installation detail.
-
-### Vim sources
-
-Vim sources are implemented in viml, and usually requires other vim plugin to
-work.
-
-Name           |Description                |Filetype     | Requirement
-------------   |------------               |------------ | -------------
-ultisnips      |Snippets name completion   |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
-languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 
 ## Configuration
 

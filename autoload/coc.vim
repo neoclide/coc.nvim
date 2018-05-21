@@ -38,7 +38,7 @@ endfunction
 
 function! coc#start()
   if !get(g:, 'coc_enabled', 0) 
-    echohl Error | echon '[coc.nvim] Service not running' | echohl None
+    call coc#util#on_error('Service not running!')
     return ''
   endif
   let pos = getcurpos()
