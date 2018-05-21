@@ -20,7 +20,7 @@ export default class CompletePlugin {
     cocTextChangedP(): Promise<void>;
     cocTextChangedI(): Promise<void>;
     cocResult(args: any[]): Promise<void>;
-    cocCheck(): Promise<string[] | null>;
+    cocCheckHealth(): Promise<string[] | null>;
     cocSourceStat(): Promise<SourceStat[]>;
     cocSourceToggle(args: any): Promise<string>;
     cocSourceRefresh(args: any): Promise<boolean>;

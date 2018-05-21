@@ -40,7 +40,7 @@ function! health#coc#check() abort
     call s:checkEnvironment()
     let valid = s:checkInitailize()
     if valid
-      let names = CocCheck()
+      let names = CocCheckHealth()
       if !empty(names)
         call health#report_ok('Vim sources '.join(names, ',').' activted')
       endif

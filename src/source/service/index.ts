@@ -1,4 +1,3 @@
-import {getConfig} from '../../config'
 
 export const serviceMap = {
   go: ['gocode'],

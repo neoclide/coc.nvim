@@ -162,7 +162,7 @@ export default class CompletePlugin {
     await this.increment.onCharInsert(args[0] as string)
   }
 
-  @Function('CocInsertLeave', {sync: true})
+  @Function('CocInsertLeave', {sync: false})
   public async cocInsertLeave():Promise<void> {
     await this.increment.stop()
   }
@@ -253,8 +253,8 @@ export default class CompletePlugin {
   }
 
   // Used for :checkhealth
-  @Function('CocCheck', {sync: true})
-  public async cocCheck():Promise<string[] | null> {
+  @Function('CocCheckHealth', {sync: true})
+  public async cocCheckHealth():Promise<string[] | null> {
     let {nvim} = this
     await remotes.init(nvim, natives.names, true)
     let {names} = remotes
@@ -319,12 +319,13 @@ export default class CompletePlugin {
     return true
   }
 
-  @Function('CocFileTypeChange', {sync: true})
+  @Function('CocFileTypeChange', {sync: false})
   public async cocFileTypeChange(args: any):Promise<void> {
     let filetype = args[0]
     await this.onFileType(filetype)
   }
 
+  // init service on filetype change
   private async onFileType(filetype:string):Promise<void> {
     if (!filetype || supportedTypes.indexOf(filetype) === -1) return
     let names = serviceMap[filetype]
