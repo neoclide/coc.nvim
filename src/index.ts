@@ -106,10 +106,7 @@ export default class CompletePlugin {
 
   @Function('CocBufChange', {sync: false})
   public async cocBufChange(args: any[]):Promise<void> {
-    let bufnr = Number(args[0])
-    let event = args[1]
-    logger.debug(event)
-    this.debouncedOnChange(bufnr)
+    this.debouncedOnChange(Number(args[0]))
   }
 
   @Function('CocStart', {sync: false})
@@ -175,11 +172,12 @@ export default class CompletePlugin {
     logger.debug('complete done')
     let {nvim, increment} = this
     let item:VimCompleteItem = args[0]
+    // vim would send {} on cancel
     if (!item || Object.keys(item).length == 0) item = null
     let isCoc = isCocItem(item)
     logger.debug(`complete item:${JSON.stringify(item)}`)
-    await increment.onCompleteDone(item, isCoc)
-    if (item && isCoc) {
+    await increment.onCompleteDone(item)
+    if (isCoc) {
       completes.addRecent(item.word)
       if (item.user_data) {
         let data = JSON.parse(item.user_data)

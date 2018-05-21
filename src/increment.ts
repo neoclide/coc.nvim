@@ -85,19 +85,19 @@ export default class Increment {
     logger.debug('increment started')
   }
 
-  public async onCompleteDone(item: VimCompleteItem | null, isCoc:boolean):Promise<void> {
+  public async onCompleteDone(item: VimCompleteItem | null):Promise<void> {
     if (!this.activted) return
     let {nvim} = this
     let [_, lnum, colnr] = await nvim.call('getcurpos', [])
-    if (isCoc) {
-      logger.debug('complete done, increment stopped')
+    if (item) {
+      logger.debug('complete done with item, increment stopped')
       await this.stop()
     }
     this.done = {
       word: item ? item.word || '' : '',
       timestamp: Date.now(),
-      colnr: colnr as number,
-      linenr: lnum as number,
+      colnr,
+      linenr: lnum,
     }
   }
 
@@ -107,7 +107,7 @@ export default class Increment {
       character: ch,
       timestamp: Date.now()
     }
-    if (completes.chars.indexOf(ch) == -1) {
+    if (!completes.hasCharacter(ch)) {
       logger.debug(`character ${ch} not found`)
       await this.stop()
       return

@@ -17,14 +17,14 @@ export class Completes {
   public recentScores: RecentScore
   // first time option
   public option: CompleteOption | null
-  // unique characters in result
-  public chars:string[]
+  // unique charactor code in result
+  private charCodes:number[]
 
   constructor() {
     this.complete = null
     this.option = null
     this.recentScores = {}
-    this.chars = []
+    this.charCodes = []
   }
 
   public addRecent(word: string):void {
@@ -78,25 +78,30 @@ export class Completes {
 
   public reset():void {
     this.complete = null
-    this.chars = []
+    this.charCodes = []
   }
 
   public calculateChars(items:VimCompleteItem[]):void {
-    let chars = []
+    let res = []
     if (!this.complete) return
     for (let item of items) {
       let s = item.abbr ? item.abbr : item.word
-      for (let ch of s) {
-        if (chars.indexOf(ch) === -1) {
-          chars.push(ch)
+      for (let i = 0, l = s.length; i < l; i++) {
+        let code = s.charCodeAt(i)
+        if (res.indexOf(code) === -1) {
+          res.push(code)
         }
-        let code = ch.charCodeAt(0)
-        if (code >= 65 && code <= 90 && chars.indexOf(code + 32) === -1) {
-          chars.push(code + 32)
+        if (code >= 65 && code <= 90 && res.indexOf(code + 32) === -1) {
+          res.push(code + 32)
         }
       }
     }
-    this.chars = chars
+    this.charCodes = res
+  }
+
+  public hasCharacter(ch:string):boolean {
+    let code = ch.charCodeAt(0)
+    return this.charCodes.indexOf(code) !== -1
   }
 }
 

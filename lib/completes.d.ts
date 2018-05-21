@@ -6,7 +6,7 @@ export declare class Completes {
     complete: Complete | null;
     recentScores: RecentScore;
     option: CompleteOption | null;
-    chars: string[];
+    private charCodes;
     constructor();
     addRecent(word: string): void;
     newComplete(opts: CompleteOption): Complete;
@@ -15,6 +15,7 @@ export declare class Completes {
     getSource(nvim: Neovim, name: string): Promise<Source | null>;
     reset(): void;
     calculateChars(items: VimCompleteItem[]): void;
+    hasCharacter(ch: string): boolean;
 }
 declare const _default: Completes;
 export default _default;
