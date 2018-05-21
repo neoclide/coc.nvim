@@ -77,15 +77,40 @@ configuration for filetypes to work.
 
 ### Language sources
 
-COC have build support for some languages, compare to the using of `omnifunc`,
-they runs in async and just works.
+COC have service support for some languages, compare to the using of `omnifunc`,
+they run in async and just works.
 
-Name                                         |Filetype     | Requirement
-------------                                 |------------ | -------------
-[tern](https://github.com/ternjs/tern)       |javascript   | None
-[jedi](https://jedi.readthedocs.io/)         |python       | `pip install jedi`
-[gocode](https://github.com/mdempsky/gocode) |go           | See [Setup of gocode](https://github.com/mdempsky/gocode#setup)
-[racer](https://github.com/racer-rust/racer) |rust         | See [Setup of racer](https://github.com/racer-rust/racer#installation)
+**Javascript**
+
+Using [tern](https://github.com/ternjs/tern) as engine, no extra installation
+required.
+
+Tern source also have support for `show documents`, `jump to definition` and
+`show signature`.
+
+Run command `:h coc_source_tern` for detail.
+
+**Python**
+
+Using [jedi](https://jedi.readthedocs.io/) as engine.
+
+Install `jedi` module by:
+
+    pip install jedi
+
+**Go**
+
+Using [gocode](https://github.com/mdempsky/gocode) as engine.
+
+See [Setup of gocode](https://github.com/mdempsky/gocode#setup) for installation
+detail.
+
+**Rust**
+
+Using [racer](https://github.com/racer-rust/racer) as engine.
+
+See [Setup of racer](https://github.com/racer-rust/racer#installation) for
+installation detail.
 
 ### Vim sources
 
