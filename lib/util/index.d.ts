@@ -11,3 +11,4 @@ export declare function contextDebounce(func: Callback, timeout: number): Callba
 export declare function wait(ms: number): Promise<any>;
 export declare function isCocItem(item: any): boolean;
 export declare function filterWord(input: string, word: string, icase: boolean): boolean;
+export declare function getPort(port?: number): Promise<number>;

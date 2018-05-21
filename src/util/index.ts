@@ -2,6 +2,7 @@ import {VimCompleteItem} from '../types'
 import {Neovim } from 'neovim'
 import {getConfig} from '../config'
 import debounce = require('debounce')
+import net = require('net')
 const logger = require('./logger')()
 
 export type Callback = (arg: number|string) => void
@@ -82,4 +83,26 @@ export function isCocItem(item: any):boolean {
 export function filterWord(input: string, word: string, icase: boolean):boolean {
   if (!icase) return word.startsWith(input)
   return word.toLowerCase().startsWith(input.toLowerCase())
+}
+
+function getValidPort(port:number, cb:(port:number)=>void):void {
+  let server = net.createServer()
+  server.listen(port, () => {
+    server.once('close', () => {
+      cb(port)
+    })
+    server.close()
+  })
+  server.on('error', () => {
+    port += 1
+    getValidPort(port, cb)
+  })
+}
+
+export function getPort(port = 44877):Promise<number> {
+  return new Promise(resolve => {
+    getValidPort(port, result => {
+      resolve(result)
+    })
+  })
 }

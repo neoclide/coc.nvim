@@ -15,13 +15,15 @@ import {
   readFileByLine,
   statAsync,
   isGitIgnored,
-  findSourceDir
+  findSourceDir,
+  createTmpFile
 } from '../util/fs'
 import {
   wordSortItems
 } from '../util/sorter'
 import watchObj from '../util/watch-obj'
 import path = require('path')
+import fs = require('fs')
 
 describe('getUserData test', () => {
   test('should return null if no data', () => {
@@ -244,6 +246,21 @@ describe('fs test', () => {
     let dir = findSourceDir(__filename)
     expect(dir).toBeNull
   })
+
+  test('should read file by line', async () => {
+    let lines = []
+    await readFileByLine(path.join(__dirname, 'tags'), line => {
+      lines.push(line)
+    })
+    expect(lines.length > 0).toBeTruthy
+  })
+
+  test('should create tmp file', async () => {
+    let filename = await createTmpFile('coc test')
+    expect(typeof filename).toBe('string')
+    let stat = fs.statSync(filename)
+    expect(stat.isFile()).toBeTruthy
+  })
 })
 
 describe('sort test', () => {
@@ -277,15 +294,5 @@ describe('watchObj test', () => {
     watched.bar = 'bar'
     delete watched.bar
     expect(result).toBeNull
-  })
-})
-
-describe('readFileByLine', () => {
-  test('should read file', async () => {
-    let lines = []
-    await readFileByLine(path.join(__dirname, 'tags'), line => {
-      lines.push(line)
-    })
-    expect(lines.length > 0).toBeTruthy
   })
 })

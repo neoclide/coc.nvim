@@ -67,6 +67,7 @@
     "find-root": "^1.1.0",
     "fuzzaldrin": "^2.1.0",
     "glob": "^7.1.2",
+    "got": "^8.3.1",
     "log4js": "^2.6.1",
     "matcher": "^1.1.0",
     "minimatch": "^3.0.4",

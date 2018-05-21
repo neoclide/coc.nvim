@@ -7,12 +7,12 @@ import StdioService from '../../model/stdioService'
 import Source from '../../model/source'
 import buffers from '../../buffers'
 import {echoWarning} from '../../util'
+import {createTmpFile} from '../../util/fs'
 import * as cp from 'child_process'
 import which = require('which')
 import pify = require('pify')
+
 import fs = require('fs')
-import path = require('path')
-import os = require('os')
 const logger = require('../../util/logger')('source-racer')
 
 const typeMap = {
@@ -23,10 +23,9 @@ const typeMap = {
   Const: 'c'
 }
 
-export default class Gocode extends Source {
+export default class Racer extends Source {
   private service:StdioService | null
   private disabled:boolean
-  private tmpFolder:string
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'racer',
@@ -51,7 +50,6 @@ export default class Gocode extends Source {
     }
     this.service = new StdioService(command, ['daemon'])
     this.service.start()
-    this.tmpFolder = await pify(fs.mkdtemp)(path.join(os.tmpdir(), 'coc-racer-'))
     logger.info('starting racer server')
   }
 
@@ -72,10 +70,8 @@ export default class Gocode extends Source {
       col = col + 1
     }
     let {content} = buffers.document
-    let tmpfname = `${this.tmpFolder}/${id}`
-    await pify(fs.writeFile)(tmpfname, content, 'utf8')
+    let tmpfname = await createTmpFile(content)
     let cmd = `complete-with-snippet ${linenr} ${col} "${filepath}" ${tmpfname}`
-    logger.debug(cmd)
     let output = await this.service.request(cmd)
     let lines = output.split(/\r?\n/)
     let items = []

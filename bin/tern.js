@@ -4,7 +4,6 @@ const minimatch = require('minimatch')
 const path = require('path')
 const readline = require('readline')
 const resolveFrom = require('resolve-from')
-const findRoot = require('find-root')
 const net = require('net')
 const os = require('os')
 const ternRoot = process.argv[2]
