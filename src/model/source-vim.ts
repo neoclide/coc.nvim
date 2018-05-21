@@ -39,10 +39,6 @@ export default class VimSource extends Source {
     await this.callOptinalFunc('refresh', [])
   }
 
-  public async onEvent(event:string):Promise<void> {
-    await this.callOptinalFunc('on_event', [event])
-  }
-
   public async onCompleteDone(item: VimCompleteItem):Promise<void> {
     if (this.optionalFns.indexOf('on_complete') === -1) return
     await this.callOptinalFunc('on_complete', [item])
@@ -52,6 +48,7 @@ export default class VimSource extends Source {
     let {col, id, input} = opt
     let startcol:number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
+      if (startcol < 0) return null
       startcol = Number(startcol)
       // invalid startcol
       if (isNaN(startcol) || startcol < 0) startcol = col

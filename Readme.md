@@ -84,6 +84,7 @@ Name           |Description                |Filetype     | Requirement
 ------------   |------------               |------------ | -------------
 ultisnips      |Snippets name completion   |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
 languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
+neco           |VimL completion            |vim          | Install [neco-vim](https://github.com/Shougo/neco-vim)
 
 ### Language sources
 

@@ -51,12 +51,12 @@ export default class Complete {
         return done()
       }
       source.doComplete(option).then(result => {
+        if (result == null) {
+          result = {items: []}
+        }
         if (engross
           || result.startcol && result.startcol != col) {
           result.engross = true
-        }
-        if (result == null) {
-          result = {items: []}
         }
         result.only = isOnly
         result.source = source.name
@@ -147,6 +147,7 @@ export default class Complete {
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
+
     // use it even it's bad
     this.results = results
     this.startcol = col
