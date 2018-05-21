@@ -7,7 +7,7 @@ const logger = require('./logger')()
 
 export type Callback = (arg: number|string) => void
 
-function escapeSingleQuote(str: string):string {
+export function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
 }
 
@@ -16,7 +16,7 @@ export async function echoErr(nvim: Neovim, line: string):Promise<void> {
 }
 
 export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'WarningMsg')
+  return await echoMsg(nvim, line, 'MoreMsg')
 }
 
 export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {

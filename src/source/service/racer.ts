@@ -4,7 +4,7 @@ import {
   CompleteOption,
   CompleteResult} from '../../types'
 import StdioService from '../../model/stdioService'
-import Source from '../../model/source'
+import ServiceSource from '../../model/source-service'
 import buffers from '../../buffers'
 import {echoWarning} from '../../util'
 import {createTmpFile} from '../../util/fs'
@@ -23,7 +23,7 @@ const typeMap = {
   Const: 'c'
 }
 
-export default class Racer extends Source {
+export default class Racer extends ServiceSource {
   private service:StdioService | null
   private disabled:boolean
   constructor(nvim: Neovim) {

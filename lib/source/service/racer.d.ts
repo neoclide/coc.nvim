@@ -1,7 +1,7 @@
 import { Neovim } from 'neovim';
 import { CompleteOption, CompleteResult } from '../../types';
-import Source from '../../model/source';
-export default class Racer extends Source {
+import ServiceSource from '../../model/source-service';
+export default class Racer extends ServiceSource {
     private service;
     private disabled;
     constructor(nvim: Neovim);

@@ -1,7 +1,7 @@
 import { Neovim } from 'neovim';
 import { CompleteOption, CompleteResult } from '../../types';
-import Source from '../../model/source';
-export default class Gocode extends Source {
+import ServiceSource from '../../model/source-service';
+export default class Gocode extends ServiceSource {
     private disabled;
     constructor(nvim: Neovim);
     onInit(): Promise<void>;

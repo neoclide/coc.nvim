@@ -50,7 +50,7 @@ inoremap <silent><expr> <TAB>
 **Use custom key**
 
 ``` vim
-imap <c-space> <Plug>(coc_start)
+imap <c-space> coc#refresh()
 ```
 
 ## Sources
@@ -94,8 +94,8 @@ work.
 
 Name           |Description                |Filetype     | Requirement
 ------------   |------------               |------------ | -------------
-ultisnips      |Snippets completion        |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
-languageclient |Completion from LSP service|user defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
+ultisnips      |Snippets name completion   |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
+languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 
 ## Configuration
 

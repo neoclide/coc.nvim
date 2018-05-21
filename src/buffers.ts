@@ -1,3 +1,6 @@
+import {
+  TextDocument
+} from 'vscode-languageserver-types'
 import { Neovim } from 'neovim'
 import {CompleteOption} from './types'
 import Buffer from './model/buffer'
@@ -21,17 +24,37 @@ export class Buffers {
     this.versions = {}
   }
 
+  private getVersion(uri):number {
+    let version = this.versions[uri]
+    version = version ? version + 1 : 1
+    this.versions[uri] = version
+    return version
+  }
+
   public async createDocument(nvim:Neovim, opt:CompleteOption):Promise<void> {
     let ts = Date.now()
     let {filetype, bufnr, iskeyword} = opt
     let uri = `buffer://${bufnr}`
     let content = await this.loadBufferContent(nvim, bufnr)
-    let version = this.versions[uri]
-    version = version ? version + 1 : 1
-    this.versions[uri] = version
+    let version = this.getVersion(uri)
     let doc = new Doc(uri, filetype, version, content, iskeyword)
     this.document = doc
     logger.debug(`Content load cost: ${Date.now() - ts}`)
+  }
+
+  public async getFileDocument(nvim:Neovim, filepath:string, filetype:string):Promise<TextDocument> {
+    let bufnr = await nvim.call('bufnr', [filepath])
+    let buffer = this.buffers.find(buf => buf.bufnr == bufnr)
+    let content:string
+    if (buffer) {
+      content = buffer.content
+    } else {
+      // read file
+      content = await readFile(filepath, 'utf8')
+    }
+    let uri = `buffer://${bufnr}`
+    let version = this.getVersion(uri)
+    return TextDocument.create(uri, filetype, version, content)
   }
 
   public async addBuffer(nvim: Neovim, bufnr: number): Promise<void>{

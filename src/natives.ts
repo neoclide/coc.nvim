@@ -1,17 +1,19 @@
 import { Neovim } from 'neovim'
 import Source from './model/source'
+import ServiceSource from './model/source-service'
 import { echoErr } from './util/index'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
 import {serviceMap} from './source/service'
-const logger = require('./util/logger')('natives') // tslint:disable-line
+import {getConfig} from './config'
+const logger = require('./util/logger')('natives')
 
 export interface Native {
   Clz: typeof Source
   filepath: string
   name: string
-  instance: Source | null
+  instance: Source| ServiceSource | null
   service: boolean
 }
 
@@ -87,6 +89,16 @@ export class Natives {
       await instance.onInit()
     }
     return instance
+  }
+
+  public async getServiceSource(nvim:Neovim, filetype:string):Promise<ServiceSource|null> {
+    let names = serviceMap[filetype]
+    if (!names) return null
+    let disabled = getConfig('disabled')
+    names = names.filter(name => disabled.indexOf(name) === -1)
+    if (!names.length) return null
+    let source = await this.getSource(nvim, names[0])
+    return source as ServiceSource
   }
 
   public async getSource(nvim: Neovim, name: string): Promise<Source | null> {

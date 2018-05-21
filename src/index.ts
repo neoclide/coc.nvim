@@ -2,10 +2,11 @@
 process.umask = ()=> {
   return 18
 }
-import { Plugin, Function, Neovim } from 'neovim'
+import { Plugin, Command, Function, Neovim } from 'neovim'
 import {
   SourceStat,
   CompleteOption,
+  QueryOption,
   VimCompleteItem} from './types'
 import {
   wait,
@@ -144,17 +145,6 @@ export default class CompletePlugin {
       completes.calculateChars(items)
       this.onCompleteStart(opt, autoComplete, items).catch(this.handleError)
     }, this.handleError)
-  }
-
-  private async onCompleteStart(opt:CompleteOption, autoComplete:boolean, items:VimCompleteItem[]):Promise<void> {
-    let {nvim} = this
-    await wait(20)
-    let visible = await nvim.call('pumvisible')
-    if (!autoComplete && !visible) {
-      // TODO find out the way to trigger completeDone
-      // if no way to trigger completeDone,
-      // handle it here
-    }
   }
 
   @Function('CocInsertCharPre', {sync: true})
@@ -325,6 +315,36 @@ export default class CompletePlugin {
     await this.onFileType(filetype)
   }
 
+  @Function('CocShowSignature', {sync: false})
+  public async cocShowSignature(args: any):Promise<void> {
+    await this.callServiceFunc('showSignature')
+  }
+
+  @Function('CocShowType', {sync:false})
+  public async cocShowType():Promise<void> {
+    await this.callServiceFunc('findType')
+  }
+
+  @Command('CocShowDoc', {sync:false, nargs: '*'})
+  public async cocShowDoc():Promise<void> {
+    await this.callServiceFunc('showDocuments')
+  }
+
+  @Function('CocJumpDefinition', {sync:true})
+  public async cocJumpDefninition():Promise<void> {
+    await this.callServiceFunc('jumpDefinition')
+  }
+
+  private async callServiceFunc(func:string):Promise<void> {
+    let {nvim} = this
+    let opt:QueryOption = await nvim.call('coc#util#get_queryoption')
+    let {filetype} = opt
+    let source = await natives.getServiceSource(nvim, filetype)
+    if (source) {
+      await source[func](opt)
+    }
+  }
+
   // init service on filetype change
   private async onFileType(filetype:string):Promise<void> {
     if (!filetype || supportedTypes.indexOf(filetype) === -1) return
@@ -346,5 +366,16 @@ export default class CompletePlugin {
     let {nvim} = this
     let opts: {[index: string]: any} = await nvim.call('coc#get_config', [])
     setConfig(opts)
+  }
+
+  private async onCompleteStart(opt:CompleteOption, autoComplete:boolean, items:VimCompleteItem[]):Promise<void> {
+    let {nvim} = this
+    await wait(20)
+    let visible = await nvim.call('pumvisible')
+    if (!autoComplete && !visible) {
+      // TODO find out the way to trigger completeDone
+      // if no way to trigger completeDone,
+      // handle it here
+    }
   }
 }

@@ -1,7 +1,7 @@
 import path = require('path')
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../../types'
-import Source from '../../model/source'
+import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import buffers from '../../buffers'
@@ -11,7 +11,7 @@ const logger = require('../../util/logger')('source-jedi')
 
 const execPath = path.join(ROOT, 'bin/jedi_server.py')
 
-export default class Jedi extends Source {
+export default class Jedi extends ServiceSource {
   private service:StdioService | null
   private disabled: boolean
   constructor(nvim: Neovim) {

@@ -1,4 +1,4 @@
-function! coc#util#get_fullpath(bufnr)
+function! coc#util#get_fullpath(bufnr) abort
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif
   return resolve(fnamemodify(fname, ':p'))
@@ -61,7 +61,7 @@ function! coc#util#check_state() abort
   return get(g:, 'coc_node_channel_id', 0)
 endfunction
 
-function! coc#util#get_listfile_command()
+function! coc#util#get_listfile_command() abort
   if exists('g:coc_listfile_command')
     return g:coc_listfile_command
   endif
@@ -75,6 +75,38 @@ function! coc#util#get_listfile_command()
 endfunction
 
 " we shuould transfer string to node, it's 10x times faster
-function! coc#util#get_content(bufnr)
+function! coc#util#get_content(bufnr) abort
   return join(nvim_buf_get_lines(a:bufnr, 0, -1, v:false), "\n")
+endfunction
+
+function! coc#util#preview_info(info) abort
+  pclose
+  new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap
+  exe "normal z" . &previewheight . "\<cr>"
+  call append(0, type(a:info)==type("") ? split(a:info, "\n") : a:info)
+  nnoremap <buffer> q :<C-U>bd!<CR>
+  wincmd p
+endfunction
+
+function! coc#util#get_queryoption() abort
+  let [_, lnum, colnr, offset] = getpos('.')
+  let dict = {
+        \ 'filetype': &filetype,
+        \ 'filename': expand('%:p'),
+        \ 'col': colnr,
+        \ 'lnum': lnum,
+        \ 'content': join(getline(1, '$'), "\n"),
+        \}
+  return dict
+endfunction
+
+function! coc#util#jump_to(filepath, lnum, col) abort
+  let lnum = a:lnum + 1
+  let col = a:col + 1
+  if a:filepath ==# expand('%:p')
+    normal! m`
+    call cursor(lnum, col)
+  else
+    execute 'edit +call\ cursor('.lnum.','.col.') '.substitute(a:filepath, '\s', '\\ ', 'g')
+  endif
 endfunction

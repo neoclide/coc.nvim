@@ -15,7 +15,7 @@ function! coc#get_config(...)
 endfunction
 
 function! coc#refresh() abort
-    return pumvisible() ? "\<c-e>\<c-r>=coc#start()\<CR>" : "\<c-r>=coc#start()\<CR>"
+    return pumvisible() ? "\<c-y>\<c-r>=coc#start()\<CR>" : "\<c-r>=coc#start()\<CR>"
 endfunction
 
 function! coc#_complete() abort

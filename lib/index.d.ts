@@ -13,7 +13,6 @@ export default class CompletePlugin {
     cocBufUnload(args: any[]): Promise<void>;
     cocBufChange(args: any[]): Promise<void>;
     cocStart(args: [CompleteOption]): Promise<void>;
-    private onCompleteStart(opt, autoComplete, items);
     cocInsertCharPre(args: any[]): Promise<void>;
     cocInsertLeave(): Promise<void>;
     cocCompleteDone(args: any[]): Promise<void>;
@@ -25,7 +24,13 @@ export default class CompletePlugin {
     cocSourceToggle(args: any): Promise<string>;
     cocSourceRefresh(args: any): Promise<boolean>;
     cocFileTypeChange(args: any): Promise<void>;
+    cocShowSignature(args: any): Promise<void>;
+    cocShowType(): Promise<void>;
+    cocShowDoc(): Promise<void>;
+    cocJumpDefninition(): Promise<void>;
+    private callServiceFunc(func);
     private onFileType(filetype);
     private onBufferChange(bufnr);
     private initConfig();
+    private onCompleteStart(opt, autoComplete, items);
 }

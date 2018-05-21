@@ -1,6 +1,6 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../../types'
-import Source from '../../model/source'
+import ServiceSource from '../../model/source-service'
 import buffers from '../../buffers'
 import {echoWarning} from '../../util'
 import * as cp from 'child_process'
@@ -8,7 +8,7 @@ import which = require('which')
 const {spawn} = require('child_process')
 const logger = require('../../util/logger')('source-gocode')
 
-export default class Gocode extends Source {
+export default class Gocode extends ServiceSource {
   private disabled: boolean
   constructor(nvim: Neovim) {
     super(nvim, {

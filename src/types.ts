@@ -93,3 +93,11 @@ export interface SourceStat {
   disabled: boolean
   filepath: string
 }
+
+export interface QueryOption {
+  filetype: string
+  filename: string
+  content: string
+  col: number
+  lnum: number
+}

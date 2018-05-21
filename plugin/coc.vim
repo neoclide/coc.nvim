@@ -155,7 +155,7 @@ augroup coc_init
   autocmd user CocNvimInit call s:Enable()
 augroup end
 
-inoremap <silent> <expr> <Plug>(coc_start) coc#start()
+nnoremap <silent> <Plug>(coc-jump-definition) :call CocJumpDefinition()<CR>
 inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
 
 if has('vim_starting')

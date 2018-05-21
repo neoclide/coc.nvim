@@ -1,6 +1,7 @@
 import { VimCompleteItem } from '../types';
 import { Neovim } from 'neovim';
 export declare type Callback = (arg: number | string) => void;
+export declare function escapeSingleQuote(str: string): string;
 export declare function echoErr(nvim: Neovim, line: string): Promise<void>;
 export declare function echoWarning(nvim: Neovim, line: string): Promise<void>;
 export declare function echoErrors(nvim: Neovim, lines: string[]): Promise<void>;

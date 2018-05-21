@@ -73,6 +73,7 @@
     "minimatch": "^3.0.4",
     "neovim": "^4.0.1",
     "node-serial": "^0.1.1",
+    "opn": "^5.3.0",
     "pify": "^3.0.0",
     "resolve-from": "^4.0.0",
     "tern": "^0.21.0",

@@ -25,31 +25,37 @@ export default class IpcService extends EventEmitter {
 
   public start():void {
     if (this.running) return
-    this.child = cp.fork(this.modulePath, this.args, {
+    let {modulePath} = this
+    let child = this.child = cp.fork(this.modulePath, this.args, {
       cwd: this.cwd,
       stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
     })
     this.running = true
-    this.child.on('message', message => {
-      logger.debug(`ipc message: ${message}`)
+    child.stderr.on('data', str => {
+      logger.error(`${modulePath} error message: ${str}`)
+    })
+    child.stdout.on('data', str => {
+      logger.debug(`${modulePath} output message: ${str}`)
+    })
+    child.on('message', message => {
       this.emit('message', message)
     })
-    this.child.on('error', err => {
+    child.on('error', err => {
       logger.error(`service error ${err.message}`)
       logger.debug(`${err.stack}`)
       this.emit('error', err)
     })
-    this.child.on('exit', (code, signal) => {
+    child.on('exit', (code, signal) => {
       this.running = false
       if (code) {
         logger.error(`Service abnormal exit ${code}`)
       }
-      logger.debug(`${this.modulePath} exit with code ${code} and signal ${signal}`)
+      logger.debug(`${modulePath} exit with code ${code} and signal ${signal}`)
       this.emit('exit')
     })
   }
 
-  public request(data:{[index:string]: any}):Promise<VimCompleteItem[]> {
+  public request(data:{[index:string]: any}):Promise<any> {
     if (!this.running) return
     this.child.send(JSON.stringify(data))
     return new Promise((resolve, reject) => {
@@ -57,6 +63,7 @@ export default class IpcService extends EventEmitter {
         reject(new Error('Ipc service request time out'))
       }, 3000)
       this.once('message', msg => {
+        if (!msg) return resolve(null)
         resolve(JSON.parse(msg.toString()))
       })
     })

@@ -151,19 +151,13 @@ function startServer(dir, config) {
 
 let server = startServer(ROOT, genConfig())
 
-function complete(filename, line, col, content, callback) {
-  let query = {
-    type: 'completions',
-    types: true,
-    guess: false,
-    docs: true,
+// always send the file content, it's not optimized
+function doRequest(opt, extraOpts, callback) {
+  let {filename, line, col, content} = opt
+  let query = Object.assign({}, extraOpts, {
     file: '#0',
-    filter: true,
-    expandWordForward: false,
-    inLiteral: false,
     end: {line: line, ch: col},
-  }
-
+  })
   let file = {
     type: 'full',
     name: filename,
@@ -172,7 +166,62 @@ function complete(filename, line, col, content, callback) {
   let doc = {query: query, files: [file]}
   server.request(doc, function(err, res) {
     if (err) return callback(err)
-    let info = []
+    callback(null, res)
+  })
+}
+
+function doDefinition(opt) {
+  doRequest(opt, {
+    type: 'definition'
+  }, function (err, res) {
+    if (err) {
+      console.error(err.stack)
+      process.send('{}')
+      return
+    }
+    process.send(JSON.stringify(res))
+  })
+}
+
+function doType(opt) {
+  let extra = {
+    type: 'type',
+    preferFunction: opt.preferFunction || false
+  }
+  doRequest(opt, extra, function (err, res) {
+    if (err) {
+      console.error(err.stack)
+      process.send('{}')
+      return
+    }
+    process.send(JSON.stringify(res))
+  })
+}
+
+function doComplete(opt) {
+  let timeout = setTimeout(function () {
+    process.send(JSON.stringify([]))
+  }, 2000)
+  let extraOpts = {
+    type: 'completions',
+    types: true,
+    guess: false,
+    docs: true,
+    urls: true,
+    origins: true,
+    filter: true,
+    sort: false,
+    inLiteral: false,
+    caseInsensitive: true,
+    expandWordForward: false,
+  }
+  doRequest(opt, extraOpts, function (err, res) {
+    clearTimeout(timeout)
+    if (err) {
+      console.error(err.stack)
+      return
+    }
+    let items = []
     for (let i = 0; i < res.completions.length; i++) {
       let completion = res.completions[i]
       let comp = {word: completion.name, menu: completion.type}
@@ -183,24 +232,21 @@ function complete(filename, line, col, content, callback) {
       if (completion.doc) {
         comp.info = completion.doc
       }
-      info.push(comp)
+      items.push(comp)
     }
-    callback(null, info)
+    process.send(JSON.stringify(items || []))
   })
 }
 
 process.on('message', message => {
-  let {action, filename, line, col, content} = JSON.parse(message)
-  if (action == 'complete') {
-    let timeout = setTimeout(function () {
-      process.send(JSON.stringify([]))
-    }, 3000)
-    complete(filename, line, col, content, function (err, items) {
-      clearTimeout(timeout)
-      if (err) {
-        console.error(err.stack)
-      }
-      process.send(JSON.stringify(items || []))
-    })
+  let opt = JSON.parse(message)
+  if (opt.action == 'complete') {
+    doComplete(opt)
+  } else if (opt.action == 'type') {
+    doType(opt)
+  } else if (opt.action == 'definition') {
+    doDefinition(opt)
+  } else {
+    console.error(opt.action + ' not supported')
   }
 })

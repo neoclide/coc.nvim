@@ -1,6 +1,5 @@
 /// <reference types="node" />
 import EventEmitter = require('events');
-import { VimCompleteItem } from '../types';
 export declare type Callback = (msg: string) => void;
 export default class IpcService extends EventEmitter {
     modulePath: string;
@@ -14,6 +13,6 @@ export default class IpcService extends EventEmitter {
     start(): void;
     request(data: {
         [index: string]: any;
-    }): Promise<VimCompleteItem[]>;
+    }): Promise<any>;
     stop(): void;
 }
