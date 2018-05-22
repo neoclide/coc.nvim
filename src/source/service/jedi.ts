@@ -10,6 +10,8 @@ import * as cp from 'child_process'
 const logger = require('../../util/logger')('source-jedi')
 
 const execPath = path.join(ROOT, 'bin/jedi_server.py')
+const boolSettings = ['use_filesystem_cache', 'fast_parser',
+  'dynamic_params_for_other_modules', 'dynamic_array_additions', 'dynamic_params']
 
 export default class Jedi extends ServiceSource {
   private service:StdioService | null
@@ -26,7 +28,7 @@ export default class Jedi extends ServiceSource {
   }
 
   public async onInit(): Promise<void> {
-    let {command} = this.config
+    let {command, settings, preloads} = this.config
     try {
       cp.execSync(`${command} -c "import jedi"`)
     } catch (e) {
@@ -34,9 +36,27 @@ export default class Jedi extends ServiceSource {
       this.disabled = true
       return
     }
-    this.service = new StdioService(command, [execPath])
-    this.service.start()
-    logger.info('starting jedi server')
+    let service = this.service = new StdioService(command, [execPath])
+    service.start()
+    if (settings) {
+      for (let key of Object.keys(settings)) {
+        if (boolSettings.indexOf(key) !== -1) {
+          let val = settings[key]
+          settings[key] = !!val
+        }
+      }
+      await service.request(JSON.stringify({
+        action: 'settings',
+        settings
+      }))
+    }
+    if (preloads && preloads.length) {
+      await service.request(JSON.stringify({
+        action: 'preload',
+        modules: preloads
+      }))
+    }
+    logger.info('jedi server started')
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

@@ -26,9 +26,9 @@ export default class StdioService extends EventEmitter {
       detached: false
     })
     this.running = true
+    let {command} = this
     this.child.stderr.on('data', str => {
-      logger.error(str)
-      this.emit('error', str)
+      logger.error(`${command} error: ${str}`)
     })
     let msgs = ''
     this.child.stdout.on('data', msg => {

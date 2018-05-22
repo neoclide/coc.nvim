@@ -1,30 +1,33 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-
 import argparse
 import json
-import tempfile
-import logging
 import os.path
 import sys
+import jedi
 
-log_file = os.path.join(tempfile.gettempdir(), 'coc-jedi.log')
-logger = logging.getLogger('python-jedi')
-handler = logging.FileHandler(log_file, delay=1)
-handler.setLevel(logging.INFO)
-handler.setFormatter(logging.Formatter(
-    '%(asctime)s [%(levelname)s][%(module)s] %(message)s'))
-logger.addHandler(handler)
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
 
 def write(msg):
     print(msg + '\nEND')
     sys.stdout.flush()
 
+def set_settings(args):
+    settings = args['settings']
+    for attr, value in settings.items():
+        setattr(jedi.settings, attr, value)
+    write('ok')
+
+def preload_module(args):
+    modules = args['modules']
+    jedi.preload_module(modules)
+    write('ok')
+
 
 def process_request(args):
-    import jedi
     script = jedi.Script(source=args['content'], line=args['line'],
                          column=args['col'], path=args['filename'])
 
@@ -62,7 +65,6 @@ def process_request(args):
                 'func': s.call_name,
                 'index': s.index or 0
             }
-            logger.info(str(item))
             data.append(item)
     write(json.dumps(data))
 
@@ -79,31 +81,24 @@ def run():
     """
     while True:
         data = sys.stdin.readline()
-        logger.info(data)
 
         try:
             args = json.loads(data)
+            if args['action'] == 'settings':
+                set_settings(args)
+            elif args['action'] == 'preload':
+                preload_module(args)
+            else:
+                process_request(args)
         except Exception as e:
-            logger.exception(e)
+            eprint(e)
             continue
 
-        try:
-            process_request(args)
-        except Exception as e:
-            logger.exception(e)
-            write(json.dumps([]))
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-v', '--verbose', action='store_true')
-    args = parser.parse_args()
-
-    class Filter(object):
-        def filter(self, record):
-            return args.verbose
-
-    logger.addFilter(Filter())
     run()
 
 
