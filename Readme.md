@@ -92,7 +92,7 @@ COC have service support for some languages, compare to the using of `omnifunc`,
 they run in async and could have extra functionalities.
 
 <details>
-  <summary>Source <strong>tern</strong> for Javascript</summary>
+  <summary><strong>tern</strong> for Javascript</summary>
 
   Using <a href="https://github.com/ternjs/tern">tern</a> as engine, no extra installation
   required.
@@ -103,7 +103,7 @@ they run in async and could have extra functionalities.
 </details>
 
 <details>
-  <summary>Source <strong>jedi</strong> for Python</summary>
+  <summary><strong>jedi</strong> for Python</summary>
 
   Using <a href="https://jedi.readthedocs.io/">jedi</a> as engine, install `jedi` module by:
 
@@ -115,7 +115,7 @@ they run in async and could have extra functionalities.
 </details>
 
 <details>
-  <summary>Source <strong>gocode</strong> for Go</summary>
+  <summary><strong>gocode</strong> for Go</summary>
 
   Using <a href="https://github.com/mdempsky/gocode">gocode</a> as engine,
   checkout <a href="https://github.com/mdempsky/gocode#setup">setup of gocode</a> for installation.
@@ -124,7 +124,7 @@ they run in async and could have extra functionalities.
 </details>
 
 <details>
-  <summary>Source <strong>racer</strong> for Rust</summary>
+  <summary><strong>racer</strong> for Rust</summary>
 
   Using <a href="https://github.com/racer-rust/racer">racer</a> as engine,
   checkout <a href="https://github.com/racer-rust/racer#installation">setup of racer</a> for installation.

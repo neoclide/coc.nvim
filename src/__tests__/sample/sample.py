@@ -1,2 +1,7 @@
+import jedi
 import datetime
-datetime.datetime_CAPI
+
+
+jedi.preload_module(['a'])
+
+s = 'abc'

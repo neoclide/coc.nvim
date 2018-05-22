@@ -1,6 +1,9 @@
 import path = require('path')
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../../types'
+import {
+  QueryOption,
+  CompleteOption,
+  CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
@@ -23,18 +26,27 @@ export default class Jedi extends ServiceSource {
       priority: 8,
       filetypes: ['python'],
       command: 'python',
+      showSignature: true,
+      bindKeywordprg: true,
     })
     this.disabled = false
   }
 
   public async onInit(): Promise<void> {
-    let {command, settings, preloads} = this.config
+    let {command, showSignature, bindKeywordprg, settings, preloads} = this.config
+    let {nvim} = this
     try {
       cp.execSync(`${command} -c "import jedi"`)
     } catch (e) {
-      await echoWarning(this.nvim, `${command} could not import jedi`)
+      await echoWarning(nvim, `${command} could not import jedi`)
       this.disabled = true
       return
+    }
+    if (bindKeywordprg) {
+      await nvim.command('setl keywordprg=:CocShowDoc')
+    }
+    if (showSignature) {
+      await nvim.command('autocmd CursorHold,CursorHoldI <buffer> :call CocShowSignature()')
     }
     let service = this.service = new StdioService(command, [execPath])
     service.start()
@@ -96,6 +108,76 @@ export default class Jedi extends ServiceSource {
           menu: item.menu ? `${item.menu} ${menu}` : menu
         }
       })
+    }
+  }
+
+  public async showDocuments(query:QueryOption):Promise<void> {
+    let {filename, lnum, col, content} = query
+    let result = await this.service.request(JSON.stringify({
+      action: 'doc',
+      line: lnum,
+      col,
+      filename,
+      content
+    }))
+    if (result) {
+      let texts:string[] = JSON.parse(result)
+      if (texts.length) {
+        await this.previewMessage(texts.join('\n'))
+      } else {
+        await this.echoMessage('Not found')
+      }
+    }
+  }
+
+  public async jumpDefinition(query:QueryOption):Promise<void> {
+    let {filename, lnum, col, content} = query
+    let result = await this.service.request(JSON.stringify({
+      action: 'definition',
+      line: lnum,
+      col,
+      filename,
+      content
+    }))
+    let list = JSON.parse(result)
+    if (list.length == 1) {
+      let {lnum, filename, col} = list[0]
+      await this.nvim.call('coc#util#jump_to', [filename, lnum - 1, col - 1])
+    } else {
+      let msgs = list.map(o => `${o.filename}:${o.lnum}:${col}`)
+      let n = await this.promptList(msgs)
+      let idx = parseInt(n, 10)
+      if (idx && list[idx - 1]) {
+        let {lnum, filename, col} = list[idx - 1]
+        await this.nvim.call('coc#util#jump_to', [filename, lnum - 1, col - 1])
+      }
+    }
+  }
+
+  public async showSignature(query:QueryOption):Promise<void> {
+    let {filename, lnum, col, content} = query
+    let line = await this.nvim.call('getline', ['.'])
+    let before = line.slice(0, col)
+    let after = line.slice(col)
+    if (col <= 1) return
+    if (/\.\w+$/.test(before) && /\w*\(/.test(after)) {
+      col = col + after.indexOf('(') + 1
+    }
+    let result = await this.service.request(JSON.stringify({
+      action: 'signature',
+      line: lnum,
+      col,
+      filename,
+      content
+    }))
+    try {
+      let list = JSON.parse(result)
+      let lines = list.map(item => {
+        return `${item.func}(${item.params.join(',')})`
+      })
+      await this.echoLines(lines)
+    } catch (e) {
+      await this.echoMessage('Not found')
     }
   }
 }

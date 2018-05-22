@@ -1,7 +1,6 @@
 import { Neovim } from 'neovim';
-import { CompleteOption, CompleteResult } from '../../types';
+import { QueryOption, CompleteOption, CompleteResult } from '../../types';
 import ServiceSource from '../../model/source-service';
-import { QueryOption } from '../../types';
 export default class Tern extends ServiceSource {
     private service;
     private root;

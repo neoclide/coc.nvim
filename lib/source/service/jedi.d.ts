@@ -1,5 +1,5 @@
 import { Neovim } from 'neovim';
-import { CompleteOption, CompleteResult } from '../../types';
+import { QueryOption, CompleteOption, CompleteResult } from '../../types';
 import ServiceSource from '../../model/source-service';
 export default class Jedi extends ServiceSource {
     private service;
@@ -8,4 +8,7 @@ export default class Jedi extends ServiceSource {
     onInit(): Promise<void>;
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
+    showDocuments(query: QueryOption): Promise<void>;
+    jumpDefinition(query: QueryOption): Promise<void>;
+    showSignature(query: QueryOption): Promise<void>;
 }

@@ -8,9 +8,29 @@ export default abstract class ServiceSource extends Source{
     return this.nvim.call('coc#util#preview_info', [msg])
   }
 
-  protected async echoMessage(line):Promise<void> {
+  protected async echoMessage(line:string):Promise<void> {
     let {nvim} = this
     await nvim.command(`echohl MoreMsg | echomsg '${escapeSingleQuote(line)}' | echohl None"`)
+  }
+
+  protected async promptList(items:string[]):Promise<string> {
+    let msgs = ['Choose by number:']
+    msgs = msgs.concat(items.map((str, index) => {
+      return `${index + 1}) ${str}`
+    }))
+    return await this.nvim.call('input', [msgs.join('\n') + '\n'])
+  }
+
+  protected async echoLines(lines:string[]):Promise<void> {
+    let {nvim} = this
+    let cmdHeight = (await nvim.getOption('cmdheight') as number)
+    if (lines.length > cmdHeight) {
+      lines = lines.slice(0, cmdHeight)
+      let last = lines[cmdHeight - 1]
+      lines[cmdHeight - 1] = `${last} ...`
+    }
+    let str = lines.join('\\n').replace(/"/g, '\\"')
+    await nvim.command(`echo "${str}"`)
   }
 
   public async findType(query:QueryOption):Promise<void> {

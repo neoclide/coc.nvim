@@ -59,10 +59,10 @@ def process_request(args):
             data.append(d.docstring(fast=False).strip())
     elif args['action'] == 'signature':
         for s in script.call_signatures():
-            params = [p.description.replace('\n', '')[6:] for p in s.params]
+            params = [p.description.rstrip()[6:] for p in s.params]
             item = {
                 'params': params,
-                'func': s.call_name,
+                'func': s.name,
                 'index': s.index or 0
             }
             data.append(item)

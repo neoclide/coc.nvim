@@ -2,7 +2,9 @@ import Source from './source';
 import { QueryOption } from '../types';
 export default abstract class ServiceSource extends Source {
     protected previewMessage(msg: string): Promise<void>;
-    protected echoMessage(line: any): Promise<void>;
+    protected echoMessage(line: string): Promise<void>;
+    protected promptList(items: string[]): Promise<string>;
+    protected echoLines(lines: string[]): Promise<void>;
     findType(query: QueryOption): Promise<void>;
     showDocuments(query: QueryOption): Promise<void>;
     jumpDefinition(query: QueryOption): Promise<void>;

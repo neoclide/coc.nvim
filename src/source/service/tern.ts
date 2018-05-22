@@ -1,10 +1,12 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../../types'
+import {
+  QueryOption,
+  CompleteOption,
+  CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
 import IpcService from '../../model/ipcService'
 import {ROOT} from '../../constant'
 import buffers from '../../buffers'
-import {QueryOption} from '../../types'
 import path = require('path')
 import {echoWarning, escapeSingleQuote} from '../../util'
 import findRoot = require('find-root')
@@ -125,7 +127,6 @@ export default class Tern extends ServiceSource {
     } else {
       await this.echoMessage('Not found')
     }
-    logger.debug(JSON.stringify(res))
   }
 
   public async jumpDefinition(query:QueryOption):Promise<void> {
@@ -175,7 +176,7 @@ export default class Tern extends ServiceSource {
       })
       let t = res.type
       if (t && /^fn/.test(t)) {
-        await nvim.command('redraw!')
+        await nvim.command('echo ""')
         await nvim.command(`echo '${escapeSingleQuote(fname + ': ' + t)}'`)
         return
       }

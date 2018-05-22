@@ -43,7 +43,7 @@ export default class Racer extends ServiceSource {
       try {
         which.sync('racer')
       } catch (e) {
-        await echoWarning(this.nvim, 'Could not find gocode in $PATH')
+        await echoWarning(this.nvim, 'Could not find racer in $PATH')
         this.disabled = true
         return
       }
