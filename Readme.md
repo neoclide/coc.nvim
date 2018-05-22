@@ -89,39 +89,48 @@ neco           |VimL completion            |vim          | Install [neco-vim](ht
 ### Language sources
 
 COC have service support for some languages, compare to the using of `omnifunc`,
-they run in async and just works.
+they run in async and could have extra functionalities.
 
-**Javascript**
+<details>
+  <summary>Source <strong>tern</strong> for Javascript</summary>
 
-Using [tern](https://github.com/ternjs/tern) as engine, no extra installation
-required.
+  Using <a href="https://github.com/ternjs/tern">tern</a> as engine, no extra installation
+  required.
 
-Tern source also have support for `show documents`, `jump to definition` and
-`show signature`.
+  Addtional support: `show documents`, `jump to definition` and `show signature`.
 
-Run command `:h coc_source_tern` for detail.
+  Use `:h coc_source_tern` in vim for detail.
+</details>
 
-**Python**
+<details>
+  <summary>Source <strong>jedi</strong> for Python</summary>
 
-Using [jedi](https://jedi.readthedocs.io/) as engine.
+  Using <a href="https://jedi.readthedocs.io/">jedi</a> as engine, install `jedi` module by:
 
-Install `jedi` module by:
+      pip install jedi
 
-    pip install jedi
+  Addtional support: `show documents`, `jump to definition` and `show signature`.
 
-**Go**
+  Use `:h coc_source_jedi` in vim for detail.
+</details>
 
-Using [gocode](https://github.com/mdempsky/gocode) as engine.
+<details>
+  <summary>Source <strong>gocode</strong> for Go</summary>
 
-See [Setup of gocode](https://github.com/mdempsky/gocode#setup) for installation
-detail.
+  Using <a href="https://github.com/mdempsky/gocode">gocode</a> as engine,
+  checkout <a href="https://github.com/mdempsky/gocode#setup">setup of gocode</a> for installation.
 
-**Rust**
+  Use `:h coc_source_gocode` in vim for detail.
+</details>
 
-Using [racer](https://github.com/racer-rust/racer) as engine.
+<details>
+  <summary>Source <strong>racer</strong> for Rust</summary>
 
-See [Setup of racer](https://github.com/racer-rust/racer#installation) for
-installation detail.
+  Using <a href="https://github.com/racer-rust/racer">racer</a> as engine,
+  checkout <a href="https://github.com/racer-rust/racer#installation">setup of racer</a> for installation.
+
+  Use `:h coc_source_racer` in vim for detail.
+</details>
 
 ## Configuration
 
