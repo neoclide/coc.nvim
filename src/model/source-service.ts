@@ -4,6 +4,17 @@ import {echoWarning, escapeSingleQuote} from '../util/index'
 
 export default abstract class ServiceSource extends Source{
 
+  protected async bindEvents():Promise<void> {
+    let {nvim} = this
+    let {showSignature, bindKeywordprg, signatureEvents} = this.config
+    if (bindKeywordprg) {
+      await nvim.command('setl keywordprg=:CocShowDoc')
+    }
+    if (showSignature && signatureEvents && signatureEvents.length) {
+      await nvim.command(`autocmd ${signatureEvents.join(',')} <buffer> :call CocShowSignature()`)
+    }
+  }
+
   protected async previewMessage(msg:string):Promise<void> {
     return this.nvim.call('coc#util#preview_info', [msg])
   }
@@ -33,9 +44,9 @@ export default abstract class ServiceSource extends Source{
     await nvim.command(`echo "${str}"`)
   }
 
-  public async findType(query:QueryOption):Promise<void> {
+  public async showDefinition(query:QueryOption):Promise<void> {
     let {nvim, name} = this
-    await echoWarning(nvim, `find type not supported by ${name}`)
+    await echoWarning(nvim, `show definition not supported by ${name}`)
   }
 
   public async showDocuments(query:QueryOption):Promise<void> {

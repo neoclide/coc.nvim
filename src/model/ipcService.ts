@@ -6,15 +6,22 @@ const logger = require('../util/logger')('model-child')
 
 export type Callback = (msg:string) => void
 
+/**
+ * IpcService for commnucate with another nodejs process
+ * @public
+ *
+ * @extends {EventEmitter}
+ */
 export default class IpcService extends EventEmitter {
   private cb:Callback
   private child:ChildProcess
   private running:boolean
 
-  constructor(public modulePath:string, public cwd:string, public args?:string[]) {
+  constructor(public modulePath:string, public cwd:string, public execArgv:string[], public args:string[]) {
     super()
     this.modulePath = modulePath
     this.args = args || []
+    this.execArgv = execArgv
     this.cwd = cwd
     this.cb = () => { } // tslint:disable-line
   }
@@ -28,6 +35,7 @@ export default class IpcService extends EventEmitter {
     let {modulePath} = this
     let child = this.child = cp.fork(this.modulePath, this.args, {
       cwd: this.cwd,
+      execArgv: this.execArgv,
       stdio: [ 'pipe', 'pipe', 'pipe', 'ipc' ]
     })
     this.running = true

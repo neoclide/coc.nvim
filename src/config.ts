@@ -11,6 +11,7 @@ let config: Config = {
   hasUserData: false,
   incrementHightlight: false,
   noSelect: false,
+  signatureEvents: ['CursorHold'],
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
@@ -36,6 +37,9 @@ export function setConfig(opts: {[index: string]: any}):void {
       for (let name of Object.keys(val)) {
         configSource(name, val[name])
       }
+    }
+    if (key === 'signatureEvents' && Array.isArray(key)) {
+      config.signatureEvents = opts[key]
     }
   }
   logger.debug(`config:${JSON.stringify(config)}`)

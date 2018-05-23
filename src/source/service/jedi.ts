@@ -111,6 +111,10 @@ export default class Jedi extends ServiceSource {
     }
   }
 
+//   public async showDefinition(query:QueryOption):Promise<void> {
+// 
+//   }
+
   public async showDocuments(query:QueryOption):Promise<void> {
     let {filename, lnum, col, content} = query
     let result = await this.service.request(JSON.stringify({

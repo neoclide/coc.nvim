@@ -1,13 +1,17 @@
 import { Neovim } from 'neovim'
-import {getConfig} from '../config'
-import {getSourceConfig} from '../config'
+import {
+  getConfig,
+  getSourceConfig} from '../config'
 import {fuzzyChar} from '../util/fuzzy'
+import {toBool} from '../util'
 import {SourceOption,
   SourceConfig,
   VimCompleteItem,
   CompleteOption,
+  FilterType,
   CompleteResult} from '../types'
 const logger = require('../util/logger')('model-source')
+const boolOptions = ['engross', 'noinsert, firstmatch']
 
 export default abstract class Source {
   public readonly name: string
@@ -22,18 +26,24 @@ export default abstract class Source {
     this.nvim = nvim
     this.optionalFns = optionalFns || []
     this.name = name
-    ;['engross', 'noinsert', 'firstMatch'].forEach(name => {
-      option[name] = option[name] == '0' ? false : !!option[name]
-    })
+    for (let key of boolOptions) {
+      if (option.hasOwnProperty(key)) {
+        option[key] = toBool(option[key])
+      }
+    }
     // user options
     let opt = getSourceConfig(name) || {}
     this.config = Object.assign({
       shortcut: name.slice(0, 3),
       priority: 0,
-      engross: false,
       filetypes: null,
+      engross: false,
       noinsert: false,
-      firstMatch: false
+      firstMatch: false,
+      filterAbbr: false,
+      showSignature: true,
+      bindKeywordprg: true,
+      signatureEvents: getConfig('signatureEvents'),
     }, option, opt)
     if (only) this.config.priority = 0
   }
@@ -44,6 +54,11 @@ export default abstract class Source {
 
   public get noinsert():boolean {
     return !!this.config.noinsert
+  }
+
+  public get filter():FilterType {
+    let {filterAbbr} = this.config
+    return filterAbbr ? 'abbr' : 'word'
   }
 
   public get firstMatch():boolean {

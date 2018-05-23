@@ -10,8 +10,6 @@ import natives from './natives'
 import remotes from './remotes'
 const logger = require('./util/logger')('completes')
 
-const VALID_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()[]{}-_=+\\|~`\'":;<,>.?/'.split(/\s*/)
-
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
@@ -85,9 +83,12 @@ export class Completes {
     let res = []
     if (!this.complete) return
     for (let item of items) {
-      let s = item.abbr ? item.abbr : item.word
+      let user_data = JSON.parse(item.user_data)
+      let s = user_data.filter == 'abbr' ? item.abbr : item.word
       for (let i = 0, l = s.length; i < l; i++) {
         let code = s.charCodeAt(i)
+        // not supported for filter
+        if (code > 256) continue
         if (res.indexOf(code) === -1) {
           res.push(code)
         }

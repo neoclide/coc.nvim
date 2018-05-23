@@ -26,25 +26,22 @@ export default class Tern extends ServiceSource {
       shortcut: 'TERN',
       priority: 8,
       filetypes: ['javascript'],
+      // path of tern module
       ternRoot,
-      showSignature: true,
-      bindKeywordprg: true,
+      // debug port for node
+      debugPort: null,
     })
   }
 
   public async onInit():Promise<void> {
-    let {ternRoot, showSignature, bindKeywordprg} = this.config
+    let {ternRoot, debugPort, showSignature, bindKeywordprg} = this.config
     let {nvim} = this
     let cwd = await nvim.call('getcwd')
     let root = this.root = this.findProjectRoot(cwd)
-    this.service = new IpcService(modulePath, root, [ternRoot])
+    let execArgv = debugPort ? [`--inspect=${debugPort}`] : []
+    this.service = new IpcService(modulePath, root, execArgv,[ternRoot])
     this.service.start()
-    if (showSignature) {
-      await nvim.command('autocmd CursorHold,CursorHoldI <buffer> :call CocShowSignature()')
-    }
-    if (bindKeywordprg) {
-      await nvim.command('setl keywordprg=:CocShowDoc')
-    }
+    await this.bindEvents()
     logger.info('starting tern server')
   }
 
@@ -92,7 +89,7 @@ export default class Tern extends ServiceSource {
     }
   }
 
-  public async findType(query:QueryOption):Promise<void> {
+  public async showDefinition(query:QueryOption):Promise<void> {
     let {nvim} = this
     let {filename, lnum, col, content} = query
     let res = await this.service.request({
@@ -102,7 +99,8 @@ export default class Tern extends ServiceSource {
       col,
       content
     })
-    let msg = `${res.name||''}: ${res.type}`
+    let {exprName, name} = res
+    let msg = `${exprName || name || ''}: ${res.type}`
     await this.echoMessage(msg)
   }
 

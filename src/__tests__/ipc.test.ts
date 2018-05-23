@@ -9,7 +9,7 @@ describe('child model test', () => {
   beforeAll(() => {
     const file = path.resolve(__dirname, '../../bin/tern.js')
     const ternRoot = path.join(ROOT, 'node_modules/tern')
-    ch = new IpcService(file, process.cwd(), [ternRoot])
+    ch = new IpcService(file, process.cwd(), [], [ternRoot])
     ch.start()
   })
 

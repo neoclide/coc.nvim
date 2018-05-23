@@ -10,6 +10,14 @@ const ternRoot = process.argv[2]
 const tern = require(ternRoot)
 const ROOT = process.cwd()
 
+function getKind(type) {
+  if (type === 'function') return 'f'
+  if (type === 'number') return 'n'
+  if (type === 'boolean') return 'b'
+  if (type === 'string') return 's'
+  return type
+}
+
 function genConfig() {
   let defaultConfig = {
     libs: [],
@@ -224,10 +232,18 @@ function doComplete(opt) {
     let items = []
     for (let i = 0; i < res.completions.length; i++) {
       let completion = res.completions[i]
-      let comp = {word: completion.name, menu: completion.type}
+      let comp = { word: completion.name }
+      let type = completion.type
+      if (type.slice(0, 3) == 'fn(') {
+        comp.abbr = comp.word + type.slice(2)
+        comp.kind = 'f'
+      } else {
+        comp.abbr = comp.word
+        comp.kind = getKind(type)
+      }
 
       if (completion.guess) {
-        comp.menu += ' ' + completion.guess
+        comp.menu = completion.guess
       }
       if (completion.doc) {
         comp.info = completion.doc

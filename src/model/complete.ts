@@ -58,6 +58,7 @@ export default class Complete {
           || result.startcol && result.startcol != col) {
           result.engross = true
         }
+        result.filter = source.filter
         result.only = isOnly
         result.source = source.name
         result.firstMatch = firstMatch
@@ -96,12 +97,13 @@ export default class Complete {
     let count = 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
+      let filterField = res.filter || 'word'
       let {items, source, noinsert, firstMatch} = res
       if (firstMatch && input.length == 0) break
       if (count != 0 && source == only) break
       for (let item of items) {
         let {word, abbr, user_data} = item
-        let verb = abbr ? abbr : word
+        let verb = filterField == 'abbr' ? abbr: word
         let data = {}
         if (input.length && !filter(input, verb)) continue
         if (user_data) {
@@ -109,7 +111,7 @@ export default class Complete {
             data = JSON.parse(user_data)
           } catch (e) {} // tslint:disable-line
         }
-        data = Object.assign(data, { cid: id, source })
+        data = Object.assign(data, { cid: id, source, filter: filterField })
         item.user_data = JSON.stringify(data)
         if (noinsert) item.noinsert = true
         if (fuzzy) item.score = score(verb, input) + this.getBonusScore(input, item)

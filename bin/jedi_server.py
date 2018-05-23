@@ -7,9 +7,22 @@ import os.path
 import sys
 import jedi
 
+typeMap = {
+        'function': 'F',
+        'module': 'M',
+        'boolean': 'b',
+        'int': 'i',
+        'float': 'f',
+        'string': 's',
+        'lambda': 'F',
+        'method': 'F',
+        'tuple': 't',
+        'list': 'l',
+        'dict': 'd',
+        }
+
 def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
-
 
 def write(msg):
     print(msg + '\nEND')
@@ -26,6 +39,10 @@ def preload_module(args):
     jedi.preload_module(modules)
     write('ok')
 
+def get_menu(item):
+    # TODO get menu for complete item
+    params = [p.description.rstrip()[6:] for p in s.params]
+
 
 def process_request(args):
     script = jedi.Script(source=args['content'], line=args['line'],
@@ -37,22 +54,32 @@ def process_request(args):
             res = {
                 'word': c.name,
                 'abbr': c.name_with_symbols,
+                'kind': typeMap.get(c.type, c.type),
                 'menu': c.description,
                 'info': c.docstring(),
             }
             data.append(res)
-    elif args['action'] == 'definition':
+    elif args['action'] == 'info':
         for d in script.goto_assignments(follow_imports=True):
             item = {'text': d.description}
             if d.in_builtin_module():
                 item['text'] = 'Builtin {}'.format(item['text'])
             else:
                 item.update({
-                    'filename': d.module_path,
-                    'lnum': d.line,
-                    'col': d.column + 1,
-                    'name': d.name,
+                    'type': d.type,
+                    'full_name': d.full_name,
+                    'docstring': d.docstring(),
                 })
+            data.append(item)
+    elif args['action'] == 'definition':
+        item = {}
+        for d in script.goto_assignments(follow_imports=True):
+            item.update({
+                'filename': d.module_path,
+                'lnum': d.line,
+                'col': d.column + 1,
+                'name': d.name,
+            })
             data.append(item)
     elif args['action'] == 'doc':
         for d in script.goto_assignments(follow_imports=True):

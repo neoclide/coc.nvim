@@ -106,3 +106,8 @@ export function getPort(port = 44877):Promise<number> {
     })
   })
 }
+
+export function toBool(s:number|string|boolean):boolean {
+  if (s == '0') return false
+  return !!s
+}

@@ -1,5 +1,5 @@
 import { Neovim } from 'neovim';
-import { SourceOption, SourceConfig, VimCompleteItem, CompleteOption, CompleteResult } from '../types';
+import { SourceOption, SourceConfig, VimCompleteItem, CompleteOption, FilterType, CompleteResult } from '../types';
 export default abstract class Source {
     readonly name: string;
     readonly config: SourceConfig;
@@ -8,6 +8,7 @@ export default abstract class Source {
     constructor(nvim: Neovim, option: SourceOption);
     readonly priority: number;
     readonly noinsert: boolean;
+    readonly filter: FilterType;
     readonly firstMatch: boolean;
     readonly isOnly: boolean;
     readonly engross: boolean;

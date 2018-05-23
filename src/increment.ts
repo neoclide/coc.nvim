@@ -116,8 +116,7 @@ export default class Increment {
     // if vim find match, no TextChangeI would fire
     // we have to disable this behavior by
     // send <C-e> to hide the popup
-    let visible = await this.nvim.call('pumvisible')
-    if (visible) await this.nvim.call('coc#_hide')
+    await this.nvim.call('coc#_hide')
   }
 
   // keep other options
@@ -125,6 +124,7 @@ export default class Increment {
     let opt = getConfig('completeOpt')
     let useNoSelect = getConfig('noSelect')
     let parts = opt.split(',')
+    // longest & menu can't work with increment search
     parts.filter(s => s != 'menu' && s != 'longest')
     if (parts.indexOf('menuone') === -1) {
       parts.push('menuone')

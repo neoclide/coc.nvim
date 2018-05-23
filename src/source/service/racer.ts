@@ -17,7 +17,7 @@ const logger = require('../../util/logger')('source-racer')
 
 const typeMap = {
   Struct: 'S', Module: 'M', Function: 'F',
-  Crate: 'C',  Let: 'V',    StructField: 'M',
+  Crate: 'C',  Let: 'V',    StructField: 'm',
   Impl: 'I',   Enum: 'E',   EnumVariant: 'E',
   Type: 't',   FnArg: 'v',  Trait: 'T',
   Const: 'c'

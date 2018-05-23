@@ -5,6 +5,7 @@ export interface SourceConfig {
     engross: boolean;
     filetypes: string[] | null;
     noinsert: boolean;
+    filterAbbr: boolean;
     firstMatch: boolean;
     [index: string]: any;
 }
@@ -17,7 +18,11 @@ export interface SourceOption {
     optionalFns?: string[];
     only?: boolean;
     noinsert?: boolean;
+    filterAbbr?: boolean;
     firstMatch?: boolean;
+    showSignature?: boolean;
+    bindKeywordprg?: boolean;
+    signatureEvents?: string[];
     [index: string]: any;
 }
 export interface RecentScore {
@@ -53,6 +58,7 @@ export interface VimCompleteItem {
     score?: number;
     noinsert?: boolean;
 }
+export declare type FilterType = 'abbr' | 'word';
 export interface CompleteResult {
     items: VimCompleteItem[];
     engross?: boolean;
@@ -61,6 +67,7 @@ export interface CompleteResult {
     noinsert?: boolean;
     only?: boolean;
     firstMatch?: boolean;
+    filter?: FilterType;
 }
 export interface Config {
     hasUserData: boolean;
@@ -74,6 +81,7 @@ export interface Config {
     sources: {
         [index: string]: Partial<SourceConfig>;
     };
+    signatureEvents: string[];
 }
 export interface SourceStat {
     name: string;

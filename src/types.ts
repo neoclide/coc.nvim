@@ -7,6 +7,7 @@ export interface SourceConfig {
   engross: boolean
   filetypes: string[] | null
   noinsert: boolean
+  filterAbbr: boolean
   // remote source only
   firstMatch: boolean
   [index: string]: any
@@ -22,8 +23,12 @@ export interface SourceOption {
   optionalFns?: string[]
   only?: boolean
   noinsert?: boolean
+  filterAbbr?: boolean
   // remote source only
   firstMatch?: boolean
+  showSignature?:boolean
+  bindKeywordprg?:boolean
+  signatureEvents?:string[]
   [index: string]: any
 }
 
@@ -65,6 +70,8 @@ export interface VimCompleteItem {
   noinsert?: boolean
 }
 
+export type FilterType = 'abbr' | 'word'
+
 export interface CompleteResult {
   items: VimCompleteItem[]
   engross?: boolean
@@ -73,6 +80,7 @@ export interface CompleteResult {
   noinsert?: boolean
   only?: boolean
   firstMatch?: boolean
+  filter?: FilterType
 }
 
 export interface Config {
@@ -85,6 +93,7 @@ export interface Config {
   incrementHightlight: boolean
   noSelect: boolean
   sources: {[index:string]: Partial<SourceConfig>}
+  signatureEvents: string[]
 }
 
 export interface SourceStat {

@@ -24,6 +24,7 @@ export default class Emoji extends Source {
       filetypes: [],
       engross: 1,
       noinsert: true,
+      filterAbbr: true,
     })
   }
 

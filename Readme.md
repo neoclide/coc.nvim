@@ -115,21 +115,21 @@ they run in async and could have extra functionalities.
 </details>
 
 <details>
-  <summary><strong>gocode</strong> for Go</summary>
-
-  Using <a href="https://github.com/mdempsky/gocode">gocode</a> as engine,
-  checkout <a href="https://github.com/mdempsky/gocode#setup">setup of gocode</a> for installation.
-
-  Use `:h coc_source_gocode` in vim for detail.
-</details>
-
-<details>
   <summary><strong>racer</strong> for Rust</summary>
 
   Using <a href="https://github.com/racer-rust/racer">racer</a> as engine,
   checkout <a href="https://github.com/racer-rust/racer#installation">setup of racer</a> for installation.
 
   Use `:h coc_source_racer` in vim for detail.
+</details>
+
+<details>
+  <summary><strong>gocode</strong> for Go</summary>
+
+  Using <a href="https://github.com/mdempsky/gocode">gocode</a> as engine,
+  checkout <a href="https://github.com/mdempsky/gocode#setup">setup of gocode</a> for installation.
+
+  Use `:h coc_source_gocode` in vim for detail.
 </details>
 
 ## Configuration
@@ -165,6 +165,7 @@ Name                        | Description                                       
 `g:coc_increment_highlight` | Enable highlight for increment search characters          | 0
 `g:coc_chars_guifg`         | Foreground color of user input in increment search        | white
 `g:coc_chars_guibg`         | Background color of user input in increment search        | magenta
+`g:coc_signature_events`    | Autocmd event names for showing function signature        | ['CursorHold']
 
 ### Commands
 

@@ -11,6 +11,7 @@ function! coc#get_config(...)
         \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
         \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null),
         \ 'noSelect': get(g:, 'coc_use_noselect', v:null),
+        \ 'signatureEvents': get(g:, 'coc_signature_events', v:null),
         \}
 endfunction
 
@@ -29,6 +30,7 @@ function! coc#_do_complete() abort
 endfunction
 
 function! coc#_hide() abort
+  if !pumvisible() | return | endif
   call feedkeys("\<C-e>", 'in')
 endfunction
 

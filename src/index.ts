@@ -320,9 +320,9 @@ export default class CompletePlugin {
     await this.callServiceFunc('showSignature')
   }
 
-  @Function('CocShowType', {sync:false})
+  @Function('CocShowDefinition', {sync:false})
   public async cocShowType():Promise<void> {
-    await this.callServiceFunc('findType')
+    await this.callServiceFunc('showDefinition')
   }
 
   @Command('CocShowDoc', {sync:false, nargs: '*'})

@@ -1,4 +1,3 @@
-
 let s:pattern = '\%(<sid>\|\w:\|&\)\?\k*$'
 
 function! coc#source#neco#init() abort
@@ -15,7 +14,7 @@ function! coc#source#neco#should_complete(opt) abort
   let ch = a:opt['line'][a:opt['col'] - 1]
   if ch ==# '"' || ch ==# "'" | return 0 | endif
   let synName = synIDattr(synID(a:opt['linenr'],a:opt['colnr'],1),"name")
-  if synName ==# 'vimString' | return 0 | endif
+  if synName ==# 'vimString' || synName ==# 'vimLineComment' | return 0 | endif
   return 1
 endfunction
 
@@ -42,24 +41,17 @@ function! s:Filter(input, items)
     if !empty(ch) && word[0] !=# ch
       continue
     endif
-    if word =~# '($'
-      let menu = substitute('fn('.item['abbr'][len(word):], ')\zs\s\w\+$', '', '')
-      call add(res, {
-            \ 'word': word[0:-2],
-            \ 'menu': menu,
-            \})
-    elseif word =~# '()$'
-      call add(res, {
-            \ 'word': word[0:-3],
-            \ 'menu': 'fn()',
-            \})
-    else
-      call add(res, {
-            \ 'word': word,
-            \ 'abbr': get(item, 'abbr', ''),
-            \ 'info': get(item, 'info', ''),
-            \})
-    endif
+    let o = {}
+    for [key, value] in items(item)
+      if key ==# 'word' && value =~# '($'
+        let o[key] = value[0:-2]
+      elseif key ==# 'word' && value =~# '()$'
+        let o[key] = value[0:-3]
+      else
+        let o[key] = value
+      endif
+    endfor
+    call add(res, o)
   endfor
   return res
 endfunction
