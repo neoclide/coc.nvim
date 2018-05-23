@@ -41,7 +41,6 @@ export default class Tern extends ServiceSource {
     let execArgv = debugPort ? [`--inspect=${debugPort}`] : []
     this.service = new IpcService(modulePath, root, execArgv,[ternRoot])
     this.service.start()
-    await this.bindEvents()
     logger.info('starting tern server')
   }
 

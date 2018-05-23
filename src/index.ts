@@ -352,7 +352,8 @@ export default class CompletePlugin {
     let disabled = getConfig('disabled')
     for (let name of names) {
       if (disabled.indexOf(name) === -1) {
-        await natives.getSource(this.nvim, name)
+        let source = await natives.getServiceSource(this.nvim, filetype)
+        if (source) await source.bindEvents()
       }
     }
   }

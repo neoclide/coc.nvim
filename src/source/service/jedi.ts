@@ -65,7 +65,6 @@ export default class Jedi extends ServiceSource {
         modules: preloads
       }))
     }
-    await this.bindEvents()
     logger.info('jedi server started')
   }
 
