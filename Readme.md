@@ -205,4 +205,6 @@ Note: Coc would disable itself when there is vim error during autocmd.
 
 ## LICENSE
 
-MIT
+This work is released under [The MIT License](https://opensource.org/licenses/MIT)
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)

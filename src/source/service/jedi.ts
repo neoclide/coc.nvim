@@ -8,13 +8,17 @@ import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import buffers from '../../buffers'
-import {echoWarning} from '../../util'
+import {echoWarning, toBool} from '../../util'
 import * as cp from 'child_process'
 const logger = require('../../util/logger')('source-jedi')
 
 const execPath = path.join(ROOT, 'bin/jedi_server.py')
-const boolSettings = ['use_filesystem_cache', 'fast_parser',
-  'dynamic_params_for_other_modules', 'dynamic_array_additions', 'dynamic_params']
+const boolSettings = [
+  'use_filesystem_cache',
+  'fast_parser',
+  'dynamic_params_for_other_modules',
+  'dynamic_array_additions',
+  'dynamic_params']
 
 export default class Jedi extends ServiceSource {
   private service:StdioService | null
@@ -42,19 +46,12 @@ export default class Jedi extends ServiceSource {
       this.disabled = true
       return
     }
-    if (bindKeywordprg) {
-      await nvim.command('setl keywordprg=:CocShowDoc')
-    }
-    if (showSignature) {
-      await nvim.command('autocmd CursorHold,CursorHoldI <buffer> :call CocShowSignature()')
-    }
     let service = this.service = new StdioService(command, [execPath])
     service.start()
     if (settings) {
       for (let key of Object.keys(settings)) {
         if (boolSettings.indexOf(key) !== -1) {
-          let val = settings[key]
-          settings[key] = !!val
+          settings[key] = toBool(settings[key])
         }
       }
       await service.request(JSON.stringify({
@@ -68,6 +65,7 @@ export default class Jedi extends ServiceSource {
         modules: preloads
       }))
     }
+    await this.bindEvents()
     logger.info('jedi server started')
   }
 
@@ -112,7 +110,6 @@ export default class Jedi extends ServiceSource {
   }
 
 //   public async showDefinition(query:QueryOption):Promise<void> {
-// 
 //   }
 
   public async showDocuments(query:QueryOption):Promise<void> {
