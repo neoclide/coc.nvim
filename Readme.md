@@ -9,6 +9,8 @@ specifications in [language server protocol](https://github.com/Microsoft/langua
 W.I.P.🐒
 
 ## Features
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
+
 
 * Async generate complete items in parallel.
 * Smart case fuzzy match with score by default.
@@ -206,3 +208,6 @@ Note: Coc would disable itself when there is vim error during autocmd.
 ## LICENSE
 
 MIT
+
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
