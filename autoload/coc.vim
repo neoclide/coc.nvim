@@ -49,13 +49,14 @@ function! coc#start()
   while l:start > 0 && line[l:start - 1] =~# '\k'
     let l:start -= 1
   endwhile
-  let input = line[l:start : pos[2] - 2]
+  let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+  let line = getline('.')
   let opt = {
         \ 'id': localtime(),
         \ 'changedtick': b:changedtick,
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
-        \ 'line': getline('.'),
+        \ 'line': line,
         \ 'buftype': &buftype,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
@@ -65,6 +66,7 @@ function! coc#start()
         \ 'col': l:start,
         \ 'linecount': line('$'),
         \ 'iskeyword': &iskeyword,
+        \ 'before': pos[2] == 1 ? '' : line[0:pos[2] - 2]
         \ }
   call CocStart(opt)
   return ''
