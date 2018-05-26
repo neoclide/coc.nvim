@@ -20,7 +20,7 @@ endfunction
 
 function! coc#source#neco#get_startcol(opt) abort
   let colnr = a:opt['colnr']
-  let part = a:opt['line'][0:colnr - 1]
+  let part = colnr == 1 ? '' : a:opt['line'][0:colnr-2]
   let col = necovim#get_complete_position(part)
   return col
 endfunction
