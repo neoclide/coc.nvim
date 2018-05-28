@@ -22,7 +22,6 @@ export default class Increment {
     input: Input | null | undefined;
     done: CompleteDone | null | undefined;
     lastInsert: InsertedChar | null | undefined;
-    option: CompleteOption | null | undefined;
     changedI: ChangedI | null | undefined;
     constructor(nvim: Neovim);
     stop(): Promise<void>;

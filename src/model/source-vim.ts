@@ -45,7 +45,7 @@ export default class VimSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let {col, id, input} = opt
+    let {col, id, input, line, colnr} = opt
     let startcol:number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       if (startcol < 0) return null
@@ -53,7 +53,13 @@ export default class VimSource extends Source {
       // invalid startcol
       if (isNaN(startcol) || startcol < 0) startcol = col
       if (startcol !== col) {
-        opt = Object.assign({}, opt, {col: startcol})
+        let buffer = Buffer.from(line, 'utf8')
+        input = buffer.slice(startcol, colnr - 1).toString()
+        opt = Object.assign({}, opt, {
+          col: startcol,
+          changed: col - startcol,
+          input
+        })
       }
     }
     await this.nvim.call('coc#remote#do_complete', [this.name, opt])
@@ -74,6 +80,7 @@ export default class VimSource extends Source {
     let res: CompleteResult = { items }
     if (startcol && startcol !== col && items.length != 0) {
       res.startcol = startcol
+      res.input = input
       res.engross = true
     }
     return res

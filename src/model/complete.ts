@@ -141,10 +141,16 @@ export default class Complete {
     })
     logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
 
+    // TODO engross source should contains items after filter
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
       if (engrossResult.startcol != null) {
         col = engrossResult.startcol
+        opts.col = col
+      }
+      // input may change or may not
+      if (engrossResult.input != null) {
+        opts.input = engrossResult.input
       }
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
@@ -167,7 +173,7 @@ export default class Complete {
     let {word, abbr, kind, info} = item
     let key = `${input.slice(0,3)}|${word}`
     let score = this.recentScores[key] || 0
-    score += kind ? 0.1 : 0
+    score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0
     score += info ? 0.001 : 0
     return score

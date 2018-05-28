@@ -31,7 +31,6 @@ export default class Increment {
   public input: Input | null | undefined
   public done: CompleteDone | null | undefined
   public lastInsert: InsertedChar | null | undefined
-  public option: CompleteOption | null | undefined
   public changedI: ChangedI | null | undefined
 
   constructor(nvim:Neovim) {
@@ -43,7 +42,7 @@ export default class Increment {
     if (!this.activted) return
     this.activted = false
     if (this.input) await this.input.clear()
-    this.done = this.input = this.option = this.changedI = null
+    this.done = this.input = this.changedI = null
     let completeOpt = getConfig('completeOpt')
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
@@ -73,7 +72,6 @@ export default class Increment {
   public async start(option:CompleteOption):Promise<void> {
     let {nvim, activted} = this
     if (activted) return
-    this.option = option
     let {linenr, colnr, input, col} = option
     this.changedI = {linenr, colnr, timestamp: Date.now()}
     let inputTarget = new Input(nvim, input, linenr, col)
@@ -139,10 +137,11 @@ export default class Increment {
   }
 
   public async onTextChangedI():Promise<boolean> {
-    let {option, activted, lastInsert, nvim} = this
+    let {activted, lastInsert, nvim} = this
     if (!activted) return false
     let [_, linenr, colnr] = await nvim.call('getcurpos', [])
-    if (linenr != option.linenr) {
+    let {option} = completes
+    if (!option || linenr != option.linenr) {
       await this.stop()
       return false
     }

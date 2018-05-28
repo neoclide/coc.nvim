@@ -53,6 +53,7 @@ export interface CompleteOption {
   linenr: number
   linecount: number
   iskeyword: string
+  moved?: number
   [index: string]: any
 }
 
@@ -81,6 +82,8 @@ export interface CompleteResult {
   only?: boolean
   firstMatch?: boolean
   filter?: FilterType
+  // new input if startcol not equal
+  input?: string
 }
 
 export interface Config {

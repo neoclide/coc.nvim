@@ -1,24 +1,17 @@
 // umask is blacklisted by node-client
-process.umask = ()=> {
+process.umask = () => {
   return 18
 }
-import { Plugin, Command, Function, Neovim } from 'neovim'
-import {
-  SourceStat,
-  CompleteOption,
-  QueryOption,
-  VimCompleteItem} from './types'
+import {Plugin, Command, Function, Neovim} from 'neovim'
+import {SourceStat, CompleteOption, QueryOption, VimCompleteItem} from './types'
 import {
   wait,
   echoErr,
   isCocItem,
   echoWarning,
-  contextDebounce} from './util/index'
-import {
-  setConfig,
-  toggleSource,
-  shouldAutoComplete,
-  getConfig} from './config'
+  contextDebounce
+} from './util/index'
+import {setConfig, toggleSource, shouldAutoComplete, getConfig} from './config'
 import buffers from './buffers'
 import completes from './completes'
 import remotes from './remotes'
@@ -26,17 +19,14 @@ import natives from './natives'
 import remoteStore from './remote-store'
 import Increment from './increment'
 import {MAX_CODE_LINES} from './constant'
-import {
-  serviceMap,
-  supportedTypes
-} from './source/service'
+import {serviceMap, supportedTypes} from './source/service'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
 export default class CompletePlugin {
   public nvim: Neovim
   public increment: Increment
-  private debouncedOnChange: (bufnr: number)=>void
+  private debouncedOnChange: (bufnr: number) => void
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
@@ -55,22 +45,22 @@ export default class CompletePlugin {
     process.on('uncaughtException', this.handleError)
   }
 
-  private handleError(err: Error):void {
+  private handleError(err: Error): void {
     let {nvim} = this
-    echoErr(nvim ,`Service error: ${err.message}`).catch(err => {
+    echoErr(nvim, `Service error: ${err.message}`).catch(err => {
       logger.error(err.message)
     })
   }
 
   @Function('CocInitAsync', {sync: false})
-  public async cocInitAsync():Promise<void> {
+  public async cocInitAsync(): Promise<void> {
     this.onInit().catch(err => {
       logger.error(err.stack)
     })
   }
 
   @Function('CocInitSync', {sync: true})
-  public async cocInitSync():Promise<void> {
+  public async cocInitSync(): Promise<void> {
     await this.onInit()
   }
 
@@ -80,15 +70,17 @@ export default class CompletePlugin {
       await this.initConfig()
       await natives.init()
       await remotes.init(nvim, natives.names)
-      await nvim.command(`let g:coc_node_channel_id=${(nvim as any)._channel_id}`)
+      await nvim.command(
+        `let g:coc_node_channel_id=${(nvim as any)._channel_id}`
+      )
       await nvim.command('silent doautocmd User CocNvimInit')
       logger.info('Coc service Initailized')
       // required since BufRead triggered before VimEnter
-      let bufs:number[] = await nvim.call('coc#util#get_buflist', [])
+      let bufs: number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
         await buffers.addBuffer(nvim, buf)
       }
-      let filetypes:string[] = await nvim.call('coc#util#get_filetypes', [])
+      let filetypes: string[] = await nvim.call('coc#util#get_filetypes', [])
       for (let filetype of filetypes) {
         await this.onFileType(filetype)
       }
@@ -99,19 +91,19 @@ export default class CompletePlugin {
   }
 
   @Function('CocBufUnload', {sync: false})
-  public async cocBufUnload(args: any[]):Promise<void> {
+  public async cocBufUnload(args: any[]): Promise<void> {
     let bufnr = Number(args[0])
     buffers.removeBuffer(bufnr)
     logger.debug(`buffer ${bufnr} remove`)
   }
 
   @Function('CocBufChange', {sync: false})
-  public async cocBufChange(args: any[]):Promise<void> {
+  public async cocBufChange(args: any[]): Promise<void> {
     this.debouncedOnChange(Number(args[0]))
   }
 
   @Function('CocStart', {sync: false})
-  public async cocStart(args: [CompleteOption]):Promise<void> {
+  public async cocStart(args: [CompleteOption]): Promise<void> {
     let opt = args[0]
     let start = Date.now()
     let {nvim, increment} = this
@@ -120,13 +112,16 @@ export default class CompletePlugin {
     logger.debug(`options: ${JSON.stringify(opt)}`)
     let {filetype, linecount} = opt
     if (linecount > MAX_CODE_LINES) {
-      await echoWarning(nvim, `Buffer line count exceeded ${MAX_CODE_LINES}, completion stopped`)
+      await echoWarning(
+        nvim,
+        `Buffer line count exceeded ${MAX_CODE_LINES}, completion stopped`
+      )
       return
     }
     await buffers.createDocument(nvim, opt)
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
-    complete.doComplete(sources).then(async ([startcol, items])=> {
+    complete.doComplete(sources).then(async ([startcol, items]) => {
       if (items.length == 0) {
         // no items found
         completes.reset()
@@ -148,20 +143,20 @@ export default class CompletePlugin {
   }
 
   @Function('CocInsertCharPre', {sync: true})
-  public async cocInsertCharPre(args: any[]):Promise<void> {
+  public async cocInsertCharPre(args: any[]): Promise<void> {
     await this.increment.onCharInsert(args[0] as string)
   }
 
   @Function('CocInsertLeave', {sync: false})
-  public async cocInsertLeave():Promise<void> {
+  public async cocInsertLeave(): Promise<void> {
     await this.increment.stop()
   }
 
   @Function('CocCompleteDone', {sync: true})
-  public async cocCompleteDone(args: any[]):Promise<void> {
+  public async cocCompleteDone(args: any[]): Promise<void> {
     logger.debug('complete done')
     let {nvim, increment} = this
-    let item:VimCompleteItem = args[0]
+    let item: VimCompleteItem = args[0]
     // vim would send {} on cancel
     if (!item || Object.keys(item).length == 0) item = null
     let isCoc = isCocItem(item)
@@ -180,7 +175,7 @@ export default class CompletePlugin {
   }
 
   @Function('CocTextChangedP', {sync: true})
-  public async cocTextChangedP():Promise<void> {
+  public async cocTextChangedP(): Promise<void> {
     logger.debug('TextChangedP')
     let {latestTextChangedI} = this.increment
     if (!latestTextChangedI) {
@@ -190,17 +185,16 @@ export default class CompletePlugin {
   }
 
   @Function('CocTextChangedI', {sync: true})
-  public async cocTextChangedI():Promise<void> {
-    let {complete} = completes
+  public async cocTextChangedI(): Promise<void> {
     let {nvim, increment} = this
-    if (!complete) return
+    if (!increment.activted) return
     let shouldStart = await increment.onTextChangedI()
     if (shouldStart) {
-      let {input, option} = increment
-      let opt = Object.assign({}, option, {
+      let {input} = increment
+      let oldComplete = completes.complete || ({} as {[index: string]: any})
+      let opt = Object.assign({}, completes.option, {
         input: input.search
       })
-      let oldComplete = completes.complete || ({} as {[index:string]:any})
       let {results} = oldComplete
       if (!results || results.length == 0) {
         await increment.stop()
@@ -233,7 +227,7 @@ export default class CompletePlugin {
 
   // callback for remote sources
   @Function('CocResult', {sync: false})
-  public async cocResult(args: any[]):Promise<void> {
+  public async cocResult(args: any[]): Promise<void> {
     let id = Number(args[0])
     let name = args[1] as string
     let items = args[2] as VimCompleteItem[]
@@ -244,7 +238,7 @@ export default class CompletePlugin {
 
   // Used for :checkhealth
   @Function('CocCheckHealth', {sync: true})
-  public async cocCheckHealth():Promise<string[] | null> {
+  public async cocCheckHealth(): Promise<string[] | null> {
     let {nvim} = this
     await remotes.init(nvim, natives.names, true)
     let {names} = remotes
@@ -255,14 +249,14 @@ export default class CompletePlugin {
         success = false
       }
     }
-    return success ? names: null
+    return success ? names : null
   }
 
   @Function('CocSourceStat', {sync: true})
-  public async cocSourceStat():Promise<SourceStat[]> {
+  public async cocSourceStat(): Promise<SourceStat[]> {
     let disabled = getConfig('disabled')
     let res: SourceStat[] = []
-    let items:any = natives.list.concat(remotes.list as any)
+    let items: any = natives.list.concat(remotes.list as any)
     for (let item of items) {
       let {name, filepath} = item
       res.push({
@@ -276,7 +270,7 @@ export default class CompletePlugin {
   }
 
   @Function('CocSourceToggle', {sync: true})
-  public async cocSourceToggle(args: any):Promise<string> {
+  public async cocSourceToggle(args: any): Promise<string> {
     let name = args[0].toString()
     if (!name) return ''
     if (!natives.has(name) && !remotes.has(name)) {
@@ -287,7 +281,7 @@ export default class CompletePlugin {
   }
 
   @Function('CocSourceRefresh', {sync: true})
-  public async cocSourceRefresh(args: any):Promise<boolean> {
+  public async cocSourceRefresh(args: any): Promise<boolean> {
     let name = args[0].toString()
     if (name) {
       let m = natives.has(name) ? natives : remotes
@@ -310,34 +304,34 @@ export default class CompletePlugin {
   }
 
   @Function('CocFileTypeChange', {sync: false})
-  public async cocFileTypeChange(args: any):Promise<void> {
+  public async cocFileTypeChange(args: any): Promise<void> {
     let filetype = args[0]
     await this.onFileType(filetype)
   }
 
   @Function('CocShowSignature', {sync: false})
-  public async cocShowSignature(args: any):Promise<void> {
+  public async cocShowSignature(args: any): Promise<void> {
     await this.callServiceFunc('showSignature')
   }
 
-  @Function('CocShowDefinition', {sync:false})
-  public async cocShowType():Promise<void> {
+  @Function('CocShowDefinition', {sync: false})
+  public async cocShowType(): Promise<void> {
     await this.callServiceFunc('showDefinition')
   }
 
-  @Command('CocShowDoc', {sync:false, nargs: '*'})
-  public async cocShowDoc():Promise<void> {
+  @Command('CocShowDoc', {sync: false, nargs: '*'})
+  public async cocShowDoc(): Promise<void> {
     await this.callServiceFunc('showDocuments')
   }
 
-  @Function('CocJumpDefinition', {sync:true})
-  public async cocJumpDefninition():Promise<void> {
+  @Function('CocJumpDefinition', {sync: true})
+  public async cocJumpDefninition(): Promise<void> {
     await this.callServiceFunc('jumpDefinition')
   }
 
-  private async callServiceFunc(func:string):Promise<void> {
+  private async callServiceFunc(func: string): Promise<void> {
     let {nvim} = this
-    let opt:QueryOption = await nvim.call('coc#util#get_queryoption')
+    let opt: QueryOption = await nvim.call('coc#util#get_queryoption')
     let {filetype} = opt
     let source = await natives.getServiceSource(nvim, filetype)
     if (source) {
@@ -346,7 +340,7 @@ export default class CompletePlugin {
   }
 
   // init service on filetype change
-  private async onFileType(filetype:string):Promise<void> {
+  private async onFileType(filetype: string): Promise<void> {
     if (!filetype || supportedTypes.indexOf(filetype) === -1) return
     let names = serviceMap[filetype]
     let disabled = getConfig('disabled')
@@ -358,8 +352,11 @@ export default class CompletePlugin {
     }
   }
 
-  private async onBufferChange(bufnr: number):Promise<void> {
-    let listed = await this.nvim.call('getbufvar', [Number(bufnr), '&buflisted'])
+  private async onBufferChange(bufnr: number): Promise<void> {
+    let listed = await this.nvim.call('getbufvar', [
+      Number(bufnr),
+      '&buflisted'
+    ])
     if (listed) await buffers.addBuffer(this.nvim, bufnr)
   }
 
@@ -369,7 +366,11 @@ export default class CompletePlugin {
     setConfig(opts)
   }
 
-  private async onCompleteStart(opt:CompleteOption, autoComplete:boolean, items:VimCompleteItem[]):Promise<void> {
+  private async onCompleteStart(
+    opt: CompleteOption,
+    autoComplete: boolean,
+    items: VimCompleteItem[]
+  ): Promise<void> {
     let {nvim} = this
     await wait(20)
     let visible = await nvim.call('pumvisible')

@@ -5,7 +5,6 @@ import { CompleteOption, VimCompleteItem, RecentScore } from './types';
 export declare class Completes {
     complete: Complete | null;
     recentScores: RecentScore;
-    option: CompleteOption | null;
     private charCodes;
     constructor();
     addRecent(word: string): void;
@@ -16,6 +15,7 @@ export declare class Completes {
     reset(): void;
     calculateChars(items: VimCompleteItem[]): void;
     hasCharacter(ch: string): boolean;
+    readonly option: CompleteOption | null;
 }
 declare const _default: Completes;
 export default _default;

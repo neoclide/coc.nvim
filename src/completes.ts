@@ -13,14 +13,11 @@ const logger = require('./util/logger')('completes')
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
-  // first time option
-  public option: CompleteOption | null
   // unique charactor code in result
   private charCodes:number[]
 
   constructor() {
     this.complete = null
-    this.option = null
     this.recentScores = {}
     this.charCodes = []
   }
@@ -47,7 +44,6 @@ export class Completes {
   public createComplete(opts: CompleteOption): Complete {
     let complete = this.newComplete(opts)
     this.complete = complete
-    this.option = opts
     return complete
   }
 
@@ -75,7 +71,6 @@ export class Completes {
   }
 
   public reset():void {
-    this.complete = null
     this.charCodes = []
   }
 
@@ -103,6 +98,12 @@ export class Completes {
   public hasCharacter(ch:string):boolean {
     let code = ch.charCodeAt(0)
     return this.charCodes.indexOf(code) !== -1
+  }
+
+  public get option():CompleteOption|null {
+    let {complete} = this
+    if (!complete) return null
+    return complete.option
   }
 }
 
