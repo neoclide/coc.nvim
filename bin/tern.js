@@ -2,19 +2,16 @@ const fs = require('fs')
 const glob = require('glob')
 const minimatch = require('minimatch')
 const path = require('path')
-const readline = require('readline')
 const resolveFrom = require('resolve-from')
-const net = require('net')
-const os = require('os')
 const ternRoot = process.argv[2]
 const tern = require(ternRoot)
 const ROOT = process.cwd()
 
 function getKind(type) {
-  if (type === 'function') return 'f'
-  if (type === 'number') return 'n'
-  if (type === 'boolean') return 'b'
-  if (type === 'string') return 's'
+  if (type === 'function') return 'fn'
+  if (type === 'number') return 'num'
+  if (type === 'boolean') return 'bool'
+  if (type === 'string') return 'str'
   return type
 }
 
