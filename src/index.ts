@@ -18,7 +18,6 @@ import remotes from './remotes'
 import natives from './natives'
 import remoteStore from './remote-store'
 import Increment from './increment'
-import {MAX_CODE_LINES} from './constant'
 import {serviceMap, supportedTypes} from './source/service'
 const logger = require('./util/logger')('index')
 
@@ -111,13 +110,6 @@ export default class CompletePlugin {
     await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
     let {filetype, linecount} = opt
-    if (linecount > MAX_CODE_LINES) {
-      await echoWarning(
-        nvim,
-        `Buffer line count exceeded ${MAX_CODE_LINES}, completion stopped`
-      )
-      return
-    }
     await buffers.createDocument(nvim, opt)
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)

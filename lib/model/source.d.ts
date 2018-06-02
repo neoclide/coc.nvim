@@ -7,7 +7,6 @@ export default abstract class Source {
     protected readonly nvim: Neovim;
     constructor(nvim: Neovim, option: SourceOption);
     readonly priority: number;
-    readonly noinsert: boolean;
     readonly filter: FilterType;
     readonly firstMatch: boolean;
     readonly isOnly: boolean;

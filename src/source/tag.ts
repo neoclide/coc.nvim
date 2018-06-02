@@ -19,7 +19,6 @@ export default class Tag extends Source {
       name: 'tag',
       shortcut: 'T',
       priority: 3,
-      maxLineCount: 10000,
     })
   }
 
@@ -46,7 +45,6 @@ export default class Tag extends Source {
   }
 
   private async loadTags(fullpath:string, mtime:Date):Promise<string[]> {
-    let {maxLineCount} = this.config
     let item:CacheItem = TAG_CACHE[fullpath]
     if (item && item.mtime >= mtime) return item.words
     let words = []

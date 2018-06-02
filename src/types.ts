@@ -6,7 +6,6 @@ export interface SourceConfig {
   priority: number
   engross: boolean
   filetypes: string[] | null
-  noinsert: boolean
   filterAbbr: boolean
   // remote source only
   firstMatch: boolean
@@ -22,7 +21,6 @@ export interface SourceOption {
   priority?: number
   optionalFns?: string[]
   only?: boolean
-  noinsert?: boolean
   filterAbbr?: boolean
   // remote source only
   firstMatch?: boolean
@@ -68,7 +66,6 @@ export interface VimCompleteItem {
   empty?: number
   user_data?: string
   score?: number
-  noinsert?: boolean
 }
 
 export type FilterType = 'abbr' | 'word'
@@ -78,7 +75,6 @@ export interface CompleteResult {
   engross?: boolean
   startcol?: number
   source?: string
-  noinsert?: boolean
   only?: boolean
   firstMatch?: boolean
   filter?: FilterType

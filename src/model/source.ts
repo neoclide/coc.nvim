@@ -11,7 +11,7 @@ import {SourceOption,
   FilterType,
   CompleteResult} from '../types'
 const logger = require('../util/logger')('model-source')
-const boolOptions = ['engross', 'noinsert, firstmatch']
+const boolOptions = ['engross', 'firstmatch']
 
 export default abstract class Source {
   public readonly name: string
@@ -38,7 +38,6 @@ export default abstract class Source {
       priority: 0,
       filetypes: null,
       engross: false,
-      noinsert: false,
       firstMatch: false,
       filterAbbr: false,
       showSignature: true,
@@ -50,10 +49,6 @@ export default abstract class Source {
 
   public get priority():number {
     return Number(this.config.priority)
-  }
-
-  public get noinsert():boolean {
-    return !!this.config.noinsert
   }
 
   public get filter():FilterType {

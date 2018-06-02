@@ -21,7 +21,6 @@ export default class File extends Source {
       trimSameExts: ['.ts', '.js'],
       ignoreHidden: true,
       ignorePatterns: [],
-      noinsert: true,
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

@@ -1,4 +1,4 @@
-if exists('did_coc_loaded') || v:version < 700
+if !has('nvim') || exists('did_coc_loaded') || v:version < 700
   finish
 endif
 let did_coc_loaded = 1

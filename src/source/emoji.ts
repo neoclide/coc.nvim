@@ -23,7 +23,6 @@ export default class Emoji extends Source {
       priority: 0,
       filetypes: [],
       engross: 1,
-      noinsert: true,
       filterAbbr: true,
     })
   }

@@ -50,7 +50,7 @@ export default class Doc {
     for (let word of words) {
       for (let ch of ['-', '_']) {
         if (word.indexOf(ch) !== -1) {
-          let parts = word.split(ch).slice(0, -1)
+          let parts = word.split(ch)
           for (let part of parts) {
             if (part.length > 2 && words.indexOf(part) === -1) {
               words.push(part)

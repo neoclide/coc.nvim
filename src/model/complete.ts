@@ -62,7 +62,6 @@ export default class Complete {
         result.only = isOnly
         result.source = source.name
         result.firstMatch = firstMatch
-        if (source.noinsert) result.noinsert = true
         ctx.result = result
         done()
       }, done)
@@ -98,7 +97,7 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let filterField = res.filter || 'word'
-      let {items, source, noinsert, firstMatch} = res
+      let {items, source, firstMatch} = res
       if (firstMatch && input.length == 0) break
       if (count != 0 && source == only) break
       for (let item of items) {
@@ -113,7 +112,6 @@ export default class Complete {
         }
         data = Object.assign(data, { cid: id, source, filter: filterField })
         item.user_data = JSON.stringify(data)
-        if (noinsert) item.noinsert = true
         if (fuzzy) item.score = score(verb, input) + this.getBonusScore(input, item)
         arr.push(item)
         count = count + 1

@@ -6,7 +6,6 @@ import {CompleteOption} from './types'
 import Buffer from './model/buffer'
 import Doc from './model/document'
 import {getConfig} from './config'
-import {MAX_CODE_LINES} from './constant'
 import {
   isGitIgnored,
   readFile,
@@ -80,7 +79,6 @@ export class Buffers {
 
   public async loadBufferContent(nvim:Neovim, bufnr:number, timeout = 1000):Promise<string|null> {
     let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
-    if (count > MAX_CODE_LINES) return null
     return await nvim.call('coc#util#get_content', [bufnr])
   }
 
