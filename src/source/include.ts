@@ -2,9 +2,9 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import * as fs from 'fs'
+import {findSourceDir} from '../util/fs'
 import path = require('path')
 import pify = require('pify')
-import {findSourceDir} from '../util/fs'
 const exec = require('child_process').exec
 const logger = require('../util/logger')('source-include')
 const baseDir = path.join(__dirname, 'include_resolve')
@@ -54,7 +54,8 @@ export default class Include extends Source {
         items = files.map(file => {
           let ex = path.extname(path.basename(file))
           let trim = trimSameExts.indexOf(ext) !== -1 && ex === ext
-          let word = path.relative(fullpath, file)
+          let filepath = path.join(dir, file)
+          let word = path.relative(path.dirname(fullpath), filepath)
           if (trim) word = word.slice(0, - ext.length)
           return {
             word,

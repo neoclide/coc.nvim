@@ -6,10 +6,10 @@ export default class CompletePlugin {
     increment: Increment;
     private debouncedOnChange;
     constructor(nvim: Neovim);
-    private handleError(err);
+    private handleError;
     cocInitAsync(): Promise<void>;
     cocInitSync(): Promise<void>;
-    private onInit();
+    private onInit;
     cocBufUnload(args: any[]): Promise<void>;
     cocBufChange(args: any[]): Promise<void>;
     cocStart(args: [CompleteOption]): Promise<void>;
@@ -17,7 +17,7 @@ export default class CompletePlugin {
     cocInsertLeave(): Promise<void>;
     cocCompleteDone(args: any[]): Promise<void>;
     cocTextChangedP(): Promise<void>;
-    cocTextChangedI(): Promise<void>;
+    cocTextChangedI(args: any): Promise<void>;
     cocResult(args: any[]): Promise<void>;
     cocCheckHealth(): Promise<string[] | null>;
     cocSourceStat(): Promise<SourceStat[]>;
@@ -28,9 +28,9 @@ export default class CompletePlugin {
     cocShowType(): Promise<void>;
     cocShowDoc(): Promise<void>;
     cocJumpDefninition(): Promise<void>;
-    private callServiceFunc(func);
-    private onFileType(filetype);
-    private onBufferChange(bufnr);
-    private initConfig();
-    private onCompleteStart(opt, autoComplete, items);
+    private callServiceFunc;
+    private onFileType;
+    private onBufferChange;
+    private initConfig;
+    private onCompleteStart;
 }

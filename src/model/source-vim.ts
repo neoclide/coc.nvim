@@ -3,6 +3,7 @@ import {
   CompleteOption,
   CompleteResult} from '../types'
 import remoteStore from '../remote-store'
+import {byteSlice} from '../util/string'
 import Source from './source'
 import {fuzzyChar} from '../util/fuzzy'
 import {echoErr} from '../util/index'
@@ -53,8 +54,7 @@ export default class VimSource extends Source {
       // invalid startcol
       if (isNaN(startcol) || startcol < 0) startcol = col
       if (startcol !== col) {
-        let buffer = Buffer.from(line, 'utf8')
-        input = buffer.slice(startcol, colnr - 1).toString()
+        input = byteSlice(line, startcol, colnr - 1)
         opt = Object.assign({}, opt, {
           col: startcol,
           changed: col - startcol,

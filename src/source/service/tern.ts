@@ -6,10 +6,11 @@ import {
 import ServiceSource from '../../model/source-service'
 import IpcService from '../../model/ipcService'
 import {ROOT} from '../../constant'
-import buffers from '../../buffers'
+import workspace from '../../workspace'
 import path = require('path')
-import {echoWarning, escapeSingleQuote} from '../../util'
+import {escapeSingleQuote} from '../../util'
 import findRoot = require('find-root')
+import {byteSlice} from '../../util/string'
 import fs = require('fs')
 import opn = require('opn')
 const logger = require('../../util/logger')('source-tern')
@@ -34,7 +35,7 @@ export default class Tern extends ServiceSource {
   }
 
   public async onInit():Promise<void> {
-    let {ternRoot, debugPort, showSignature, bindKeywordprg} = this.config
+    let {ternRoot, debugPort} = this.config
     let {nvim} = this
     let cwd = await nvim.call('getcwd')
     let root = this.root = this.findProjectRoot(cwd)
@@ -65,8 +66,8 @@ export default class Tern extends ServiceSource {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, filepath, linenr, col, input} = opt
-    let {content} = buffers.document
-    let {nvim, menu} = this
+    let content = workspace.getDocument(bufnr).content
+    let {menu} = this
     if (input.length) {
       // limit result
       col = col + 1
@@ -89,7 +90,6 @@ export default class Tern extends ServiceSource {
   }
 
   public async showDefinition(query:QueryOption):Promise<void> {
-    let {nvim} = this
     let {filename, lnum, col, content} = query
     let res = await this.service.request({
       action: 'type',
@@ -104,7 +104,6 @@ export default class Tern extends ServiceSource {
   }
 
   public async showDocuments(query:QueryOption):Promise<void> {
-    let {nvim} = this
     let {filename, lnum, col, content} = query
     let res = await this.service.request({
       action: 'type',
@@ -139,7 +138,7 @@ export default class Tern extends ServiceSource {
     let {file, url, start} = res
     if (file) {
       let filepath = path.resolve(this.root, file)
-      let doc = await buffers.getFileDocument(nvim, filepath, filetype)
+      let doc = await workspace.createDocument(filepath, filetype)
       let pos = doc.positionAt(start)
       await nvim.call('coc#util#jump_to', [filepath, pos.line, pos.character])
     } else if (url) {
@@ -153,7 +152,7 @@ export default class Tern extends ServiceSource {
     let {nvim} = this
     let {filename, lnum, col, content} = query
     let line = await nvim.call('getline', ['.'])
-    let part = line.slice(0, col)
+    let part = byteSlice(line, 0, col)
     let fname
     let ms = part.match(/\.(\w+)\([^(]*$/)
     if (ms) {

@@ -128,7 +128,7 @@ export default class Complete {
 
   public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
-    let {col, input} = opts
+    let {col} = opts
     sources.sort((a, b) => b.priority - a.priority)
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => {

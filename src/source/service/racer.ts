@@ -5,14 +5,11 @@ import {
   CompleteResult} from '../../types'
 import StdioService from '../../model/stdioService'
 import ServiceSource from '../../model/source-service'
-import buffers from '../../buffers'
+import workspace from '../../workspace'
 import {echoWarning} from '../../util'
 import {createTmpFile} from '../../util/fs'
-import * as cp from 'child_process'
 import which = require('which')
-import pify = require('pify')
 
-import fs = require('fs')
 const logger = require('../../util/logger')('source-racer')
 
 const typeMap = {
@@ -63,13 +60,13 @@ export default class Racer extends ServiceSource {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
-    let {id, bufnr, filepath, linenr, col, input} = opt
-    let {nvim, menu} = this
+    let {bufnr, filepath, linenr, col, input} = opt
+    let {menu} = this
     if (input.length) {
       // limit result
       col = col + 1
     }
-    let {content} = buffers.document
+    let content = workspace.getDocument(bufnr).content
     let tmpfname = await createTmpFile(content)
     let cmd = `complete-with-snippet ${linenr} ${col} "${filepath}" ${tmpfname}`
     let output = await this.service.request(cmd)

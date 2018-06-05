@@ -1,4 +1,4 @@
-export default function watchObject<T, K extends keyof T>(obj: T):{watched: T, addWatcher: (key: K, cb: (obj: T[K]) => void) => void} {
+export default function watchObject<T>(obj: T):{watched: T, addWatcher: (key: string, cb: (obj: any) => void) => void} {
   const callbackMap: {[index: string]: (obj: any) => void} = {}
   const handler = {
     get(target: any, property: any, receiver: any):any {

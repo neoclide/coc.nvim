@@ -6,6 +6,6 @@ export default class Dictionary extends Source {
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     refresh(): Promise<void>;
     getWords(files: string[]): Promise<string[]>;
-    private getDictWords(file);
+    private getDictWords;
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }

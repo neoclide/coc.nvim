@@ -12,7 +12,6 @@ export default class IpcService extends EventEmitter {
     cwd: string;
     execArgv: string[];
     args: string[];
-    private cb;
     private child;
     private running;
     constructor(modulePath: string, cwd: string, execArgv: string[], args: string[]);

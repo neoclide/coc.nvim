@@ -9,6 +9,6 @@ export default class Input {
     highlight(): Promise<void>;
     removeCharactor(): Promise<boolean>;
     addCharactor(c: string): Promise<void>;
-    private getMatchPos();
+    private getMatchPos;
     clear(): Promise<void>;
 }

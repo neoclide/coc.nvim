@@ -1,8 +1,7 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
-import Buffer from '../model/buffer'
-import buffers from '../buffers'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
@@ -22,11 +21,11 @@ export default class Around extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr, filetype} = opt
-    let {nvim} = this
-    let count:number = await nvim.call('nvim_buf_line_count', [bufnr])
-    let keywordOption:string = await nvim.call('getbufvar', [bufnr, '&iskeyword'])
-    let words = buffers.document.getWords()
+    let {bufnr} = opt
+    let document = workspace.getDocument(bufnr)
+    let words = document!.words
+    let moreWords = document!.getMoreWords()
+    words.push(...moreWords)
     words = this.filterWords(words, opt)
     return {
       items: words.map(word => {

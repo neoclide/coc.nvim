@@ -39,7 +39,6 @@ export interface CompleteOption {
     changedtick: number;
     colnr: number;
     linenr: number;
-    linecount: number;
     iskeyword: string;
     moved?: number;
     [index: string]: any;

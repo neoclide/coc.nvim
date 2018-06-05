@@ -64,7 +64,6 @@ function! coc#start()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
-        \ 'linecount': line('$'),
         \ 'iskeyword': &iskeyword,
         \ 'before': pos[2] == 1 ? '' : line[0:pos[2] - 2]
         \ }

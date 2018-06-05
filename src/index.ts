@@ -8,11 +8,10 @@ import {
   wait,
   echoErr,
   isCocItem,
-  echoWarning,
-  contextDebounce
+  contextDebounce,
 } from './util/index'
 import {setConfig, toggleSource, shouldAutoComplete, getConfig} from './config'
-import buffers from './buffers'
+import workspace from './workspace'
 import completes from './completes'
 import remotes from './remotes'
 import natives from './natives'
@@ -29,6 +28,7 @@ export default class CompletePlugin {
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
+    workspace.nvim = nvim
     this.debouncedOnChange = contextDebounce((bufnr: number) => {
       this.onBufferChange(bufnr).catch(e => {
         logger.error(e.message)
@@ -77,7 +77,7 @@ export default class CompletePlugin {
       // required since BufRead triggered before VimEnter
       let bufs: number[] = await nvim.call('coc#util#get_buflist', [])
       for (let buf of bufs) {
-        await buffers.addBuffer(nvim, buf)
+        await workspace.addBuffer(buf)
       }
       let filetypes: string[] = await nvim.call('coc#util#get_filetypes', [])
       for (let filetype of filetypes) {
@@ -92,7 +92,7 @@ export default class CompletePlugin {
   @Function('CocBufUnload', {sync: false})
   public async cocBufUnload(args: any[]): Promise<void> {
     let bufnr = Number(args[0])
-    buffers.removeBuffer(bufnr)
+    await workspace.removeBuffer(bufnr)
     logger.debug(`buffer ${bufnr} remove`)
   }
 
@@ -109,8 +109,8 @@ export default class CompletePlugin {
     // may happen
     await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype, linecount} = opt
-    await buffers.createDocument(nvim, opt)
+    let {filetype,bufnr} = opt
+    await workspace.addBuffer(bufnr)
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
     complete.doComplete(sources).then(async ([startcol, items]) => {
@@ -177,8 +177,9 @@ export default class CompletePlugin {
   }
 
   @Function('CocTextChangedI', {sync: true})
-  public async cocTextChangedI(): Promise<void> {
+  public async cocTextChangedI(args:any): Promise<void> {
     let {nvim, increment} = this
+    this.debouncedOnChange(Number(args[0]))
     if (!increment.activted) return
     let shouldStart = await increment.onTextChangedI()
     if (shouldStart) {
@@ -345,11 +346,7 @@ export default class CompletePlugin {
   }
 
   private async onBufferChange(bufnr: number): Promise<void> {
-    let listed = await this.nvim.call('getbufvar', [
-      Number(bufnr),
-      '&buflisted'
-    ])
-    if (listed) await buffers.addBuffer(this.nvim, bufnr)
+    await workspace.addBuffer(bufnr)
   }
 
   private async initConfig(): Promise<void> {

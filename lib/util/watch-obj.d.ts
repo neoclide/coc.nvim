@@ -1,4 +1,4 @@
-export default function watchObject<T, K extends keyof T>(obj: T): {
+export default function watchObject<T>(obj: T): {
     watched: T;
-    addWatcher: (key: K, cb: (obj: T[K]) => void) => void;
+    addWatcher: (key: string, cb: (obj: any) => void) => void;
 };

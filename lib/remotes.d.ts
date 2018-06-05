@@ -11,10 +11,10 @@ export declare class Remotes {
     readonly names: string[];
     readonly sources: VimSource[];
     has(name: string): boolean;
-    private getFilepath(name);
+    private getFilepath;
     init(nvim: Neovim, nativeNames: string[], isCheck?: boolean): Promise<void>;
-    private reportError(nvim, name, msg, fullpath?);
-    private checkSource(nvim, name, fullpath, isCheck?);
+    private reportError;
+    private checkSource;
     getOptionalFns(nvim: Neovim, name: string): Promise<string[]>;
     createSource(nvim: Neovim, name: string, isCheck?: boolean): Promise<VimSource | null>;
     getSource(nvim: Neovim, name: string): Promise<VimSource | null>;

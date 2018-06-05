@@ -1,7 +1,6 @@
 import * as cp from 'child_process'
 import ChildProcess = cp.ChildProcess
 import EventEmitter = require('events')
-import {VimCompleteItem} from '../types'
 const logger = require('../util/logger')('model-stdioService')
 
 export type Callback = (msg:string) => void

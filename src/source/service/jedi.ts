@@ -7,9 +7,10 @@ import {
 import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
-import buffers from '../../buffers'
+import workspace from '../../workspace'
 import {echoWarning, toBool} from '../../util'
 import * as cp from 'child_process'
+import {unicodeIndex} from '../../util/string'
 const logger = require('../../util/logger')('source-jedi')
 
 const execPath = path.join(ROOT, 'bin/jedi_server.py')
@@ -37,7 +38,7 @@ export default class Jedi extends ServiceSource {
   }
 
   public async onInit(): Promise<void> {
-    let {command, showSignature, bindKeywordprg, settings, preloads} = this.config
+    let {command, settings, preloads} = this.config
     let {nvim} = this
     try {
       cp.execSync(`${command} -c "import jedi"`)
@@ -69,7 +70,7 @@ export default class Jedi extends ServiceSource {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {filetype, input, line, colnr} = opt
+    let {filetype} = opt
     if (!this.checkFileType(filetype) || this.disabled) return false
     if (!this.service || !this.service.isRunnning) {
       await this.onInit()
@@ -79,8 +80,8 @@ export default class Jedi extends ServiceSource {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr, filepath, linenr, col, input} = opt
-    let {content} = buffers.document
-    let {nvim, menu} = this
+    let content = workspace.getDocument(bufnr).content
+    let {menu} = this
     if (input.length) {
       // limit result
       col = col + 1
@@ -157,8 +158,9 @@ export default class Jedi extends ServiceSource {
   public async showSignature(query:QueryOption):Promise<void> {
     let {filename, lnum, col, content} = query
     let line = await this.nvim.call('getline', ['.'])
-    let before = line.slice(0, col)
-    let after = line.slice(col)
+    let uidx = unicodeIndex(line, col)
+    let before = line.slice(0, uidx)
+    let after = line.slice(uidx)
     if (col <= 1) return
     if (/\.\w+$/.test(before) && /\w*\(/.test(after)) {
       col = col + after.indexOf('(') + 1

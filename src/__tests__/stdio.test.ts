@@ -1,5 +1,4 @@
 import StdioService from '../model/stdioService'
-import {wait} from '../util/index'
 import path = require('path')
 
 describe('child model test', () => {
@@ -16,7 +15,6 @@ describe('child model test', () => {
   })
 
   test('jedi server works', async () => {
-    let result = ''
     let res = await ch.request(JSON.stringify({
       action: 'complete',
       line: 3,

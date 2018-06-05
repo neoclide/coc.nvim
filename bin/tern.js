@@ -2,7 +2,6 @@ const fs = require('fs')
 const glob = require('glob')
 const minimatch = require('minimatch')
 const path = require('path')
-const resolveFrom = require('resolve-from')
 const ternRoot = process.argv[2]
 const tern = require(ternRoot)
 const ROOT = process.cwd()
@@ -102,7 +101,6 @@ function loadPlugins(projectDir, config) {
     let val = plugins[plugin]
     if (!val) continue
     let found = findFile(plugin + '.js', projectDir, path.resolve(ternRoot, 'plugin'))
-        || resolveFrom(projectDir, 'tern-' + plugin)
     if (!found) {
       try {
         found = require.resolve('tern-' + plugin)
@@ -125,7 +123,9 @@ function startServer(dir, config) {
   let plugins = loadPlugins(dir, config)
   let server = new tern.Server({
     getFile: function(name, c) {
-      if (config.dontLoad && config.dontLoad.some(function(pat) { return minimatch(name, pat); })) {
+      if (config.dontLoad && config.dontLoad.some(function(pat) {
+        return minimatch(name, pat);
+      })) {
         c(null, '')
       } else {
         fs.readFile(path.resolve(dir, name), 'utf8', c)

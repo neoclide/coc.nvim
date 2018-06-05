@@ -10,6 +10,8 @@ import {SourceOption,
   CompleteOption,
   FilterType,
   CompleteResult} from '../types'
+import {byteSlice} from '../util/string'
+import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
 const boolOptions = ['engross', 'firstmatch']
 
@@ -105,6 +107,32 @@ export default abstract class Source {
       res.push(word)
     }
     return res
+  }
+
+  /**
+   * fix start column for new valid characters
+   *
+   * @protected
+   * @param {CompleteOption} opt
+   * @param {string[]} valids - valid charscters
+   * @returns {number}
+   */
+  protected fixStartcol(opt:CompleteOption, valids:string[]):number {
+    let {col, input, line, bufnr} = opt
+    let start = byteSlice(line, 0, col)
+    let document = workspace.getDocument(bufnr)
+    if (!document) return col
+    let {chars} = document
+    for (let i = start.length - 1; i >= 0; i--) {
+      let c = start[i]
+      if (!chars.isKeywordChar(c) && valids.indexOf(c) === -1) {
+        break
+      }
+      input = `${c}${input}`
+      col = col -1
+    }
+    opt.input = input
+    return col
   }
 
   public checkFileType(filetype: string):boolean {

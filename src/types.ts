@@ -49,7 +49,6 @@ export interface CompleteOption {
   // cursor position
   colnr: number
   linenr: number
-  linecount: number
   iskeyword: string
   moved?: number
   [index: string]: any

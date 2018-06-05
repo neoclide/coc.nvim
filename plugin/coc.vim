@@ -114,7 +114,7 @@ function! s:Enable()
     autocmd InsertCharPre * call s:Call('InsertCharPre', v:char)
     autocmd CompleteDone * call s:Call('CompleteDone', v:completed_item)
     autocmd TextChangedP * call s:Call('TextChangedP')
-    autocmd TextChangedI * call s:Call('TextChangedI')
+    autocmd TextChangedI * call s:Call('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave * call s:Call('InsertLeave')
 
     autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'), 'BufUnload')

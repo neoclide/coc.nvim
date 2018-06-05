@@ -9,6 +9,6 @@ export default class Tag extends Source {
     constructor(nvim: Neovim);
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     refresh(): Promise<void>;
-    private loadTags(fullpath, mtime);
+    private loadTags;
     doComplete(opt: CompleteOption): Promise<CompleteResult>;
 }

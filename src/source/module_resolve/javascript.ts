@@ -7,15 +7,16 @@ import * as fs from 'fs'
 import path = require('path')
 import pify = require('pify')
 import findRoot = require('find-root')
-// const logger = require('../../util/logger')('module-resolve-javascript')
+import {unicodeIndex} from '../../util/string'
 
 export async function shouldResolve(opt: CompleteOption):Promise<boolean> {
   let {line, colnr} = opt
-  let end = line.slice(colnr - 1)
+  let uidx = unicodeIndex(line, colnr - 1)
+  let end = line.slice(uidx)
   if (!/(['"]\))?;?$/.test(end)) return false
-  let start = line.slice(0, colnr - 1)
-  if (/require\(['"]\w+$/.test(start)) return true
-  if (/^import/.test(line) && /from\s+['"]\w+$/.test(start)) return true
+  let start = line.slice(0, uidx)
+  if (/require\(['"](\w|-|@)+$/.test(start)) return true
+  if (/\s+from\s+['"](\w|-|@)+$/.test(start)) return true
   return false
 }
 

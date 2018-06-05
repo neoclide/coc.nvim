@@ -1,9 +1,8 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
-import buffers from '../../buffers'
+import workspace from '../../workspace'
 import {echoWarning} from '../../util'
-import * as cp from 'child_process'
 import which = require('which')
 const {spawn} = require('child_process')
 const logger = require('../../util/logger')('source-gocode')
@@ -42,9 +41,8 @@ export default class Gocode extends ServiceSource {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
     let {bufnr, filepath, linenr, col, input} = opt
-    let {document} = buffers
-
-    let {nvim, menu} = this
+    let document = workspace.getDocument(bufnr)
+    let {menu} = this
     if (input.length) {
       // limit result
       col = col + 1
@@ -59,7 +57,7 @@ export default class Gocode extends ServiceSource {
         output = output + data.toString()
       })
       child.on('exit', () => {
-        let exited = true
+        exited = true
         if (!output) return resolve(null)
         try {
           let list = JSON.parse(output.replace(/'/g, '"'))

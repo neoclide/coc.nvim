@@ -2,6 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import {echoErr, echoWarning} from '../util/index'
+import {byteSlice} from '../util/string'
 const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
@@ -41,7 +42,7 @@ export default class OmniSource extends Source {
     }
     // invalid startcol
     if (isNaN(startcol) || startcol < 0 || startcol > colnr) return null
-    let text = line.slice(startcol, colnr)
+    let text = byteSlice(line, startcol, colnr)
     let words = await nvim.call(func, [0, text])
     if (words.hasOwnProperty('words')) {
       words = words.words

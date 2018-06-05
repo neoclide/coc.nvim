@@ -29,14 +29,21 @@ export default class Module extends Source {
     let {filetype} = opt
     if (!this.checkFileType(filetype)) return false
     let {shouldResolve} = require(path.join(baseDir, filetype))
-    return await shouldResolve(opt)
+    let should = await shouldResolve(opt)
+    return should
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {filetype} = opt
+    let {filetype, line, col} = opt
     let {resolve} = require(path.join(baseDir, filetype))
     let words = await resolve(opt)
+    let startcol = this.fixStartcol(opt, ['-', '@'])
+    let first = opt.input[0]
+    if (first && words.find(w => w[0] == first) != null) {
+      words = words.filter(w => w[0] == first)
+    }
     return {
+      startcol,
       items: words.map(word => {
         return {
           word,

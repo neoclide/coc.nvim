@@ -38,6 +38,6 @@ export default class Increment {
     start(option: CompleteOption): Promise<void>;
     onCompleteDone(item: VimCompleteItem | null): Promise<void>;
     onCharInsert(ch: string): Promise<void>;
-    private getStartOption();
+    private getStartOption;
     onTextChangedI(): Promise<boolean>;
 }

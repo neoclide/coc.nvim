@@ -1,8 +1,8 @@
 import { VimCompleteItem, CompleteOption, CompleteResult } from '../types';
 import Source from './source';
 export default class VimSource extends Source {
-    private echoError(str);
-    private callOptinalFunc(fname, args);
+    private echoError;
+    private callOptinalFunc;
     shouldComplete(opt: CompleteOption): Promise<boolean>;
     refresh(): Promise<void>;
     onCompleteDone(item: VimCompleteItem): Promise<void>;

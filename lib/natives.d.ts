@@ -16,7 +16,7 @@ export declare class Natives {
     has(name: any): boolean;
     getSourceNamesOfFiletype(filetype: string): string[];
     readonly names: string[];
-    private createSource(nvim, name);
+    private createSource;
     getServiceSource(nvim: Neovim, filetype: string): Promise<ServiceSource | null>;
     getSource(nvim: Neovim, name: string): Promise<Source | null>;
 }

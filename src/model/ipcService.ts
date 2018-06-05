@@ -1,7 +1,6 @@
 import * as cp from 'child_process'
 import ChildProcess = cp.ChildProcess
 import EventEmitter = require('events')
-import {VimCompleteItem} from '../types'
 const logger = require('../util/logger')('model-child')
 
 export type Callback = (msg:string) => void
@@ -13,7 +12,6 @@ export type Callback = (msg:string) => void
  * @extends {EventEmitter}
  */
 export default class IpcService extends EventEmitter {
-  private cb:Callback
   private child:ChildProcess
   private running:boolean
 
@@ -23,7 +21,6 @@ export default class IpcService extends EventEmitter {
     this.args = args || []
     this.execArgv = execArgv
     this.cwd = cwd
-    this.cb = () => { } // tslint:disable-line
   }
 
   public get isRunnning():boolean {

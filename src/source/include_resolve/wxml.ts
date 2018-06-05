@@ -1,9 +1,10 @@
 import {CompleteOption} from '../../types'
+import {byteSlice} from '../../util/string'
 
 // resolve for `require('/xxx')` `import from '/xxx'`
 export async function shouldResolve(opt: CompleteOption):Promise<boolean> {
-  let {line, colnr} = opt
-  let start = line.slice(0, colnr - 1)
-  if (/src=['"]\/[^\/\s]+$/.test(start)) return true
+  let {line, col} = opt
+  let start = byteSlice(line, 0, col)
+  if (/src=['"]\/$/.test(start)) return true
   return false
 }

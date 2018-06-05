@@ -4,6 +4,7 @@ import {CompleteOption,
   CompleteResult} from '../types'
 import Source from '../model/source'
 import {statAsync, findSourceDir} from '../util/fs'
+import {byteSlice} from '../util/string'
 import matcher = require('matcher')
 import path = require('path')
 import pify = require('pify')
@@ -26,7 +27,7 @@ export default class File extends Source {
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
     let {line, colnr, bufnr} = opt
-    let part = line.slice(0, colnr - 1)
+    let part = byteSlice(line,0 , colnr - 1)
     if (!part) return false
     let ms = part.match(pathRe)
     if (ms) {
@@ -86,7 +87,7 @@ export default class File extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {pathstr, fullpath, cwd, ext, colnr, line} = opt
-    let noSlash = line[colnr - 1] === '/'
+    let noBackSlash = line[colnr - 1] === '/'
     let roots = []
     if (!fullpath) {
       roots = [path.join(cwd, 'src'), cwd]
@@ -100,11 +101,18 @@ export default class File extends Source {
     roots = roots.filter(r => typeof r === 'string')
     let items = await this.getItemsFromRoots(pathstr, roots, ext)
     let trimExt = this.config.trimSameExts.indexOf(ext) != -1
+    let startcol = this.fixStartcol(opt, ['-', '@'])
+    let first = opt.input[0]
+    if (first) {
+      let arr = items.filter(o => o.word[0] === first)
+      if (arr.length) items = arr
+    }
     return {
+      startcol,
       items: items.map(item => {
         let ex = path.extname(item.word)
         item.word = trimExt && ex === ext ? item.word.replace(ext, '') : item.word
-        if (noSlash) item.word = item.word.replace(/\/$/, '')
+        if (noBackSlash) item.word = item.word.replace(/\/$/, '')
         return {
           ...item,
           menu: this.menu

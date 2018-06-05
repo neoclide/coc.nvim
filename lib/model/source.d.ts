@@ -15,6 +15,15 @@ export default abstract class Source {
     readonly menu: string;
     protected convertToItems(list: any[], extra?: any): VimCompleteItem[];
     protected filterWords(words: string[], opt: CompleteOption): string[];
+    /**
+     * fix start column for new valid characters
+     *
+     * @protected
+     * @param {CompleteOption} opt
+     * @param {string[]} valids - valid charscters
+     * @returns {number}
+     */
+    protected fixStartcol(opt: CompleteOption, valids: string[]): number;
     checkFileType(filetype: string): boolean;
     refresh(): Promise<void>;
     onCompleteDone(item: VimCompleteItem): Promise<void>;

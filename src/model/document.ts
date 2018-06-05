@@ -1,64 +1,119 @@
 import {
   TextDocument,
   TextEdit } from 'vscode-languageserver-types'
+import {getConfig} from '../config'
 import {Chars} from './chars'
+import {
+  isGitIgnored,
+} from '../util/fs'
 const logger = require('../util/logger')('model-document')
 
-export default class Doc {
-  public content:string
-  public uri:string
-  public filetype:string
-  public version:number
-  public doc:TextDocument
-  private chars:Chars
-  constructor(uri:string, filetype:string, version:number, content:string, keywordOption:string) {
-    this.uri = uri
-    this.filetype = filetype
-    this.content = content
-    this.version = version
+// wrapper class of TextDocument
+export default class Document {
+  public words: string[]
+  public isIgnored = false
+  public chars:Chars
+  constructor(public textDocument:TextDocument, public keywordOption:string) {
     let chars = this.chars = new Chars(keywordOption)
-    chars.addKeyword('_')
-    chars.addKeyword('-')
-    this.doc = TextDocument.create(uri, filetype, version, content)
+    if (this.includeDash) {
+      chars.addKeyword('-')
+    }
+    this.generate()
+    this.gitCheck().catch(err => {
+      // noop
+    })
+  }
+
+  private get includeDash():boolean {
+    let {languageId} = this.textDocument
+    return [
+      'html',
+      'wxml',
+      'css',
+      'less',
+      'scss',
+      'wxss'
+    ].indexOf(languageId) != -1
+  }
+
+  private async gitCheck():Promise<void> {
+    let checkGit = getConfig('checkGit')
+    if (!checkGit) return
+    let {uri} = this
+    if (!uri.startsWith('file://')) return
+    this.isIgnored = await isGitIgnored(uri.replace('file://', ''))
+  }
+
+  public get content():string {
+    return this.textDocument.getText()
+  }
+
+  public get filetype():string {
+    return this.textDocument.languageId
+  }
+
+  public get uri():string {
+    return this.textDocument.uri
+  }
+
+  public get version():number {
+    return this.textDocument.version
+  }
+
+  public equalTo(doc:TextDocument):boolean {
+    return doc.uri == this.uri
+  }
+
+  public setKeywordOption(option: string):void {
+    this.chars = new Chars(option)
   }
 
   public applyEdits(edits: TextEdit[]):string {
-    return TextDocument.applyEdits(this.doc, edits)
+    return TextDocument.applyEdits(this.textDocument, edits)
   }
 
   public getOffset(lnum:number, col:number):number {
-    return this.doc.offsetAt({
+    return this.textDocument.offsetAt({
       line: lnum - 1,
       character: col
     })
   }
 
-  // public setContent(content: string):void {
-  //   this.content = content
-  //   let version = this.version = this.version + 1
-  //   this.doc = TextDocument.create(this.uri, this.filetype, version, content)
-  // }
-
   public isWord(word: string):boolean {
     return this.chars.isKeyword(word)
   }
 
-  public getWords():string[] {
-    let {content, chars} = this
-    if (content.length == 0) return []
-    let words = chars.matchKeywords(content)
+  public changeDocument(doc:TextDocument):void {
+    this.textDocument = doc
+    this.generate()
+  }
+
+  public getMoreWords():string[] {
+    let res = []
+    let {words, chars} = this
+    if (!chars.isKeywordChar('-')) return res
     for (let word of words) {
-      for (let ch of ['-', '_']) {
-        if (word.indexOf(ch) !== -1) {
-          let parts = word.split(ch)
-          for (let part of parts) {
-            if (part.length > 2 && words.indexOf(part) === -1) {
-              words.push(part)
-            }
+      word = word.replace(/^-+/, '')
+      if (word.indexOf('-') !== -1) {
+        let parts = word.split('-')
+        for (let part of parts) {
+          if (part.length > 2
+            && res.indexOf(part) === -1
+            && words.indexOf(part) === -1) {
+            res.push(part)
           }
         }
       }
     }
-    return words
+    return res
+  }
+
+  private generate(): void {
+    let {content} = this
+    if (content.length == 0) {
+      this.words = []
+    } else {
+      this.words = this.chars.matchKeywords(content)
+    }
   }
 }
