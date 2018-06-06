@@ -58,22 +58,21 @@ imap <c-space> coc#refresh()
 ### Common sources
 
 
-Name         | Description                                             | Use cache   | Supported filetypes
+Name         | Description                                             | Use cache   | Default filetypes
 ------------ | -------------                                           | ------------|------------
 `around`     | Words of current buffer.                                | ✗           | all
 `buffer`     | Words of none current buffer.                           | ✓           | all
 `dictionary` | Words from files of local `dictionary` option.          | ✓           | all
 `tag`        | Words from `taglist` of current buffer.                 | ✓           | all
 `file`       | Filename completion, auto detected.                     | ✗           | all
-`omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | User defined
-`word`       | Words from google 10000 english repo.                   | ✓           | User defined
-`emoji`      | Eomji characters.                                       | ✓           | User defined
+`omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | []
+`word`       | Words from google 10000 english repo.                   | ✓           | all
+`emoji`      | Eomji characters.                                       | ✓           | ['markdown']
 `module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
 `include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
 
-`User defined` filetypes means the source is not always activted, it requires user
-configuration for filetypes to work.
+`omni` source could be slow, it requires configuration for `filetypes` to work.
 
 ### Vim sources
 

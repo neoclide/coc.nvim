@@ -9,7 +9,6 @@ export default abstract class Source {
     readonly priority: number;
     readonly filter: FilterType;
     readonly firstMatch: boolean;
-    readonly isOnly: boolean;
     readonly engross: boolean;
     readonly filetypes: string[] | null;
     readonly menu: string;

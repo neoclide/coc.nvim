@@ -9,7 +9,7 @@ export default class Around extends Source {
     super(nvim, {
       name: 'around',
       shortcut: 'A',
-      priority: 2,
+      priority: 1,
       firstMatch: true,
     })
   }

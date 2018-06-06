@@ -33,7 +33,7 @@ export default class Complete {
   }
 
   private completeSource(source: Source): Promise<any> {
-    let {engross, isOnly, firstMatch} = source
+    let {engross, firstMatch} = source
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
@@ -60,7 +60,7 @@ export default class Complete {
           result.engross = true
         }
         result.filter = source.filter
-        result.only = isOnly
+        result.priority = source.priority
         result.source = source.name
         result.firstMatch = firstMatch
         ctx.result = result
@@ -95,14 +95,15 @@ export default class Complete {
     let fuzzy = getConfig('fuzzyMatch')
     let codes = fuzzy ? getCharCodes(input) : []
     return items.some(item => {
-      if (fuzzy) return fuzzyMatch(codes, item[field])
-      return filterWord(input, item[field], !/A-Z/.test(input))
+      let s = item[field]
+      if (firstMatch && s[0] !== input[0]) return false
+      if (fuzzy) return fuzzyMatch(codes, s)
+      return filterWord(input, s, !/A-Z/.test(input))
     })
   }
 
   public filterResults(results:CompleteResult[]):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
-    let only = this.getOnlySourceName(results)
     let {input, id} = this.option
     let fuzzy = getConfig('fuzzyMatch')
     let codes = fuzzy ? getCharCodes(input) : []
@@ -111,13 +112,11 @@ export default class Complete {
     } : (input, verb) => {
       return filterWord(input, verb, !/A-Z/.test(input))
     }
-    let count = 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let filterField = res.filter || 'word'
       let {items, source, firstMatch} = res
       if (firstMatch && input.length == 0) break
-      if (count != 0 && source == only) break
       for (let item of items) {
         let {word, abbr, user_data} = item
         let verb = filterField == 'abbr' ? abbr: word
@@ -132,7 +131,6 @@ export default class Complete {
         item.user_data = JSON.stringify(data)
         if (fuzzy) item.score = score(verb, input) + this.getBonusScore(input, item)
         arr.push(item)
-        count = count + 1
       }
     }
     if (fuzzy) {
@@ -155,7 +153,9 @@ export default class Complete {
       if (r == null) return false
       return this.checkResult(r, opts)
     })
-    logger.debug(`Valid results from sources: ${results.map(s => s.source).join(',')}`)
+
+    logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
+    if (results.length == 0) return [col, []]
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
       let {startcol} = engrossResult
@@ -167,23 +167,20 @@ export default class Complete {
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
+    let priority = results[0].priority
+    results = results.filter(r => r.priority === priority)
     this.results = results
     this.startcol = col
     let filteredResults = this.filterResults(results)
-
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
-  }
-
-  private getOnlySourceName(results: CompleteResult[]):string {
-    let r = results.find(r => !!r.only)
-    return r ? r.source : ''
   }
 
   private getBonusScore(input:string, item: VimCompleteItem):number {
     let {word, abbr, kind, info} = item
     let key = `${input.slice(0,3)}|${word}`
     let score = this.recentScores[key] || 0
+    score += (input && word[0] == input[0]) ? 0.001 : 0
     score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0
     score += info ? 0.001 : 0

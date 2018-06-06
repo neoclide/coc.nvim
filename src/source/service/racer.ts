@@ -27,7 +27,6 @@ export default class Racer extends ServiceSource {
     super(nvim, {
       name: 'racer',
       shortcut: 'RACER',
-      priority: 8,
       filetypes: ['rust'],
       command: 'racer',
     })

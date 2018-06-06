@@ -1,8 +1,20 @@
+import {Neovim} from 'neovim'
 import Source from './source'
-import {QueryOption} from '../types'
-import {echoWarning, escapeSingleQuote} from '../util/index'
+import {
+  QueryOption,
+  SourceOption
+} from '../types'
+import {
+  echoWarning,
+  escapeSingleQuote
+} from '../util/index'
 
-export default abstract class ServiceSource extends Source{
+export default abstract class ServiceSource extends Source {
+
+  constructor(nvim: Neovim, option: SourceOption) {
+    option.priority = option.priority || 4
+    super(nvim, option)
+  }
 
   protected async previewMessage(msg:string):Promise<void> {
     return this.nvim.call('coc#util#preview_info', [msg])

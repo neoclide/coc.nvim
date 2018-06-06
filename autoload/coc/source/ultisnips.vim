@@ -3,8 +3,7 @@ function! coc#source#ultisnips#init() abort
   " user should set the filetypes
   return {
         \'shortcut': 'US',
-        \'filetypes': [],
-        \'priority': 8,
+        \'priority': 3,
         \}
 endfunction
 

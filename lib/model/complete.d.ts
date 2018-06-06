@@ -11,6 +11,5 @@ export default class Complete {
     private checkResult;
     filterResults(results: CompleteResult[]): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
-    private getOnlySourceName;
     private getBonusScore;
 }

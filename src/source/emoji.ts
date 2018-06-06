@@ -21,7 +21,7 @@ export default class Emoji extends Source {
       name: 'emoji',
       shortcut: 'EMO',
       priority: 0,
-      filetypes: [],
+      filetypes: ['markdown'],
       engross: 1,
       filterAbbr: true,
     })

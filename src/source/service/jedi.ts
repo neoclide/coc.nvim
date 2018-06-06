@@ -8,7 +8,7 @@ import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import workspace from '../../workspace'
-import {echoWarning, toBool} from '../../util'
+import {echoErr, toBool} from '../../util'
 import * as cp from 'child_process'
 import {unicodeIndex} from '../../util/string'
 const logger = require('../../util/logger')('source-jedi')
@@ -28,7 +28,6 @@ export default class Jedi extends ServiceSource {
     super(nvim, {
       name: 'jedi',
       shortcut: 'JD',
-      priority: 8,
       filetypes: ['python'],
       command: 'python',
       showSignature: true,
@@ -43,7 +42,7 @@ export default class Jedi extends ServiceSource {
     try {
       cp.execSync(`${command} -c "import jedi"`)
     } catch (e) {
-      await echoWarning(nvim, `${command} could not import jedi`)
+      await echoErr(nvim, `${command} could not import jedi`)
       this.disabled = true
       return
     }

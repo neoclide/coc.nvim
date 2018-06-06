@@ -13,7 +13,6 @@ export default class Gocode extends ServiceSource {
     super(nvim, {
       name: 'gocode',
       shortcut: 'GOC',
-      priority: 8,
       filetypes: ['go'],
       command: 'gocode',
     })

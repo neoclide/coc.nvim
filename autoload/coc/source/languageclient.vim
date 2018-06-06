@@ -4,7 +4,7 @@ function! coc#source#languageclient#init() abort
   return {
         \'shortcut': 'LC',
         \'filetypes': [],
-        \'priority': 10,
+        \'priority': 4,
         \}
 endfunction
 

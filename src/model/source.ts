@@ -22,7 +22,7 @@ export default abstract class Source {
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
   constructor(nvim: Neovim, option: SourceOption) {
-    let {name, optionalFns, only}  = option
+    let {name, optionalFns}  = option
     delete option.name
     delete option.optionalFns
     this.nvim = nvim
@@ -46,7 +46,6 @@ export default abstract class Source {
       bindKeywordprg: true,
       signatureEvents: getConfig('signatureEvents'),
     }, option, opt)
-    if (only) this.config.priority = 0
   }
 
   public get priority():number {
@@ -60,10 +59,6 @@ export default abstract class Source {
 
   public get firstMatch():boolean {
     return !!this.config.firstMatch
-  }
-
-  public get isOnly():boolean {
-    return this.config.only === true ? true : false
   }
 
   public get engross():boolean {

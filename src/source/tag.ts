@@ -18,7 +18,7 @@ export default class Tag extends Source {
     super(nvim, {
       name: 'tag',
       shortcut: 'T',
-      priority: 3,
+      priority: 2,
     })
   }
 

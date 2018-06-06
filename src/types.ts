@@ -20,7 +20,6 @@ export interface SourceOption {
   engross?: boolean | number
   priority?: number
   optionalFns?: string[]
-  only?: boolean
   filterAbbr?: boolean
   // remote source only
   firstMatch?: boolean
@@ -74,11 +73,11 @@ export interface CompleteResult {
   engross?: boolean
   startcol?: number
   source?: string
-  only?: boolean
   firstMatch?: boolean
   filter?: FilterType
   // new input if startcol not equal
   input?: string
+  priority?:number
 }
 
 export interface Config {

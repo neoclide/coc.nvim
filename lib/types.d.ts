@@ -15,7 +15,6 @@ export interface SourceOption {
     engross?: boolean | number;
     priority?: number;
     optionalFns?: string[];
-    only?: boolean;
     filterAbbr?: boolean;
     firstMatch?: boolean;
     showSignature?: boolean;
@@ -61,10 +60,10 @@ export interface CompleteResult {
     engross?: boolean;
     startcol?: number;
     source?: string;
-    only?: boolean;
     firstMatch?: boolean;
     filter?: FilterType;
     input?: string;
+    priority?: number;
 }
 export interface Config {
     hasUserData: boolean;

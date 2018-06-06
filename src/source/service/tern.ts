@@ -25,7 +25,6 @@ export default class Tern extends ServiceSource {
     super(nvim, {
       name: 'tern',
       shortcut: 'TERN',
-      priority: 8,
       filetypes: ['javascript'],
       // path of tern module
       ternRoot,
