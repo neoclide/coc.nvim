@@ -9,6 +9,7 @@ import {getConfig} from '../config'
 import {wordSortItems} from '../util/sorter'
 import {uniqueItems} from '../util/unique'
 import {filterWord} from '../util/index'
+import {byteSlice} from '../util/string'
 import {
   getCharCodes,
   fuzzyMatch
@@ -82,7 +83,24 @@ export default class Complete {
     })
   }
 
-  public filterResults(results: CompleteResult[]):VimCompleteItem[] {
+  private checkResult(result:CompleteResult, opt:CompleteOption):boolean {
+    let {items, firstMatch, filter, startcol} = result
+    if (!items || items.length == 0) return false
+    let {line, colnr, col} = opt
+    let input = result.input || opt.input
+    if (startcol && startcol != col) {
+      input = byteSlice(line, startcol, colnr - 1)
+    }
+    let field = filter || 'word'
+    let fuzzy = getConfig('fuzzyMatch')
+    let codes = fuzzy ? getCharCodes(input) : []
+    return items.some(item => {
+      if (fuzzy) return fuzzyMatch(codes, item[field])
+      return filterWord(input, item[field], !/A-Z/.test(input))
+    })
+  }
+
+  public filterResults(results:CompleteResult[]):VimCompleteItem[] {
     let arr: VimCompleteItem[] = []
     let only = this.getOnlySourceName(results)
     let {input, id} = this.option
@@ -128,36 +146,31 @@ export default class Complete {
 
   public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
-    let {col} = opts
+    let {col, line, colnr} = opts
     sources.sort((a, b) => b.priority - a.priority)
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => {
       // error source
       if (r ===false) return false
       if (r == null) return false
-      return r.items && r.items.length > 0
+      return this.checkResult(r, opts)
     })
-    logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
-
-    // TODO engross source should contains items after filter
+    logger.debug(`Valid results from sources: ${results.map(s => s.source).join(',')}`)
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
-      if (engrossResult.startcol != null) {
+      let {startcol} = engrossResult
+      if (startcol && startcol != col) {
         col = engrossResult.startcol
         opts.col = col
-      }
-      // input may change or may not
-      if (engrossResult.input != null) {
-        opts.input = engrossResult.input
+        opts.input = byteSlice(line, startcol, colnr - 1)
       }
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
-
-    // use it even it's bad
     this.results = results
     this.startcol = col
     let filteredResults = this.filterResults(results)
+
     logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
     return [col, filteredResults]
   }

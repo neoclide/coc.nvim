@@ -8,6 +8,7 @@ export default class Complete {
     recentScores: RecentScore;
     constructor(opts: CompleteOption);
     private completeSource;
+    private checkResult;
     filterResults(results: CompleteResult[]): VimCompleteItem[];
     doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]>;
     private getOnlySourceName;
