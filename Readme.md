@@ -23,7 +23,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 ``` vim
  call dein#add('neoclide/coc.nvim', {
-    \ 'build': 'npm install --only=production'
+    \ 'build': 'npm install'
     \})
 ```
 

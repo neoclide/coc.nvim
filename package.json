@@ -8,7 +8,8 @@
     "lint": "tslint -c tslint.json -p .",
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true",
-    "test": "npm run build && jest --runInBand"
+    "test": "npm run build && jest --runInBand",
+    "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
@@ -60,7 +61,6 @@
     "tslint-language-service": "^0.9.9"
   },
   "dependencies": {
-    "which": "^1.3.1",
     "builtin-modules": "^3.0.0",
     "debounce": "^1.1.0",
     "find-root": "^1.1.0",
@@ -79,6 +79,7 @@
     "tslib": "^1.9.2",
     "typescript": "^2.9.1",
     "vscode-languageserver-protocol": "^3.8.1",
-    "vscode-languageserver-types": "^3.8.1"
+    "vscode-languageserver-types": "^3.8.1",
+    "which": "^1.3.1"
   }
 }
