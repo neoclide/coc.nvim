@@ -6,7 +6,7 @@ import {
 import StdioService from '../../model/stdioService'
 import ServiceSource from '../../model/source-service'
 import workspace from '../../workspace'
-import {echoWarning} from '../../util'
+import {echoMessage} from '../../util'
 import {createTmpFile} from '../../util/fs'
 import which = require('which')
 
@@ -39,7 +39,7 @@ export default class Racer extends ServiceSource {
       try {
         which.sync('racer')
       } catch (e) {
-        await echoWarning(this.nvim, 'Could not find racer in $PATH')
+        await echoMessage(this.nvim, 'Could not find racer in $PATH')
         this.disabled = true
         return
       }

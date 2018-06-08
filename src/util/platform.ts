@@ -9,7 +9,7 @@ export interface IProcessEnvironment {
 }
 
 interface INodeProcess {
-  nextTick: Function // tslint:disable-line
+  nextTick: Function
   platform: string
   env: IProcessEnvironment
   getuid(): number
@@ -109,14 +109,3 @@ export const OS = _isMacintosh
   : _isWindows
     ? OperatingSystem.Windows
     : OperatingSystem.Linux
-
-export const enum AccessibilitySupport {
-  /**
-   * This should be the browser case where it is not known if a screen reader is attached or no.
-   */
-  Unknown = 0,
-
-  Disabled = 1,
-
-  Enabled = 2
-}

@@ -34,7 +34,7 @@ function getPipeName(name: string): string {
 }
 
 export function getTempFile(name: string): string {
-  const fullName = 'vscode-' + name
+  const fullName = 'coc-nvim-' + name
   return path.join(os.tmpdir(), fullName + '.sock')
 }
 

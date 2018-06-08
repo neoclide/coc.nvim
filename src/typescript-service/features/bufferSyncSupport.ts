@@ -3,7 +3,7 @@ import workspace from '../../workspace'
 import {
   Uri,
   disposeAll
-} from '../../vscode'
+} from '../../util'
 import {
   TextDocument,
   DidChangeTextDocumentParams,
@@ -27,10 +27,6 @@ function mode2ScriptKind(
       return 'TS'
     case languageModeIds.typescriptreact:
       return 'TSX'
-    case languageModeIds.javascript:
-      return 'JS'
-    case languageModeIds.javascriptreact:
-      return 'JSX'
   }
   return undefined
 }
@@ -74,7 +70,6 @@ class SyncedBuffer {
     this.client.execute('close', args, false) // tslint:disable-line
   }
 
-  // TODO send ChangeEvent here
   public onContentChanged(events:TextDocumentContentChangeEvent[]): void {
     let uri = Uri.file(this.document.uri)
     const filePath = this.client.normalizePath(uri)

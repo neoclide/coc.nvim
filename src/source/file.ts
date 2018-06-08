@@ -17,8 +17,7 @@ export default class File extends Source {
     super(nvim, {
       name: 'file',
       shortcut: 'F',
-      priority: 2,
-      engross: 1,
+      priority: 11,
       trimSameExts: ['.ts', '.js'],
       ignoreHidden: true,
       ignorePatterns: [],

@@ -8,7 +8,8 @@ import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import workspace from '../../workspace'
-import {echoErr, toBool} from '../../util'
+import {echoErr} from '../../util/index'
+import {toBool} from '../../util/types'
 import * as cp from 'child_process'
 import {unicodeIndex} from '../../util/string'
 const logger = require('../../util/logger')('source-jedi')
@@ -146,9 +147,8 @@ export default class Jedi extends ServiceSource {
     } else {
       let msgs = list.map(o => `${o.filename}:${o.lnum}:${col}`)
       let n = await this.promptList(msgs)
-      let idx = parseInt(n, 10)
-      if (idx && list[idx - 1]) {
-        let {lnum, filename, col} = list[idx - 1]
+      if (n > 0) {
+        let {lnum, filename, col} = list[n]
         await this.nvim.call('coc#util#jump_to', [filename, lnum - 1, col - 1])
       }
     }

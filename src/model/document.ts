@@ -1,6 +1,12 @@
+import { Neovim } from 'neovim'
+import {
+  Uri
+} from '../util'
 import {
   TextDocument,
-  TextEdit } from 'vscode-languageserver-types'
+  Position,
+  Range,
+  TextEdit } from 'vscode-languageserver-protocol'
 import {getConfig} from '../config'
 import {Chars} from './chars'
 import {
@@ -13,7 +19,7 @@ export default class Document {
   public words: string[]
   public isIgnored = false
   public chars:Chars
-  constructor(public textDocument:TextDocument, public keywordOption:string) {
+  constructor(public bufnr:number, public textDocument:TextDocument, public keywordOption:string) {
     let chars = this.chars = new Chars(keywordOption)
     if (this.includeDash) {
       chars.addKeyword('-')
@@ -41,7 +47,8 @@ export default class Document {
     if (!checkGit) return
     let {uri} = this
     if (!uri.startsWith('file://')) return
-    this.isIgnored = await isGitIgnored(uri.replace('file://', ''))
+    let filepath = Uri.parse(uri).fsPath
+    this.isIgnored = await isGitIgnored(filepath)
   }
 
   public get content():string {
@@ -68,8 +75,18 @@ export default class Document {
     this.chars = new Chars(option)
   }
 
-  public applyEdits(edits: TextEdit[]):string {
-    return TextDocument.applyEdits(this.textDocument, edits)
+  public async applyEdits(nvim:Neovim, edits: TextEdit[]):Promise<void> {
+    let content = TextDocument.applyEdits(this.textDocument, edits)
+    let buffers = await nvim.buffers
+    let {bufnr} = this
+    let buf = buffers.find(b => b.data.toString() == bufnr.toString())
+    if (buf) {
+      await buf.setLines(content.split(/\r?\n/), {
+        start: 0,
+        end: -1,
+        strictIndexing: false
+      })
+    }
   }
 
   public getOffset(lnum:number, col:number):number {
@@ -115,5 +132,40 @@ export default class Document {
     } else {
       this.words = this.chars.matchKeywords(content)
     }
+  }
+
+  public getWordRangeAtPosition(position:Position, extraChars?:string):Range {
+    let {chars, content, textDocument} = this
+    if (extraChars && extraChars.length) {
+      let codes = []
+      let keywordOption = '@,'
+      for (let i = 0 ; i < extraChars.length; i++) {
+        codes.push(String(extraChars.charCodeAt(i)))
+      }
+      keywordOption += codes.join(',')
+      chars = new Chars(keywordOption)
+    }
+    let start = position
+    let end = position
+    let offset = textDocument.offsetAt(position)
+    for (let i = offset - 1; i >= 0 ; i--) {
+      if (i == 0) {
+        start = textDocument.positionAt(0)
+        break
+      } else if (!chars.isKeywordChar(content[i])) {
+        start = textDocument.positionAt(i + 1)
+        break
+      }
+    }
+    for (let i = offset; i <= content.length ; i++) {
+      if (i === content.length) {
+        end = textDocument.positionAt(i)
+        break
+      } else if (!chars.isKeywordChar(content[i])) {
+        end = textDocument.positionAt(i)
+        break
+      }
+    }
+    return {start, end}
   }
 }

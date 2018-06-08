@@ -1,3 +1,5 @@
+let s:is_win = has("win32") || has('win64')
+
 function! coc#util#get_fullpath(bufnr) abort
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif
@@ -116,4 +118,11 @@ function! coc#util#jump_to(filepath, lnum, col) abort
   endif
   call cursor(lnum, col)
   normal! zz
+endfunction
+
+function! coc#util#get_home()
+  if s:is_win
+    return $VIM."/vimfiles"
+  endif
+  return $HOME."/.vim"
 endfunction

@@ -2,7 +2,23 @@ import {
   Disposable,
 } from 'vscode-languageserver-protocol'
 import {LinkedList} from './linkedList'
-import {onUnexpectedError} from './errors'
+const logger = require('./logger')('util-event')
+const canceledName = 'Canceled'
+
+/**
+ * Checks if the given error is a promise in canceled state
+ */
+function isPromiseCanceledError(error: any): boolean {
+  return error instanceof Error && error.name === canceledName && error.message === canceledName
+}
+
+function onUnexpectedError(e: any): undefined {
+  // ignore errors from cancelled promises
+  if (!isPromiseCanceledError(e)) {
+    logger.error(e.stack)
+  }
+  return undefined
+}
 
 /**
  * Represents a typed event.

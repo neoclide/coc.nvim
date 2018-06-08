@@ -55,12 +55,39 @@ export function getParentDirs(fullpath:string):string[] {
   }
   return res
 }
+/**
+ * Resolve directory from `root` that contains `sub`
+ *
+ * @public
+ * @param {string} root
+ * @param {string} sub
+ * @returns {string | null}
+ */
+export function resolveDirectory(root:string, sub:string): string | null {
+  let paths = getParentDirs(root)
+  paths.unshift(root)
+  for (let p of paths) {
+    let d = path.join(p, sub)
+    if (fs.existsSync(d)) return d
+  }
+  return null
+}
 
-export function readFile(fullpath:string, encoding:string, timeout = 1000):Promise<string> {
+export function resolveRoot(root:string, subs:string[], home:string): string | null {
+  let paths = getParentDirs(root)
+  paths.unshift(root)
+  for (let p of paths) {
+    for (let sub of subs) {
+      if (p == home) return root
+      let d = path.join(p, sub)
+      if (fs.existsSync(d)) return path.dirname(d)
+    }
+  }
+  return root
+}
+
+export function readFile(fullpath:string, encoding:string):Promise<string> {
   return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      reject(new Error(`Read file ${fullpath} timeout`))
-    }, timeout)
     fs.readFile(fullpath, encoding, (err, content) => {
       if (err) reject(err)
       resolve(content)
@@ -88,6 +115,10 @@ export function readFileByLine(fullpath:string, onLine: OnReadLine, limit = 5000
     })
     rl.on('error', reject)
   })
+}
+
+export async function writeFile(fullpath, content:string):Promise<void> {
+  await pify(fs.writeFile)(fullpath, content, 'utf8')
 }
 
 export async function createTmpFile(content:string):Promise<string> {

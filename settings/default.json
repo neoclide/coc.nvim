@@ -1,0 +1,38 @@
+{
+  "typescript.locale": null,
+  // folder contains tsserver.js
+  "typescript.tsdk": "",
+  // absolute path of npm
+  "typescript.npm": null,
+  // could be 'normal' 'terse' 'verbose' 'off'
+  "typescript.tsserver.log": "off",
+  // folder name of plugins
+  "typescript.tsserver.pluginNames": [],
+  // folder root of plugins
+  "typescript.tsserver.pluginRoot": "",
+  "typescript.reportStyleChecksAsWarnings": true,
+  "typescript.implicitProjectConfig.checkJs": false,
+  "typescript.implicitProjectConfig.experimentalDecorators": false,
+  "typescript.disableAutomaticTypeAcquisition": false,
+  "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
+  "typescript.preferences.completion.nameSuggestions" : true,
+  "typescript.preferences.completion.autoImportSuggestions" : true,
+  // 'non-relative' or 'relative'
+  "typescript.preferences.importModuleSpecifier" : "non-relative",
+  "typescript.preferences.suggestionActions.enabled" : true,
+  // 'single' or 'double'
+  "typescript.preferences.quoteStyle" : "single",
+  "typescript.format.insertSpaceAfterCommaDelimiter" : true,
+  "typescript.format.insertSpaceAfterConstructor" : false,
+  "typescript.format.insertSpaceAfterSemicolonInForStatements" : true,
+  "typescript.format.insertSpaceBeforeAndAfterBinaryOperators" : true,
+  "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements" : true,
+  "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions" : true,
+  "typescript.format.insertSpaceBeforeFunctionParenthesis" : true,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis" : false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces" : false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces" : false,
+  "typescript.format.insertSpaceAfterTypeAssertion" : false,
+  "typescript.format.placeOpenBraceOnNewLineForFunctions" : false,
+  "typescript.format.placeOpenBraceOnNewLineForControlBlocks" : false
+}

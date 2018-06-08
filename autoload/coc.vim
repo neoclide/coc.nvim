@@ -70,3 +70,15 @@ function! coc#start()
   call CocStart(opt)
   return ''
 endfunction
+
+function! coc#prompt_change(count)
+  echohl MoreMsg
+  echom a:count.' files will be saved. Confirm? (y/n)'
+  echohl None
+  let confirm = nr2char(getchar()) | redraw!
+  if !(confirm ==? "y" || confirm ==? "\r")
+    echohl Moremsg | echo 'Cancelled.' | echohl None
+    return 0
+  end
+  return 1
+endfunction

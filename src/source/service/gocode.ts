@@ -2,7 +2,7 @@ import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
 import workspace from '../../workspace'
-import {echoWarning} from '../../util'
+import {echoMessage} from '../../util'
 import which = require('which')
 const {spawn} = require('child_process')
 const logger = require('../../util/logger')('source-gocode')
@@ -25,7 +25,7 @@ export default class Gocode extends ServiceSource {
       try {
         which.sync('gocode')
       } catch (e) {
-        await echoWarning(this.nvim, 'Could not find gocode in $PATH')
+        await echoMessage(this.nvim, 'Could not find gocode in $PATH')
         this.disabled = true
         return
       }

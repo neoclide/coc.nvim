@@ -1,7 +1,7 @@
 import { Neovim } from 'neovim'
 import VimSource from './model/source-vim'
 import {SourceOption} from './types'
-import {echoWarning, echoErr} from './util/index'
+import {echoMessage, echoErr} from './util/index'
 import {statAsync} from './util/fs'
 import path = require('path')
 import pify = require('pify')
@@ -70,7 +70,7 @@ export class Remotes {
                 paths.push(fullpath)
                 dups[name] = paths
               } else {
-                await echoWarning(nvim, `Source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
+                await echoMessage(nvim, `Source ${name} found in multiple runtimes, run ':checkhealth' for detail`)
               }
             } else {
               names.push(name)

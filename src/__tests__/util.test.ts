@@ -1,6 +1,5 @@
 import {uniqueItems, uniqeWordsList} from '../util/unique'
 import {
-  getUserData,
   contextDebounce,
   wait,
   isCocItem,
@@ -24,30 +23,6 @@ import {
 import watchObj from '../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
-
-describe('getUserData test', () => {
-  test('should return null if no data', () => {
-    let item = {word:''}
-    expect(getUserData(item)).toBeNull
-  })
-
-  test('should return null if no cid', () => {
-    let item = {word:'', user_data: '{"foo": 1}'}
-    expect(getUserData(item)).toBeNull
-  })
-
-  test('should return null if user_data not a json', () => {
-    let item = {word:'', user_data: 'foo'}
-    expect(getUserData(item)).toBeNull
-  })
-
-  test('should return object if cid is in user_data', () => {
-    let item = {word:'', user_data: '{"cid": 123}'}
-    let obj = getUserData(item)
-    expect(obj).toBeDefined
-    expect(obj.cid).toBe(123)
-  })
-})
 
 describe('unique test', () => {
   test('should find out better abbr', async () => {

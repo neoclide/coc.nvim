@@ -15,8 +15,7 @@ export default class Include extends Source {
     super(nvim, {
       name: 'include',
       shortcut: 'I',
-      priority: 0,
-      engross: 1,
+      priority: 10,
       filetypes: [],
       trimSameExts: ['.ts', '.js'],
     })
@@ -56,6 +55,7 @@ export default class Include extends Source {
           let trim = trimSameExts.indexOf(ext) !== -1 && ex === ext
           let filepath = path.join(dir, file)
           let word = path.relative(path.dirname(fullpath), filepath)
+          if (!/^\./.test(word)) word = `./${word}`
           if (trim) word = word.slice(0, - ext.length)
           return {
             word,

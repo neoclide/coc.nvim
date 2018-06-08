@@ -1,3 +1,8 @@
+import {
+  WorkspaceConfiguration
+} from '../../types'
+import workspace from '../../workspace'
+
 export enum TsServerLogLevel {
   Off,
   Normal,
@@ -38,6 +43,7 @@ export namespace TsServerLogLevel {
 export class TypeScriptServiceConfiguration {
   public readonly locale: string | null
   public readonly globalTsdk: string | null
+  public readonly localTsdk: string | null
   public readonly npmLocation: string | null
   public readonly tsServerLogLevel: TsServerLogLevel
   public readonly checkJs: boolean
@@ -46,24 +52,39 @@ export class TypeScriptServiceConfiguration {
   public readonly tsServerPluginNames: string[]
   public readonly tsServerPluginRoot: string | null
   private constructor() {
-    // typescript.locale
-    this.locale = null
-    // typescript.tsdk folder contains tsserver.js
-    this.globalTsdk = null
-    // typescript.npmLocation
-    this.npmLocation = null
-    // typescript.tsserver.logLevel
-    this.tsServerLogLevel = TsServerLogLevel.fromString(process.env.TSS_LOG_LEVEL)
-    // typescript.tsserver.plugin.names
-    this.tsServerPluginNames = []
-    // typescript.tsserver.plugin.root
-    this.tsServerPluginRoot = ''
-    // typescript.implicitProjectConfig.checkJs
-    this.checkJs = false
-    // typescript.implicitProjectConfig.experimentalDecorators
-    this.experimentalDecorators = false
-    // typescript.disableAutomaticTypeAcquisition
-    this.disableAutomaticTypeAcquisition = false
+    const configuration = workspace.getConfiguration('typescript')
+    this.locale = configuration.get<string | null>('locale', null)
+    this.globalTsdk = TypeScriptServiceConfiguration.extractGlobalTsdk(configuration)
+    this.localTsdk = TypeScriptServiceConfiguration.extractLocalTsdk(configuration)
+    this.npmLocation = configuration.get<string>('npm', null)
+    this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('tsserver.log', 'off'))
+    this.tsServerPluginNames = configuration.get<string[]>('pluginNames', [])
+    this.tsServerPluginRoot = configuration.get<string>('pluginRoot', null)
+    this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
+    this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
+    this.disableAutomaticTypeAcquisition = configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
+  }
+
+  private static extractGlobalTsdk(configuration: WorkspaceConfiguration): string | null {
+    const inspect = configuration.inspect('tsdk')
+    if ( inspect
+      && inspect.globalValue
+      && (inspect.globalValue as string).length
+      && 'string' === typeof inspect.globalValue) {
+      return inspect.globalValue
+    }
+    return null
+  }
+
+  private static extractLocalTsdk(configuration: WorkspaceConfiguration): string | null {
+    const inspect = configuration.inspect('tsdk')
+    if ( inspect
+      && inspect.folderValue
+      && (inspect.folderValue as string).length
+      && 'string' === typeof inspect.folderValue) {
+      return inspect.folderValue
+    }
+    return null
   }
 
   public static loadFromWorkspace(): TypeScriptServiceConfiguration {

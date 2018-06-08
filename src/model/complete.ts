@@ -33,7 +33,7 @@ export default class Complete {
   }
 
   private completeSource(source: Source): Promise<any> {
-    let {engross, firstMatch} = source
+    let {firstMatch} = source
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
@@ -55,8 +55,7 @@ export default class Complete {
         if (result == null) {
           result = {items: []}
         }
-        if (engross
-          || result.startcol && result.startcol != col) {
+        if (result.startcol && result.startcol != col) {
           result.engross = true
         }
         result.filter = source.filter
@@ -86,8 +85,7 @@ export default class Complete {
   private checkResult(result:CompleteResult, opt:CompleteOption):boolean {
     let {items, firstMatch, filter, startcol} = result
     if (!items || items.length == 0) return false
-    let {line, colnr, col} = opt
-    let input = result.input || opt.input
+    let {line, colnr, col, input} = opt
     if (startcol && startcol != col) {
       input = byteSlice(line, startcol, colnr - 1)
     }

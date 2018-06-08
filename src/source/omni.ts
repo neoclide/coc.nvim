@@ -1,7 +1,7 @@
 import { Neovim } from 'neovim'
 import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
-import {echoErr, echoWarning} from '../util/index'
+import {echoErr, echoMessage} from '../util/index'
 import {byteSlice} from '../util/string'
 const logger = require('../util/logger')('source-omni')
 
@@ -21,7 +21,7 @@ export default class OmniSource extends Source {
     let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
     opt.func = func
     if (typeof func == 'string' && func.length != 0) return true
-    await echoWarning(this.nvim, 'omnifunc option is empty, omni source skipped')
+    await echoMessage(this.nvim, 'omnifunc option is empty, omni source skipped')
     return false
   }
 
@@ -29,7 +29,7 @@ export default class OmniSource extends Source {
     let {line, colnr, col, func} = opt
     let {nvim} = this
     if (['LanguageClient#complete', 'jedi#completes'].indexOf('func') !== -1) {
-      await echoWarning(nvim, `omnifunc ${func} is broken, skipped!`)
+      await echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
     let startcol:number = col
@@ -50,7 +50,7 @@ export default class OmniSource extends Source {
     let res:CompleteResult = {
       items: this.convertToItems(words)
     }
-    if (startcol !== col && words.length != 0) {
+    if (startcol && startcol !== col && words.length != 0) {
       res.startcol = startcol
       res.engross = true
     }

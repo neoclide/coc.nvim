@@ -1,6 +1,6 @@
 import {CancellationToken, Event} from 'vscode-languageserver-protocol'
 import {TypeScriptServiceConfiguration} from './utils/configuration'
-import {Uri} from '../vscode/index'
+import {Uri} from '../util'
 import * as Proto from './protocol'
 import API from './utils/api'
 

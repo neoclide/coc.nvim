@@ -12,8 +12,7 @@ export default class Module extends Source {
     super(nvim, {
       name: 'module',
       shortcut: 'M',
-      priority: 0,
-      engross: 1,
+      priority: 10,
       filetypes: []
     })
   }
@@ -34,7 +33,7 @@ export default class Module extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {filetype, line, col} = opt
+    let {filetype} = opt
     let {resolve} = require(path.join(baseDir, filetype))
     let words = await resolve(opt)
     let startcol = this.fixStartcol(opt, ['-', '@'])

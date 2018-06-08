@@ -67,6 +67,8 @@ export default class CompletePlugin {
     let {nvim} = this
     try {
       await this.initConfig()
+      // workspace configuration
+      await workspace.init()
       await natives.init()
       await remotes.init(nvim, natives.names)
       await nvim.command(

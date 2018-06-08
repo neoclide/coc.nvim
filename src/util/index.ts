@@ -1,6 +1,23 @@
-import {VimCompleteItem} from '../types'
-import {Neovim } from 'neovim'
+import {
+  Disposable,
+  TextDocument,
+  TextDocumentContentChangeEvent,
+} from 'vscode-languageserver-protocol'
+import {Neovim} from 'neovim'
+import {Event, Emitter} from './event'
+import * as fileSchemes from './fileSchemes'
 import {getConfig} from '../config'
+import Uri, {UriComponents} from './uri'
+import * as platform from './platform'
+export {
+  Event,
+  Emitter as EventEmitter,
+  Disposable,
+  Uri,
+  UriComponents,
+  platform,
+  fileSchemes,
+}
 import debounce = require('debounce')
 import net = require('net')
 const logger = require('./logger')()
@@ -16,6 +33,10 @@ export async function echoErr(nvim: Neovim, line: string):Promise<void> {
 }
 
 export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
+  return await echoMsg(nvim, line, 'WarningMsg')
+}
+
+export async function echoMessage(nvim: Neovim, line: string):Promise<void> {
   return await echoMsg(nvim, line, 'MoreMsg')
 }
 
@@ -23,7 +44,7 @@ export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
   await nvim.call('coc#util#print_errors', lines)
 }
 
-export function getUserData(item:VimCompleteItem):{[index: string]: any} | null {
+export function getUserData(item:any):{[index: string]: any} | null {
   let userData = item.user_data
   if (!userData) return null
   try {
@@ -107,7 +128,60 @@ export function getPort(port = 44877):Promise<number> {
   })
 }
 
-export function toBool(s:number|string|boolean):boolean {
-  if (s == '0') return false
-  return !!s
+// -1 is cancel
+export async function showQuickpick(nvim:Neovim, items:string[], placeholder = 'Choose by number'):Promise<number> {
+  let msgs = [placeholder + ':']
+  msgs = msgs.concat(items.map((str, index) => {
+    return `${index + 1}) ${str}`
+  }))
+  let res = await nvim.call('input', [msgs.join('\n') + '\n'])
+  let n = parseInt(res, 10)
+  if (isNaN(n) || n <=0 || n > res.length) return -1
+  return n - 1
+}
+
+export function disposeAll(disposables: Disposable[]):void {
+  while (disposables.length) {
+    const item = disposables.pop()
+    if (item) {
+      item.dispose()
+    }
+  }
+}
+
+export function getChangeEvent(doc:TextDocument, text:string):TextDocumentContentChangeEvent {
+  let orig = doc.getText()
+  if (!orig.length) return {text}
+  let start = -1
+  let end = orig.length
+  let changedText = ''
+  for (let i = 0, l = orig.length; i < l; i++) {
+    if (orig[i] !== text[i]) {
+      start = i
+      break
+    }
+  }
+  if (start != -1) {
+    let cl = text.length
+    let n = 1
+    for (let i = end - 1; i >= 0; i--) {
+      let j = cl - n
+      if (orig[i] !== text[j]) {
+        end = i + 1
+        changedText = text.slice(start, j + 1)
+        break
+      }
+      n++
+    }
+  } else {
+    changedText = text.slice(end)
+  }
+  return {
+    range: {
+      start: doc.positionAt(start),
+      end: doc.positionAt(end),
+    },
+    rangeLength: end - start,
+    text: changedText
+  }
 }

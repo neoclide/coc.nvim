@@ -1,0 +1,223 @@
+import workspace from '../workspace'
+import {
+  Disposable,
+  Diagnostic,
+  DiagnosticSeverity,
+} from 'vscode-languageserver-protocol'
+import {
+  DiagnosticKind,
+} from '../types'
+import {
+  Uri,
+  disposeAll,
+} from '../util'
+import * as Proto from './protocol'
+import * as PConst from './protocol.const'
+import TypeScriptServiceClient from './typescriptServiceClient'
+import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
+import * as typeConverters from './utils/typeConverters'
+import LanguageProvider from './languageProvider'
+import {LanguageDescription, standardLanguageDescriptions} from './utils/languageDescription'
+const logger = require('../util/logger')('typescript-service-clienthost')
+
+// Style check diagnostics that can be reported as warnings
+const styleCheckDiagnostics = [
+  6133, // variable is declared but never used
+  6138, // property is declared but its value is never read
+  7027, // unreachable code detected
+  7028, // unused label
+  7029, // fall through case in switch
+  7030 // not all code paths return a value
+]
+
+export default class TypeScriptServiceClientHost {
+  private readonly ataProgressReporter: AtaProgressReporter
+  private readonly typingsStatus: TypingsStatus
+  private readonly client: TypeScriptServiceClient
+  private readonly languages: LanguageProvider[] = []
+  private readonly languagePerId = new Map<string, LanguageProvider>()
+  private readonly disposables: Disposable[] = []
+  private reportStyleCheckAsWarnings = true
+
+  constructor() {
+    const descriptions = standardLanguageDescriptions
+    const handleProjectCreateOrDelete = () => {
+      this.client.execute('reloadProjects', null, false) // tslint:disable-line
+      this.triggerAllDiagnostics()
+    }
+    const handleProjectChange = () => {
+      setTimeout(() => {
+        this.triggerAllDiagnostics()
+      }, 1500)
+    }
+    const configFileWatcher = workspace.createFileSystemWatcher(
+      '**/[tj]sconfig.json'
+    )
+    this.disposables.push(configFileWatcher)
+    configFileWatcher.onDidCreate(
+      handleProjectCreateOrDelete,
+      this,
+      this.disposables
+    )
+    configFileWatcher.onDidDelete(
+      handleProjectCreateOrDelete,
+      this,
+      this.disposables
+    )
+    configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
+
+    this.client = new TypeScriptServiceClient()
+    this.disposables.push(this.client)
+
+    this.client.onDiagnosticsReceived(({kind, resource, diagnostics}) => {
+      this.diagnosticsReceived(kind, resource, diagnostics).catch(() => {
+        // noop
+      })
+    },
+      null,
+      this.disposables
+    )
+
+    this.client.onConfigDiagnosticsReceived(diag => {
+      logger.debug(diag)
+    }, null, this.disposables)
+
+    this.client.onResendModelsRequested(() => this.populateService(), null, this.disposables)
+
+    this.typingsStatus = new TypingsStatus(this.client)
+    this.ataProgressReporter = new AtaProgressReporter(this.client)
+
+    for (const description of descriptions) {
+      const manager = new LanguageProvider(
+        this.client,
+        description,
+        this.typingsStatus
+      )
+      this.languages.push(manager)
+      this.disposables.push(manager)
+      this.languagePerId.set(description.id, manager)
+    }
+
+    this.client.ensureServiceStarted()
+    this.client.onTsServerStarted(() => {
+      this.triggerAllDiagnostics()
+    })
+    this.configurationChanged()
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
+    this.typingsStatus.dispose()
+    this.ataProgressReporter.dispose()
+  }
+
+  public get serviceClient(): TypeScriptServiceClient {
+    return this.client
+  }
+
+  public reloadProjects(): void {
+    this.client.execute('reloadProjects', null, false) // tslint:disable-line
+    this.triggerAllDiagnostics()
+  }
+
+  public handles(resource: Uri): boolean {
+    return !!this.findLanguage(resource)
+  }
+
+  // typescript or javascript
+  public async getProvider(languageId:string):LanguageProvider {
+    return this.languagePerId.get(languageId)
+  }
+
+  private configurationChanged(): void {
+    const config = workspace.getConfiguration('typescript')
+    this.reportStyleCheckAsWarnings = config.get('reportStyleChecksAsWarnings', true)
+  }
+
+  private async findLanguage(resource: Uri): Promise<LanguageProvider | undefined> {
+    try {
+      const doc = await workspace.openTextDocument(resource)
+      return this.languages.find(language => language.handles(resource, doc))
+    } catch {
+      return undefined
+    }
+  }
+
+  private triggerAllDiagnostics():void {
+    for (const language of this.languagePerId.values()) {
+      language.triggerAllDiagnostics()
+    }
+  }
+
+  private populateService(): void {
+    // See https://github.com/Microsoft/TypeScript/issues/5530
+    workspace.saveAll(false).then(() => {
+      for (const language of this.languagePerId.values()) {
+        language.reInitialize()
+      }
+    }, () => {
+      // noop
+    })
+  }
+
+  private async diagnosticsReceived(
+    kind: DiagnosticKind,
+    resource: Uri,
+    diagnostics: Proto.Diagnostic[]
+  ): Promise<void> {
+    const language = await this.findLanguage(resource)
+    if (language) {
+      language.diagnosticsReceived(
+        kind,
+        resource,
+        this.createMarkerDatas(diagnostics, language.diagnosticSource))
+    }
+  }
+
+  private createMarkerDatas(diagnostics: Proto.Diagnostic[], source: string): Diagnostic[] {
+    return diagnostics.map(tsDiag => this.tsDiagnosticToLspDiagnostic(tsDiag, source))
+  }
+
+  private tsDiagnosticToLspDiagnostic(diagnostic: Proto.Diagnostic, source: string): Diagnostic {
+    const { start, end, text } = diagnostic
+    const range = {
+      start: typeConverters.Position.fromLocation(start),
+      end: typeConverters.Position.fromLocation(end)
+    }
+    return {
+      range,
+      message: text,
+      code: diagnostic.code ? diagnostic.code : null,
+      severity: this.getDiagnosticSeverity(diagnostic),
+      source: diagnostic.source || 'tsserver',
+    }
+  }
+
+  private getDiagnosticSeverity(diagnostic: Proto.Diagnostic): DiagnosticSeverity {
+    if (
+      this.reportStyleCheckAsWarnings &&
+      this.isStyleCheckDiagnostic(diagnostic.code) &&
+      diagnostic.category === PConst.DiagnosticCategory.error
+    ) {
+      return DiagnosticSeverity.Warning
+    }
+
+    switch (diagnostic.category) {
+      case PConst.DiagnosticCategory.error:
+        return DiagnosticSeverity.Error
+
+      case PConst.DiagnosticCategory.warning:
+        return DiagnosticSeverity.Warning
+
+      case PConst.DiagnosticCategory.suggestion:
+        return DiagnosticSeverity.Information
+
+      default:
+        return DiagnosticSeverity.Error
+    }
+  }
+
+  private isStyleCheckDiagnostic(code: number | undefined): boolean {
+    return code ? styleCheckDiagnostics.indexOf(code) !== -1 : false
+  }
+}

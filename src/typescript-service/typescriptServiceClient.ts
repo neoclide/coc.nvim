@@ -1,25 +1,28 @@
-import {Neovim} from 'neovim'
 import * as cp from 'child_process'
 import * as path from 'path'
 import * as fs from 'fs'
 import Tracer from './utils/tracer'
-import {echoErr, echoWarning} from '../util/index'
 import * as Proto from './protocol'
 import {fork, getTempFile, makeRandomHexString} from './utils/process'
 import API from './utils/api'
+import workspace from '../workspace'
 import {Reader, ICallback} from './utils/wireProtocol'
+import {
+  DiagnosticKind,
+} from '../types'
 import {
   TypeScriptServiceConfiguration,
   TsServerLogLevel
 } from './utils/configuration'
 import {
   Uri,
-  DiagnosticKind,
   EventEmitter,
   Event,
   disposeAll,
   fileSchemes,
-} from '../vscode'
+  echoErr,
+  echoMessage,
+} from '../util'
 import {
   Disposable,
   CancellationToken,
@@ -151,10 +154,6 @@ export interface TsDiagnostics {
 }
 
 export default class TypeScriptServiceClient implements ITypeScriptServiceClient {
-  private static readonly WALK_THROUGH_SNIPPET_SCHEME_COLON = `${
-    fileSchemes.walkThroughSnippet
-  }:`
-
   private pathSeparator: string
   private tracer: Tracer
 
@@ -177,6 +176,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private requestQueue: RequestQueue
   private callbacks: CallbackMap
 
+  private readonly root: string
   private readonly _onTsServerStarted = new EventEmitter<API>()
   private readonly _onProjectLanguageServiceStateChanged = new EventEmitter<Proto.ProjectLanguageServiceStateEventBody>()
   private readonly _onDidBeginInstallTypings = new EventEmitter<Proto.BeginInstallTypesEventBody>()
@@ -195,11 +195,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private readonly disposables: Disposable[] = []
 
-  constructor(
-    private readonly nvim: Neovim,
-    public readonly root:string
-  ) {
-    this.root = root
+  constructor() {
+    this.root = workspace.root
     this.pathSeparator = path.sep
     this.lastStart = Date.now()
 
@@ -346,11 +343,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     let {root} = this
     let currentVersion = this.versionProvider.getLocalVersion(root)
     if (!currentVersion && !fs.existsSync(currentVersion.tsServerPath)) {
-      echoWarning(this.nvim, `Can't find local tsserver, Falling back to global TypeScript version.`) // tslint:disable-line
+      echoMessage(workspace.nvim, `Can't find local tsserver, Falling back to global TypeScript version.`) // tslint:disable-line
       currentVersion = this.versionProvider.defaultVersion
     }
     if (!currentVersion.isValid) {
-      echoErr(this.nvim, 'Can not find tsserver') // tslint:disable-line
+      echoErr(workspace.nvim, 'Can not find tsserver') // tslint:disable-line
       return
     }
     this.info(`Using tsserver from: ${currentVersion.path}`)
@@ -434,25 +431,25 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public async openTsServerLogFile(): Promise<boolean> {
     if (!this.apiVersion.has222Features()) {
-      echoErr(this.nvim, 'TS Server logging requires TS 2.2.2+') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+') // tslint:disable-line
       return false
     }
 
     if (this._configuration.tsServerLogLevel === TsServerLogLevel.Off) {
-      echoErr(this.nvim, 'TS Server logging is off. Set env TSS_LOG_LEVEL to enable logging') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server logging is off. Set env TSS_LOG_LEVEL to enable logging') // tslint:disable-line
       return false
     }
 
     if (!this.tsServerLogFile) {
-      echoErr(this.nvim, 'TS Server has not started logging.') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server has not started logging.') // tslint:disable-line
       return false
     }
 
     try {
-      await this.nvim.command(`edit ${this.tsServerLogFile}`)
+      await workspace.nvim.command(`edit ${this.tsServerLogFile}`)
       return true
     } catch {
-      echoErr(this.nvim, 'Could not open TS Server log file') // tslint:disable-line
+      echoErr(workspace.nvim, 'Could not open TS Server log file') // tslint:disable-line
       return false
     }
   }
@@ -510,11 +507,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         if (diff < 10 * 1000 /* 10 seconds */) {
           this.lastStart = Date.now()
           startService = false
-          echoErr(this.nvim, 'The TypeScript language service died 5 times right after it got started.') // tslint:disable-line
+          echoErr(workspace.nvim, 'The TypeScript language service died 5 times right after it got started.') // tslint:disable-line
           this.resetClientVersion()
         } else if (diff < 60 * 1000 /* 1 Minutes */) {
           this.lastStart = Date.now()
-          echoErr(this.nvim, 'The TypeScript language service died unexpectedly 5 times in the last 5 Minutes.') // tslint:disable-line
+          echoErr(workspace.nvim, 'The TypeScript language service died unexpectedly 5 times in the last 5 Minutes.') // tslint:disable-line
         }
       }
       if (startService) {
@@ -525,27 +522,17 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public normalizePath(resource: Uri): string | null {
     if (this._apiVersion.has213Features()) {
-      if (
-        resource.scheme === fileSchemes.walkThroughSnippet ||
-        resource.scheme === fileSchemes.untitled
-      ) {
+      if (resource.scheme !== fileSchemes.file) {
         const dirName = path.dirname(resource.path)
-        const fileName =
-          this.inMemoryResourcePrefix + path.basename(resource.path)
+        const fileName = this.inMemoryResourcePrefix + path.basename(resource.path)
         return resource
           .with({path: path.posix.join(dirName, fileName)})
           .toString(true)
       }
     }
 
-    if (resource.scheme !== fileSchemes.file) {
-      return null
-    }
-
     const result = resource.fsPath
-    if (!result) {
-      return null
-    }
+    if (!result) return null
 
     // Both \ and / must be escaped in regular expressions
     return result.replace(new RegExp('\\' + this.pathSeparator, 'g'), '/')
@@ -557,12 +544,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public asUrl(filepath: string): Uri {
     if (this._apiVersion.has213Features()) {
-      if (
-        filepath.startsWith(
-          TypeScriptServiceClient.WALK_THROUGH_SNIPPET_SCHEME_COLON
-        ) ||
-        filepath.startsWith(fileSchemes.untitled + ':')
-      ) {
+      if (!filepath.startsWith('file:')) {
         let resource = Uri.parse(filepath)
         if (this.inMemoryResourcePrefix) {
           const dirName = path.dirname(resource.path)

@@ -3,7 +3,7 @@ import {
   getConfig,
   getSourceConfig} from '../config'
 import {fuzzyChar} from '../util/fuzzy'
-import {toBool} from '../util'
+import {toBool} from '../util/types'
 import {SourceOption,
   SourceConfig,
   VimCompleteItem,
@@ -13,7 +13,7 @@ import {SourceOption,
 import {byteSlice} from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
-const boolOptions = ['engross', 'firstmatch']
+const boolOptions = ['firstmatch']
 
 export default abstract class Source {
   public readonly name: string
@@ -39,7 +39,6 @@ export default abstract class Source {
       shortcut: name.slice(0, 3),
       priority: 0,
       filetypes: null,
-      engross: false,
       firstMatch: false,
       filterAbbr: false,
       showSignature: true,
@@ -59,10 +58,6 @@ export default abstract class Source {
 
   public get firstMatch():boolean {
     return !!this.config.firstMatch
-  }
-
-  public get engross():boolean {
-    return !!this.config.engross
   }
 
   public get filetypes():string[] | null {
