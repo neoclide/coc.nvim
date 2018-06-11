@@ -24,5 +24,7 @@
     "src/**/*.ts"
   ],
   "exclude": [
+    ".git",
+    "lib"
   ]
 }

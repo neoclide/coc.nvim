@@ -50,6 +50,7 @@ function generatePatchedEnv(
   newEnv['STDIN_PIPE_NAME'] = stdInPipeName // tslint:disable-line
   newEnv['STDOUT_PIPE_NAME'] = stdOutPipeName // tslint:disable-line
   newEnv['STDERR_PIPE_NAME'] = stdErrPipeName // tslint:disable-line
+  newEnv['TSS_LOG'] = `-level verbose -file ${path.join(os.tmpdir(), 'coc-nvim-tsc.log')}` // tslint:disable-line
 
   // Ensure we always have a PATH set
   newEnv['PATH'] = newEnv['PATH'] || process.env.PATH // tslint:disable-line
@@ -131,7 +132,6 @@ export function fork(
   const bootstrapperPath = require.resolve('./electronForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,
-    cwd: options.cwd,
     env: newEnv,
     execArgv: options.execArgv
   })

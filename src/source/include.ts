@@ -3,6 +3,7 @@ import {CompleteOption, CompleteResult} from '../types'
 import Source from '../model/source'
 import * as fs from 'fs'
 import {findSourceDir} from '../util/fs'
+import {toNumber} from '../util/types'
 import path = require('path')
 import pify = require('pify')
 const exec = require('child_process').exec
@@ -40,7 +41,7 @@ export default class Include extends Source {
     let {command, nvim} = this
     let {bufnr, col} = opt
     let {trimSameExts} = this.config
-    let fullpath = await nvim.call('coc#util#get_fullpath', [bufnr])
+    let fullpath = await nvim.call('coc#util#get_fullpath', [toNumber(bufnr)])
     let items = []
     if (fullpath && command) {
       let dir = findSourceDir(fullpath)

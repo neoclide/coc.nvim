@@ -40,22 +40,6 @@ export default class Configurations {
     this._configuration = Configurations.parse(data)
   }
 
-  private _toReadonlyValue(result: any): any {
-    const readonlyProxy = target => {
-      return isObject(target) ?
-        new Proxy(target, {
-          get: (target: any, property: string) => readonlyProxy(target[property]),
-          set: (target: any, property: string, value: any) => { throw new Error(`TypeError: Cannot assign to read only property '${property}' of object`)},
-          deleteProperty: (target: any, property: string) => { throw new Error(`TypeError: Cannot delete read only property '${property}' of object`)},
-          defineProperty: (target: any, property: string) => { throw new Error(`TypeError: Cannot define property '${property}' for a readonly object`)},
-          setPrototypeOf: (target: any) => { throw new Error(`TypeError: Cannot set prototype for a readonly object`)},
-          isExtensible: () => false,
-          preventExtensions: () => true
-        }) : target
-    }
-    return readonlyProxy(result)
-  }
-
   /**
    * getConfiguration
    *
@@ -65,7 +49,7 @@ export default class Configurations {
    */
   public getConfiguration(section: string): WorkspaceConfiguration {
 
-    const config = this._toReadonlyValue(lookUp(this._configuration.getValue(null), section))
+    const config = Object.freeze(lookUp(this._configuration.getValue(null), section))
 
     const result: WorkspaceConfiguration = {
       has(key: string): boolean {
@@ -119,9 +103,7 @@ export default class Configurations {
           }
           result = cloneOnWriteProxy(result, key)
         }
-        if (typeof result == 'string' || result.length == 0) {
-          return null
-        }
+        if (result == null || (typeof result == 'string' && result.length == 0)) return null
         return result
       },
       update: (key: string, value: any, isGlobal?: boolean) => {
@@ -142,6 +124,7 @@ export default class Configurations {
         return undefined
       }
     }
+
     if (typeof config === 'object') {
       mixin(result, config, false)
     }

@@ -1,5 +1,6 @@
 import * as Proto from '../protocol'
 import {Logger} from 'log4js'
+import workspace from '../../workspace'
 
 enum Trace {
   Off,
@@ -9,16 +10,17 @@ enum Trace {
 
 namespace Trace {
   export function fromString(value: string): Trace {
+    value = value || ''
     value = value.toLowerCase()
     switch (value) {
       case 'off':
-        return Trace.Off // tslint:disable-line
+        return Trace.Off
       case 'messages':
-        return Trace.Messages // tslint:disable-line
+        return Trace.Messages
       case 'verbose':
-        return Trace.Verbose // tslint:disable-line
+        return Trace.Verbose
       default:
-        return Trace.Off // tslint:disable-line
+        return Trace.Off
     }
   }
 }
@@ -31,7 +33,11 @@ export default class Tracer {
   }
 
   private static readTrace(): Trace {
-    return Trace.fromString(process.env.TSS_TRACE)
+    let result: Trace = Trace.fromString(workspace.getConfiguration('tsserver').get<string>('trace', 'off'))
+    if (result === Trace.Off && !!process.env.TSS_TRACE) {
+      result = Trace.Messages
+    }
+    return result
   }
 
   public traceRequest(
@@ -39,6 +45,7 @@ export default class Tracer {
     responseExpected: boolean,
     queueLength: number
   ): void {
+    // this.logger.debug(this.trace)
     if (this.trace === Trace.Off) return
     let data: string | undefined
     if (this.trace === Trace.Verbose && request.arguments) {

@@ -23,15 +23,15 @@ export interface ChangedI {
   timestamp: number
 }
 
-const MAX_DURATION = 200
+const MAX_DURATION = 100
 
 export default class Increment {
   private nvim:Neovim
-  public activted: boolean
-  public input: Input | null | undefined
-  public done: CompleteDone | null | undefined
-  public lastInsert: InsertedChar | null | undefined
-  public changedI: ChangedI | null | undefined
+  private input: Input | null | undefined
+  private done: CompleteDone | null | undefined
+  private changedI: ChangedI | null | undefined
+  private activted: boolean
+  private lastInsert: InsertedChar | null | undefined
 
   constructor(nvim:Neovim) {
     this.activted = false
@@ -47,6 +47,22 @@ export default class Increment {
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
     logger.debug('increment stopped')
+  }
+
+  public get isActivted():boolean {
+    return this.activted
+  }
+
+  public get search():string|null {
+    return this.input ? this.input.search : null
+  }
+
+  public get latestIntertChar():string | null {
+    let {lastInsert} = this
+    if (!lastInsert || Date.now() - lastInsert.timestamp > MAX_DURATION) {
+      return null
+    }
+    return lastInsert.character
   }
 
   public get latestDone():CompleteDone|null {
@@ -100,11 +116,11 @@ export default class Increment {
   }
 
   public async onCharInsert(ch:string):Promise<void> {
-    if (!this.activted) return
     this.lastInsert = {
       character: ch,
       timestamp: Date.now()
     }
+    if (!this.activted) return
     if (!completes.hasCharacter(ch)) {
       logger.debug(`character ${ch} not found`)
       await this.stop()

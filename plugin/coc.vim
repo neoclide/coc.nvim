@@ -14,30 +14,19 @@ function! s:Call(func, ...)
   endtry
 endfunction
 
-function! s:OnBuffer(type, bufnr, event) abort
-  if s:IsInvalid(a:bufnr) | return | endif
+function! s:OnBuffer(type, bufnr) abort
   if !get(g:, 'coc_enabled', 0) | return | endif
   try
-    execute 'call CocBuf'.a:type.'('.a:bufnr.',"'.a:event.'")'
+    execute 'call CocBuf'.a:type.'('.a:bufnr.')'
   catch /^Vim\%((\a\+)\)\=:E117/
     call s:OnFuncUndefined()
   endtry
 endfunction
 
 function! s:OnFuncUndefined() abort
-  call coc#util#on_error('Vim error, function not found')
   call s:Disable()
+  call coc#util#on_error('Disabled, try :UpdateRemotePlugins and restart!')
 endfunction
-
-function! s:IsInvalid(bufnr) abort
-  let t = getbufvar(a:bufnr, '&buftype')
-  if t ==# 'terminal'
-        \|| t ==# 'nofile'
-        \|| t ==# 'quickfix'
-    return 1
-  endif
-  return 0
-endfun
 
 function! s:Disable() abort
   if get(g:, 'coc_enabled', 0) == 0
@@ -114,14 +103,13 @@ function! s:Enable()
     autocmd InsertCharPre * call s:Call('InsertCharPre', v:char)
     autocmd CompleteDone * call s:Call('CompleteDone', v:completed_item)
     autocmd TextChangedP * call s:Call('TextChangedP')
-    autocmd TextChangedI * call s:Call('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave * call s:Call('InsertLeave')
-
-    autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'), 'BufUnload')
-    autocmd BufLeave * call s:OnBuffer('Change', +expand('<abuf>'), 'BufLeave')
-    autocmd TextChanged * if !&paste |call s:OnBuffer('Change', +expand('<abuf>'), 'TextChanged') | endif
-    autocmd BufRead * call s:OnBuffer('Change', +expand('<abuf>'), 'BufRead')
-    autocmd BufWritePost * call s:OnBuffer('Change', +expand('<abuf>'), 'BufWritePost')
+    autocmd BufEnter * call s:Call('BufEnter', +expand('<abuf>'))
+    " buffer change events
+    autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
+    autocmd TextChangedI * call s:Call('TextChangedI', +expand('<abuf>'))
+    autocmd TextChanged * call s:OnBuffer('Change', +expand('<abuf>'))
+    autocmd BufNewFile,BufRead, * call s:OnBuffer('Create', +expand('<abuf>'))
   augroup end
 
   command! -nargs=1 -complete=customlist,s:CocSourceNames CocToggle :call s:ToggleSource(<f-args>)

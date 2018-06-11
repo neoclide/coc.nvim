@@ -1,5 +1,6 @@
 import os = require('os')
 import path = require('path')
+import fs = require('fs')
 import * as log4js from 'log4js'
 
 const MAX_LOG_SIZE = 1024 * 1024
@@ -7,6 +8,10 @@ const MAX_LOG_BACKUPS = 10
 const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
 
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
+
+if (level === 'debug') {
+  fs.writeFileSync(LOG_FILE_PATH, '', 'utf8')
+}
 
 log4js.configure({
   appenders: {

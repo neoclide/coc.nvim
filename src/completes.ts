@@ -1,11 +1,12 @@
-import { Neovim } from 'neovim'
+import {Neovim} from 'neovim'
 import {getConfig} from './config'
-import Source from './model/source'
 import Complete from './model/complete'
 import {
   CompleteOption,
   VimCompleteItem,
+  ISource,
   RecentScore} from './types'
+import languages from './languages'
 import natives from './natives'
 import remotes from './remotes'
 const logger = require('./util/logger')('completes')
@@ -47,24 +48,33 @@ export class Completes {
     return complete
   }
 
-  public async getSources(nvim:Neovim, filetype: string): Promise<Source[]> {
+  /**
+   * Get all sources for languageId
+   *
+   * @public
+   * @param {Neovim} nvim
+   * @param {string} languageId
+   * @returns {Promise<ISource[]>}
+   */
+  public async getSources(nvim:Neovim, languageId: string): Promise<ISource[]> {
     let disabled = getConfig('disabled')
-    let nativeNames = natives.getSourceNamesOfFiletype(filetype)
+    let nativeNames = natives.getSourceNamesOfFiletype(languageId)
     logger.debug(`Disabled sources:${disabled}`)
     let names = nativeNames.concat(remotes.names)
     names = names.filter(n => disabled.indexOf(n) === -1)
-    let res: Source[] = await Promise.all(names.map(name => {
+    let res: ISource[] = await Promise.all(names.map(name => {
       if (nativeNames.indexOf(name) !== -1) {
         return natives.getSource(nvim, name)
       }
       return remotes.getSource(nvim, name)
     }))
+    res.push(languages.getCompleteSource(languageId))
     res = res.filter(o => o != null)
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
   }
 
-  public async getSource(nvim:Neovim, name:string):Promise<Source | null> {
+  public async getSource(nvim:Neovim, name:string):Promise<ISource | null> {
     if (natives.has(name)) return await natives.getSource(nvim, name)
     if (remotes.has(name)) return await remotes.getSource(nvim, name)
     return null

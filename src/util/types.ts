@@ -177,3 +177,9 @@ export function toBool(s:number|string|boolean):boolean {
   if (s == '0') return false
   return !!s
 }
+
+export function toNumber(s:number|string):number {
+  if (isNumber(s)) return s
+  if (typeof s === 'string') return Number(s)
+  return null
+}

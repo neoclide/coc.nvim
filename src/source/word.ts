@@ -16,7 +16,6 @@ export default class Word extends Source {
       name: 'word',
       shortcut: '10k',
       priority: 0,
-      firstMatch: true,
     })
   }
 

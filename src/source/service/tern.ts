@@ -137,7 +137,7 @@ export default class Tern extends ServiceSource {
     let {file, url, start} = res
     if (file) {
       let filepath = path.resolve(this.root, file)
-      let doc = await workspace.createDocument(filepath, filetype)
+      let doc = await workspace.createDocument(`file://${filepath}`, filetype)
       let pos = doc.positionAt(start)
       await nvim.call('coc#util#jump_to', [filepath, pos.line, pos.character])
     } else if (url) {

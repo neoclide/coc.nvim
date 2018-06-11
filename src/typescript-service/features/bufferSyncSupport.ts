@@ -14,6 +14,7 @@ import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {Delayer} from '../utils/async'
 import * as languageModeIds from '../utils/languageModeIds'
+const logger = require('../../util/logger')('typescript-service-bufferSyncSupport')
 
 interface IDiagnosticRequestor {
   requestDiagnostic(resource: Uri): void
@@ -27,6 +28,10 @@ function mode2ScriptKind(
       return 'TS'
     case languageModeIds.typescriptreact:
       return 'TSX'
+    case languageModeIds.javascript:
+      return 'JS'
+    case languageModeIds.javascriptreact:
+      return 'JSX'
   }
   return undefined
 }
@@ -51,11 +56,6 @@ class SyncedBuffer {
         args.scriptKindName = scriptKind
       }
     }
-
-    if (this.client.apiVersion.has240Features()) {
-      // we don't support bundled extensitions
-    }
-
     this.client.execute('open', args, false) // tslint:disable-line
   }
 
@@ -71,23 +71,19 @@ class SyncedBuffer {
   }
 
   public onContentChanged(events:TextDocumentContentChangeEvent[]): void {
-    let uri = Uri.file(this.document.uri)
-    const filePath = this.client.normalizePath(uri)
-    if (!filePath) {
-      return
-    }
+    let uri = Uri.parse(this.document.uri)
+    const filePath = uri.fsPath
+    if (!filePath) return
 
-    for (const {range, text} of events) {
-      const args: Proto.ChangeRequestArgs = {
-        file: filePath,
-        line: range.start.line + 1,
-        offset: range.start.character + 1,
-        endLine: range.end.line + 1,
-        endOffset: range.end.character + 1,
-        insertString: text
-      }
-      this.client.execute('change', args, false) // tslint:disable-line
+    const args: Proto.ChangeRequestArgs = {
+      file: filePath,
+      line: 1,
+      offset: 1,
+      endOffset: 1,
+      endLine: 2**24,
+      insertString: events[0].text
     }
+    this.client.execute('change', args, false) // tslint:disable-line
     this.diagnosticRequestor.requestDiagnostic(uri)
   }
 }
@@ -157,7 +153,7 @@ export default class BufferSyncSupport {
     this.client = client
     this.modeIds = new Set<string>(modeIds)
     this.diagnostics = diagnostics
-    this._validate = validate
+    this._validate = validate || false
 
     this.diagnosticDelayer = new Delayer<any>(300)
 
@@ -207,7 +203,7 @@ export default class BufferSyncSupport {
     if (!this.modeIds.has(document.languageId)) {
       return
     }
-    const resource = Uri.file(document.uri)
+    const resource = Uri.parse(document.uri)
     const filepath = this.client.normalizePath(resource)
     if (!filepath) {
       return
@@ -238,7 +234,7 @@ export default class BufferSyncSupport {
   }
 
   private onDidChangeTextDocument(e: DidChangeTextDocumentParams): void {
-    const uri = Uri.file(e.textDocument.uri)
+    const uri = Uri.parse(e.textDocument.uri)
     const syncedBuffer = this.syncedBuffers.get(uri)
     if (syncedBuffer) {
       syncedBuffer.onContentChanged(e.contentChanges)

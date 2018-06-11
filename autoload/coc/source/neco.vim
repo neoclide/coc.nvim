@@ -3,6 +3,7 @@ function! coc#source#neco#init() abort
   return {
         \'shortcut': 'NECO',
         \'filetypes': ['vim'],
+        \'firstMatch': 1,
         \'priority': 4,
         \}
 endfunction

@@ -73,12 +73,13 @@ export function resolveDirectory(root:string, sub:string): string | null {
   return null
 }
 
-export function resolveRoot(root:string, subs:string[], home:string): string | null {
+export function resolveRoot(root:string, subs:string[], home?:string): string | null {
+  home = home || process.env.HOME
   let paths = getParentDirs(root)
   paths.unshift(root)
   for (let p of paths) {
     for (let sub of subs) {
-      if (p == home) return root
+      if (p == home) return null
       let d = path.join(p, sub)
       if (fs.existsSync(d)) return path.dirname(d)
     }

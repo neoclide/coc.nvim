@@ -49,6 +49,7 @@ export default class TypingsStatus implements Disposable {
       return
     }
     this._acquiringTypings[eventId] = setTimeout(() => {
+      moreMsg('typing install timeout')
       this.onEndInstallTypings(eventId)
     }, typingsInstallTimeout)
   }

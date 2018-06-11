@@ -1,19 +1,27 @@
 {
-  "typescript.locale": null,
-  // folder contains tsserver.js
-  "typescript.tsdk": "",
-  // absolute path of npm
-  "typescript.npm": null,
+  // language locale
+  "tsserver.locale": null,
+  // folder of tsserver.js
+  // Default priority: module in node_modules > module in $PATH > bundled module
+  "tsserver.tsdk": "",
+  // absolute path of npm, infered from $PAHT if empty
+  "tsserver.npm": "",
   // could be 'normal' 'terse' 'verbose' 'off'
-  "typescript.tsserver.log": "off",
-  // folder name of plugins
-  "typescript.tsserver.pluginNames": [],
-  // folder root of plugins
-  "typescript.tsserver.pluginRoot": "",
-  "typescript.reportStyleChecksAsWarnings": true,
-  "typescript.implicitProjectConfig.checkJs": false,
-  "typescript.implicitProjectConfig.experimentalDecorators": false,
-  "typescript.disableAutomaticTypeAcquisition": false,
+  "tsserver.log": "off",
+  // could be 'off' 'messages' 'verbose', could also be provided by environment variable 'TSS_TRACE'
+  "tsserver.trace": "off",
+  // module name of global plugins
+  "tserver.pluginNames": [],
+  // folder root of global plugins
+  "tsserver.pluginRoot": "",
+  // could also be provided by environment variable `TSS_DEBUG`
+  "tsserver.debugPort": null,
+  "tsserver.reportStyleChecksAsWarnings": true,
+  "tsserver.implicitProjectConfig.checkJs": false,
+  "tsserver.implicitProjectConfig.experimentalDecorators": false,
+  "tsserver.disableAutomaticTypeAcquisition": false,
+  // enable support for javascript file, experiment
+  "tsserver.enableJavascript": false,
   "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "typescript.preferences.completion.nameSuggestions" : true,
   "typescript.preferences.completion.autoImportSuggestions" : true,
@@ -34,5 +42,33 @@
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces" : false,
   "typescript.format.insertSpaceAfterTypeAssertion" : false,
   "typescript.format.placeOpenBraceOnNewLineForFunctions" : false,
-  "typescript.format.placeOpenBraceOnNewLineForControlBlocks" : false
+  "typescript.format.placeOpenBraceOnNewLineForControlBlocks" : false,
+  "javascript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
+  "javascript.preferences.completion.nameSuggestions" : true,
+  "javascript.preferences.completion.autoImportSuggestions" : true,
+  // 'non-relative' or 'relative'
+  "javascript.preferences.importModuleSpecifier" : "non-relative",
+  "javascript.preferences.suggestionActions.enabled" : true,
+  // 'single' or 'double'
+  "javascript.preferences.quoteStyle" : "single",
+  "javascript.format.insertSpaceAfterCommaDelimiter" : true,
+  "javascript.format.insertSpaceAfterConstructor" : false,
+  "javascript.format.insertSpaceAfterSemicolonInForStatements" : true,
+  "javascript.format.insertSpaceBeforeAndAfterBinaryOperators" : true,
+  "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements" : true,
+  "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions" : true,
+  "javascript.format.insertSpaceBeforeFunctionParenthesis" : true,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis" : false,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces" : false,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces" : false,
+  "javascript.format.insertSpaceAfterTypeAssertion" : false,
+  "javascript.format.placeOpenBraceOnNewLineForFunctions" : false,
+  "javascript.format.placeOpenBraceOnNewLineForControlBlocks" : false,
+  "lsp": {
+    "servers": [{
+      "name": "wxml",
+      "languageIds": ["wxml"],
+      "module": "wxml-langserver"
+    }]
+  }
 }

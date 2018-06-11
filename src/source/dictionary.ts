@@ -18,7 +18,6 @@ export default class Dictionary extends Source {
       name: 'dictionary',
       shortcut: 'D',
       priority: 1,
-      firstMatch: true,
     })
   }
 

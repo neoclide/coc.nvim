@@ -20,7 +20,7 @@ export {
 }
 import debounce = require('debounce')
 import net = require('net')
-const logger = require('./logger')()
+const logger = require('./logger')('util-index')
 
 export type Callback = (arg: number|string) => void
 
@@ -153,6 +153,7 @@ export function getChangeEvent(doc:TextDocument, text:string):TextDocumentConten
   let orig = doc.getText()
   if (!orig.length) return {text}
   let start = -1
+  let isAdd = text.length > orig.length
   let end = orig.length
   let changedText = ''
   for (let i = 0, l = orig.length; i < l; i++) {
@@ -166,16 +167,27 @@ export function getChangeEvent(doc:TextDocument, text:string):TextDocumentConten
     let n = 1
     for (let i = end - 1; i >= 0; i--) {
       let j = cl - n
+      if (isAdd && i == start) {
+        end = start
+        changedText = text.slice(start, j)
+        break
+      }
+      if (!isAdd && j == start) {
+        end = i
+        break
+      }
       if (orig[i] !== text[j]) {
         end = i + 1
-        changedText = text.slice(start, j + 1)
+        changedText = text.slice(start, end)
         break
       }
       n++
     }
   } else {
+    start = 0
     changedText = text.slice(end)
   }
+  logger.debug('position: ', start, end, changedText.length)
   return {
     range: {
       start: doc.positionAt(start),

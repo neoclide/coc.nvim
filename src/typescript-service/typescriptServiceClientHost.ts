@@ -11,13 +11,16 @@ import {
   Uri,
   disposeAll,
 } from '../util'
+import {
+  errorMsg
+} from './utils/nvimBinding'
 import * as Proto from './protocol'
 import * as PConst from './protocol.const'
 import TypeScriptServiceClient from './typescriptServiceClient'
 import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
 import * as typeConverters from './utils/typeConverters'
 import LanguageProvider from './languageProvider'
-import {LanguageDescription, standardLanguageDescriptions} from './utils/languageDescription'
+import {LanguageDescription} from './utils/languageDescription'
 const logger = require('../util/logger')('typescript-service-clienthost')
 
 // Style check diagnostics that can be reported as warnings
@@ -39,8 +42,7 @@ export default class TypeScriptServiceClientHost {
   private readonly disposables: Disposable[] = []
   private reportStyleCheckAsWarnings = true
 
-  constructor() {
-    const descriptions = standardLanguageDescriptions
+  constructor(descriptions: LanguageDescription[]) {
     const handleProjectCreateOrDelete = () => {
       this.client.execute('reloadProjects', null, false) // tslint:disable-line
       this.triggerAllDiagnostics()
@@ -53,33 +55,37 @@ export default class TypeScriptServiceClientHost {
     const configFileWatcher = workspace.createFileSystemWatcher(
       '**/[tj]sconfig.json'
     )
-    this.disposables.push(configFileWatcher)
-    configFileWatcher.onDidCreate(
-      handleProjectCreateOrDelete,
-      this,
-      this.disposables
-    )
-    configFileWatcher.onDidDelete(
-      handleProjectCreateOrDelete,
-      this,
-      this.disposables
-    )
-    configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
+    if (configFileWatcher) {
+      this.disposables.push(configFileWatcher)
+      configFileWatcher.onDidCreate(
+        handleProjectCreateOrDelete,
+        this,
+        this.disposables
+      )
+      configFileWatcher.onDidDelete(
+        handleProjectCreateOrDelete,
+        this,
+        this.disposables
+      )
+      configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
+    }
 
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)
-
     this.client.onDiagnosticsReceived(({kind, resource, diagnostics}) => {
       this.diagnosticsReceived(kind, resource, diagnostics).catch(() => {
         // noop
       })
-    },
-      null,
-      this.disposables
-    )
+    }, null, this.disposables)
 
     this.client.onConfigDiagnosticsReceived(diag => {
-      logger.debug(diag)
+      let {body} = diag
+      if (body) {
+        let {configFile, diagnostics} = body
+        if (diagnostics.length) {
+          errorMsg(`Issue found with config file: ${configFile}`)
+        }
+      }
     }, null, this.disposables)
 
     this.client.onResendModelsRequested(() => this.populateService(), null, this.disposables)
@@ -87,7 +93,7 @@ export default class TypeScriptServiceClientHost {
     this.typingsStatus = new TypingsStatus(this.client)
     this.ataProgressReporter = new AtaProgressReporter(this.client)
 
-    for (const description of descriptions) {
+    for (const description of descriptions) { // tslint:disable-line
       const manager = new LanguageProvider(
         this.client,
         description,
@@ -120,24 +126,19 @@ export default class TypeScriptServiceClientHost {
     this.triggerAllDiagnostics()
   }
 
-  public handles(resource: Uri): boolean {
-    return !!this.findLanguage(resource)
-  }
-
   // typescript or javascript
-  public async getProvider(languageId:string):LanguageProvider {
+  public getProvider(languageId:string):LanguageProvider {
     return this.languagePerId.get(languageId)
   }
 
   private configurationChanged(): void {
-    const config = workspace.getConfiguration('typescript')
+    const config = workspace.getConfiguration('tsserver')
     this.reportStyleCheckAsWarnings = config.get('reportStyleChecksAsWarnings', true)
   }
 
   private async findLanguage(resource: Uri): Promise<LanguageProvider | undefined> {
     try {
-      const doc = await workspace.openTextDocument(resource)
-      return this.languages.find(language => language.handles(resource, doc))
+      return this.languages.find(language => language.handles(resource))
     } catch {
       return undefined
     }

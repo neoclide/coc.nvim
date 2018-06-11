@@ -3,12 +3,18 @@ import * as path from 'path'
 import * as fs from 'fs'
 import Tracer from './utils/tracer'
 import * as Proto from './protocol'
-import {fork, getTempFile, makeRandomHexString} from './utils/process'
+import {
+  fork,
+  getTempFile,
+  IForkOptions,
+  makeRandomHexString
+} from './utils/process'
 import API from './utils/api'
 import workspace from '../workspace'
 import {Reader, ICallback} from './utils/wireProtocol'
 import {
   DiagnosticKind,
+  ServiceStat,
 } from '../types'
 import {
   TypeScriptServiceConfiguration,
@@ -34,10 +40,8 @@ import {
   TypeScriptVersionProvider,
   TypeScriptVersion
 } from './utils/versionProvider'
-
 import os = require('os')
-
-const logger = require('../util/logger')('typescript-client')
+const logger = require('../util/logger')('tsserver-client')
 
 interface CallbackItem {
   c: (value: any) => void
@@ -154,14 +158,9 @@ export interface TsDiagnostics {
 }
 
 export default class TypeScriptServiceClient implements ITypeScriptServiceClient {
+  public state = ServiceStat.Init
   private pathSeparator: string
   private tracer: Tracer
-
-  private _onReady?: {
-    promise: Promise<void>
-    resolve: () => void
-    reject: () => void
-  }
   private _configuration: TypeScriptServiceConfiguration
   private versionProvider: TypeScriptVersionProvider
   private tsServerLogFile: string | null = null
@@ -169,14 +168,9 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private lastError: Error | null
   private lastStart: number
   private numberRestarts: number
-  private isRestarting = false
-
   private cancellationPipeName: string | null = null
-
   private requestQueue: RequestQueue
   private callbacks: CallbackMap
-
-  private readonly root: string
   private readonly _onTsServerStarted = new EventEmitter<API>()
   private readonly _onProjectLanguageServiceStateChanged = new EventEmitter<Proto.ProjectLanguageServiceStateEventBody>()
   private readonly _onDidBeginInstallTypings = new EventEmitter<Proto.BeginInstallTypesEventBody>()
@@ -196,16 +190,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private readonly disposables: Disposable[] = []
 
   constructor() {
-    this.root = workspace.root
     this.pathSeparator = path.sep
     this.lastStart = Date.now()
-
-    let p = new Promise<void>((resolve, reject) => {
-      // tslint:disable-line
-      this._onReady = {promise: p, resolve, reject}
-    })
-    this._onReady!.promise = p
-
     this.servicePromise = null
     this.lastError = null
     this.numberRestarts = 0
@@ -267,7 +253,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (this.servicePromise) {
       this.servicePromise.then(childProcess => {
           this.info('Killing TS Server')
-          this.isRestarting = true
+          this.state = ServiceStat.Restarting
           childProcess.kill()
           this.resetClientVersion()
           this.servicePromise = null
@@ -303,10 +289,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return this._apiVersion
   }
 
-  public onReady(f: () => void): Promise<void> {
-    return this._onReady!.promise.then(f)
-  }
-
   private info(message: string, data?: any): void {
     logger.info(message, data)
   }
@@ -322,111 +304,110 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (this.lastError) {
       return Promise.reject<ForkedTsServerProcess>(this.lastError)
     }
-    this.startService() // tslint:disable-line
-    if (this.servicePromise) {
-      return this.servicePromise
-    }
-    return Promise.reject<ForkedTsServerProcess>(
-      new Error('Could not create TS service')
-    )
+    this.state = ServiceStat.Starting
+    return this.startService().then(() => {
+      if (this.servicePromise) {
+        return this.servicePromise
+      }
+    })
   }
 
   public ensureServiceStarted():void {
     if (!this.servicePromise) {
-      this.startService() // tslint:disable-line
+      this.state = ServiceStat.Starting
+      this.startService().catch(err => {
+        logger.error(`Service start failed: ${err.stack}`)
+      })
     }
   }
 
-  private startService(
-    resendModels = false
-  ): Promise<ForkedTsServerProcess> {
-    let {root} = this
+  private async startService(resendModels = false): Promise<ForkedTsServerProcess> {
+    let root = await workspace.findDirectory('node_modules')
     let currentVersion = this.versionProvider.getLocalVersion(root)
-    if (!currentVersion && !fs.existsSync(currentVersion.tsServerPath)) {
-      echoMessage(workspace.nvim, `Can't find local tsserver, Falling back to global TypeScript version.`) // tslint:disable-line
+    if (!currentVersion || !fs.existsSync(currentVersion.tsServerPath)) {
+      echoMessage(workspace.nvim, `Local tsserver not found, Falling back to global TypeScript version.`) // tslint:disable-line
       currentVersion = this.versionProvider.defaultVersion
     }
     if (!currentVersion.isValid) {
       echoErr(workspace.nvim, 'Can not find tsserver') // tslint:disable-line
       return
     }
-    this.info(`Using tsserver from: ${currentVersion.path}`)
+    this.info(`Using tsserver from: `, currentVersion.path)
     this._apiVersion = currentVersion.version
     this.requestQueue = new RequestQueue()
     this.callbacks = new CallbackMap()
     this.lastError = null
-    return (this.servicePromise = new Promise<ForkedTsServerProcess>(
-      async (resolve, reject) => {
-        try {
-          const tsServerForkArgs = await this.getTsServerArgs(currentVersion)
-          const debugPort = this.getDebugPort()
-          const tsServerForkOptions = {
-            execArgv: debugPort ? [`--inspect=${debugPort}`] : [], // [`--debug-brk=5859`]
-            cwd: this.root
-          }
-          fork(
-            currentVersion.tsServerPath,
-            tsServerForkArgs,
-            tsServerForkOptions,
-            (err: any, childProcess: cp.ChildProcess | null) => {
-              if (err || !childProcess) {
-                this.lastError = err
+    const tsServerForkArgs = await this.getTsServerArgs(currentVersion)
+    const debugPort = this._configuration.debugPort
+    const options = {
+      execArgv: debugPort ? [`--inspect=${debugPort}`] : [], // [`--debug-brk=5859`]
+      cwd: root
+    }
+    this.servicePromise =  this.startProcess(currentVersion, tsServerForkArgs, options, resendModels)
+    return this.servicePromise
+  }
 
-                this.error('Starting TSServer failed with error.', err)
+  private startProcess(currentVersion: TypeScriptVersion, args: string[], options:IForkOptions, resendModels:boolean):Promise<ForkedTsServerProcess> {
+    return new Promise((resolve, reject) => {
+      try {
+        fork(
+          currentVersion.tsServerPath,
+          args,
+          options,
+          (err: any, childProcess: cp.ChildProcess | null) => {
+            if (err || !childProcess) {
+              this.lastError = err
 
-                /* __GDPR__
-							"error" : {}
-						*/
-                this.resetClientVersion()
-                return
-              }
+              this.error('Starting TSServer failed with error.', err)
 
-              this.info('Started TSServer')
-              const handle = new ForkedTsServerProcess(childProcess)
-              this.lastStart = Date.now()
-
-              handle.onError((err: Error) => {
-                this.lastError = err
-                this.error('TSServer errored with error.', err)
-                if (this.tsServerLogFile) {
-                  this.error(`TSServer log file: ${this.tsServerLogFile}`)
-                }
-                this.serviceExited(false)
-              })
-              handle.onExit((code: any) => {
-                if (code === null || typeof code === 'undefined') {
-                  this.info('TSServer exited')
-                } else {
-                  this.error(`TSServer exited with code: ${code}`)
-                }
-                if (this.tsServerLogFile) {
-                  this.info(`TSServer log file: ${this.tsServerLogFile}`)
-                }
-                this.serviceExited(!this.isRestarting)
-                this.isRestarting = false
-              })
-
-              handle.createReader(
-                msg => {
-                  this.dispatchMessage(msg)
-                },
-                error => {
-                  this.error('ReaderError', error)
-                }
-              )
-
-              this._onReady!.resolve()
-              resolve(handle)
-              this._onTsServerStarted.fire(currentVersion.version)
-
-              this.serviceStarted(resendModels)
+              /* __GDPR__
+              "error" : {}
+               */
+              this.resetClientVersion()
+              return
             }
-          )
-        } catch (error) {
-          reject(error)
-        }
+            this.state = ServiceStat.Running
+            this.info('Started TSServer', currentVersion)
+            const handle = new ForkedTsServerProcess(childProcess)
+            this.lastStart = Date.now()
+
+            handle.onError((err: Error) => {
+              this.lastError = err
+              this.error('TSServer errored with error.', err)
+              if (this.tsServerLogFile) {
+                this.error(`TSServer log file: ${this.tsServerLogFile}`)
+              }
+              this.serviceExited(false)
+            })
+            handle.onExit((code: any) => {
+              if (code === null || typeof code === 'undefined') {
+                this.info('TSServer exited')
+              } else {
+                this.error(`TSServer exited with code: ${code}`)
+              }
+              if (this.tsServerLogFile) {
+                this.info(`TSServer log file: ${this.tsServerLogFile}`)
+              }
+              this.serviceExited(this.state !== ServiceStat.Restarting && this.state !== ServiceStat.Stopped)
+            })
+
+            handle.createReader(
+              msg => {
+                this.dispatchMessage(msg)
+              },
+              error => {
+                this.error('ReaderError', error)
+              }
+            )
+            resolve(handle)
+            this._onTsServerStarted.fire(currentVersion.version)
+            this.serviceStarted(resendModels)
+          }
+        )
+      } catch (e) {
+        reject(e)
       }
-    ))
+    })
   }
 
   public async openTsServerLogFile(): Promise<boolean> {
@@ -456,7 +437,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private serviceStarted(resendModels: boolean): void {
     const configureOptions: Proto.ConfigureRequestArguments = {
-      hostInfo: 'coc-nvim'
+      hostInfo: 'vscode'
     }
     this.execute('configure', configureOptions).catch(err => {
       logger.error(err)
@@ -492,6 +473,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   private serviceExited(restart: boolean): void {
+    this.state = ServiceStat.Stopped
     this.servicePromise = null
     this.tsServerLogFile = null
     this.callbacks.destroy(new Error('Service died.'))
@@ -515,6 +497,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         }
       }
       if (startService) {
+        this.state = ServiceStat.Restarting
         this.startService(true) // tslint:disable-line
       }
     }
@@ -543,6 +526,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public asUrl(filepath: string): Uri {
+    filepath = filepath.replace(/^\/file:/, '')
     if (this._apiVersion.has213Features()) {
       if (!filepath.startsWith('file:')) {
         let resource = Uri.parse(filepath)
@@ -761,25 +745,15 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     const args: string[] = []
 
     if (this.apiVersion.has206Features()) {
-      if (this.apiVersion.has250Features()) {
-        args.push('--useInferredProjectPerProjectRoot')
-      } else {
-        args.push('--useSingleInferredProject')
-      }
+      args.push('--useSingleInferredProject')
 
       if (this._configuration.disableAutomaticTypeAcquisition) {
         args.push('--disableAutomaticTypingAcquisition')
       }
     }
 
-    if (this.apiVersion.has208Features()) {
-      args.push('--enableTelemetry')
-    }
-
     if (this.apiVersion.has222Features()) {
-      this.cancellationPipeName = getTempFile(
-        `tscancellation-${makeRandomHexString(20)}`
-      )
+      this.cancellationPipeName = getTempFile(`tscancellation-${makeRandomHexString(20)}`)
       args.push('--cancellationPipeName', this.cancellationPipeName + '*')
     }
 
@@ -787,7 +761,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       if (this._configuration.tsServerLogLevel !== TsServerLogLevel.Off) {
         const logDir = os.tmpdir()
         if (logDir) {
-          this.tsServerLogFile = path.join(logDir, `coc-tsserver.log`)
+          this.tsServerLogFile = path.join(logDir, `coc-nvim-tsc.log`)
           this.info(`TSServer log file: ${this.tsServerLogFile}`)
         } else {
           this.tsServerLogFile = null
@@ -825,17 +799,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       }
     }
     return args
-  }
-
-  private getDebugPort(): number | undefined {
-    const value = process.env['TSS_DEBUG'] // tslint:disable-line
-    if (value) {
-      const port = parseInt(value, 10)
-      if (!isNaN(port)) {
-        return port
-      }
-    }
-    return undefined
   }
 
   private resetClientVersion():void {

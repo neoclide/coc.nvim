@@ -4,80 +4,64 @@ import {
   Uri,
   Disposable,
 } from '../util'
+import Watchman, {FileChange} from '../watchman'
 import path = require('path')
-import {FSWatcher} from 'chokidar'
-import chokidar = require('chokidar')
 const logger = require('../util/logger')('filesystem-watcher')
 
 export default class FileSystemWatcher implements Disposable {
 
+  private subscription: string
   private _onDidCreate = new EventEmitter<Uri>()
   private _onDidChange = new EventEmitter<Uri>()
   private _onDidDelete = new EventEmitter<Uri>()
-  private watcher:FSWatcher
 
-  private readonly onDidCreateEvent: Event<Uri> = this._onDidCreate.event
-  private readonly onDidChangeEvent: Event<Uri> = this._onDidChange.event
-  private readonly onDidDeleteEvent: Event<Uri> = this._onDidDelete.event
+  public readonly onDidCreate: Event<Uri> = this._onDidCreate.event
+  public readonly onDidChange: Event<Uri> = this._onDidChange.event
+  public readonly onDidDelete: Event<Uri> = this._onDidDelete.event
 
   constructor(
-    private root:string,
+    private clientPromise:Promise<Watchman>,
     private globPattern:string,
     public ignoreCreateEvents:boolean,
     public ignoreChangeEvents:boolean,
     public ignoreDeleteEvents:boolean
   ) {
-    process.nextTick(() => {
-      this.listen()
+    clientPromise.then(client => {
+      return this.listen(client)
+    }).catch(error => {
+      logger.error(error.stack)
     })
   }
 
-  private listen():void {
-    let watcher = this.watcher = chokidar.watch(this.globPattern, {
-      ignored: /(node_modules|\.git|\.hg)\//,
-      persistent: true,
-      followSymlinks: false,
-      cwd: this.root
+  private async listen(client:Watchman):Promise<void> {
+    let {globPattern,
+      ignoreCreateEvents,
+      ignoreChangeEvents,
+      ignoreDeleteEvents} = this
+    this.subscription = await client.subscribe(globPattern, (change:FileChange) => {
+      let {root, files} = change
+      for (let file of files) {
+        let uri = Uri.file(path.join(root, file.name))
+        if (!file.exists) {
+          if (!ignoreDeleteEvents) this._onDidDelete.fire(uri)
+        } else {
+          if (file.size != 0) {
+            if (!ignoreChangeEvents) this._onDidChange.fire(uri)
+          } else {
+            if (!ignoreCreateEvents) this._onDidCreate.fire(uri)
+          }
+        }
+      }
     })
-    let {ignoreCreateEvents, ignoreChangeEvents, ignoreDeleteEvents} = this
-    let ts = Date.now()
-    if (!ignoreCreateEvents) {
-      setTimeout(() => {
-        watcher.on('add', p => {
-          logger.debug(Date.now() - ts)
-          let uri = Uri.file(path.join(this.root, p))
-          this._onDidCreate.fire(uri)
-        })
-      }, 100)
-    }
-    if (!ignoreChangeEvents) {
-      watcher.on('change', p => {
-        let uri = Uri.file(path.join(this.root, p))
-        this._onDidChange.fire(uri)
-      })
-    }
-    if (!ignoreDeleteEvents) {
-      watcher.on('unlink', p => {
-        let uri = Uri.file(path.join(this.root, p))
-        this._onDidDelete.fire(uri)
-      })
-    }
   }
 
   public dispose():void {
-    if (this.watcher) {
-      this.watcher.close()
+    if (this.subscription) {
+      this.clientPromise.then(client => {
+        client.unsubscribe(this.subscription)
+      }).catch(() => {
+        // noop
+      })
     }
-  }
-
-  public onDidCreate(listener, thisArgs?, disposables?):void {
-    this.onDidCreateEvent(listener, thisArgs, disposables)
-  }
-
-  public onDidChange(listener, thisArgs?, disposables?):void {
-    this.onDidChangeEvent(listener, thisArgs, disposables)
-  }
-  public onDidDelete(listener, thisArgs?, disposables?):void {
-    this.onDidDeleteEvent(listener, thisArgs, disposables)
   }
 }

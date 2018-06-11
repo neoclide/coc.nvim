@@ -7,7 +7,7 @@
     "clean": "rimraf lib",
     "lint": "tslint -c tslint.json -p .",
     "build": "tsc -p tsconfig.json",
-    "watch": "tsc -p tsconfig.json --watch true",
+    "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "npm run build && jest --runInBand",
     "prepublish": "npm run build"
   },
@@ -47,14 +47,15 @@
     ]
   },
   "devDependencies": {
-    "@types/uuid": "^3.4.3",
-    "@types/debounce": "^1.0.0",
-    "@types/fuzzaldrin": "^2.1.1",
-    "@types/pify": "^3.0.2",
+    "@types/fb-watchman": "^2.0.0",
     "@chemzqm/tsconfig": "0.0.2",
     "@chemzqm/tslint-config": "^1.0.12",
+    "@types/debounce": "^1.0.0",
+    "@types/fuzzaldrin": "^2.1.1",
     "@types/jest": "^23.0.0",
     "@types/node": "^10.3.0",
+    "@types/pify": "^3.0.2",
+    "@types/uuid": "^3.4.3",
     "jest": "^23.1.0",
     "rimraf": "^2.6.2",
     "ts-jest": "^22.4.6",
@@ -62,10 +63,9 @@
     "tslint-language-service": "^0.9.9"
   },
   "dependencies": {
-    "@types/chokidar": "^1.7.5",
     "builtin-modules": "^3.0.0",
-    "chokidar": "^2.0.3",
     "debounce": "^1.1.0",
+    "fb-watchman": "^2.0.0",
     "find-root": "^1.1.0",
     "fuzzaldrin": "^2.1.0",
     "glob": "^7.1.2",

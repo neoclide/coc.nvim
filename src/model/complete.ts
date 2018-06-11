@@ -3,8 +3,8 @@ import {
   CompleteOption,
   VimCompleteItem,
   RecentScore,
+  ISource,
   CompleteResult} from '../types'
-import Source from './source'
 import {getConfig} from '../config'
 import {wordSortItems} from '../util/sorter'
 import {uniqueItems} from '../util/unique'
@@ -32,8 +32,7 @@ export default class Complete {
     this.recentScores = {}
   }
 
-  private completeSource(source: Source): Promise<any> {
-    let {firstMatch} = source
+  private completeSource(source: ISource): Promise<any> {
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
@@ -41,10 +40,15 @@ export default class Complete {
     let option = Object.assign({}, this.option)
     s.timeout(Math.max(getConfig('timeout'), 300))
     s.add((done, ctx) => {
-      source.shouldComplete(option).then(res => {
-        ctx.shouldRun = res
+      if (typeof source.shouldComplete === 'function') {
+        source.shouldComplete(option).then(res => {
+          ctx.shouldRun = res
+          done()
+        }, done)
+      } else {
+        ctx.shouldRun = true
         done()
-      }, done)
+      }
     })
     s.add((done, ctx) => {
       if (!ctx.shouldRun) {
@@ -58,10 +62,9 @@ export default class Complete {
         if (result.startcol && result.startcol != col) {
           result.engross = true
         }
-        result.filter = source.filter
+        result.filter = source.filter || 'word'
         result.priority = source.priority
         result.source = source.name
-        result.firstMatch = firstMatch
         ctx.result = result
         done()
       }, done)
@@ -83,7 +86,7 @@ export default class Complete {
   }
 
   private checkResult(result:CompleteResult, opt:CompleteOption):boolean {
-    let {items, firstMatch, filter, startcol} = result
+    let {items, filter, startcol} = result
     if (!items || items.length == 0) return false
     let {line, colnr, col, input} = opt
     if (startcol && startcol != col) {
@@ -94,7 +97,13 @@ export default class Complete {
     let codes = fuzzy ? getCharCodes(input) : []
     return items.some(item => {
       let s = item[field]
-      if (firstMatch && s[0] !== input[0]) return false
+      let {user_data} = item
+      if (user_data) {
+        try {
+          let {filter} = JSON.parse(user_data)
+          if (filter) s = filter
+        } catch (e) {} // tslint:disable-line
+      }
       if (fuzzy) return fuzzyMatch(codes, s)
       return filterWord(input, s, !/A-Z/.test(input))
     })
@@ -110,28 +119,35 @@ export default class Complete {
     } : (input, verb) => {
       return filterWord(input, verb, !/A-Z/.test(input))
     }
+    let hasSortText = false
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let filterField = res.filter || 'word'
-      let {items, source, firstMatch} = res
-      if (firstMatch && input.length == 0) break
+      let {items, source} = res
       for (let item of items) {
         let {word, abbr, user_data} = item
-        let verb = filterField == 'abbr' ? abbr: word
-        let data = {}
-        if (input.length && !filter(input, verb)) continue
+        let filterText = filterField == 'abbr' ? abbr: word
+        let data = {} as any
         if (user_data) {
           try {
             data = JSON.parse(user_data)
+            filterText = data.filter ? data.filter : filterText
+            if (data.sortText) {
+              item.score = data.sortText
+              hasSortText = true
+            }
           } catch (e) {} // tslint:disable-line
         }
-        data = Object.assign(data, { cid: id, source, filter: filterField })
+        if (input.length && !filter(input, filterText)) continue
+        data = Object.assign(data, { cid: id, source, sortText: '' })
         item.user_data = JSON.stringify(data)
-        if (fuzzy) item.score = score(verb, input) + this.getBonusScore(input, item)
+        if (fuzzy && !hasSortText) item.score = score(filterText, input) + this.getBonusScore(input, item)
         arr.push(item)
       }
     }
-    if (fuzzy) {
+    if (hasSortText) {
+      arr.sort((a, b) => a.score > b.score ? 1 : -1)
+    } else if (fuzzy) {
       arr.sort((a, b) => b.score - a.score)
     } else {
       arr = wordSortItems(arr, input)
@@ -140,7 +156,7 @@ export default class Complete {
     return uniqueItems(arr)
   }
 
-  public async doComplete(sources: Source[]): Promise<[number, VimCompleteItem[]]> {
+  public async doComplete(sources: ISource[]): Promise<[number, VimCompleteItem[]]> {
     let opts = this.option
     let {col, line, colnr} = opts
     sources.sort((a, b) => b.priority - a.priority)

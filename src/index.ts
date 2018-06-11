@@ -1,7 +1,3 @@
-// umask is blacklisted by node-client
-process.umask = () => {
-  return 18
-}
 import {Plugin, Command, Function, Neovim} from 'neovim'
 import {SourceStat, CompleteOption, QueryOption, VimCompleteItem} from './types'
 import {
@@ -11,7 +7,9 @@ import {
   contextDebounce,
 } from './util/index'
 import {setConfig, toggleSource, shouldAutoComplete, getConfig} from './config'
+import languages from './languages'
 import workspace from './workspace'
+import services from './services'
 import completes from './completes'
 import remotes from './remotes'
 import natives from './natives'
@@ -29,12 +27,12 @@ export default class CompletePlugin {
   constructor(nvim: Neovim) {
     this.nvim = nvim
     workspace.nvim = nvim
+    languages.nvim = nvim
     this.debouncedOnChange = contextDebounce((bufnr: number) => {
-      this.onBufferChange(bufnr).catch(e => {
+      workspace.onBufferChange(bufnr).catch(e => {
         logger.error(e.message)
       })
-      logger.debug(`buffer ${bufnr} change`)
-    }, 500)
+    }, 100)
     this.increment = new Increment(nvim)
     this.handleError = this.handleError.bind(this)
     process.on('unhandledRejection', (reason, p) => {
@@ -46,8 +44,10 @@ export default class CompletePlugin {
 
   private handleError(err: Error): void {
     let {nvim} = this
+    logger.error('Unhandled error')
+    logger.error(err.stack)
     echoErr(nvim, `Service error: ${err.message}`).catch(err => {
-      logger.error(err.message)
+      // noop
     })
   }
 
@@ -66,41 +66,43 @@ export default class CompletePlugin {
   private async onInit(): Promise<void> {
     let {nvim} = this
     try {
+      let channelId = await (nvim as any).channelId
       await this.initConfig()
       // workspace configuration
       await workspace.init()
       await natives.init()
       await remotes.init(nvim, natives.names)
-      await nvim.command(
-        `let g:coc_node_channel_id=${(nvim as any)._channel_id}`
-      )
+      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('silent doautocmd User CocNvimInit')
+      services.init(nvim)
       logger.info('Coc service Initailized')
-      // required since BufRead triggered before VimEnter
-      let bufs: number[] = await nvim.call('coc#util#get_buflist', [])
-      for (let buf of bufs) {
-        await workspace.addBuffer(buf)
-      }
-      let filetypes: string[] = await nvim.call('coc#util#get_filetypes', [])
-      for (let filetype of filetypes) {
-        await this.onFileType(filetype)
-      }
+      let filetype = await nvim.eval('&filetype')
+      if (filetype) await this.onFileType(filetype as string)
     } catch (err) {
       logger.error(err.stack)
       return echoErr(nvim, `Initailize failed, ${err.message}`)
     }
   }
 
+  @Function('CocBufCreate', {sync: false})
+  public async cocBufCreate(args: any[]): Promise<void> {
+    await workspace.onBufferCreate(args[0])
+  }
+
   @Function('CocBufUnload', {sync: false})
-  public async cocBufUnload(args: any[]): Promise<void> {
-    let bufnr = Number(args[0])
-    await workspace.removeBuffer(bufnr)
-    logger.debug(`buffer ${bufnr} remove`)
+  public async cocBufUnload(args: [number]): Promise<void> {
+    await workspace.onBufferUnload(args[0])
   }
 
   @Function('CocBufChange', {sync: false})
   public async cocBufChange(args: any[]): Promise<void> {
-    this.debouncedOnChange(Number(args[0]))
+    this.debouncedOnChange(args[0])
+  }
+
+  @Function('CocBufEnter', {sync: false})
+  public async cocBufEnter(args: any[]): Promise<void> {
+    let bufnr = Number(args[0])
+    await workspace.bufferEnter(bufnr)
   }
 
   @Function('CocStart', {sync: false})
@@ -111,8 +113,7 @@ export default class CompletePlugin {
     // may happen
     await increment.stop()
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let {filetype,bufnr} = opt
-    await workspace.addBuffer(bufnr)
+    let {filetype} = opt
     let complete = completes.createComplete(opt)
     let sources = await completes.getSources(nvim, filetype)
     complete.doComplete(sources).then(async ([startcol, items]) => {
@@ -181,14 +182,23 @@ export default class CompletePlugin {
   @Function('CocTextChangedI', {sync: true})
   public async cocTextChangedI(args:any): Promise<void> {
     let {nvim, increment} = this
-    this.debouncedOnChange(Number(args[0]))
-    if (!increment.activted) return
-    let shouldStart = await increment.onTextChangedI()
-    if (shouldStart) {
-      let {input} = increment
+    // check trigger here
+    let character = increment.latestIntertChar
+    if (character) {
+      let languageId = await nvim.eval('&filetype')
+      if (languages.shouldTriggerCompletion(character, languageId as string)) {
+        await workspace.onBufferChange(args[0])
+        await increment.stop()
+        await nvim.call('coc#start', [character])
+        return
+      }
+    }
+    this.debouncedOnChange(args[0])
+    let shouldResume = await increment.onTextChangedI()
+    if (shouldResume) {
       let oldComplete = completes.complete || ({} as {[index: string]: any})
       let opt = Object.assign({}, completes.option, {
-        input: input.search
+        input: increment.search
       })
       let {results} = oldComplete
       if (!results || results.length == 0) {
@@ -336,6 +346,9 @@ export default class CompletePlugin {
 
   // init service on filetype change
   private async onFileType(filetype: string): Promise<void> {
+    services.start(filetype)
+
+    // TODO remove service source
     if (!filetype || supportedTypes.indexOf(filetype) === -1) return
     let names = serviceMap[filetype]
     let disabled = getConfig('disabled')
@@ -345,10 +358,6 @@ export default class CompletePlugin {
         if (source) await source.bindEvents()
       }
     }
-  }
-
-  private async onBufferChange(bufnr: number): Promise<void> {
-    await workspace.addBuffer(bufnr)
   }
 
   private async initConfig(): Promise<void> {

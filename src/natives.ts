@@ -19,12 +19,7 @@ export interface Native {
 
 // controll instances of native sources
 export class Natives {
-  public list: Native[]
-
-  constructor() {
-    this.list = []
-  }
-
+  public list: Native[] = []
   public get sources():Source[] {
     let arr = this.list.map(o => o.instance)
     return arr.filter(o => o != null)
@@ -81,7 +76,7 @@ export class Natives {
   }
 
   private async createSource(nvim: Neovim, name: string):Promise<Source | null> {
-    let o: Native = this.list.find(o => o.name == name)
+    let o: Native = (this.list as any).find(o => o.name == name)
     if (!o) return null
     let Clz:any = o.Clz
     let instance = new Clz(nvim)
@@ -102,7 +97,7 @@ export class Natives {
   }
 
   public async getSource(nvim: Neovim, name: string): Promise<Source | null> {
-    let o: Native = this.list.find(o => o.name == name)
+    let o: Native = (this.list as any).find(o => o.name == name)
     if (!o) return null
     if (o.instance) return o.instance
     let instance

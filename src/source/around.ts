@@ -10,7 +10,6 @@ export default class Around extends Source {
       name: 'around',
       shortcut: 'A',
       priority: 1,
-      firstMatch: true,
     })
   }
 

@@ -7,6 +7,7 @@ let config: Config = {
   timeout: 300,
   completeOpt: 'menu,preview',
   disabled: [],
+  disabledServices: [],
   sources: {},
   hasUserData: false,
   incrementHightlight: false,
@@ -25,6 +26,9 @@ export function setConfig(opts: {[index: string]: any}):void {
       if (val != null) {
         config[key] = !!val
       }
+    }
+    if (key === 'disabledServices' && Array.isArray(val)) {
+      config.disabledServices = val
     }
     if (key === 'timeout') {
       config.timeout = Number(opts.timeout)

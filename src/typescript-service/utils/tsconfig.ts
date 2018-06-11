@@ -1,5 +1,6 @@
 import { TypeScriptServiceConfiguration } from './configuration'
 import * as Proto from '../protocol'
+const logger = require('../../util/logger')('typescript-service-tsconfig')
 
 export function inferredProjectConfig(
   config: TypeScriptServiceConfiguration
@@ -15,7 +16,7 @@ export function inferredProjectConfig(
   }
 
   if (config.experimentalDecorators) {
-    base.experimentalDecorators = true
+    base.experimentalDecorators = false
   }
 
   return base

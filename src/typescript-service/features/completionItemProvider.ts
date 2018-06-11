@@ -1,5 +1,6 @@
 import {
   Command,
+  TextDocument,
   MarkupKind,
   MarkupContent,
   TextEdit,
@@ -8,8 +9,14 @@ import {
   CancellationToken,
   Position,
 } from 'vscode-languageserver-protocol'
+import {
+  CompletionContext,
+  CompletionItemProvider,
+} from '../../provider'
 import commands, { Command as CommandItem } from '../../commands'
-import { Uri } from '../../util'
+import {
+  Uri,
+} from '../../types'
 import Document from '../../model/document'
 import workspace from '../../workspace'
 import {ITypeScriptServiceClient} from '../typescriptService'
@@ -52,41 +59,47 @@ class ApplyCompletionCodeActionCommand implements CommandItem {
   }
 }
 
-export default class TypeScriptCompletionItemProvider {
+export default class TypeScriptCompletionItemProvider implements CompletionItemProvider {
 
-  // TODO should not be here
   public static readonly triggerCharacters = ['.', '@', '<']
-  private readonly completeOption: CompletionOptions
+  private completeOption: CompletionOptions
 
   constructor(
     private readonly client: ITypeScriptServiceClient,
     private readonly typingsStatus: TypingsStatus,
     private readonly fileConfigurationManager: FileConfigurationManager,
   ) {
-    commands.register(new ApplyCompletionCodeActionCommand(this.client))
-    this.fileConfigurationManager.ensureConfigurationOptions().catch(err => {
-      // noop
+
+    workspace.nvim.eval('&filetype').then(filetype => {
+      this.setCompleteOption(filetype as string)
+    }).catch(() => {})// tslint:disable-line
+
+    workspace.onDidEnterTextDocument(info => {
+      this.setCompleteOption(info.languageId)
     })
-    this.completeOption = this.fileConfigurationManager.getCompleteOptions()
+
+    commands.register(new ApplyCompletionCodeActionCommand(this.client))
+  }
+
+  private setCompleteOption(languageId: string):void {
+    this.completeOption = this.fileConfigurationManager.getCompleteOptions(languageId)
   }
 
   /**
    * Get completionItems
    *
    * @public
-   * @param {Document} document
+   * @param {TextDocument} document
    * @param {Position} position
-   * @param {string} line
    * @param {CancellationToken} token
    * @param {string} triggerCharacter
    * @returns {Promise<CompletionItem[]>}
    */
   public async provideCompletionItems(
-    document: Document,
+    document: TextDocument,
     position: Position,
-    line: string,
     token: CancellationToken,
-    triggerCharacter: string
+    context: CompletionContext,
   ): Promise<CompletionItem[]> {
     if (this.typingsStatus.isAcquiringTypings) {
       warningMsg('Acquiring typings...')
@@ -95,8 +108,13 @@ export default class TypeScriptCompletionItemProvider {
     let {uri} = document
     const file = this.client.normalizePath(Uri.parse(document.uri))
     if (!file) return []
+    let preText = document.getText({
+      start: { line: position.line, character: 0 },
+      end: position
+    })
+    let {triggerCharacter} = context
 
-    if (!this.shouldTrigger(triggerCharacter, line, position)) {
+    if (!this.shouldTrigger(triggerCharacter, preText, position)) {
       return []
     }
 
@@ -120,7 +138,7 @@ export default class TypeScriptCompletionItemProvider {
       return []
     }
     const enableDotCompletions = this.shouldEnableDotCompletions(
-      line,
+      preText,
       position
     )
 
@@ -135,7 +153,7 @@ export default class TypeScriptCompletionItemProvider {
       const item = convertCompletionEntry(
         element,
         uri,
-        line,
+        preText,
         position,
         enableDotCompletions,
         completeOption.useCodeSnippetsOnMethodSuggest,
@@ -152,12 +170,12 @@ export default class TypeScriptCompletionItemProvider {
    * @public
    * @param {CompletionItem} item
    * @param {CancellationToken} token
-   * @returns {Promise<CompletionItem | undefined>}
+   * @returns {Promise<CompletionItem>}
    */
   public async resolveCompletionItem(
     item: CompletionItem,
     token: CancellationToken
-  ): Promise<CompletionItem | undefined> {
+  ): Promise<CompletionItem> {
     if (item == null) return undefined
 
     let {uri, position, source} = item.data
@@ -248,6 +266,7 @@ export default class TypeScriptCompletionItemProvider {
 
     if (hasReaminingCommandsOrEdits) {
       // Create command that applies all edits not in the current file.
+      // Should be handled after completeDone
       command = {
         title: '',
         command: ApplyCompletionCodeActionCommand.ID,
@@ -270,26 +289,22 @@ export default class TypeScriptCompletionItemProvider {
   }
 
   private shouldEnableDotCompletions(
-    line: string,
+    preText: string,
     position: Position
   ): boolean {
-    // TODO: Workaround for https://github.com/Microsoft/TypeScript/issues/13456
-    if (position.character > 1) {
-      let preText = line.slice(0, position.character)
+    if (preText.length > 0) {
       return preText.match(/[a-z_$\)\]\}]\s*$/gi) !== null
     }
-
     return true
   }
 
   private shouldTrigger(
     triggerCharacter: string,
-    line: string,
+    pre: string,
     position: Position
   ): boolean {
     if (triggerCharacter === '@') {
       // make sure we are in something that looks like the start of a jsdoc comment
-      const pre = line.slice(0, position.character)
       if (!pre.match(/^\s*\*[ ]?@/) && !pre.match(/\/\*\*+[ ]?@/)) {
         return false
       }

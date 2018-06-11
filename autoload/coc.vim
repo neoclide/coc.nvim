@@ -7,6 +7,7 @@ function! coc#get_config(...)
         \ 'hasUserData': has('nvim-0.2.3'),
         \ 'fuzzyMatch': get(g:, 'coc_fuzzy_match', v:null),
         \ 'timeout': get(g:, 'coc_timeout', v:null),
+        \ 'disabledServices': get(g:, 'coc_disabled_services', []),
         \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
         \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
         \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null),
@@ -38,11 +39,12 @@ function! coc#_confirm() abort
   call feedkeys("\<C-y>", 'in')
 endfunction
 
-function! coc#start()
+function! coc#start(...)
   if !get(g:, 'coc_enabled', 0) 
     call coc#util#on_error('Service not running!')
     return ''
   endif
+  let triggerCharacter = get(a:, 1, '')
   let pos = getcurpos()
   let line = getline('.')
   let l:start = pos[2] - 1
@@ -53,6 +55,7 @@ function! coc#start()
   let line = getline('.')
   let opt = {
         \ 'id': localtime(),
+        \ 'triggerCharacter': triggerCharacter,
         \ 'changedtick': b:changedtick,
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,

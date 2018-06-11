@@ -9,13 +9,14 @@ import {SourceOption,
   VimCompleteItem,
   CompleteOption,
   FilterType,
+  ISource,
   CompleteResult} from '../types'
 import {byteSlice} from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
-const boolOptions = ['firstmatch']
+const boolOptions = ['firstMatch']
 
-export default abstract class Source {
+export default abstract class Source implements ISource {
   public readonly name: string
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
@@ -133,6 +134,10 @@ export default abstract class Source {
   // some source could overwrite it
   public async refresh():Promise<void> {
     // do nothing
+  }
+
+  public async onCompleteResolve(item:VimCompleteItem):Promise<void> {
+    // noop
   }
 
   public async onCompleteDone(item:VimCompleteItem):Promise<void> {

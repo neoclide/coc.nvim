@@ -21,7 +21,8 @@ function! s:FilterResult(res) abort
   let error = get(a:res, 'error', {})
   if !empty(error)
     let message = get(error, 'message', '')
-    call coc#util#on_error('languageclient source error: '.message)
+    let code = get(error, 'code', '')
+    call coc#util#on_error('languageclient error '. code .':'. message)
     return []
   endif
   return get(a:res, 'result', [])

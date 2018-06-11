@@ -6,6 +6,17 @@ function! coc#util#get_fullpath(bufnr) abort
   return resolve(fnamemodify(fname, ':p'))
 endfunction
 
+function! coc#util#get_bufinfo(bufnr) abort
+  return {
+        \ 'bufnr': a:bufnr,
+        \ 'fullpath': coc#util#get_fullpath(a:bufnr),
+        \ 'languageId': getbufvar(a:bufnr, '&filetype'),
+        \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
+        \ 'expandtab': getbufvar(a:bufnr, '&expandtab') == 1 ? v:true : v:false,
+        \ 'tabstop': getbufvar(a:bufnr, '&tabstop'),
+        \}
+endfunction
+
 function! coc#util#get_buflist() abort
   let buflist = []
   for i in range(tabpagenr('$'))
@@ -84,6 +95,7 @@ endfunction
 function! coc#util#preview_info(info) abort
   pclose
   new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap
+  setl filetype=markdown
   exe "normal z" . &previewheight . "\<cr>"
   call append(0, type(a:info)==type("") ? split(a:info, "\n") : a:info)
   nnoremap <buffer> q :<C-U>bd!<CR>

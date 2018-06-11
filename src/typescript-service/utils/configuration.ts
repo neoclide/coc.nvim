@@ -1,7 +1,11 @@
 import {
   WorkspaceConfiguration
 } from '../../types'
+import {
+  toNumber,
+} from '../../util/types'
 import workspace from '../../workspace'
+import which = require('which')
 
 export enum TsServerLogLevel {
   Off,
@@ -51,27 +55,31 @@ export class TypeScriptServiceConfiguration {
   public readonly disableAutomaticTypeAcquisition: boolean
   public readonly tsServerPluginNames: string[]
   public readonly tsServerPluginRoot: string | null
+  public readonly debugPort: number | null
   private constructor() {
-    const configuration = workspace.getConfiguration('typescript')
+    const configuration = workspace.getConfiguration('tsserver')
+
     this.locale = configuration.get<string | null>('locale', null)
     this.globalTsdk = TypeScriptServiceConfiguration.extractGlobalTsdk(configuration)
     this.localTsdk = TypeScriptServiceConfiguration.extractLocalTsdk(configuration)
-    this.npmLocation = configuration.get<string>('npm', null)
-    this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('tsserver.log', 'off'))
+    try {
+      this.npmLocation = configuration.get<string>('npm', which.sync('npm'))
+    } catch (e) {} // tslint:disable-line
+    this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('log', 'off'))
     this.tsServerPluginNames = configuration.get<string[]>('pluginNames', [])
     this.tsServerPluginRoot = configuration.get<string>('pluginRoot', null)
     this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
     this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
     this.disableAutomaticTypeAcquisition = configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
+    this.debugPort = configuration.get<number|null>('debugPort', toNumber(process.env['TSS_DEBUG'])) // tslint:disable-line
   }
 
   private static extractGlobalTsdk(configuration: WorkspaceConfiguration): string | null {
     const inspect = configuration.inspect('tsdk')
     if ( inspect
       && inspect.globalValue
-      && (inspect.globalValue as string).length
       && 'string' === typeof inspect.globalValue) {
-      return inspect.globalValue
+      return inspect.globalValue.length ? inspect.globalValue : null
     }
     return null
   }
@@ -80,9 +88,8 @@ export class TypeScriptServiceConfiguration {
     const inspect = configuration.inspect('tsdk')
     if ( inspect
       && inspect.folderValue
-      && (inspect.folderValue as string).length
       && 'string' === typeof inspect.folderValue) {
-      return inspect.folderValue
+      return inspect.folderValue.length ? inspect.folderValue : null
     }
     return null
   }

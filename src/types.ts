@@ -1,4 +1,30 @@
+import Document from './model/document'
+import FileSystemWatcher from './model/fileSystemWatcher'
+import {Neovim} from 'neovim'
+import {
+  CompletionItemProvider,
+} from './provider'
+import {
+  Event,
+  Uri,
+  EventEmitter,
+  Disposable,
+} from './util'
+import {
+  TextDocument,
+  WorkspaceEdit,
+  DidChangeTextDocumentParams,
+  TextDocumentWillSaveEvent,
+} from 'vscode-languageserver-protocol'
 
+export {
+  Uri,
+  Event,
+  EventEmitter,
+  Disposable,
+  FileSystemWatcher,
+  Document,
+}
 export type Filter = 'word' | 'fuzzy'
 
 // Config property of source
@@ -44,6 +70,7 @@ export interface CompleteOption {
   filepath: string
   word: string
   changedtick: number
+  triggerCharacter: string
   // cursor position
   colnr: number
   linenr: number
@@ -69,10 +96,10 @@ export type FilterType = 'abbr' | 'word'
 
 export interface CompleteResult {
   items: VimCompleteItem[]
+  isIncomplete?: boolean
   engross?: boolean
   startcol?: number
   source?: string
-  firstMatch?: boolean
   filter?: FilterType
   priority?: number
 }
@@ -84,6 +111,7 @@ export interface Config {
   timeout: number
   checkGit: boolean
   disabled: string[]
+  disabledServices: string[]
   incrementHightlight: boolean
   noSelect: boolean
   sources: {[index: string]: Partial<SourceConfig>}
@@ -103,11 +131,6 @@ export interface QueryOption {
   content: string
   col: number
   lnum: number
-}
-
-export interface FormatOptions {
-  tabSize: number
-  insertSpaces: boolean
 }
 
 export interface WorkspaceConfiguration {
@@ -201,4 +224,191 @@ export enum DiagnosticKind {
   Syntax,
   Semantic,
   Suggestion,
+}
+
+export enum ServiceStat {
+  Init,
+  Starting,
+  Running,
+  Restarting,
+  Stopped,
+}
+
+export interface IWorkSpace {
+  root: string
+  nvim: Neovim
+  textDocuments: TextDocument[]
+  /**
+   * createFileSystemWatcher
+   *
+   * @public
+   * @param {string} globPattern - pattern for watch
+   * @param {boolean} ignoreCreate?
+   * @param {boolean} ignoreChange?
+   * @param {boolean} ignoreDelete?
+   * @returns {FileSystemWatcher}
+   */
+  createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean):FileSystemWatcher
+  /**
+   * Find a directory that contains sub
+   * return a valid directory if not found
+   *
+   * @public
+   * @param {string} sub
+   * @returns {Promise<string>}
+   */
+  findDirectory(sub:string):Promise<string>
+
+  /**
+   * Save all buffers to disk
+   *
+   * @public
+   * @param {boolean} force
+   * @returns {Promise<void>}
+   */
+  saveAll(force:boolean):Promise<void>
+
+  /**
+   * Configuration for section
+   *
+   * @public
+   * @param {string} section
+   * @returns {WorkspaceConfiguration}
+   */
+  getConfiguration(section:string):WorkspaceConfiguration
+
+  /**
+   * getDocumentFromUri
+   *
+   * @public
+   * @param {string} uri
+   * @returns {Document | null}
+   */
+  getDocumentFromUri(uri:string):Document | null
+
+  /**
+   * apply workspace edit
+   *
+   * @public
+   * @param {WorkspaceEdit} edit
+   * @returns {Promise<void>}
+   */
+  applyEdit(edit: WorkspaceEdit):Promise<void>
+
+  /**
+   * refresh buffers
+   *
+   * @public
+   * @returns {Promise<void>}
+   */
+  refresh():Promise<void>
+
+  /**
+   * Create TextDocument at uri, should be a file uri
+   *
+   * @public
+   * @param {string} uri
+   * @param {string} languageId?
+   * @returns {Promise<TextDocument|null> }  export interface DocumentInfo}
+   */
+  createDocument(uri:string, languageId?:string):Promise<TextDocument|null>
+
+  onDidEnterTextDocument: Event<DocumentInfo>
+
+  onDidOpenTextDocument: Event<TextDocument>
+
+  onDidCloseTextDocument: Event<TextDocument>
+
+  onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
+
+  onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
+
+  onDidSaveTextDocument: Event<TextDocument>
+
+  // TODO add configuration change event
+}
+
+export interface DocumentInfo {
+  bufnr:number
+  uri:string
+  languageId:string
+  iskeyword:string
+  expandtab:boolean
+  tabstop:number
+}
+
+export interface IServiceProvider {
+  // unique service name
+  name: string
+  // supported language types
+  languageIds: string[]
+  // current state
+  state: ServiceStat
+  init():void
+  restart():void
+  onServiceReady: Event<void>
+}
+
+export interface ISource {
+  // identifier
+  name: string
+  priority: number
+  // should the first character always match
+  firstMatch?: boolean
+  // filter field, could be abbr
+  filter?: FilterType
+  /**
+   * @public source
+   */
+  refresh?():Promise<void>
+  /**
+   * Action for complete item on complete item selected
+   *
+   * @public
+   * @param {VimCompleteItem} item
+   * @returns {Promise<void>}
+   */
+  onCompleteResolve?(item:VimCompleteItem):Promise<void>
+  /**
+   * Action for complete item on complete done
+   *
+   * @public
+   * @param {VimCompleteItem} item
+   * @returns {Promise<void>}
+   */
+  onCompleteDone?(item:VimCompleteItem):Promise<void>
+  /**
+   * Check if this source should work
+   *
+   * @public
+   * @param {CompleteOption} opt
+   * @returns {Promise<boolean> }  export interface ILanguage}
+   */
+  shouldComplete?(opt: CompleteOption): Promise<boolean>
+
+  /**
+   * Do completetion
+   *
+   * @public
+   * @param {CompleteOption} opt
+   * @returns {Promise<CompleteResult | null>}
+   */
+  doComplete(opt: CompleteOption): Promise<CompleteResult | null>
+}
+
+export interface ILanguage {
+
+  dispose():void
+
+  shouldTriggerCompletion(character:string, languageId: string):boolean
+
+  getCompleteSource(languageId: string): ISource
+
+  registerCompletionItemProvider(
+    name: string,
+    shortcut: string,
+    languageIds: string | string[],
+    provider: CompletionItemProvider,
+    triggerCharacters?: string[]):Disposable
+
 }

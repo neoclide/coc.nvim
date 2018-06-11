@@ -8,6 +8,7 @@ import {
   Position,
 } from 'vscode-languageserver-protocol'
 import * as typeConverters from '../utils/typeConverters'
+const logger = require('../../util/logger')('typscript-utils-completionItem')
 
 export function resolveItem(
   item: CompletionItem,
@@ -57,7 +58,7 @@ export function resolveItem(
 export function convertCompletionEntry(
   tsEntry: Proto.CompletionEntry,
   uri:string,
-  line:string,
+  preText:string,
   position: Position,
   enableDotCompletions: boolean,
   useCodeSnippetsOnMethodSuggest: boolean
@@ -72,6 +73,8 @@ export function convertCompletionEntry(
     // De-prioritze auto-imports
     // https://github.com/Microsoft/vscode/issues/40311
     sortText = '\uffff' + sortText
+  } else {
+    sortText = tsEntry.sortText
   }
   let kind = convertKind(tsEntry.kind)
   let insertTextFormat = (
@@ -85,30 +88,28 @@ export function convertCompletionEntry(
       newText: label
     } : null
   let insertText = tsEntry.insertText
-  if (insertText) {
-    if (textEdit) {
-      textEdit.newText = insertText
-      let {range} = textEdit
-      // Make sure we only replace a single line at most
-      if (range.start.line !== range.end.line) {
-        textEdit.range = {
-          start: range.start,
-          end: {
-            line: range.start.line,
-            character: line.length
-          }
+  if (insertText && textEdit) {
+    textEdit.newText = insertText
+    let {range} = textEdit
+    // Make sure we only replace a single line at most
+    if (range.start.line !== range.end.line) {
+      textEdit.range = {
+        start: range.start,
+        end: {
+          line: range.start.line,
+          character: preText.length
         }
       }
-    } else {
-      // TODO check out if we need to use TextEdit here
-      label = insertText
     }
+    insertText = null
   }
   if (tsEntry.kindModifiers && tsEntry.kindModifiers.match(/\boptional\b/)) {
-    label += '?'
+    insertText = label
+    label = `${insertText}?`
   }
   return {
     label,
+    insertText,
     kind,
     textEdit,
     commitCharacters: getCommitCharacters(
@@ -121,7 +122,7 @@ export function convertCompletionEntry(
     data: {
       uri,
       position,
-      source: tsEntry.source
+      source: tsEntry.source || ''
     }
   }
 }
