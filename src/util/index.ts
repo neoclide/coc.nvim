@@ -21,6 +21,7 @@ export {
 import debounce = require('debounce')
 import net = require('net')
 const logger = require('./logger')('util-index')
+const prefix = '[coc.nvim] '
 
 export type Callback = (arg: number|string) => void
 
@@ -28,20 +29,16 @@ export function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")
 }
 
-export async function echoErr(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'Error')
+export async function echoErr(nvim: Neovim, msg: string):Promise<void> {
+  return await echoMsg(nvim, prefix + msg, 'Error')
 }
 
-export async function echoWarning(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'WarningMsg')
+export async function echoWarning(nvim: Neovim, msg: string):Promise<void> {
+  return await echoMsg(nvim, prefix + msg, 'WarningMsg')
 }
 
-export async function echoMessage(nvim: Neovim, line: string):Promise<void> {
-  return await echoMsg(nvim, line, 'MoreMsg')
-}
-
-export async function echoErrors(nvim: Neovim, lines: string[]):Promise<void> {
-  await nvim.call('coc#util#print_errors', lines)
+export async function echoMessage(nvim: Neovim, msg: string):Promise<void> {
+  return await echoMsg(nvim, prefix + msg, 'MoreMsg')
 }
 
 export function getUserData(item:any):{[index: string]: any} | null {
@@ -76,9 +73,9 @@ export function wait(ms: number):Promise<any> {
   })
 }
 
-async function echoMsg(nvim:Neovim, line: string, hl: string):Promise<void> {
+async function echoMsg(nvim:Neovim, msg: string, hl: string):Promise<void> {
   try {
-    await nvim.command(`echohl ${hl} | echomsg '[coc.nvim] ${escapeSingleQuote(line)}' | echohl None"`)
+    await nvim.call('coc#util#echo_messages', [hl, msg.split('\n')])
   } catch (e) {
     logger.error(e.stack)
   }

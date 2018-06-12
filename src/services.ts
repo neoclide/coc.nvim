@@ -4,6 +4,9 @@ import {
   echoMessage,
 } from './util/'
 import {
+  Disposable
+} from 'vscode-languageserver-protocol'
+import {
   IServiceProvider,
   ServiceStat,
 } from './types'
@@ -13,7 +16,7 @@ import {
 import tsserverService from './typescript-service'
 const logger = require('./util/logger')('services')
 
-export class ServiceManager {
+export class ServiceManager implements Disposable {
 
   private nvim:Neovim
   private languageIds: Set<string> = new Set()
@@ -26,6 +29,12 @@ export class ServiceManager {
       this.regist(new tsserverService())
     }
     // TODO regist more services
+  }
+
+  public dispose():void {
+    for (let service of this.registed.values()) {
+      service.dispose()
+    }
   }
 
   public regist(service:IServiceProvider): void {

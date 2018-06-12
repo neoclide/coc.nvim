@@ -58,9 +58,7 @@ export function resolveItem(
 export function convertCompletionEntry(
   tsEntry: Proto.CompletionEntry,
   uri:string,
-  preText:string,
   position: Position,
-  enableDotCompletions: boolean,
   useCodeSnippetsOnMethodSuggest: boolean
 ):CompletionItem {
   let label = tsEntry.name
@@ -97,7 +95,7 @@ export function convertCompletionEntry(
         start: range.start,
         end: {
           line: range.start.line,
-          character: preText.length
+          character: 666
         }
       }
     }
@@ -112,11 +110,6 @@ export function convertCompletionEntry(
     insertText,
     kind,
     textEdit,
-    commitCharacters: getCommitCharacters(
-      enableDotCompletions,
-      !useCodeSnippetsOnMethodSuggest,
-      tsEntry.kind
-    ),
     insertTextFormat,
     sortText,
     data: {
@@ -168,38 +161,4 @@ function convertKind(kind: string): CompletionItemKind {
       return CompletionItemKind.Folder
   }
   return CompletionItemKind.Property
-}
-
-function getCommitCharacters(
-  enableDotCompletions: boolean,
-  enableCallCompletions: boolean,
-  kind: string
-): string[] | undefined {
-  switch (kind) {
-    case PConst.Kind.memberGetAccessor:
-    case PConst.Kind.memberSetAccessor:
-    case PConst.Kind.constructSignature:
-    case PConst.Kind.callSignature:
-    case PConst.Kind.indexSignature:
-    case PConst.Kind.enum:
-    case PConst.Kind.interface:
-      return enableDotCompletions ? ['.'] : undefined
-
-    case PConst.Kind.module:
-    case PConst.Kind.alias:
-    case PConst.Kind.const:
-    case PConst.Kind.let:
-    case PConst.Kind.variable:
-    case PConst.Kind.localVariable:
-    case PConst.Kind.memberVariable:
-    case PConst.Kind.class:
-    case PConst.Kind.function:
-    case PConst.Kind.memberFunction:
-      return enableDotCompletions
-        ? enableCallCompletions
-        ? ['.', '(']
-        : ['.']
-        : undefined
-  }
-  return undefined
 }

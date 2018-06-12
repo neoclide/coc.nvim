@@ -14,21 +14,26 @@ export default class FileSystemWatcher implements Disposable {
   private _onDidCreate = new EventEmitter<Uri>()
   private _onDidChange = new EventEmitter<Uri>()
   private _onDidDelete = new EventEmitter<Uri>()
+  private watchmanClient: Watchman
 
   public readonly onDidCreate: Event<Uri> = this._onDidCreate.event
   public readonly onDidChange: Event<Uri> = this._onDidChange.event
   public readonly onDidDelete: Event<Uri> = this._onDidDelete.event
 
   constructor(
-    private clientPromise:Promise<Watchman>,
+    clientPromise:Promise<Watchman>,
     private globPattern:string,
     public ignoreCreateEvents:boolean,
     public ignoreChangeEvents:boolean,
     public ignoreDeleteEvents:boolean
   ) {
     clientPromise.then(client => {
-      return this.listen(client)
+      if (client) {
+        this.watchmanClient = client
+        return this.listen(client)
+      }
     }).catch(error => {
+      logger.error('watchman initailize failed')
       logger.error(error.stack)
     })
   }
@@ -56,12 +61,8 @@ export default class FileSystemWatcher implements Disposable {
   }
 
   public dispose():void {
-    if (this.subscription) {
-      this.clientPromise.then(client => {
-        client.unsubscribe(this.subscription)
-      }).catch(() => {
-        // noop
-      })
+    if (this.watchmanClient && this.subscription) {
+      this.watchmanClient.unsubscribe(this.subscription)
     }
   }
 }

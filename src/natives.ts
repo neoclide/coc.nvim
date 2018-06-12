@@ -45,6 +45,7 @@ export class Natives {
         }
       }
     }
+    // TODO remove service
     for (let key of Object.keys(serviceMap)) {
       let arr = serviceMap[key]
       for (let name of arr) {

@@ -33,7 +33,7 @@ const styleCheckDiagnostics = [
   7030 // not all code paths return a value
 ]
 
-export default class TypeScriptServiceClientHost {
+export default class TypeScriptServiceClientHost implements Disposable {
   private readonly ataProgressReporter: AtaProgressReporter
   private readonly typingsStatus: TypingsStatus
   private readonly client: TypeScriptServiceClient

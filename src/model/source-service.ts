@@ -7,7 +7,6 @@ import {
 import {
   showQuickpick,
   echoMessage,
-  escapeSingleQuote
 } from '../util/index'
 
 export default abstract class ServiceSource extends Source {
@@ -21,10 +20,10 @@ export default abstract class ServiceSource extends Source {
     return this.nvim.call('coc#util#preview_info', [msg])
   }
 
-  protected async echoMessage(line:string):Promise<void> {
-    let {nvim} = this
-    await nvim.command(`echohl MoreMsg | echomsg '${escapeSingleQuote(line)}' | echohl None"`)
-  }
+  // protected async echoMessage(line:string):Promise<void> {
+  //   let {nvim} = this
+  //   await nvim.command(`echohl MoreMsg | echomsg '${escapeSingleQuote(line)}' | echohl None"`)
+  // }
 
   protected async promptList(items:string[]):Promise<number> {
     return await showQuickpick(this.nvim, items)

@@ -1,5 +1,14 @@
 let s:is_win = has("win32") || has('win64')
 
+function! coc#util#echo_messages(hl, msgs)
+  if empty(a:msgs) | return | endif
+  execute 'echohl '.a:hl
+    for msg in a:msgs
+      echom msg
+    endfor
+  echohl None
+endfunction
+
 function! coc#util#get_fullpath(bufnr) abort
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif
@@ -40,18 +49,6 @@ endfunction
 
 function! coc#util#on_error(msg) abort
   echohl Error | echom '[coc.nvim] '.a:msg | echohl None
-endfunction
-
-function! coc#util#print_errors(list) abort
-  execute 'keepalt below 4new [Sketch File]'
-  let lines = copy(a:list)
-  call filter(lines, 'v:val !=# ""')
-  call setline(1, '[coc.nvim] Error occored:')
-  call setline(2, lines[0])
-  if len(lines) > 1
-    call append(2, lines[1:])
-  endif
-  setl buftype=nofile bufhidden=wipe nobuflisted readonly
 endfunction
 
 " make function that only trigger once
@@ -132,9 +129,22 @@ function! coc#util#jump_to(filepath, lnum, col) abort
   normal! zz
 endfunction
 
-function! coc#util#get_home()
-  if s:is_win
-    return $VIM."/vimfiles"
+function! coc#util#get_config_home()
+  if exists('$VIMCONFIG')
+    return resolve($VIMCONFIG)
   endif
-  return $HOME."/.vim"
+  if exists('$XDG_CONFIG_HOME')
+    return resolve($XDG_CONFIG_HOME."/nvim")
+  endif
+  return $HOME.'/.vim'
+endfunction
+
+function! coc#util#get_input()
+  let pos = getcurpos()
+  let line = getline('.')
+  let l:start = pos[2] - 1
+  while l:start > 0 && line[l:start - 1] =~# '\k'
+    let l:start -= 1
+  endwhile
+  return pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
 endfunction

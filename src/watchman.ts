@@ -4,7 +4,7 @@ import {resolveRoot} from './util/fs'
 import watchman = require('fb-watchman')
 import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('watchman')
-
+const which = require('which')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
 export interface WatchResponse {
@@ -39,9 +39,9 @@ export default class Watchman {
   private relative_path: string | null
   private clock: string | null
 
-  constructor() {
+  constructor(binaryPath:string) {
     this.client = new watchman.Client({
-      watchmanBinaryPath: getConfig('watchmanBinaryPath')
+      watchmanBinaryPath: binaryPath
     })
   }
 
@@ -62,9 +62,9 @@ export default class Watchman {
   }
 
   public async watchProject(root:string):Promise<boolean> {
-    let projectRoot = resolveRoot(root, ['.git', '.hg', '.svn'])
+    let projectRoot = resolveRoot(root, ['.git', '.hg', '.svn', '.watchmanconfig'])
     if (!projectRoot) {
-      logger.error(`CVS root not found for ${root}`)
+      logger.error(`valid root not found from ${root}`)
       return false
     }
     let resp = await this.command(['watch-project', root])
@@ -112,11 +112,22 @@ export default class Watchman {
     })
   }
 
-  public static async createClient(root:string):Promise<Watchman|null> {
-    let client = new Watchman()
+  public static async createClient(binaryPath:string, root:string):Promise<Watchman|null> {
+    let client = new Watchman(binaryPath)
     let checked = await client.checkCapability()
     if (!checked) return null
     let watching = await client.watchProject(root)
     return watching ? client : null
+  }
+
+  public static getBinaryPath():string|null {
+    let path = getConfig('watchmanBinaryPath')
+    if (path) return path
+    try {
+      path = which.sync('watchman')
+      return path
+    } catch (e) {
+      return null
+    }
   }
 }

@@ -14,6 +14,8 @@ export class Range {
     for (let part of parts) {
       if (part == '@') {
         // number and letters
+        ranges.push(new Range(95))
+        ranges.push(new Range(48, 57))
         ranges.push(new Range(65, 90))
         ranges.push(new Range(97, 122))
         ranges.push(new Range(192, 255))

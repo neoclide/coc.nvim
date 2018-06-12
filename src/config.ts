@@ -2,7 +2,6 @@ import {Config, SourceConfig} from './types'
 const logger = require('./util/logger')('config')
 
 let config: Config = {
-  fuzzyMatch: true,
   checkGit: false,
   timeout: 300,
   completeOpt: 'menu,preview',
@@ -13,13 +12,13 @@ let config: Config = {
   incrementHightlight: false,
   noSelect: false,
   signatureEvents: ['CursorHold'],
+  watchmanBinaryPath: ''
 }
 
 export function setConfig(opts: {[index: string]: any}):void {
   for (let key of Object.keys(opts)) {
     let val = opts[key]
-    if (['fuzzyMatch',
-      'noSelect',
+    if (['noSelect',
       'checkGit',
       'hasUserData',
       'incrementHightlight'].indexOf(key) !== -1) {
@@ -49,7 +48,7 @@ export function setConfig(opts: {[index: string]: any}):void {
   logger.debug(`config:${JSON.stringify(config)}`)
 }
 
-export function getConfig(name: string):any {
+export function getConfig<K extends keyof Config>(name: K):Config[K] {
   return config[name]
 }
 
@@ -88,10 +87,4 @@ export function toggleSource(name: string):string {
   let idx = disabled.findIndex(s => s === name)
   disabled.splice(idx, 1)
   return 'enabled'
-}
-
-export function shouldAutoComplete():boolean {
-  let opt = config.completeOpt
-  let parts = opt.split(',')
-  return parts.indexOf('menu') !== -1 && parts.indexOf('noinsert') === -1
 }

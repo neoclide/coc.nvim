@@ -31,7 +31,6 @@ import {
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'
-import which = require('which')
 import path = require('path')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
@@ -42,10 +41,9 @@ function toNumber(o:any):number {
 
 export class Workspace implements IWorkSpace {
   public nvim:Neovim
-  public buffers:{[index:number]:Document}
   // project root
   public root: string
-  private enableWatch = false
+  private buffers:{[index:number]:Document|null}
   private watchmanPromise: Promise<Watchman>
   private _configurations: Configurations
   private _onDidEnterDocument = new EventEmitter<DocumentInfo>()
@@ -64,13 +62,6 @@ export class Workspace implements IWorkSpace {
 
   constructor() {
     this.buffers = {}
-    which('watchman', error => {
-      if (error) {
-        logger.info('watchman not found, watch disabled')
-      } else {
-        this.enableWatch = true
-      }
-    })
   }
 
   public async init():Promise<void> {
@@ -88,8 +79,9 @@ export class Workspace implements IWorkSpace {
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
-    if (!this.enableWatch) return null
-    let watchmanPromise = this.watchmanPromise || Watchman.createClient(this.root)
+    let binaryPath = Watchman.getBinaryPath()
+    if (!binaryPath) return null
+    let watchmanPromise = this.watchmanPromise || Watchman.createClient(binaryPath, this.root)
     return new FileSystemWatcher(
       watchmanPromise,
       globPattern,
@@ -128,7 +120,7 @@ export class Workspace implements IWorkSpace {
   public getDocumentFromUri(uri:string):Document | null {
     for (let key of Object.keys(this.buffers)) {
       let doc = this.buffers[key]
-      if (doc.uri === uri) return doc
+      if (doc && doc.uri === uri) return doc
     }
     return null
   }
@@ -286,16 +278,16 @@ export class Workspace implements IWorkSpace {
   // words exclude bufnr and ignored files
   public getWords(bufnr: number):string[] {
     let words: string[] = []
-    for (let nr of Object.keys(this.buffers)) {
-      if (bufnr == Number(nr)) continue
+    Object.keys(this.buffers).forEach(nr => {
+      if (Number(nr) == bufnr) return
       let document = this.buffers[nr]
-      if (document.isIgnored) continue
+      if (!document || document.isIgnored) return
       for (let word of document.words) {
         if (words.indexOf(word) == -1) {
           words.push(word)
         }
       }
-    }
+    })
     return words
   }
 
@@ -329,7 +321,7 @@ export class Workspace implements IWorkSpace {
   private async loadConfigurations():Promise<IConfigurationData> {
     let file = path.resolve(__dirname, '../settings/default.json')
     let defaultConfig = await this.parseConfigFile(file)
-    let userHome = await this.nvim.call('coc#util#get_home')
+    let userHome = await this.nvim.call('coc#util#get_config_home')
     let userConfig = await this.parseConfigFile(path.join(userHome, CONFIG_FILE_NAME))
     let cwd = await this.nvim.call('getcwd')
     let dir = resolveDirectory(cwd, '.vim')
@@ -347,7 +339,7 @@ export class Workspace implements IWorkSpace {
   }
 
   private getUri(fullpath:string, bufnr:number):string {
-    if (!fullpath) return `untitled://${bufnr}`
+    if (!fullpath) return `untitled:///${bufnr}`
     if (/^\w+:\/\//.test(fullpath)) return fullpath
     return `file://${fullpath}`
   }

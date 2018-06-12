@@ -29,10 +29,12 @@ import {
   convertCompletionEntry,
   resolveItem
 } from '../utils/completionItem'
+import {languageIds} from '../utils/languageModeIds'
 import FileConfigurationManager, {CompletionOptions} from './fileConfigurationManager'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import * as typeConverters from '../utils/typeConverters'
+const logger = require('../../util/logger')('typescript-completionItemProvider')
 
 class ApplyCompletionCodeActionCommand implements CommandItem {
   public static readonly ID = '_typescript.applyCompletionCodeAction'
@@ -47,11 +49,9 @@ class ApplyCompletionCodeActionCommand implements CommandItem {
     if (codeActions.length === 0) {
       return true
     }
-
     if (codeActions.length === 1) {
       return applyCodeAction(this.client, codeActions[0])
     }
-
     const idx = await showQuickpick(workspace.nvim, codeActions.map(o => o.description), 'Select code action to apply')
     if (idx < 0) return
     const action = codeActions[idx]
@@ -82,7 +82,9 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
   }
 
   private setCompleteOption(languageId: string):void {
-    this.completeOption = this.fileConfigurationManager.getCompleteOptions(languageId)
+    if (languageIds.indexOf(languageId) !== -1) {
+      this.completeOption = this.fileConfigurationManager.getCompleteOptions(languageId)
+    }
   }
 
   /**
@@ -137,10 +139,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     } catch {
       return []
     }
-    const enableDotCompletions = this.shouldEnableDotCompletions(
-      preText,
-      position
-    )
 
     const completionItems: CompletionItem[] = []
     for (const element of msg) {
@@ -153,9 +151,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       const item = convertCompletionEntry(
         element,
         uri,
-        preText,
         position,
-        enableDotCompletions,
         completeOption.useCodeSnippetsOnMethodSuggest,
       )
       completionItems.push(item)
@@ -288,29 +284,21 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     }
   }
 
-  private shouldEnableDotCompletions(
-    preText: string,
-    position: Position
-  ): boolean {
-    if (preText.length > 0) {
-      return preText.match(/[a-z_$\)\]\}]\s*$/gi) !== null
-    }
-    return true
-  }
-
   private shouldTrigger(
     triggerCharacter: string,
     pre: string,
     position: Position
   ): boolean {
-    if (triggerCharacter === '@') {
+    if (triggerCharacter === '.') {
+      if (pre.match(/[\s\.'"]\.$/)) {
+        return false
+      }
+    } else if (triggerCharacter === '@') {
       // make sure we are in something that looks like the start of a jsdoc comment
       if (!pre.match(/^\s*\*[ ]?@/) && !pre.match(/\/\*\*+[ ]?@/)) {
         return false
       }
-    }
-
-    if (triggerCharacter === '<') {
+    } else if (triggerCharacter === '<') {
       return this.client.apiVersion.has290Features()
     }
 

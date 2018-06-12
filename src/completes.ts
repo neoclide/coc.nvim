@@ -15,36 +15,32 @@ export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
   // unique charactor code in result
-  private charCodes:number[]
+  private charCodes:Set<number> = new Set()
 
   constructor() {
     this.complete = null
     this.recentScores = {}
-    this.charCodes = []
   }
 
   public addRecent(word: string):void {
     if (!word.length) return
     let {input} = this.option
-    let key = `${input.slice(0,3)}|${word}`
+    if (!input.length) return
+    let key = `${input.slice(0,1)}|${word}`
     let val = this.recentScores[key]
     if (!val) {
-      this.recentScores[key] = 0.1
+      this.recentScores[key] = 0.01
     } else {
-      this.recentScores[key] = Math.max(val + 0.1, 0.3)
+      this.recentScores[key] = Math.min(val + 0.01, 0.1)
     }
   }
 
-  public newComplete(opts: CompleteOption): Complete {
-    let complete = new Complete(opts)
-    complete.recentScores = this.recentScores
-    return complete
-  }
-
-  // complete on start
-  public createComplete(opts: CompleteOption): Complete {
-    let complete = this.newComplete(opts)
-    this.complete = complete
+  public createComplete(opts: CompleteOption, isIncrement?:boolean): Complete {
+    let complete = new Complete(opts, this.recentScores)
+    // initailize complete
+    if (!isIncrement) {
+      this.complete = complete
+    }
     return complete
   }
 
@@ -56,9 +52,11 @@ export class Completes {
    * @param {string} languageId
    * @returns {Promise<ISource[]>}
    */
-  public async getSources(nvim:Neovim, languageId: string): Promise<ISource[]> {
+  public async getSources(nvim:Neovim, opt: CompleteOption): Promise<ISource[]> {
     let disabled = getConfig('disabled')
-    let nativeNames = natives.getSourceNamesOfFiletype(languageId)
+    let {filetype, triggerCharacter} = opt
+    let languageSource = languages.getCompleteSource(filetype)
+    let nativeNames = natives.getSourceNamesOfFiletype(filetype)
     logger.debug(`Disabled sources:${disabled}`)
     let names = nativeNames.concat(remotes.names)
     names = names.filter(n => disabled.indexOf(n) === -1)
@@ -68,10 +66,21 @@ export class Completes {
       }
       return remotes.getSource(nvim, name)
     }))
-    res.push(languages.getCompleteSource(languageId))
-    res = res.filter(o => o != null)
+    res.push(languageSource)
+    res = res.filter(o => {
+      if (o == null) return false
+      if (triggerCharacter && !o.shouldTriggerCompletion(triggerCharacter, filetype)) {
+        return false
+      }
+      return true
+    })
     logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
     return res
+  }
+
+  public shouldTriggerCompletion(character:string, languageId: string):boolean {
+    // TODO rework natives remotes
+    return false
   }
 
   public async getSource(nvim:Neovim, name:string):Promise<ISource | null> {
@@ -81,33 +90,28 @@ export class Completes {
   }
 
   public reset():void {
-    this.charCodes = []
+    this.charCodes = new Set()
   }
 
   public calculateChars(items:VimCompleteItem[]):void {
-    let res = []
-    if (!this.complete) return
+    let {charCodes} = this
     for (let item of items) {
-      let user_data = JSON.parse(item.user_data)
-      let s = user_data.filter == 'abbr' ? item.abbr : item.word
+      let s = item.filterText || item.word
       for (let i = 0, l = s.length; i < l; i++) {
         let code = s.charCodeAt(i)
         // not supported for filter
         if (code > 256) continue
-        if (res.indexOf(code) === -1) {
-          res.push(code)
-        }
-        if (code >= 65 && code <= 90 && res.indexOf(code + 32) === -1) {
-          res.push(code + 32)
+        charCodes.add(code)
+        if (code >= 65 && code <= 90) {
+          charCodes.add(code + 32)
         }
       }
     }
-    this.charCodes = res
   }
 
   public hasCharacter(ch:string):boolean {
     let code = ch.charCodeAt(0)
-    return this.charCodes.indexOf(code) !== -1
+    return this.charCodes.has(code)
   }
 
   public get option():CompleteOption|null {

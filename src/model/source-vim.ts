@@ -67,7 +67,7 @@ export default class VimSource extends Source {
     if (this.firstMatch && input.length) {
       let ch = input[0]
       items = items.filter(item => {
-        let cfirst = item.abbr ? item.abbr[0] : item.word[0]
+        let cfirst = item.filterText ? item.filterText[0] : item.word[0]
         return fuzzyChar(ch, cfirst)
       })
     }

@@ -8,7 +8,10 @@ import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
 import {ROOT} from '../../constant'
 import workspace from '../../workspace'
-import {echoErr} from '../../util/index'
+import {
+  echoErr,
+  echoMessage,
+} from '../../util/index'
 import {toBool} from '../../util/types'
 import * as cp from 'child_process'
 import {unicodeIndex} from '../../util/string'
@@ -126,7 +129,7 @@ export default class Jedi extends ServiceSource {
       if (texts.length) {
         await this.previewMessage(texts.join('\n'))
       } else {
-        await this.echoMessage('Not found')
+        await echoMessage(this.nvim, 'Not found')
       }
     }
   }
@@ -178,7 +181,7 @@ export default class Jedi extends ServiceSource {
       })
       await this.echoLines(lines)
     } catch (e) {
-      await this.echoMessage('Not found')
+      await echoMessage(this.nvim, 'Not found')
     }
   }
 }

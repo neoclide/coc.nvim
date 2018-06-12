@@ -3,6 +3,7 @@ import {CompleteOption, VimCompleteItem} from './types'
 import {getConfig} from './config'
 import Input from './model/input'
 import completes from './completes'
+import {isWord} from './util/string'
 const logger = require('./util/logger')('increment')
 
 export interface CompleteDone {
@@ -32,6 +33,7 @@ export default class Increment {
   private changedI: ChangedI | null | undefined
   private activted: boolean
   private lastInsert: InsertedChar | null | undefined
+  private _incrementopt: string|null
 
   constructor(nvim:Neovim) {
     this.activted = false
@@ -47,6 +49,13 @@ export default class Increment {
     completes.reset()
     await this.nvim.call('execute', [`noa set completeopt=${completeOpt}`])
     logger.debug('increment stopped')
+  }
+
+  public get hasNoselect():boolean {
+    if (this.activted) {
+      return this._incrementopt.indexOf('noselect') !== -1
+    }
+    return getConfig('completeOpt').indexOf('noselect') !== -1
   }
 
   public get isActivted():boolean {
@@ -94,7 +103,7 @@ export default class Increment {
     this.activted = true
     this.input = inputTarget
     await inputTarget.highlight()
-    let opt = this.getStartOption()
+    let opt = this._incrementopt = this.getStartOption()
     await nvim.call('execute', [`noa set completeopt=${opt}`])
     logger.debug('increment started')
   }
@@ -155,23 +164,22 @@ export default class Increment {
   public async onTextChangedI():Promise<boolean> {
     let {activted, lastInsert, nvim} = this
     if (!activted) return false
-    let [_, linenr, colnr] = await nvim.call('getcurpos', [])
     let {option} = completes
-    if (!option || linenr != option.linenr) {
-      await this.stop()
-      return false
-    }
+    if (!option) return false
+    let [_, linenr, colnr] = await nvim.call('getcurpos', [])
+    let {triggerCharacter} = option
+    if (linenr != option.linenr) return false
     logger.debug('text changedI')
     let lastChanged = Object.assign({}, this.changedI)
     this.changedI = { linenr, colnr, timestamp: Date.now() }
-    // check continue
     if (lastInsert && colnr - lastChanged.colnr === 1) {
       await this.input.addCharactor(lastInsert.character)
       return true
     }
     if (lastChanged.colnr - colnr === 1) {
       let invalid = await this.input.removeCharactor()
-      if (!invalid) return true
+      let shouldStop = triggerCharacter && isWord(triggerCharacter) && this.search.length == 0
+      if (!invalid && !shouldStop) return true
     }
     logger.debug('increment failed')
     await this.stop()

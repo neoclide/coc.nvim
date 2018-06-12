@@ -8,8 +8,11 @@ import IpcService from '../../model/ipcService'
 import {ROOT} from '../../constant'
 import workspace from '../../workspace'
 import path = require('path')
-import {escapeSingleQuote} from '../../util'
 import findRoot = require('find-root')
+import {
+  echoMessage,
+  escapeSingleQuote
+} from '../../util/index'
 import {byteSlice} from '../../util/string'
 import fs = require('fs')
 import opn = require('opn')
@@ -99,7 +102,7 @@ export default class Tern extends ServiceSource {
     })
     let {exprName, name} = res
     let msg = `${exprName || name || ''}: ${res.type}`
-    await this.echoMessage(msg)
+    await echoMessage(this.nvim, msg)
   }
 
   public async showDocuments(query:QueryOption):Promise<void> {
@@ -120,7 +123,7 @@ export default class Tern extends ServiceSource {
     } else if (url) {
       await opn(url)
     } else {
-      await this.echoMessage('Not found')
+      await echoMessage(this.nvim, 'Not found')
     }
   }
 
@@ -143,7 +146,7 @@ export default class Tern extends ServiceSource {
     } else if (url) {
       await opn(url)
     } else {
-      await this.echoMessage('Not found')
+      await echoMessage(this.nvim, 'Not found')
     }
   }
 

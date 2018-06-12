@@ -32,9 +32,8 @@ export interface SourceConfig {
   shortcut: string
   priority: number
   filetypes: string[] | null
-  filterAbbr: boolean
-  // remote source only
-  firstMatch: boolean
+  triggerCharacters: string[]
+  firstMatch?: boolean
   [index: string]: any
 }
 
@@ -45,7 +44,7 @@ export interface SourceOption {
   filetypes?: string[]
   priority?: number
   optionalFns?: string[]
-  filterAbbr?: boolean
+  triggerCharacters?: string[]
   // remote source only
   firstMatch?: boolean
   showSignature?: boolean
@@ -90,9 +89,11 @@ export interface VimCompleteItem {
   empty?: number
   user_data?: string
   score?: number
+  // it's not saved by vim, for temporarily usage
+  sortText?: string
+  filterText?: string
+  isSnippet?: boolean
 }
-
-export type FilterType = 'abbr' | 'word'
 
 export interface CompleteResult {
   items: VimCompleteItem[]
@@ -100,14 +101,12 @@ export interface CompleteResult {
   engross?: boolean
   startcol?: number
   source?: string
-  filter?: FilterType
   priority?: number
 }
 
 export interface Config {
   hasUserData: boolean
   completeOpt: string
-  fuzzyMatch: boolean
   timeout: number
   checkGit: boolean
   disabled: string[]
@@ -116,6 +115,7 @@ export interface Config {
   noSelect: boolean
   sources: {[index: string]: Partial<SourceConfig>}
   signatureEvents: string[]
+  watchmanBinaryPath: string
 }
 
 export interface SourceStat {
@@ -345,6 +345,7 @@ export interface IServiceProvider {
   // current state
   state: ServiceStat
   init():void
+  dispose():void
   restart():void
   onServiceReady: Event<void>
 }
@@ -353,14 +354,22 @@ export interface ISource {
   // identifier
   name: string
   priority: number
+  filetypes: string[]
   // should the first character always match
   firstMatch?: boolean
-  // filter field, could be abbr
-  filter?: FilterType
   /**
    * @public source
    */
   refresh?():Promise<void>
+  /**
+   * Should trigger completion with trigger character
+   *
+   * @public
+   * @param {string} character
+   * @param {string} languageId
+   * @returns {boolean}
+   */
+  shouldTriggerCompletion(character:string, languageId: string):boolean
   /**
    * Action for complete item on complete item selected
    *
@@ -399,8 +408,6 @@ export interface ISource {
 export interface ILanguage {
 
   dispose():void
-
-  shouldTriggerCompletion(character:string, languageId: string):boolean
 
   getCompleteSource(languageId: string): ISource
 

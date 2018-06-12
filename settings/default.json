@@ -1,4 +1,20 @@
 {
+  // could be 'always' 'trigger' => for specified trigger characters only, 'none'
+  "coc.preferences.autoTrigger": "always",
+  // timeout for completion
+  "coc.preferences.timeout": 300,
+  // ignore keywords from git ignored files
+  "coc.preferences.ignoreGitignore": false,
+  // not make vim select first item on completion start
+  "coc.preferences.noselect": false,
+  // highlight filter text on completion
+  "coc.preferences.enableHighlight": false,
+  // foreground color of filter text
+  "coc.preferences.highlighForeground": "#ffffff",
+  // background color of filter text
+  "coc.preferences.highlighBackground": "#b180a4",
+  // autocmd events for echo function signature
+  "coc.preferences.signatureEvents": ["CursorHold"],
   // language locale
   "tsserver.locale": null,
   // folder of tsserver.js

@@ -2,6 +2,7 @@ import path = require('path')
 import os = require('os')
 import net = require('net')
 import cp = require('child_process')
+import fs = require('fs')
 const logger = require('../../util/logger')('typescript-service-process')
 
 export interface IForkOptions {
@@ -124,6 +125,11 @@ export function fork(
     serverClosed = true
     stdOutServer.close()
     stdErrServer.close()
+    ;[stdInPipeName, stdOutPipeName, stdErrPipeName].forEach(name => {
+      if (process.platform !== 'win32') {
+        fs.unlinkSync(name)
+      }
+    })
   }
 
   // Create the process

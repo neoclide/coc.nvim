@@ -12,6 +12,7 @@ import {
 import {
   Position,
   CancellationTokenSource,
+  CancellationToken,
   CompletionList,
   CompletionItem,
   CompletionItemKind,
@@ -25,7 +26,10 @@ import {
   Disposable,
   echoMessage,
 } from './util'
-import {byteSlice} from './util/string'
+import {
+  byteSlice,
+  isWord,
+} from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
 const logger = require('./util/logger')('languages')
@@ -41,9 +45,16 @@ class Languages implements ILanguage {
 
   public nvim:Neovim
   private completionProviders: CompletionProvider[] = []
+  private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
 
-  // constructor() {
-  // }
+  private get token():CancellationToken {
+    return this.cancelTokenSource.token
+  }
+
+  private cancelRequest():void {
+    this.cancelTokenSource.cancel()
+    this.cancelTokenSource = new CancellationTokenSource()
+  }
 
   public registerCompletionItemProvider(
     name: string,
@@ -53,9 +64,10 @@ class Languages implements ILanguage {
     triggerCharacters?: string[]
   ):Disposable {
     let id = uuid()
+    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     this.completionProviders.push({
       id,
-      source: this.createCompleteSource(name, shortcut, provider),
+      source: this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters),
       languageIds: typeof languageIds == 'string' ? [languageIds] : languageIds,
       triggerCharacters,
     })
@@ -70,54 +82,76 @@ class Languages implements ILanguage {
     // noop
   }
 
-  public shouldTriggerCompletion(character:string, languageId: string):boolean {
-    let {completionProviders} = this
-    let item = completionProviders.find(o => o.languageIds.indexOf(languageId) !== -1)
-    return item ? item.triggerCharacters.indexOf(character) !== -1 : false
-  }
-
   public getCompleteSource(languageId: string):ISource | null {
     let {completionProviders} = this
     let item = completionProviders.find(o => o.languageIds.indexOf(languageId) !== -1)
     return item ? item.source : null
   }
 
-  private createCompleteSource(name: string, shortcut: string, provider: CompletionItemProvider):ISource {
+  private createCompleteSource(
+    name: string,
+    shortcut: string,
+    provider: CompletionItemProvider,
+    languageIds: string[],
+    triggerCharacters: string[],
+  ):ISource {
+    triggerCharacters = triggerCharacters || []
     // track them for resolve
-    let completeItems: CompletionItem[] = null
+    let completeItems: CompletionItem[] = []
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    let cancellSource = null
+    let resolving:string
+
     return {
       name,
       priority: 9,
+      filetypes: languageIds,
+      shouldTriggerCompletion(character:string, languageId: string):boolean {
+        if (languageIds.indexOf(languageId) == -1) return false
+        if (!isWord(character) && triggerCharacters.indexOf(character) == -1) {
+          return false
+        }
+        return true
+      },
       onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
         if (!hasResolve) return
-        if (!completeItems || completeItems.length == 0) return
+        if (completeItems.length == 0) return
         let {user_data, word} = item
+        resolving = word
+        if (!user_data) return
         let {source} = JSON.parse(user_data)
         // check if this source
         if (source !== name) return
-        let origItem = completeItems.find(o => o.label == word)
-        if (!origItem) return
-        if (cancellSource) cancellSource.cancel()
-        cancellSource = new CancellationTokenSource()
-        let token = cancellSource.token
-        let resolved = origItem.data.resolved? origItem :  await provider.resolveCompletionItem(origItem, token)
-        if (!resolved || token.isCancellationRequested) return
-        cancellSource = null
-        resolved.data.resolved = true
+        let resolved:CompletionItem
+        let prevItem = completeItems.find(o => o.label == word)
+        if (!prevItem || prevItem.data.resolving) return
+        if (prevItem.data.resolved) {
+          resolved = prevItem
+          logger.debug('Reusing resolved item', resolved)
+        } else {
+          prevItem.data.resolving = true
+          let token = this.token
+          resolved = await provider.resolveCompletionItem(prevItem, this.token)
+          if (!resolved || token.isCancellationRequested) return
+          resolved.data = Object.assign(resolved.data || {}, {
+            resolving: false,
+            resolved: true
+          })
+          let idx = completeItems.findIndex(o => word == o.label)
+          if (idx !== -1) completeItems[idx] = resolved
+          logger.debug('Resolved complete item', resolved)
+        }
         let visible = await this.nvim.call('pumvisible')
-        if (visible == 0) return
-        let {detail} = resolved
-        // TODO vim should support update completion item
-        if (detail) echoMessage(this.nvim, detail) // tslint:disable-line
-        let doc = getDocumentation(resolved)
-        if (doc) this.nvim.call('coc#util#preview_info', [doc]) // tslint:disable-line
-        let idx = completeItems.findIndex(o => word == o.label)
-        // save for complete done
-        if (idx !== -1) completeItems[idx] = resolved
+        if (visible != 0 && resolving == word) {
+          // vim have no suppport for update complete item
+          let {detail} = resolved
+          if (detail) echoMessage(this.nvim, detail) // tslint:disable-line
+          let doc = getDocumentation(resolved)
+          if (doc) this.nvim.call('coc#util#preview_info', [doc]) // tslint:disable-line
+        }
       },
       onCompleteDone: (item: VimCompleteItem):Promise<void> => {
+        this.cancelRequest()
+        completeItems = []
         return
       },
       async doComplete(opt:CompleteOption):Promise<CompleteResult|null> {
@@ -146,7 +180,6 @@ class Languages implements ILanguage {
         })
         return {
           isIncomplete,
-          filter: 'abbr',
           items: completeItems.map(o => convertVimCompleteItem(o, shortcut))
         }
       }
@@ -161,36 +194,30 @@ class Languages implements ILanguage {
   }
 }
 
+function validString(str:any):boolean {
+  if (typeof str !== 'string') return false
+  return str.length > 0
+}
+
 function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompleteItem {
   let obj: VimCompleteItem = {
     abbr: item.label,
     word: item.insertText ? item.insertText : item.label, // tslint:disable-line
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
+    sortText: validString(item.sortText) ? item.sortText : item.label,
+    filterText: validString(item.filterText) ? item.filterText : item.label,
+    isSnippet: item.insertTextFormat === InsertTextFormat.Snippet,
   }
-  let data: any = {}
   let document = getDocumentation(item)
   if (document) obj.info = document
-  if (item.insertTextFormat) {
-    data.isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-  }
-  if (item.filterText) {
-    data.filter = item.filterText
-  }
-  if (item.sortText) {
-    data.sortText = item.sortText
-  }
-  if (item.commitCharacters) {
-    data.commitCharacters = item.commitCharacters
-  }
-  obj.dup = 1
-  obj.user_data = JSON.stringify(data)
+  // item.commitCharacters not necessary for vim
   return obj
 }
 
-function getDocumentation(item: CompletionItem):string {
+function getDocumentation(item: CompletionItem):string | null {
   let { documentation } = item
-  if (!documentation) return ''
+  if (!documentation) return null
   if (typeof documentation === 'string') return documentation
   return documentation.value
 }

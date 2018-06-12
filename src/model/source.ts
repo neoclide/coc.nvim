@@ -8,10 +8,12 @@ import {SourceOption,
   SourceConfig,
   VimCompleteItem,
   CompleteOption,
-  FilterType,
   ISource,
   CompleteResult} from '../types'
-import {byteSlice} from '../util/string'
+import {
+  byteSlice,
+  isWord,
+} from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
 const boolOptions = ['firstMatch']
@@ -41,20 +43,15 @@ export default abstract class Source implements ISource {
       priority: 0,
       filetypes: null,
       firstMatch: false,
-      filterAbbr: false,
       showSignature: true,
       bindKeywordprg: true,
+      triggerCharacters: [],
       signatureEvents: getConfig('signatureEvents'),
     }, option, opt)
   }
 
   public get priority():number {
     return Number(this.config.priority)
-  }
-
-  public get filter():FilterType {
-    let {filterAbbr} = this.config
-    return filterAbbr ? 'abbr' : 'word'
   }
 
   public get firstMatch():boolean {
@@ -131,13 +128,21 @@ export default abstract class Source implements ISource {
     return this.filetypes.indexOf(filetype) !== -1
   }
 
-  // some source could overwrite it
+  public shouldTriggerCompletion(character:string, languageId: string):boolean {
+    let {triggerCharacters, filetypes} = this.config
+    if (filetypes && filetypes.indexOf(languageId) == -1) return false
+    if (!isWord(character) && triggerCharacters.indexOf(character) == -1) {
+      return false
+    }
+    return true
+  }
+
   public async refresh():Promise<void> {
     // do nothing
   }
 
   public async onCompleteResolve(item:VimCompleteItem):Promise<void> {
-    // noop
+    // do nothing
   }
 
   public async onCompleteDone(item:VimCompleteItem):Promise<void> {

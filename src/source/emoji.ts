@@ -22,7 +22,7 @@ export default class Emoji extends Source {
       shortcut: 'EMO',
       priority: 0,
       filetypes: ['markdown'],
-      triggerKeys: [':']
+      triggerCharacters: [':']
     })
   }
 
@@ -64,7 +64,8 @@ export default class Emoji extends Source {
         return {
           word: o.character,
           abbr: `${o.character} ${o.description}`,
-          menu: this.menu
+          menu: this.menu,
+          filterText: o.description,
         }
       })
     }

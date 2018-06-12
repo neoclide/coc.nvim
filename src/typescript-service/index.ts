@@ -3,8 +3,12 @@ import {
   IServiceProvider,
   ServiceStat,
   EventEmitter,
+  Disposable,
   Event,
 } from '../types'
+import {
+  disposeAll
+} from '../util/index'
 import {
   standardLanguageDescriptions
 } from './utils/languageDescription'
@@ -22,6 +26,7 @@ export default class TsserverService implements IServiceProvider {
   private clientHost: TypeScriptServiceClientHost
   private _onDidServiceReady = new EventEmitter<void>()
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
+  private readonly disposables: Disposable[] = []
 
   constructor() {
     const config = workspace.getConfiguration('tsserver')
@@ -43,10 +48,14 @@ export default class TsserverService implements IServiceProvider {
       }
     })
     let client = this.clientHost.serviceClient
-
     client.onTsServerStarted(() => {
       this._onDidServiceReady.fire()
     })
+    this.disposables.push(client)
+  }
+
+  public dispose():void {
+    disposeAll(this.disposables)
   }
 
   public restart():void {

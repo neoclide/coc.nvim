@@ -13,6 +13,7 @@ function! coc#get_config(...)
         \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null),
         \ 'noSelect': get(g:, 'coc_use_noselect', v:null),
         \ 'signatureEvents': get(g:, 'coc_signature_events', v:null),
+        \ 'watchmanPath': get(g:, 'coc_watchman_path', v:null),
         \}
 endfunction
 

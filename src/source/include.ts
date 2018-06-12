@@ -18,6 +18,7 @@ export default class Include extends Source {
       shortcut: 'I',
       priority: 10,
       filetypes: [],
+      triggerCharacters: ['/'],
       trimSameExts: ['.ts', '.js'],
     })
   }
@@ -39,7 +40,8 @@ export default class Include extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {command, nvim} = this
-    let {bufnr, col} = opt
+    let {bufnr, col, input} = opt
+    if (input.length == 0) return null
     let {trimSameExts} = this.config
     let fullpath = await nvim.call('coc#util#get_fullpath', [toNumber(bufnr)])
     let items = []
@@ -61,7 +63,7 @@ export default class Include extends Source {
           return {
             word,
             abbr: file,
-            menu: this.menu
+            menu: this.menu,
           }
         })
       }
