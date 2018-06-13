@@ -1,5 +1,5 @@
 import {Neovim} from 'neovim'
-import {getConfig} from '../config'
+import workspace from '../workspace'
 
 export default class Input {
   public search: string
@@ -16,7 +16,7 @@ export default class Input {
   }
 
   public async highlight():Promise<void> {
-    let enabled = getConfig('incrementHightlight')
+    let enabled = workspace.getConfiguration('coc.preferences').get('enableHighlight', false)
     if (!enabled) return
     await this.clear()
     if (this.search.length) {
@@ -34,8 +34,13 @@ export default class Input {
     return false
   }
 
-  public async addCharactor(c: string):Promise<void> {
+  public async addCharacter(c:string):Promise<void> {
     this.search = this.search + c
+    await this.highlight()
+  }
+
+  public async changeSearch(str:string):Promise<void> {
+    this.search = str
     await this.highlight()
   }
 

@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import {statAsync} from '../util/fs'
 import Source from '../model/source'
 import fs = require('fs')
@@ -11,11 +14,10 @@ let words = null
 let file = path.resolve(__dirname, '../../data/10k.txt')
 
 export default class Word extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:SourceConfig) {
     super(nvim, {
       name: 'word',
-      shortcut: '10k',
-      priority: 0,
+      ...opts,
     })
   }
 

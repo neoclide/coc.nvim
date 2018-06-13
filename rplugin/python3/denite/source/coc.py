@@ -23,13 +23,13 @@ class Source(Base):
         self.vim.command('syntax case ignore')
         self.vim.command(r'syntax match deniteSource_CocHeader /\v^.*$/ containedin=' + self.syntax_name)
         self.vim.command(r'syntax match deniteSource_CocStar /\v^\%1c.*\%3c/ contained '
-                r'containedin=deniteSource_CocHeader')
+                         r'containedin=deniteSource_CocHeader')
         self.vim.command(r'syntax match deniteSource_CocName /\%4c.*\%22c/ contained '
-                r'containedin=deniteSource_CocHeader')
-        self.vim.command(r'syntax match deniteSource_CocType /\%25c.*\%31c/ contained '
-                r'containedin=deniteSource_CocHeader')
-        self.vim.command(r'syntax match deniteSource_CocPath /\%32c.*$/ contained '
-                r'containedin=deniteSource_CocHeader')
+                         r'containedin=deniteSource_CocHeader')
+        self.vim.command(r'syntax match deniteSource_CocType /\%25c.*\%35c/ contained '
+                         r'containedin=deniteSource_CocHeader')
+        self.vim.command(r'syntax match deniteSource_CocPath /\%36c.*$/ contained '
+                         r'containedin=deniteSource_CocHeader')
 
     def highlight(self):
         self.vim.command('highlight default link deniteSource_CocStar Special')
@@ -43,11 +43,11 @@ class Source(Base):
         for item in items:
             name = item['name']
             prefix = '   ' if item['disabled'] else ' * '
-            t = '[VIM]' if item['type'] == 'remote' else '[JS]'
+            t = '[%s]' % (item['type'])
             filepath = item['filepath']
             candidates.append({
                 'word': name,
-                'abbr': '%s %-18s %-6s %s' % (prefix, name, t, filepath),
+                'abbr': '%s %-18s %-10s %s' % (prefix, name, t, filepath),
                 'action__path': filepath,
                 'source__name': name
                 })

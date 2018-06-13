@@ -11,10 +11,9 @@ W.I.P.🐒
 ## Features
 
 * Async generate complete items in parallel.
-* Smart case fuzzy match with score by default.
-* Minimal configuration required to work.
-* Always respect your `completeopt`.
-* Support `text_edit` and `snippet` described in LSP 2.0.
+* Smart case with fuzzy match.
+* Scoped configuration file.
+* Full featured completion support defined in LSP.
 * Custom sources using vim script.
 
 ## Install
@@ -29,7 +28,7 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 [nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
 
-See [trouble Shooting](#trouble-shooting) if you have runtime issue. 
+See [trouble Shooting](#trouble-shooting) if you have runtime issue.
 
 ### Set trigger for completion
 
@@ -71,7 +70,6 @@ Name         | Description                                             | Use cac
 `module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
 `include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
-
 `omni` source could be slow, it requires configuration for `filetypes` to work.
 
 ### Vim sources
@@ -101,36 +99,6 @@ they run in async and could have extra functionalities.
   Use `:h coc_source_tern` in vim for detail.
 </details>
 
-<details>
-  <summary><strong>jedi</strong> for Python</summary>
-
-  Using <a href="https://jedi.readthedocs.io/">jedi</a> as engine, install `jedi` module by:
-
-      pip install jedi
-
-  Addtional support: `show documents`, `jump to definition` and `show signature`.
-
-  Use `:h coc_source_jedi` in vim for detail.
-</details>
-
-<details>
-  <summary><strong>racer</strong> for Rust</summary>
-
-  Using <a href="https://github.com/racer-rust/racer">racer</a> as engine,
-  checkout <a href="https://github.com/racer-rust/racer#installation">setup of racer</a> for installation.
-
-  Use `:h coc_source_racer` in vim for detail.
-</details>
-
-<details>
-  <summary><strong>gocode</strong> for Go</summary>
-
-  Using <a href="https://github.com/mdempsky/gocode">gocode</a> as engine,
-  checkout <a href="https://github.com/mdempsky/gocode#setup">setup of gocode</a> for installation.
-
-  Use `:h coc_source_gocode` in vim for detail.
-</details>
-
 ## Configuration
 
 <details>
@@ -151,19 +119,7 @@ set completeopt=menu,preview
 ```
 </details>
 
-
-### Global variables
-
-Name                        | Description                                               | Default
-------------                | -------------                                             | ------------
-`g:coc_timeout`             | Timeout in milisecond for completion                      | 300
-`g:coc_ignore_git_ignore`   | Ignore collect words from buffers that are git ignored    | 0
-`g:coc_source_config`       | Configuration for coc sources, see `:h coc_source_config` | {}
-`g:coc_use_noselect`        | Add `noselect` to `completeopt` when popup menu is shown  | 0
-`g:coc_increment_highlight` | Enable highlight for increment search characters          | 0
-`g:coc_chars_guifg`         | Foreground color of user input in increment search        | white
-`g:coc_chars_guibg`         | Background color of user input in increment search        | magenta
-`g:coc_signature_events`    | Autocmd event names for showing function signature        | ['CursorHold']
+COC make use of configuration file in JSON5 format, check out [Configuration-file-of-COC.nvim](https://github.com/neoclide/coc.nvim/wiki/Configuration-file-of-COC.nvim)
 
 ### Commands
 
@@ -172,10 +128,7 @@ Commands are used change the service status on the fly.
 Name                 | Description
 ------------         | -------------
 `:CocRefresh [name]` | Refresh `name` source, or all sources without argument.
-`:CocToggle name`    | Toggle `name` source state (enable/disable).
-`:CocDisable`        | Disable coc.nvim
-`:CocEnable`         | Enable coc.nvim
-`:Denite coc`        | Open coc sources in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
+`:Denite coc`        | Check source list of current buffer in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
 
 ## Trouble shooting
 

@@ -1,14 +1,8 @@
-import {Neovim} from 'neovim'
-import {getConfig} from './config'
 import Complete from './model/complete'
 import {
   CompleteOption,
   VimCompleteItem,
-  ISource,
   RecentScore} from './types'
-import languages from './languages'
-import natives from './natives'
-import remotes from './remotes'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
@@ -42,51 +36,6 @@ export class Completes {
       this.complete = complete
     }
     return complete
-  }
-
-  /**
-   * Get all sources for languageId
-   *
-   * @public
-   * @param {Neovim} nvim
-   * @param {string} languageId
-   * @returns {Promise<ISource[]>}
-   */
-  public async getSources(nvim:Neovim, opt: CompleteOption): Promise<ISource[]> {
-    let disabled = getConfig('disabled')
-    let {filetype, triggerCharacter} = opt
-    let languageSource = languages.getCompleteSource(filetype)
-    let nativeNames = natives.getSourceNamesOfFiletype(filetype)
-    logger.debug(`Disabled sources:${disabled}`)
-    let names = nativeNames.concat(remotes.names)
-    names = names.filter(n => disabled.indexOf(n) === -1)
-    let res: ISource[] = await Promise.all(names.map(name => {
-      if (nativeNames.indexOf(name) !== -1) {
-        return natives.getSource(nvim, name)
-      }
-      return remotes.getSource(nvim, name)
-    }))
-    res.push(languageSource)
-    res = res.filter(o => {
-      if (o == null) return false
-      if (triggerCharacter && !o.shouldTriggerCompletion(triggerCharacter, filetype)) {
-        return false
-      }
-      return true
-    })
-    logger.debug(`Activted sources: ${res.map(o => o.name).join(',')}`)
-    return res
-  }
-
-  public shouldTriggerCompletion(character:string, languageId: string):boolean {
-    // TODO rework natives remotes
-    return false
-  }
-
-  public async getSource(nvim:Neovim, name:string):Promise<ISource | null> {
-    if (natives.has(name)) return await natives.getSource(nvim, name)
-    if (remotes.has(name)) return await remotes.getSource(nvim, name)
-    return null
   }
 
   public reset():void {

@@ -7,7 +7,6 @@ import {
   Position,
   Range,
   TextEdit } from 'vscode-languageserver-protocol'
-import {getConfig} from '../config'
 import {Chars} from './chars'
 import {
   isGitIgnored,
@@ -19,7 +18,9 @@ export default class Document {
   public words: string[]
   public isIgnored = false
   public chars:Chars
-  constructor(public bufnr:number, public textDocument:TextDocument, public keywordOption:string) {
+  constructor(public bufnr:number,
+    public textDocument:TextDocument,
+    public keywordOption:string) {
     let chars = this.chars = new Chars(keywordOption)
     if (this.includeDash) {
       chars.addKeyword('-')
@@ -33,6 +34,7 @@ export default class Document {
   private get includeDash():boolean {
     let {languageId} = this.textDocument
     return [
+      'json',
       'html',
       'wxml',
       'css',
@@ -43,8 +45,6 @@ export default class Document {
   }
 
   private async gitCheck():Promise<void> {
-    let checkGit = getConfig('checkGit')
-    if (!checkGit) return
     let {uri} = this
     if (!uri.startsWith('file://')) return
     let filepath = Uri.parse(uri).fsPath

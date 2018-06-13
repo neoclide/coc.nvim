@@ -27,29 +27,22 @@ export {
 }
 export type Filter = 'word' | 'fuzzy'
 
-// Config property of source
-export interface SourceConfig {
-  shortcut: string
-  priority: number
-  filetypes: string[] | null
-  triggerCharacters: string[]
-  firstMatch?: boolean
-  [index: string]: any
+export enum SourceType {
+  Native,
+  Remote,
+  Service,
 }
 
-// options for init source
-export interface SourceOption {
+// Config property of source
+export interface SourceConfig {
   name: string
+  priority: number
+  filetypes: string[] | null
+  sourceType: SourceType
+  triggerCharacters: string[]
   shortcut?: string
-  filetypes?: string[]
-  priority?: number
-  optionalFns?: string[]
-  triggerCharacters?: string[]
-  // remote source only
   firstMatch?: boolean
-  showSignature?: boolean
-  bindKeywordprg?: boolean
-  signatureEvents?: string[]
+  filepath?: string
   [index: string]: any
 }
 
@@ -107,22 +100,14 @@ export interface CompleteResult {
 export interface Config {
   hasUserData: boolean
   completeOpt: string
-  timeout: number
-  checkGit: boolean
-  disabled: string[]
-  disabledServices: string[]
-  incrementHightlight: boolean
-  noSelect: boolean
-  sources: {[index: string]: Partial<SourceConfig>}
-  signatureEvents: string[]
   watchmanBinaryPath: string
 }
 
 export interface SourceStat {
   name: string
-  type: 'remote' | 'native'
-  disabled: boolean
+  type: string
   filepath: string
+  disabled: boolean
 }
 
 export interface QueryOption {
@@ -353,8 +338,12 @@ export interface IServiceProvider {
 export interface ISource {
   // identifier
   name: string
+  disabled: boolean
   priority: number
+  sourceType: SourceType
+  triggerCharacters: string[]
   filetypes: string[]
+  filepath?: string
   // should the first character always match
   firstMatch?: boolean
   /**
@@ -362,14 +351,11 @@ export interface ISource {
    */
   refresh?():Promise<void>
   /**
-   * Should trigger completion with trigger character
+   * For disable/enable
    *
-   * @public
-   * @param {string} character
-   * @param {string} languageId
-   * @returns {boolean}
+   * @public source
    */
-  shouldTriggerCompletion(character:string, languageId: string):boolean
+  toggle?():void
   /**
    * Action for complete item on complete item selected
    *

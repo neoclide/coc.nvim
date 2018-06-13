@@ -44,16 +44,6 @@ function! s:Disable() abort
   endif
 endfunction
 
-function! s:ToggleSource(name) abort
-  if !s:CheckState() | return | endif
-  let state = CocSourceToggle(a:name)
-  if !empty(state)
-    echohl MoreMsg
-    echom '[coc.nvim] Source '.a:name. ' '.state
-    echohl None
-  endif
-endfunction
-
 function! s:RefreshSource(...) abort
   if !s:CheckState() | return | endif
   let name = get(a:, 1, '')
@@ -112,7 +102,6 @@ function! s:Enable()
     autocmd BufNewFile,BufRead, * call s:OnBuffer('Create', +expand('<abuf>'))
   augroup end
 
-  command! -nargs=1 -complete=customlist,s:CocSourceNames CocToggle :call s:ToggleSource(<f-args>)
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()

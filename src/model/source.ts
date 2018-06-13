@@ -1,18 +1,15 @@
 import { Neovim } from 'neovim'
-import {
-  getConfig,
-  getSourceConfig} from '../config'
 import {fuzzyChar} from '../util/fuzzy'
 import {toBool} from '../util/types'
-import {SourceOption,
+import {
   SourceConfig,
+  SourceType,
   VimCompleteItem,
   CompleteOption,
   ISource,
   CompleteResult} from '../types'
 import {
   byteSlice,
-  isWord,
 } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
@@ -24,7 +21,8 @@ export default abstract class Source implements ISource {
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
-  constructor(nvim: Neovim, option: SourceOption) {
+  private _disabled = false
+  constructor(nvim: Neovim, option: Partial<SourceConfig>) {
     let {name, optionalFns}  = option
     delete option.name
     delete option.optionalFns
@@ -36,18 +34,36 @@ export default abstract class Source implements ISource {
         option[key] = toBool(option[key])
       }
     }
-    // user options
-    let opt = getSourceConfig(name) || {}
     this.config = Object.assign({
+      name: '',
       shortcut: name.slice(0, 3),
       priority: 0,
       filetypes: null,
       firstMatch: false,
-      showSignature: true,
-      bindKeywordprg: true,
+      sourceType: SourceType.Native,
       triggerCharacters: [],
-      signatureEvents: getConfig('signatureEvents'),
-    }, option, opt)
+    }, option)
+    this._disabled = option.disable
+  }
+
+  public get disabled():boolean {
+    return this._disabled
+  }
+
+  public toggle():void {
+    this._disabled = !this._disabled
+  }
+
+  public get filepath():string {
+    return this.config.filepath || ''
+  }
+
+  public get sourceType():SourceType {
+    return this.config.sourceType
+  }
+
+  public get triggerCharacters():string[] {
+    return this.config.triggerCharacters
   }
 
   public get priority():number {
@@ -126,15 +142,6 @@ export default abstract class Source implements ISource {
   public checkFileType(filetype: string):boolean {
     if (this.filetypes == null) return true
     return this.filetypes.indexOf(filetype) !== -1
-  }
-
-  public shouldTriggerCompletion(character:string, languageId: string):boolean {
-    let {triggerCharacters, filetypes} = this.config
-    if (filetypes && filetypes.indexOf(languageId) == -1) return false
-    if (!isWord(character) && triggerCharacters.indexOf(character) == -1) {
-      return false
-    }
-    return true
   }
 
   public async refresh():Promise<void> {

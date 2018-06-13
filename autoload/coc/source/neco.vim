@@ -1,11 +1,5 @@
 function! coc#source#neco#init() abort
-  " user should set the filetypes
-  return {
-        \'shortcut': 'NECO',
-        \'filetypes': ['vim'],
-        \'firstMatch': 1,
-        \'priority': 4,
-        \}
+  return {}
 endfunction
 
 function! coc#source#neco#should_complete(opt) abort

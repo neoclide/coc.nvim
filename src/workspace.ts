@@ -39,6 +39,12 @@ function toNumber(o:any):number {
   return Number(o.toString())
 }
 
+// global neovim settings
+export interface NvimSettings {
+  completeOpt: string
+  hasUserData: boolean
+}
+
 export class Workspace implements IWorkSpace {
   public nvim:Neovim
   // project root
@@ -59,6 +65,8 @@ export class Workspace implements IWorkSpace {
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
+  private watchmanPath:string
+  private nvimSettings:NvimSettings
 
   constructor() {
     this.buffers = {}
@@ -76,12 +84,21 @@ export class Workspace implements IWorkSpace {
     })
     let buf = await this.nvim.buffer
     await this.bufferEnter(toNumber(buf.data))
+    let watchmanPath = this.getConfiguration('coc.preferences').get('watchmanPath', '') as string
+    this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
+    this.nvimSettings = {
+      completeOpt: await this.nvim.getOption('completeopt') as string,
+      hasUserData: await this.nvim.call('has', ['nvim-0.2.3']) == 1,
+    }
+  }
+
+  public getNvimSetting<K extends keyof NvimSettings>(name:K):NvimSettings[K] {
+    return this.nvimSettings[name]
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
-    let binaryPath = Watchman.getBinaryPath()
-    if (!binaryPath) return null
-    let watchmanPromise = this.watchmanPromise || Watchman.createClient(binaryPath, this.root)
+    if (!this.watchmanPath) return null
+    let watchmanPromise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root)
     return new FileSystemWatcher(
       watchmanPromise,
       globPattern,
@@ -211,7 +228,7 @@ export class Workspace implements IWorkSpace {
     if (!origDoc || origDoc.uri != uri) return await this.onBufferCreate(buffer)
     const version = await buffer.changedtick
     // not changed
-    if (origDoc.version == version) return
+    if (origDoc.version >= version) return
     const lines = await buffer.lines
     const content = lines.join('\n')
     const filetype = (await buffer.getOption('filetype') as string)
@@ -267,28 +284,19 @@ export class Workspace implements IWorkSpace {
     return docs.map(d => d.textDocument)
   }
 
+  public get documents():Document[] {
+    let docs = Object.keys(this.buffers).map(key => {
+      return this.buffers[key]
+    })
+    return docs.filter(d => d != null)
+  }
+
   public async refresh():Promise<void> {
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
     }))
     logger.info('Buffers refreshed')
-  }
-
-  // words exclude bufnr and ignored files
-  public getWords(bufnr: number):string[] {
-    let words: string[] = []
-    Object.keys(this.buffers).forEach(nr => {
-      if (Number(nr) == bufnr) return
-      let document = this.buffers[nr]
-      if (!document || document.isIgnored) return
-      for (let word of document.words) {
-        if (words.indexOf(word) == -1) {
-          words.push(word)
-        }
-      }
-    })
-    return words
   }
 
   public async createDocument(uri:string, languageId?:string):Promise<TextDocument|null> {

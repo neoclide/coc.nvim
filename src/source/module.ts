@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import * as fs from 'fs'
 import path = require('path')
@@ -8,12 +11,11 @@ const logger = require('../util/logger')('source-module')
 const baseDir = path.join(__dirname, 'module_resolve')
 
 export default class Module extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'module',
-      shortcut: 'M',
-      priority: 10,
-      filetypes: []
+      filetypes: [],
+      ...opts,
     })
   }
 

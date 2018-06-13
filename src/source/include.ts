@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import * as fs from 'fs'
 import {findSourceDir} from '../util/fs'
@@ -12,14 +15,10 @@ const baseDir = path.join(__dirname, 'include_resolve')
 
 export default class Include extends Source {
   private command:string
-  constructor(nvim: Neovim) {
+  constructor(nvim:Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'include',
-      shortcut: 'I',
-      priority: 10,
-      filetypes: [],
-      triggerCharacters: ['/'],
-      trimSameExts: ['.ts', '.js'],
+      ...opts
     })
   }
 

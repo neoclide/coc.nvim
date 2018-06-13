@@ -72,16 +72,11 @@ export default class VimSource extends Source {
       })
     }
     for (let item of items) {
-      delete item.dup
-      delete item.icase
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
     }
-    let res: CompleteResult = { items: [] }
-    if (startcol && startcol !== col && items.length != 0) {
-      res.startcol = startcol
-      res.engross = true
-    }
+    let res: CompleteResult = { items }
+    res.startcol = startcol
     return res
   }
 }

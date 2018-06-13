@@ -19,16 +19,18 @@ export async function statAsync(filepath:string):Promise<fs.Stats|null> {
 
 export async function isGitIgnored(fullpath:string):Promise<boolean> {
   if (!fullpath) return false
+  let stat = await statAsync(fullpath)
+  if (!stat || !stat.isFile()) return false
   let root = null
   try {
     let out = await pify(exec)('git rev-parse --show-toplevel', {cwd: path.dirname(fullpath)})
-    root = out.replace(/\r?\n$/, '')
+    root = out.trim()
   } catch (e) {} // tslint:disable-line
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
     let out = await pify(exec)(`git check-ignore ${file}`, {cwd: root})
-    return out.replace(/\r?\n$/, '') == file
+    return out.trim() == file
   } catch (e) {} // tslint:disable-line
   return false
 }

@@ -1,15 +1,17 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import workspace from '../workspace'
-// const logger = require('../util/logger')('source-buffer')
+const logger = require('../util/logger')('source-buffer')
 
 export default class Buffer extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'buffer',
-      shortcut: 'B',
-      priority: 1,
+      ...opts
     })
   }
 
@@ -24,9 +26,24 @@ export default class Buffer extends Source {
     await workspace.refresh()
   }
 
+  private getWords(bufnr:number):string[] {
+    let {ignoreGitignore} = this.config
+    let words: string[] = []
+    workspace.documents.forEach(document => {
+      if (!document || (ignoreGitignore && document.isIgnored)) return
+      if (document.bufnr == bufnr) return
+      for (let word of document.words) {
+        if (words.indexOf(word) == -1) {
+          words.push(word)
+        }
+      }
+    })
+    return words
+  }
+
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr} = opt
-    let words = workspace.getWords(bufnr)
+    let words = this.getWords(bufnr)
     words = this.filterWords(words, opt)
     return {
       items: words.map(word => {

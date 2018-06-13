@@ -2,7 +2,7 @@ import {Neovim} from 'neovim'
 import Source from './source'
 import {
   QueryOption,
-  SourceOption
+  SourceConfig
 } from '../types'
 import {
   showQuickpick,
@@ -11,7 +11,7 @@ import {
 
 export default abstract class ServiceSource extends Source {
 
-  constructor(nvim: Neovim, option: SourceOption) {
+  constructor(nvim: Neovim, option: Partial<SourceConfig>) {
     option.priority = option.priority || 4
     super(nvim, option)
   }
@@ -39,17 +39,6 @@ export default abstract class ServiceSource extends Source {
     }
     let str = lines.join('\\n').replace(/"/g, '\\"')
     await nvim.command(`echo "${str}"`)
-  }
-
-  public async bindEvents():Promise<void> {
-    let {nvim} = this
-    let {showSignature, bindKeywordprg, signatureEvents} = this.config
-    if (bindKeywordprg) {
-      await nvim.command('setl keywordprg=:CocShowDoc')
-    }
-    if (showSignature && signatureEvents && signatureEvents.length) {
-      await nvim.command(`autocmd ${signatureEvents.join(',')} <buffer> :call CocShowSignature()`)
-    }
   }
 
   public async showDefinition(query:QueryOption):Promise<void> {

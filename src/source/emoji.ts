@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  CompleteOption,
+  SourceConfig,
+  CompleteResult} from '../types'
 import {statAsync} from '../util/fs'
 import Source from '../model/source'
 import fs = require('fs')
@@ -16,13 +19,10 @@ let items:Item[] | null = null
 let file = path.resolve(__dirname, '../../data/emoji.txt')
 
 export default class Emoji extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'emoji',
-      shortcut: 'EMO',
-      priority: 0,
-      filetypes: ['markdown'],
-      triggerCharacters: [':']
+      ...opts,
     })
   }
 
@@ -55,17 +55,17 @@ export default class Emoji extends Source {
     }
     let ch = input[0]
     let res = items.filter(o => {
+      if (!ch) return true
       return o.description.indexOf(ch) !== -1
     })
     return {
       startcol,
-      engross: true,
       items: res.map(o => {
         return {
           word: o.character,
           abbr: `${o.character} ${o.description}`,
           menu: this.menu,
-          filterText: o.description,
+          filterText: ':' + o.description,
         }
       })
     }

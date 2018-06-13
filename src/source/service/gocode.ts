@@ -8,7 +8,6 @@ const {spawn} = require('child_process')
 const logger = require('../../util/logger')('source-gocode')
 
 export default class Gocode extends ServiceSource {
-  private disabled: boolean
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'gocode',
@@ -16,7 +15,6 @@ export default class Gocode extends ServiceSource {
       filetypes: ['go'],
       command: 'gocode',
     })
-    this.disabled = false
   }
 
   public async onInit():Promise<void> {
@@ -26,7 +24,6 @@ export default class Gocode extends ServiceSource {
         which.sync('gocode')
       } catch (e) {
         await echoMessage(this.nvim, 'Could not find gocode in $PATH')
-        this.disabled = true
         return
       }
     }

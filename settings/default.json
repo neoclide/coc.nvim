@@ -1,12 +1,10 @@
 {
-  // could be 'always' 'trigger' => for specified trigger characters only, 'none'
+  // could be 'always' 'trigger' => for specified trigger characters only 'none'
   "coc.preferences.autoTrigger": "always",
   // timeout for completion
   "coc.preferences.timeout": 300,
-  // ignore keywords from git ignored files
-  "coc.preferences.ignoreGitignore": false,
   // not make vim select first item on completion start
-  "coc.preferences.noselect": false,
+  "coc.preferences.noselect": true,
   // highlight filter text on completion
   "coc.preferences.enableHighlight": false,
   // foreground color of filter text
@@ -15,6 +13,8 @@
   "coc.preferences.highlighBackground": "#b180a4",
   // autocmd events for echo function signature
   "coc.preferences.signatureEvents": ["CursorHold"],
+  // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
+  "coc.preferences.watchmanPath": "",
   // language locale
   "tsserver.locale": null,
   // folder of tsserver.js
@@ -43,7 +43,7 @@
   "typescript.preferences.completion.autoImportSuggestions" : true,
   // 'non-relative' or 'relative'
   "typescript.preferences.importModuleSpecifier" : "non-relative",
-  "typescript.preferences.suggestionActions.enabled" : true,
+  "typescript.preferences.suggestionActions.enabled" : false,
   // 'single' or 'double'
   "typescript.preferences.quoteStyle" : "single",
   "typescript.format.insertSpaceAfterCommaDelimiter" : true,
@@ -80,11 +80,42 @@
   "javascript.format.insertSpaceAfterTypeAssertion" : false,
   "javascript.format.placeOpenBraceOnNewLineForFunctions" : false,
   "javascript.format.placeOpenBraceOnNewLineForControlBlocks" : false,
-  "lsp": {
-    "servers": [{
-      "name": "wxml",
-      "languageIds": ["wxml"],
-      "module": "wxml-langserver"
-    }]
-  }
+  "coc.source.around.shortcut": "A",
+  "coc.source.around.priority": 1,
+  "coc.source.buffer.shortcut": "B",
+  "coc.source.buffer.priority": 1,
+  // ignore keywords from git ignored files
+  "coc.source.buffer.ignoreGitignore": true,
+  "coc.source.dictionary.shortcut": "D",
+  "coc.source.dictionary.priority": 1,
+  "coc.source.emoji.shortcut": "EMO",
+  "coc.source.emoji.priority": 9,
+  "coc.source.emoji.filetypes": ["markdown"],
+  "coc.source.emoji.triggerCharacters": [":"],
+  "coc.source.file.shortcut": "F",
+  "coc.source.file.priority": 11,
+  "coc.source.file.triggerCharacters": ["/"],
+  "coc.source.file.trimSameExts": ["ts", "js"],
+  "coc.source.file.ignoreHidden": true,
+  // array of file patterns, like '*.bundle.js'
+  "coc.source.file.ignorePatterns": [],
+  "coc.source.include.shortcut": "I",
+  "coc.source.include.priority": 10,
+  "coc.source.include.triggerCharacters": ["/"],
+  "coc.source.include.trimSameExts": ["ts", "js"],
+  "coc.source.module.shortcut": "M",
+  "coc.source.module.priority": 10,
+  "coc.source.omni.shortcut": "O",
+  "coc.source.omni.priority": 3,
+  "coc.source.omni.filetypes": [],
+  "coc.source.tag.shortcut": "T",
+  "coc.source.tag.priority": 3,
+  "coc.source.word.shortcut": "10k",
+  "coc.source.word.priority": 0,
+  "coc.source.ultisnips.priority": 9,
+  "coc.source.ultisnips.shortcut": "US",
+  "coc.source.neco.shortcut": "NECO",
+  "coc.source.neco.priority": 9,
+  "coc.source.neco.filetypes": ["vim"],
+  "coc.source.neco.firstMatch": true
 }

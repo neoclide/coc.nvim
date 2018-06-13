@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import {statAsync} from '../util/fs'
 import * as fs from 'fs'
@@ -13,11 +16,10 @@ interface Dicts {
 let dicts:Dicts = {}
 
 export default class Dictionary extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'dictionary',
-      shortcut: 'D',
-      priority: 1,
+      ...opts
     })
   }
 

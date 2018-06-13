@@ -6,7 +6,6 @@ import {
 import {Neovim} from 'neovim'
 import {Event, Emitter} from './event'
 import * as fileSchemes from './fileSchemes'
-import {getConfig} from '../config'
 import Uri, {UriComponents} from './uri'
 import * as platform from './platform'
 export {
@@ -85,9 +84,6 @@ async function echoMsg(nvim:Neovim, msg: string, hl: string):Promise<void> {
 export function isCocItem(item: any):boolean {
   if (!item ||!item.hasOwnProperty('word')) return false
   if (Object.keys(item).length == 0) return false
-  let hasUserData = getConfig('hasUserData')
-  // NVIM doesn't support user_data
-  if (!hasUserData) return true
   let {user_data} = item
   if (!user_data) return false
   try {

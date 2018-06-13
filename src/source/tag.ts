@@ -1,5 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import {statAsync, readFileByLine} from '../util/fs'
 import Source from '../model/source'
 import {uniqeWordsList} from '../util/unique'
@@ -14,11 +17,10 @@ export interface CacheItem {
 let TAG_CACHE:{[index:string]: CacheItem} = {}
 
 export default class Tag extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts: SourceConfig) {
     super(nvim, {
       name: 'tag',
-      shortcut: 'T',
-      priority: 2,
+      ...opts,
     })
   }
 
@@ -53,7 +55,7 @@ export default class Tag extends Source {
       let ms = line.match(/^[^\t\s]+/)
       if (ms) {
         let w = ms[0]
-        if (w.length > 2 && words.indexOf(w) === -1) {
+        if (w && w.length > 2 && words.indexOf(w) === -1) {
           words.push(w)
         }
       }

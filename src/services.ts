@@ -10,9 +10,6 @@ import {
   IServiceProvider,
   ServiceStat,
 } from './types'
-import {
-  getConfig
-} from './config'
 import tsserverService from './typescript-service'
 const logger = require('./util/logger')('services')
 
@@ -24,10 +21,7 @@ export class ServiceManager implements Disposable {
 
   public init(nvim:Neovim):void {
     this.nvim = nvim
-    let disabledServices = getConfig('disabledServices')
-    if (disabledServices.indexOf('tsserver') === -1) {
-      this.regist(new tsserverService())
-    }
+    this.regist(new tsserverService())
     // TODO regist more services
   }
 

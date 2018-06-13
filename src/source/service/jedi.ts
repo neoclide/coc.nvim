@@ -27,7 +27,6 @@ const boolSettings = [
 
 export default class Jedi extends ServiceSource {
   private service:StdioService | null
-  private disabled: boolean
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'jedi',
@@ -37,7 +36,6 @@ export default class Jedi extends ServiceSource {
       showSignature: true,
       bindKeywordprg: true,
     })
-    this.disabled = false
   }
 
   public async onInit(): Promise<void> {
@@ -47,7 +45,6 @@ export default class Jedi extends ServiceSource {
       cp.execSync(`${command} -c "import jedi"`)
     } catch (e) {
       await echoErr(nvim, `${command} could not import jedi`)
-      this.disabled = true
       return
     }
     let service = this.service = new StdioService(command, [execPath])

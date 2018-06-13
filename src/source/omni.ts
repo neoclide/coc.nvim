@@ -1,22 +1,24 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  SourceConfig,
+  CompleteOption,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import {echoErr, echoMessage} from '../util/index'
 import {byteSlice} from '../util/string'
 const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'omni',
-      shortcut: 'O',
-      priority: 3,
-      filetypes: []
+      ...opts
     })
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {filetype} = opt
+    if (!this.filetypes) return false
     if (!this.checkFileType(filetype)) return false
     let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
     opt.func = func

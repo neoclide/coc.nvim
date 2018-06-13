@@ -1,24 +1,7 @@
 let g:coc#_context = {}
 
-" private
-function! coc#get_config(...)
-  return {
-        \ 'completeOpt': &completeopt,
-        \ 'hasUserData': has('nvim-0.2.3'),
-        \ 'fuzzyMatch': get(g:, 'coc_fuzzy_match', v:null),
-        \ 'timeout': get(g:, 'coc_timeout', v:null),
-        \ 'disabledServices': get(g:, 'coc_disabled_services', []),
-        \ 'checkGit': get(g:, 'coc_ignore_git_ignore', v:null),
-        \ 'sourceConfig': get(g:, 'coc_source_config', v:null),
-        \ 'incrementHightlight': get(g:, 'coc_increment_highlight', v:null),
-        \ 'noSelect': get(g:, 'coc_use_noselect', v:null),
-        \ 'signatureEvents': get(g:, 'coc_signature_events', v:null),
-        \ 'watchmanPath': get(g:, 'coc_watchman_path', v:null),
-        \}
-endfunction
-
 function! coc#refresh() abort
-    return pumvisible() ? "\<c-y>\<c-r>=coc#start()\<CR>" : "\<c-r>=coc#start()\<CR>"
+    return pumvisible() ? "\<c-e>\<c-r>=coc#start('', 1)\<CR>" : "\<c-r>=coc#start()\<CR>"
 endfunction
 
 function! coc#_complete() abort
@@ -46,6 +29,7 @@ function! coc#start(...)
     return ''
   endif
   let triggerCharacter = get(a:, 1, '')
+  let reload = get(a:, 2, 0)
   let pos = getcurpos()
   let line = getline('.')
   let l:start = pos[2] - 1
@@ -65,6 +49,7 @@ function! coc#start(...)
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
         \ 'bufnr': bufnr('%'),
+        \ 'reload': reload,
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,

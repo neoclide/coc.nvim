@@ -1,15 +1,17 @@
 import { Neovim } from 'neovim'
-import {CompleteOption, CompleteResult} from '../types'
+import {
+  CompleteOption,
+  SourceConfig,
+  CompleteResult} from '../types'
 import Source from '../model/source'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'around',
-      shortcut: 'A',
-      priority: 1,
+      ... opts
     })
   }
 
@@ -22,6 +24,7 @@ export default class Around extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {bufnr} = opt
     let document = workspace.getDocument(bufnr)
+    if (!document) return
     let words = document!.words
     let moreWords = document!.getMoreWords()
     words.push(...moreWords)

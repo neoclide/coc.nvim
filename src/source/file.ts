@@ -1,6 +1,8 @@
 import { Neovim } from 'neovim'
-import {CompleteOption,
+import {
+  CompleteOption,
   VimCompleteItem,
+  SourceConfig,
   CompleteResult} from '../types'
 import Source from '../model/source'
 import {statAsync, findSourceDir} from '../util/fs'
@@ -13,14 +15,11 @@ const logger = require('../util/logger')('source-file')
 let pathRe = /((\.\.\/)+|\.\/|([a-z0-9_.@()-]+)?\/)([a-z0-9_.@()-]+\/)*[a-z0-9_.@()-]*$/
 
 export default class File extends Source {
-  constructor(nvim: Neovim) {
+  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'file',
-      shortcut: 'F',
-      priority: 11,
-      trimSameExts: ['.ts', '.js'],
-      ignoreHidden: true,
       ignorePatterns: [],
+      ...opts
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

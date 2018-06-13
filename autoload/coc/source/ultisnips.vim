@@ -1,10 +1,6 @@
 
 function! coc#source#ultisnips#init() abort
-  " user should set the filetypes
-  return {
-        \'shortcut': 'US',
-        \'priority': 3,
-        \}
+  return {}
 endfunction
 
 function! coc#source#ultisnips#should_complete(opt) abort
@@ -15,9 +11,9 @@ endfunction
 function! coc#source#ultisnips#complete(opt, cb) abort
   let snips = UltiSnips#SnippetsInCurrentScope()
   if type(snips) == 3
-    let items = map(snips, {idx, val -> {'word': val['key'], 'menu': val['description']}})
+    let items = map(snips, {idx, val -> {'word': val['key'], 'dup': 1, 'menu': val['description']}})
   else
-    let items = map(snips, {key, val -> {'word': key, 'menu': val}})
+    let items = map(snips, {key, val -> {'word': key, 'dup': 1, 'menu': val}})
   endif
   call a:cb(items)
 endfunction

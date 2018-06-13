@@ -1,12 +1,12 @@
 import {score} from 'fuzzaldrin'
+import {Neovim} from 'neovim'
 import {
   CompleteOption,
   VimCompleteItem,
   RecentScore,
   ISource,
   CompleteResult} from '../types'
-import {getConfig} from '../config'
-import {uniqueItems} from '../util/unique'
+import workspace from '../workspace'
 import {byteSlice} from '../util/string'
 import {
   getCharCodes,
@@ -15,7 +15,7 @@ import {
 import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
-const MAX_ITEM_COUNT = 300
+const MAX_ITEM_COUNT = 100
 
 export type Callback = () => void
 
@@ -23,7 +23,6 @@ export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
   public option: CompleteOption
-  public startcol?: number
   public readonly recentScores: RecentScore
   constructor(opts: CompleteOption, recentScores: RecentScore |null) {
     this.option = opts
@@ -34,13 +33,18 @@ export default class Complete {
     })
   }
 
+  public get startcol():number {
+    return this.option.col || 0
+  }
+
   private completeSource(source: ISource): Promise<any> {
     let start = Date.now()
     let s = new Serial()
     let {col} = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
-    s.timeout(Math.max(getConfig('timeout'), 300))
+    let timeout = workspace.getConfiguration('coc.preferences').get('timeout', 300)
+    s.timeout(Math.max(timeout, 300))
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
         source.shouldComplete(option).then(res => {
@@ -137,13 +141,12 @@ export default class Complete {
         return b.score - a.score
       }
     })
-    arr = arr.slice(0, MAX_ITEM_COUNT)
-    return uniqueItems(arr)
+    return arr.slice(0, MAX_ITEM_COUNT)
   }
 
-  public async doComplete(sources: ISource[]): Promise<[number, VimCompleteItem[]]> {
+  public async doComplete(nvim:Neovim, sources:ISource[]): Promise<VimCompleteItem[]> {
     let opts = this.option
-    let {col, line, colnr} = opts
+    let {line, colnr, reload} = opts
     sources.sort((a, b) => b.priority - a.priority)
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => {
@@ -152,27 +155,37 @@ export default class Complete {
       if (r == null) return false
       return this.checkResult(r, opts)
     })
-
     logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
-    if (results.length == 0) return [col, []]
+    if (results.length == 0) return []
+    // fix input, user could type fast
+    let input = await nvim.call('coc#util#get_input') as string
+    let dl = input.length - opts.input.length
+    if (dl < 0) return []
+    if (dl > 0) {
+      line = await nvim.call('getline', ['.'])
+      colnr = opts.colnr + dl
+      opts.input = input
+      opts.line = line
+    }
+
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
       let {startcol} = engrossResult
-      if (startcol && startcol != col) {
-        col = engrossResult.startcol
-        opts.col = col
+      if (startcol != null) {
+        opts.col = startcol
         opts.input = byteSlice(line, startcol, colnr - 1)
       }
       results = [engrossResult]
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
-    let priority = results[0].priority
-    results = results.filter(r => r.priority === priority)
+    if (!reload) {
+      let priority = results[0].priority
+      results = results.filter(r => r.priority === priority)
+    }
     this.results = results
-    this.startcol = col
     let filteredResults = this.filterResults(results)
-    logger.debug(`Filtered items: ${JSON.stringify(filteredResults, null, 2)}`)
-    return [col, filteredResults]
+    logger.debug('Filtered items: ', filteredResults.length, filteredResults[0])
+    return filteredResults
   }
 
   private getBonusScore(input:string, item: VimCompleteItem):number {

@@ -1,8 +1,8 @@
-import {getConfig} from './config'
 import {Client} from 'fb-watchman'
 import {resolveRoot} from './util/fs'
 import watchman = require('fb-watchman')
 import uuidv1 = require('uuid/v1')
+import fs = require('fs')
 const logger = require('./util/logger')('watchman')
 const which = require('which')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
@@ -45,7 +45,7 @@ export default class Watchman {
     })
   }
 
-  public checkCapability():Promise<boolean> {
+  private checkCapability():Promise<boolean> {
     let {client} = this
     return new Promise((resolve, reject) => {
       client.capabilityCheck({
@@ -61,7 +61,7 @@ export default class Watchman {
     })
   }
 
-  public async watchProject(root:string):Promise<boolean> {
+  private async watchProject(root:string):Promise<boolean> {
     let projectRoot = resolveRoot(root, ['.git', '.hg', '.svn', '.watchmanconfig'])
     if (!projectRoot) {
       logger.error(`valid root not found from ${root}`)
@@ -78,7 +78,7 @@ export default class Watchman {
     return true
   }
 
-  public command(args:any[]):Promise<any> {
+  private command(args:any[]):Promise<any> {
     return new Promise((resolve, reject) => {
       this.client.command(args, (error, resp) => {
         if (error) return reject(error)
@@ -120,9 +120,8 @@ export default class Watchman {
     return watching ? client : null
   }
 
-  public static getBinaryPath():string|null {
-    let path = getConfig('watchmanBinaryPath')
-    if (path) return path
+  public static getBinaryPath(path:string):string|null {
+    if (path && fs.existsSync(path)) return path
     try {
       path = which.sync('watchman')
       return path

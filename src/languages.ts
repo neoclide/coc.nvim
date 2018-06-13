@@ -8,6 +8,7 @@ import {
   VimCompleteItem,
   CompleteOption,
   CompleteResult,
+  SourceType,
 } from './types'
 import {
   Position,
@@ -25,10 +26,11 @@ import {
 import {
   Disposable,
   echoMessage,
+  EventEmitter,
+  Event,
 } from './util'
 import {
   byteSlice,
-  isWord,
 } from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
@@ -38,23 +40,15 @@ export interface CompletionProvider {
   id: string
   source: ISource
   languageIds: string[]
-  triggerCharacters: string[]
 }
 
 class Languages implements ILanguage {
 
   public nvim:Neovim
+  private _onDidCompletionSourceCreated = new EventEmitter<ISource>()
   private completionProviders: CompletionProvider[] = []
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
-
-  private get token():CancellationToken {
-    return this.cancelTokenSource.token
-  }
-
-  private cancelRequest():void {
-    this.cancelTokenSource.cancel()
-    this.cancelTokenSource = new CancellationTokenSource()
-  }
+  public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
 
   public registerCompletionItemProvider(
     name: string,
@@ -65,12 +59,13 @@ class Languages implements ILanguage {
   ):Disposable {
     let id = uuid()
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
+    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters)
     this.completionProviders.push({
       id,
-      source: this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters),
+      source,
       languageIds: typeof languageIds == 'string' ? [languageIds] : languageIds,
-      triggerCharacters,
     })
+    this._onDidCompletionSourceCreated.fire(source)
     return {
       dispose: () => {
         this.unregisterCompletionItemProvider(id)
@@ -84,6 +79,7 @@ class Languages implements ILanguage {
 
   public getCompleteSource(languageId: string):ISource | null {
     let {completionProviders} = this
+    // only one for each filetype
     let item = completionProviders.find(o => o.languageIds.indexOf(languageId) !== -1)
     return item ? item.source : null
   }
@@ -95,23 +91,17 @@ class Languages implements ILanguage {
     languageIds: string[],
     triggerCharacters: string[],
   ):ISource {
-    triggerCharacters = triggerCharacters || []
     // track them for resolve
     let completeItems: CompletionItem[] = []
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
     let resolving:string
-
     return {
       name,
+      disabled: false,
       priority: 9,
+      sourceType: SourceType.Service,
       filetypes: languageIds,
-      shouldTriggerCompletion(character:string, languageId: string):boolean {
-        if (languageIds.indexOf(languageId) == -1) return false
-        if (!isWord(character) && triggerCharacters.indexOf(character) == -1) {
-          return false
-        }
-        return true
-      },
+      triggerCharacters: triggerCharacters || [],
       onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
         if (!hasResolve) return
         if (completeItems.length == 0) return
@@ -186,6 +176,15 @@ class Languages implements ILanguage {
     }
   }
 
+  private get token():CancellationToken {
+    return this.cancelTokenSource.token
+  }
+
+  private cancelRequest():void {
+    this.cancelTokenSource.cancel()
+    this.cancelTokenSource = new CancellationTokenSource()
+  }
+
   private unregisterCompletionItemProvider(id:string):void {
     let idx = this.completionProviders.findIndex(o => o.id == id)
     if (idx !== -1) {
@@ -209,6 +208,7 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
     filterText: validString(item.filterText) ? item.filterText : item.label,
     isSnippet: item.insertTextFormat === InsertTextFormat.Snippet,
   }
+  obj.abbr = obj.filterText
   let document = getDocumentation(item)
   if (document) obj.info = document
   // item.commitCharacters not necessary for vim

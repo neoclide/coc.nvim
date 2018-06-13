@@ -22,7 +22,6 @@ const typeMap = {
 
 export default class Racer extends ServiceSource {
   private service:StdioService | null
-  private disabled:boolean
   constructor(nvim: Neovim) {
     super(nvim, {
       name: 'racer',
@@ -30,7 +29,6 @@ export default class Racer extends ServiceSource {
       filetypes: ['rust'],
       command: 'racer',
     })
-    this.disabled = false
   }
 
   public async onInit():Promise<void> {
@@ -40,7 +38,6 @@ export default class Racer extends ServiceSource {
         which.sync('racer')
       } catch (e) {
         await echoMessage(this.nvim, 'Could not find racer in $PATH')
-        this.disabled = true
         return
       }
     }
@@ -51,7 +48,7 @@ export default class Racer extends ServiceSource {
 
   public async shouldComplete(opt: CompleteOption):Promise<boolean> {
     let {filetype} = opt
-    if (!this.checkFileType(filetype) || this.disabled) return false
+    if (!this.checkFileType(filetype)) return false
     if (!this.service || !this.service.isRunnning) {
       await this.onInit()
     }
