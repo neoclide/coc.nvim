@@ -72,9 +72,6 @@ function! coc#util#check_state() abort
 endfunction
 
 function! coc#util#get_listfile_command() abort
-  if exists('g:coc_listfile_command')
-    return g:coc_listfile_command
-  endif
   if executable('rg')
     return 'rg --color never --files'
   endif
@@ -84,18 +81,17 @@ function! coc#util#get_listfile_command() abort
   return ''
 endfunction
 
-" we shuould transfer string to node, it's 10x times faster
-function! coc#util#get_content(bufnr) abort
-  return join(nvim_buf_get_lines(a:bufnr, 0, -1, v:false), "\n")
-endfunction
-
 function! coc#util#preview_info(info) abort
   pclose
-  new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap
+  keepalt new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap [Document]
+  setl bufhidden=wipe
+  setl nobuflisted
   setl filetype=markdown
-  exe "normal z" . &previewheight . "\<cr>"
-  call append(0, type(a:info)==type("") ? split(a:info, "\n") : a:info)
-  nnoremap <buffer> q :<C-U>bd!<CR>
+  setl nospell
+  let lines = split(a:info, "\n")
+  call append(0, lines)
+  exe "normal z" . len(lines) . "\<cr>"
+  exe "normal gg"
   wincmd p
 endfunction
 
@@ -147,4 +143,42 @@ function! coc#util#get_input()
     let l:start -= 1
   endwhile
   return pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+endfunction
+
+function! coc#util#get_complete_option(...)
+  let opt = get(a:, 1, {})
+  let pos = getcurpos()
+  let line = getline('.')
+  let l:start = pos[2] - 1
+  while l:start > 0 && line[l:start - 1] =~# '\k'
+    let l:start -= 1
+  endwhile
+  let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+  return extend({
+        \ 'id': localtime(),
+        \ 'changedtick': b:changedtick,
+        \ 'word': matchstr(line[l:start : ], '^\k\+'),
+        \ 'input': input,
+        \ 'line': line,
+        \ 'buftype': &buftype,
+        \ 'filetype': &filetype,
+        \ 'filepath': expand('%:p'),
+        \ 'bufnr': bufnr('%'),
+        \ 'linenr': pos[1],
+        \ 'colnr' : pos[2],
+        \ 'col': l:start,
+        \ 'iskeyword': &iskeyword,
+        \}, opt)
+endfunction
+
+function! coc#util#prompt_change(count)
+  echohl MoreMsg
+  echom a:count.' files will be saved. Confirm? (y/n)'
+  echohl None
+  let confirm = nr2char(getchar()) | redraw!
+  if !(confirm ==? "y" || confirm ==? "\r")
+    echohl Moremsg | echo 'Cancelled.' | echohl None
+    return 0
+  end
+  return 1
 endfunction

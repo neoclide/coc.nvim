@@ -135,6 +135,7 @@ export default abstract class Source implements ISource {
       input = `${c}${input}`
       col = col -1
     }
+    opt.col = col
     opt.input = input
     return col
   }

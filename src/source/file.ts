@@ -5,20 +5,19 @@ import {
   SourceConfig,
   CompleteResult} from '../types'
 import Source from '../model/source'
-import {statAsync, findSourceDir} from '../util/fs'
+import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
 import matcher = require('matcher')
 import path = require('path')
 import pify = require('pify')
 import fs = require('fs')
 const logger = require('../util/logger')('source-file')
-let pathRe = /((\.\.\/)+|\.\/|([a-z0-9_.@()-]+)?\/)([a-z0-9_.@()-]+\/)*[a-z0-9_.@()-]*$/
+const pathRe = /\.{0,2}\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
   constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
     super(nvim, {
       name: 'file',
-      ignorePatterns: [],
       ...opts
     })
   }
@@ -30,7 +29,7 @@ export default class File extends Source {
     let ms = part.match(pathRe)
     if (ms) {
       opt.pathstr = ms[0]
-      let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [Number(bufnr)])
+      let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [bufnr])
       opt.cwd = await this.nvim.call('getcwd', [])
       opt.ext = fullpath ? path.extname(path.basename(fullpath)) :''
       return true
@@ -38,14 +37,12 @@ export default class File extends Source {
     return false
   }
 
-  private async getFileItem(root:string, filename:string, ext:string, trimExt:boolean):Promise<VimCompleteItem|null> {
+  private async getFileItem(root:string, filename:string):Promise<VimCompleteItem|null> {
     let f = path.join(root, filename)
     let stat = await statAsync(f)
     if (stat) {
-      let trim = trimExt && ext == path.extname(filename)
       let abbr = stat.isDirectory() ? filename + '/' : filename
-      let word = trim ? filename.slice(0, - ext.length) : filename
-      word = stat.isDirectory() ? word + '/' : word
+      let word = filename
       return { word, abbr }
     }
     return null
@@ -63,54 +60,44 @@ export default class File extends Source {
     })
   }
 
-  public async getItemsFromRoots(pathstr: string, roots: string[], ext:string):Promise<VimCompleteItem[]> {
+  public async getItemsFromRoot(pathstr: string, root: string, ext:string):Promise<VimCompleteItem[]> {
     let res = []
-    let trimExt = (this.config.trimSameExts || []).indexOf(ext) != -1
     let part = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
-    for (let root of roots) {
-      let dir = path.join(root, part).replace(/\/$/, '')
-      let stat = await statAsync(dir)
-      if (stat && stat.isDirectory()) {
-        let files = await pify(fs.readdir)(dir)
-        files = this.filterFiles(files)
-        let items = await Promise.all(files.map(filename => {
-          return this.getFileItem(dir, filename, ext, trimExt)
-        }))
-        res = res.concat(items)
-      }
+    let dir = path.isAbsolute(pathstr) ? root : path.join(root, part)
+    let stat = await statAsync(dir)
+    if (stat && stat.isDirectory()) {
+      let files = await pify(fs.readdir)(dir)
+      files = this.filterFiles(files)
+      let items = await Promise.all(files.map(filename => {
+        return this.getFileItem(dir, filename)
+      }))
+      res = res.concat(items)
     }
     res = res.filter(item => item != null)
     return res
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {pathstr, fullpath, cwd, ext, colnr, line} = opt
-    let noBackSlash = line[colnr - 1] === '/'
-    let roots = []
-    if (!fullpath) {
-      roots = [path.join(cwd, 'src'), cwd]
-    } else if (/^\./.test(pathstr)) {
-      roots = [path.dirname(fullpath)]
+    let {input, pathstr, col, cwd, ext, fullpath} = opt
+    let root
+    if (/^\./.test(pathstr)) {
+      root = fullpath ? path.dirname(fullpath) : cwd
     } else if (/^\//.test(pathstr)) {
-      roots = ['/']
+      root = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
     } else {
-      roots = [findSourceDir(fullpath) || cwd]
+      root = cwd
     }
-    roots = roots.filter(r => typeof r === 'string')
-    let items = await this.getItemsFromRoots(pathstr, roots, ext)
+    let items = await this.getItemsFromRoot(pathstr, root, ext)
     let trimExt = this.config.trimSameExts.indexOf(ext) != -1
     let startcol = this.fixStartcol(opt, ['-', '@'])
-    let first = opt.input[0]
-    if (first) {
-      let arr = items.filter(o => o.word[0] === first)
-      if (arr.length) items = arr
-    }
+    let first = input[0]
+    if (first && col == startcol) items = items.filter(o => o.word[0] === first)
+    logger.debug('file ', root, items)
     return {
       startcol,
       items: items.map(item => {
         let ex = path.extname(item.word)
         item.word = trimExt && ex === ext ? item.word.replace(ext, '') : item.word
-        if (noBackSlash) item.word = item.word.replace(/\/$/, '')
         return {
           ...item,
           menu: this.menu

@@ -105,14 +105,17 @@ export default class Complete {
   }
 
   public filterResults(results:CompleteResult[], isIncrement = false):VimCompleteItem[] {
+    if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
     let {input, id} = this.option
     let codes = getCharCodes(input)
+    let words:Set<string> = new Set()
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
-      let {items, source} = res
+      let {items, source, priority} = res
       for (let item of items) {
-        let {user_data, filterText} = item
+        let {user_data, filterText, word} = item
+        if (words.has(word)) continue
         filterText = filterText || item.word
         if (isIncrement && item.sortText) delete item.sortText
         let data = {} as any
@@ -127,7 +130,8 @@ export default class Complete {
           data = Object.assign(data, { cid: id, source })
           item.user_data = JSON.stringify(data)
         }
-        item.score = score(filterText, input) + this.getBonusScore(input, item)
+        item.score = score(filterText, input) + this.getBonusScore(input, item, priority)
+        words.add(word)
         arr.push(item)
       }
     }
@@ -179,8 +183,7 @@ export default class Complete {
       logger.debug(`Engross source ${engrossResult.source} activted`)
     }
     if (!reload) {
-      let priority = results[0].priority
-      results = results.filter(r => r.priority === priority)
+      results = results.filter(r => r.priority != 0)
     }
     this.results = results
     let filteredResults = this.filterResults(results)
@@ -188,11 +191,12 @@ export default class Complete {
     return filteredResults
   }
 
-  private getBonusScore(input:string, item: VimCompleteItem):number {
+  private getBonusScore(input:string, item: VimCompleteItem, priority:number):number {
     let {word, abbr, kind, info} = item
     let score = input.length
       ? this.recentScores[`${input.slice(0,1)}|${word}`] || 0
       : 0
+    if (priority) score += priority/10
     score += (input && word[0] == input[0]) ? 0.001 : 0
     score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0

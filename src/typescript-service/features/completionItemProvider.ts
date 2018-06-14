@@ -216,7 +216,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     const {command, additionalTextEdits} = this.getCodeActions(detail, filepath)
     if (command)  item.command = command
     item.additionalTextEdits = additionalTextEdits
-
     if (detail && item.insertTextFormat == InsertTextFormat.Snippet) {
       const shouldCompleteFunction = await this.isValidFunctionCompletionContext(
         filepath,
@@ -237,6 +236,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     if (!detail.codeActions || !detail.codeActions.length) {
       return {}
     }
+    logger.debug('detail:', JSON.stringify(detail.codeActions, null, 2))
     // Try to extract out the additionalTextEdits for the current file.
     // Also check if we still have to apply other workspace edits
     const additionalTextEdits: TextEdit[] = []
@@ -258,6 +258,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
         }
       }
     }
+
     let command = null
 
     if (hasReaminingCommandsOrEdits) {
@@ -313,13 +314,14 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     if (detail.source) {
       const importPath = `'${Previewer.plain(detail.source)}'`
       const autoImportLabel = `Auto import from ${importPath}`
-      documentation += `${autoImportLabel}\n${item.detail}\n`
+      documentation += `${autoImportLabel}\n`
     }
     let parts = [
       Previewer.plain(detail.documentation),
       Previewer.tagsMarkdownPreview(detail.tags)
     ]
-    documentation += parts.join('\n')
+    parts = parts.filter(s => s && s.trim() != '')
+    documentation += parts.join('\n\n')
     if (documentation.length) {
       return {
         kind: MarkupKind.Markdown,
@@ -415,5 +417,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     snippet += ')'
     snippet += '$0'
     textEdit.newText = snippet
+    item.textEdit = textEdit
   }
 }

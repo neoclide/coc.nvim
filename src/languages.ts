@@ -105,18 +105,13 @@ class Languages implements ILanguage {
       onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
         if (!hasResolve) return
         if (completeItems.length == 0) return
-        let {user_data, word} = item
+        let {word} = item
         resolving = word
-        if (!user_data) return
-        let {source} = JSON.parse(user_data)
-        // check if this source
-        if (source !== name) return
         let resolved:CompletionItem
         let prevItem = completeItems.find(o => o.label == word)
         if (!prevItem || prevItem.data.resolving) return
         if (prevItem.data.resolved) {
           resolved = prevItem
-          logger.debug('Reusing resolved item', resolved)
         } else {
           prevItem.data.resolving = true
           let token = this.token
@@ -128,15 +123,19 @@ class Languages implements ILanguage {
           })
           let idx = completeItems.findIndex(o => word == o.label)
           if (idx !== -1) completeItems[idx] = resolved
-          logger.debug('Resolved complete item', resolved)
         }
+        logger.debug('Resolved complete item', resolved)
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolving == word) {
           // vim have no suppport for update complete item
-          let {detail} = resolved
-          if (detail) echoMessage(this.nvim, detail) // tslint:disable-line
+          let str = resolved.detail.trim() || ''
+          await echoMessage(this.nvim, str)
           let doc = getDocumentation(resolved)
-          if (doc) this.nvim.call('coc#util#preview_info', [doc]) // tslint:disable-line
+          if (doc) str += '\n\n' + doc
+          if (str.length) {
+            // vim has bug
+            // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
+          }
         }
       },
       onCompleteDone: (item: VimCompleteItem):Promise<void> => {

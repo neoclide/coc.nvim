@@ -3,6 +3,7 @@ import VimSource from './model/source-vim'
 import workspace from './workspace'
 import languages from './languages'
 import {
+  VimCompleteItem,
   ISource,
   SourceConfig,
   WorkspaceConfiguration,
@@ -63,6 +64,29 @@ export default class Sources {
 
   public getSource(name:string):ISource | null {
     return this.sourceMap.get(name) || null
+  }
+
+  public async doCompleteResolve(item: VimCompleteItem):Promise<void> {
+    let {user_data} = item
+    if (!user_data) return
+    try {
+      let data = JSON.parse(user_data)
+      if (!data.source) return
+      let source = this.getSource(data.source)
+      if (source) {
+        await source.onCompleteResolve(item)
+      }
+    } catch (e) {
+      logger.error(e.stack)
+    }
+  }
+
+  public async doCompleteDone(item: VimCompleteItem):Promise<void> {
+    let data = JSON.parse(item.user_data)
+    let source = this.getSource(data.source)
+    if (source && typeof source.onCompleteDone === 'function') {
+      await source.onCompleteDone(item)
+    }
   }
 
   public getCompleteSources(opt:CompleteOption):ISource[] {

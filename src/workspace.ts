@@ -178,7 +178,7 @@ export class Workspace implements IWorkSpace {
         }
       }
       if (arr.length) {
-        let c = await nvim.call('coc#prompt_change', [arr.length])
+        let c = await nvim.call('coc#util#prompt_change', [arr.length])
         let buf = await nvim.buffer
         let filetype = await buf.getOption('filetype')
         if (c == 1) {

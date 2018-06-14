@@ -38,7 +38,7 @@ function getTagDocumentation(tag: Proto.JSDocTagInfo): string | undefined {
         if (!doc) {
           return label
         }
-        return label + (doc.match(/\r\n|\n/g) ? '  \n' + doc : ` — ${doc}`)
+        return label + (doc.match(/\r\n|\n/g) ? '\n' + doc : ` — ${doc}`)
       }
   }
 
@@ -48,11 +48,11 @@ function getTagDocumentation(tag: Proto.JSDocTagInfo): string | undefined {
   if (!text) {
     return label
   }
-  return label + (text.match(/\r\n|\n/g) ? '  \n' + text : ` — ${text}`)
+  return label + (text.match(/\r\n|\n/g) ? '\n' + text : ` — ${text}`)
 }
 
 export function plain(parts: Proto.SymbolDisplayPart[]): string {
-  if (!parts) return ''
+  if (!parts || !parts.length) return ''
   return parts.map(part => part.text).join('')
 }
 

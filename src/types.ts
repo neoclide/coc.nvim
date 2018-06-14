@@ -363,7 +363,7 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteResolve?(item:VimCompleteItem):Promise<void>
+  onCompleteResolve(item:VimCompleteItem):Promise<void>
   /**
    * Action for complete item on complete done
    *
@@ -371,7 +371,8 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteDone?(item:VimCompleteItem):Promise<void>
+  onCompleteDone(item:VimCompleteItem):Promise<void>
+
   /**
    * Check if this source should work
    *

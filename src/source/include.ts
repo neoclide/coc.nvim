@@ -27,7 +27,12 @@ export default class Include extends Source {
     files = files.filter(f => /\.js$/.test(f))
     let filetypes = files.map(f => f.replace(/\.js$/, ''))
     this.config.filetypes = filetypes
-    this.command = await this.nvim.call('coc#util#get_listfile_command')
+    let {listFileCommand} = this.config
+    if (!listFileCommand) {
+      this.command = await this.nvim.call('coc#util#get_listfile_command')
+    } else {
+      this.command = listFileCommand
+    }
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {

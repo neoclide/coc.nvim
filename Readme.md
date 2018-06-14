@@ -8,6 +8,8 @@ specifications in [language server protocol](https://github.com/Microsoft/langua
 
 W.I.P.🐒
 
+**WARNING, API not stable, all things could change**
+
 ## Features
 
 * Async generate complete items in parallel.

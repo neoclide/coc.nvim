@@ -82,10 +82,9 @@ async function echoMsg(nvim:Neovim, msg: string, hl: string):Promise<void> {
 }
 
 export function isCocItem(item: any):boolean {
-  if (!item ||!item.hasOwnProperty('word')) return false
+  if (!item ||!item.user_data) return false
   if (Object.keys(item).length == 0) return false
   let {user_data} = item
-  if (!user_data) return false
   try {
     let res = JSON.parse(user_data)
     return res.cid != null

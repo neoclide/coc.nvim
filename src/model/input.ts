@@ -2,17 +2,13 @@ import {Neovim} from 'neovim'
 import workspace from '../workspace'
 
 export default class Input {
-  public search: string
-  private linenr: number
-  private nvim:Neovim
-  private startcol: number
-  private match?: number
 
-  constructor(nvim:Neovim, search: string, linenr:number, startcol: number) {
-    this.nvim = nvim
-    this.linenr = linenr
-    this.startcol = startcol
-    this.search = search
+  constructor(
+    private nvim:Neovim,
+    public search:string,
+    private linenr:number,
+    private startcol:number,
+    private highlightId:number) {
   }
 
   public async highlight():Promise<void> {
@@ -20,18 +16,31 @@ export default class Input {
     if (!enabled) return
     await this.clear()
     if (this.search.length) {
-      let plist = this.getMatchPos()
-      this.match = await this.nvim.call('matchaddpos', ['CocChars', plist, 99])
+      let {linenr, highlightId, startcol, search} = this
+      // let buffer = await this.nvim.buffer
+      let buffer = await this.nvim.buffer
+      await buffer.addHighlight({
+        hlGroup: 'CocChars',
+        line: linenr - 1,
+        srcId: highlightId,
+        colStart: startcol,
+        colEnd: startcol + search.length
+      })
     }
   }
 
-  public async removeCharactor():Promise<boolean> {
+  public async clear():Promise<void> {
+    let {highlightId} = this
+    let buffer = await this.nvim.buffer
+    await buffer.clearHighlight({ srcId: highlightId })
+  }
+
+  public async removeCharactor():Promise<void> {
     let {search} = this
     let l = search.length
-    if (l == 0) return true
+    if (l == 0) return
     this.search = this.search.slice(0, -1)
     await this.highlight()
-    return false
   }
 
   public async addCharacter(c:string):Promise<void> {
@@ -44,18 +53,4 @@ export default class Input {
     await this.highlight()
   }
 
-  private getMatchPos():number[][] {
-    let {startcol, search, linenr} = this
-    let range = Array.apply(null, Array(search.length)).map((_, i)=> i)
-    return range.map(p => {
-      return [linenr, startcol + p + 1]
-    })
-  }
-
-  public async clear():Promise<void> {
-    if (this.match) {
-      await this.nvim.command(`silent! call matchdelete(${this.match})`)
-      this.match = null
-    }
-  }
 }
