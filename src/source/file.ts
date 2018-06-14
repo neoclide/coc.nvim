@@ -60,7 +60,7 @@ export default class File extends Source {
     })
   }
 
-  public async getItemsFromRoot(pathstr: string, root: string, ext:string):Promise<VimCompleteItem[]> {
+  public async getItemsFromRoot(pathstr: string, root: string):Promise<VimCompleteItem[]> {
     let res = []
     let part = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
     let dir = path.isAbsolute(pathstr) ? root : path.join(root, part)
@@ -87,12 +87,11 @@ export default class File extends Source {
     } else {
       root = cwd
     }
-    let items = await this.getItemsFromRoot(pathstr, root, ext)
+    let items = await this.getItemsFromRoot(pathstr, root)
     let trimExt = this.config.trimSameExts.indexOf(ext) != -1
     let startcol = this.fixStartcol(opt, ['-', '@'])
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
-    logger.debug('file ', root, items)
     return {
       startcol,
       items: items.map(item => {

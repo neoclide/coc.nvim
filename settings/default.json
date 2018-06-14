@@ -95,14 +95,14 @@
   "coc.source.file.shortcut": "F",
   "coc.source.file.priority": 10,
   "coc.source.file.triggerCharacters": ["/"],
-  "coc.source.file.trimSameExts": ["ts", "js"],
+  "coc.source.file.trimSameExts": [".ts", ".js"],
   "coc.source.file.ignoreHidden": true,
   // array of file patterns, like '*.bundle.js'
   "coc.source.file.ignorePatterns": [],
   "coc.source.include.shortcut": "I",
   "coc.source.include.priority": 10,
   "coc.source.include.triggerCharacters": ["/"],
-  "coc.source.include.trimSameExts": ["ts", "js"],
+  "coc.source.include.trimSameExts": [".ts", ".js"],
   // when ripgrep installed, it would be `rg --color never --files`
   "coc.source.include.listFileCommand": "",
   "coc.source.module.shortcut": "M",

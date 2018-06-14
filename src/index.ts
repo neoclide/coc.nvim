@@ -78,8 +78,7 @@ export default class CompletePlugin {
       let filetype = await nvim.eval('&filetype') as string
       services.start(filetype)
     } catch (err) {
-      nvim.logger.error('COC.nvim Initailized failed')
-      nvim.logger.error(err.stack)
+      logger.error(err.stack)
       return echoErr(nvim, `Initailize failed, ${err.message}`)
     }
   }
