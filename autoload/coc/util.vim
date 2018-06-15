@@ -186,3 +186,10 @@ endfunction
 function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction
+
+function! coc#util#get_search(col)
+  let line = getline('.')
+  let colnr = col('.')
+  if colnr <= a:col + 1 | return '' | endif
+  return line[a:col : colnr - 2]
+endfunction

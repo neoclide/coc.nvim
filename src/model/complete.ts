@@ -1,4 +1,3 @@
-import {score} from 'fuzzaldrin'
 import {Neovim} from 'neovim'
 import {
   CompleteOption,
@@ -8,6 +7,7 @@ import {
   CompleteResult} from '../types'
 import workspace from '../workspace'
 import {byteSlice} from '../util/string'
+import score from '../util/score'
 import {
   getCharCodes,
   fuzzyMatch
@@ -44,7 +44,7 @@ export default class Complete {
     // new option for each source
     let option = Object.assign({}, this.option)
     let timeout = workspace.getConfiguration('coc.preferences').get('timeout', 300)
-    s.timeout(Math.max(timeout, 300))
+    s.timeout(Math.min(Number(timeout), 300))
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
         source.shouldComplete(option).then(res => {
@@ -130,7 +130,8 @@ export default class Complete {
           data = Object.assign(data, { cid: id, source })
           item.user_data = JSON.stringify(data)
         }
-        item.score = score(filterText, input) + this.getBonusScore(input, item, priority)
+        let factor = Math.max(1, priority/100 + this.getBonusScore(input, item))
+        item.score = score(filterText, input, factor)
         words.add(word)
         arr.push(item)
       }
@@ -191,13 +192,11 @@ export default class Complete {
     return filteredResults
   }
 
-  private getBonusScore(input:string, item: VimCompleteItem, priority:number):number {
+  private getBonusScore(input:string, item: VimCompleteItem):number {
     let {word, abbr, kind, info} = item
     let score = input.length
       ? this.recentScores[`${input.slice(0,1)}|${word}`] || 0
       : 0
-    if (priority) score += priority/100
-    score += (input && word[0] == input[0]) ? 0.001 : 0
     score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0
     score += info ? 0.001 : 0

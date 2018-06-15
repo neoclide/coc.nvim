@@ -1,15 +1,16 @@
 import Complete from './model/complete'
 import {
+  getCharCodes,
+  fuzzyMatch
+} from './util/fuzzy'
+import {
   CompleteOption,
-  VimCompleteItem,
   RecentScore} from './types'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
-  // unique charactor code in result
-  private charCodes:Set<number> = new Set()
 
   constructor() {
     this.complete = null
@@ -39,34 +40,30 @@ export class Completes {
   }
 
   public reset():void {
-    this.charCodes = new Set()
-  }
-
-  public calculateChars(items:VimCompleteItem[]):void {
-    let {charCodes} = this
-    for (let item of items) {
-      let s = item.filterText || item.word
-      for (let i = 0, l = s.length; i < l; i++) {
-        let code = s.charCodeAt(i)
-        // not supported for filter
-        if (code > 256) continue
-        charCodes.add(code)
-        if (code >= 65 && code <= 90) {
-          charCodes.add(code + 32)
-        }
-      }
-    }
-  }
-
-  public hasCharacter(ch:string):boolean {
-    let code = ch.charCodeAt(0)
-    return this.charCodes.has(code)
+    // noop
   }
 
   public get option():CompleteOption|null {
     let {complete} = this
     if (!complete) return null
     return complete.option
+  }
+
+  public hasMatch(search:string):boolean {
+    let {complete} = this
+    if (!complete) return false
+    let {results} = complete
+    let codes = getCharCodes(search)
+    for (let res of results) {
+      let {items} = res
+      for (let o of items) {
+        let s = o.filterText || o.word
+        if (fuzzyMatch(codes, s)) {
+          return true
+        }
+      }
+    }
+    return false
   }
 }
 

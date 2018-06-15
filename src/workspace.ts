@@ -200,11 +200,11 @@ export class Workspace implements IWorkSpace {
 
   public async onBufferCreate(buf: number|Buffer):Promise<void> {
     const buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
-    const bufnr = toNumber(buffer.data)
     const valid = await this.isValidBuffer(buffer)
     if (!valid) return
     const {buffers} = this
     const name = await buffer.name
+    const bufnr = buffer.id
     const uri = this.getUri(name, bufnr)
     const filetype = (await buffer.getOption('filetype') as string)
     const keywordOption = (await buffer.getOption('iskeyword') as string)

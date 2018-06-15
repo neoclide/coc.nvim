@@ -18,7 +18,8 @@ export default class Document {
   public words: string[]
   public isIgnored = false
   public chars:Chars
-  constructor(public bufnr:number,
+  constructor(
+    public bufnr:number,
     public textDocument:TextDocument,
     public keywordOption:string) {
     let chars = this.chars = new Chars(keywordOption)
@@ -79,7 +80,7 @@ export default class Document {
     let content = TextDocument.applyEdits(this.textDocument, edits)
     let buffers = await nvim.buffers
     let {bufnr} = this
-    let buf = buffers.find(b => b.data.toString() == bufnr.toString())
+    let buf = buffers.find(b => b.id == bufnr)
     if (buf) {
       await buf.setLines(content.split(/\r?\n/), {
         start: 0,

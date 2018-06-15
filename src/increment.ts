@@ -1,37 +1,29 @@
 import {Neovim} from 'neovim'
 import {CompleteOption} from './types'
-import Input from './model/input'
 import completes from './completes'
-import {
-  byteSlice,
-} from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('increment')
 
-export interface InsertedChar {
+export interface LastInsert {
   character: string
   timestamp: number
 }
 
-export interface ChangedI {
+export interface LastChange {
   linenr: number
   colnr: number
   timestamp: number
 }
 
-const MAX_DURATION = 100
-
 export default class Increment {
-  private input?: Input
-  private changedI?: ChangedI
+  public lastInsert?: LastInsert
+  public search: string
+  // private lastChange: LastChange | null | undefined
   private activted = false
-  private lastInsert?: InsertedChar
   private _incrementopt?: string
   private timer?: NodeJS.Timer
 
-  constructor(
-    private nvim:Neovim,
-    private highlightId:number) {
+  constructor(private nvim:Neovim) {
   }
 
   private clearTimer():void {
@@ -42,6 +34,20 @@ export default class Increment {
     }
   }
 
+  public get latestInsert():LastInsert | null {
+    let {lastInsert} = this
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 50) {
+      return null
+    }
+    return lastInsert
+  }
+
+  public get latestInsertChar():string {
+    let {latestInsert} = this
+    if (!latestInsert) return ''
+    return latestInsert.character
+  }
+
   /**
    * start
    *
@@ -50,27 +56,22 @@ export default class Increment {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public async start(option:CompleteOption):Promise<void> {
+  public start(option:CompleteOption):void {
     let {nvim, activted} = this
-    if (activted) return
+    if (activted) this.stop()
     this.clearTimer()
-    let {linenr, colnr, input, col} = option
-    this.changedI = {linenr, colnr, timestamp: Date.now()}
-    let inputTarget = new Input(nvim, input, linenr, col, this.highlightId)
-    this.activted = true
-    this.input = inputTarget
-    await inputTarget.highlight()
+    this.search = option.input
     let opt = this._incrementopt = this.getStartOption()
-    await nvim.call('execute', [`noa set completeopt=${opt}`])
+    nvim.command(`noa set completeopt=${opt}`).catch(() => {}) // tslint:disable-line
+    this.activted = true
     logger.debug('increment started')
   }
 
-  public async stop():Promise<void> {
+  public stop():void {
     if (!this.activted) return
     this.activted = false
     this.clearTimer()
-    if (this.input) await this.input.clear()
-    this.input = this.changedI = null
+    this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')
     completes.reset()
     this.timer = setTimeout(() => {
@@ -91,44 +92,11 @@ export default class Increment {
     return this.activted
   }
 
-  public get search():string|null {
-    let {input} = this
-    if (!input) return null
-    return input.search
-  }
-
-  public get lastInsertChar():string | null {
-    let {lastInsert} = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > MAX_DURATION) {
-      return null
-    }
-    return lastInsert.character
-  }
-
-  public get latestTextChangedI():ChangedI|null{
-    let {changedI} = this
-    if (!changedI || Date.now() - changedI.timestamp > MAX_DURATION) return null
-    return changedI
-  }
-
-  public async onCharInsert(ch:string):Promise<void> {
+  public onCharInsert(ch:string):void {
     this.lastInsert = {
       character: ch,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     }
-    if (!this.activted) return
-    let trigger = completes.option.triggerCharacter
-    if (ch !== trigger
-      && !completes.hasCharacter(ch)) {
-      logger.debug(`character ${ch} not found`)
-      await this.stop()
-      return
-    }
-    // vim would attamp to match the string
-    // if vim find match, no TextChangeI would fire
-    // we have to disable this behavior by
-    // send <C-e> to hide the popup
-    await this.nvim.call('coc#_hide')
   }
 
   // keep other options
@@ -150,36 +118,21 @@ export default class Increment {
     return parts.join(',')
   }
 
-  private async checkResumeCompletion():Promise<boolean> {
-    let {activted, lastInsert, nvim} = this
-    if (!activted) return false
+  public async getResumeInput():Promise<string> {
+    let {activted, nvim} = this
+    if (!activted) return null
     let {option} = completes
-    let [_, linenr, colnr] = await nvim.call('getcurpos', [])
-    if (linenr != option.linenr) return false
-    let lastChanged = Object.assign({}, this.changedI)
-    this.changedI = { linenr, colnr, timestamp: Date.now() }
-    if (lastInsert && colnr > lastChanged.colnr) {
-      let line = await nvim.call('getline', ['.'])
-      let search = byteSlice(line, option.col, colnr - 1)
-      await this.input.changeSearch(search)
-      return true
-    }
-    if (lastChanged.colnr - colnr === 1) {
-      let {search} = this
-      if (!search || search.length == 1) return false
-      await this.input.removeCharactor()
-      return true
-    }
-    return false
-  }
-
-  public async shouldCompletionResume():Promise<boolean> {
-    let shouldResume = await this.checkResumeCompletion()
-    if (this.activted && !shouldResume) {
+    let search = await nvim.call('coc#util#get_search', [option.col])
+    if (search == this.search) return null
+    if (!search || !completes.hasMatch(search)) {
       logger.debug('increment failed')
       await this.nvim.call('coc#_hide')
-      await this.stop()
+      this.stop()
+      return null
     }
-    return shouldResume
+    this.search = search
+    return search
   }
+    // let res = await this.resumeCompletion(input)
+    // if (!res) increment.stop()
 }
