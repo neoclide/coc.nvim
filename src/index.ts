@@ -5,7 +5,7 @@ import {
   isCocItem,
   contextDebounce,
   wait,
-} from './util/index'
+} from './util'
 import {
   SourceType,
 } from './types'

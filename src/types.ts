@@ -25,6 +25,7 @@ export {
   FileSystemWatcher,
   Document,
 }
+
 export type Filter = 'word' | 'fuzzy'
 
 export enum SourceType {

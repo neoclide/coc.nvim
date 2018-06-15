@@ -23,7 +23,11 @@ export default class File extends Source {
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
-    let {line, colnr, bufnr} = opt
+    let {line, linenr, colnr, bufnr} = opt
+    if (opt.triggerCharacter === '/') {
+      let synName =  await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
+      if (synName.toLowerCase() !== 'string') return false
+    }
     let part = byteSlice(line,0 , colnr - 1)
     if (!part) return false
     let ms = part.match(pathRe)

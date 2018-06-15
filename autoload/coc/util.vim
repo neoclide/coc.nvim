@@ -182,3 +182,7 @@ function! coc#util#prompt_change(count)
   end
   return 1
 endfunction
+
+function! coc#util#get_syntax_name(lnum, col)
+  return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
+endfunction

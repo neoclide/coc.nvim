@@ -101,7 +101,7 @@
   "coc.source.file.ignorePatterns": [],
   "coc.source.include.shortcut": "I",
   "coc.source.include.priority": 10,
-  "coc.source.include.triggerCharacters": ["/"],
+  "coc.source.include.triggerCharacters": [],
   "coc.source.include.trimSameExts": [".ts", ".js"],
   // when ripgrep installed, it would be `rg --color never --files`
   "coc.source.include.listFileCommand": "",
