@@ -196,7 +196,7 @@ export default class Complete {
     let score = input.length
       ? this.recentScores[`${input.slice(0,1)}|${word}`] || 0
       : 0
-    if (priority) score += priority/10
+    if (priority) score += priority/100
     score += (input && word[0] == input[0]) ? 0.001 : 0
     score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0
