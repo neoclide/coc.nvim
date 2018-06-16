@@ -198,16 +198,17 @@ function validString(str:any):boolean {
 }
 
 function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompleteItem {
+  let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
-    abbr: item.label,
     word: item.insertText ? item.insertText : item.label, // tslint:disable-line
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,
     filterText: validString(item.filterText) ? item.filterText : item.label,
-    isSnippet: item.insertTextFormat === InsertTextFormat.Snippet,
+    isSnippet
   }
   obj.abbr = obj.filterText
+  if (isSnippet) obj.abbr = obj.abbr + '~'
   let document = getDocumentation(item)
   if (document) obj.info = document
   // item.commitCharacters not necessary for vim

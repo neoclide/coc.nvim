@@ -61,22 +61,6 @@ ultisnips      |Snippets name completion   |User defined | Install [ultisnips](h
 languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 neco           |VimL completion            |vim          | Install [neco-vim](https://github.com/Shougo/neco-vim)
 
-### Language sources
-
-COC have service support for some languages, compare to the using of `omnifunc`,
-they run in async and could have extra functionalities.
-
-<details>
-  <summary><strong>tern</strong> for Javascript</summary>
-
-  Using <a href="https://github.com/ternjs/tern">tern</a> as engine, no extra installation
-  required.
-
-  Addtional support: `show documents`, `jump to definition` and `show signature`.
-
-  Use `:h coc_source_tern` in vim for detail.
-</details>
-
 ### Commands
 
 Commands are used change the service status on the fly.

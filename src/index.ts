@@ -1,38 +1,28 @@
-import {Plugin, Command, Function, Neovim} from 'neovim'
-import {SourceStat, CompleteOption, QueryOption, VimCompleteItem} from './types'
+import {Plugin, Function, Neovim} from 'neovim'
+import {VimCompleteItem} from './types'
 import {
   echoErr,
-  isCocItem,
   contextDebounce,
-  wait,
 } from './util'
-import {
-  SourceType,
-} from './types'
-import {
-  isWord,
-} from './util/string'
-import Sources from './sources'
-import languages from './languages'
+import Completion from './completion'
 import workspace from './workspace'
 import services from './services'
-import completes from './completes'
 import remoteStore from './remote-store'
-import Increment from './increment'
-import {serviceMap, supportedTypes} from './source/service'
+import languages from './languages'
+import EventEmitter = require('events')
 const logger = require('./util/logger')('index')
-
-let ts = 0
 
 @Plugin({dev: false})
 export default class CompletePlugin {
   public nvim: Neovim
-  public increment: Increment
   private debouncedOnChange: (bufnr: number) => void
-  private sources: Sources
+  private completion: Completion
+  private initailized = false
+  private emitter: EventEmitter
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
+    this.emitter = new EventEmitter()
     workspace.nvim = nvim
     languages.nvim = nvim
     this.debouncedOnChange = contextDebounce((bufnr: number) => {
@@ -40,13 +30,6 @@ export default class CompletePlugin {
         logger.error(e.message)
       })
     }, 100)
-  }
-
-  private onUnhandledError(err: Error): void {
-    echoErr(this.nvim, err.stack).catch(() => {
-      // noop
-    })
-    logger.error(err.stack)
   }
 
   @Function('CocInitAsync', {sync: false})
@@ -66,19 +49,12 @@ export default class CompletePlugin {
     try {
       let channelId = await (nvim as any).channelId
       // workspace configuration
-      let buffer = await nvim.buffer
-      let srcId = await buffer.addHighlight({
-        line: 0,
-        colStart: 0,
-        colEnd: 0,
-        srcId: 0
-      })
-      this.increment = new Increment(nvim)
       await workspace.init()
-      this.sources = new Sources(nvim)
+      this.completion = new Completion(nvim, this.emitter)
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('silent doautocmd User CocNvimInit')
       services.init(nvim)
+      this.initailized = true
       logger.info('Coc service Initailized')
       let filetype = await nvim.eval('&filetype') as string
       services.start(filetype)
@@ -88,250 +64,73 @@ export default class CompletePlugin {
     }
   }
 
-  @Function('CocBufCreate', {sync: false})
-  public async cocBufCreate(args: any[]): Promise<void> {
-    await workspace.onBufferCreate(args[0])
-  }
-
-  @Function('CocBufUnload', {sync: false})
-  public async cocBufUnload(args: [number]): Promise<void> {
-    await workspace.onBufferUnload(args[0])
-  }
-
-  @Function('CocBufChange', {sync: false})
-  public async cocBufChange(args: any[]): Promise<void> {
-    this.debouncedOnChange(args[0])
-  }
-
-  @Function('CocBufEnter', {sync: false})
-  public async cocBufEnter(args: any[]): Promise<void> {
-    let bufnr = Number(args[0])
-    await workspace.bufferEnter(bufnr)
-  }
-
-  @Function('CocStart', {sync: true})
-  public async cocStart(args: [CompleteOption]): Promise<void> {
-    try {
-      await this.startCompletion(args[0])
-    } catch (e) {
-      await echoErr(this.nvim, e.message)
-      logger.error('Error happens on complete', e.stack)
-    }
-  }
-
-  @Function('CocInsertCharPre', {sync: false})
-  public async cocInsertCharPre(args:[string]): Promise<void> {
-    logger.debug('InsertedCharPre')
-    let character = args[0]
-    let {increment} = this
-    increment.lastInsert = {
-      character,
-      timestamp: Date.now(),
-    }
-  }
-
-  @Function('CocInsertLeave', {sync: false})
-  public async cocInsertLeave(): Promise<void> {
-    await this.nvim.call('coc#_hide')
-    this.increment.stop()
-  }
-
-  @Function('CocCompleteDone', {sync: true})
-  public async cocCompleteDone(args: any[]): Promise<void> {
-    let item: VimCompleteItem = args[0]
-    logger.debug('complete done:', item)
-    if (!isCocItem(item)) return
-    let {increment} = this
-    if (increment.isActivted) {
-      logger.debug('complete done with coc item, increment stopped')
-      increment.stop()
-    }
-    completes.addRecent(item.word)
-    await this.sources.doCompleteDone(item)
-    completes.reset()
-  }
-
-  @Function('CocTextChangedP', {sync: true})
-  public async cocTextChangedP(): Promise<void> {
-    logger.debug('TextChangedP')
-    let {nvim, increment} = this
-    if (increment.latestInsert && increment.isActivted) {
-      let search = await increment.getResumeInput()
-      if (search) await this.resumeCompletion(search)
-    }
-      // TODO resolve item by check v:event
-      // increment.stop()
-      // let candidates = this.completeItems
-      // if (candidates.length == 0) return
-      // let {option} = completes
-      // let search = await nvim.call('coc#util#get_search', [option.col])
-      // if (search.length < 2) return
-      // let item = candidates.find(o => o.word === search)
-      // if (item) await this.sources.doCompleteResolve(item)
-  }
-
-  @Function('CocTextChangedI', {sync: true})
-  public async cocTextChangedI(args:[number]): Promise<void> {
-    logger.debug('TextChangedI')
-    let bufnr = args[0]
-    let {nvim, increment} = this
-    let {latestInsertChar} = increment
-    if (increment.isActivted) {
-      let search = await increment.getResumeInput()
-      if (search) {
-        await this.resumeCompletion(search)
-        this.debouncedOnChange(bufnr)
-      }
-    }
-    if (increment.isActivted) return
-    let shouldTrigger = await this.shouldTrigger(latestInsertChar)
-    if (!shouldTrigger) return
-    await workspace.onBufferChange(bufnr)
-    let option = await nvim.call('coc#util#get_complete_option')
-    Object.assign(option, { triggerCharacter: latestInsertChar })
-    logger.debug('trigger completion with', option)
-    try {
-      await this.startCompletion(option)
-    } catch (e) {
-      logger.error('Error happens on trigger completion', e.stack)
-    }
-  }
-
   // callback for remote sources
   @Function('CocResult', {sync: false})
-  public async cocResult(args: any[]): Promise<void> {
-    let id = Number(args[0])
-    let name = args[1] as string
-    let items = args[2] as VimCompleteItem[]
+  public async cocResult(args: [number, string, VimCompleteItem[]]): Promise<void> {
+    let [id, name, items] = args
+    id = Number(id)
     items = items || []
     logger.debug(`Remote ${name} result count: ${items.length}`)
     remoteStore.setResult(id, name, items)
   }
 
-  @Function('CocSourceStat', {sync: true})
-  public async cocSourceStat(): Promise<SourceStat[]> {
-    let res: SourceStat[] = []
-    let filetype = await this.nvim.eval('&filetype') as string
-    let items = this.sources.getSourcesForFiletype(filetype)
-    for (let item of items) {
-      res.push({
-        name: item.name,
-        filepath: item.filepath || '',
-        type: item.sourceType == SourceType.Native
-              ? 'native' : item.sourceType == SourceType.Remote
-              ? 'remote' : 'service',
-        disabled: !!item.disabled
-      })
+  @Function('CocAutocmd', {sync: false})
+  public async cocAutocmd(args: any): Promise<void> {
+    let {emitter, nvim} = this
+    switch (args[0] as string) {
+      case 'BufChange':
+        this.debouncedOnChange(args[1])
+        break
+      case 'BufEnter':
+        await workspace.bufferEnter(args[1])
+        break
+      case 'BufCreate':
+        await workspace.onBufferCreate(args[1])
+        break
+      case 'FileType':
+        services.start(args[1])
+        break
+      case 'BufUnload':
+        await workspace.onBufferUnload(args[1])
+        break
+      case 'InsertCharPre':
+        emitter.emit('InsertCharPre', args[1])
+        break
+      case 'InsertLeave':
+        emitter.emit('InsertLeave', args[1])
+        break
+      case 'CompleteDone':
+        emitter.emit('CompleteDone', args[1])
+        break
+      case 'TextChangedP':
+        logger.debug('TextChangedP')
+        emitter.emit('TextChangedP')
+        break
+      case 'TextChangedI':
+        logger.debug('TextChangedI')
+        let buffer = await nvim.buffer
+        await workspace.onBufferChange(buffer.id)
+        emitter.emit('TextChangedI')
+        break
     }
-    return res
   }
 
-  @Function('CocSourceToggle', {sync: true})
-  public async cocSourceToggle(args: any): Promise<string> {
-    let name = args[0].toString()
-    if (!name) return ''
-    let source = this.sources.getSource(name)
-    if (!source) return
-    if (typeof source.toggle === 'function') {
-      source.toggle()
-    }
-  }
-
-  @Function('CocSourceRefresh', {sync: true})
-  public async cocSourceRefresh(args: any): Promise<boolean> {
-    let name = String(args[0])
-    let source = this.sources.getSource(name)
-    if (!source) {
-      await echoErr(this.nvim, `Source ${name} not found`) // tslint:disable-line
-      return false
-    }
-    if (typeof source.refresh === 'function') {
-      await source.refresh()
-    }
-    return true
-  }
-
-  @Function('CocFileTypeChange', {sync: false})
-  public async cocFileTypeChange(args: any): Promise<void> {
-    let filetype = args[0] as string
-    services.start(filetype)
-  }
-
-  private async shouldTrigger(character:string):Promise<boolean> {
-    if (!character || character == ' ') return false
-    let {nvim, increment, sources} = this
-    let autoTrigger = workspace.getConfiguration('coc.preferences').get('autoTrigger', 'always')
-    if (autoTrigger == 'none') return false
-    if (isWord(character)) {
-      let input = await nvim.call('coc#util#get_input') as string
-      return input.length == 1
-    } else {
-      let buffer = await nvim.buffer
-      let languageId = await buffer.getOption('filetype') as string
-      return sources.shouldTrigger(character, languageId)
-    }
-    return false
-  }
-
-  private async startCompletion(opt: CompleteOption): Promise<void> {
-    if (completes.completing) return
-    let {nvim, increment} = this
-    // could happen for auto trigger
-    increment.start(opt)
-    logger.debug(`options: ${JSON.stringify(opt)}`)
-    let sources = this.sources.getCompleteSources(opt)
-    logger.debug(`Activted sources: ${sources.map(o => o.name).join(',')}`)
-    completes.doComplete(nvim, sources, opt).then(async items => {
-      if (items.length == 0) {
-        increment.stop()
-        return
-      }
-      let start = Date.now()
-      try {
-        let {search} = increment
-        if (search === opt.input) {
-          await nvim.call('coc#_set_context', [opt.col, items])
-          await nvim.call('coc#_do_complete')
-        } else {
-          logger.debug('input change, try resume')
-          if (search && completes.hasMatch(search)) {
-            await this.resumeCompletion(search)
-          } else {
-            increment.stop()
-          }
-        }
-      } catch (e) {
-        await echoErr(nvim, `completion error: ${e.message}`)
-        logger.error(e.stack)
-      }
-    }, this.onUnhandledError)
-  }
-
-  private async resumeCompletion(resumeInput:string):Promise<void> {
-    let {nvim, increment} = this
-    let oldComplete = completes.complete
-    try {
-      let {colnr, input} = oldComplete.option
-      let opt = Object.assign({}, oldComplete.option, {
-        input: resumeInput,
-        colnr: colnr + resumeInput.length - input.length
-      })
-      logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-      let items = completes.filterCompleteItems(opt)
-      logger.debug(`Filtered item length: ${items.length}`)
-      if (!items || items.length === 0) {
-        increment.stop()
-        return
-      }
-      if (increment.search == resumeInput) {
-        await nvim.call('coc#_set_context', [opt.col, items])
-        await nvim.call('coc#_do_complete')
-      } else {
-        logger.debug('input change, skip increment')
-      }
-    } catch (e) {
-      await echoErr(nvim, `completion error: ${e.message}`)
-      logger.error(e.stack)
+  @Function('CocAction', {sync: true})
+  public async cocAction(args: any): Promise<any> {
+    if (!this.initailized) return
+    let {completion} = this
+    switch (args[0] as string) {
+      case 'startCompletion':
+        completion.startCompletion(args[1])
+        break
+      case 'sourceStat':
+        return await completion.sourceStat()
+      case 'refreshSource':
+        await completion.refreshSource(args[1])
+        break
+      case 'toggleSource':
+        completion.toggleSource(args[1])
+        break
     }
   }
 }

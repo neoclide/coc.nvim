@@ -38,7 +38,7 @@ class Source(Base):
         self.vim.command('highlight default link deniteSource_CocPath Comment')
 
     def gather_candidates(self, context):
-        items = self.vim.eval('CocSourceStat()')
+        items = self.vim.call('CocAction', 'sourceStat')
         candidates = []
         for item in items:
             name = item['name']
@@ -65,8 +65,8 @@ class CocKind(FileKind):
 
     def action_toggle(self, context):
         target = context['targets'][0]
-        self.vim.call('CocSourceToggle', target['source__name'])
+        self.vim.call('CocAction', 'toggleSource', target['source__name'])
 
     def action_refresh(self, context):
         target = context['targets'][0]
-        self.vim.call('CocSourceRefresh', target['source__name'])
+        self.vim.call('CocAction', 'refreshSource', target['source__name'])

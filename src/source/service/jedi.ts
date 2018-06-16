@@ -6,7 +6,7 @@ import {
   CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
 import StdioService from '../../model/stdioService'
-import {ROOT} from '../../constant'
+import {ROOT} from '../../util'
 import workspace from '../../workspace'
 import {
   echoErr,

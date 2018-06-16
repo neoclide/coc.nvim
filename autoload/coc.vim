@@ -42,6 +42,6 @@ function! coc#start(...)
   let opt = coc#util#get_complete_option({
         \ 'reload': get(a:, 1, 0)
         \})
-  call CocStart(opt)
+  call CocAction('startCompletion', opt)
   return ''
 endfunction

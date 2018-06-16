@@ -17,8 +17,11 @@ export {
 }
 import debounce = require('debounce')
 import net = require('net')
+import path = require('path')
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
+
+export const ROOT = path.resolve(__dirname, '../..')
 
 export type Callback = (arg: number|string) => void
 

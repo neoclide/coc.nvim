@@ -5,7 +5,7 @@ import {
   CompleteResult} from '../../types'
 import ServiceSource from '../../model/source-service'
 import IpcService from '../../model/ipcService'
-import {ROOT} from '../../constant'
+import {ROOT} from '../../util'
 import workspace from '../../workspace'
 import path = require('path')
 import findRoot = require('find-root')

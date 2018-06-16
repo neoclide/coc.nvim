@@ -1,5 +1,5 @@
 import IpcService from '../model/ipcService'
-import {ROOT} from '../constant'
+import {ROOT} from '../util'
 import path = require('path')
 
 describe('child model test', () => {

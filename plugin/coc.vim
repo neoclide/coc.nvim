@@ -4,20 +4,11 @@ endif
 let did_coc_loaded = 1
 let s:timer = 0
 
-function! s:Call(func, ...)
+function! s:Autocmd(...)
   if !empty(&buftype) | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
   try
-    call call('Coc'.a:func, a:000)
-  catch /^Vim\%((\a\+)\)\=:E117/
-    call s:OnFuncUndefined()
-  endtry
-endfunction
-
-function! s:OnBuffer(type, bufnr) abort
-  if !get(g:, 'coc_enabled', 0) | return | endif
-  try
-    execute 'call CocBuf'.a:type.'('.a:bufnr.')'
+    call call('CocAutocmd', a:000)
   catch /^Vim\%((\a\+)\)\=:E117/
     call s:OnFuncUndefined()
   endtry
@@ -47,12 +38,10 @@ endfunction
 function! s:RefreshSource(...) abort
   if !s:CheckState() | return | endif
   let name = get(a:, 1, '')
-  let succeed = CocSourceRefresh(name)
-  if succeed
-    echohl MoreMsg
-    echom '[coc.nvim] Source '.name. ' refreshed'
-    echohl None
-  endif
+  call CocAction('refreshSource', name)
+  echohl MoreMsg
+  echom '[coc.nvim] Source '.name. ' refreshed'
+  echohl None
 endfunction
 
 function! s:CheckState() abort
@@ -65,7 +54,7 @@ endfunction
 
 function! s:CocSourceNames(A, L, P) abort
   if !s:CheckState() | return | endif
-  let items = CocSourceStat()
+  let items = CocAction('sourceStat')
   return filter(map(items, 'v:val["name"]'), 'v:val =~ "^'.a:A.'"')
 endfunction
 
@@ -89,17 +78,16 @@ function! s:Enable()
   endif
   augroup coc_nvim
     autocmd!
-    autocmd FileType * call s:Call('FileTypeChange', expand('<amatch>'))
-    autocmd InsertCharPre * call s:Call('InsertCharPre', v:char)
-    autocmd CompleteDone * call s:Call('CompleteDone', v:completed_item)
-    autocmd TextChangedP * call s:Call('TextChangedP')
-    autocmd InsertLeave * call s:Call('InsertLeave')
-    autocmd BufEnter * call s:Call('BufEnter', +expand('<abuf>'))
-    " buffer change events
-    autocmd BufUnload * call s:OnBuffer('Unload', +expand('<abuf>'))
-    autocmd TextChangedI * call s:Call('TextChangedI', +expand('<abuf>'))
-    autocmd TextChanged * call s:OnBuffer('Change', +expand('<abuf>'))
-    autocmd BufNewFile,BufRead, * call s:OnBuffer('Create', +expand('<abuf>'))
+    autocmd FileType * call s:Autocmd('FileType', expand('<amatch>'))
+    autocmd InsertCharPre * call s:Autocmd('InsertCharPre', v:char)
+    autocmd CompleteDone * call s:Autocmd('CompleteDone', v:completed_item)
+    autocmd TextChangedP * call s:Autocmd('TextChangedP')
+    autocmd TextChangedI * call s:Autocmd('TextChangedI')
+    autocmd InsertLeave * call s:Autocmd('InsertLeave')
+    autocmd BufEnter * call s:Autocmd('BufEnter', +expand('<abuf>'))
+    autocmd BufUnload * call s:Autocmd('BufUnload', +expand('<abuf>'))
+    autocmd TextChanged * call s:Autocmd('BufChange', +expand('<abuf>'))
+    autocmd BufNewFile,BufRead, * call s:Autocmd('BufCreate', +expand('<abuf>'))
   augroup end
 
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
