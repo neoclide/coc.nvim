@@ -37,7 +37,7 @@ export default abstract class Source implements ISource {
     this.config = Object.assign({
       name: '',
       shortcut: name.slice(0, 3),
-      priority: 0,
+      priority: 1,
       filetypes: null,
       firstMatch: false,
       sourceType: SourceType.Native,

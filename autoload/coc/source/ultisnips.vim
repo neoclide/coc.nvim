@@ -11,7 +11,7 @@ endfunction
 function! coc#source#ultisnips#complete(opt, cb) abort
   let snips = UltiSnips#SnippetsInCurrentScope()
   if type(snips) == 3
-    let items = map(snips, {idx, val -> {'word': val['key'], 'dup': 1, 'menu': val['description'], 'filterText': substitute(val['description'], '\s\+', '', 'g')}})
+    let items = map(snips, {idx, val -> {'word': val['key'], 'dup': 1, 'menu': val['description']}})
   else
     let items = map(snips, {key, val -> {'word': key, 'dup': 1, 'menu': val}})
   endif

@@ -5,13 +5,12 @@ import {
   CompleteResult} from '../types'
 import {statAsync, readFileByLine} from '../util/fs'
 import Source from '../model/source'
-import {uniqeWordsList} from '../util/unique'
 import path = require('path')
 const logger = require('../util/logger')('source-tag')
 
 export interface CacheItem {
   mtime: Date
-  words: string[]
+  words: Set<string>
 }
 
 let TAG_CACHE:{[index:string]: CacheItem} = {}
@@ -46,19 +45,15 @@ export default class Tag extends Source {
     TAG_CACHE = {}
   }
 
-  private async loadTags(fullpath:string, mtime:Date):Promise<string[]> {
+  private async loadTags(fullpath:string, mtime:Date):Promise<Set<string>> {
     let item:CacheItem = TAG_CACHE[fullpath]
     if (item && item.mtime >= mtime) return item.words
-    let words = []
+    let words:Set<string> = new Set()
     await readFileByLine(fullpath, line => {
       if (line[0] == '!') return
       let ms = line.match(/^[^\t\s]+/)
-      if (ms) {
-        let w = ms[0]
-        if (w && w.length > 2 && words.indexOf(w) === -1) {
-          words.push(w)
-        }
-      }
+      let w = ms ? ms[0] : null
+      if (w && w.length > 2) words.add(w)
     })
     TAG_CACHE[fullpath] = {words, mtime}
     return words
@@ -67,9 +62,14 @@ export default class Tag extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {tagfiles} = opt
     let list = await Promise.all(tagfiles.map(o => this.loadTags(o.file, o.mtime)))
-    let words = uniqeWordsList(list as any)
+    let allWords:Set<string> = new Set()
+    for (let words of list as any) {
+      for (let word of words.values()) {
+        allWords.add(word)
+      }
+    }
     return {
-      items: words.map(word => {
+      items: Array.from(allWords.values()).map(word => {
         return {
           word,
           menu: this.menu

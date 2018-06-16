@@ -7,7 +7,7 @@ import {
   CompleteResult} from '../types'
 import workspace from '../workspace'
 import {byteSlice} from '../util/string'
-import score from '../util/score'
+import {score} from 'fuzzaldrin'
 import {
   getCharCodes,
   fuzzyMatch
@@ -117,6 +117,7 @@ export default class Complete {
         let {user_data, filterText, word} = item
         if (words.has(word)) continue
         filterText = filterText || item.word
+        if (filterText.length < input.length) continue
         if (isIncrement && item.sortText) delete item.sortText
         let data = {} as any
         if (user_data) {
@@ -131,7 +132,7 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
         }
         let factor = Math.max(1, priority/100 + this.getBonusScore(input, item))
-        item.score = score(filterText, input, factor)
+        item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)
       }
@@ -162,17 +163,6 @@ export default class Complete {
     })
     logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
     if (results.length == 0) return []
-    // fix input, user could type fast
-    let input = await nvim.call('coc#util#get_input') as string
-    let dl = input.length - opts.input.length
-    if (dl < 0) return []
-    if (dl > 0) {
-      line = await nvim.call('getline', ['.'])
-      colnr = opts.colnr + dl
-      opts.input = input
-      opts.line = line
-    }
-
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
       let {startcol} = engrossResult

@@ -25,7 +25,7 @@ import {
   EventEmitter,
   Event,
   disposeAll,
-  fileSchemes,
+  FileSchemes,
   echoErr,
   echoMessage,
 } from '../util'
@@ -505,7 +505,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public normalizePath(resource: Uri): string | null {
     if (this._apiVersion.has213Features()) {
-      if (resource.scheme !== fileSchemes.file) {
+      if (resource.scheme !== FileSchemes.File) {
         const dirName = path.dirname(resource.path)
         const fileName = this.inMemoryResourcePrefix + path.basename(resource.path)
         return resource

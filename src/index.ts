@@ -30,8 +30,6 @@ export default class CompletePlugin {
   public increment: Increment
   private debouncedOnChange: (bufnr: number) => void
   private sources: Sources
-  private completionInitialing = false
-  private completeItems:VimCompleteItem[] = []
 
   constructor(nvim: Neovim) {
     this.nvim = nvim
@@ -150,26 +148,18 @@ export default class CompletePlugin {
     }
     completes.addRecent(item.word)
     await this.sources.doCompleteDone(item)
-    this.completeItems = []
+    completes.reset()
   }
 
   @Function('CocTextChangedP', {sync: true})
   public async cocTextChangedP(): Promise<void> {
     logger.debug('TextChangedP')
     let {nvim, increment} = this
-    if (this.completionInitialing) return
-    if (increment.latestInsert) {
+    if (increment.latestInsert && increment.isActivted) {
       let search = await increment.getResumeInput()
-      if (search) {
-        try {
-          let resumed = await this.resumeCompletion(search)
-          if (resumed) return
-        } catch (e) {
-          logger.error('Error happens on resume completion', e.stack)
-        }
-      }
-    } else {
-      // TODO TextChangedP chould have more info
+      if (search) await this.resumeCompletion(search)
+    }
+      // TODO resolve item by check v:event
       // increment.stop()
       // let candidates = this.completeItems
       // if (candidates.length == 0) return
@@ -178,7 +168,6 @@ export default class CompletePlugin {
       // if (search.length < 2) return
       // let item = candidates.find(o => o.word === search)
       // if (item) await this.sources.doCompleteResolve(item)
-    }
   }
 
   @Function('CocTextChangedI', {sync: true})
@@ -190,18 +179,11 @@ export default class CompletePlugin {
     if (increment.isActivted) {
       let search = await increment.getResumeInput()
       if (search) {
+        await this.resumeCompletion(search)
         this.debouncedOnChange(bufnr)
-        try {
-          let resumed = await this.resumeCompletion(search)
-          if (resumed) return
-        } catch (e) {
-          logger.error('Error happens on resume completion', e.stack)
-        }
       }
     }
     if (increment.isActivted) return
-    await nvim.call('coc#_hide')
-    increment.stop()
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
     await workspace.onBufferChange(bufnr)
@@ -291,59 +273,65 @@ export default class CompletePlugin {
     return false
   }
 
-  private async resumeCompletion(resumeInput:string):Promise<boolean> {
-    let {nvim} = this
-    let oldComplete = completes.complete
-    let {colnr, input} = oldComplete.option
-    let opt = Object.assign({}, oldComplete.option, {
-      input: resumeInput,
-      colnr: colnr + resumeInput.length - input.length
-    })
-    let start = Date.now()
-    logger.debug(`Resume options: ${JSON.stringify(opt)}`)
-    let complete = completes.createComplete(opt, true)
-    let items = complete.filterResults(oldComplete.results, true)
-    logger.debug(`Filtered item length: ${items.length}`)
-    this.completeItems = items
-    if (!items || items.length === 0) {
-      return false
-    }
-    await nvim.call('coc#_set_context', [opt.col, items])
-    await nvim.call('coc#_do_complete', [])
-    logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-    return true
-  }
-
   private async startCompletion(opt: CompleteOption): Promise<void> {
-    if (this.completionInitialing) return
-    this.completionInitialing = true
-    let start = Date.now()
+    if (completes.completing) return
     let {nvim, increment} = this
     // could happen for auto trigger
     increment.start(opt)
     logger.debug(`options: ${JSON.stringify(opt)}`)
-    let complete = completes.createComplete(opt, false)
     let sources = this.sources.getCompleteSources(opt)
     logger.debug(`Activted sources: ${sources.map(o => o.name).join(',')}`)
-    complete.doComplete(nvim, sources).then(async items => {
-      this.completeItems = items
+    completes.doComplete(nvim, sources, opt).then(async items => {
       if (items.length == 0) {
-        // no items found
-        completes.reset()
         increment.stop()
-        this.completionInitialing = false
         return
       }
-      await nvim.call('coc#_set_context', [opt.col, items])
-      await nvim.call('coc#_do_complete', [])
-      logger.debug(`Complete time cost: ${Date.now() - start}ms`)
-      await wait(20)
-      this.completionInitialing = false
-      // fix that user input during popup shown
-      // if (!increment.isActivted) {
-      //   logger.debug('stopping')
-      //   await this.nvim.call('coc#_hide')
-      // }
+      let start = Date.now()
+      try {
+        let {search} = increment
+        if (search === opt.input) {
+          await nvim.call('coc#_set_context', [opt.col, items])
+          await nvim.call('coc#_do_complete')
+        } else {
+          logger.debug('input change, try resume')
+          if (search && completes.hasMatch(search)) {
+            await this.resumeCompletion(search)
+          } else {
+            increment.stop()
+          }
+        }
+      } catch (e) {
+        await echoErr(nvim, `completion error: ${e.message}`)
+        logger.error(e.stack)
+      }
     }, this.onUnhandledError)
+  }
+
+  private async resumeCompletion(resumeInput:string):Promise<void> {
+    let {nvim, increment} = this
+    let oldComplete = completes.complete
+    try {
+      let {colnr, input} = oldComplete.option
+      let opt = Object.assign({}, oldComplete.option, {
+        input: resumeInput,
+        colnr: colnr + resumeInput.length - input.length
+      })
+      logger.debug(`Resume options: ${JSON.stringify(opt)}`)
+      let items = completes.filterCompleteItems(opt)
+      logger.debug(`Filtered item length: ${items.length}`)
+      if (!items || items.length === 0) {
+        increment.stop()
+        return
+      }
+      if (increment.search == resumeInput) {
+        await nvim.call('coc#_set_context', [opt.col, items])
+        await nvim.call('coc#_do_complete')
+      } else {
+        logger.debug('input change, skip increment')
+      }
+    } catch (e) {
+      await echoErr(nvim, `completion error: ${e.message}`)
+      logger.error(e.stack)
+    }
   }
 }

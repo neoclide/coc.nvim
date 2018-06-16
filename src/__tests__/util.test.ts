@@ -1,4 +1,3 @@
-import {uniqueItems, uniqeWordsList} from '../util/unique'
 import {
   contextDebounce,
   wait,
@@ -17,81 +16,9 @@ import {
   findSourceDir,
   createTmpFile
 } from '../util/fs'
-import {
-  wordSortItems
-} from '../util/sorter'
 import watchObj from '../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
-
-describe('unique test', () => {
-  test('should find out better abbr', async () => {
-    let items = [{
-      word: 'foo'
-    }, {
-      word: 'foo',
-      abbr: 'bar'
-    }]
-    let res = uniqueItems(items)
-    expect(res.length).toBe(1)
-    expect(res[0].abbr).toBe('bar')
-  })
-
-  test('should unique words list', () => {
-    let list = [['foo', 'bar'], ['foo']]
-    let res = uniqeWordsList(list)
-    expect(res.length).toBe(2)
-    expect(res[0]).toBe('foo')
-    expect(res[1]).toBe('bar')
-  })
-
-  test('should find out better abbr #1', async () => {
-    let items = [
-      {
-        info: '',
-        additionalTextEdits: null,
-        word: 'getConfig',
-        kind: '',
-        abbr: 'getConfig',
-        score: 0.13
-      },
-      {
-        word: 'getConfig',
-        score: 0.13
-      }
-    ]
-    let res = uniqueItems(items)
-    expect(res.length).toBe(1)
-    expect(res[0].abbr).toBe('getConfig')
-  })
-
-  test('should find out better kind', async () => {
-    let items = [{
-      word: 'foo'
-    }, {
-      word: 'foo',
-      kind: 'M'
-    }, {
-      word: 'foo',
-      kind: 'Method'
-    }]
-    let res = uniqueItems(items)
-    expect(res.length).toBe(1)
-    expect(res[0].kind).toBe('Method')
-  })
-
-  test('should find out better info', async () => {
-    let items = [{
-      word: 'foo'
-    }, {
-      word: 'foo',
-      info: 'bar'
-    }]
-    let res = uniqueItems(items)
-    expect(res.length).toBe(1)
-    expect(res[0].info).toBe('bar')
-  })
-})
 
 describe('contextDebounce test',async () => {
 
@@ -235,15 +162,6 @@ describe('fs test', () => {
     expect(typeof filename).toBe('string')
     let stat = fs.statSync(filename)
     expect(stat.isFile()).toBeTruthy
-  })
-})
-
-describe('sort test', () => {
-  test('should sort item by word', () => {
-    let items = [{word: 'ab'}, {word: 'ac'}]
-    let res = wordSortItems(items)
-    expect(res.length).toBe(2)
-    expect(res[0].word).toBe('ab')
   })
 })
 

@@ -5,7 +5,6 @@ import {
 } from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
 import {Event, Emitter} from './event'
-import * as fileSchemes from './fileSchemes'
 import Uri, {UriComponents} from './uri'
 import * as platform from './platform'
 export {
@@ -15,7 +14,6 @@ export {
   Uri,
   UriComponents,
   platform,
-  fileSchemes,
 }
 import debounce = require('debounce')
 import net = require('net')
@@ -23,6 +21,17 @@ const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
 
 export type Callback = (arg: number|string) => void
+
+export enum FileSchemes {
+  File = 'file',
+  Untitled = 'untitled'
+}
+
+export function isSupportedScheme(scheme: string): boolean {
+  return [
+    FileSchemes.File,
+    FileSchemes.Untitled].indexOf(scheme as FileSchemes) >= 0
+}
 
 export function escapeSingleQuote(str: string):string {
   return str.replace(/'/g, "''")

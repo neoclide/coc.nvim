@@ -1,25 +1,34 @@
 import Complete from './model/complete'
+import {Neovim} from 'neovim'
 import {
   getCharCodes,
   fuzzyMatch
 } from './util/fuzzy'
 import {
+  ISource,
   CompleteOption,
+  VimCompleteItem,
   RecentScore} from './types'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
+  private completeItems : VimCompleteItem[] | null
+  private _completing = false
 
   constructor() {
     this.complete = null
     this.recentScores = {}
   }
 
+  public get completing():boolean {
+    return this._completing
+  }
+
   public addRecent(word: string):void {
-    if (!word.length) return
-    let {input} = this.option
+    if (!word.length || !this.complete) return
+    let {input} = this.complete.option
     if (!input.length) return
     let key = `${input.slice(0,1)}|${word}`
     let val = this.recentScores[key]
@@ -30,13 +39,35 @@ export class Completes {
     }
   }
 
-  public createComplete(opts: CompleteOption, isIncrement?:boolean): Complete {
-    let complete = new Complete(opts, this.recentScores)
-    // initailize complete
-    if (!isIncrement) {
-      this.complete = complete
-    }
-    return complete
+  public async doComplete(
+    nvim: Neovim,
+    sources:ISource[],
+    option:CompleteOption):Promise<VimCompleteItem[]> {
+    this._completing = true
+    let complete = new Complete(option, this.recentScores)
+    this.complete = complete
+    let start = Date.now()
+    let items = await complete.doComplete(nvim, sources)
+    logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+    this.completeItems = items || []
+    setTimeout(() => { this._completing = false }, 20)
+    return items
+  }
+
+  public filterCompleteItems(option:CompleteOption):VimCompleteItem[] {
+    let origComplete = this.complete
+    if (!origComplete || !origComplete.results) return []
+    let complete = new Complete(option, this.recentScores)
+    let items = complete.filterResults(origComplete.results, true)
+    this.completeItems = items || []
+    return items
+  }
+
+  // TODO this is incorrect sometimes
+  public getCompleteItem(word:string):VimCompleteItem | null {
+    let {completeItems} = this
+    if (!completeItems) return null
+    return completeItems.find(o => o.word == word)
   }
 
   public reset():void {

@@ -68,7 +68,6 @@ export interface CompleteOption {
   colnr: number
   linenr: number
   iskeyword: string
-  moved?: number
   [index: string]: any
 }
 

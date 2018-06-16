@@ -59,11 +59,11 @@ export default class Increment {
   public start(option:CompleteOption):void {
     let {nvim, activted} = this
     if (activted) this.stop()
+    this.activted = true
     this.clearTimer()
     this.search = option.input
-    let opt = this._incrementopt = this.getStartOption()
+    let opt = this._incrementopt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`).catch(() => {}) // tslint:disable-line
-    this.activted = true
     logger.debug('increment started')
   }
 
@@ -73,19 +73,10 @@ export default class Increment {
     this.clearTimer()
     this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')
-    completes.reset()
     this.timer = setTimeout(() => {
       this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
     }, 100)
     logger.debug('increment stopped')
-  }
-
-  public get hasNoselect():boolean {
-    let completeOpt = workspace.getNvimSetting('completeOpt')
-    if (this.activted) {
-      return this._incrementopt.indexOf('noselect') !== -1
-    }
-    return completeOpt.indexOf('noselect') !== -1
   }
 
   public get isActivted():boolean {
@@ -99,8 +90,25 @@ export default class Increment {
     }
   }
 
+  public async getResumeInput():Promise<string> {
+    let {activted, nvim} = this
+    if (!activted) return null
+    let {option} = completes
+    let search = await nvim.call('coc#util#get_search', [option.col])
+    if (search == this.search) return null
+    this.search = search
+    if (completes.completing) return null
+    if (!search || !completes.hasMatch(search)) {
+      logger.debug('increment failed')
+      this.stop()
+      await this.nvim.call('coc#_hide')
+      return null
+    }
+    return search
+  }
+
   // keep other options
-  private getStartOption():string {
+  private static getStartOption():string {
     let opt = workspace.getNvimSetting('completeOpt')
     let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
     let parts = opt.split(',')
@@ -118,21 +126,4 @@ export default class Increment {
     return parts.join(',')
   }
 
-  public async getResumeInput():Promise<string> {
-    let {activted, nvim} = this
-    if (!activted) return null
-    let {option} = completes
-    let search = await nvim.call('coc#util#get_search', [option.col])
-    if (search == this.search) return null
-    if (!search || !completes.hasMatch(search)) {
-      logger.debug('increment failed')
-      await this.nvim.call('coc#_hide')
-      this.stop()
-      return null
-    }
-    this.search = search
-    return search
-  }
-    // let res = await this.resumeCompletion(input)
-    // if (!res) increment.stop()
 }
