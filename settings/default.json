@@ -37,7 +37,7 @@
   "typescript.preferences.completion.autoImportSuggestions" : true,
   // 'non-relative' or 'relative'
   "typescript.preferences.importModuleSpecifier" : "non-relative",
-  "typescript.preferences.suggestionActions.enabled" : false,
+  "typescript.preferences.suggestionActions.enabled" : true,
   // 'single' or 'double'
   "typescript.preferences.quoteStyle" : "single",
   "typescript.format.insertSpaceAfterCommaDelimiter" : true,

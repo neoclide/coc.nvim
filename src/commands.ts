@@ -1,4 +1,5 @@
 import {Disposable} from 'vscode-languageserver-protocol'
+import {Neovim} from 'neovim'
 
 // command center
 export interface Command {
@@ -15,9 +16,9 @@ class CommandItem implements Disposable {
   ) {
   }
 
-  public execute(...args: any[]):void {
+  public execute(args: any[]):void {
     let {impl, thisArg} = this
-    impl.apply(thisArg, args)
+    impl.apply(thisArg, args || [])
   }
 
   public dispose():void {
@@ -28,6 +29,15 @@ class CommandItem implements Disposable {
 
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
+
+  public init(nvim:Neovim):void {
+    this.register({
+      id: 'editor.action.triggerSuggest',
+      execute: () => {
+        nvim.call('coc#refresh').catch(() => { }) // tslint:disable-line
+      }
+    })
+  }
 
   public dispose():void {
     for (const registration of this.commands.values()) {

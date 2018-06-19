@@ -40,6 +40,7 @@ import workspace from './workspace'
 import uuid = require('uuid/v4')
 import snippetManager from './snippet/manager'
 import {diffLines} from './util/diff'
+import commands from './commands'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -160,7 +161,10 @@ class Languages implements ILanguage {
         if (additionalTextEdits && additionalTextEdits.length) {
           await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
         }
-        // TODO additional textEdit command support
+        if (completeItem.command) {
+          let {command} = completeItem.command
+          commands.executeCommand(command, completeItem.command.arguments)
+        }
         completeItems = []
         resolving = ''
         return
@@ -251,7 +255,6 @@ class Languages implements ILanguage {
       end: changedLines.end,
       strictIndexing: false,
     })
-    logger.debug(changedLines)
   }
 }
 

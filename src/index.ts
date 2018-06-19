@@ -10,6 +10,7 @@ import workspace from './workspace'
 import services from './services'
 import remoteStore from './remote-store'
 import languages from './languages'
+import commands from './commands'
 import EventEmitter = require('events')
 const logger = require('./util/logger')('index')
 
@@ -26,6 +27,7 @@ export default class CompletePlugin {
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim, this.emitter)
+    commands.init(nvim)
     this.debouncedOnChange = contextDebounce((bufnr: number) => {
       workspace.onBufferChange(bufnr).catch(e => {
         logger.error(e.message)
