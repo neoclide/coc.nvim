@@ -257,7 +257,7 @@ export class Placeholder extends Marker {
 }
 
 export class Choice extends Marker {
-  private readonly options: Text[] = []
+  public readonly options: Text[] = []
 
   public appendChild(marker: Marker): this {
     if (marker instanceof Text) {

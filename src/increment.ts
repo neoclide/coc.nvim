@@ -73,9 +73,7 @@ export default class Increment {
     this.clearTimer()
     this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')
-    this.timer = setTimeout(() => {
-      this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
-    }, 100)
+    this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
     logger.debug('increment stopped')
   }
 

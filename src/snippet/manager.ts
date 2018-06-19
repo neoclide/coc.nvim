@@ -195,7 +195,13 @@ export class SnippetManager {
     let offset = snippet.offset(marker)
     let col = startCharacter + offset + 1
     let len = marker.toString().length
-    await nvim.call('coc#snippet#range_select', [startLnum + 1, col, len])
+    let choice = marker.choice
+    if (choice) {
+      let values = choice.options.map(o => o.value)
+      await nvim.call('coc#snippet#show_choices', [startLnum + 1, col, len, values])
+    } else {
+      await nvim.call('coc#snippet#range_select', [startLnum + 1, col, len])
+    }
     this.currIndex = marker.index
     if (marker.index == 0) {
       await this.detach(silent)

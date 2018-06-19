@@ -97,13 +97,10 @@ function! s:Enable()
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()
 
-  let guifg = get(g:, 'coc_chars_guifg', 'white')
-  let guibg = get(g:, 'coc_chars_guibg', 'magenta')
-  exec "highlight default CocChars guifg=".guifg." guibg=".guibg." ctermfg=white ctermbg=".(&t_Co < 256 ? "magenta" : "201")
   let g:coc_enabled = 1
-  let s:timer = timer_start(5000, function('s:CheckStatus'), {
-        \ 'repeat': -1
-        \})
+  "let s:timer = timer_start(5000, function('s:CheckStatus'), {
+  "      \ 'repeat': -1
+  "      \})
 endfunction
 
 function! s:CheckStatus(...)

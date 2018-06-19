@@ -382,7 +382,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       snippet += (methodName && methodName.text) || item.label
     }
     snippet += '('
-
     let holderIndex = 1
     let parenCount = 0
     let i = 0

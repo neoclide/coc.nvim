@@ -23,7 +23,6 @@ function! coc#source#neco#complete(opt, cb) abort
   let input = a:opt['input']
   let part = a:opt['line'][0:colnr - 2]
   let changed = get(a:opt, 'changed', 0)
-  let g:c = changed
   if changed < 0
     let changed = 0
   endif

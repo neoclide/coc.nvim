@@ -113,6 +113,6 @@
   "coc.source.neco.shortcut": "NECO",
   "coc.source.neco.priority": 9,
   "coc.source.neco.filetypes": ["vim"],
-  "coc.source.neco.triggerCharacters": [":"],
+  "coc.source.neco.triggerCharacters": [":", "&"],
   "coc.source.neco.firstMatch": true
 }
