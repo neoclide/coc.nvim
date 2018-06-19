@@ -61,6 +61,11 @@ ultisnips      |Snippets name completion   |User defined | Install [ultisnips](h
 languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 neco           |VimL completion            |vim          | Install [neco-vim](https://github.com/Shougo/neco-vim)
 
+### Variables
+
+* `g:coc_snippet_next`, navigate to next placeholder, default `<C-j>`
+* `g:coc_snippet_previous`, navigate to previous placeholder, default `<C-k>`
+
 ### Commands
 
 Commands are used change the service status on the fly.

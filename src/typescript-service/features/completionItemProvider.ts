@@ -413,7 +413,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       }
     }
     if (hasOptionalParameters) {
-      snippet += '$1'
+      snippet += '${' + holderIndex + '}'
     }
     snippet += ')'
     snippet += '$0'

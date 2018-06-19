@@ -2,7 +2,6 @@ if !has('nvim') || exists('did_coc_loaded') || v:version < 700
   finish
 endif
 let did_coc_loaded = 1
-let s:timer = 0
 
 function! s:Autocmd(...)
   " care about normal buffer only
@@ -31,9 +30,6 @@ function! s:Disable() abort
     echom '[coc.nvim] Disabled'
   echohl None
   let g:coc_enabled = 0
-  if get(s:, 'timer', 0)
-    call timer_stop(s:timer)
-  endif
 endfunction
 
 function! s:RefreshSource(...) abort
@@ -96,19 +92,7 @@ function! s:Enable()
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()
-
   let g:coc_enabled = 1
-  "let s:timer = timer_start(5000, function('s:CheckStatus'), {
-  "      \ 'repeat': -1
-  "      \})
-endfunction
-
-function! s:CheckStatus(...)
-  " check the node process is running
-  let res = jobwait([get(g:, 'coc_node_channel_id', 0)], 10)
-  if res[0] != -1
-    call s:Disable()
-  endif
 endfunction
 
 augroup coc_init
@@ -116,7 +100,7 @@ augroup coc_init
   autocmd user CocNvimInit call s:Enable()
 augroup end
 
-nnoremap <silent> <Plug>(coc-jump-definition) :call CocJumpDefinition()<CR>
+nnoremap <silent> <Plug>(coc-jump-definition) :call CocAction('jumpDefinition')<CR>
 inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
 
 if has('vim_starting')

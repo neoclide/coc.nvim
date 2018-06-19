@@ -185,9 +185,14 @@ export class SnippetManager {
     let newLine = `${this.startPart}${newText}${this.endPart}`
     await this.nvim.call('setline', [lnum + 1, newLine])
     let placeholder = snippet.fiistPlaceholder
-    if (placeholder) await this.jumpTo(placeholder, true)
     await this.nvim.call('coc#snippet#enable')
     await this.attach()
+    if (placeholder) {
+      setTimeout(async () => {
+        // should wait for additionalTextEdits finish first
+        await this.jumpTo(placeholder, true)
+      }, 20)
+    }
   }
 
   public async jumpTo(marker: Placeholder, silent = false):Promise<void> {

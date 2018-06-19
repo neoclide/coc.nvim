@@ -18,6 +18,8 @@ import {
   CompletionItem,
   CompletionItemKind,
   InsertTextFormat,
+  TextEdit,
+  TextDocument,
   Range,
 } from 'vscode-languageserver-protocol'
 import {
@@ -37,6 +39,7 @@ import {
 import workspace from './workspace'
 import uuid = require('uuid/v4')
 import snippetManager from './snippet/manager'
+import {diffLines} from './util/diff'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -111,7 +114,7 @@ class Languages implements ILanguage {
     return {
       name,
       disabled: false,
-      priority: 9,
+      priority: 99,
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
@@ -151,7 +154,12 @@ class Languages implements ILanguage {
       onCompleteDone: async (item: VimCompleteItem):Promise<void> => {
         this.cancelRequest()
         let completeItem = resolveItem(item)
+        if (!completeItem) return
         await this.applyTextEdit(completeItem, option)
+        let {additionalTextEdits} = completeItem
+        if (additionalTextEdits && additionalTextEdits.length) {
+          await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+        }
         // TODO additional textEdit command support
         completeItems = []
         resolving = ''
@@ -230,6 +238,20 @@ class Languages implements ILanguage {
       newLine = `${start}${newText}${end}`
       await nvim.call('setline', [option.linenr, newLine])
     }
+  }
+
+  private async applyAdditionaLEdits(textEdits:TextEdit[], bufnr:number):Promise<void> {
+    let document = workspace.getDocument(bufnr)
+    let orig = document.content
+    let text = TextDocument.applyEdits(document.textDocument, textEdits)
+    let changedLines = diffLines(orig, text)
+    let buffer = await this.nvim.buffer
+    await buffer.setLines(changedLines.replacement, {
+      start: changedLines.start,
+      end: changedLines.end,
+      strictIndexing: false,
+    })
+    logger.debug(changedLines)
   }
 }
 

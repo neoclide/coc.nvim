@@ -15,7 +15,6 @@ import {
   WorkspaceEdit,
   DidChangeTextDocumentParams,
   TextDocumentWillSaveEvent,
-  CompletionItem,
 } from 'vscode-languageserver-protocol'
 
 export {
@@ -33,6 +32,12 @@ export enum SourceType {
   Native,
   Remote,
   Service,
+}
+
+export interface ChangedLines {
+  start: number
+  end: number
+  replacement: string[]
 }
 
 // Config property of source

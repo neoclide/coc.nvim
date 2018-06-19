@@ -47,10 +47,11 @@
     ]
   },
   "devDependencies": {
-    "@types/fb-watchman": "^2.0.0",
     "@chemzqm/tsconfig": "0.0.2",
     "@chemzqm/tslint-config": "^1.0.13",
     "@types/debounce": "^1.0.0",
+    "@types/diff": "^3.5.1",
+    "@types/fb-watchman": "^2.0.0",
     "@types/fuzzaldrin": "^2.1.1",
     "@types/jest": "^23.1.0",
     "@types/node": "^10.3.3",

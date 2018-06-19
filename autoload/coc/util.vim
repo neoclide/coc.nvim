@@ -189,7 +189,7 @@ endfunction
 
 function! coc#util#get_search(col)
   let line = getline('.')
-  let colnr = col('.')
+  let colnr = mode() ==# 'n' ? col('.') + 1 : col('.')
   if colnr <= a:col + 1 | return '' | endif
   return line[a:col : colnr - 2]
 endfunction
