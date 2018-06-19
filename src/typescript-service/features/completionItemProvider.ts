@@ -383,6 +383,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     }
     snippet += '('
 
+    let holderIndex = 1
     let parenCount = 0
     let i = 0
     for (; i < detail.displayParts.length; ++i) {
@@ -395,7 +396,8 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
         if (!nameIsFollowedByOptionalIndicator) {
           if (hasAddedParameters) snippet += ', '
           hasAddedParameters = true
-          snippet += part.text
+          snippet += '${' +holderIndex+ ':' + part.text + '}'
+          holderIndex = holderIndex + 1
         }
         hasOptionalParameters =
           hasOptionalParameters || nameIsFollowedByOptionalIndicator

@@ -50,6 +50,7 @@ export class Completes {
     let items = await complete.doComplete(nvim, sources)
     logger.debug(`Complete time cost: ${Date.now() - start}ms`)
     this.completeItems = items || []
+    // wait for popmenu show
     setTimeout(() => { this._completing = false }, 20)
     return items
   }

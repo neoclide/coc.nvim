@@ -18,6 +18,7 @@ import {
   CompletionItem,
   CompletionItemKind,
   InsertTextFormat,
+  Range,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -28,12 +29,14 @@ import {
   echoMessage,
   EventEmitter,
   Event,
+  wait,
 } from './util'
 import {
   byteSlice,
 } from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
+import snippetManager from './snippet/manager'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -95,6 +98,16 @@ class Languages implements ILanguage {
     let completeItems: CompletionItem[] = []
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
     let resolving:string
+    let option: CompleteOption
+
+    function resolveItem(item: VimCompleteItem):CompletionItem {
+      if (!completeItems || completeItems.length == 0) return null
+      let {word} = item
+      return completeItems.find(o => {
+        let insertText = o.insertText || o.label // tslint:disable-line
+        return word == insertText
+      })
+    }
     return {
       name,
       disabled: false,
@@ -105,10 +118,9 @@ class Languages implements ILanguage {
       onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
         if (!hasResolve) return
         if (completeItems.length == 0) return
-        let {word} = item
-        resolving = word
+        resolving = item.word
         let resolved:CompletionItem
-        let prevItem = completeItems.find(o => o.label == word)
+        let prevItem = resolveItem(item)
         if (!prevItem || prevItem.data.resolving) return
         if (prevItem.data.resolved) {
           resolved = prevItem
@@ -121,29 +133,32 @@ class Languages implements ILanguage {
             resolving: false,
             resolved: true
           })
-          let idx = completeItems.findIndex(o => word == o.label)
-          if (idx !== -1) completeItems[idx] = resolved
         }
         logger.debug('Resolved complete item', resolved)
         let visible = await this.nvim.call('pumvisible')
-        if (visible != 0 && resolving == word) {
+        if (visible != 0 && resolving == item.word) {
           // vim have no suppport for update complete item
           let str = resolved.detail.trim() || ''
           await echoMessage(this.nvim, str)
           let doc = getDocumentation(resolved)
           if (doc) str += '\n\n' + doc
           if (str.length) {
-            // vim has bug
+            // TODO vim has bug with layout change on pumvisible
             // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
           }
         }
       },
-      onCompleteDone: (item: VimCompleteItem):Promise<void> => {
+      onCompleteDone: async (item: VimCompleteItem):Promise<void> => {
         this.cancelRequest()
+        let completeItem = resolveItem(item)
+        await this.applyTextEdit(completeItem, option)
+        // TODO additional textEdit command support
         completeItems = []
+        resolving = ''
         return
       },
-      async doComplete(opt:CompleteOption):Promise<CompleteResult|null> {
+      doComplete: async (opt:CompleteOption):Promise<CompleteResult|null> => {
+        option = opt
         let {triggerCharacter, bufnr, input} = opt
         let firstChar = input.length ? input[0]: ''
         let doc = workspace.getDocument(bufnr)
@@ -190,6 +205,37 @@ class Languages implements ILanguage {
       this.completionProviders.splice(idx, 1)
     }
   }
+
+  private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<void> {
+    let {nvim} = this
+    let {textEdit} = item
+    if (!textEdit) return
+    let inserted = item.insertText || item.label // tslint:disable-line
+    let {range, newText} = textEdit
+    let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+    if (!validRange(range)) return
+    let deleteCount = range.end.character - option.colnr + 1
+    let line = await nvim.call('getline', option.linenr) as string
+    let character = range.start.character
+    // replace inserted word
+    let start = line.substr(0, character)
+    let end = line.substr(option.col +inserted.length + deleteCount)
+    let newLine = start + end
+    await wait(10)
+    let search = await nvim.call('coc#util#get_search', [option.col]) as string
+    if (search != inserted) return
+    if (isSnippet) {
+      await snippetManager.insertSnippet(option.linenr - 1, character, newLine, newText)
+    } else {
+      newLine = `${start}${newText}${end}`
+      await nvim.call('setline', [option.linenr, newLine])
+    }
+  }
+}
+
+function validRange(range:Range):boolean {
+  let {start, end} = range
+  return start.line == end.line
 }
 
 function validString(str:any):boolean {

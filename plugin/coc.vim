@@ -5,6 +5,7 @@ let did_coc_loaded = 1
 let s:timer = 0
 
 function! s:Autocmd(...)
+  " care about normal buffer only
   if !empty(&buftype) | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
   try
@@ -78,15 +79,17 @@ function! s:Enable()
   endif
   augroup coc_nvim
     autocmd!
-    autocmd FileType * call s:Autocmd('FileType', expand('<amatch>'))
-    autocmd InsertCharPre * call s:Autocmd('InsertCharPre', v:char)
-    autocmd CompleteDone * call s:Autocmd('CompleteDone', v:completed_item)
-    autocmd TextChangedP * call s:Autocmd('TextChangedP')
-    autocmd TextChangedI * call s:Autocmd('TextChangedI')
-    autocmd InsertLeave * call s:Autocmd('InsertLeave')
-    autocmd BufEnter * call s:Autocmd('BufEnter', +expand('<abuf>'))
-    autocmd BufUnload * call s:Autocmd('BufUnload', +expand('<abuf>'))
-    autocmd TextChanged * call s:Autocmd('BufChange', +expand('<abuf>'))
+    autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'))
+    autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
+    autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
+    autocmd TextChangedP        * call s:Autocmd('TextChangedP')
+    autocmd TextChangedI        * call s:Autocmd('TextChangedI')
+    autocmd InsertLeave         * call s:Autocmd('InsertLeave')
+    autocmd InsertEnter         * call s:Autocmd('InsertEnter')
+    autocmd BufLeave            * call s:Autocmd('BufLeave', +expand('<abuf>'))
+    autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
+    autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
+    autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
     autocmd BufNewFile,BufRead, * call s:Autocmd('BufCreate', +expand('<abuf>'))
   augroup end
 

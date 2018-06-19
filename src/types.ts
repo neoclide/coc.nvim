@@ -15,6 +15,7 @@ import {
   WorkspaceEdit,
   DidChangeTextDocumentParams,
   TextDocumentWillSaveEvent,
+  CompletionItem,
 } from 'vscode-languageserver-protocol'
 
 export {

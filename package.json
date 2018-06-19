@@ -63,11 +63,11 @@
     "tslint-language-service": "^0.9.9"
   },
   "dependencies": {
-    "fuzzaldrin": "^2.1.0",
     "builtin-modules": "^3.0.0",
     "debounce": "^1.1.0",
     "fb-watchman": "^2.0.0",
     "find-root": "^1.1.0",
+    "fuzzaldrin": "^2.1.0",
     "glob": "^7.1.2",
     "got": "^8.3.1",
     "json5": "^1.0.1",

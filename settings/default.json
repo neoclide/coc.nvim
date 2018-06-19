@@ -108,7 +108,7 @@
   "coc.source.tag.priority": 3,
   "coc.source.word.shortcut": "10k",
   "coc.source.word.priority": 0,
-  "coc.source.ultisnips.priority": 9,
+  "coc.source.ultisnips.priority": 3,
   "coc.source.ultisnips.shortcut": "US",
   "coc.source.neco.shortcut": "NECO",
   "coc.source.neco.priority": 9,

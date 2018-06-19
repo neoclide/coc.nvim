@@ -4,7 +4,8 @@ import {
   echoErr,
   contextDebounce,
 } from './util'
-import Completion from './completion'
+import snippetManager from './snippet/manager'
+import completion from './completion'
 import workspace from './workspace'
 import services from './services'
 import remoteStore from './remote-store'
@@ -16,7 +17,6 @@ const logger = require('./util/logger')('index')
 export default class CompletePlugin {
   public nvim: Neovim
   private debouncedOnChange: (bufnr: number) => void
-  private completion: Completion
   private initailized = false
   private emitter: EventEmitter
 
@@ -25,6 +25,7 @@ export default class CompletePlugin {
     this.emitter = new EventEmitter()
     workspace.nvim = nvim
     languages.nvim = nvim
+    snippetManager.init(nvim, this.emitter)
     this.debouncedOnChange = contextDebounce((bufnr: number) => {
       workspace.onBufferChange(bufnr).catch(e => {
         logger.error(e.message)
@@ -50,7 +51,7 @@ export default class CompletePlugin {
       let channelId = await (nvim as any).channelId
       // workspace configuration
       await workspace.init()
-      this.completion = new Completion(nvim, this.emitter)
+      completion.init(nvim, this.emitter)
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('silent doautocmd User CocNvimInit')
       services.init(nvim)
@@ -74,12 +75,13 @@ export default class CompletePlugin {
     remoteStore.setResult(id, name, items)
   }
 
-  @Function('CocAutocmd', {sync: false})
+  @Function('CocAutocmd', {sync: true})
   public async cocAutocmd(args: any): Promise<void> {
     let {emitter, nvim} = this
     switch (args[0] as string) {
-      case 'BufChange':
+      case 'TextChanged':
         this.debouncedOnChange(args[1])
+        emitter.emit('TextChanged')
         break
       case 'BufEnter':
         await workspace.bufferEnter(args[1])
@@ -90,16 +92,27 @@ export default class CompletePlugin {
       case 'FileType':
         services.start(args[1])
         break
-      case 'BufUnload':
+      case 'BufUnload': {
         await workspace.onBufferUnload(args[1])
+        emitter.emit('BufUnload', args[1])
         break
+      }
+      case 'BufLeave': {
+        emitter.emit('BufLeave', args[1])
+        break
+      }
       case 'InsertCharPre':
+        logger.debug('InsertCharPre')
         emitter.emit('InsertCharPre', args[1])
         break
       case 'InsertLeave':
-        emitter.emit('InsertLeave', args[1])
+        emitter.emit('InsertLeave')
+        break
+      case 'InsertEnter':
+        emitter.emit('InsertEnter')
         break
       case 'CompleteDone':
+        logger.debug('CompleteDone')
         emitter.emit('CompleteDone', args[1])
         break
       case 'TextChangedP':
@@ -109,8 +122,11 @@ export default class CompletePlugin {
       case 'TextChangedI':
         logger.debug('TextChangedI')
         let buffer = await nvim.buffer
-        await workspace.onBufferChange(buffer.id)
-        emitter.emit('TextChangedI')
+        workspace.onBufferChange(buffer.id).then(() => {
+          emitter.emit('TextChangedI')
+        }, err => {
+          logger.error(err.stack)
+        })
         break
     }
   }
@@ -118,8 +134,19 @@ export default class CompletePlugin {
   @Function('CocAction', {sync: true})
   public async cocAction(args: any): Promise<any> {
     if (!this.initailized) return
-    let {completion} = this
     switch (args[0] as string) {
+      case 'snippetPrev': {
+        await snippetManager.jumpPrev()
+        break
+      }
+      case 'snippetNext': {
+        await snippetManager.jumpNext()
+        break
+      }
+      case 'snippetCancel': {
+        await snippetManager.detach()
+        break
+      }
       case 'startCompletion':
         completion.startCompletion(args[1])
         break

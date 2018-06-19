@@ -73,9 +73,7 @@ export default class Sources {
       let data = JSON.parse(user_data)
       if (!data.source) return
       let source = this.getSource(data.source)
-      if (source) {
-        await source.onCompleteResolve(item)
-      }
+      if (source) await source.onCompleteResolve(item)
     } catch (e) {
       logger.error(e.stack)
     }

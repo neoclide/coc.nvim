@@ -3,6 +3,8 @@
   "rules": {
     "eofline": false,
     "no-unbound-method": false,
+    "no-use-before-declare": false,
+    "no-invalid-template-strings": false,
     "no-unused-expression": false,
     "member-ordering": false,
     "no-unnecessary-qualifier": false,

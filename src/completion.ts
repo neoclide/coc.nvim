@@ -12,18 +12,31 @@ import {
   SourceStat,
   SourceType
 } from './types'
+import {
+  TextDocument,
+  Range,
+  TextEdit,
+} from 'vscode-languageserver-protocol'
 import EventEmitter = require('events')
 import workspace from './workspace'
 import Sources from './sources'
 import completes from './completes'
 import Increment from './increment'
+import snippetManager from './snippet/manager'
 const logger = require('./util/logger')('completion')
 
-export default class Completion {
+export class Completion {
   private increment: Increment
   private sources: Sources
+  private lastChangedI: number
+  private nvim:Neovim
 
-  constructor(private nvim:Neovim, emitter:EventEmitter) {
+  constructor() {
+    this.onError = this.onError.bind(this)
+  }
+
+  public init(nvim, emitter:EventEmitter):void {
+    this.nvim = nvim
     this.increment = new Increment(nvim)
     this.sources = new Sources(nvim)
     emitter.on('InsertCharPre', character => {
@@ -41,7 +54,11 @@ export default class Completion {
     emitter.on('TextChangedI', () => {
       this.onTextChangedI().catch(this.onError)
     })
-    this.onError = this.onError.bind(this)
+  }
+
+  public get hasLatestChangedI():boolean {
+    let {lastChangedI} = this
+    return lastChangedI && Date.now() - lastChangedI < 30
   }
 
   private onError(err):void {
@@ -153,17 +170,15 @@ export default class Completion {
       return
     }
     if (completes.completing) return
-    // TODO resolve item by check v:event
-    // increment.stop()
-    // if (candidates.length == 0) return
-    // let {option} = completes
-    // let search = await nvim.call('coc#util#get_search', [option.col])
-    // if (search.length < 2) return
-    // let item = candidates.find(o => o.word === search)
-    // if (item) await this.sources.doCompleteResolve(item)
+    if (this.hasLatestChangedI) return
+    let {option} = completes
+    let search = await this.nvim.call('coc#util#get_search', [option.col])
+    let item = completes.getCompleteItem(search)
+    if (item) await this.sources.doCompleteResolve(item)
   }
 
   private async onTextChangedI():Promise<void> {
+    this.lastChangedI = Date.now()
     let {nvim, increment} = this
     let {latestInsertChar} = increment
     if (increment.isActivted) {
@@ -200,7 +215,7 @@ export default class Completion {
   }
 
   private onInsertCharPre(character:string):void {
-    let {increment} = this
+    let {increment, nvim} = this
     increment.lastInsert = {
       character,
       timestamp: Date.now(),
@@ -223,3 +238,5 @@ export default class Completion {
     return false
   }
 }
+
+export default new Completion()
