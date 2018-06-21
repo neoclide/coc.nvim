@@ -1,7 +1,6 @@
 import {
   Disposable,
-  TextDocument,
-  TextDocumentContentChangeEvent,
+  Range,
 } from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
 import {Event, Emitter} from './event'
@@ -15,15 +14,12 @@ export {
   UriComponents,
   platform,
 }
-import debounce = require('debounce')
 import net = require('net')
 import path = require('path')
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
 
 export const ROOT = path.resolve(__dirname, '../..')
-
-export type Callback = (arg: number|string) => void
 
 export enum FileSchemes {
   File = 'file',
@@ -63,19 +59,6 @@ export function getUserData(item:any):{[index: string]: any} | null {
   }
 }
 
-// create dobounce funcs for each arg
-export function contextDebounce(func: Callback, timeout: number):Callback {
-  let funcMap: {[index: string] : Callback | null} = {}
-  return (arg: string | number): void => {
-    let fn = funcMap[arg]
-    if (fn == null) {
-      fn = debounce(func.bind(null, arg), timeout, false)
-      funcMap[arg.toString()] = fn
-    }
-    fn(arg)
-  }
-}
-
 export function wait(ms: number):Promise<any> {
   return new Promise(resolve => {
     setTimeout(() => {
@@ -102,11 +85,6 @@ export function isCocItem(item: any):boolean {
   } catch (e) {
     return false
   }
-}
-
-export function filterWord(input: string, word: string, icase: boolean):boolean {
-  if (!icase) return word.startsWith(input)
-  return word.toLowerCase().startsWith(input.toLowerCase())
 }
 
 function getValidPort(port:number, cb:(port:number)=>void):void {
@@ -158,51 +136,11 @@ export function disposeAll(disposables: Disposable[]):void {
   }
 }
 
-export function getChangeEvent(doc:TextDocument, text:string):TextDocumentContentChangeEvent {
-  let orig = doc.getText()
-  if (!orig.length) return {text}
-  let start = -1
-  let isAdd = text.length > orig.length
-  let end = orig.length
-  let changedText = ''
-  for (let i = 0, l = orig.length; i < l; i++) {
-    if (orig[i] !== text[i]) {
-      start = i
-      break
-    }
+export function rangeOfLine(range:Range, line:number):boolean {
+  let {start, end} = range
+  if (start.line != line) return false
+  if (end.line == line || (end.line == line + 1 && end.character == 0)) {
+    return true
   }
-  if (start != -1) {
-    let cl = text.length
-    let n = 1
-    for (let i = end - 1; i >= 0; i--) {
-      let j = cl - n
-      if (isAdd && i == start) {
-        end = start
-        changedText = text.slice(start, j)
-        break
-      }
-      if (!isAdd && j == start) {
-        end = i
-        break
-      }
-      if (orig[i] !== text[j]) {
-        end = i + 1
-        changedText = text.slice(start, end)
-        break
-      }
-      n++
-    }
-  } else {
-    start = 0
-    changedText = text.slice(end)
-  }
-  logger.debug('position: ', start, end, changedText.length)
-  return {
-    range: {
-      start: doc.positionAt(start),
-      end: doc.positionAt(end),
-    },
-    rangeLength: end - start,
-    text: changedText
-  }
+  return false
 }

@@ -73,6 +73,7 @@ export default class CompletePlugin {
   @Function('CocAutocmd', {sync: true})
   public async cocAutocmd(args: any): Promise<void> {
     let {emitter} = this
+    logger.trace('Autocmd:', args[0])
     switch (args[0] as string) {
       case 'TextChanged':
         emitter.emit('TextChanged', Date.now())
@@ -105,7 +106,6 @@ export default class CompletePlugin {
         break
       }
       case 'InsertCharPre':
-        logger.debug('InsertCharPre')
         emitter.emit('InsertCharPre', args[1])
         break
       case 'InsertLeave':
@@ -115,15 +115,12 @@ export default class CompletePlugin {
         emitter.emit('InsertEnter')
         break
       case 'CompleteDone':
-        logger.debug('CompleteDone')
         emitter.emit('CompleteDone', args[1])
         break
       case 'TextChangedP':
-        logger.debug('TextChangedP')
         emitter.emit('TextChangedP')
         break
       case 'TextChangedI':
-        logger.debug('TextChangedI')
         // wait for workspace notification
         setTimeout(() => {
           emitter.emit('TextChangedI')

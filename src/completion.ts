@@ -55,7 +55,7 @@ export class Completion {
     emitter.on('TextChangedI', () => {
       this.onTextChangedI().catch(this.onError)
     })
-
+    // stop change emit on completion
     let document:Document = null
     increment.on('start', option => {
       let {bufnr} = option
@@ -93,18 +93,17 @@ export class Completion {
         input: resumeInput,
         colnr: colnr + resumeInput.length - input.length
       })
-      logger.debug(`Resume options: ${JSON.stringify(opt)}`)
+      logger.trace(`Resume options: ${JSON.stringify(opt)}`)
       let items = completes.filterCompleteItems(opt)
-      logger.debug(`Filtered item length: ${items.length}`)
+      logger.trace(`Filtered item length: ${items.length}`)
       if (!items || items.length === 0) {
         increment.stop()
         return
       }
+      // make sure input not changed
       if (increment.search == resumeInput) {
         await nvim.call('coc#_set_context', [opt.col, items])
         await nvim.call('coc#_do_complete')
-      } else {
-        logger.debug('input change, skip increment')
       }
     } catch (e) {
       await echoErr(nvim, `completion error: ${e.message}`)
@@ -155,9 +154,9 @@ export class Completion {
     let {nvim, increment} = this
     // could happen for auto trigger
     increment.start(option)
-    logger.debug(`options: ${JSON.stringify(option)}`)
+    logger.trace(`options: ${JSON.stringify(option)}`)
     let sources = this.sources.getCompleteSources(option)
-    logger.debug(`Activted sources: ${sources.map(o => o.name).join(',')}`)
+    logger.trace(`Activted sources: ${sources.map(o => o.name).join(',')}`)
     let items = await completes.doComplete(nvim, sources, option)
     if (items.length == 0) {
       increment.stop()
@@ -168,7 +167,6 @@ export class Completion {
       await nvim.call('coc#_set_context', [option.col, items])
       await nvim.call('coc#_do_complete')
     } else {
-      logger.debug('input change, try resume')
       if (search && completes.hasMatch(search)) {
         await this.resumeCompletion(search)
       } else {
@@ -207,17 +205,14 @@ export class Completion {
     if (!shouldTrigger) return
     let option = await nvim.call('coc#util#get_complete_option')
     Object.assign(option, { triggerCharacter: latestInsertChar })
-    logger.debug('trigger completion with', option)
+    logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
 
   private async onCompleteDone(item:VimCompleteItem):Promise<void> {
     if (!isCocItem(item)) return
     let {increment} = this
-    if (increment.isActivted) {
-      logger.debug('complete done with coc item, increment stopped')
-      increment.stop()
-    }
+    increment.stop()
     completes.addRecent(item.word)
     await this.sources.doCompleteDone(item)
     completes.reset()

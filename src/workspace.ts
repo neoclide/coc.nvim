@@ -213,9 +213,9 @@ export class Workspace implements IWorkSpace {
         textDocument: {version, uri},
         contentChanges
       })
-      logger.debug(`buffer ${bufnr} change ${version}`)
+      logger.trace('buffer change', bufnr, version)
     })
-    logger.debug('buffer created', bufnr)
+    logger.trace('buffer created', bufnr)
   }
 
   public async onBufferUnload(bufnr:number):Promise<void> {
@@ -225,7 +225,7 @@ export class Workspace implements IWorkSpace {
       this._onDidRemoveDocument.fire(doc.textDocument)
       doc.detach()
     }
-    logger.debug(`bufnr ${bufnr} unload`)
+    logger.trace('bufnr unload', bufnr)
   }
 
   public async bufferEnter(bufnr:number):Promise<void> {

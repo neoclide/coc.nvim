@@ -20,7 +20,6 @@ import {
   InsertTextFormat,
   TextEdit,
   TextDocument,
-  Range,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -30,6 +29,7 @@ import {
   Disposable,
   echoMessage,
   EventEmitter,
+  rangeOfLine,
   Event,
   wait,
 } from './util'
@@ -41,6 +41,7 @@ import uuid = require('uuid/v4')
 import snippetManager from './snippet/manager'
 import {diffLines} from './util/diff'
 import commands from './commands'
+import Document from './model/document'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -162,16 +163,15 @@ class Languages implements ILanguage {
         if (mode == 'i') {
           let hasSnippet = await this.applyTextEdit(completeItem, option)
           let {additionalTextEdits} = completeItem
-          if (additionalTextEdits && additionalTextEdits.length) {
-            await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
-          }
+          await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
           // start snippet listener after additionalTextEdits
           if (hasSnippet) await snippetManager.attach()
-          if (completeItem.command) {
-            let {command} = completeItem.command
-            commands.executeCommand(command, completeItem.command.arguments)
+          let {command} = completeItem
+          if (command) {
+            commands.executeCommand(command.command, command.arguments)
           }
         }
+        option = null
         completeItems = []
         resolving = ''
         return
@@ -229,20 +229,21 @@ class Languages implements ILanguage {
     let {nvim} = this
     let {textEdit} = item
     if (!textEdit) return false
-    let inserted = item.insertText || item.label // tslint:disable-line
     let {range, newText} = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    if (!validRange(option.linenr - 1, range)) return false
+    if (!rangeOfLine(range, option.linenr - 1)) return false
+    let document = workspace.getDocument(option.bufnr)
+    if (!document) return false
+    let line = document.getline(option.linenr - 1)
+    let inserted = item.insertText || item.label // tslint:disable-line
     let deleteCount = range.end.character - option.colnr + 1
-    let line = await nvim.call('getline', option.linenr) as string
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
     let end = line.substr(option.col + inserted.length + deleteCount)
-    let newLine = start + end
-    let search = await nvim.call('coc#util#get_search', [option.col]) as string
-    if (search != inserted) return false
-    newLine = `${start}${newText}${end}`
+    let col = await nvim.call('col', ['.'])
+    if (col != option.col + inserted.length + 1) return false
+    let newLine = `${start}${newText}${end}`
     if (!isSnippet) {
       await nvim.call('setline', [option.linenr, newLine])
       return false
@@ -252,6 +253,7 @@ class Languages implements ILanguage {
   }
 
   private async applyAdditionaLEdits(textEdits:TextEdit[], bufnr:number):Promise<void> {
+    if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     let orig = document.content
     let text = TextDocument.applyEdits(document.textDocument, textEdits)
@@ -263,11 +265,6 @@ class Languages implements ILanguage {
       strictIndexing: false,
     })
   }
-}
-
-function validRange(line:number, range:Range):boolean {
-  let {start, end} = range
-  return start.line == end.line && start.line == line
 }
 
 function validString(str:any):boolean {

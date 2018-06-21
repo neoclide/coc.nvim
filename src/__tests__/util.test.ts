@@ -1,8 +1,5 @@
 import {
-  contextDebounce,
-  wait,
   isCocItem,
-  filterWord
 } from '../util/index'
 import {
   getCharCodes,
@@ -28,53 +25,6 @@ import watchObj from '../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
 
-describe('contextDebounce test',async () => {
-
-  test('should debounce #1', async () => {
-    let i = 0
-    function incr(x:number):void {
-      i = i + x
-    }
-    let fn = contextDebounce(incr, 100)
-    expect(i).toBe(0)
-    fn(1)
-    await wait(30)
-    fn(1)
-    expect(i).toBe(0)
-    await wait(110)
-    expect(i).toBe(1)
-    fn(1)
-    expect(i).toBe(1)
-    await wait(110)
-    expect(i).toBe(2)
-  })
-
-  test('should debounce #2', async () => {
-    let i = 0
-    let j = 0
-    function incr(x:number):void {
-      if (x == 1) i = i + 1
-      if (x == 2) j = j + 1
-    }
-    let fn = contextDebounce(incr, 100)
-    fn(1)
-    fn(2)
-    expect(i).toBe(0)
-    expect(j).toBe(0)
-    await wait(110)
-    expect(i).toBe(1)
-    expect(j).toBe(1)
-    fn(2)
-    fn(2)
-    fn(1)
-    expect(i).toBe(1)
-    expect(j).toBe(1)
-    await wait(110)
-    expect(i).toBe(2)
-    expect(j).toBe(2)
-  })
-})
-
 describe('isCocItem test', () => {
   test('should be coc item', () => {
     let item = {
@@ -89,15 +39,6 @@ describe('isCocItem test', () => {
     expect(isCocItem({})).toBeFalsy
     expect(isCocItem({word: ''})).toBeFalsy
     expect(isCocItem({word: '', user_data: 'abc'})).toBeFalsy
-  })
-})
-
-describe('filter test', () => {
-
-  test('filter word #2', () => {
-    expect(filterWord('fo', 'foo', true)).toBeTruthy
-    expect(filterWord('fo', 'Foo', true)).toBeTruthy
-    expect(filterWord('fo', 'oFo', true)).toBeFalsy
   })
 })
 

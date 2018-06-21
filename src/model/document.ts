@@ -24,7 +24,6 @@ import {
 import debounce = require('debounce')
 import diff = require('diff')
 import {getTextEdit} from '../util/diff'
-import { create } from 'domain'
 const logger = require('../util/logger')('model-document')
 
 function createEdit(start:Partial<Position>, end:Partial<Position>, newText):TextEdit {
@@ -140,7 +139,6 @@ export default class Document {
 
   public async checkDocument():Promise<void> {
     this.paused = false
-    logger.debug('checking')
     this.textEdits = []
     let buffer:Buffer = this.buffer as Buffer
     let buftype = await buffer.getOption('buftype') as string
@@ -190,7 +188,6 @@ export default class Document {
     more:boolean
   ):void {
     if (tick == null) return
-    logger.debug('changedtick:', tick)
     if (buf.id !== (this.buffer as Buffer).id) return
     let textEdits:TextEdit[] = []
     let newText = linedata.map(s => s + '\n').join('')
