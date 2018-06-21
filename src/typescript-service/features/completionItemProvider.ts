@@ -236,6 +236,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     if (!detail.codeActions || !detail.codeActions.length) {
       return {}
     }
+    let {commaAfterImport} = this.completeOption
     logger.debug('detail:', JSON.stringify(detail.codeActions, null, 2))
     // Try to extract out the additionalTextEdits for the current file.
     // Also check if we still have to apply other workspace edits
@@ -263,7 +264,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
 
     if (hasReaminingCommandsOrEdits) {
       // Create command that applies all edits not in the current file.
-      // Should be handled after completeDone
       command = {
         title: '',
         command: ApplyCompletionCodeActionCommand.ID,
@@ -276,6 +276,14 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
         ]
       }
     }
+    if (additionalTextEdits.length && !commaAfterImport) {
+      // remove comma
+      additionalTextEdits.forEach(o => {
+        o.newText = o.newText.replace(/;\n$/, '\n')
+      })
+    }
+    logger.debug('=======')
+    logger.debug(JSON.stringify(additionalTextEdits))
 
     return {
       command,
@@ -372,14 +380,13 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     let {position, uri} = data
 
     if (textEdit) {
-      snippet += textEdit.newText
+      snippet += item.insertText || textEdit.newText // tslint:disable-line
     } else {
-      // we don't use insertText
       let document = workspace.getDocumentFromUri(uri)
       if (!document) return
       let range = document.getWordRangeAtPosition(position)
       textEdit = { range, newText: '' }
-      snippet += (methodName && methodName.text) || item.label
+      snippet += item.insertText || (methodName && methodName.text) || item.label // tslint:disable-line
     }
     snippet += '('
     let holderIndex = 1

@@ -23,6 +23,7 @@ import Sources from './sources'
 import completes from './completes'
 import Increment from './increment'
 import snippetManager from './snippet/manager'
+import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
 export class Completion {
@@ -37,7 +38,7 @@ export class Completion {
 
   public init(nvim, emitter:EventEmitter):void {
     this.nvim = nvim
-    this.increment = new Increment(nvim)
+    let increment = this.increment = new Increment(nvim)
     this.sources = new Sources(nvim)
     emitter.on('InsertCharPre', character => {
       this.onInsertCharPre(character)
@@ -53,6 +54,17 @@ export class Completion {
     })
     emitter.on('TextChangedI', () => {
       this.onTextChangedI().catch(this.onError)
+    })
+
+    let document:Document = null
+    increment.on('start', option => {
+      let {bufnr} = option
+      document = workspace.getDocument(bufnr)
+      if (document) document.paused = true
+    })
+    increment.on('stop', () => {
+      if (!document) return
+      document.paused = false
     })
   }
 

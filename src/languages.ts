@@ -156,14 +156,21 @@ class Languages implements ILanguage {
         this.cancelRequest()
         let completeItem = resolveItem(item)
         if (!completeItem) return
-        await this.applyTextEdit(completeItem, option)
-        let {additionalTextEdits} = completeItem
-        if (additionalTextEdits && additionalTextEdits.length) {
-          await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
-        }
-        if (completeItem.command) {
-          let {command} = completeItem.command
-          commands.executeCommand(command, completeItem.command.arguments)
+        await wait(10)
+        // it's not canceled by esc
+        let mode = await this.nvim.call('mode')
+        if (mode == 'i') {
+          let hasSnippet = await this.applyTextEdit(completeItem, option)
+          let {additionalTextEdits} = completeItem
+          if (additionalTextEdits && additionalTextEdits.length) {
+            await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+          }
+          // start snippet listener after additionalTextEdits
+          if (hasSnippet) await snippetManager.attach()
+          if (completeItem.command) {
+            let {command} = completeItem.command
+            commands.executeCommand(command, completeItem.command.arguments)
+          }
         }
         completeItems = []
         resolving = ''
@@ -218,30 +225,30 @@ class Languages implements ILanguage {
     }
   }
 
-  private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<void> {
+  private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<boolean> {
     let {nvim} = this
     let {textEdit} = item
-    if (!textEdit) return
+    if (!textEdit) return false
     let inserted = item.insertText || item.label // tslint:disable-line
     let {range, newText} = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    if (!validRange(range)) return
+    if (!validRange(option.linenr - 1, range)) return false
     let deleteCount = range.end.character - option.colnr + 1
     let line = await nvim.call('getline', option.linenr) as string
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let end = line.substr(option.col +inserted.length + deleteCount)
+    let end = line.substr(option.col + inserted.length + deleteCount)
     let newLine = start + end
-    await wait(10)
     let search = await nvim.call('coc#util#get_search', [option.col]) as string
-    if (search != inserted) return
-    if (isSnippet) {
-      await snippetManager.insertSnippet(option.linenr - 1, character, newLine, newText)
-    } else {
-      newLine = `${start}${newText}${end}`
+    if (search != inserted) return false
+    newLine = `${start}${newText}${end}`
+    if (!isSnippet) {
       await nvim.call('setline', [option.linenr, newLine])
+      return false
     }
+    await snippetManager.insertSnippet(option.linenr - 1, newLine)
+    return true
   }
 
   private async applyAdditionaLEdits(textEdits:TextEdit[], bufnr:number):Promise<void> {
@@ -258,9 +265,9 @@ class Languages implements ILanguage {
   }
 }
 
-function validRange(range:Range):boolean {
+function validRange(line:number, range:Range):boolean {
   let {start, end} = range
-  return start.line == end.line
+  return start.line == end.line && start.line == line
 }
 
 function validString(str:any):boolean {

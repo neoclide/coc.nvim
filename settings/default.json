@@ -35,6 +35,9 @@
   "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "typescript.preferences.completion.nameSuggestions" : true,
   "typescript.preferences.completion.autoImportSuggestions" : true,
+  "typescript.preferences.completion.commaAfterImport" : true,
+  // If enabled, the completion list will include completions with invalid identifier names.
+  "typescript.preferences.completion.moduleExports" : false,
   // 'non-relative' or 'relative'
   "typescript.preferences.importModuleSpecifier" : "non-relative",
   "typescript.preferences.suggestionActions.enabled" : true,
@@ -59,6 +62,7 @@
   // 'non-relative' or 'relative'
   "javascript.preferences.importModuleSpecifier" : "non-relative",
   "javascript.preferences.suggestionActions.enabled" : true,
+  "javascript.preferences.completion.commaAfterImport" : true,
   // 'single' or 'double'
   "javascript.preferences.quoteStyle" : "single",
   "javascript.format.insertSpaceAfterCommaDelimiter" : true,

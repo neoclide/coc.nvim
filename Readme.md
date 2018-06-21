@@ -10,6 +10,9 @@ W.I.P.🐒
 
 **WARNING, API not stable, all things could change**
 
+Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail
+documentation.
+
 ## Features
 
 * Async generate complete items in parallel.

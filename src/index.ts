@@ -2,7 +2,6 @@ import {Plugin, Function, Neovim} from 'neovim'
 import {VimCompleteItem} from './types'
 import {
   echoErr,
-  contextDebounce,
 } from './util'
 import snippetManager from './snippet/manager'
 import completion from './completion'
@@ -17,7 +16,6 @@ const logger = require('./util/logger')('index')
 @Plugin({dev: false})
 export default class CompletePlugin {
   public nvim: Neovim
-  private debouncedOnChange: (bufnr: number) => void
   private initailized = false
   private emitter: EventEmitter
 
@@ -28,11 +26,6 @@ export default class CompletePlugin {
     languages.nvim = nvim
     snippetManager.init(nvim, this.emitter)
     commands.init(nvim)
-    this.debouncedOnChange = contextDebounce((bufnr: number) => {
-      workspace.onBufferChange(bufnr).catch(e => {
-        logger.error(e.message)
-      })
-    }, 100)
   }
 
   @Function('CocInitAsync', {sync: false})
@@ -79,14 +72,22 @@ export default class CompletePlugin {
 
   @Function('CocAutocmd', {sync: true})
   public async cocAutocmd(args: any): Promise<void> {
-    let {emitter, nvim} = this
+    let {emitter} = this
     switch (args[0] as string) {
       case 'TextChanged':
-        this.debouncedOnChange(args[1])
-        emitter.emit('TextChanged')
+        emitter.emit('TextChanged', Date.now())
         break
       case 'BufEnter':
         await workspace.bufferEnter(args[1])
+        break
+      case 'BufCreate':
+        await workspace.onBufferCreate(args[1])
+        break
+      case 'BufWritePre':
+        await workspace.onBufferWillSave(args[1])
+        break
+      case 'BufWritePost':
+        await workspace.onBufferDidSave(args[1])
         break
       case 'BufCreate':
         await workspace.onBufferCreate(args[1])
@@ -123,12 +124,10 @@ export default class CompletePlugin {
         break
       case 'TextChangedI':
         logger.debug('TextChangedI')
-        let buffer = await nvim.buffer
-        workspace.onBufferChange(buffer.id).then(() => {
+        // wait for workspace notification
+        setTimeout(() => {
           emitter.emit('TextChangedI')
-        }, err => {
-          logger.error(err.stack)
-        })
+        }, 20)
         break
     }
   }

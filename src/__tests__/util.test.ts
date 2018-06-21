@@ -16,6 +16,14 @@ import {
   findSourceDir,
   createTmpFile
 } from '../util/fs'
+import {
+  TextDocument
+} from 'vscode-languageserver-protocol'
+import {
+  getTextEdit,
+  getChangeItem,
+  applyChangeItem,
+} from '../util/diff'
 import watchObj from '../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
@@ -187,5 +195,43 @@ describe('watchObj test', () => {
     watched.bar = 'bar'
     delete watched.bar
     expect(result).toBeNull
+  })
+})
+
+describe('diff test', () => {
+  function expectTextEdit(orig:string, curr:string):void {
+    let origDoc = TextDocument.create('/tmp/1', 'vim', 0, orig)
+    let currDoc = TextDocument.create('/tmp/1', 'vim', 0, curr)
+    let edit = getTextEdit(origDoc, currDoc)
+    let content = TextDocument.applyEdits(origDoc, [edit])
+    console.log(edit)
+    expect(content).toBe(curr)
+  }
+
+  function expectChangeItem(orig:string, curr:string):void {
+    let change = getChangeItem(orig, curr)
+    let content = applyChangeItem(orig, change)
+    console.log(change)
+    expect(content).toBe(curr)
+  }
+
+  test('should create TextEdit', () => {
+    expectTextEdit('abcd', 'abxxd')
+    expectTextEdit('abcd\nfoo\ndd', 'abxxd\nxfoo\n')
+    expectTextEdit('ab\ncd', 'cb\nxd')
+    expectTextEdit('foo', 'bar')
+    expectTextEdit('foo\nfff', 'bar')
+    expectTextEdit('foo\nbar', 'bar')
+    expectTextEdit('foo\nbar\ntt', 'bar\ntt')
+    expectTextEdit('foo\nbar\ntt', 'foo\nbart')
+    expectTextEdit('foo\nbbar\ntt', 'bar\ntt')
+  })
+
+  test('should create changeItem', () => {
+    expectChangeItem('abc', 'ac')
+    expectChangeItem('ab c', 'ac eee')
+    expectChangeItem('foo bar', 'bar foo')
+    expectChangeItem('foo bar', 'foo bar foo')
+    expectChangeItem('foo', 'bar')
   })
 })

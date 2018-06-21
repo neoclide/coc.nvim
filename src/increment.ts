@@ -2,6 +2,7 @@ import {Neovim} from 'neovim'
 import {CompleteOption} from './types'
 import completes from './completes'
 import workspace from './workspace'
+import EventEmitter = require('events')
 const logger = require('./util/logger')('increment')
 
 export interface LastInsert {
@@ -15,7 +16,7 @@ export interface LastChange {
   timestamp: number
 }
 
-export default class Increment {
+export default class Increment extends EventEmitter {
   public lastInsert?: LastInsert
   public search: string
   // private lastChange: LastChange | null | undefined
@@ -24,6 +25,7 @@ export default class Increment {
   private timer?: NodeJS.Timer
 
   constructor(private nvim:Neovim) {
+    super()
   }
 
   private clearTimer():void {
@@ -60,6 +62,7 @@ export default class Increment {
     let {nvim, activted} = this
     if (activted) this.stop()
     this.activted = true
+    this.emit('start', Object.assign({}, option))
     this.clearTimer()
     this.search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
@@ -70,6 +73,7 @@ export default class Increment {
   public stop():void {
     if (!this.activted) return
     this.activted = false
+    this.emit('stop')
     this.clearTimer()
     this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')

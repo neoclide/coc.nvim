@@ -87,6 +87,8 @@ function! s:Enable()
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
     autocmd BufNewFile,BufRead, * call s:Autocmd('BufCreate', +expand('<abuf>'))
+    autocmd BufWritePre         * call s:Autocmd('BufWritePre', +expand('<abuf>'))
+    autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
   augroup end
 
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)

@@ -74,16 +74,17 @@ class SyncedBuffer {
     let uri = Uri.parse(this.document.uri)
     const filePath = uri.fsPath
     if (!filePath) return
-
-    const args: Proto.ChangeRequestArgs = {
-      file: filePath,
-      line: 1,
-      offset: 1,
-      endOffset: 1,
-      endLine: 2**24,
-      insertString: events[0].text
+    for (const { range, text } of events) {
+      const args: Proto.ChangeRequestArgs = {
+        file: this.filepath,
+        line: range ? range.start.line + 1 : 1,
+        offset: range ? range.start.character + 1 : 1,
+        endLine: range ? range.end.line + 1 : 2**24,
+        endOffset: range ? range.end.character + 1 : 1,
+        insertString: text
+      }
+      this.client.execute('change', args, false) // tslint:disable-line
     }
-    this.client.execute('change', args, false) // tslint:disable-line
     this.diagnosticRequestor.requestDiagnostic(uri)
   }
 }

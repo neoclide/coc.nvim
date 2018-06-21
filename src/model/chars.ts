@@ -58,6 +58,7 @@ export class Chars {
   }
 
   public matchKeywords(content: string, min = 3):string[] {
+    if (!content) return []
     content = content + '\n'
     let res:string[] = []
     let str = ''

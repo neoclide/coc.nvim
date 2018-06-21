@@ -40,6 +40,20 @@ export interface ChangedLines {
   replacement: string[]
 }
 
+export interface ChangeItem {
+  offset: number
+  added: string
+  removed: string
+}
+
+export interface BufferOption {
+  fullpath: string
+  buftype: string
+  filetype: string
+  iskeyword: string
+  changedtick: number
+}
+
 // Config property of source
 export interface SourceConfig {
   name: string

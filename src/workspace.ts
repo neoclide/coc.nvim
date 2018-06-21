@@ -203,49 +203,28 @@ export class Workspace implements IWorkSpace {
     const valid = await this.isValidBuffer(buffer)
     if (!valid) return
     const {buffers} = this
-    const name = await buffer.name
     const bufnr = buffer.id
-    const uri = this.getUri(name, bufnr)
-    const filetype = (await buffer.getOption('filetype') as string)
-    const keywordOption = (await buffer.getOption('iskeyword') as string)
-    const version = await buffer.changedtick
-    let lines = await buffer.lines
-    const textDocument = TextDocument.create(uri, filetype, version, lines.join('\n'))
-    buffers[bufnr] = new Document(bufnr, textDocument, keywordOption)
-    this._onDidAddDocument.fire(textDocument)
-    logger.debug('buffer created', bufnr, filetype)
-  }
-
-  public async onBufferChange(bufnr:number):Promise<void> {
-    const buffer = await this.getBuffer(bufnr)
-    if (!buffer) return
-    const {buffers} = this
-    const valid = await this.isValidBuffer(buffer)
-    if (!valid) return
-    const origDoc = buffers[bufnr]
-    const name = await buffer.name
-    const uri = this.getUri(name, bufnr)
-    if (!origDoc || origDoc.uri != uri) return await this.onBufferCreate(buffer)
-    const version = await buffer.changedtick
-    // not changed
-    if (origDoc.version >= version) return
-    const lines = await buffer.lines
-    const content = lines.join('\n')
-    const filetype = (await buffer.getOption('filetype') as string)
-    const textDocument = TextDocument.create(uri, filetype, version, content)
-    origDoc.changeDocument(textDocument)
-    // sync full content
-    this._onDidChangeDocument.fire({
-      textDocument: {version, uri},
-      contentChanges: [{ text: content }]
+    let document = buffers[bufnr] = new Document(buffer)
+    await document.init(this.nvim)
+    this._onDidAddDocument.fire(document.textDocument)
+    document.onDocumentChange(({textDocument, contentChanges}) => {
+      let {version, uri} = textDocument
+      this._onDidChangeDocument.fire({
+        textDocument: {version, uri},
+        contentChanges
+      })
+      logger.debug(`buffer ${bufnr} change ${version}`)
     })
-    logger.debug(`bufnr ${bufnr} change ${version}`)
+    logger.debug('buffer created', bufnr)
   }
 
   public async onBufferUnload(bufnr:number):Promise<void> {
     let doc = this.buffers[bufnr]
     this.buffers[bufnr] = null
-    if (doc) this._onDidRemoveDocument.fire(doc.textDocument)
+    if (doc) {
+      this._onDidRemoveDocument.fire(doc.textDocument)
+      doc.detach()
+    }
     logger.debug(`bufnr ${bufnr} unload`)
   }
 
@@ -258,7 +237,7 @@ export class Workspace implements IWorkSpace {
     this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
   }
 
-  public async bufferWillSave(bufnr:number):Promise<void> {
+  public async onBufferWillSave(bufnr:number):Promise<void> {
     let doc = this.buffers[bufnr]
     if (doc) {
       this._onWillSaveDocument.fire({
@@ -268,9 +247,10 @@ export class Workspace implements IWorkSpace {
     }
   }
 
-  public async bufferDidSave(bufnr:number):Promise<void> {
+  public async onBufferDidSave(bufnr:number):Promise<void> {
     let doc = this.buffers[bufnr]
     if (doc) {
+      await doc.checkDocument()
       this._onDidSaveDocument.fire(doc.textDocument)
     }
   }
@@ -299,6 +279,14 @@ export class Workspace implements IWorkSpace {
     logger.info('Buffers refreshed')
   }
 
+  /**
+   * Find or create a TextDocument from uri and languageId
+   *
+   * @public
+   * @param {string} uri
+   * @param {string} languageId?
+   * @returns {Promise<TextDocument|null>}
+   */
   public async createDocument(uri:string, languageId?:string):Promise<TextDocument|null> {
     // may be we could support other uri schema
     let {textDocuments} = this
@@ -344,12 +332,6 @@ export class Workspace implements IWorkSpace {
   private async getBuffer(bufnr:number):Promise<Buffer|null> {
     let buffers = await this.nvim.buffers
     return buffers.find(buf => toNumber(buf.data) == bufnr)
-  }
-
-  private getUri(fullpath:string, bufnr:number):string {
-    if (!fullpath) return `untitled:///${bufnr}`
-    if (/^\w+:\/\//.test(fullpath)) return fullpath
-    return `file://${fullpath}`
   }
 }
 

@@ -7,14 +7,13 @@ import {
   InsertTextFormat,
   Position,
 } from 'vscode-languageserver-protocol'
-import * as typeConverters from '../utils/typeConverters'
 const logger = require('../../util/logger')('typscript-utils-completionItem')
 
 export function resolveItem(
   item: CompletionItem,
   document: Document,
 ):void {
-  let {textEdit, label} = item
+  let {textEdit, label, insertText} = item // tslint:disable-line
   let {position} = item.data
   if (textEdit) return
   // try replace more characters after cursor
@@ -80,25 +79,10 @@ export function convertCompletionEntry(
     (kind === CompletionItemKind.Function ||
     kind === CompletionItemKind.Method)
   ) ? InsertTextFormat.Snippet : InsertTextFormat.PlainText
-  let textEdit = tsEntry.replacementSpan
-    ? {
-      range: typeConverters.Range.fromTextSpan(tsEntry.replacementSpan),
-      newText: label
-    } : null
+  let textEdit = null
   let insertText = tsEntry.insertText
   if (insertText && textEdit) {
     textEdit.newText = insertText
-    let {range} = textEdit
-    // Make sure we only replace a single line at most
-    if (range.start.line !== range.end.line) {
-      textEdit.range = {
-        start: range.start,
-        end: {
-          line: range.start.line,
-          character: 666
-        }
-      }
-    }
     insertText = null
   }
   if (tsEntry.kindModifiers && tsEntry.kindModifiers.match(/\boptional\b/)) {

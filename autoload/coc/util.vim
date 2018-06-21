@@ -26,6 +26,16 @@ function! coc#util#get_bufinfo(bufnr) abort
         \}
 endfunction
 
+function! coc#util#get_bufoptions(bufnr) abort
+  return {
+        \ 'fullpath': coc#util#get_fullpath(a:bufnr),
+        \ 'buftype': getbufvar(a:bufnr, '&buftype'),
+        \ 'filetype': getbufvar(a:bufnr, '&filetype'),
+        \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
+        \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
+        \}
+endfunction
+
 function! coc#util#get_buflist() abort
   let buflist = []
   for i in range(tabpagenr('$'))

@@ -131,6 +131,12 @@ export function getPort(port = 44877):Promise<number> {
   })
 }
 
+export function getUri(fullpath:string, id:number):string {
+  if (!fullpath) return `untitled:///${id}`
+  if (/^\w+:\/\//.test(fullpath)) return fullpath
+  return Uri.file(fullpath).toString()
+}
+
 // -1 is cancel
 export async function showQuickpick(nvim:Neovim, items:string[], placeholder = 'Choose by number'):Promise<number> {
   let msgs = [placeholder + ':']

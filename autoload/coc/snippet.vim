@@ -12,7 +12,7 @@ function! coc#snippet#range_select(lnum, col, len) abort
       stopinsert
       execute 'normal! l'
     endif
-    call timer_start(20, { -> execute('normal! v'.move."\<C-g>")})
+    call timer_start(10, { -> execute('normal! v'.move."\<C-g>")})
   endif
   let &virtualedit = old
 endfunction
@@ -35,10 +35,10 @@ function! coc#snippet#enable()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_previous', '<C-k>')
   execute 'nmap <buffer> <esc> '.":call CocAction('snippetCancel')<cr>"
-  execute 'imap <buffer> <silent>'.prevkey." <Cmd>:call CocAction('snippetPrev')<cr>"
-  execute 'smap <buffer> <silent>'.prevkey." <Esc>:call CocAction('snippetPrev')<cr>"
-  execute 'imap <buffer> <silent>'.nextkey." <Cmd>:call CocAction('snippetNext')<cr>"
-  execute 'smap <buffer> <silent>'.nextkey." <Esc>:call CocAction('snippetNext')<cr>"
+  execute 'imap <buffer> <nowait> <silent>'.prevkey." <Cmd>:call CocAction('snippetPrev')<cr>"
+  execute 'smap <buffer> <nowait> <silent>'.prevkey." <Esc>:call CocAction('snippetPrev')<cr>"
+  execute 'imap <buffer> <nowait> <silent>'.nextkey." <Cmd>:call CocAction('snippetNext')<cr>"
+  execute 'smap <buffer> <nowait> <silent>'.nextkey." <Esc>:call CocAction('snippetNext')<cr>"
 endfunction
 
 function! coc#snippet#disable()

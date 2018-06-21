@@ -6,16 +6,14 @@ import {
   Placeholder,
 } from './parser'
 import {
+  ChangeItem
+} from '../types'
+import {
   Position,
   TextDocument,
 } from 'vscode-languageserver-protocol'
 import diff = require('diff')
-
-export interface Change {
-  offset: number
-  added?: string
-  removed?: string
-}
+const logger = require('../util/logger')('snippet-snippet')
 
 export type FindResult = [Placeholder, number]
 
@@ -76,11 +74,11 @@ export default class Snippet {
    * Find placeholder be change and offset of change
    *
    * @public
-   * @param {Change} change
+   * @param {ChangeItem} change
    * @param {number} offset - character offset from snippet beginning
    * @returns {FindResult} - placeholder and start offset of change
    */
-  public findPlaceholder(change:Change, offset:number):FindResult {
+  public findPlaceholder(change:ChangeItem, offset:number):FindResult {
     let marker:Marker = null
     let start = 0
     let pos = 0
@@ -119,44 +117,15 @@ export default class Snippet {
   }
 
   /**
-   * Get change from new content of snippet
-   *
-   * @public
-   * @param {string} text
-   * @returns {Change | null}
-   */
-  public getChange(text:string):Change | null {
-    let orig = this.textmateSnippet.toString()
-    let changes = diff.diffChars(orig, text)
-    let character = 0
-    let valid = true
-    let change:Change = null
-    for (let o of changes) {
-      if (o.added || o.removed) {
-        if (change && character != change.offset) {
-          valid = false
-          break
-        }
-        change = change ? change : {offset: character}
-        if (o.added) change.added = o.value
-        if (o.removed) change.removed = o.value
-      }
-      if (!o.removed) character = character + o.count
-    }
-    if (!valid || !change) return null
-    return change
-  }
-
-  /**
    * Create new text from change
    *
    * @public
-   * @param {Change} change
+   * @param {ChangeItem} change
    * @param {string} text - original text
    * @param {number} start
    * @returns {string}
    */
-  public getNewText(change:Change, placeholder:Placeholder, start:number):string {
+  public getNewText(change:ChangeItem, placeholder:Placeholder, start:number):string {
     let text = placeholder.toString()
     let pre = text.slice(0, start)
     let {added, removed} = change

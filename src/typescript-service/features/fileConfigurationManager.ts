@@ -26,6 +26,7 @@ interface FileConfiguration {
 }
 
 export interface CompletionOptions {
+  readonly commaAfterImport: boolean
   readonly useCodeSnippetsOnMethodSuggest: boolean
   readonly nameSuggestions: boolean
   readonly autoImportSuggestions: boolean
@@ -111,6 +112,7 @@ export default class FileConfigurationManager {
     const config = workspace.getConfiguration(`${lang}.preferences.completion`)
     return {
       useCodeSnippetsOnMethodSuggest: config.get<boolean>('useCodeSnippetsOnMethodSuggest'),
+      commaAfterImport: config.get<boolean>('commaAfterImport'),
       nameSuggestions: config.get<boolean>('nameSuggestions'),
       autoImportSuggestions: config.get<boolean>('autoImportSuggestions')
     }
@@ -124,7 +126,10 @@ export default class FileConfigurationManager {
     return {
       importModuleSpecifierPreference: getImportModuleSpecifier(config) as any,
       disableSuggestions: !config.get<boolean>('suggestionActions.enabled'),
-      quotePreference: getQuoteType(config)
+      quotePreference: getQuoteType(config),
+      includeCompletionsForModuleExports: config.get<boolean>('completion.moduleExports', false),
+      includeCompletionsWithInsertText: false,
+      allowTextChangesInNewFiles: false,
     }
   }
 }
