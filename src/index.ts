@@ -135,30 +135,37 @@ export default class CompletePlugin {
   @Function('CocAction', {sync: true})
   public async cocAction(args: any): Promise<any> {
     if (!this.initailized) return
-    switch (args[0] as string) {
-      case 'snippetPrev': {
-        await snippetManager.jumpPrev()
-        break
+    try {
+      switch (args[0] as string) {
+        case 'onlySource':
+          await completion.onlySource(args[1])
+          break
+        case 'snippetPrev': {
+          await snippetManager.jumpPrev()
+          break
+        }
+        case 'snippetNext': {
+          await snippetManager.jumpNext()
+          break
+        }
+        case 'snippetCancel': {
+          await snippetManager.detach()
+          break
+        }
+        case 'startCompletion':
+          completion.startCompletion(args[1])
+          break
+        case 'sourceStat':
+          return await completion.sourceStat()
+        case 'refreshSource':
+          await completion.refreshSource(args[1])
+          break
+        case 'toggleSource':
+          completion.toggleSource(args[1])
+          break
       }
-      case 'snippetNext': {
-        await snippetManager.jumpNext()
-        break
-      }
-      case 'snippetCancel': {
-        await snippetManager.detach()
-        break
-      }
-      case 'startCompletion':
-        completion.startCompletion(args[1])
-        break
-      case 'sourceStat':
-        return await completion.sourceStat()
-      case 'refreshSource':
-        await completion.refreshSource(args[1])
-        break
-      case 'toggleSource':
-        completion.toggleSource(args[1])
-        break
+    } catch (e) {
+      logger.error(e.stack)
     }
   }
 }

@@ -16,6 +16,7 @@ const logger = require('../util/logger')('model-source')
 const boolOptions = ['firstMatch']
 
 export default abstract class Source implements ISource {
+  public disabled:boolean
   public readonly name: string
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
@@ -44,10 +45,14 @@ export default abstract class Source implements ISource {
       triggerCharacters: [],
     }, option)
     this._disabled = option.disable
-  }
-
-  public get disabled():boolean {
-    return this._disabled
+    Object.defineProperty(this, 'disabled', {
+      get: () => {
+        return this._disabled
+      },
+      set: (val:boolean) => {
+        this._disabled = val
+      }
+    })
   }
 
   public toggle():void {

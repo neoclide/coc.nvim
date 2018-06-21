@@ -362,7 +362,7 @@ export interface ISource {
   priority: number
   sourceType: SourceType
   triggerCharacters: string[]
-  filetypes: string[]
+  filetypes?: string[]
   filepath?: string
   // should the first character always match
   firstMatch?: boolean
@@ -376,31 +376,6 @@ export interface ISource {
    * @public source
    */
   toggle?():void
-  /**
-   * Action for complete item on complete item selected
-   *
-   * @public
-   * @param {VimCompleteItem} item
-   * @returns {Promise<void>}
-   */
-  onCompleteResolve(item:VimCompleteItem):Promise<void>
-  /**
-   * Action for complete item on complete done
-   *
-   * @public
-   * @param {VimCompleteItem} item
-   * @returns {Promise<void>}
-   */
-  onCompleteDone(item:VimCompleteItem):Promise<void>
-
-  /**
-   * Check if this source should work
-   *
-   * @public
-   * @param {CompleteOption} opt
-   * @returns {Promise<boolean> }  export interface ILanguage}
-   */
-  shouldComplete?(opt: CompleteOption): Promise<boolean>
 
   /**
    * Do completetion
@@ -410,6 +385,31 @@ export interface ISource {
    * @returns {Promise<CompleteResult | null>}
    */
   doComplete(opt: CompleteOption): Promise<CompleteResult | null>
+  /**
+   * Action for complete item on complete item selected
+   *
+   * @public
+   * @param {VimCompleteItem} item
+   * @returns {Promise<void>}
+   */
+  onCompleteResolve?(item:VimCompleteItem):Promise<void>
+  /**
+   * Action for complete item on complete done
+   *
+   * @public
+   * @param {VimCompleteItem} item
+   * @returns {Promise<void>}
+   */
+  onCompleteDone?(item:VimCompleteItem):Promise<void>
+
+  /**
+   * Check if this source should work
+   *
+   * @public
+   * @param {CompleteOption} opt
+   * @returns {Promise<boolean> }  export interface ILanguage}
+   */
+  shouldComplete?(opt: CompleteOption): Promise<boolean>
 }
 
 export interface ILanguage {

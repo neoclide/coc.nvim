@@ -121,6 +121,10 @@ export class Completion {
     }
   }
 
+  public async onlySource(name:string):Promise<void> {
+    return this.sources.onlySource(name)
+  }
+
   public async refreshSource(name:string):Promise<void> {
     let source = this.sources.getSource(name)
     if (!source) return

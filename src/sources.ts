@@ -66,6 +66,27 @@ export default class Sources {
     return this.sourceMap.get(name) || null
   }
 
+  /**
+   * Make only one source available
+   *
+   * @public
+   * @param {string} name - source name
+   * @returns {Promise<void>}
+   */
+  public async onlySource(name:string):Promise<void> {
+    for (let n of this.names) {
+      let source = this.sourceMap.get(n)
+      if (name != n) {
+        source.disabled = true
+      } else {
+        source.disabled = false
+      }
+    }
+    if (this.names.indexOf(name) == -1) {
+      require(`./__tests__/test-sources/${name}`)
+    }
+  }
+
   public async doCompleteResolve(item: VimCompleteItem):Promise<void> {
     let {user_data} = item
     if (!user_data) return
@@ -101,7 +122,9 @@ export default class Sources {
     let special = !isWord(character)
     let sources = this.sources.filter(s => {
       if (s.disabled) return false
-      if (s.filetypes && s.filetypes.indexOf(languageId) == -1) {
+      let {filetypes} = s
+      if (filetypes && filetypes[0] == '-') return true
+      if (filetypes && filetypes.indexOf(languageId) == -1) {
         return false
       }
       return true
@@ -118,7 +141,7 @@ export default class Sources {
     return this.sources.filter(source => {
       let {filetypes} = source
       if (!includeDisabled && source.disabled) return false
-      if (!filetypes) return true
+      if (!filetypes || filetypes[0] == '-') return true
       if (filetype && filetypes.indexOf(filetype) !== -1) {
         return true
       }
