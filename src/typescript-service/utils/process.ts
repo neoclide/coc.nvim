@@ -132,9 +132,6 @@ export function fork(
     })
   }
 
-  // Create the process
-  logger.info('Forking TSServer', `PATH: ${newEnv['PATH']}`) // tslint:disable-line
-
   const bootstrapperPath = require.resolve('./electronForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,

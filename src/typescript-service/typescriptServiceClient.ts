@@ -762,7 +762,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         const logDir = os.tmpdir()
         if (logDir) {
           this.tsServerLogFile = path.join(logDir, `coc-nvim-tsc.log`)
-          this.info(`TSServer log file: ${this.tsServerLogFile}`)
+          this.info('TSServer log file :', this.tsServerLogFile)
         } else {
           this.tsServerLogFile = null
           this.error('Could not create TSServer log directory')

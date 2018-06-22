@@ -73,6 +73,13 @@ function! s:Enable()
   if get(g:, 'coc_enabled', 0) == 1
     return
   endif
+
+  highlight default CocErrorSign   guifg=#ff0000
+  highlight default CocWarningSign guifg=#ff922b
+  highlight default CocInfoSign    guifg=#fab005
+  highlight default CocHintSign    guifg=#15aabf
+  highlight default CocUnderline   term=underline gui=underline
+
   augroup coc_nvim
     autocmd!
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'))
@@ -89,6 +96,8 @@ function! s:Enable()
     autocmd BufNewFile,BufRead, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufWritePre         * call s:Autocmd('BufWritePre', +expand('<abuf>'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
+    autocmd CursorMoved         * call s:Autocmd('CursorMoved')
+    autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
   augroup end
 
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
@@ -102,6 +111,8 @@ augroup coc_init
   autocmd user CocNvimInit call s:Enable()
 augroup end
 
+nnoremap <silent> <Plug>(coc-diagnostic-next) :call CocAction('diagnosticNext')<CR>
+nnoremap <silent> <Plug>(coc-diagnostic-prev) :call CocAction('diagnosticPrevious')<CR>
 nnoremap <silent> <Plug>(coc-jump-definition) :call CocAction('jumpDefinition')<CR>
 inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
 

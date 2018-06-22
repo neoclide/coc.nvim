@@ -15,6 +15,7 @@ import {
   WorkspaceEdit,
   DidChangeTextDocumentParams,
   TextDocumentWillSaveEvent,
+  Diagnostic,
 } from 'vscode-languageserver-protocol'
 
 export {
@@ -52,6 +53,21 @@ export interface BufferOption {
   filetype: string
   iskeyword: string
   changedtick: number
+}
+
+export interface DiagnosticInfo {
+  error: number
+  warning: number
+  information: number
+  hint: number
+}
+
+export interface DiagnosticItem {
+  file: string
+  lnum: number
+  col: number
+  message: string
+  severity: string
 }
 
 // Config property of source
@@ -283,13 +299,13 @@ export interface IWorkSpace {
   getConfiguration(section:string):WorkspaceConfiguration
 
   /**
-   * getDocumentFromUri
+   * getDocument
    *
    * @public
    * @param {string} uri
    * @returns {Document | null}
    */
-  getDocumentFromUri(uri:string):Document | null
+  getDocument(uri:string|number):Document | null
 
   /**
    * apply workspace edit
@@ -412,6 +428,90 @@ export interface ISource {
   shouldComplete?(opt: CompleteOption): Promise<boolean>
 }
 
+/**
+ * A diagnostics collection is a container that manages a set of
+ * [diagnostics](#Diagnostic). Diagnostics are always scopes to a
+ * diagnostics collection and a resource.
+ *
+ * To get an instance of a `DiagnosticCollection` use
+ * [createDiagnosticCollection](#languages.createDiagnosticCollection).
+ */
+export interface DiagnosticCollection {
+
+  /**
+   * The name of this diagnostic collection, for instance `typescript`. Every diagnostic
+   * from this collection will be associated with this name. Also, the task framework uses this
+   * name when defining [problem matchers](https://code.visualstudio.com/docs/editor/tasks#_defining-a-problem-matcher).
+   */
+  readonly name: string
+
+  /**
+   * Assign diagnostics for given resource. Will replace
+   * existing diagnostics for that resource.
+   *
+   * @param uri A resource identifier.
+   * @param diagnostics Array of diagnostics or `undefined`
+   */
+  set(uri: string, diagnostics: Diagnostic[] | null):void
+  /**
+   * Replace all entries in this collection.
+   *
+   * Diagnostics of multiple tuples of the same uri will be merged, e.g
+   * `[[file1, [d1]], [file1, [d2]]]` is equivalent to `[[file1, [d1, d2]]]`.
+   * If a diagnostics item is `undefined` as in `[file1, undefined]`
+   * all previous but not subsequent diagnostics are removed.
+   *
+   * @param entries An array of tuples, like `[[file1, [d1, d2]], [file2, [d3, d4, d5]]]`, or `undefined`.
+   */
+  set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]):void
+
+  /**
+   * Remove all diagnostics from this collection that belong
+   * to the provided `uri`. The same as `#set(uri, undefined)`.
+   *
+   * @param uri A resource identifier.
+   */
+  delete(uri: string): void
+
+  /**
+   * Remove all diagnostics from this collection. The same
+   * as calling `#set(undefined)`;
+   */
+  clear(): void
+
+  /**
+   * Iterate over each entry in this collection.
+   *
+   * @param callback Function to execute for each entry.
+   * @param thisArg The `this` context used when invoking the handler function.
+   */
+  forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void
+
+  /**
+   * Get the diagnostics for a given resource. *Note* that you cannot
+   * modify the diagnostics-array returned from this call.
+   *
+   * @param uri A resource identifier.
+   * @returns An immutable array of [diagnostics](#Diagnostic) or `undefined`.
+   */
+  get(uri: string): Diagnostic[] | undefined
+
+  /**
+   * Check if this collection contains diagnostics for a
+   * given resource.
+   *
+   * @param uri A resource identifier.
+   * @returns `true` if this collection has diagnostic for the given resource.
+   */
+  has(uri: string): boolean
+
+  /**
+   * Dispose and free associated resources. Calls
+   * [clear](#DiagnosticCollection.clear).
+   */
+  dispose(): void
+}
+
 export interface ILanguage {
 
   dispose():void
@@ -425,4 +525,5 @@ export interface ILanguage {
     provider: CompletionItemProvider,
     triggerCharacters?: string[]):Disposable
 
+  createDiagnosticCollection(owner: string):DiagnosticCollection
 }

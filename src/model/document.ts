@@ -151,15 +151,15 @@ export default class Document {
       logger.error('--------------------')
       logger.error('content diff:', res)
       logger.error('content length:', this.content.length, content.length)
-      let {uri} = this
-      this._fireContentChanges.clear()
-      this.textDocument = TextDocument.create(uri, filetype, version, content)
-      this.hasChange = true
-      this._onDocumentChange.fire({
-        textDocument: {version, uri},
-        contentChanges: [{ text: content }]
-      })
     }
+    let {uri} = this
+    this._fireContentChanges.clear()
+    this.textDocument = TextDocument.create(uri, filetype, version, content)
+    this.hasChange = true
+    this._onDocumentChange.fire({
+      textDocument: {version, uri},
+      contentChanges: [{ text: content }]
+    })
   }
 
   private async fireContentChanges():Promise<void> {

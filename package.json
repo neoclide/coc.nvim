@@ -81,7 +81,7 @@
     "pify": "^3.0.0",
     "semver": "^5.5.0",
     "tern": "^0.21.0",
-    "tslib": "^1.9.2",
+    "tslib": "^1.9.3",
     "typescript": "^2.9.2",
     "uuid": "^3.2.1",
     "vscode-languageserver-protocol": "^3.8.1",

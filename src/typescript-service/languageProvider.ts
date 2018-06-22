@@ -13,7 +13,7 @@ import {
   ServiceStat,
 } from '../types'
 import {basename} from 'path'
-// import { DiagnosticsManager } from './features/diagnostics';
+import { DiagnosticsManager } from './features/diagnostics'
 import TypeScriptServiceClient from './typescriptServiceClient'
 import BufferSyncSupport from './features/bufferSyncSupport'
 import TypingsStatus from './utils/typingsStatus'
@@ -21,7 +21,11 @@ import FileConfigurationManager from './features/fileConfigurationManager'
 import {LanguageDescription} from './utils/languageDescription'
 const logger = require('../util/logger')('typescript-langauge-provider')
 
+const validateSetting = 'validate.enable'
+const suggestionSetting = 'suggestionActions.enabled'
+
 export default class LanguageProvider {
+  private readonly diagnosticsManager: DiagnosticsManager
   private readonly bufferSyncSupport: BufferSyncSupport
   private readonly fileConfigurationManager: FileConfigurationManager // tslint:disable-line
 
@@ -42,12 +46,15 @@ export default class LanguageProvider {
       description.modeIds,
       {
         delete: resource => {
-          // this.diagnosticsManager.delete(resource)
+          let fsPath = resource.fsPath
+          if (fsPath) {
+            this.diagnosticsManager.delete(fsPath)
+          }
         }
       },
       this._validate
     )
-    // this.diagnosticsManager = new DiagnosticsManager(description.diagnosticOwner);
+    this.diagnosticsManager = new DiagnosticsManager()
 
     workspace.onDidEnterTextDocument(info => {
       let {state} = client
@@ -62,6 +69,8 @@ export default class LanguageProvider {
       }
     })
 
+    workspace.onDidChangeConfiguration(this.configurationChanged, this, this.disposables)
+
     client.onTsServerStarted(async () => { // tslint:disable-line
       await this.registerProviders(client, typingsStatus)
       this.bufferSyncSupport.listen()
@@ -72,6 +81,12 @@ export default class LanguageProvider {
     disposeAll(this.disposables)
     disposeAll(this.versionDependentDisposables)
     this.bufferSyncSupport.dispose()
+  }
+
+  private configurationChanged(): void {
+    const config = workspace.getConfiguration(this.id)
+    this.updateValidate(config.get(validateSetting, true))
+    this.updateSuggestionDiagnostics(config.get(suggestionSetting, true))
   }
 
   private async registerProviders(
@@ -119,32 +134,31 @@ export default class LanguageProvider {
     return this.description.diagnosticSource
   }
 
-  // private updateValidate(value: boolean):void {
-  //   if (this._validate === value) {
-  //     return
-  //   }
-  //   this._validate = value
-  //   this.bufferSyncSupport.validate = value
-  //   this.diagnosticsManager.validate = value
-  //   if (value) {
-  //     this.triggerAllDiagnostics()
-  //   }
-  // }
+  private updateValidate(value: boolean):void {
+    if (this._validate === value) {
+      return
+    }
+    this._validate = value
+    this.bufferSyncSupport.validate = value
+    this.diagnosticsManager.validate = value
+    if (value) {
+      this.triggerAllDiagnostics()
+    }
+  }
 
-  // private updateSuggestionDiagnostics(value: boolean):void {
-  //   if (this._enableSuggestionDiagnostics === value) {
-  //     return
-  //   }
-  //
-  //   this._enableSuggestionDiagnostics = value
-  //   this.diagnosticsManager.enableSuggestions = value
-  //   if (value) {
-  //     this.triggerAllDiagnostics()
-  //   }
-  // }
+  private updateSuggestionDiagnostics(value: boolean):void {
+    if (this._enableSuggestionDiagnostics === value) {
+      return
+    }
+    this._enableSuggestionDiagnostics = value
+    this.diagnosticsManager.enableSuggestions = value
+    if (value) {
+      this.triggerAllDiagnostics()
+    }
+  }
 
   public reInitialize(): void {
-    // this.diagnosticsManager.reInitialize()
+    this.diagnosticsManager.reInitialize()
     this.bufferSyncSupport.reOpenDocuments()
     this.bufferSyncSupport.requestAllDiagnostics()
   }
@@ -156,13 +170,14 @@ export default class LanguageProvider {
   public diagnosticsReceived(
     diagnosticsKind: DiagnosticKind,
     file: Uri,
-    syntaxDiagnostics: Diagnostic[]
+    diagnostics: Diagnostic[]
   ): void {
-    // logger.debug('diagnostics: ', diagnosticsKind, syntaxDiagnostics)
-    // this.diagnosticsManager.diagnosticsReceived(
-    //   diagnosticsKind,
-    //   file,
-    //   syntaxDiagnostics
-    // )
+    let uri = file.fsPath
+    if (!uri) return
+    this.diagnosticsManager.diagnosticsReceived(
+      diagnosticsKind,
+      uri,
+      diagnostics
+    )
   }
 }

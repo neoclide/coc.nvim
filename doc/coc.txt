@@ -1,0 +1,210 @@
+*coc-nvim.txt*				Completion framework for neovim
+
+Version: 0.1
+Author: Qiming Zhao <chemzqm at gmail.com>
+License: MIT license
+
+CONTENTS					*coc-contents*
+
+Introduction		|coc-introduction|
+Install			|coc-install|
+Configuration 		|coc-configuration|
+Completion   		|coc-completion|
+Interface		|coc-interface|
+  Keymapings 		|coc-keymapings|
+  Variables		  |coc-variables|
+  Functions		  |coc-functions|
+  Commands		  |coc-commands|
+Denite support 		|coc-denite|
+  Denite source  	|coc-denite-source|
+  Denite diagnostic     |coc-denite-diagnostic|
+Custom Source 		|coc-custom-source|
+Faq			|coc-faq|
+Changelog		|coc-changelog|
+
+==============================================================================
+INTRODUCTION					*coc-introduction*
+
+Coc tries to make best experience for completion, it should just works after
+install.
+
+==============================================================================
+INSTALL						*coc-install*
+
+Install [nodejs](http://nodejs.org/) version > 8.0, and run command: >
+
+  npm install -g neovim
+<
+to install neovim node client globally.
+
+Install plugin by plugin manager, like https://github.com/Shougo/dein.vim by add: >
+
+  call dein#add('neoclide/coc.nvim', {
+      \ 'build': 'npm install'
+      \})
+
+to your `init.vim` and run: >
+
+  :call dein#install()
+
+in neovim.
+
+When using other plugin manager, you may need to run: >
+
+  npm install
+
+in the directory of this plugin and run >
+
+  :UpdateRemotePlugins
+>
+in neovim and restart neovim to make remote plugin works.
+
+==============================================================================
+COMPLETION					*coc-completion*
+
+To make completion easier, there're some common practices.
+
+Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
+
+==============================================================================
+CONFIGURATION					*coc-configuration*
+
+Coc use JSON5 formated file named `coc-settings.json` for configuration.
+
+You can create user configuration and/or project configuration file to best fit
+your need.
+
+Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
+for detail.
+
+Check out file 'settings/default.json' for all available options.
+
+==============================================================================
+INTERFACE					*coc-interface*
+
+------------------------------------------------------------------------------
+Keymapings 					*coc-keymapings*
+
+<Plug>(coc-diagnostic-next)
+			
+			Jump to next diagnostic position.
+
+<Plug>(coc-diagnostic-prev)
+			
+			Jump to previous diagnostic position.
+
+------------------------------------------------------------------------------
+VARIABLES 					*coc-variables*
+
+
+g:coc_snippet_next                            	*g:coc_snippet_next*
+			Trigger key for goto next snippet position, applied
+			on insert and select mode.
+
+			Default: <C-j>
+
+g:coc_snippet_prev                            	*g:coc_snippet_prev*
+			Trigger key for goto previous snippet position,
+			applied on insert and select mode.
+
+			Default: <C-k>
+
+------------------------------------------------------------------------------
+FUNCTIONS 					*coc-functions*
+
+Coc functions are normally used by user defined command/keymap or other
+plugins.
+
+Note: Your vim could be significantly show if you call 'CocAction' on vim
+startup, you can avoid this issue by add guard code: 
+>
+    if !get(g:, 'coc_enabled', 0)
+      return ''
+    endif
+<
+before the call of ''CocAction'
+
+						*CocAction*
+CocAction({action}, [...{args}])
+
+	Run {action} for Coc, available actions:
+
+	'sourceStat': 	get the list of current source stats.
+
+	'refreshSource': refresh all sources or source of first {args}
+
+	'toggleSource': enable/disable source of first {args}
+
+	'diagnosticList': get all diagnostic items of current session
+
+	'diagnosticInfo': get diagnostic info of current buffer, the format
+			  would like
+
+			  `{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
+
+
+						*coc#refresh()*
+coc#refresh()
+
+	Start or refresh completion at current cursor position.
+
+
+						*health#coc#check()*
+health#coc#check()
+	
+	Run health check.
+
+==============================================================================
+COMMANDS 					*coc-commands*
+
+
+:CocDisable 					*coc-command-disable*
+		Disable completion of coc
+
+:CocEnable 					*coc-command-enable*
+		Reenable completion of coc
+
+==============================================================================
+DENITE SUPPORT 					*coc-denite*
+
+Coc make use of list interface provided by |denite.nvim| for advanced actions.
+
+------------------------------------------------------------------------------
+						*coc-denite-sources*
+:Denite coc-source
+
+	Show all sources of coc completion.
+
+	Actions:
+
+	'toggle': enable/disable the source(s) for current vim sesion.
+
+	'refresh': refresh selected source(s).
+
+------------------------------------------------------------------------------
+						*coc-denite-diagnostic*
+:Denite coc-diagnostic
+
+	Show all diagnostics of current vim sesion.
+
+	Actions: same as file kind, use `tab` in denite buffer to get the
+	list.
+
+==============================================================================
+CUSTOM SOURCE					*coc-custom-source*
+
+Create custom source in viml is supported.
+
+Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
+
+==============================================================================
+FAQ						*coc-faq*
+
+Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
+
+==============================================================================
+CHANGELOG					*coc-changelog*
+
+==============================================================================
+vim:tw=78:nosta:ts=8:sts=0:ft=help:noet:fen:fdm=marker:
+

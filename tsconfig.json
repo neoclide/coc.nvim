@@ -12,13 +12,7 @@
     "declaration": true,
     "strictNullChecks": false,
     "strictFunctionTypes": false,
-    "plugins": [
-      {
-        "name": "tslint-language-service",
-        "disableNoUnusedVariableRule": false,
-        "configFile": "./tslint.json"
-      }
-    ]
+    "plugins": []
   },
   "include": [
     "src/**/*.ts"

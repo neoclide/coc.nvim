@@ -67,7 +67,6 @@ export default class Increment extends EventEmitter {
     this.search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`).catch(() => {}) // tslint:disable-line
-    logger.debug('increment started')
   }
 
   public stop():void {
@@ -78,7 +77,6 @@ export default class Increment extends EventEmitter {
     this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')
     this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
-    logger.debug('increment stopped')
   }
 
   public get isActivted():boolean {
@@ -101,7 +99,6 @@ export default class Increment extends EventEmitter {
     this.search = search
     if (completes.completing) return null
     if (!search || !completes.hasMatch(search)) {
-      logger.debug('increment failed')
       this.stop()
       await this.nvim.call('coc#_hide')
       return null

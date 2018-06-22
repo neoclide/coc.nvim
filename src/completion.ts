@@ -12,17 +12,11 @@ import {
   SourceStat,
   SourceType
 } from './types'
-import {
-  TextDocument,
-  Range,
-  TextEdit,
-} from 'vscode-languageserver-protocol'
 import EventEmitter = require('events')
 import workspace from './workspace'
 import Sources from './sources'
 import completes from './completes'
 import Increment from './increment'
-import snippetManager from './snippet/manager'
 import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
@@ -157,7 +151,7 @@ export class Completion {
     logger.trace(`options: ${JSON.stringify(option)}`)
     let sources = this.sources.getCompleteSources(option)
     logger.trace(`Activted sources: ${sources.map(o => o.name).join(',')}`)
-    let items = await completes.doComplete(nvim, sources, option)
+    let items = await completes.doComplete(sources, option)
     if (items.length == 0) {
       increment.stop()
       return
@@ -219,14 +213,14 @@ export class Completion {
   }
 
   private onInsertLeave():void {
-    this.nvim.call('coc#_hide').catch(e => {
+    this.nvim.call('coc#_hide').catch(() => {
       // noop
     })
     this.increment.stop()
   }
 
   private onInsertCharPre(character:string):void {
-    let {increment, nvim} = this
+    let {increment} = this
     increment.lastInsert = {
       character,
       timestamp: Date.now(),

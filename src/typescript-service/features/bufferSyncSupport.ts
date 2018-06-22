@@ -258,12 +258,8 @@ export default class BufferSyncSupport {
     if (!this._validate) {
       return
     }
-
-    const file = this.client.normalizePath(resource)
-    if (!file) {
-      return
-    }
-
+    const file = resource.fsPath
+    if (!file) return
     this.pendingDiagnostics.set(file, Date.now())
     const buffer = this.syncedBuffers.get(resource)
     let delay = 300
@@ -277,7 +273,7 @@ export default class BufferSyncSupport {
   }
 
   public hasPendingDiagnostics(resource: Uri): boolean {
-    const file = this.client.normalizePath(resource)
+    const file = resource.fsPath
     return !file || this.pendingDiagnostics.has(file)
   }
 
@@ -286,6 +282,7 @@ export default class BufferSyncSupport {
       return
     }
     const files = Array.from(this.pendingDiagnostics.entries())
+      .filter(f => f.indexOf('node_modules') == -1)
       .sort((a, b) => a[1] - b[1])
       .map(entry => entry[0])
 
@@ -295,7 +292,6 @@ export default class BufferSyncSupport {
         files.push(file)
       }
     }
-
     if (files.length) {
       const args: Proto.GeterrRequestArgs = {
         delay: 0,

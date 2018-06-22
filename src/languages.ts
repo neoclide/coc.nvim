@@ -9,6 +9,7 @@ import {
   CompleteOption,
   CompleteResult,
   SourceType,
+  DiagnosticCollection,
 } from './types'
 import {
   Position,
@@ -36,12 +37,12 @@ import {
 import {
   byteSlice,
 } from './util/string'
+import diagnosticManager from './diagnostic/manager'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
 import snippetManager from './snippet/manager'
 import {diffLines} from './util/diff'
 import commands from './commands'
-import Document from './model/document'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -83,6 +84,10 @@ class Languages implements ILanguage {
 
   public dispose():void {
     // noop
+  }
+
+  public createDiagnosticCollection(owner: string):DiagnosticCollection {
+    return diagnosticManager.create(owner)
   }
 
   public getCompleteSource(languageId: string):ISource | null {
@@ -139,7 +144,7 @@ class Languages implements ILanguage {
             resolved: true
           })
         }
-        logger.debug('Resolved complete item', resolved)
+        logger.trace('Resolved complete item', resolved)
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolving == item.word) {
           // vim have no suppport for update complete item

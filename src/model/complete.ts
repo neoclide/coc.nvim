@@ -57,10 +57,7 @@ export default class Complete {
       }
     })
     s.add((done, ctx) => {
-      if (!ctx.shouldRun) {
-        logger.debug(`Source ${source.name} skipped`)
-        return done()
-      }
+      if (!ctx.shouldRun) return done()
       source.doComplete(option).then(result => {
         if (result == null) {
           result = {items: []}
@@ -77,13 +74,12 @@ export default class Complete {
     return new Promise(resolve => {
       s.done((err, ctx) => {
         if (err) {
-          logger.error(`Complete error of source '${source.name}'`)
-          logger.error(err.stack)
+          logger.error('Complete error', source.name, err.message)
           resolve(false)
           return
         }
         if (ctx.result) {
-          logger.info(`Complete '${source.name}' takes ${Date.now() - start}ms`)
+          logger.trace(`Complete '${source.name}' takes ${Date.now() - start}ms`)
         }
         resolve(ctx.result || null)
       })
@@ -131,7 +127,7 @@ export default class Complete {
           data = Object.assign(data, { cid: id, source })
           item.user_data = JSON.stringify(data)
         }
-        let factor = Math.max(1, priority/100 + this.getBonusScore(input, item))
+        let factor = priority/100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)
@@ -150,7 +146,7 @@ export default class Complete {
     return arr.slice(0, MAX_ITEM_COUNT)
   }
 
-  public async doComplete(nvim:Neovim, sources:ISource[]): Promise<VimCompleteItem[]> {
+  public async doComplete(sources:ISource[]): Promise<VimCompleteItem[]> {
     let opts = this.option
     let {line, colnr, reload} = opts
     sources.sort((a, b) => b.priority - a.priority)
@@ -161,7 +157,6 @@ export default class Complete {
       if (r == null) return false
       return this.checkResult(r, opts)
     })
-    logger.debug(`Results from sources: ${results.map(s => s.source).join(',')}`)
     if (results.length == 0) return []
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
@@ -171,14 +166,11 @@ export default class Complete {
         opts.input = byteSlice(line, startcol, colnr - 1)
       }
       results = [engrossResult]
-      logger.debug(`Engross source ${engrossResult.source} activted`)
     }
-    if (!reload) {
-      results = results.filter(r => r.priority != 0)
-    }
+    if (!reload) results = results.filter(r => r.priority != 0)
     this.results = results
+    logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
     let filteredResults = this.filterResults(results)
-    logger.debug('Filtered items: ', filteredResults.length, filteredResults[0])
     return filteredResults
   }
 

@@ -14,7 +14,6 @@ import {
 } from '../util/diff'
 import Snippet from './snippet'
 import workspace from '../workspace'
-import EventEmitter = require('events')
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err):void {
@@ -36,7 +35,7 @@ export class SnippetManager {
     return this.activted
   }
 
-  public init(nvim:Neovim, emitter:EventEmitter):void {
+  public init(nvim:Neovim):void {
     this.nvim = nvim
     workspace.onDidChangeTextDocument(this.onDocumentChange, this)
   }
@@ -49,7 +48,7 @@ export class SnippetManager {
     // let buffer = this.buffer = await this.nvim.buffer
     let placeholder = snippet.fiistPlaceholder
     if (placeholder) {
-      await this.jumpTo(placeholder, true)
+      await this.jumpTo(placeholder)
     }
     await this.nvim.call('coc#snippet#enable')
     this.activted = true
@@ -57,7 +56,6 @@ export class SnippetManager {
 
   public async detach():Promise<void> {
     if (!this.activted) return
-    logger.debug('== snippet canceled ==')
     let {id} = this.buffer
     this.activted = false
     this.buffer = null
@@ -109,7 +107,7 @@ export class SnippetManager {
     await this.nvim.call('setline', [lnum + 1, str])
   }
 
-  public async jumpTo(marker: Placeholder, silent = false):Promise<void> {
+  public async jumpTo(marker: Placeholder):Promise<void> {
     await this.ensureCurrentLine()
     let {snippet, nvim, startLnum} = this
     let offset = snippet.offset(marker)

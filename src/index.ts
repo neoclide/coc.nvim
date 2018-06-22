@@ -10,6 +10,7 @@ import services from './services'
 import remoteStore from './remote-store'
 import languages from './languages'
 import commands from './commands'
+import diagnosticManager from './diagnostic/manager'
 import EventEmitter = require('events')
 const logger = require('./util/logger')('index')
 
@@ -24,7 +25,7 @@ export default class CompletePlugin {
     this.emitter = new EventEmitter()
     workspace.nvim = nvim
     languages.nvim = nvim
-    snippetManager.init(nvim, this.emitter)
+    snippetManager.init(nvim)
     commands.init(nvim)
   }
 
@@ -66,7 +67,7 @@ export default class CompletePlugin {
     let [id, name, items] = args
     id = Number(id)
     items = items || []
-    logger.debug(`Remote ${name} result count: ${items.length}`)
+    logger.trace(`Remote ${name} result count: ${items.length}`)
     remoteStore.setResult(id, name, items)
   }
 
@@ -126,6 +127,14 @@ export default class CompletePlugin {
           emitter.emit('TextChangedI')
         }, 20)
         break
+      case 'CursorMoved': {
+        diagnosticManager.showMessage()
+        break
+      }
+      case 'CursorMovedI': {
+        diagnosticManager.showMessage()
+        break
+      }
     }
   }
 
@@ -160,6 +169,23 @@ export default class CompletePlugin {
         case 'toggleSource':
           completion.toggleSource(args[1])
           break
+        case 'diagnosticNext':
+          diagnosticManager.jumpNext().catch(e => {
+            logger.error(e.stack)
+          })
+          break
+        case 'diagnosticPrevious':
+          diagnosticManager.jumpPrevious().catch(e => {
+            logger.error(e.stack)
+          })
+          break
+        case 'diagnosticList':
+          return diagnosticManager.diagnosticList()
+        case 'diagnosticInfo': {
+          return await diagnosticManager.diagnosticInfo()
+        }
+        default:
+          logger.error(`unknown action ${args[0]}`)
       }
     } catch (e) {
       logger.error(e.stack)

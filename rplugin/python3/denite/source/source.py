@@ -14,10 +14,10 @@ class Source(Base):
     def __init__(self, vim):
         super().__init__(vim)
 
-        self.name = 'coc'
+        self.name = 'coc-source'
         self.matchers = ['matcher_fuzzy']
         self.sorters = []
-        self.kind = CocKind(vim)
+        self.kind = SourceKind(vim)
 
     def define_syntax(self):
         self.vim.command('syntax case ignore')
@@ -55,7 +55,7 @@ class Source(Base):
         return candidates
 
 
-class CocKind(FileKind):
+class SourceKind(FileKind):
 
     def __init__(self, vim):
         super().__init__(vim)

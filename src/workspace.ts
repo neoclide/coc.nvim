@@ -7,6 +7,7 @@ import {
   resolveDirectory,
   resolveRoot,
 } from './util/fs'
+import {watchFiles} from './util/watch'
 import {
   IWorkSpace,
   IConfigurationData,
@@ -14,6 +15,9 @@ import {
   WorkspaceConfiguration,
   DocumentInfo,
 } from './types'
+import {
+  byteIndex
+} from './util/string'
 import {
   echoErr,
   echoWarning,
@@ -28,6 +32,7 @@ import {
   TextDocumentWillSaveEvent,
   TextDocumentSaveReason,
   WorkspaceEdit,
+  Position,
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'
@@ -58,6 +63,8 @@ export class Workspace implements IWorkSpace {
   private _onDidChangeDocument = new EventEmitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new EventEmitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new EventEmitter<TextDocument>()
+  private _onDidChangeConfiguration = new EventEmitter<void>()
+  private _onDidWorkspaceInitailized = new EventEmitter<void>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
@@ -65,11 +72,15 @@ export class Workspace implements IWorkSpace {
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
+  public readonly onDidChangeConfiguration: Event<void> = this._onDidChangeConfiguration.event
+  public readonly onDidWorkspaceInitailized: Event<void> = this._onDidWorkspaceInitailized.event
   private watchmanPath:string
   private nvimSettings:NvimSettings
+  private configFiles:string[]
 
   constructor() {
     this.buffers = {}
+    this.configFiles = []
   }
 
   public async init():Promise<void> {
@@ -90,6 +101,12 @@ export class Workspace implements IWorkSpace {
       completeOpt: await this.nvim.getOption('completeopt') as string,
       hasUserData: await this.nvim.call('has', ['nvim-0.2.3']) == 1,
     }
+    watchFiles(this.configFiles, async () => {
+      let config = await this.loadConfigurations()
+      this._configurations = new Configurations(config)
+      this._onDidChangeConfiguration.fire()
+    })
+    this._onDidWorkspaceInitailized.fire()
   }
 
   public getNvimSetting<K extends keyof NvimSettings>(name:K):NvimSettings[K] {
@@ -130,16 +147,37 @@ export class Workspace implements IWorkSpace {
     return this._configurations.getConfiguration(section)
   }
 
+  public getDocument(uri:string|number):Document
   public getDocument(bufnr:number):Document | null {
-    return this.buffers[bufnr]
-  }
-
-  public getDocumentFromUri(uri:string):Document | null {
+    if (typeof bufnr === 'number') {
+      return this.buffers[bufnr]
+    }
     for (let key of Object.keys(this.buffers)) {
       let doc = this.buffers[key]
-      if (doc && doc.uri === uri) return doc
+      if (doc && doc.uri === bufnr) return doc
     }
     return null
+  }
+
+  public async getOffset():Promise<number> {
+    let buffer = await this.nvim.buffer
+    let document = this.getDocument(buffer.id)
+    if (!document) return 0
+    let [_, lnum, col] = await this.nvim.call('getcurpos')
+    let line = document.getline(lnum - 1)
+    if (!line) return null
+    let character = byteIndex(line, col - 1)
+    return document.textDocument.offsetAt({
+      line: lnum - 1,
+      character
+    })
+  }
+
+  public async jumpTo(uri:string, position:Position):Promise<void> {
+    let {line, character} = position
+    let cmd = `+call\\ cursor(${line + 1},${character + 1})`
+    let filepath = Uri.parse(uri).fsPath
+    await this.nvim.command(`edit ${cmd} ${filepath}`)
   }
 
   public async applyEdit(edit: WorkspaceEdit):Promise<void> {
@@ -149,7 +187,7 @@ export class Workspace implements IWorkSpace {
       for (let change of documentChanges) {
         let {textDocument, edits} = change
         let { uri, version } = textDocument
-        let doc = this.getDocumentFromUri(uri)
+        let doc = this.getDocument(uri)
         if (!doc) {
           await echoWarning(nvim, `${uri} not found`)
           continue
@@ -166,7 +204,7 @@ export class Workspace implements IWorkSpace {
       if (!keys.length) return
       let arr = []
       for (let key of keys) {
-        let doc = this.getDocumentFromUri(key)
+        let doc = this.getDocument(key)
         if (doc) {
           await doc.applyEdits(nvim, changes[key])
         } else {
@@ -316,12 +354,22 @@ export class Workspace implements IWorkSpace {
 
   private async loadConfigurations():Promise<IConfigurationData> {
     let file = path.resolve(__dirname, '../settings/default.json')
+    this.configFiles.push(file)
     let defaultConfig = await this.parseConfigFile(file)
-    let userHome = await this.nvim.call('coc#util#get_config_home')
-    let userConfig = await this.parseConfigFile(path.join(userHome, CONFIG_FILE_NAME))
+    let home = await this.nvim.call('coc#util#get_config_home')
+    file = path.join(home, CONFIG_FILE_NAME)
+    this.configFiles.push(file)
+    let userConfig = await this.parseConfigFile(file)
     let cwd = await this.nvim.call('getcwd')
     let dir = resolveDirectory(cwd, '.vim')
-    let projectConfig = dir ? await this.parseConfigFile(path.join(dir, CONFIG_FILE_NAME)) : {contents: {}}
+    let projectConfig
+    file = dir ? path.join(dir, CONFIG_FILE_NAME) : null
+    if (this.configFiles.indexOf(file) == -1) {
+      this.configFiles.push(file)
+      projectConfig = await this.parseConfigFile(file)
+    } else {
+      projectConfig = {contents: {}}
+    }
     return {
       defaults: defaultConfig,
       user: userConfig,

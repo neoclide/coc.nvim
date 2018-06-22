@@ -40,15 +40,12 @@ export class Completes {
   }
 
   public async doComplete(
-    nvim: Neovim,
     sources:ISource[],
     option:CompleteOption):Promise<VimCompleteItem[]> {
     this._completing = true
     let complete = new Complete(option, this.recentScores)
     this.complete = complete
-    let start = Date.now()
-    let items = await complete.doComplete(nvim, sources)
-    logger.debug(`Complete time cost: ${Date.now() - start}ms`)
+    let items = await complete.doComplete(sources)
     this.completeItems = items || []
     // wait for popmenu show
     setTimeout(() => { this._completing = false }, 20)

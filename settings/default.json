@@ -9,6 +9,13 @@
   "coc.preferences.signatureEvents": ["CursorHold"],
   // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
   "coc.preferences.watchmanPath": "",
+  // enable diagnoctic
+  "coc.preferences.diagnoctic.enable": true,
+  "coc.preferences.diagnoctic.signOffset": 1000,
+  "coc.preferences.diagnoctic.errorSign": ">>",
+  "coc.preferences.diagnoctic.warningSign": "⚠",
+  "coc.preferences.diagnoctic.infoSign": ">>",
+  "coc.preferences.diagnoctic.hintSign": ">>",
   // language locale
   "tsserver.locale": null,
   // folder of tsserver.js

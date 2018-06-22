@@ -177,7 +177,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     let {uri, position, source} = item.data
     const filepath = this.client.normalizePath(Uri.parse(uri))
     if (!filepath) return undefined
-    let document = workspace.getDocumentFromUri(uri)
+    let document = workspace.getDocument(uri)
     if (!document) return undefined
     resolveItem(item, document)
     const args: Proto.CompletionDetailsRequestArgs = {
@@ -217,13 +217,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     if (command)  item.command = command
     item.additionalTextEdits = additionalTextEdits
     if (detail && item.insertTextFormat == InsertTextFormat.Snippet) {
-      const shouldCompleteFunction = await this.isValidFunctionCompletionContext(
-        filepath,
-        position
-      )
-      if (shouldCompleteFunction) {
-        this.createSnippetOfFunctionCall(item, detail)
-      }
+      this.createSnippetOfFunctionCall(item, detail)
     }
 
     return item
@@ -339,32 +333,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     return undefined
   }
 
-  private async isValidFunctionCompletionContext(
-    filepath: string,
-    position: Position
-  ): Promise<boolean> {
-    // Workaround for https://github.com/Microsoft/TypeScript/issues/12677
-    // Don't complete function calls inside of destructive assigments or imports
-    try {
-      const infoResponse = await this.client.execute(
-        'quickinfo',
-        typeConverters.Position.toFileLocationRequestArgs(filepath, position)
-      )
-      const info = infoResponse.body
-      switch (info && info.kind) {
-        case 'var':
-        case 'let':
-        case 'const':
-        case 'alias':
-          return false
-        default:
-          return true
-      }
-    } catch (e) {
-      return true
-    }
-  }
-
   private createSnippetOfFunctionCall(
     item: CompletionItem,
     detail: Proto.CompletionEntryDetails
@@ -382,7 +350,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     if (textEdit) {
       snippet += item.insertText || textEdit.newText // tslint:disable-line
     } else {
-      let document = workspace.getDocumentFromUri(uri)
+      let document = workspace.getDocument(uri)
       if (!document) return
       let range = document.getWordRangeAtPosition(position)
       textEdit = { range, newText: '' }

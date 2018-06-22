@@ -21,7 +21,7 @@ class SnippetProvider implements CompletionItemProvider {
     context: CompletionContext
   ): Promise<CompletionItem[] | CompletionList> {
     let {uri} = document
-    let doc = workspace.getDocumentFromUri(uri)
+    let doc = workspace.getDocument(uri)
     let range = doc.getWordRangeAtPosition(position)
     return [{
       label: 'foo',
