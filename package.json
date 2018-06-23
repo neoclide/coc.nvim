@@ -60,8 +60,7 @@
     "jest": "^23.1.0",
     "rimraf": "^2.6.2",
     "ts-jest": "^22.4.6",
-    "tslint": "^5.10.0",
-    "tslint-language-service": "^0.9.9"
+    "tslint": "^5.10.0"
   },
   "dependencies": {
     "builtin-modules": "^3.0.0",

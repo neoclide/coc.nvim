@@ -80,10 +80,10 @@ export default class Document {
         return paused
       },
       set: (val:boolean) => {
-        if (val === paused) return
+        if (val == paused) return
         if (val) {
-          paused = true
           this.pausedDocument = this.textDocument
+          paused = true
         } else {
           this.fireDocumentChanges()
           paused = false
@@ -129,6 +129,11 @@ export default class Document {
         unbindChangetick()
       }
     })
+  }
+
+  public get lineCount():number {
+    let lines = this.content.split('\n')
+    return lines.length
   }
 
   public getline(line:number):string {

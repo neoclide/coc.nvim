@@ -43,6 +43,7 @@ import uuid = require('uuid/v4')
 import snippetManager from './snippet/manager'
 import {diffLines} from './util/diff'
 import commands from './commands'
+import { setTimeout } from 'timers'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionProvider {
@@ -162,23 +163,24 @@ class Languages implements ILanguage {
         this.cancelRequest()
         let completeItem = resolveItem(item)
         if (!completeItem) return
-        await wait(10)
-        // it's not canceled by esc
-        let mode = await this.nvim.call('mode')
-        if (mode == 'i') {
-          let hasSnippet = await this.applyTextEdit(completeItem, option)
-          let {additionalTextEdits} = completeItem
-          await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
-          // start snippet listener after additionalTextEdits
-          if (hasSnippet) await snippetManager.attach()
-          let {command} = completeItem
-          if (command) {
-            commands.executeCommand(command.command, command.arguments)
+        setTimeout(async () => {
+          try {
+            let isConfirm = await this.checkConfirm(completeItem, option)
+            if (!isConfirm) return
+            let hasSnippet = await this.applyTextEdit(completeItem, option)
+            let {additionalTextEdits} = completeItem
+            await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+            // start snippet listener after additionalTextEdits
+            if (hasSnippet) await snippetManager.attach()
+            let {command} = completeItem
+            if (command) commands.execute(command)
+          } catch (e) {
+            logger.error(e.stack)
           }
-        }
-        option = null
-        completeItems = []
-        resolving = ''
+          option = null
+          completeItems = []
+          resolving = ''
+        }, 30)
         return
       },
       doComplete: async (opt:CompleteOption):Promise<CompleteResult|null> => {
@@ -230,30 +232,41 @@ class Languages implements ILanguage {
     }
   }
 
+  private async checkConfirm(item:CompletionItem, option: CompleteOption):Promise<boolean> {
+    let {col} = option
+    let {nvim} = this
+    let mode = await nvim.call('mode')
+    if (mode !== 'i') return false
+    let inserted = item.insertText || item.label // tslint:disable-line
+    let curcol = await nvim.call('col', ['.'])
+    if (curcol != col + inserted.length + 1) return false
+    return true
+  }
+
   private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<boolean> {
     let {nvim} = this
     let {textEdit} = item
+    logger.debug(0)
     if (!textEdit) return false
+    let inserted = item.insertText || item.label // tslint:disable-line
     let {range, newText} = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    if (!rangeOfLine(range, option.linenr - 1)) return false
+    let valid = rangeOfLine(range, option.linenr - 1)
+    if (!valid) return false
     let document = workspace.getDocument(option.bufnr)
     if (!document) return false
     let line = document.getline(option.linenr - 1)
-    let inserted = item.insertText || item.label // tslint:disable-line
     let deleteCount = range.end.character - option.colnr + 1
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
     let end = line.substr(option.col + inserted.length + deleteCount)
-    let col = await nvim.call('col', ['.'])
-    if (col != option.col + inserted.length + 1) return false
     let newLine = `${start}${newText}${end}`
     if (!isSnippet) {
       await nvim.call('setline', [option.linenr, newLine])
       return false
     }
-    await snippetManager.insertSnippet(option.linenr - 1, newLine)
+    await snippetManager.insertSnippet(document, option.linenr - 1, newLine)
     return true
   }
 

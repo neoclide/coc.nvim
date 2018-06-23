@@ -1,5 +1,7 @@
 # [C](#)onqure [o](#)f  [C](#)ompletion
 
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
+
 COC is a **fast**, **reliable** and **flexible** completion framework of
 [neovim](https://github.com/neovim/neovim).
 

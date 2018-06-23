@@ -100,6 +100,14 @@ function! s:Enable()
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
   augroup end
 
+  " same behaviour of ultisnips
+  if get(g:, 'coc_selectmode_mapping', 1)
+    snoremap <silent> <BS> <c-g>c
+    snoremap <silent> <DEL> <c-g>c
+    snoremap <silent> <c-h> <c-g>c
+    snoremap <c-r> <c-g>"_c<c-r>
+  endif
+
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()

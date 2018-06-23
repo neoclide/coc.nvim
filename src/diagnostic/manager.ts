@@ -13,7 +13,7 @@ import { Neovim } from 'neovim'
 import Document from '../model/document'
 import workspace from '../workspace'
 import debounce = require('debounce')
-import {DiagnosticInfo, Uri, DiagnosticItem} from '../types'
+import {Uri, DiagnosticItem} from '../types'
 const logger = require('../util/logger')('diagnostic-manager')
 
 function severityName(severity:DiagnosticSeverity):string {
@@ -42,19 +42,24 @@ class DiagnosticManager {
   constructor() {
     workspace.onDidWorkspaceInitailized(() => {
       this.nvim = workspace.nvim
-      let config = workspace.getConfiguration('coc.preferences.diagnoctic')
-      this.config = {
-        signOffset: config.get<number>('signOffset', 1000),
-        errorSign: config.get<string>('errorSign', '>>'),
-        warningSign: config.get<string>('warningSign', '>>'),
-        infoSign: config.get<string>('infoSign', '>>'),
-        hintSign: config.get<string>('hintSign', '>>'),
-      }
-      this.enabled = config.get('enable')
+      this.setConfiguration()
       if (this.enabled) {
         this.init().catch(err => {
           logger.error(err.stack)
         })
+      }
+    })
+
+    workspace.onDidChangeConfiguration(() => {
+      this.setConfiguration()
+    })
+
+    workspace.onDidCloseTextDocument(textDocument => {
+      let {uri} = textDocument
+      let idx = this.buffers.findIndex(buf => buf.uri == uri)
+      if (idx !== -1) this.buffers.splice(idx, 1)
+      for (let collection of this.collections) {
+        collection.delete(uri)
       }
     })
 
@@ -63,6 +68,18 @@ class DiagnosticManager {
         logger.error(e.stack)
       })
     }, 50)
+  }
+
+  private setConfiguration():void {
+    let config = workspace.getConfiguration('coc.preferences.diagnoctic')
+    this.config = {
+      signOffset: config.get<number>('signOffset', 1000),
+      errorSign: config.get<string>('errorSign', '>>'),
+      warningSign: config.get<string>('warningSign', '>>'),
+      infoSign: config.get<string>('infoSign', '>>'),
+      hintSign: config.get<string>('hintSign', '>>'),
+    }
+    this.enabled = !!config.get('enable')
   }
 
   private async init():Promise<void> {
@@ -105,6 +122,15 @@ class DiagnosticManager {
     return this.collections.filter(c => c.has(uri))
   }
 
+  /**
+   * Add diagnoctics for owner and uri
+   *
+   * @public
+   * @param {string} owner
+   * @param {string} uri
+   * @param {Diagnostic[]|null} diagnostics
+   * @returns {void}
+   */
   public add(owner:string, uri:string, diagnostics:Diagnostic[]|null):void {
     if (!this.enabled) return
     if (!diagnostics || diagnostics.length == 0) {
@@ -220,48 +246,6 @@ class DiagnosticManager {
   }
 
   /**
-   * Diagnostic information of currrent buffer
-   *
-   * @public
-   * @returns {Promise<void>}
-   */
-  public async diagnosticInfo():Promise<DiagnosticInfo> {
-    if (!this.enabled) return
-    let buffer = await this.nvim.buffer
-    let document = workspace.getDocument(buffer.id)
-    if (!document) return
-    let collections = this.getCollections(document.uri)
-    let res:DiagnosticInfo = {
-      error: 0,
-      warning: 0,
-      information: 0,
-      hint: 0
-    }
-    for (let item of collections) {
-      let diagnostics = item.get(document.uri)
-      for (let diagnoctic of diagnostics) {
-        switch (diagnoctic.severity) {
-          case DiagnosticSeverity.Error:
-            res.error = res.error + 1
-            break
-          case DiagnosticSeverity.Warning:
-            res.warning = res.warning + 1
-            break
-          case DiagnosticSeverity.Information:
-            res.information = res.information + 1
-            break
-          case DiagnosticSeverity.Hint:
-            res.hint = res.hint + 1
-            break
-          default:
-            res.error = res.error + 1
-        }
-      }
-    }
-    return res
-  }
-
-  /**
    * Echo diagnostic message of currrent position
    *
    * @private
@@ -309,16 +293,10 @@ class DiagnosticManager {
   }
 
   public clear(owner:string, uri?:string):void {
-    if (uri) {
-      let buffer = this.getBuffer(uri)
-      if (!buffer) return
-      buffer.clear(owner).catch(e => {
-        logger.error(e.stack)
-      })
-    } else {
-      let {buffers} = this
-      for (let buf of buffers) {
-        buf.clear(owner).catch(e => {
+    let {buffers} = this
+    for (let buffer of buffers) {
+      if (!uri || buffer.uri == uri) {
+        buffer.clear(owner).catch(e => {
           logger.error(e.stack)
         })
       }

@@ -8,11 +8,6 @@ import {
 import {
   ChangeItem
 } from '../types'
-import {
-  Position,
-  TextDocument,
-} from 'vscode-languageserver-protocol'
-import diff = require('diff')
 const logger = require('../util/logger')('snippet-snippet')
 
 export type FindResult = [Placeholder, number]
@@ -43,7 +38,7 @@ export default class Snippet {
     return this.textmateSnippet.children
   }
 
-  public get fiistPlaceholder():Placeholder|null {
+  public get firstPlaceholder():Placeholder|null {
     let {textmateSnippet} = this
     let items = textmateSnippet.placeholders
     if (items.length == 0) return null
@@ -133,5 +128,10 @@ export default class Snippet {
     if (removed) newText = newText.slice(removed.length)
     if (added) newText = added + newText
     return pre + newText
+  }
+
+  public get hasPlaceholder():boolean {
+    let firstPlaceholder = this.firstPlaceholder
+    return firstPlaceholder && firstPlaceholder.index !== 0
   }
 }

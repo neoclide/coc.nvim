@@ -117,8 +117,8 @@ export class DiagnosticsManager {
     this.scheduleDiagnosticsUpdate(uri)
   }
 
-  public delete(resource: string): void {
-    this._currentDiagnostics.delete(resource)
+  public delete(uri: string): void {
+    this._currentDiagnostics.delete(uri)
   }
 
   public getDiagnostics(uri: string): Diagnostic[] {
@@ -150,7 +150,7 @@ export class DiagnosticsManager {
       ...this._diagnostics.get(DiagnosticKind.Semantic)!.get(uri),
       ...this.getSuggestionDiagnostics(uri)
     ]
-    logger.debug('diagnostics', uri, JSON.stringify(allDiagnostics, null, 2))
+    logger.debug('diagnostics', uri, allDiagnostics.length)
     this._currentDiagnostics.set(uri, allDiagnostics)
   }
 

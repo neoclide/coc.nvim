@@ -20,15 +20,15 @@ import Increment from './increment'
 import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
+function onError(e) {
+  console.error(e.stack)
+}
+
 export class Completion {
   private increment: Increment
   private sources: Sources
   private lastChangedI: number
   private nvim:Neovim
-
-  constructor() {
-    this.onError = this.onError.bind(this)
-  }
 
   public init(nvim, emitter:EventEmitter):void {
     this.nvim = nvim
@@ -38,16 +38,13 @@ export class Completion {
       this.onInsertCharPre(character)
     })
     emitter.on('InsertLeave', () => {
-      this.onInsertLeave()
-    })
-    emitter.on('CompleteDone', item => {
-      this.onCompleteDone(item).catch(this.onError)
+      this.onInsertLeave().catch(onError)
     })
     emitter.on('TextChangedP', () => {
-      this.onTextChangedP().catch(this.onError)
+      this.onTextChangedP().catch(onError)
     })
     emitter.on('TextChangedI', () => {
-      this.onTextChangedI().catch(this.onError)
+      this.onTextChangedI().catch(onError)
     })
     // stop change emit on completion
     let document:Document = null
@@ -67,13 +64,9 @@ export class Completion {
     return lastChangedI && Date.now() - lastChangedI < 30
   }
 
-  private onError(err):void {
-    logger.error(err.stack)
-  }
-
   public startCompletion(option: CompleteOption):void {
     this._doComplete(option).catch(e => {
-      echoErr(this.nvim, e.message).catch(this.onError)
+      echoErr(this.nvim, e.message).catch(onError)
       logger.error('Error happens on complete: ', e.stack)
     })
   }
@@ -203,19 +196,21 @@ export class Completion {
     this.startCompletion(option)
   }
 
-  private async onCompleteDone(item:VimCompleteItem):Promise<void> {
+  public async onCompleteDone(item:VimCompleteItem):Promise<void> {
     if (!isCocItem(item)) return
     let {increment} = this
-    increment.stop()
-    completes.addRecent(item.word)
-    await this.sources.doCompleteDone(item)
-    completes.reset()
+    try {
+      increment.stop()
+      completes.addRecent(item.word)
+      await this.sources.doCompleteDone(item)
+      completes.reset()
+    } catch (e) {
+      logger.error(`error on complete done`, e.message)
+    }
   }
 
-  private onInsertLeave():void {
-    this.nvim.call('coc#_hide').catch(() => {
-      // noop
-    })
+  private async onInsertLeave():Promise<void> {
+    await this.nvim.call('coc#_hide')
     this.increment.stop()
   }
 

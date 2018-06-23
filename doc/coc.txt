@@ -109,6 +109,33 @@ g:coc_snippet_prev                            	*g:coc_snippet_prev*
 
 			Default: <C-k>
 
+g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
+			Add key mappings for make snippet select mode easier.  >
+			
+			snoremap <silent> <BS> <c-g>c
+			snoremap <silent> <DEL> <c-g>c
+			snoremap <silent> <c-h> <c-g>c
+			snoremap <c-r> <c-g>"_c<c-r>
+<
+			Default: 1
+
+b:coc_diagnostic_info 				*b:coc_diagnostic_info*
+			Diagnostic infomation of current buffer, can be used
+			for customize status line, like: >
+
+			function! MyStatusDiagnostic() abort
+			  let info = get(b:, 'coc_diagnostic_info', {})
+			  if empty(info) | return '' | endif
+			  let msgs = []
+			  if get(info, 'error', 0)
+			    call add(msgs, 'E' . info['error'])
+			  endif
+			  if get(info, 'warning', 0)
+			    call add(msgs, 'W' . info['warning'])
+			  endif
+			  return join(msgs, ' ')
+			endfunction
+<
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
 

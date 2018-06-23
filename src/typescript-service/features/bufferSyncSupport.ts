@@ -1,13 +1,11 @@
-import * as fs from 'fs'
 import workspace from '../../workspace'
 import {
+  disposeAll,
   Uri,
-  disposeAll
 } from '../../util'
 import {
   TextDocument,
   DidChangeTextDocumentParams,
-  TextDocumentContentChangeEvent,
   Disposable,
 } from 'vscode-languageserver-protocol'
 import * as Proto from '../protocol'
@@ -15,10 +13,6 @@ import {ITypeScriptServiceClient} from '../typescriptService'
 import {Delayer} from '../utils/async'
 import * as languageModeIds from '../utils/languageModeIds'
 const logger = require('../../util/logger')('typescript-service-bufferSyncSupport')
-
-interface IDiagnosticRequestor {
-  requestDiagnostic(resource: Uri): void
-}
 
 function mode2ScriptKind(
   mode: string
@@ -36,111 +30,13 @@ function mode2ScriptKind(
   return undefined
 }
 
-class SyncedBuffer {
-  constructor(
-    private readonly document: TextDocument,
-    private readonly filepath: string,
-    private readonly diagnosticRequestor: IDiagnosticRequestor,
-    private readonly client: ITypeScriptServiceClient
-  ) {}
-
-  public open(): void {
-    const args: Proto.OpenRequestArgs = {
-      file: this.filepath,
-      fileContent: this.document.getText()
-    }
-
-    if (this.client.apiVersion.has203Features()) {
-      const scriptKind = mode2ScriptKind(this.document.languageId)
-      if (scriptKind) {
-        args.scriptKindName = scriptKind
-      }
-    }
-    this.client.execute('open', args, false) // tslint:disable-line
-  }
-
-  public get lineCount(): number {
-    return this.document.lineCount
-  }
-
-  public close(): void {
-    const args: Proto.FileRequestArgs = {
-      file: this.filepath
-    }
-    this.client.execute('close', args, false) // tslint:disable-line
-  }
-
-  public onContentChanged(events:TextDocumentContentChangeEvent[]): void {
-    let uri = Uri.parse(this.document.uri)
-    const filePath = uri.fsPath
-    if (!filePath) return
-    for (const { range, text } of events) {
-      const args: Proto.ChangeRequestArgs = {
-        file: this.filepath,
-        line: range ? range.start.line + 1 : 1,
-        offset: range ? range.start.character + 1 : 1,
-        endLine: range ? range.end.line + 1 : 2**24,
-        endOffset: range ? range.end.character + 1 : 1,
-        insertString: text
-      }
-      this.client.execute('change', args, false) // tslint:disable-line
-    }
-    this.diagnosticRequestor.requestDiagnostic(uri)
-  }
-}
-
-class SyncedBufferMap {
-  private readonly _map = new Map<string, SyncedBuffer>()
-
-  constructor(
-    private readonly _normalizePath: (resource: Uri) => string | null
-  ) {}
-
-  public has(resource: Uri): boolean {
-    const file = this._normalizePath(resource)
-    return !!file && this._map.has(file)
-  }
-
-  public get(resource: Uri): SyncedBuffer | undefined {
-    const file = this._normalizePath(resource)
-    return file ? this._map.get(file) : undefined
-  }
-
-  public set(resource: Uri, buffer: SyncedBuffer):void {
-    const file = this._normalizePath(resource)
-    if (file) {
-      this._map.set(file, buffer)
-    }
-  }
-
-  public delete(resource: Uri): void {
-    const file = this._normalizePath(resource)
-    if (file) {
-      this._map.delete(file)
-    }
-  }
-
-  public get allBuffers(): Iterable<SyncedBuffer> {
-    return this._map.values()
-  }
-
-  public get allResources(): Iterable<string> {
-    return this._map.keys()
-  }
-}
-
-export interface Diagnostics {
-  delete(resource: Uri): void
-}
-
 export default class BufferSyncSupport {
   private readonly client: ITypeScriptServiceClient
 
   private _validate: boolean
   private readonly modeIds: Set<string>
-  private readonly diagnostics: Diagnostics
+  private readonly uris: Set<string> = new Set()
   private readonly disposables: Disposable[] = []
-  private readonly syncedBuffers: SyncedBufferMap
 
   private readonly pendingDiagnostics = new Map<string, number>()
   private readonly diagnosticDelayer: Delayer<any>
@@ -148,19 +44,12 @@ export default class BufferSyncSupport {
   constructor(
     client: ITypeScriptServiceClient,
     modeIds: string[],
-    diagnostics: Diagnostics,
     validate: boolean
   ) {
     this.client = client
     this.modeIds = new Set<string>(modeIds)
-    this.diagnostics = diagnostics
     this._validate = validate || false
-
     this.diagnosticDelayer = new Delayer<any>(300)
-
-    this.syncedBuffers = new SyncedBufferMap(path =>
-      this.client.normalizePath(path)
-    )
   }
 
   public listen(): void {
@@ -186,95 +75,89 @@ export default class BufferSyncSupport {
     this._validate = value
   }
 
-  public handles(resource: Uri): boolean {
-    return this.syncedBuffers.has(resource)
-  }
-
-  public reOpenDocuments(): void {
-    for (const buffer of this.syncedBuffers.allBuffers) {
-      buffer.open()
-    }
-  }
-
   public dispose(): void {
     disposeAll(this.disposables)
   }
 
   private onDidOpenTextDocument(document: TextDocument): void {
-    if (!this.modeIds.has(document.languageId)) {
-      return
-    }
-    const resource = Uri.parse(document.uri)
-    const filepath = this.client.normalizePath(resource)
-    if (!filepath) {
-      return
-    }
-
-    if (this.syncedBuffers.has(resource)) {
-      return
+    if (!this.modeIds.has(document.languageId)) return
+    let {uri} = document
+    let filepath = Uri.parse(uri).fsPath
+    this.uris.add(uri)
+    const args: Proto.OpenRequestArgs = {
+      file: filepath,
+      fileContent: document.getText()
     }
 
-    const syncedBuffer = new SyncedBuffer(document, filepath, this, this.client)
-    this.syncedBuffers.set(resource, syncedBuffer)
-    syncedBuffer.open()
-    this.requestDiagnostic(resource)
+    if (this.client.apiVersion.has203Features()) {
+      const scriptKind = mode2ScriptKind(document.languageId)
+      if (scriptKind) {
+        args.scriptKindName = scriptKind
+      }
+    }
+    this.client.execute('open', args, false) // tslint:disable-line
+    this.requestDiagnostic(uri)
   }
 
   private onDidCloseTextDocument(document: TextDocument): void {
-    const resource = Uri.file(document.uri)
-    const syncedBuffer = this.syncedBuffers.get(resource)
-    if (!syncedBuffer) {
-      return
+    let {uri} = document
+    if (!this.uris.has(uri)) return
+    let filepath = Uri.parse(uri).fsPath
+    const args: Proto.FileRequestArgs = {
+      file: filepath
     }
-    this.diagnostics.delete(resource)
-    this.syncedBuffers.delete(resource)
-    syncedBuffer.close()
-    if (!fs.existsSync(resource.fsPath)) {
-      this.requestAllDiagnostics()
-    }
+    this.client.execute('close', args, false) // tslint:disable-line
   }
 
   private onDidChangeTextDocument(e: DidChangeTextDocumentParams): void {
-    const uri = Uri.parse(e.textDocument.uri)
-    const syncedBuffer = this.syncedBuffers.get(uri)
-    if (syncedBuffer) {
-      syncedBuffer.onContentChanged(e.contentChanges)
+    let {textDocument, contentChanges} = e
+    let {uri} = textDocument
+    if (!this.uris.has(uri)) return
+    let filepath = Uri.parse(uri).fsPath
+    logger.trace('changes: ', filepath, contentChanges)
+    for (const { range, text } of contentChanges) {
+      const args: Proto.ChangeRequestArgs = {
+        file: filepath,
+        line: range ? range.start.line + 1 : 1,
+        offset: range ? range.start.character + 1 : 1,
+        endLine: range ? range.end.line + 1 : 2**24,
+        endOffset: range ? range.end.character + 1 : 1,
+        insertString: text
+      }
+      this.client.execute('change', args, false) // tslint:disable-line
     }
+    this.requestDiagnostic(uri)
   }
 
   public requestAllDiagnostics():void {
     if (!this._validate) {
       return
     }
-    for (const filePath of this.syncedBuffers.allResources) {
-      this.pendingDiagnostics.set(filePath, Date.now())
+    for (const uri of this.uris) {
+      this.pendingDiagnostics.set(uri, Date.now())
     }
     this.diagnosticDelayer.trigger(() => { // tslint:disable-line
       this.sendPendingDiagnostics()
     }, 200)
   }
 
-  public requestDiagnostic(resource: Uri): void {
+  public requestDiagnostic(uri: string): void {
     if (!this._validate) {
       return
     }
-    const file = resource.fsPath
-    if (!file) return
-    this.pendingDiagnostics.set(file, Date.now())
-    const buffer = this.syncedBuffers.get(resource)
+    let document = workspace.getDocument(uri)
+    if (!document) return
+    this.pendingDiagnostics.set(uri, Date.now())
     let delay = 300
-    if (buffer) {
-      const lineCount = buffer.lineCount
-      delay = Math.min(Math.max(Math.ceil(lineCount / 20), 300), 800)
-    }
+    const lineCount = document.lineCount
+    delay = Math.min(Math.max(Math.ceil(lineCount / 20), 300), 800)
     this.diagnosticDelayer.trigger(() => {
       this.sendPendingDiagnostics()
     }, delay) // tslint:disable-line
   }
 
-  public hasPendingDiagnostics(resource: Uri): boolean {
-    const file = resource.fsPath
-    return !file || this.pendingDiagnostics.has(file)
+  public hasPendingDiagnostics(uri: string): boolean {
+    return this.pendingDiagnostics.has(uri)
   }
 
   private sendPendingDiagnostics(): void {
@@ -282,13 +165,13 @@ export default class BufferSyncSupport {
       return
     }
     const files = Array.from(this.pendingDiagnostics.entries())
-      .filter(f => f.indexOf('node_modules') == -1)
       .sort((a, b) => a[1] - b[1])
-      .map(entry => entry[0])
+      .map(entry => Uri.parse(entry[0]).fsPath)
 
     // Add all open TS buffers to the geterr request. They might be visible
-    for (const file of this.syncedBuffers.allResources) {
-      if (!this.pendingDiagnostics.get(file)) {
+    for (const uri of this.uris) {
+      if (!this.pendingDiagnostics.get(uri)) {
+        let file = Uri.parse(uri).fsPath
         files.push(file)
       }
     }

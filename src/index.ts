@@ -16,12 +16,10 @@ const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
 export default class CompletePlugin {
-  public nvim: Neovim
   private initailized = false
   private emitter: EventEmitter
 
-  constructor(nvim: Neovim) {
-    this.nvim = nvim
+  constructor(public nvim: Neovim) {
     this.emitter = new EventEmitter()
     workspace.nvim = nvim
     languages.nvim = nvim
@@ -116,7 +114,8 @@ export default class CompletePlugin {
         emitter.emit('InsertEnter')
         break
       case 'CompleteDone':
-        emitter.emit('CompleteDone', args[1])
+        logger.debug('completeDone')
+        await completion.onCompleteDone(args[1] as VimCompleteItem)
         break
       case 'TextChangedP':
         emitter.emit('TextChangedP')
@@ -181,9 +180,6 @@ export default class CompletePlugin {
           break
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
-        case 'diagnosticInfo': {
-          return await diagnosticManager.diagnosticInfo()
-        }
         default:
           logger.error(`unknown action ${args[0]}`)
       }

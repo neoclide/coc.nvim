@@ -1,5 +1,6 @@
 import {Disposable} from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
+import * as language from 'vscode-languageserver-protocol'
 
 // command center
 export interface Command {
@@ -46,10 +47,11 @@ export class CommandManager implements Disposable {
     this.commands.clear()
   }
 
-  public executeCommand(title:string, args: any[]):void {
+  public execute(command: language.Command):void {
+    let {title} = command
     let cmd = this.commands.get(title)
     if (!cmd) return
-    cmd.execute(args)
+    cmd.execute(command.arguments)
   }
 
   public register<T extends Command>(command: T): T {

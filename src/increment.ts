@@ -99,8 +99,8 @@ export default class Increment extends EventEmitter {
     this.search = search
     if (completes.completing) return null
     if (!search || !completes.hasMatch(search)) {
-      this.stop()
       await this.nvim.call('coc#_hide')
+      this.stop()
       return null
     }
     return search

@@ -7,13 +7,11 @@ import {
   Placeholder,
 } from './parser'
 import {
-  getUri,
-} from '../util'
-import {
   getChangeItem,
 } from '../util/diff'
 import Snippet from './snippet'
 import workspace from '../workspace'
+import Document from '../model/document'
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err):void {
@@ -22,7 +20,6 @@ function onError(err):void {
 
 export class SnippetManager {
   private snippet: Snippet
-  private buffer: Buffer | null = null
   private activted = false
   // zero indexed
   private startLnum: number
@@ -38,6 +35,11 @@ export class SnippetManager {
   public init(nvim:Neovim):void {
     this.nvim = nvim
     workspace.onDidChangeTextDocument(this.onDocumentChange, this)
+    workspace.onDidCloseTextDocument(textDocument => {
+      if (textDocument.uri == this.uri) {
+        this.detach().catch(onError)
+      }
+    })
   }
 
   public async attach():Promise<void> {
@@ -45,27 +47,24 @@ export class SnippetManager {
     if (!snippet) return
     let linenr = await workspace.nvim.call('line', ['.']) as number
     this.startLnum = linenr - 1
-    // let buffer = this.buffer = await this.nvim.buffer
-    let placeholder = snippet.fiistPlaceholder
+    let placeholder = snippet.firstPlaceholder
     if (placeholder) {
       await this.jumpTo(placeholder)
     }
-    await this.nvim.call('coc#snippet#enable')
+    if (snippet.hasPlaceholder) {
+      await this.nvim.call('coc#snippet#enable')
+    }
     this.activted = true
   }
 
   public async detach():Promise<void> {
     if (!this.activted) return
-    let {id} = this.buffer
     this.activted = false
-    this.buffer = null
     this.uri = ''
-    this.currIndex = -1
+    if (!this.snippet.hasPlaceholder) return
+    this.snippet = null
     try {
-      let bufnr = await this.nvim.call('bufnr', ['%'])
-      if (bufnr == id) {
-        await this.nvim.call('coc#snippet#disable')
-      }
+      await this.nvim.call('coc#snippet#disable')
     } catch (e) {
       onError(e)
     }
@@ -73,11 +72,12 @@ export class SnippetManager {
 
   private async onLineChange(tick:number, content:string):Promise<void> {
     this.changedtick = tick
-    let {snippet, buffer} = this
+    let {snippet} = this
     let text = snippet.toString()
     if (text == content) return
     let change = getChangeItem(text, content)
-    if (!change) return
+    let document = workspace.getDocument(this.uri)
+    if (!change || !document) return
     let [placeholder, start] = snippet.findPlaceholder(change, change.offset)
     if (!placeholder || placeholder.index == 0) {
       await this.detach()
@@ -86,29 +86,35 @@ export class SnippetManager {
     let newText = snippet.getNewText(change, placeholder, start)
     snippet.replaceWith(placeholder, newText)
     let result = snippet.toString()
-    let currTick = await buffer.changedtick
+    let currTick = document.version
     if (currTick !== tick) return
+    let {buffer} = document
     await buffer.setLines(result, {
       start: this.startLnum,
-      end: this.startLnum + 1,
       strictIndexing: true
     })
   }
 
-  public async insertSnippet(lnum:number, newLine:string):Promise<void> {
+  public async insertSnippet(document: Document,line:number, newLine:string):Promise<void> {
     if (this.activted) {
       await this.detach()
     }
-    let buffer = this.buffer = await this.nvim.buffer
-    let name = await buffer.name
-    this.uri = getUri(name, buffer.id)
-    this.snippet = new Snippet(newLine)
-    let str = this.snippet.toString()
-    await this.nvim.call('setline', [lnum + 1, str])
+    try {
+      let {buffer} = document
+      this.uri = document.uri
+      this.snippet = new Snippet(newLine)
+      let str = this.snippet.toString()
+      await buffer.setLines(str, {
+        start: line,
+        strictIndexing: true
+      })
+    } catch (e) {
+      logger.error(e.message)
+    }
   }
 
   public async jumpTo(marker: Placeholder):Promise<void> {
-    await this.ensureCurrentLine()
+    // await this.ensureCurrentLine()
     let {snippet, nvim, startLnum} = this
     let offset = snippet.offset(marker)
     let col = offset + 1
@@ -159,10 +165,9 @@ export class SnippetManager {
    * @private
    */
   private async ensureCurrentLine():Promise<void> {
-    let bufnr = this.buffer.id
     let line = this.startLnum
     let currline = this.snippet.toString()
-    let document = workspace.getDocument(bufnr)
+    let document = workspace.getDocument(this.uri)
     if (!document) return
     let content = document.getline(line)
     if (content == currline) return
@@ -185,8 +190,7 @@ export class SnippetManager {
         return
       }
     }
-    let {id} = this.buffer
-    let document = workspace.getDocument(id)
+    let document = workspace.getDocument(this.uri)
     if (!document) return
     let newLine = document.getline(startLnum)
     this.onLineChange(document.version, newLine).catch(onError)

@@ -44,14 +44,6 @@ export default class LanguageProvider {
     this.bufferSyncSupport = new BufferSyncSupport(
       client,
       description.modeIds,
-      {
-        delete: resource => {
-          let fsPath = resource.fsPath
-          if (fsPath) {
-            this.diagnosticsManager.delete(fsPath)
-          }
-        }
-      },
       this._validate
     )
     this.diagnosticsManager = new DiagnosticsManager()
@@ -117,13 +109,7 @@ export default class LanguageProvider {
     if (this.id === 'javascript' && /js(x)?$/.test(fsPath)) {
       return true
     }
-
-    if (this.bufferSyncSupport.handles(resource)) {
-      return true
-    }
-
-    const base = basename(resource.fsPath)
-    return !!base && base === this.description.configFile
+    return false
   }
 
   private get id(): string { // tslint:disable-line
@@ -159,7 +145,6 @@ export default class LanguageProvider {
 
   public reInitialize(): void {
     this.diagnosticsManager.reInitialize()
-    this.bufferSyncSupport.reOpenDocuments()
     this.bufferSyncSupport.requestAllDiagnostics()
   }
 
