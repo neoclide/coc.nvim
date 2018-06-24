@@ -17,7 +17,6 @@ import commands, { Command as CommandItem } from '../../commands'
 import {
   Uri,
 } from '../../types'
-import Document from '../../model/document'
 import workspace from '../../workspace'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as Previewer from '../utils/previewer'
@@ -116,7 +115,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     })
     let {triggerCharacter} = context
 
-    if (!this.shouldTrigger(triggerCharacter, preText, position)) {
+    if (!this.shouldTrigger(triggerCharacter, preText)) {
       return []
     }
 
@@ -212,7 +211,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       ? Previewer.plain(detail.displayParts)
       : undefined
 
-    item.documentation = this.getDocumentation(detail, item)
+    item.documentation = this.getDocumentation(detail)
     const {command, additionalTextEdits} = this.getCodeActions(detail, filepath)
     if (command)  item.command = command
     item.additionalTextEdits = additionalTextEdits
@@ -290,7 +289,6 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
   private shouldTrigger(
     triggerCharacter: string,
     pre: string,
-    position: Position
   ): boolean {
     if (triggerCharacter === '.') {
       if (pre.match(/[\s\.'"]\.$/)) {
@@ -309,9 +307,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
   }
 
   // complete item documentation
-  private getDocumentation(
-    detail: Proto.CompletionEntryDetails, item: CompletionItem
-  ): MarkupContent | undefined {
+  private getDocumentation(detail: Proto.CompletionEntryDetails): MarkupContent | undefined {
     let documentation = ''
     if (detail.source) {
       const importPath = `'${Previewer.plain(detail.source)}'`

@@ -503,6 +503,14 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
   }
 
+  public toPath(uri:string):string {
+    return Uri.parse(uri).fsPath
+  }
+
+  public toResource(path:string):string {
+    return Uri.file(path).toString()
+  }
+
   public normalizePath(resource: Uri): string | null {
     if (this._apiVersion.has213Features()) {
       if (resource.scheme !== FileSchemes.File) {

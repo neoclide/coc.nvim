@@ -12,10 +12,12 @@ import {
   DiagnosticKind,
   ServiceStat,
 } from '../types'
-import {basename} from 'path'
 import { DiagnosticsManager } from './features/diagnostics'
 import TypeScriptServiceClient from './typescriptServiceClient'
 import BufferSyncSupport from './features/bufferSyncSupport'
+import CompletionItemProvider from './features/completionItemProvider'
+import DefinitionProvider from './features/definitionProvider'
+import ReferenceProvider from './features/references'
 import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
 import {LanguageDescription} from './utils/languageDescription'
@@ -85,18 +87,43 @@ export default class LanguageProvider {
     client: TypeScriptServiceClient,
     typingsStatus: TypingsStatus
   ): Promise<void> {
-    const TypeScriptCompletionItemProvider = (await import('./features/completionItemProvider')).default // tslint:disable-line
+    let languageIds = this.description.modeIds
     this.disposables.push(
       languages.registerCompletionItemProvider(
         'tsserver',
         'TSC',
-        this.description.modeIds,
-        new TypeScriptCompletionItemProvider(
+        languageIds,
+        new CompletionItemProvider(
           client,
           typingsStatus,
           this.fileConfigurationManager
         ),
-        TypeScriptCompletionItemProvider.triggerCharacters
+        CompletionItemProvider.triggerCharacters
+      )
+    )
+    let definitionProvider = new DefinitionProvider(client)
+    this.disposables.push(
+      languages.registerDefinitionProvider(
+        languageIds,
+        definitionProvider
+      )
+    )
+    this.disposables.push(
+      languages.registerTypeDefinitionProvider(
+        languageIds,
+        definitionProvider
+      )
+    )
+    this.disposables.push(
+      languages.registerImplementationProvider(
+        languageIds,
+        definitionProvider
+      )
+    )
+    this.disposables.push(
+      languages.registerReferencesProvider(
+        languageIds,
+        new ReferenceProvider(client)
       )
     )
   }

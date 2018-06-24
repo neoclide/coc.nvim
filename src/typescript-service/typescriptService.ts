@@ -21,6 +21,8 @@ export interface ITypeScriptServiceClient {
 
   normalizePath(resource: Uri): string | null
   asUrl(filepath: string): Uri
+  toPath(uri:string):string
+  toResource(path:string):string
 
   execute(
     command: 'configure',

@@ -10,6 +10,7 @@ import services from './services'
 import remoteStore from './remote-store'
 import languages from './languages'
 import commands from './commands'
+import DefinitionManager from './definition'
 import diagnosticManager from './diagnostic/manager'
 import EventEmitter = require('events')
 const logger = require('./util/logger')('index')
@@ -18,9 +19,11 @@ const logger = require('./util/logger')('index')
 export default class CompletePlugin {
   private initailized = false
   private emitter: EventEmitter
+  private definitionManager: DefinitionManager
 
   constructor(public nvim: Neovim) {
     this.emitter = new EventEmitter()
+    this.definitionManager = new DefinitionManager(nvim)
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
@@ -180,6 +183,18 @@ export default class CompletePlugin {
           break
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
+        case 'jumpDefinition':
+          await this.definitionManager.gotoDefinition()
+          break
+        case 'jumpImplementation':
+          await this.definitionManager.gotoImplementaion()
+          break
+        case 'jumpTypeDefinition':
+          await this.definitionManager.gotoTypeDefinition()
+          break
+        case 'jumpReferences':
+          await this.definitionManager.gotoReferences()
+          break
         default:
           logger.error(`unknown action ${args[0]}`)
       }

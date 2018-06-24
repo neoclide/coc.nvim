@@ -7,7 +7,7 @@ import {byteSlice} from '../util/string'
 import Source from './source'
 import {fuzzyChar} from '../util/fuzzy'
 import {echoErr} from '../util/index'
-const logger = require('../util/logger')('model-source-vim') // tslint:disable-line
+const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
 

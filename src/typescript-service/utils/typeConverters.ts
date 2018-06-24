@@ -1,7 +1,6 @@
 /**
  * Helpers for converting FROM LanguageServer types language-server ts types
  */
-import {Uri} from '../../util'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as language from 'vscode-languageserver-protocol'
@@ -52,11 +51,11 @@ export namespace Position {
 
 export namespace Location {
   export const fromTextSpan = (
-    resource: Uri,
+    uri: string,
     tsTextSpan: Proto.TextSpan
   ): language.Location => {
     return {
-      uri: resource.toString(),
+      uri,
       range: Range.fromTextSpan(tsTextSpan)
     }
   }

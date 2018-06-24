@@ -121,7 +121,10 @@ augroup end
 
 nnoremap <silent> <Plug>(coc-diagnostic-next) :call CocAction('diagnosticNext')<CR>
 nnoremap <silent> <Plug>(coc-diagnostic-prev) :call CocAction('diagnosticPrevious')<CR>
-nnoremap <silent> <Plug>(coc-jump-definition) :call CocAction('jumpDefinition')<CR>
+nnoremap <silent> <Plug>(coc-definition)      :call CocAction('jumpDefinition')<CR>
+nnoremap <silent> <Plug>(coc-implementation)  :call CocAction('jumpImplementation')<CR>
+nnoremap <silent> <Plug>(coc-type-definition) :call CocAction('jumpTypeDefinition')<CR>
+nnoremap <silent> <Plug>(coc-references)      :call CocAction('jumpReferences')<CR>
 inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
 
 if has('vim_starting')

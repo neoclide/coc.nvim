@@ -15,6 +15,7 @@ Interface		|coc-interface|
   Variables		  |coc-variables|
   Functions		  |coc-functions|
   Commands		  |coc-commands|
+  Autocmds 		  |coc-autocmds|
 Denite support 		|coc-denite|
   Denite source  	|coc-denite-source|
   Denite diagnostic     |coc-denite-diagnostic|
@@ -93,9 +94,35 @@ Keymapings 					*coc-keymapings*
 			
 			Jump to previous diagnostic position.
 
+<Plug>(coc-definition)
+
+			Jump to definition of current symbol.
+
+<Plug>(coc-implementation)
+
+			Jump to implementations of current symbol.
+
+<Plug>(coc-type-definition)
+
+			Jump to type definition of current symbol.
+
+<Plug>(coc-references)
+
+			Jump to references of current symbol.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+g:coc_show_quickfix                            	*g:coc_show_quickfix*
+			Show quickfix window by using `:copen` when one than
+			one location found after jump definition, type
+			definition, or implementations.
+
+			You can use other interface for showing quickfix items
+			by set this to 0 and use autocmd |CocQuickfixChange|
+
+			Default: 1
+		
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 			Trigger key for goto next snippet position, applied
@@ -135,6 +162,7 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			  endif
 			  return join(msgs, ' ')
 			endfunction
+
 <
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
@@ -158,17 +186,24 @@ CocAction({action}, [...{args}])
 
 	'sourceStat': 	get the list of current source stats.
 
-	'refreshSource': refresh all sources or source of first {args}
+	'refreshSource': refresh all sources or source of first {args}.
 
-	'toggleSource': enable/disable source of first {args}
+	'toggleSource': enable/disable source of first {args}.
 
-	'diagnosticList': get all diagnostic items of current session
+	'diagnosticList': get all diagnostic items of current session.
 
 	'diagnosticInfo': get diagnostic info of current buffer, the format
 			  would like
 
 			  `{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
 
+	'jumpDefinition': jump to definition of current symbol.
+
+	'jumpImplementation': jump to implementation of current symbol.
+
+	'jumpTypeDefinition': jump to type definition of current symbol.
+
+	'jumpReferences': jump to references of current symbol.
 
 						*coc#refresh()*
 coc#refresh()
@@ -181,7 +216,8 @@ health#coc#check()
 	
 	Run health check.
 
-==============================================================================
+------------------------------------------------------------------------------
+
 COMMANDS 					*coc-commands*
 
 
@@ -191,6 +227,20 @@ COMMANDS 					*coc-commands*
 :CocEnable 					*coc-command-enable*
 		Reenable completion of coc
 
+------------------------------------------------------------------------------
+
+AUTOCMD 					*coc-autocmds*
+
+						*CocQuickfixChange*
+
+:autocmd User CocQuickfixChange {command}
+
+		Used for open a custom list for the quickfix results, for
+		example: >
+
+  	autocmd User CocQuickfixChange :Denite -immediately quickfix
+
+<
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
 

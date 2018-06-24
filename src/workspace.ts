@@ -173,13 +173,6 @@ export class Workspace implements IWorkSpace {
     })
   }
 
-  public async jumpTo(uri:string, position:Position):Promise<void> {
-    let {line, character} = position
-    let cmd = `+call\\ cursor(${line + 1},${character + 1})`
-    let filepath = Uri.parse(uri).fsPath
-    await this.nvim.command(`edit ${cmd} ${filepath}`)
-  }
-
   public async applyEdit(edit: WorkspaceEdit):Promise<void> {
     let {nvim} = this
     let {documentChanges, changes} = edit

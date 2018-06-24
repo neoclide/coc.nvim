@@ -48,17 +48,6 @@ export async function echoMessage(nvim: Neovim, msg: string):Promise<void> {
   return await echoMsg(nvim, prefix + msg, 'MoreMsg')
 }
 
-export function getUserData(item:any):{[index: string]: any} | null {
-  let userData = item.user_data
-  if (!userData) return null
-  try {
-    let res = JSON.parse(userData)
-    return res.hasOwnProperty('cid') ? res : null
-  } catch (e) {
-    return null
-  }
-}
-
 export function wait(ms: number):Promise<any> {
   return new Promise(resolve => {
     setTimeout(() => {
