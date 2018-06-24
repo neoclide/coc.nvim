@@ -19,15 +19,22 @@ import {
   getUri,
 } from '../util/index'
 import {
+  equals
+} from '../util/object'
+import {
   isGitIgnored,
 } from '../util/fs'
 import debounce = require('debounce')
-import diff = require('diff')
-import {getTextEdit} from '../util/diff'
 const logger = require('../util/logger')('model-document')
 
-function createEdit(start:Partial<Position>, end:Partial<Position>, newText):TextEdit {
-  let range = {
+interface Edit {
+  singleLine?: number
+  range: Range,
+  newText: string
+}
+
+function createEdit(start:{line:number, character?:number}, end:{line:number, character?: number}, newText):Edit {
+  let range:Range = {
     start: {
       character: 0,
       ...start
@@ -37,7 +44,7 @@ function createEdit(start:Partial<Position>, end:Partial<Position>, newText):Tex
       ...end
     }
   }
-  return {range, newText} as TextEdit
+  return {range, newText}
 }
 
 // wrapper class of TextDocument
@@ -46,24 +53,24 @@ export default class Document {
   public chars:Chars
   public paused: boolean
   public textDocument: TextDocument
-  private pausedDocument: TextDocument
-  private textEdits:TextEdit[] = []
+  private textEdits:Edit[] = []
   private _fireContentChanges: Function & { clear(): void; }
   private _onDocumentChange = new EventEmitter<DidChangeTextDocumentParams>()
   private attached = false
   private hasChange = false
   private disposables:Disposable[] = []
+  // real current lines
+  private lines:string[] = []
   public readonly words:string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer:Buffer) {
-    this._fireContentChanges = debounce(async () => {
+    this._fireContentChanges = debounce(() => {
       try {
-        await this.fireContentChanges()
+        this.fireContentChanges()
       } catch (e) {
-        logger.error(`Content change error: ` + e.stack)
+        logger.error('contentChanges error: ', e.stack)
       }
     }, 20)
-    let paused = false
     let words = []
     Object.defineProperty(this, 'words', {
       get: () => {
@@ -75,6 +82,7 @@ export default class Document {
         return words
       }
     })
+    let paused = false
     Object.defineProperty(this, 'paused', {
       get: () => {
         return paused
@@ -82,11 +90,12 @@ export default class Document {
       set: (val:boolean) => {
         if (val == paused) return
         if (val) {
-          this.pausedDocument = this.textDocument
           paused = true
         } else {
-          this.fireDocumentChanges()
           paused = false
+          // fire immediatelly
+          this._fireContentChanges.clear()
+          this.fireContentChanges()
         }
       }
     })
@@ -95,18 +104,34 @@ export default class Document {
   public async init(nvim:Neovim):Promise<void> {
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
-    let {fullpath, changedtick, filetype, iskeyword} = opts
+    let {fullpath, filetype, iskeyword} = opts
     let uri = getUri(fullpath, buffer.id)
     let chars = this.chars = new Chars(iskeyword)
     if (this.includeDash(filetype)) chars.addKeyword('-')
-    let content = (await buffer.lines).join('\n')
-    this.textDocument = TextDocument.create(uri, filetype, changedtick, content)
+    this.lines = await buffer.lines as string[]
+    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.attach()
     this.hasChange = true
     this.attached = true
     this.gitCheck().catch(e => {
       logger.error('git error', e.stack)
     })
+  }
+
+  public get lineCount():number {
+    return this.lines.length
+  }
+
+  /**
+   * Real current line
+   *
+   * @public
+   * @param {number} line - zero based line number
+   * @returns {string}
+   */
+  public getline(line:number):string {
+    if (line < 0) return null
+    return this.lines[line]
   }
 
   public attach():void {
@@ -117,70 +142,10 @@ export default class Document {
         logger.error(e.stack)
       }
     })
-    let unbindChangetick = this.buffer.listen('changedtick', (buffer, tick) => {
-      if (buffer.id != this.bufnr) return
-      let content = this.textDocument.getText()
-      let {uri, languageId} = this.textDocument
-      this.textDocument = TextDocument.create(uri, languageId, tick, content)
-    })
     this.disposables.push({
       dispose: () => {
         unbindLines()
-        unbindChangetick()
       }
-    })
-  }
-
-  public get lineCount():number {
-    let lines = this.content.split('\n')
-    return lines.length
-  }
-
-  public getline(line:number):string {
-    if (line < 0) return null
-    let lines = this.content.split('\n')
-    return lines[line] || null
-  }
-
-  public async checkDocument():Promise<void> {
-    this.paused = false
-    this.textEdits = []
-    let buffer:Buffer = this.buffer as Buffer
-    let buftype = await buffer.getOption('buftype') as string
-    if (buftype !== '') return this.detach()
-    let filetype = (await buffer.getOption('filetype') as string)
-    let version = await buffer.getVar('changedtick') as number
-    let content = (await buffer.lines as string[]).join('\n')
-    if (this.content != content) {
-      let res = diff.diffChars(this.content, content)
-      logger.error('--------------------')
-      logger.error('content diff:', res)
-      logger.error('content length:', this.content.length, content.length)
-    }
-    let {uri} = this
-    this._fireContentChanges.clear()
-    this.textDocument = TextDocument.create(uri, filetype, version, content)
-    this.hasChange = true
-    this._onDocumentChange.fire({
-      textDocument: {version, uri},
-      contentChanges: [{ text: content }]
-    })
-  }
-
-  private async fireContentChanges():Promise<void> {
-    let {textEdits} = this
-    if (textEdits.length == 0) return
-    this.textEdits = []
-    let {uri, version, paused} = this
-    if (paused) return
-    this._onDocumentChange.fire({
-      textDocument: {version, uri},
-      contentChanges: textEdits.map(o => {
-        return {
-          range: o.range,
-          text: o.newText
-        }
-      })
     })
   }
 
@@ -190,13 +155,13 @@ export default class Document {
     firstline:number,
     lastline:number,
     linedata:string[],
-    more:boolean
+    // more:boolean
   ):void {
     if (tick == null) return
-    if (buf.id !== (this.buffer as Buffer).id) return
-    let textEdits:TextEdit[] = []
+    if (buf.id !== this.buffer.id) return
+    let textEdits:Edit[] = []
     let newText = linedata.map(s => s + '\n').join('')
-    let totalLines = this.textDocument.lineCount
+    let totalLines = this.lines.length
     // fix that last line should not have `\n`
     if (lastline == totalLines && newText.length) {
       newText = newText.slice(0, -1)
@@ -205,28 +170,70 @@ export default class Document {
       // add new lines, we should prepend `\n`
       newText = '\n' + newText
     }
-    textEdits.push(createEdit(
-      {line:firstline},
-      {line:lastline},
-      newText))
+    let edit = createEdit( {line:firstline}, {line:lastline}, newText)
     // removing lastline should remove `\n` from lastline
     if (lastline == totalLines && linedata.length == 0) {
       let idx = firstline - 1
-      let line = this.getline(idx)
+      let line = this.lines[idx]
       if (line != null) {
-        textEdits.push(createEdit(
-          {line: idx, character: line.length},
-          {line: idx + 1},
-          ''
-        ))
+        edit.range.start = {line: idx, character: line.length}
       }
     }
+    textEdits.push(edit)
     this.textEdits = this.textEdits.concat(textEdits)
-    let content = TextDocument.applyEdits(this.textDocument, textEdits)
-    let {languageId, uri} = this.textDocument
-    this.textDocument = TextDocument.create(uri, languageId, tick, content)
-    this.hasChange = true
+    this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
+  }
+
+  /**
+   * Make sure current document synced correctly
+   *
+   * @public
+   * @returns {Promise<void>}
+   */
+  public async checkDocument():Promise<void> {
+    this._fireContentChanges.clear()
+    this.paused = false
+    let {buffer} = this
+    // don't listen to terminal buffer
+    let buftype = await buffer.getOption('buftype') as string
+    if (buftype !== '') return this.detach()
+    this.lines = await buffer.lines as string[]
+    // let content = lines.join('\n')
+    // if (this.content != content) {
+    //   let res = diff.diffLines(this.content, content)
+    //   logger.error('--------------------')
+    //   logger.error('content diff:', res)
+    //   logger.error('content length:', this.content.length, content.length)
+    //   this.lines = lines
+    // }
+    this.createDocument()
+    let {version, uri} = this
+    this.hasChange = true
+    this._onDocumentChange.fire({
+      textDocument: {version, uri},
+      contentChanges: [{ text: this.lines.join('\n') }]
+    })
+  }
+
+  private fireContentChanges():void {
+    let {paused, textEdits} = this
+    if (paused || textEdits.length == 0) return
+    let edits = this.mergeTextEdits(textEdits)
+    this.textEdits = []
+    this.createDocument(edits.length)
+    let changes = edits.map(edit => {
+      return {
+        range: edit.range,
+        text: edit.newText
+      }
+    })
+    let {version, uri} = this
+    this.hasChange = true
+    this._onDocumentChange.fire({
+      textDocument: {version, uri},
+      contentChanges: changes
+    })
   }
 
   public detach():void {
@@ -310,9 +317,17 @@ export default class Document {
     return res
   }
 
+  /**
+   * Current word for replacement, used by completion
+   * For increment completion, the document is initailized document
+   *
+   * @public
+   * @param {Position} position
+   * @param {string} extraChars?
+   * @returns {Range}
+   */
   public getWordRangeAtPosition(position:Position, extraChars?:string):Range {
-    let {chars, pausedDocument} = this
-    let textDocument = pausedDocument || this.textDocument
+    let {chars, textDocument} = this
     let content = textDocument.getText()
     if (extraChars && extraChars.length) {
       let codes = []
@@ -366,20 +381,26 @@ export default class Document {
     this.isIgnored = await isGitIgnored(filepath)
   }
 
-  private fireDocumentChanges():void {
-    let orig = this.pausedDocument
-    let curr = this.textDocument
-    if (!orig || !curr) return
-    let textEdit = getTextEdit(orig, curr)
-    if (!textEdit) return
-    let {version, uri} = curr
-    this.pausedDocument = null
-    this._onDocumentChange.fire({
-      textDocument: {version, uri},
-      contentChanges: [{
-        range: textEdit.range,
-        text: textEdit.newText
-      }]
-    })
+  private createDocument(changeCount = 1):void {
+    let {version, uri, filetype} = this
+    version = version + changeCount
+    this.textDocument = TextDocument.create(uri, filetype, version, this.lines.join('\n'))
+  }
+
+  private mergeTextEdits(edits: TextEdit[]):TextEdit[] {
+    let res: TextEdit[] = []
+    let last: TextEdit = null
+    for (let edit of edits) {
+      if (last
+        && last.newText.trim().indexOf('\n') == -1
+        && edit.newText.trim().indexOf('\n') == -1
+        && equals(last.range, edit.range)) {
+        last.newText = edit.newText
+      } else {
+        res.push(edit)
+        last = edit
+      }
+    }
+    return res
   }
 }

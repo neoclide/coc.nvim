@@ -150,7 +150,6 @@ export class DiagnosticsManager {
       ...this._diagnostics.get(DiagnosticKind.Semantic)!.get(uri),
       ...this.getSuggestionDiagnostics(uri)
     ]
-    logger.debug('diagnostics', uri, allDiagnostics.length)
     this._currentDiagnostics.set(uri, allDiagnostics)
   }
 

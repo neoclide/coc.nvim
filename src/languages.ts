@@ -32,7 +32,6 @@ import {
   EventEmitter,
   rangeOfLine,
   Event,
-  wait,
 } from './util'
 import {
   byteSlice,

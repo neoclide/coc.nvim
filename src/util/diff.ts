@@ -5,6 +5,7 @@ import {
 } from '../types'
 import diff = require('diff')
 import {TextDocument, TextEdit} from 'vscode-languageserver-protocol'
+const logger = require('./logger')('util-diff')
 
 export function diffLines(from:string, to:string):ChangedLines {
   let diffs:IDiffResult[] = diff.diffLines(from, to)

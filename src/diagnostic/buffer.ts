@@ -11,7 +11,6 @@ import {
 } from '../types'
 import workspace from '../workspace'
 import {Neovim, Buffer} from 'neovim'
-import {setTimeout} from 'timers'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 export interface DiagnosticConfig {
@@ -174,13 +173,9 @@ export class DiagnosticBuffer {
     let {buffer} = this
     if (!buffer) return
     let {id} = buffer
-    setTimeout(() => {
-      for (let sign of signs) {
-        this.nvim.command(`sign unplace ${sign} buffer=${id}`).catch(e => {
-          logger.error(e.stack)
-        })
-      }
-    }, 50)
+    for (let sign of signs) {
+      await this.nvim.command(`sign unplace ${sign} buffer=${id}`)
+    }
   }
 
   private get buffer():Buffer {
