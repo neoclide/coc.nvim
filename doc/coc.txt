@@ -182,7 +182,7 @@ before the call of ''CocAction'
 						*CocAction*
 CocAction({action}, [...{args}])
 
-	Run {action} for Coc, available actions:
+	Run {action} of coc, available actions:
 
 	'sourceStat': 	get the list of current source stats.
 

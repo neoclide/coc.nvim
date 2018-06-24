@@ -24,12 +24,15 @@ export default class File extends Source {
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
     let {line, linenr, colnr, bufnr} = opt
-    if (opt.triggerCharacter === '/') {
+    if (opt.triggerCharacter == '/') {
       let synName =  await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
-      if (synName.toLowerCase() !== 'string') return false
+      synName = synName.toLowerCase()
+      if (['string', 'comment'].indexOf(synName) == -1) {
+        return false
+      }
     }
-    let part = byteSlice(line,0 , colnr - 1)
-    if (!part) return false
+    let part = byteSlice(line, 0, colnr - 1)
+    if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
     if (ms) {
       opt.pathstr = ms[0]

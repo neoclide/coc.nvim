@@ -50,6 +50,13 @@ class DiagnosticManager {
       }
     })
 
+    workspace.onWillSaveTextDocument(({document}) => {
+      let doc = workspace.getDocument(document.uri)
+      if (doc) {
+        this.nvim.command(`sign unplace * buffer=${doc.bufnr}`)
+      }
+    })
+
     workspace.onDidChangeConfiguration(() => {
       this.setConfiguration()
     })
