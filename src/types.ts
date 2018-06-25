@@ -43,6 +43,16 @@ export enum SourceType {
   Service,
 }
 
+export interface QuickfixItem {
+  filename?: string
+  bufnr?: number
+  lnum: number
+  col: number
+  text: string
+  valid?: boolean
+  nr?: number
+}
+
 export interface ChangedLines {
   start: number
   end: number

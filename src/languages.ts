@@ -343,7 +343,6 @@ class Languages implements ILanguage {
   private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<boolean> {
     let {nvim} = this
     let {textEdit} = item
-    logger.debug(0)
     if (!textEdit) return false
     let inserted = item.insertText || item.label // tslint:disable-line
     let {range, newText} = textEdit

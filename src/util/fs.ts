@@ -4,6 +4,7 @@ import path = require('path')
 import readline = require('readline')
 import os = require('os')
 const exec = require('child_process').exec
+const logger = require('./logger')('util-fs')
 
 let tmpFolder:string|null = null
 
@@ -98,10 +99,40 @@ export function readFile(fullpath:string, encoding:string):Promise<string> {
   })
 }
 
+export function getLine(fullpath: string, lnum:number):Promise<string> {
+  const rl = readline.createInterface({
+    input: fs.createReadStream(fullpath),
+    crlfDelay: Infinity,
+    terminal: false,
+    highWaterMark: 1024*1024
+  } as any)
+  let n = 0
+  return new Promise((resolve, reject) => {
+    rl.on('line', line => {
+      if (n == lnum) {
+        rl.close()
+        resolve(line)
+      }
+      n++
+    })
+    rl.on('end', () => {
+      if (n < lnum) {
+        resolve('')
+      }
+    })
+    setTimeout(() => {
+      resolve('')
+    }, 300)
+    rl.on('error', reject)
+  })
+}
+
 export function readFileByLine(fullpath:string, onLine: OnReadLine, limit = 50000):Promise<void> {
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath),
-    crlfDelay: Infinity
+    crlfDelay: Infinity,
+    terminal: false,
+    highWaterMark: 1024*1024
   } as any)
   let n = 0
   rl.on('line', line => {

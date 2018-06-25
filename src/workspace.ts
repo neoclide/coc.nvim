@@ -32,7 +32,6 @@ import {
   TextDocumentWillSaveEvent,
   TextDocumentSaveReason,
   WorkspaceEdit,
-  Position,
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'

@@ -30,12 +30,9 @@ export default class LanguageProvider {
   private readonly diagnosticsManager: DiagnosticsManager
   private readonly bufferSyncSupport: BufferSyncSupport
   private readonly fileConfigurationManager: FileConfigurationManager // tslint:disable-line
-
   private _validate = true
   private _enableSuggestionDiagnostics = true
-
   private readonly disposables: Disposable[] = []
-  private readonly versionDependentDisposables: Disposable[] = []
 
   constructor(
     public client: TypeScriptServiceClient,
@@ -73,7 +70,6 @@ export default class LanguageProvider {
 
   public dispose(): void {
     disposeAll(this.disposables)
-    disposeAll(this.versionDependentDisposables)
     this.bufferSyncSupport.dispose()
   }
 

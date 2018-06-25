@@ -61,6 +61,7 @@ export default class Document {
   private disposables:Disposable[] = []
   // real current lines
   private lines:string[] = []
+  private _changedtick:number
   public readonly words:string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer:Buffer) {
@@ -101,6 +102,16 @@ export default class Document {
     })
   }
 
+  /**
+   * Current changedtick of buffer
+   *
+   * @public
+   * @returns {number}
+   */
+  public get changedtick():number {
+    return this._changedtick
+  }
+
   public async init(nvim:Neovim):Promise<void> {
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
@@ -109,6 +120,7 @@ export default class Document {
     let chars = this.chars = new Chars(iskeyword)
     if (this.includeDash(filetype)) chars.addKeyword('-')
     this.lines = await buffer.lines as string[]
+    this._changedtick = await buffer.changedtick
     this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.attach()
     this.hasChange = true
@@ -142,9 +154,14 @@ export default class Document {
         logger.error(e.stack)
       }
     })
+    let unbindChange = this.buffer.listen('changedtick', (buf:Buffer, tick:number) => {
+      if (buf.id !== this.buffer.id) return
+      this._changedtick = tick
+    })
     this.disposables.push({
       dispose: () => {
         unbindLines()
+        unbindChange()
       }
     })
   }
@@ -159,6 +176,7 @@ export default class Document {
   ):void {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
+    this._changedtick = tick
     let textEdits:Edit[] = []
     let newText = linedata.map(s => s + '\n').join('')
     let totalLines = this.lines.length
