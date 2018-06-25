@@ -586,7 +586,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
           })
         }
       }).catch((err: any) => {
-        if (!wasCancelled) {
+        if (!wasCancelled && command != 'signatureHelp') {
           this.error(`'${command}' request failed with error.`, err)
         }
         throw err

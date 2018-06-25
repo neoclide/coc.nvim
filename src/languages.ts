@@ -4,10 +4,12 @@ import {
   DefinitionProvider,
   TypeDefinitionProvider,
   ImplementationProvider,
+  HoverProvider,
+  SignatureHelpProvider,
+  DocumentSymbolProvider,
 } from './provider'
 import {
   ISource,
-  ILanguage,
   VimCompleteItem,
   CompleteOption,
   CompleteResult,
@@ -26,6 +28,9 @@ import {
   TextEdit,
   Location,
   TextDocument,
+  Hover,
+  SignatureHelp,
+  SymbolInformation,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -57,7 +62,7 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-class Languages implements ILanguage {
+class Languages {
 
   public nvim:Neovim
   private _onDidCompletionSourceCreated = new EventEmitter<ISource>()
@@ -66,6 +71,9 @@ class Languages implements ILanguage {
   private typeDefinitionMap: Map<string, TypeDefinitionProvider> = new Map()
   private implementationMap: Map<string, ImplementationProvider> = new Map()
   private referencesMap: Map<string, ReferenceProvider> = new Map()
+  private hoverProviderMap: Map<string, HoverProvider> = new Map()
+  private documentSymbolMap: Map<string, DocumentSymbolProvider> = new Map()
+  private signatureHelpProviderMap: Map<string, SignatureHelpProvider> = new Map()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
 
@@ -92,92 +100,102 @@ class Languages implements ILanguage {
     }
   }
 
-  public registerDefinitionProvider(languageIds: string| string[], provider:DefinitionProvider):Disposable {
+  private registerProvider<T>(languageIds: string| string[], provider: T, map:Map<string, T>):Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     for (let languageId of languageIds) {
-      this.definitionMap.set(languageId, provider)
+      map.set(languageId, provider)
     }
     return {
       dispose: () => {
-        for (let languageId of this.definitionMap.keys()) {
-          this.definitionMap.delete(languageId)
+        for (let languageId of languageIds) {
+          map.delete(languageId)
         }
       }
     }
+  }
+
+  public registerHoverProvider(languageIds: string| string[], provider:HoverProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.hoverProviderMap)
+  }
+
+  public registerDocumentSymbolProvider(languageIds: string| string[], provider:DocumentSymbolProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.documentSymbolMap)
+  }
+
+  public registerSignatureHelpProvider(languageIds: string| string[], provider:SignatureHelpProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.signatureHelpProviderMap)
+  }
+
+  public registerDefinitionProvider(languageIds: string| string[], provider:DefinitionProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.definitionMap)
   }
 
   public registerTypeDefinitionProvider(languageIds: string| string[], provider:TypeDefinitionProvider):Disposable {
-    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    for (let languageId of languageIds) {
-      this.typeDefinitionMap.set(languageId, provider)
-    }
-    return {
-      dispose: () => {
-        for (let languageId of this.typeDefinitionMap.keys()) {
-          this.typeDefinitionMap.delete(languageId)
-        }
-      }
-    }
+    return this.registerProvider(languageIds, provider, this.typeDefinitionMap)
   }
 
   public registerImplementationProvider(languageIds: string| string[], provider:ImplementationProvider):Disposable {
-    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    for (let languageId of languageIds) {
-      this.implementationMap.set(languageId, provider)
-    }
-    return {
-      dispose: () => {
-        for (let languageId of this.implementationMap.keys()) {
-          this.implementationMap.delete(languageId)
-        }
-      }
-    }
+    return this.registerProvider(languageIds, provider, this.implementationMap)
   }
 
   public registerReferencesProvider(languageIds: string| string[], provider:ReferenceProvider):Disposable {
-    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    for (let languageId of languageIds) {
-      this.referencesMap.set(languageId, provider)
-    }
-    return {
-      dispose: () => {
-        for (let languageId of this.implementationMap.keys()) {
-          this.referencesMap.delete(languageId)
-        }
-      }
-    }
+    return this.registerProvider(languageIds, provider, this.referencesMap)
   }
 
   public getDeifinition(document:TextDocument, position:Position):Promise<Definition> {
+    this.cancelRequest()
     let {languageId} = document
     let provider = this.definitionMap.get(languageId)
     if (!provider) return
-    let cancellSource = new CancellationTokenSource()
-    return provider.provideDefinition(document, position, cancellSource.token)
+    return provider.provideDefinition(document, position, this.token)
   }
 
   public getTypeDefinition(document:TextDocument, position:Position):Promise<Definition> {
+    this.cancelRequest()
     let {languageId} = document
     let provider = this.typeDefinitionMap.get(languageId)
     if (!provider) return
-    let cancellSource = new CancellationTokenSource()
-    return provider.provideTypeDefinition(document, position, cancellSource.token)
+    return provider.provideTypeDefinition(document, position, this.token)
   }
 
   public getImplementation(document:TextDocument, position:Position):Promise<Definition> {
+    this.cancelRequest()
     let {languageId} = document
     let provider = this.implementationMap.get(languageId)
     if (!provider) return
-    let cancellSource = new CancellationTokenSource()
-    return provider.provideImplementation(document, position, cancellSource.token)
+    return provider.provideImplementation(document, position, this.token)
   }
 
-  public getReferences(document:TextDocument, context: ReferenceContext, position:Position):Promise<Location[]> {
+  public getReferences(document:TextDocument, context:ReferenceContext, position:Position):Promise<Location[]> {
+    this.cancelRequest()
     let {languageId} = document
     let provider = this.referencesMap.get(languageId)
     if (!provider) return
-    let cancellSource = new CancellationTokenSource()
-    return provider.provideReferences(document, position, context, cancellSource.token)
+    return provider.provideReferences(document, position, context, this.token)
+  }
+
+  public getHover(document:TextDocument, position:Position):Promise<Hover> {
+    this.cancelRequest()
+    let {languageId} = document
+    let provider = this.hoverProviderMap.get(languageId)
+    if (!provider) return
+    return provider.provideHover(document, position, this.token)
+  }
+
+  public getSignatureHelp(document:TextDocument, position:Position):Promise<SignatureHelp> {
+    this.cancelRequest()
+    let {languageId} = document
+    let provider = this.signatureHelpProviderMap.get(languageId)
+    if (!provider) return
+    return provider.provideSignatureHelp(document, position, this.token)
+  }
+
+  public getDocumentSymbol(document:TextDocument):Promise<SymbolInformation[]> {
+    this.cancelRequest()
+    let {languageId} = document
+    let provider = this.documentSymbolMap.get(languageId)
+    if (!provider) return
+    return provider.provideDocumentSymbols(document, this.token)
   }
 
   public dispose():void {

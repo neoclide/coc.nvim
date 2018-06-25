@@ -2,28 +2,17 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import {Neovim} from 'neovim'
 import {
-  CompletionItemProvider,
-  DefinitionProvider,
-  TypeDefinitionProvider,
-  ImplementationProvider,
-  ReferenceProvider,
-} from './provider'
-import {
   Event,
   Uri,
   EventEmitter,
   Disposable,
 } from './util'
 import {
-  Location,
-  Definition,
-  Position,
   TextDocument,
   WorkspaceEdit,
   DidChangeTextDocumentParams,
   TextDocumentWillSaveEvent,
   Diagnostic,
-  ReferenceContext,
 } from 'vscode-languageserver-protocol'
 
 export {
@@ -441,7 +430,7 @@ export interface ISource {
    *
    * @public
    * @param {CompleteOption} opt
-   * @returns {Promise<boolean> }  export interface ILanguage}
+   * @returns {Promise<boolean> }
    */
   shouldComplete?(opt: CompleteOption): Promise<boolean>
 }
@@ -528,46 +517,4 @@ export interface DiagnosticCollection {
    * [clear](#DiagnosticCollection.clear).
    */
   dispose(): void
-}
-
-export interface ILanguage {
-
-  dispose():void
-
-  getCompleteSource(languageId: string): ISource
-
-  getDeifinition(document: TextDocument, position: Position):Promise<Definition>
-
-  getTypeDefinition(document: TextDocument, position: Position):Promise<Definition>
-
-  getImplementation(document: TextDocument, position: Position):Promise<Definition>
-
-  getReferences(document:TextDocument, context: ReferenceContext, position:Position):Promise<Location[]>
-
-  registerCompletionItemProvider(
-    name: string,
-    shortcut: string,
-    languageIds: string | string[],
-    provider: CompletionItemProvider,
-    triggerCharacters?: string[]):Disposable
-
-  registerDefinitionProvider(
-    languageIds: string | string[],
-    provider: DefinitionProvider
-  )
-
-  registerTypeDefinitionProvider(
-    languageIds: string| string[],
-    provider:TypeDefinitionProvider):Disposable
-
-
-  registerImplementationProvider(
-    languageIds: string| string[],
-    provider:ImplementationProvider):Disposable
-
-  registerReferencesProvider(
-    languageIds: string| string[],
-    provider:ReferenceProvider):Disposable
-
-  createDiagnosticCollection(owner: string):DiagnosticCollection
 }

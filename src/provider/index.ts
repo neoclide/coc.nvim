@@ -4,8 +4,8 @@ import {
   CancellationToken,
   CompletionItem,
   CompletionList,
-  Hover,
   Location,
+  Hover,
   SignatureHelp,
   SymbolInformation,
 } from 'vscode-languageserver-protocol'

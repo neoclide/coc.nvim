@@ -91,13 +91,13 @@ function! coc#util#get_listfile_command() abort
   return ''
 endfunction
 
-function! coc#util#preview_info(info) abort
+function! coc#util#preview_info(info, ...) abort
   pclose
   keepalt new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap [Document]
   setl bufhidden=wipe
   setl nobuflisted
-  setl filetype=markdown
   setl nospell
+  setl filetype=markdown
   let lines = split(a:info, "\n")
   call append(0, lines)
   exe "normal z" . len(lines) . "\<cr>"
@@ -197,9 +197,67 @@ function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction
 
-function! coc#util#get_search(col)
+function! coc#util#get_search(col) abort
   let line = getline('.')
   let colnr = mode() ==# 'n' ? col('.') + 1 : col('.')
   if colnr <= a:col + 1 | return '' | endif
   return line[a:col : colnr - 2]
 endfunction
+
+function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort
+  let arr = []
+  let signatures = a:signatures[0: &cmdheight - 1]
+  let i = 0
+  let activeParameter = get(a:, 'activeParameter', 0)
+  for item in a:signatures
+    let texts = []
+    if type(a:activeSignature) == 0 && a:activeSignature == i
+      call add(texts, {'text': item['label'], 'hl': 'Label'})
+      call add(texts, {'text': '('})
+      let params = get(item, 'parameters', [])
+      let j = 0
+      for param in params
+        call add(texts, {
+              \'text': param['label'],
+              \'hl': j == activeParameter ? 'MoreMsg' : ''
+              \})
+        if j != len(params) - 1
+          call add(texts, {'text': ', '})
+        endif
+        let j = j + 1
+      endfor
+      call add(texts, {'text': ')'})
+    else
+      call add(texts, {'text': item['label'], 'hl': 'Label'})
+      call add(texts, {'text': '('})
+      let params = get(item, 'parameters', [])
+      let text = join(map(params, 'v:val["label"]'), ',')
+      call add(texts, {'text': text})
+      call add(texts, {'text': ')'})
+    endif
+    call add(arr, texts)
+    let i = i + 1
+  endfor
+  let g:a = arr
+  for idx in range(len(arr))
+    call s:echo_signatureItem(arr[idx])
+    if idx != len(arr) - 1
+      echon "\n"
+    endif
+  endfor
+endfunction
+
+function! s:echo_signatureItem(list)
+  for item in a:list
+    let text = substitute(get(item, 'text', ''), "'", "''", 'g')
+    let hl = get(item, 'hl', '')
+    if empty(hl)
+      execute "echon '".text."'"
+    else
+      execute 'echohl '.hl
+      execute "echon '".text."'"
+      echohl None
+    endif
+  endfor
+endfunction
+

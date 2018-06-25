@@ -19,6 +19,7 @@ Interface		|coc-interface|
 Denite support 		|coc-denite|
   Denite source  	|coc-denite-source|
   Denite diagnostic     |coc-denite-diagnostic|
+  Denite symbols        |coc-denite-symbols|
 Custom Source 		|coc-custom-source|
 Faq			|coc-faq|
 Changelog		|coc-changelog|
@@ -26,8 +27,7 @@ Changelog		|coc-changelog|
 ==============================================================================
 INTRODUCTION					*coc-introduction*
 
-Coc tries to make best experience for completion, it should just works after
-install.
+Coc tries to make best experience LSP features, especially for completion.
 
 ==============================================================================
 INSTALL						*coc-install*
@@ -205,6 +205,12 @@ CocAction({action}, [...{args}])
 
 	'jumpReferences': jump to references of current symbol.
 
+	'doHover': show documentation of current word at preview window.
+
+	'showSignatureHelp': echo signature help of current position.
+
+	'documentSymbols': get symbol list of current document.
+
 						*coc#refresh()*
 coc#refresh()
 
@@ -263,6 +269,15 @@ Coc make use of list interface provided by |denite.nvim| for advanced actions.
 :Denite coc-diagnostic
 
 	Show all diagnostics of current vim sesion.
+
+	Actions: same as file kind, use `tab` in denite buffer to get the
+	list.
+
+------------------------------------------------------------------------------
+						*coc-denite-symbols*
+:Denite coc-symbols
+
+	Show symbols of current buffer.
 
 	Actions: same as file kind, use `tab` in denite buffer to get the
 	list.

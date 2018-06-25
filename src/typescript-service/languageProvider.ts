@@ -18,6 +18,9 @@ import BufferSyncSupport from './features/bufferSyncSupport'
 import CompletionItemProvider from './features/completionItemProvider'
 import DefinitionProvider from './features/definitionProvider'
 import ReferenceProvider from './features/references'
+import HoverProvider from './features/hover'
+import SignatureHelpProvider from './features/signatureHelp'
+import DocumentSymbolProvider from './features/documentSymbol'
 import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
 import {LanguageDescription} from './utils/languageDescription'
@@ -98,29 +101,51 @@ export default class LanguageProvider {
       )
     )
     let definitionProvider = new DefinitionProvider(client)
+
     this.disposables.push(
       languages.registerDefinitionProvider(
         languageIds,
         definitionProvider
       )
     )
+
     this.disposables.push(
       languages.registerTypeDefinitionProvider(
         languageIds,
         definitionProvider
       )
     )
+
     this.disposables.push(
       languages.registerImplementationProvider(
         languageIds,
         definitionProvider
       )
     )
+
     this.disposables.push(
       languages.registerReferencesProvider(
         languageIds,
         new ReferenceProvider(client)
       )
+    )
+
+    this.disposables.push(
+      languages.registerHoverProvider(
+        languageIds,
+        new HoverProvider(client))
+    )
+
+    this.disposables.push(
+      languages.registerSignatureHelpProvider(
+        languageIds,
+        new SignatureHelpProvider(client))
+    )
+
+    this.disposables.push(
+      languages.registerDocumentSymbolProvider(
+        languageIds,
+        new DocumentSymbolProvider(client))
     )
   }
 

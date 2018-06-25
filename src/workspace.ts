@@ -32,6 +32,7 @@ import {
   TextDocumentWillSaveEvent,
   TextDocumentSaveReason,
   WorkspaceEdit,
+  Position,
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'
@@ -47,6 +48,11 @@ function toNumber(o:any):number {
 export interface NvimSettings {
   completeOpt: string
   hasUserData: boolean
+}
+
+interface EditerState {
+  document: TextDocument
+  position: Position
 }
 
 export class Workspace implements IWorkSpace {
@@ -228,7 +234,7 @@ export class Workspace implements IWorkSpace {
     return buftype == ''
   }
 
-  public async onBufferCreate(buf: number|Buffer):Promise<void> {
+  public async onBufferCreate(buf: number|Buffer):Promise<Document> {
     const buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
     const valid = await this.isValidBuffer(buffer)
     if (!valid) return
@@ -246,6 +252,7 @@ export class Workspace implements IWorkSpace {
       logger.trace('buffer change', bufnr, version)
     })
     logger.trace('buffer created', bufnr)
+    return document
   }
 
   public async onBufferUnload(bufnr:number):Promise<void> {
@@ -331,6 +338,34 @@ export class Workspace implements IWorkSpace {
     }
     let content = await readFile(fullpath, 'utf8')
     return TextDocument.create(uri, languageId, 0, content)
+  }
+
+  public async echoLines(lines:string[]):Promise<void> {
+    let {nvim} = this
+    let cmdHeight = (await nvim.getOption('cmdheight') as number)
+    if (lines.length > cmdHeight) {
+      lines = lines.slice(0, cmdHeight)
+      let last = lines[cmdHeight - 1]
+      lines[cmdHeight - 1] = `${last} ...`
+    }
+    let str = lines.join('\\n').replace(/"/g, '\\"')
+    await nvim.command(`echo "${str}"`)
+  }
+
+  public async getCurrentState():Promise<EditerState> {
+    let buffer = await this.nvim.buffer
+    let [, lnum, col] = await this.nvim.call('getcurpos')
+    let document = this.getDocument(buffer.id)
+    if (!document) document = await this.onBufferCreate(buffer)
+    if (!document) return {document: null, position: null}
+    let line = document.getline(lnum - 1)
+    return {
+      document: document.textDocument,
+      position: {
+        line: lnum - 1,
+        character: byteIndex(line, col - 1)
+      }
+    }
   }
 
   private async parseConfigFile(file):Promise<IConfigurationModel> {

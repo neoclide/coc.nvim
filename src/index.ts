@@ -10,20 +10,20 @@ import services from './services'
 import remoteStore from './remote-store'
 import languages from './languages'
 import commands from './commands'
-import DefinitionManager from './definition'
 import diagnosticManager from './diagnostic/manager'
 import EventEmitter = require('events')
+import Handler from './handler'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
 export default class CompletePlugin {
   private initailized = false
   private emitter: EventEmitter
-  private definitionManager: DefinitionManager
+  private handler: Handler
 
   constructor(public nvim: Neovim) {
     this.emitter = new EventEmitter()
-    this.definitionManager = new DefinitionManager(nvim)
+    this.handler = new Handler(nvim)
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
@@ -134,7 +134,6 @@ export default class CompletePlugin {
         break
       }
       case 'CursorMovedI': {
-        diagnosticManager.showMessage()
         break
       }
     }
@@ -143,6 +142,7 @@ export default class CompletePlugin {
   @Function('CocAction', {sync: true})
   public async cocAction(args: any): Promise<any> {
     if (!this.initailized) return
+    let {handler} = this
     try {
       switch (args[0] as string) {
         case 'onlySource':
@@ -184,17 +184,27 @@ export default class CompletePlugin {
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
         case 'jumpDefinition':
-          await this.definitionManager.gotoDefinition()
+          await handler.gotoDefinition()
           break
         case 'jumpImplementation':
-          await this.definitionManager.gotoImplementaion()
+          await handler.gotoImplementaion()
           break
         case 'jumpTypeDefinition':
-          await this.definitionManager.gotoTypeDefinition()
+          await handler.gotoTypeDefinition()
           break
         case 'jumpReferences':
-          await this.definitionManager.gotoReferences()
+          await handler.gotoReferences()
           break
+        case 'doHover':
+          handler.onHover().catch(e => {
+            logger.error(e)
+          })
+          break
+        case 'showSignatureHelp':
+          handler.showSignatureHelp()
+          break
+        case 'documentSymbols':
+          return handler.getDocumentSymbols()
         default:
           logger.error(`unknown action ${args[0]}`)
       }

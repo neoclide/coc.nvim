@@ -74,7 +74,7 @@ class DiagnosticManager {
       this.echoMessage().catch(e => {
         logger.error(e.stack)
       })
-    }, 50)
+    }, 100)
   }
 
   private setConfiguration():void {
@@ -92,6 +92,11 @@ class DiagnosticManager {
   private async init():Promise<void> {
     let {nvim} = workspace
     let {documents} = workspace
+    let {errorSign, warningSign, infoSign, hintSign} = this.config
+    await nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`)
+    await nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`)
+    await nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`)
+    await nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`)
     // create buffers
     for (let doc of documents) {
       this.buffers.push(new DiagnosticBuffer(doc.uri, this.config))
@@ -103,11 +108,6 @@ class DiagnosticManager {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
     })
-    let {errorSign, warningSign, infoSign, hintSign} = this.config
-    await nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`)
-    await nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`)
-    await nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`)
-    await nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`)
   }
 
   public create(name:string):DiagnosticCollection {
@@ -284,7 +284,8 @@ class DiagnosticManager {
     let {source, code, severity, message} = diagnostic
     let s = severityName(severity)[0]
     let msg = message.replace(/"/g, '\\"')
-    await this.nvim.command(`echo "[${source}${code ? ' ' + code : ''}] ${msg} [${s}]"`)
+    let lines = `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`.split('\n')
+    await workspace.echoLines(lines)
   }
 
   private getCurrentDiagnostic(offset:number, textDocument: TextDocument, diagnostics:Diagnostic[]):Diagnostic {

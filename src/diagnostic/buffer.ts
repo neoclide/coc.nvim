@@ -21,6 +21,8 @@ export interface DiagnosticConfig {
   hintSign:string
 }
 
+const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
+
 function getNameFromSeverity(severity:DiagnosticSeverity):string {
   switch (severity) {
     case DiagnosticSeverity.Error:
@@ -91,6 +93,31 @@ export class DiagnosticBuffer {
     }
     this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
     await this.setDiagnosticInfo()
+    await this.checkSigns()
+  }
+
+  public async checkSigns():Promise<void> {
+    let {buffer, signs} = this
+    if (!buffer) return
+    let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
+    let lines:string[] = content.split('\n')
+    for (let line of lines) {
+      let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
+      if (!ms) continue
+      let [, id, name] = ms
+      if (severityNames.indexOf(name) == -1) continue
+      if (signs.indexOf(Number(id)) !== -1) continue
+      logger.debug('unplace sign', id)
+      await this.nvim.command(`sign unplace ${id} buffer=${buffer.id}`)
+    }
+  }
+
+  private get signs():number[] {
+    let res:number[] = []
+    for (let [, signs] of this.signMap) {
+      res.push(...signs)
+    }
+    return res
   }
 
   public async clear(owner?:string, reset = true):Promise<void> {
