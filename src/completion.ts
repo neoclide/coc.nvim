@@ -20,7 +20,7 @@ import Increment from './increment'
 import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
-function onError(e) {
+function onError(e):void {
   console.error(e.stack)
 }
 

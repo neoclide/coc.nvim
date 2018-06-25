@@ -17,7 +17,7 @@ export default class Snippet {
   public readonly maxIndex: number
 
   constructor(content: string) {
-    this.textmateSnippet = new SnippetParser().parse(content, true, true)
+    this.textmateSnippet = new SnippetParser().parse(content, false, false)
     let max = 0
     let {placeholders} = this.textmateSnippet
     for (let o of placeholders) {

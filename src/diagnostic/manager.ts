@@ -63,11 +63,11 @@ class DiagnosticManager {
 
     workspace.onDidCloseTextDocument(textDocument => {
       let {uri} = textDocument
-      let idx = this.buffers.findIndex(buf => buf.uri == uri)
-      if (idx !== -1) this.buffers.splice(idx, 1)
       for (let collection of this.collections) {
         collection.delete(uri)
       }
+      let idx = this.buffers.findIndex(buf => buf.uri == uri)
+      if (idx !== -1) this.buffers.splice(idx, 1)
     })
 
     this.showMessage = debounce(() => {
@@ -86,7 +86,7 @@ class DiagnosticManager {
       infoSign: config.get<string>('infoSign', '>>'),
       hintSign: config.get<string>('hintSign', '>>'),
     }
-    this.enabled = !!config.get('enable')
+    this.enabled = config.get('enable')
   }
 
   private async init():Promise<void> {

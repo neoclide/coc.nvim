@@ -173,12 +173,12 @@ export default class CompletePlugin {
           break
         case 'diagnosticNext':
           diagnosticManager.jumpNext().catch(e => {
-            logger.error(e.stack)
+            logger.error(e.message)
           })
           break
         case 'diagnosticPrevious':
           diagnosticManager.jumpPrevious().catch(e => {
-            logger.error(e.stack)
+            logger.error(e.message)
           })
           break
         case 'diagnosticList':
@@ -197,7 +197,7 @@ export default class CompletePlugin {
           break
         case 'doHover':
           handler.onHover().catch(e => {
-            logger.error(e)
+            logger.error(e.message)
           })
           break
         case 'showSignatureHelp':

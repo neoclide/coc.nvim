@@ -4,8 +4,14 @@ import {
   ChangeItem,
 } from '../types'
 import diff = require('diff')
-import {TextDocument, TextEdit} from 'vscode-languageserver-protocol'
+import fastDiff = require('fast-diff')
 const logger = require('./logger')('util-diff')
+
+interface Change {
+  start: number
+  end: number
+  newText: string
+}
 
 export function diffLines(from:string, to:string):ChangedLines {
   let diffs:IDiffResult[] = diff.diffLines(from, to)
@@ -41,85 +47,43 @@ export function diffLines(from:string, to:string):ChangedLines {
   }
 }
 
-// get TextEdit from two textDocument
-export function getTextEdit(orig:TextDocument, curr:TextDocument):TextEdit {
-  let oldStr = orig.getText()
-  let newStr = curr.getText()
-  if (oldStr == newStr) return null
-  let diffs = diff.diffChars(oldStr, newStr)
-  let start = -1
-  let end = -1
-  let offset = 0
-  let currOffset = 0
-  let currEnd = -1
-  for (let diff of diffs) {
-    if (start == -1 && (diff.added || diff.removed)) {
-      start = offset
-    }
-    if (diff.removed) {
-      end = offset + diff.count
-      currEnd = currOffset
-    }
-    if (diff.added) {
-      end = offset
-      currEnd = currOffset + diff.count
-    }
-    if (!diff.added) {
-      offset = offset + diff.count
-    }
-    if (!diff.removed) {
-      currOffset = currOffset + diff.count
-    }
-  }
-  if (start == -1 || end == -1) return null
-  return {
-    range: {
-      start: orig.positionAt(start),
-      end: orig.positionAt(end),
-    },
-    newText: newStr.slice(start, currEnd)
-  }
-}
-
-export function applyChangeItem(oldStr:string, item:ChangeItem):string {
-  let {offset, added, removed} = item
-  let text = oldStr.slice(offset)
-  if (removed) text = text.slice(removed.length)
-  if (added) text = added + text
-  return oldStr.slice(0, offset) + text
-}
-
 export function getChangeItem(oldStr:string, newStr:string):ChangeItem {
-  if (oldStr == newStr) return null
-  let diffs = diff.diffChars(oldStr, newStr)
-  let start = -1
-  let end = -1
-  let offset = 0
-  let currOffset = 0
-  let currEnd = -1
-  for (let diff of diffs) {
-    if (start == -1 && (diff.added || diff.removed)) {
-      start = offset
-    }
-    if (diff.removed) {
-      end = offset + diff.count
-      currEnd = currOffset
-    }
-    if (diff.added) {
-      end = offset
-      currEnd = currOffset + diff.count
-    }
-    if (!diff.added) {
-      offset = offset + diff.count
-    }
-    if (!diff.removed) {
-      currOffset = currOffset + diff.count
-    }
-  }
-  if (start == -1 || end == -1) return null
+  let change = getChange(oldStr, newStr)
+  if (!change) return
+  let {start, end} = change
   return {
-    offset: start,
-    added: newStr.slice(start, currEnd),
+    offset: change.start,
+    added: change.newText,
     removed: oldStr.slice(start, end)
   }
+}
+
+export function getChange(oldStr:string, newStr:string):Change {
+  if (oldStr == newStr) return null
+  let result = fastDiff(oldStr, newStr, 1)
+  let curr = 0
+  let start = -1
+  let end = -1
+  let newText = ''
+  let remain = ''
+  for (let item of result) {
+    let [t, str] = item
+    // equal
+    if (t == 0) {
+      curr = curr + str.length
+      if (start != -1) remain = remain + str
+    } else {
+      if (start == -1) start = curr
+      if (t == 1) {
+        newText = newText + remain + str
+        end = curr
+      } else {
+        newText = newText + remain
+        end = curr + str.length
+      }
+      remain = ''
+      if (t == -1) curr = curr + str.length
+    }
+  }
+  return {start, end, newText}
 }

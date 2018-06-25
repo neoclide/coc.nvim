@@ -7,7 +7,8 @@ import {
   TextDocument,
   Position,
   CancellationToken,
-  Hover
+  Hover,
+  MarkedString,
 } from 'vscode-languageserver-protocol'
 
 export default class TypeScriptHoverProvider implements HoverProvider {
@@ -41,7 +42,7 @@ export default class TypeScriptHoverProvider implements HoverProvider {
     return undefined
   }
 
-  private static getContents(data: Proto.QuickInfoResponseBody) {
+  private static getContents(data: Proto.QuickInfoResponseBody):MarkedString[] {
     const parts = []
 
     if (data.displayString) {

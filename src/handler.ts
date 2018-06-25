@@ -42,7 +42,7 @@ export default class Handler {
     }, 100)
   }
 
-  private async previewHover(hover: Hover) {
+  private async previewHover(hover: Hover):Promise<void> {
     let {contents} = hover
     let lines:string[] = []
     if (Array.isArray(contents)) {
@@ -70,7 +70,7 @@ export default class Handler {
   public async onHover():Promise<void> {
     let {document, position} = await workspace.getCurrentState()
     if (!document) return
-    let hover = await languages.getHover(document, position) 
+    let hover = await languages.getHover(document, position)
     if (!hover) return
     await this.previewHover(hover)
   }
@@ -81,6 +81,7 @@ export default class Handler {
     let signatureHelp = await languages.getSignatureHelp(document, position)
     if (!signatureHelp) return
     let {activeParameter, activeSignature, signatures} = signatureHelp
+    await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter ||0, activeSignature || 0, signatures])
   }
 

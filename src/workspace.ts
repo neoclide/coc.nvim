@@ -257,11 +257,11 @@ export class Workspace implements IWorkSpace {
 
   public async onBufferUnload(bufnr:number):Promise<void> {
     let doc = this.buffers[bufnr]
-    this.buffers[bufnr] = null
     if (doc) {
       this._onDidRemoveDocument.fire(doc.textDocument)
       doc.detach()
     }
+    this.buffers[bufnr] = null
     logger.trace('bufnr unload', bufnr)
   }
 

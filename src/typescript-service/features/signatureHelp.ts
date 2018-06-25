@@ -33,7 +33,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
       position
     )
 
-    let info: Proto.SignatureHelpItems | undefined = undefined
+    let info: Proto.SignatureHelpItems | undefined
     try {
       const response = await this.client.execute('signatureHelp', args, token)
       info = response.body

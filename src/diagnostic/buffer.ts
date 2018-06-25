@@ -156,7 +156,10 @@ export class DiagnosticBuffer {
   private async setDiagnosticInfo():Promise<void> {
     let {buffer} = this
     if (!buffer) return
-    let error =0 , warning = 0, information = 0, hint = 0
+    let error =0
+    let warning = 0
+    let information = 0
+    let hint = 0
     for (let [, diagnocticInfo] of this.infoMap) {
       if (!diagnocticInfo) continue
       error = error + diagnocticInfo.error

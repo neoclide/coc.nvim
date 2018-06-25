@@ -8,6 +8,9 @@ import {
 import Snippet from './snippet'
 import workspace from '../workspace'
 import Document from '../model/document'
+import {
+  DidChangeTextDocumentParams
+} from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err):void {
@@ -85,8 +88,8 @@ export class SnippetManager {
     snippet.replaceWith(placeholder, newText)
     let {buffer} = document
     let line = snippet.toString()
-    if (line == content) return
     this.changedtick = document.changedtick
+    if (line == content) return
     await buffer.setLines(line, {
       start: this.startLnum,
       strictIndexing: true
@@ -180,12 +183,13 @@ export class SnippetManager {
     if (!document) return
     let line = this.snippet.toString()
     let currline = document.getline(startLnum)
-    if (line != currline) return
-    await this.onLineChange( currline)
+    if (line == currline) return
+    await this.onLineChange(currline)
   }
 
-  private onDocumentChange({textDocument}): void {
+  private onDocumentChange(e: DidChangeTextDocumentParams): void {
     let {startLnum, lineCount, document, uri, activted} = this
+    let {textDocument} = e
     if (!activted || !document || uri !== textDocument.uri) return
     // line count change
     if (document.lineCount != lineCount) {

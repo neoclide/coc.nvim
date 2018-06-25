@@ -19,33 +19,13 @@ import {
   getUri,
 } from '../util/index'
 import {
-  equals
-} from '../util/object'
-import {
   isGitIgnored,
 } from '../util/fs'
+import {
+  getChange
+} from '../util/diff'
 import debounce = require('debounce')
 const logger = require('../util/logger')('model-document')
-
-interface Edit {
-  singleLine?: number
-  range: Range,
-  newText: string
-}
-
-function createEdit(start:{line:number, character?:number}, end:{line:number, character?: number}, newText):Edit {
-  let range:Range = {
-    start: {
-      character: 0,
-      ...start
-    },
-    end: {
-      character: 0,
-      ...end
-    }
-  }
-  return {range, newText}
-}
 
 // wrapper class of TextDocument
 export default class Document {
@@ -53,7 +33,6 @@ export default class Document {
   public chars:Chars
   public paused: boolean
   public textDocument: TextDocument
-  private textEdits:Edit[] = []
   private _fireContentChanges: Function & { clear(): void; }
   private _onDocumentChange = new EventEmitter<DidChangeTextDocumentParams>()
   private attached = false
@@ -177,28 +156,6 @@ export default class Document {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
     this._changedtick = tick
-    let textEdits:Edit[] = []
-    let newText = linedata.map(s => s + '\n').join('')
-    let totalLines = this.lines.length
-    // fix that last line should not have `\n`
-    if (lastline == totalLines && newText.length) {
-      newText = newText.slice(0, -1)
-    }
-    if (linedata.length && firstline == totalLines) {
-      // add new lines, we should prepend `\n`
-      newText = '\n' + newText
-    }
-    let edit = createEdit( {line:firstline}, {line:lastline}, newText)
-    // removing lastline should remove `\n` from lastline
-    if (lastline == totalLines && linedata.length == 0) {
-      let idx = firstline - 1
-      let line = this.lines[idx]
-      if (line != null) {
-        edit.range.start = {line: idx, character: line.length}
-      }
-    }
-    textEdits.push(edit)
-    this.textEdits = this.textEdits.concat(textEdits)
     this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
   }
@@ -235,17 +192,19 @@ export default class Document {
   }
 
   private fireContentChanges():void {
-    let {paused, textEdits} = this
-    if (paused || textEdits.length == 0) return
-    let edits = this.mergeTextEdits(textEdits)
-    this.textEdits = []
-    this.createDocument(edits.length)
-    let changes = edits.map(edit => {
-      return {
-        range: edit.range,
-        text: edit.newText
-      }
-    })
+    let {paused} = this
+    if (paused) return
+    let {textDocument} = this
+    this.createDocument()
+    let change = getChange(textDocument.getText(), this.content)
+    if (!change) return
+    let changes = [{
+      range: {
+        start: textDocument.positionAt(change.start),
+        end: textDocument.positionAt(change.end)
+      },
+      text: change.newText
+    }]
     let {version, uri} = this
     this.hasChange = true
     this._onDocumentChange.fire({
@@ -403,22 +362,5 @@ export default class Document {
     let {version, uri, filetype} = this
     version = version + changeCount
     this.textDocument = TextDocument.create(uri, filetype, version, this.lines.join('\n'))
-  }
-
-  private mergeTextEdits(edits: TextEdit[]):TextEdit[] {
-    let res: TextEdit[] = []
-    let last: TextEdit = null
-    for (let edit of edits) {
-      if (last
-        && last.newText.trim().indexOf('\n') == -1
-        && edit.newText.trim().indexOf('\n') == -1
-        && equals(last.range, edit.range)) {
-        last.newText = edit.newText
-      } else {
-        res.push(edit)
-        last = edit
-      }
-    }
-    return res
   }
 }

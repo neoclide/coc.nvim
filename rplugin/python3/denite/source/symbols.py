@@ -37,7 +37,7 @@ class Source(Base):
         candidates = []
         for item in items:
             candidates.append({
-                'word': item['text'],
+                'word': item['text'] + item['kind'],
                 'abbr': '%s%s [%s]' % ('  ' * item['level'], item['text'], item['kind']),
                 'action__path': item['filepath'],
                 'action__col': item['col'],
