@@ -48,7 +48,7 @@ class Source(Base):
             filepath = relpath(item['file'], start=cwd)
             candidates.append({
                 'word': item['message'],
-                'abbr': '%s:%s:%s %s %s' % (filepath, item['lnum'], item['col'], item['severity'], item['message']),
+                'abbr': '%s:%s:%s %s %s' % (filepath, item['lnum'], item['col'], item['severity'], item['message'].replace('\n', ' ')),
                 'action__path': item['file'],
                 'action__col': item['col'],
                 'action__line': item['lnum'],

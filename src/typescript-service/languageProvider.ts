@@ -1,8 +1,8 @@
+import languages from '../languages'
 import workspace from '../workspace'
 import {
   Diagnostic,
 } from 'vscode-languageserver-protocol'
-import languages from '../languages'
 import {
   Disposable,
   Uri,
@@ -21,6 +21,9 @@ import ReferenceProvider from './features/references'
 import HoverProvider from './features/hover'
 import SignatureHelpProvider from './features/signatureHelp'
 import DocumentSymbolProvider from './features/documentSymbol'
+import FormattingProvider from './features/formatting'
+import RenameProvider from './features/rename'
+import WorkspaceSymbolProvider from './features/workspaceSymbols'
 import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
 import {LanguageDescription} from './utils/languageDescription'
@@ -146,6 +149,25 @@ export default class LanguageProvider {
       languages.registerDocumentSymbolProvider(
         languageIds,
         new DocumentSymbolProvider(client))
+    )
+
+    this.disposables.push(
+      languages.registerWorkspaceSymbolProvider(
+        languageIds,
+        new WorkspaceSymbolProvider(client, languageIds))
+    )
+
+    this.disposables.push(
+      languages.registerRenameProvider(
+        languageIds,
+        new RenameProvider(client))
+    )
+    let formatProvider = new FormattingProvider(client, this.fileConfigurationManager)
+    this.disposables.push(
+      languages.registerDocumentFormatProvider(languageIds, formatProvider)
+    )
+    this.disposables.push(
+      languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
     )
   }
 

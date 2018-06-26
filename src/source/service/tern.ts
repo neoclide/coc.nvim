@@ -128,26 +128,26 @@ export default class Tern extends ServiceSource {
   }
 
   public async jumpDefinition(query:QueryOption):Promise<void> {
-    let {nvim} = this
-    let {filename, lnum, filetype, col, content} = query
-    let res = await this.service.request({
-      action: 'definition',
-      filename,
-      line: lnum - 1,
-      col,
-      content
-    })
-    let {file, url, start} = res
-    if (file) {
-      let filepath = path.resolve(this.root, file)
-      let doc = await workspace.createDocument(`file://${filepath}`, filetype)
-      let pos = doc.positionAt(start)
-      await nvim.call('coc#util#jump_to', [filepath, pos.line, pos.character])
-    } else if (url) {
-      await opn(url)
-    } else {
-      await echoMessage(this.nvim, 'Not found')
-    }
+    // let {nvim} = this
+    // let {filename, lnum, filetype, col, content} = query
+    // let res = await this.service.request({
+    //   action: 'definition',
+    //   filename,
+    //   line: lnum - 1,
+    //   col,
+    //   content
+    // })
+    // let {file, url, start} = res
+    // if (file) {
+    //   let filepath = path.resolve(this.root, file)
+    //   let doc = await workspace.createDocument(`file://${filepath}`, filetype)
+    //   let pos = doc.positionAt(start)
+    //   await nvim.call('coc#util#jump_to', [filepath, pos.line, pos.character])
+    // } else if (url) {
+    //   await opn(url)
+    // } else {
+    //   await echoMessage(this.nvim, 'Not found')
+    // }
   }
 
   public async showSignature(query:QueryOption):Promise<void> {

@@ -166,7 +166,7 @@ export default class Document {
    * @public
    * @returns {Promise<void>}
    */
-  public async checkDocument():Promise<void> {
+  public async checkDocument (): Promise<void> {
     this._fireContentChanges.clear()
     this.paused = false
     let {buffer} = this
@@ -187,7 +187,7 @@ export default class Document {
     this.hasChange = true
     this._onDocumentChange.fire({
       textDocument: {version, uri},
-      contentChanges: [{ text: this.lines.join('\n') }]
+      contentChanges: [{text: this.lines.join('\n')}]
     })
   }
 

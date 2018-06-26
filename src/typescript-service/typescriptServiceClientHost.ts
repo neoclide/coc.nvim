@@ -43,31 +43,36 @@ export default class TypeScriptServiceClientHost implements Disposable {
   private reportStyleCheckAsWarnings = true
 
   constructor(descriptions: LanguageDescription[]) {
-    const handleProjectCreateOrDelete = () => {
-      this.client.execute('reloadProjects', null, false) // tslint:disable-line
-      this.triggerAllDiagnostics()
-    }
     const handleProjectChange = () => {
       setTimeout(() => {
         this.triggerAllDiagnostics()
       }, 1500)
     }
-    const configFileWatcher = workspace.createFileSystemWatcher(
-      '**/[tj]sconfig.json'
-    )
+
+    const configFileWatcher = workspace.createFileSystemWatcher('**/[tj]sconfig.json')
     if (configFileWatcher) {
       this.disposables.push(configFileWatcher)
       configFileWatcher.onDidCreate(
-        handleProjectCreateOrDelete,
+        this.reloadProjects,
         this,
         this.disposables
       )
       configFileWatcher.onDidDelete(
-        handleProjectCreateOrDelete,
+        this.reloadProjects,
         this,
         this.disposables
       )
       configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
+    }
+
+    const fileWatcher = workspace.createFileSystemWatcher('**/*.[tj]s')
+    if (fileWatcher) {
+      this.disposables.push(fileWatcher)
+      fileWatcher.onDidChange(
+        this.handleFileChange,
+        this,
+        this.disposables
+      )
     }
 
     this.client = new TypeScriptServiceClient()
@@ -89,10 +94,8 @@ export default class TypeScriptServiceClientHost implements Disposable {
     }, null, this.disposables)
 
     this.client.onResendModelsRequested(() => this.populateService(), null, this.disposables)
-
     this.typingsStatus = new TypingsStatus(this.client)
     this.ataProgressReporter = new AtaProgressReporter(this.client)
-
     for (const description of descriptions) { // tslint:disable-line
       const manager = new LanguageProvider(
         this.client,
@@ -129,6 +132,11 @@ export default class TypeScriptServiceClientHost implements Disposable {
   // typescript or javascript
   public getProvider(languageId:string):LanguageProvider {
     return this.languagePerId.get(languageId)
+  }
+
+  private handleFileChange(e:Uri):void {
+    let file = e.fsPath
+    this.client.execute('reload', { file, tmpfile: file})
   }
 
   private configurationChanged(): void {

@@ -1,7 +1,6 @@
 import {Neovim, Buffer} from 'neovim'
 import Document from './model/document'
 import {
-  readFile,
   writeFile,
   statAsync,
   resolveDirectory,
@@ -9,7 +8,6 @@ import {
 } from './util/fs'
 import {watchFiles} from './util/watch'
 import {
-  IWorkSpace,
   IConfigurationData,
   IConfigurationModel,
   WorkspaceConfiguration,
@@ -20,10 +18,10 @@ import {
 } from './util/string'
 import {
   echoErr,
-  echoWarning,
   EventEmitter,
   Event,
   Uri,
+  echoMessage,
 } from './util/index'
 import Configurations, { parseContentFromFile } from './configurations'
 import {
@@ -33,6 +31,8 @@ import {
   TextDocumentSaveReason,
   WorkspaceEdit,
   Position,
+  TextDocumentEdit,
+  TextEdit,
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'
@@ -55,7 +55,7 @@ interface EditerState {
   position: Position
 }
 
-export class Workspace implements IWorkSpace {
+export class Workspace {
   public nvim:Neovim
   // project root
   public root: string
@@ -167,65 +167,87 @@ export class Workspace implements IWorkSpace {
   public async getOffset():Promise<number> {
     let buffer = await this.nvim.buffer
     let document = this.getDocument(buffer.id)
-    if (!document) return 0
-    let [_, lnum, col] = await this.nvim.call('getcurpos')
+    if (!document) return null
+    let [, lnum, col] = await this.nvim.call('getcurpos')
     let line = document.getline(lnum - 1)
-    if (!line) return null
-    let character = byteIndex(line, col - 1)
+    if (line == null) return null
+    let character = col == 1 ? 0 : byteIndex(line, col - 1)
     return document.textDocument.offsetAt({
       line: lnum - 1,
       character
     })
   }
 
+  private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null):Promise<boolean> {
+    if (!documentChanges) return true
+    for (let change of documentChanges) {
+      let {textDocument} = change
+      let {uri, version} = textDocument
+      let doc = this.getDocument(uri)
+      if (!doc) {
+        await echoErr(this.nvim, `${uri} not found`)
+        return false
+      }
+      if (doc.version != version) {
+        await echoErr(this.nvim, `${uri} changed before apply edit`)
+        return false
+      }
+    }
+    return true
+  }
+
+  private async validateChanges(changes: {[uri: string]: TextEdit[]}):Promise<boolean> {
+    if (!changes) return true
+    for (let uri of Object.keys(changes)) {
+      if (!uri.startsWith('file://')) {
+        await echoErr(this.nvim, `Invalid schema for ${uri}`)
+        return false
+      }
+      let filepath = Uri.parse(uri).fsPath
+      let stat = await statAsync(filepath)
+      if (!stat && stat.isFile()) {
+        await echoErr(this.nvim, `File ${filepath} not exists`)
+        return false
+      }
+    }
+  }
+
   public async applyEdit(edit: WorkspaceEdit):Promise<void> {
     let {nvim} = this
     let {documentChanges, changes} = edit
+    if (!this.validteDocumentChanges(documentChanges)) return
+    if (!this.validateChanges(changes)) return
     if (documentChanges && documentChanges.length) {
       for (let change of documentChanges) {
         let {textDocument, edits} = change
-        let { uri, version } = textDocument
+        let {uri} = textDocument
         let doc = this.getDocument(uri)
-        if (!doc) {
-          await echoWarning(nvim, `${uri} not found`)
-          continue
-        }
-        if (doc.version != version) {
-          await echoWarning(nvim, `${uri} changed before apply edit`)
-          continue
-        }
         await doc.applyEdits(nvim, edits)
       }
+      await echoMessage(nvim, `${documentChanges.length} buffers changed!`)
     } else if (changes) {
       let keys = Object.keys(changes)
-      keys = keys.filter(key => key.startsWith('file://'))
       if (!keys.length) return
-      let arr = []
-      for (let key of keys) {
-        let doc = this.getDocument(key)
-        if (doc) {
-          await doc.applyEdits(nvim, changes[key])
+      let c = await nvim.call('coc#util#prompt_change', [keys.length])
+      if (c != 1) return
+      let filetype = await nvim.buffer.getOption('filetype') as string
+      for (let uri of Object.keys(changes)) {
+        let edits = changes[uri]
+        let filepath = Uri.parse(uri).fsPath
+        let document = this.getDocument(uri)
+        let doc:TextDocument
+        if (document) {
+          doc = document.textDocument
+          await document.applyEdits(nvim, edits)
         } else {
-          let uri = Uri.parse(key)
-          arr.push({
-            uri,
-            edits: changes[key]
-          })
+          // we don't know the encoding, let vim do that
+          let content = (await nvim.call('readfile', filepath)).join('\n')
+          doc = TextDocument.create(uri, filetype, 0, content)
+          let res = TextDocument.applyEdits(doc, edits)
+          await writeFile(filepath, res)
         }
       }
-      if (arr.length) {
-        let c = await nvim.call('coc#util#prompt_change', [arr.length])
-        let buf = await nvim.buffer
-        let filetype = await buf.getOption('filetype')
-        if (c == 1) {
-          for (let item of arr) {
-            let {uri, edits} = item
-            let doc = await this.createDocument(uri.toString(), filetype as string)
-            let content = TextDocument.applyEdits(doc, edits)
-            await writeFile(uri.fsPath, content)
-          }
-        }
-      }
+      await nvim.command('wa')
     }
   }
 
@@ -316,30 +338,6 @@ export class Workspace implements IWorkSpace {
     logger.info('Buffers refreshed')
   }
 
-  /**
-   * Find or create a TextDocument from uri and languageId
-   *
-   * @public
-   * @param {string} uri
-   * @param {string} languageId?
-   * @returns {Promise<TextDocument|null>}
-   */
-  public async createDocument(uri:string, languageId?:string):Promise<TextDocument|null> {
-    // may be we could support other uri schema
-    let {textDocuments} = this
-    let fullpath = Uri.parse(uri).fsPath
-    let document = textDocuments.find(o => o.uri == uri)
-    if (document) return document
-    if (!languageId) languageId = (await this.nvim.eval('&filetype') as string)
-    let exists = await statAsync(fullpath)
-    if (!exists) {
-      await echoErr(this.nvim, `File ${fullpath} not exists.`)
-      return null
-    }
-    let content = await readFile(fullpath, 'utf8')
-    return TextDocument.create(uri, languageId, 0, content)
-  }
-
   public async echoLines(lines:string[]):Promise<void> {
     let {nvim} = this
     let cmdHeight = (await nvim.getOption('cmdheight') as number)
@@ -350,6 +348,12 @@ export class Workspace implements IWorkSpace {
     }
     let str = lines.join('\\n').replace(/"/g, '\\"')
     await nvim.command(`echo "${str}"`)
+  }
+
+  public async currentDocument():Promise<TextDocument> {
+    let buffer = await this.nvim.buffer
+    let document = this.getDocument(buffer.id)
+    return document ? document.textDocument : null
   }
 
   public async getCurrentState():Promise<EditerState> {

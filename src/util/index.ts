@@ -108,11 +108,11 @@ export function getUri(fullpath:string, id:number):string {
 export async function showQuickpick(nvim:Neovim, items:string[], placeholder = 'Choose by number'):Promise<number> {
   let msgs = [placeholder + ':']
   msgs = msgs.concat(items.map((str, index) => {
-    return `${index + 1}) ${str}`
+    return `${index + 1}. ${str}`
   }))
-  let res = await nvim.call('input', [msgs.join('\n') + '\n'])
+  let res = await nvim.call('inputlist', [msgs])
   let n = parseInt(res, 10)
-  if (isNaN(n) || n <=0 || n > res.length) return -1
+  if (isNaN(n) || n <= 0 || n > res.length) return -1
   return n - 1
 }
 

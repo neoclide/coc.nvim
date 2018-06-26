@@ -10,6 +10,10 @@ import {
   Definition,
   Location,
   SymbolKind,
+  SymbolInformation,
+  FormattingOptions,
+  TextDocument,
+  Range,
 } from 'vscode-languageserver-protocol'
 import {
   QuickfixItem,
@@ -17,6 +21,7 @@ import {
 import {
   Uri,
   echoWarning,
+  echoErr,
 } from './util'
 import {getLine} from './util/fs'
 const logger = require('./util/logger')('Handler')
@@ -26,13 +31,14 @@ interface SymbolInfo {
   filepath: string
   col: number
   text: string
-  level: number
   kind: string
-  containerName: string
+  level?: number
+  containerName?: string
 }
 
 export default class Handler {
   public showSignatureHelp: ()=>void
+  private currentSymbols: SymbolInformation[]
 
   constructor(private nvim:Neovim) {
     this.showSignatureHelp = debounce(() => {
@@ -40,6 +46,29 @@ export default class Handler {
         logger.error(e.stack)
       })
     }, 100)
+  }
+
+  private async getSelectedRange (mode: string, document: TextDocument): Promise<Range> {
+    let {nvim} = this
+    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
+      await echoErr(nvim, `Mode '${mode}' is not supported`)
+      return
+    }
+    let isVisual = ['v', 'V'].indexOf(mode) != -1
+    let c = isVisual ? '<' : '['
+    await nvim.command('normal! `' + c)
+    let start = await workspace.getOffset()
+    c = isVisual ? '>' : ']'
+    await nvim.command('normal! `' + c)
+    let end = await workspace.getOffset()
+    if (start == null || end == null || start == end) {
+      await echoErr(this.nvim, 'Failed to get selected range')
+      return
+    }
+    return {
+      start: document.positionAt(start),
+      end: document.positionAt(end)
+    }
   }
 
   private async previewHover(hover: Hover):Promise<void> {
@@ -215,6 +244,124 @@ export default class Handler {
       pre = sym
     }
     return res
+  }
+
+  public async getWorkspaceSymbols():Promise<SymbolInfo[]> {
+    let {document} = await workspace.getCurrentState()
+    if (!document) return
+    let cword = await this.nvim.call('expand', ['<cword>'])
+    let query = await this.nvim.call('input', ['Query:', cword])
+    let symbols = await languages.getWorkspaceSymbols(document, query)
+    this.currentSymbols = symbols
+    let res:SymbolInfo[] = []
+    for (let s of symbols) {
+      if (!this.validWorkspaceSymbol(s)) continue
+      let {name, kind, location} = s
+      let {start} = location.range
+      res.push({
+        filepath: Uri.parse(location.uri).fsPath,
+        col: start.character + 1,
+        lnum: start.line + 1,
+        text: name,
+        kind: getSymbolKind(kind),
+      })
+    }
+    return res
+  }
+
+  public async resolveWorkspaceSymbol(symbolIndex:number):Promise<SymbolInformation> {
+    // TODO figure out how to work with this
+    if (!this.currentSymbols) return null
+    let symbol = this.currentSymbols[symbolIndex]
+    if (!symbol) return null
+    let document = await workspace.currentDocument()
+    if (!document) return null
+    return await languages.resolveWorkspaceSymbol(document, symbol)
+  }
+
+  public async rename():Promise<void> {
+    let {nvim} = this
+    let {document, position} = await workspace.getCurrentState()
+    if (!document) return
+    try {
+      await nvim.command('wa')
+    } catch (e) {
+      await echoErr(nvim, `Save buffer failed: ${e.message}`)
+      return
+    }
+    let curname = await nvim.call('expand', '<cword>')
+    let doc = workspace.getDocument(document.uri)
+    if (!doc.isWord(curname)) {
+      await echoErr(nvim, `'${curname}' is not a valid word!`)
+      return
+    }
+    let newName = await nvim.call('input', ['new name:', curname])
+    await nvim.command('normal! :<C-u>')
+    if (!newName) {
+      await echoWarning(nvim, 'Empty word, canceled')
+      return
+    }
+    let edit = await languages.provideRenameEdits(document, position, newName)
+    if (!edit) return
+    await workspace.applyEdit(edit)
+  }
+
+  public async documentFormatting():Promise<void> {
+    let {document} = await workspace.getCurrentState()
+    if (!document) return
+    let buffer = await this.nvim.buffer
+    let tabSize = await buffer.getOption('tabstop') as number
+    let insertSpaces = (await buffer.getOption('expandtab')) == 1
+    let options:FormattingOptions = {
+      tabSize,
+      insertSpaces
+    }
+    let textEdits = await languages.provideDocumentFormattingEdits(document, options)
+    if (!textEdits) return
+    let content = TextDocument.applyEdits(document, textEdits)
+    await buffer.setLines(content.split('\n'), {
+      start: 0,
+      end: -1,
+      strictIndexing: false
+    })
+  }
+
+  public async documentRangeFormatting(mode:string):Promise<void> {
+    let {document} = await workspace.getCurrentState()
+    if (!document || !mode) return
+    let range = await this.getSelectedRange(mode, document)
+    if (!range) return
+    let buffer = await this.nvim.buffer
+    let tabSize = await buffer.getOption('tabstop') as number
+    let insertSpaces = (await buffer.getOption('expandtab')) == 1
+    let options:FormattingOptions = {
+      tabSize,
+      insertSpaces
+    }
+    let textEdits = await languages.provideDocumentRangeFormattingEdits(document, range, options)
+    if (!textEdits) return
+    let content = TextDocument.applyEdits(document, textEdits)
+    await buffer.setLines(content.split('\n'), {
+      start: 0,
+      end: -1,
+      strictIndexing: false
+    })
+  }
+
+  private validWorkspaceSymbol(symbol: SymbolInformation):boolean {
+    switch (symbol.kind) {
+      case SymbolKind.Namespace:
+      case SymbolKind.Class:
+      case SymbolKind.Module:
+      case SymbolKind.Method:
+      case SymbolKind.Package:
+      case SymbolKind.Interface:
+      case SymbolKind.Function:
+      case SymbolKind.Constant:
+        return true
+      default:
+        return false
+    }
   }
 }
 

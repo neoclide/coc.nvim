@@ -8,7 +8,46 @@ import {
   Hover,
   SignatureHelp,
   SymbolInformation,
+  Range,
+  WorkspaceEdit,
+  TextEdit
 } from 'vscode-languageserver-protocol'
+
+/**
+ * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
+ * may return. For once this is the actual result type `T`, like `Hover`, or a thenable that resolves
+ * to that type `T`. In addition, `null` and `undefined` can be returned - either directly or from a
+ * thenable.
+ *
+ * The snippets below are all valid implementations of the [`HoverProvider`](#HoverProvider):
+ *
+ * ```ts
+ * let a: HoverProvider = {
+ *   provideHover(doc, pos, token): ProviderResult<Hover> {
+ *     return new Hover('Hello World');
+ *   }
+ * }
+ *
+ * let b: HoverProvider = {
+ *   provideHover(doc, pos, token): ProviderResult<Hover> {
+ *     return new Promise(resolve => {
+ *       resolve(new Hover('Hello World'));
+ *      });
+ *   }
+ * }
+ *
+ * let c: HoverProvider = {
+ *   provideHover(doc, pos, token): ProviderResult<Hover> {
+ *     return; // undefined
+ *   }
+ * }
+ * ```
+ */
+export type ProviderResult<T> =
+  | T
+  | undefined
+  | null
+  | Thenable<T | undefined | null>
 
 export enum CompletionTriggerKind {
   /**
@@ -99,7 +138,6 @@ export interface CompletionItemProvider {
  * the [hover](https://code.visualstudio.com/docs/editor/intellisense)-feature.
  */
 export interface HoverProvider {
-
   /**
    * Provide a hover for the given position and document. Multiple hovers at the same
    * position will be merged by the editor. A hover can have a range which defaults
@@ -111,7 +149,11 @@ export interface HoverProvider {
    * @return A hover or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined` or `null`.
    */
-  provideHover(document: TextDocument, position: Position, token: CancellationToken): Promise<Hover>
+  provideHover(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<Hover>
 }
 
 /**
@@ -127,7 +169,6 @@ export declare type Definition = Location | Location[] | null
  * and peek definition features.
  */
 export interface DefinitionProvider {
-
   /**
    * Provide the definition of the symbol at the given position and document.
    *
@@ -137,7 +178,11 @@ export interface DefinitionProvider {
    * @return A definition or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined` or `null`.
    */
-  provideDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Definition>
+  provideDefinition(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<Definition>
 }
 
 /**
@@ -145,7 +190,6 @@ export interface DefinitionProvider {
  * the [parameter hints](https://code.visualstudio.com/docs/editor/intellisense)-feature.
  */
 export interface SignatureHelpProvider {
-
   /**
    * Provide help for the signature at the given position and document.
    *
@@ -155,7 +199,11 @@ export interface SignatureHelpProvider {
    * @return Signature help or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined` or `null`.
    */
-  provideSignatureHelp(document: TextDocument, position: Position, token: CancellationToken): Promise<SignatureHelp>
+  provideSignatureHelp(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<SignatureHelp>
 }
 
 /**
@@ -163,7 +211,6 @@ export interface SignatureHelpProvider {
  * the go to type definition feature.
  */
 export interface TypeDefinitionProvider {
-
   /**
    * Provide the type definition of the symbol at the given position and document.
    *
@@ -173,7 +220,11 @@ export interface TypeDefinitionProvider {
    * @return A definition or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined` or `null`.
    */
-  provideTypeDefinition(document: TextDocument, position: Position, token: CancellationToken): Promise<Definition>
+  provideTypeDefinition(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<Definition>
 }
 
 /**
@@ -181,7 +232,6 @@ export interface TypeDefinitionProvider {
  * requesting references.
  */
 export interface ReferenceContext {
-
   /**
    * Include the declaration of the current symbol.
    */
@@ -193,7 +243,6 @@ export interface ReferenceContext {
  * the [find references](https://code.visualstudio.com/docs/editor/editingevolved#_peek)-feature.
  */
 export interface ReferenceProvider {
-
   /**
    * Provide a set of project-wide references for the given position and document.
    *
@@ -204,7 +253,12 @@ export interface ReferenceProvider {
    * @return An array of locations or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideReferences(document: TextDocument, position: Position, context: ReferenceContext, token: CancellationToken): Promise<Location[]>
+  provideReferences(
+    document: TextDocument,
+    position: Position,
+    context: ReferenceContext,
+    token: CancellationToken
+  ): Promise<Location[]>
 }
 
 /**
@@ -254,8 +308,7 @@ export enum FoldingRangeKind {
 /**
  * Folding context (for future use)
  */
-export interface FoldingContext {
-}
+export interface FoldingContext {}
 
 /**
  * The folding range provider interface defines the contract between extensions and
@@ -269,7 +322,11 @@ export interface FoldingRangeProvider {
    * @param context Additional context information (for future use)
    * @param token A cancellation token.
    */
-  provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[]>
+  provideFoldingRanges(
+    document: TextDocument,
+    context: FoldingContext,
+    token: CancellationToken
+  ): Promise<FoldingRange[]>
 }
 
 /**
@@ -277,7 +334,6 @@ export interface FoldingRangeProvider {
  * the [go to symbol](https://code.visualstudio.com/docs/editor/editingevolved#_go-to-symbol)-feature.
  */
 export interface DocumentSymbolProvider {
-
   /**
    * Provide symbol information for the given document.
    *
@@ -286,7 +342,31 @@ export interface DocumentSymbolProvider {
    * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideDocumentSymbols(document: TextDocument, token: CancellationToken): Promise<SymbolInformation[]>
+  provideDocumentSymbols(
+    document: TextDocument,
+    token: CancellationToken
+  ): Promise<SymbolInformation[]>
+}
+
+/**
+ * The implemenetation provider interface defines the contract between extensions and
+ * the go to implementation feature.
+ */
+export interface ImplementationProvider {
+  /**
+   * Provide the implementations of the symbol at the given position and document.
+   *
+   * @param document The document in which the command was invoked.
+   * @param position The position at which the command was invoked.
+   * @param token A cancellation token.
+   * @return A definition or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined` or `null`.
+   */
+  provideImplementation(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): Promise<Definition>
 }
 
 /**
@@ -294,7 +374,6 @@ export interface DocumentSymbolProvider {
  * the [symbol search](https://code.visualstudio.com/docs/editor/editingevolved#_open-symbol-by-name)-feature.
  */
 export interface WorkspaceSymbolProvider {
-
   /**
    * Project-wide search for a symbol matching the given query string. It is up to the provider
    * how to search given the query string, like substring, indexOf etc. To improve performance implementors can
@@ -311,7 +390,10 @@ export interface WorkspaceSymbolProvider {
    * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideWorkspaceSymbols(query: string, token: CancellationToken): Promise<SymbolInformation[]>
+  provideWorkspaceSymbols(
+    query: string,
+    token: CancellationToken
+  ): Promise<SymbolInformation[]>
 
   /**
    * Given a symbol fill in its [location](#SymbolInformation.location). This method is called whenever a symbol
@@ -325,23 +407,116 @@ export interface WorkspaceSymbolProvider {
    * @return The resolved symbol or a thenable that resolves to that. When no result is returned,
    * the given `symbol` is used.
    */
-  resolveWorkspaceSymbol?(symbol: SymbolInformation, token: CancellationToken): Promise<SymbolInformation>
+  resolveWorkspaceSymbol?(
+    symbol: SymbolInformation,
+    token: CancellationToken
+  ): Promise<SymbolInformation>
 }
 
 /**
- * The implemenetation provider interface defines the contract between extensions and
- * the go to implementation feature.
+ * The rename provider interface defines the contract between extensions and
+ * the [rename](https://code.visualstudio.com/docs/editor/editingevolved#_rename-symbol)-feature.
  */
-export interface ImplementationProvider {
-
+export interface RenameProvider {
   /**
-   * Provide the implementations of the symbol at the given position and document.
+   * Provide an edit that describes changes that have to be made to one
+   * or many resources to rename a symbol to a different name.
    *
    * @param document The document in which the command was invoked.
    * @param position The position at which the command was invoked.
+   * @param newName The new name of the symbol. If the given name is not valid, the provider must return a rejected promise.
    * @param token A cancellation token.
-   * @return A definition or a thenable that resolves to such. The lack of a result can be
+   * @return A workspace edit or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined` or `null`.
    */
-  provideImplementation(document: TextDocument, position: Position, token: CancellationToken): Promise<Definition>
+  provideRenameEdits(
+    document: TextDocument,
+    position: Position,
+    newName: string,
+    token: CancellationToken
+  ): ProviderResult<WorkspaceEdit>
+
+  /**
+   * Optional function for resolving and validating a position *before* running rename. The result can
+   * be a range or a range and a placeholder text. The placeholder text should be the identifier of the symbol
+   * which is being renamed - when omitted the text in the returned range is used.
+   *
+   * @param document The document in which rename will be invoked.
+   * @param position The position at which rename will be invoked.
+   * @param token A cancellation token.
+   * @return The range or range and placeholder text of the identifier that is to be renamed. The lack of a result can signaled by returning `undefined` or `null`.
+   */
+  prepareRename?(
+    document: TextDocument,
+    position: Position,
+    token: CancellationToken
+  ): ProviderResult<Range | {range: Range; placeholder: string}>
+}
+
+/**
+ * Value-object describing what options formatting should use.
+ */
+export interface FormattingOptions {
+  /**
+   * Size of a tab in spaces.
+   */
+  tabSize: number
+
+  /**
+   * Prefer spaces over tabs.
+   */
+  insertSpaces: boolean
+
+  /**
+   * Signature for further properties.
+   */
+  [key: string]: boolean | number | string
+}
+
+/**
+ * The document formatting provider interface defines the contract between extensions and
+ * the formatting-feature.
+ */
+export interface DocumentFormattingEditProvider {
+  /**
+   * Provide formatting edits for a whole document.
+   *
+   * @param document The document in which the command was invoked.
+   * @param options Options controlling formatting.
+   * @param token A cancellation token.
+   * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentFormattingEdits(
+    document: TextDocument,
+    options: FormattingOptions,
+    token: CancellationToken
+  ): ProviderResult<TextEdit[]>
+}
+
+/**
+ * The document formatting provider interface defines the contract between extensions and
+ * the formatting-feature.
+ */
+export interface DocumentRangeFormattingEditProvider {
+  /**
+   * Provide formatting edits for a range in a document.
+   *
+   * The given range is a hint and providers can decide to format a smaller
+   * or larger range. Often this is done by adjusting the start and end
+   * of the range to full syntax nodes.
+   *
+   * @param document The document in which the command was invoked.
+   * @param range The range which should be formatted.
+   * @param options Options controlling formatting.
+   * @param token A cancellation token.
+   * @return A set of text edits or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentRangeFormattingEdits(
+    document: TextDocument,
+    range: Range,
+    options: FormattingOptions,
+    token: CancellationToken
+  ): ProviderResult<TextEdit[]>
 }

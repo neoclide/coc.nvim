@@ -7,6 +7,10 @@ import {
   HoverProvider,
   SignatureHelpProvider,
   DocumentSymbolProvider,
+  WorkspaceSymbolProvider,
+  RenameProvider,
+  DocumentFormattingEditProvider,
+  DocumentRangeFormattingEditProvider,
 } from './provider'
 import {
   ISource,
@@ -31,6 +35,9 @@ import {
   Hover,
   SignatureHelp,
   SymbolInformation,
+  WorkspaceEdit,
+  Range,
+  FormattingOptions,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -67,6 +74,10 @@ class Languages {
   public nvim:Neovim
   private _onDidCompletionSourceCreated = new EventEmitter<ISource>()
   private completionProviders: CompletionSource[] = []
+  private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
+  private renameProviderMap: Map<string, RenameProvider> = new Map()
+  private documentFormattingMap: Map<string, DocumentFormattingEditProvider> = new Map()
+  private documentRangeFormattingMap: Map<string, DocumentRangeFormattingEditProvider> = new Map()
   private definitionMap: Map<string, DefinitionProvider> = new Map()
   private typeDefinitionMap: Map<string, TypeDefinitionProvider> = new Map()
   private implementationMap: Map<string, ImplementationProvider> = new Map()
@@ -142,60 +153,109 @@ class Languages {
     return this.registerProvider(languageIds, provider, this.referencesMap)
   }
 
+  public registerRenameProvider(languageIds: string| string[], provider:RenameProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.renameProviderMap)
+  }
+
+  public registerWorkspaceSymbolProvider(languageIds: string| string[], provider:WorkspaceSymbolProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.workspaceSymbolMap)
+  }
+
+  public registerDocumentFormatProvider(languageIds: string| string[], provider:DocumentFormattingEditProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.documentFormattingMap)
+  }
+
+  public registerDocumentRangeFormatProvider(languageIds: string| string[], provider:DocumentRangeFormattingEditProvider):Disposable {
+    return this.registerProvider(languageIds, provider, this.documentRangeFormattingMap)
+  }
+
   public getDeifinition(document:TextDocument, position:Position):Promise<Definition> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.definitionMap.get(languageId)
+    let provider = this.getProvider(document, this.definitionMap)
     if (!provider) return
     return provider.provideDefinition(document, position, this.token)
   }
 
   public getTypeDefinition(document:TextDocument, position:Position):Promise<Definition> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.typeDefinitionMap.get(languageId)
+    let provider = this.getProvider(document, this.typeDefinitionMap)
     if (!provider) return
     return provider.provideTypeDefinition(document, position, this.token)
   }
 
   public getImplementation(document:TextDocument, position:Position):Promise<Definition> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.implementationMap.get(languageId)
+    let provider = this.getProvider(document, this.implementationMap)
     if (!provider) return
     return provider.provideImplementation(document, position, this.token)
   }
 
   public getReferences(document:TextDocument, context:ReferenceContext, position:Position):Promise<Location[]> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.referencesMap.get(languageId)
+    let provider = this.getProvider(document, this.referencesMap)
     if (!provider) return
     return provider.provideReferences(document, position, context, this.token)
   }
 
   public getHover(document:TextDocument, position:Position):Promise<Hover> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.hoverProviderMap.get(languageId)
+    let provider = this.getProvider(document, this.hoverProviderMap)
     if (!provider) return
     return provider.provideHover(document, position, this.token)
   }
 
   public getSignatureHelp(document:TextDocument, position:Position):Promise<SignatureHelp> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.signatureHelpProviderMap.get(languageId)
+    let provider = this.getProvider(document, this.signatureHelpProviderMap)
     if (!provider) return
     return provider.provideSignatureHelp(document, position, this.token)
   }
 
   public getDocumentSymbol(document:TextDocument):Promise<SymbolInformation[]> {
-    this.cancelRequest()
-    let {languageId} = document
-    let provider = this.documentSymbolMap.get(languageId)
+    let provider = this.getProvider(document, this.documentSymbolMap)
     if (!provider) return
     return provider.provideDocumentSymbols(document, this.token)
+  }
+
+  public async getWorkspaceSymbols(document:TextDocument, query: string):Promise<SymbolInformation[]> {
+    query = query || ''
+    let provider = this.getProvider(document, this.workspaceSymbolMap)
+    if (!provider) return
+    return provider.provideWorkspaceSymbols(query, this.token)
+  }
+
+  public async resolveWorkspaceSymbol(document:TextDocument, symbol:SymbolInformation):Promise<SymbolInformation> {
+    let provider = this.getProvider(document, this.workspaceSymbolMap)
+    if (!provider) return
+    if (typeof provider.resolveWorkspaceSymbol === 'function') {
+      return provider.resolveWorkspaceSymbol(symbol, this.token)
+    }
+  }
+
+  public async provideRenameEdits(document:TextDocument, position:Position, newName: string):Promise<WorkspaceEdit> {
+    let provider = this.getProvider(document, this.renameProviderMap)
+    if (!provider) return
+    return await Promise.resolve(provider.provideRenameEdits(document, position, newName, this.token))
+  }
+
+  public async prepareRename(document:TextDocument, position:Position):Promise<Range|false> {
+    let provider = this.getProvider(document, this.renameProviderMap)
+    if (!provider) return
+    if (typeof provider.prepareRename != 'function') return false
+    let res = await Promise.resolve(provider.prepareRename(document, position, this.token))
+    if (Range.is(res)) return res
+    if (Range.is(res.range)) return res.range
+  }
+
+  public async provideDocumentFormattingEdits(document:TextDocument, options:FormattingOptions):Promise<TextEdit[]> {
+    let provider = this.getProvider(document, this.documentFormattingMap)
+    if (!provider) return
+    return await Promise.resolve(provider.provideDocumentFormattingEdits(document, options, this.token))
+  }
+
+  public async provideDocumentRangeFormattingEdits(document:TextDocument, range:Range, options:FormattingOptions):Promise<TextEdit[]> {
+    let provider = this.getProvider(document, this.documentRangeFormattingMap)
+    if (!provider) return
+    return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, this.token))
+  }
+
+  private getProvider<T>(document:TextDocument, map:Map<string, T>):T {
+    this.cancelRequest()
+    return map.get(document.languageId)
   }
 
   public dispose():void {

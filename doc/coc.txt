@@ -20,6 +20,7 @@ Denite support 		|coc-denite|
   Denite source  	|coc-denite-source|
   Denite diagnostic     |coc-denite-diagnostic|
   Denite symbols        |coc-denite-symbols|
+  Denite workspace      |coc-denite-workspace|
 Custom Source 		|coc-custom-source|
 Faq			|coc-faq|
 Changelog		|coc-changelog|
@@ -109,6 +110,31 @@ Keymapings 					*coc-keymapings*
 <Plug>(coc-references)
 
 			Jump to references of current symbol.
+
+<Plug>(coc-format-selected)
+			Format selected range, would work in both visual mode
+			and normal mode, when work in normal mode, the
+			selections works on motion object.
+
+	For example: >
+
+	vmap <leader>p  <Plug>(coc-format-selected)
+	nmap <leader>p  <Plug>(coc-format-selected)
+<
+	makes `<leader>p` format visual selected range, and you can use
+	`<leader>pap` to format a paragraph.
+
+<Plug>(coc-format)
+			Format whole buffer, normally you would like to use a
+			command like: >
+
+	command! -nargs=0 Format :call CocAction('format')
+<
+			to format current buffer.
+
+<Plug>(coc-rename)
+
+			Rename symbol under cursor to a new word.
 
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
@@ -211,6 +237,12 @@ CocAction({action}, [...{args}])
 
 	'documentSymbols': get symbol list of current document.
 
+	'rename': Rename symbol under cursor to a new word.
+
+	'workspaceSymbols': Search for workspace symbols.
+
+	'format': Format current buffer.
+
 						*coc#refresh()*
 coc#refresh()
 
@@ -272,6 +304,13 @@ Coc make use of list interface provided by |denite.nvim| for advanced actions.
 
 	Actions: same as file kind, use `tab` in denite buffer to get the
 	list.
+
+------------------------------------------------------------------------------
+:Denite coc-workspace 				*coc-denite-workspace*
+
+	Search workspace symbols using denite buffer.
+
+	Actions: same as file kind.
 
 ------------------------------------------------------------------------------
 						*coc-denite-symbols*
