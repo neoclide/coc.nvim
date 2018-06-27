@@ -189,9 +189,8 @@ export default class Document {
   }
 
   private fireContentChanges():void {
-    let {paused} = this
+    let {paused, textDocument} = this
     if (paused) return
-    let {textDocument} = this
     this.createDocument()
     let change = getChange(textDocument.getText(), this.content)
     if (!change) return
@@ -231,11 +230,11 @@ export default class Document {
   }
 
   public get uri():string {
-    return this.textDocument.uri
+    return this.textDocument ? this.textDocument.uri : null
   }
 
   public get version():number {
-    return this.textDocument.version
+    return this.textDocument ? this.textDocument.version : null
   }
 
   public equalTo(doc:TextDocument):boolean {

@@ -10,7 +10,8 @@ import {
   DiagnosticInfo,
 } from '../types'
 import workspace from '../workspace'
-import {Neovim, Buffer} from 'neovim'
+import Document from '../model/document'
+import {Neovim} from 'neovim'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 export interface DiagnosticConfig {
@@ -43,23 +44,24 @@ function getDiagnosticInfo(diagnostics:Diagnostic[]):DiagnosticInfo {
   let warning = 0
   let information = 0
   let hint = 0
-  if (!diagnostics) return null
-  for (let diagnoctic of diagnostics) {
-    switch (diagnoctic.severity) {
-      case DiagnosticSeverity.Error:
-        error = error + 1
-        break
-      case DiagnosticSeverity.Warning:
-        warning = warning + 1
-        break
-      case DiagnosticSeverity.Information:
-        information = information + 1
-        break
-      case DiagnosticSeverity.Hint:
-        hint = hint + 1
-        break
-      default:
-        error = error + 1
+  if (diagnostics && diagnostics.length) {
+    for (let diagnostic of diagnostics) {
+      switch (diagnostic.severity) {
+        case DiagnosticSeverity.Error:
+          error = error + 1
+          break
+        case DiagnosticSeverity.Warning:
+          warning = warning + 1
+          break
+        case DiagnosticSeverity.Information:
+          information = information + 1
+          break
+        case DiagnosticSeverity.Hint:
+          hint = hint + 1
+          break
+        default:
+          error = error + 1
+      }
     }
   }
   return {error, warning, information, hint}
@@ -70,35 +72,65 @@ export class DiagnosticBuffer {
   private signMap:Map<string, number[]> = new Map()
   private srcIdMap:Map<string, number> = new Map()
   private infoMap:Map<string, DiagnosticInfo> = new Map()
+  private callbackMap:Map<string, ()=>Promise<void>> = new Map()
   private nvim:Neovim
   private signId:number
+  private operating:boolean
 
   constructor(public readonly uri:string, config:DiagnosticConfig) {
     this.nvim = workspace.nvim
     this.signId = config.signOffset || 1000
   }
 
-  public async set(owner:string, diagnostics:Diagnostic[] | null):Promise<void> {
-    let srcId = await this.getSrcId(owner)
-    await this.clear(owner, false)
-    if (!diagnostics || diagnostics.length == 0) return
-    let lines:Set<number> = new Set()
-    for (let diagnostic of diagnostics) {
-      let line = diagnostic.range.start.line
-      if (!lines.has(line)) {
-        lines.add(line)
-        await this.addSign(owner, line, diagnostic.severity)
-      }
-      await this.addHighlight(srcId, diagnostic.range)
+  public set(owner:string, diagnostics:Diagnostic[] | null):void {
+    if (this.operating) {
+      this.callbackMap.set(owner, ()=> {
+        return this._set(owner, diagnostics)
+      })
+    } else {
+      this._set(owner, diagnostics)
     }
-    this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
-    await this.setDiagnosticInfo()
-    await this.checkSigns()
+  }
+
+  private async handleCallback():Promise<void> {
+    let fns = this.callbackMap.values()
+    this.callbackMap = new Map()
+    for (let fn of fns) {
+      await fn()
+    }
+  }
+
+  private async _set(owner:string, diagnostics:Diagnostic[] | null):Promise<void> {
+    let {document} = this
+    if (!document) return
+    this.operating = true
+    try {
+      let srcId = await this.getSrcId(document, owner)
+      await this._clear(owner)
+      if (diagnostics && diagnostics.length != 0) {
+        let signIds = this.getSignIds(owner, diagnostics.length)
+        let i = 0
+        for (let diagnostic of diagnostics) {
+          let line = diagnostic.range.start.line
+          let signId = signIds[i]
+          await this.addSign(owner, signId, line, diagnostic.severity)
+          await this.addHighlight(srcId, diagnostic.range)
+          i++
+        }
+      }
+      this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
+      await this.setDiagnosticInfo()
+      this.operating = false
+      await this.handleCallback()
+    } catch (e) {
+      logger.error(e.stack)
+    }
   }
 
   public async checkSigns():Promise<void> {
-    let {buffer, signs} = this
-    if (!buffer) return
+    let {signs, operating, document} = this
+    if (!document || operating) return
+    let {buffer} = document
     let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
     let lines:string[] = content.split('\n')
     for (let line of lines) {
@@ -120,8 +152,9 @@ export class DiagnosticBuffer {
     return res
   }
 
-  public async clear(owner?:string, reset = true):Promise<void> {
+  private async _clear(owner?:string):Promise<void> {
     try {
+      this.operating = true
       for (let key of this.signMap.keys()) {
         if (!owner || owner == key) {
           let ids = this.signMap.get(key)
@@ -139,48 +172,60 @@ export class DiagnosticBuffer {
           this.infoMap.delete(srcId)
         }
       }
-      if (reset) await this.setDiagnosticInfo()
+      await this.setDiagnosticInfo()
+      this.operating = false
+      await this.handleCallback()
     } catch (e) {
       logger.error(e.stack)
     }
   }
 
-  private async addSign(owner, line:number, severity:DiagnosticSeverity):Promise<void> {
-    let {buffer, nvim} = this
-    if (!buffer) return
-    let signId = this.getSignId(owner)
+  public async clear(owner?:string):Promise<void> {
+    if (this.operating) {
+      if (!owner) this.callbackMap = new Map()
+      this.callbackMap.set(owner || '', ()=> {
+        return this._clear(owner)
+      })
+    } else {
+      await this._clear(owner)
+    }
+  }
+
+  private async addSign(owner:string, signId:number, line:number, severity:DiagnosticSeverity):Promise<void> {
+    let {document, nvim} = this
+    let {buffer} = document
     let name = getNameFromSeverity(severity)
     await nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${buffer.id}`)
   }
 
   private async setDiagnosticInfo():Promise<void> {
-    let {buffer} = this
-    if (!buffer) return
+    let {document} = this
+    let {buffer} = document
     let error =0
     let warning = 0
     let information = 0
     let hint = 0
-    for (let [, diagnocticInfo] of this.infoMap) {
-      if (!diagnocticInfo) continue
-      error = error + diagnocticInfo.error
-      warning = warning + diagnocticInfo.warning
-      information = information + diagnocticInfo.information
-      hint = hint + diagnocticInfo.hint
+    for (let [, diagnosticInfo] of this.infoMap) {
+      if (!diagnosticInfo) continue
+      error = error + diagnosticInfo.error
+      warning = warning + diagnosticInfo.warning
+      information = information + diagnosticInfo.information
+      hint = hint + diagnosticInfo.hint
     }
     await buffer.setVar('coc_diagnostic_info', {error, warning, information, hint})
   }
 
   private async addHighlight(srcId:number, range:Range):Promise<void> {
-    let document = workspace.getDocument(this.uri)
-    if (!document) return
     let {start, end} = range
     try {
+      let {document} = this
+      let {buffer} = document
       for (let i = start.line; i<= end.line; i++) {
         let line = document.getline(i)
         if (!line || !line.length) continue
         let s = i == start.line ? start.character : 0
         let e = i == end.line ? end.character : -1
-        await this.buffer.addHighlight({
+        await buffer.addHighlight({
           srcId,
           hlGroup: 'CocUnderline',
           line: i,
@@ -194,29 +239,25 @@ export class DiagnosticBuffer {
   }
 
   private async clearHighlight(srcId:number):Promise<void> {
-    let {buffer} = this
-    if (!buffer) return
+    let {document} = this
+    let {buffer} = document
     await buffer.clearHighlight({srcId})
   }
 
   private async clearSigns(signs:number[]):Promise<void> {
-    let {buffer} = this
-    if (!buffer) return
-    let {id} = buffer
+    let {document} = this
+    let {buffer} = document
     for (let sign of signs) {
-      await this.nvim.command(`sign unplace ${sign} buffer=${id}`)
+      await this.nvim.command(`sign unplace ${sign} buffer=${buffer.id}`)
     }
   }
 
-  private get buffer():Buffer {
-    let doc = workspace.getDocument(this.uri)
-    if (doc) return doc.buffer
-    return null
+  private get document():Document {
+    return workspace.getDocument(this.uri)
   }
 
-  private async getSrcId(owner:string):Promise<number> {
-    let {buffer} = this
-    if (!buffer) return
+  private async getSrcId(document:Document, owner:string):Promise<number> {
+    let {buffer} = document
     let srcId = this.srcIdMap.get(owner)
     if (!srcId) {
       srcId = await buffer.addHighlight({ line: 0, srcId: 0 })
@@ -225,12 +266,14 @@ export class DiagnosticBuffer {
     return srcId as number
   }
 
-  private getSignId(owner:string):number {
-    let signId = this.signId + 1
-    let ids = this.signMap.get(owner) || []
-    ids.push(signId)
-    this.signMap.set(owner, ids)
-    this.signId = signId
-    return signId
+  private getSignIds(owner:string, len:number):number[] {
+    let {signId} = this
+    let res:number[] = []
+    for (let i = 1; i <= len; i++) {
+      res.push(signId + i)
+    }
+    this.signId = signId + len
+    this.signMap.set(owner, res)
+    return res
   }
 }

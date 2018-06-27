@@ -5,6 +5,7 @@ import {
   DiagnosticCollection
 } from '../types'
 import diagnosticManager from './manager'
+const logger = require('../util/logger')('diagnoctic-collection')
 
 export default class Collection implements DiagnosticCollection {
   public readonly name: string

@@ -50,12 +50,14 @@ class DiagnosticManager {
       }
     })
 
-    // workspace.onWillSaveTextDocument(({document}) => {
-    //   let doc = workspace.getDocument(document.uri)
-    //   if (doc) {
-    //     this.nvim.command(`sign unplace * buffer=${doc.bufnr}`)
-    //   }
-    // })
+    workspace.onDidSaveTextDocument((document) => {
+      let buf = this.buffers.find(buf => buf.uri == document.uri)
+      if (buf) {
+        buf.checkSigns().catch(e => {
+          logger.error(e.stack)
+        })
+      }
+    })
 
     workspace.onDidChangeConfiguration(() => {
       this.setConfiguration()
@@ -132,14 +134,9 @@ class DiagnosticManager {
    */
   public add(owner:string, uri:string, diagnostics:Diagnostic[]|null):void {
     if (!this.enabled) return
-    if (!diagnostics || diagnostics.length == 0) {
-      return this.clear(owner, uri)
-    }
     let buffer = this.getBuffer(uri)
     if (!buffer) return
-    buffer.set(owner, diagnostics).catch(err => {
-      logger.error(err.stack)
-    })
+    buffer.set(owner, diagnostics || [])
   }
 
   public getSortedRanges(document:Document):Range[] {

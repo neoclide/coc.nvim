@@ -385,7 +385,8 @@ class Languages {
         resolving = item.word
         let resolved:CompletionItem
         let prevItem = resolveItem(item)
-        if (!prevItem || prevItem.data.resolving) return
+        prevItem.data = prevItem.data || {}
+        if (!prevItem) return
         if (prevItem.data.resolved) {
           resolved = prevItem
         } else {
@@ -403,7 +404,7 @@ class Languages {
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolving == item.word) {
           // vim have no suppport for update complete item
-          let str = resolved.detail.trim() || ''
+          let str = resolved.detail ? resolved.detail.trim() : ''
           await echoMessage(this.nvim, str)
           let doc = getDocumentation(resolved)
           if (doc) str += '\n\n' + doc
@@ -457,11 +458,6 @@ class Languages {
             return item.label[0] == firstChar
           })
         }
-        // mark items unresolved
-        completeItems.forEach(item => {
-          let data = item.data || {}
-          item.data = Object.assign(data, {resolved: false})
-        })
         return {
           isIncomplete,
           items: completeItems.map(o => convertVimCompleteItem(o, shortcut))
