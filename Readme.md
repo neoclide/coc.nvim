@@ -10,7 +10,7 @@ specifications in [language server protocol](https://github.com/Microsoft/langua
 
 W.I.P.🐒
 
-**WARNING, API not stable, all things could change**
+**WARNING: master branch of [node-client](https://github.com/neovim/node-client) is required for build this plugin**
 
 Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail
 documentation.
