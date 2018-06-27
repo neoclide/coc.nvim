@@ -1,3 +1,4 @@
+/* tslint:disable:no-console */
 import {Neovim} from 'neovim'
 import {
   echoErr,
@@ -21,7 +22,7 @@ import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
 function onError(e):void {
-  console.error(e.stack)
+  logger.error(e.stack)
 }
 
 export class Completion {

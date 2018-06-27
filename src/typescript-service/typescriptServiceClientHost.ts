@@ -136,7 +136,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
 
   private handleFileChange(e:Uri):void {
     let file = e.fsPath
-    this.client.execute('reload', { file, tmpfile: file})
+    this.client.execute('reload', { file, tmpfile: file}) // tslint:disable-line
   }
 
   private configurationChanged(): void {

@@ -77,7 +77,7 @@ export default class TypeScriptWorkspaceSymbolProvider implements WorkspaceSymbo
     return result
   }
 
-  private static getLabel(item: Proto.NavtoItem) {
+  private static getLabel(item: Proto.NavtoItem):string {
     let label = item.name
     if (item.kind === 'method' || item.kind === 'function') {
       label += '()'

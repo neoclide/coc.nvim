@@ -53,7 +53,7 @@ export default class TypeScriptRenameProvider implements RenameProvider {
   private toWorkspaceEdit(
     locations: ReadonlyArray<Proto.SpanGroup>,
     newName: string
-  ) {
+  ):WorkspaceEdit {
     let changes:{[uri: string]: TextEdit[]} = {}
     for (const spanGroup of locations) {
       const uri = this.client.toResource(spanGroup.file)

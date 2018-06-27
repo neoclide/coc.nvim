@@ -133,12 +133,16 @@ export default class Document {
         logger.error(e.stack)
       }
     })
+    let unbindDetach = this.buffer.listen('detach', () => {
+      logger.debug('buffer detach')
+    })
     let unbindChange = this.buffer.listen('changedtick', (buf:Buffer, tick:number) => {
       if (buf.id !== this.buffer.id) return
       this._changedtick = tick
     })
     this.disposables.push({
       dispose: () => {
+        unbindDetach()
         unbindLines()
         unbindChange()
       }
@@ -174,14 +178,7 @@ export default class Document {
     let buftype = await buffer.getOption('buftype') as string
     if (buftype !== '') return this.detach()
     this.lines = await buffer.lines as string[]
-    // let content = lines.join('\n')
-    // if (this.content != content) {
-    //   let res = diff.diffLines(this.content, content)
-    //   logger.error('--------------------')
-    //   logger.error('content diff:', res)
-    //   logger.error('content length:', this.content.length, content.length)
-    //   this.lines = lines
-    // }
+    this._changedtick = await buffer.changedtick
     this.createDocument()
     let {version, uri} = this
     this.hasChange = true
@@ -216,9 +213,9 @@ export default class Document {
   public detach():void {
     if (!this.attached) return
     this.attached = false
+    disposeAll(this.disposables)
     this._fireContentChanges.clear()
     this._onDocumentChange.dispose()
-    disposeAll(this.disposables)
   }
 
   public get bufnr():number {

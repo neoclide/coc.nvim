@@ -10,7 +10,7 @@
     "no-unnecessary-qualifier": false,
     "ban-types": false,
     "return-undefined": false,
-    "no-unused-variable": [false],
-    "no-console": [false, "log", "info", "warn", "error", "trace", "time", "timeEnd", "assert", "count", "dir", "table"]
+    "no-unused-variable": false,
+    "no-console":true
   }
 }

@@ -1,3 +1,4 @@
+/* tslint:disable:no-console */
 import {
   SnippetParser,
 } from '../../snippet/parser'

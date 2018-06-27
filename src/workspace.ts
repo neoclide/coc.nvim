@@ -262,6 +262,11 @@ export class Workspace {
     if (!valid) return
     const {buffers} = this
     const bufnr = buffer.id
+    const doc = buffers[bufnr]
+    if (doc) {
+      await doc.checkDocument()
+      return
+    }
     let document = buffers[bufnr] = new Document(buffer)
     await document.init(this.nvim)
     this._onDidAddDocument.fire(document.textDocument)
@@ -280,8 +285,8 @@ export class Workspace {
   public async onBufferUnload(bufnr:number):Promise<void> {
     let doc = this.buffers[bufnr]
     if (doc) {
-      this._onDidRemoveDocument.fire(doc.textDocument)
       doc.detach()
+      this._onDidRemoveDocument.fire(doc.textDocument)
     }
     this.buffers[bufnr] = null
     logger.trace('bufnr unload', bufnr)
@@ -363,6 +368,7 @@ export class Workspace {
     if (!document) document = await this.onBufferCreate(buffer)
     if (!document) return {document: null, position: null}
     let line = document.getline(lnum - 1)
+    if (!line) return {document: null, position: null}
     return {
       document: document.textDocument,
       position: {
