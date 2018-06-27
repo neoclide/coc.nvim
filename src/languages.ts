@@ -72,8 +72,23 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-class Languages {
+export function check(_target: any, _key: string, descriptor: any) {
+  let fn = descriptor.value
+  if (typeof fn !== 'function') {
+    return
+  }
 
+  descriptor.value = function(...args):any {
+    if (this._requesting) this.cancelTokenSource.cancel()
+    this._requesting = true
+    return Promise.resolve(fn.apply(this, args)).then(res => {
+      this._requesting = false
+      return res
+    })
+  }
+}
+
+class Languages {
   public nvim:Neovim
   private _onDidCompletionSourceCreated = new EventEmitter<ISource>()
   private completionProviders: CompletionSource[] = []
@@ -194,48 +209,56 @@ class Languages {
     return this.registerProvider(languageIds, provider, this.documentRangeFormattingMap)
   }
 
+  @check
   public getDeifinition(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.definitionMap)
     if (!provider) return
     return provider.provideDefinition(document, position, this.token)
   }
 
+  @check
   public getTypeDefinition(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.typeDefinitionMap)
     if (!provider) return
     return provider.provideTypeDefinition(document, position, this.token)
   }
 
+  @check
   public getImplementation(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.implementationMap)
     if (!provider) return
     return provider.provideImplementation(document, position, this.token)
   }
 
+  @check
   public getReferences(document:TextDocument, context:ReferenceContext, position:Position):Promise<Location[]> {
     let provider = this.getProvider(document, this.referencesMap)
     if (!provider) return
     return provider.provideReferences(document, position, context, this.token)
   }
 
+  @check
   public getHover(document:TextDocument, position:Position):Promise<Hover> {
     let provider = this.getProvider(document, this.hoverProviderMap)
     if (!provider) return
     return provider.provideHover(document, position, this.token)
   }
 
+  @check
   public getSignatureHelp(document:TextDocument, position:Position):Promise<SignatureHelp> {
     let provider = this.getProvider(document, this.signatureHelpProviderMap)
     if (!provider) return
     return provider.provideSignatureHelp(document, position, this.token)
   }
 
+  @check
   public getDocumentSymbol(document:TextDocument):Promise<SymbolInformation[]> {
     let provider = this.getProvider(document, this.documentSymbolMap)
     if (!provider) return
     return provider.provideDocumentSymbols(document, this.token)
   }
 
+  @check
   public async getWorkspaceSymbols(document:TextDocument, query: string):Promise<SymbolInformation[]> {
     query = query || ''
     let provider = this.getProvider(document, this.workspaceSymbolMap)
@@ -243,6 +266,7 @@ class Languages {
     return provider.provideWorkspaceSymbols(query, this.token)
   }
 
+  @check
   public async resolveWorkspaceSymbol(document:TextDocument, symbol:SymbolInformation):Promise<SymbolInformation> {
     let provider = this.getProvider(document, this.workspaceSymbolMap)
     if (!provider) return
@@ -251,12 +275,14 @@ class Languages {
     }
   }
 
+  @check
   public async provideRenameEdits(document:TextDocument, position:Position, newName: string):Promise<WorkspaceEdit> {
     let provider = this.getProvider(document, this.renameProviderMap)
     if (!provider) return
     return await Promise.resolve(provider.provideRenameEdits(document, position, newName, this.token))
   }
 
+  @check
   public async prepareRename(document:TextDocument, position:Position):Promise<Range|false> {
     let provider = this.getProvider(document, this.renameProviderMap)
     if (!provider) return
@@ -266,12 +292,14 @@ class Languages {
     if (Range.is(res.range)) return res.range
   }
 
+  @check
   public async provideDocumentFormattingEdits(document:TextDocument, options:FormattingOptions):Promise<TextEdit[]> {
     let provider = this.getProvider(document, this.documentFormattingMap)
     if (!provider) return
     return await Promise.resolve(provider.provideDocumentFormattingEdits(document, options, this.token))
   }
 
+  @check
   public async provideDocumentRangeFormattingEdits(document:TextDocument, range:Range, options:FormattingOptions):Promise<TextEdit[]> {
     let provider = this.getProvider(document, this.documentRangeFormattingMap)
     if (!provider) return
@@ -287,6 +315,7 @@ class Languages {
    * @param {CodeActionContext} context
    * @returns {Promise<CodeAction[]>}
    */
+  @check
   public async getCodeActions(document:TextDocument, range:Range, context:CodeActionContext):Promise<CodeAction[]> {
     let providers = this.codeActionProviderMap.get(document.languageId)
     if (!providers || providers.length == 0) return []
@@ -350,6 +379,9 @@ class Languages {
       onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
         if (!hasResolve) return
         if (completeItems.length == 0) return
+        if (resolving) {
+          this.cancelTokenSource.cancel()
+        }
         resolving = item.word
         let resolved:CompletionItem
         let prevItem = resolveItem(item)
@@ -360,6 +392,7 @@ class Languages {
           prevItem.data.resolving = true
           let token = this.token
           resolved = await provider.resolveCompletionItem(prevItem, this.token)
+          prevItem.data.resolving = false
           if (!resolved || token.isCancellationRequested) return
           resolved.data = Object.assign(resolved.data || {}, {
             resolving: false,
@@ -379,9 +412,9 @@ class Languages {
             // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
           }
         }
+        resolving = null
       },
       onCompleteDone: async (item: VimCompleteItem):Promise<void> => {
-        this.cancelRequest()
         let completeItem = resolveItem(item)
         if (!completeItem) return
         setTimeout(async () => {
@@ -438,12 +471,12 @@ class Languages {
   }
 
   private get token():CancellationToken {
-    return this.cancelTokenSource.token
-  }
-
-  private cancelRequest():void {
-    this.cancelTokenSource.cancel()
-    this.cancelTokenSource = new CancellationTokenSource()
+    let token = this.cancelTokenSource.token
+    if (token.isCancellationRequested) {
+      this.cancelTokenSource = new CancellationTokenSource()
+      token = this.cancelTokenSource.token
+    }
+    return token
   }
 
   private unregisterCompletionItemProvider(id:string):void {
@@ -505,7 +538,6 @@ class Languages {
   }
 
   private getProvider<T>(document:TextDocument, map:Map<string, T>):T {
-    this.cancelRequest()
     return map.get(document.languageId)
   }
 }
