@@ -21,6 +21,7 @@ Denite support 		|coc-denite|
   Denite diagnostic     |coc-denite-diagnostic|
   Denite symbols        |coc-denite-symbols|
   Denite workspace      |coc-denite-workspace|
+  Denite service        |coc-denite-service|
 Custom Source 		|coc-custom-source|
 Faq			|coc-faq|
 Changelog		|coc-changelog|
@@ -237,11 +238,17 @@ CocAction({action}, [...{args}])
 
 	'documentSymbols': get symbol list of current document.
 
-	'rename': Rename symbol under cursor to a new word.
+	'rename': rename symbol under cursor to a new word.
 
-	'workspaceSymbols': Search for workspace symbols.
+	'workspacesymbols': search for workspace symbols.
 
-	'format': Format current buffer.
+	'format': format current buffer.
+
+	'services': get service infomation list.
+
+	'restartService': restart a service.
+
+	'codeAction': prompty for a code action and do it.
 
 						*coc#refresh()*
 coc#refresh()
@@ -320,6 +327,16 @@ Coc make use of list interface provided by |denite.nvim| for advanced actions.
 
 	Actions: same as file kind, use `tab` in denite buffer to get the
 	list.
+
+------------------------------------------------------------------------------
+						*coc-denite-service*
+:Denite coc-service
+
+	Manage coc services.
+
+	Actions: 
+
+	- 'restart' : default action for restart service.
 
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*

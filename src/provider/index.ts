@@ -10,7 +10,11 @@ import {
   SymbolInformation,
   Range,
   WorkspaceEdit,
-  TextEdit
+  TextEdit,
+  CodeActionContext,
+  Command,
+  CodeAction,
+  CodeActionKind,
 } from 'vscode-languageserver-protocol'
 
 /**
@@ -519,4 +523,43 @@ export interface DocumentRangeFormattingEditProvider {
     options: FormattingOptions,
     token: CancellationToken
   ): ProviderResult<TextEdit[]>
+}
+
+/**
+ * The code action interface defines the contract between extensions and
+ * the [light bulb](https://code.visualstudio.com/docs/editor/editingevolved#_code-action) feature.
+ *
+ * A code action can be any command that is [known](#commands.getCommands) to the system.
+ */
+export interface CodeActionProvider {
+  /**
+   * Provide commands for the given document and range.
+   *
+   * @param document The document in which the command was invoked.
+   * @param range The selector or range for which the command was invoked. This will always be a selection if
+   * there is a currently active editor.
+   * @param context Context carrying additional information.
+   * @param token A cancellation token.
+   * @return An array of commands, quick fixes, or refactorings or a thenable of such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideCodeActions(
+    document: TextDocument,
+    range: Range,
+    context: CodeActionContext,
+    token: CancellationToken
+  ): ProviderResult<(Command | CodeAction)[]>
+}
+
+/**
+ * Metadata about the type of code actions that a [CodeActionProvider](#CodeActionProvider) providers
+ */
+export interface CodeActionProviderMetadata {
+  /**
+   * [CodeActionKinds](#CodeActionKind) that this provider may return.
+   *
+   * The list of kinds may be generic, such as `CodeActionKind.Refactor`, or the provider
+   * may list our every specific kind they provide, such as `CodeActionKind.Refactor.Extract.append('function`)`
+   */
+  readonly providedCodeActionKinds?: ReadonlyArray<CodeActionKind>
 }

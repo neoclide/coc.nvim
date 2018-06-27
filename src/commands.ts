@@ -1,6 +1,7 @@
 import {Disposable} from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
+const logger = require('./util/logger')('commands')
 
 // command center
 export interface Command {
@@ -48,8 +49,7 @@ export class CommandManager implements Disposable {
   }
 
   public execute(command: language.Command):void {
-    let {title} = command
-    let cmd = this.commands.get(title)
+    let cmd = this.commands.get(command.command)
     if (!cmd) return
     cmd.execute(command.arguments)
   }

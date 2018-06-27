@@ -77,7 +77,7 @@ export namespace WorkspaceEdit {
   ): language.WorkspaceEdit {
     let changes = {}
     for (const edit of edits) {
-      let uri = client.asUrl(edit.fileName).toString()
+      let uri = client.toResource(edit.fileName)
       changes[uri] = edit.textChanges.map(change => {
         return TextEdit.fromCodeEdit(change)
       })

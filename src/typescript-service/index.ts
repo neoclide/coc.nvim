@@ -58,9 +58,9 @@ export default class TsserverService implements IServiceProvider {
     disposeAll(this.disposables)
   }
 
-  public restart():void {
+  public async restart():Promise<void> {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
-    client.restartTsServer()
+    await client.restartTsServer()
   }
 }

@@ -1,18 +1,16 @@
-import {Plugin, Function, Neovim} from 'neovim'
-import {VimCompleteItem} from './types'
-import {
-  echoErr,
-} from './util'
-import snippetManager from './snippet/manager'
-import completion from './completion'
-import workspace from './workspace'
-import services from './services'
-import remoteStore from './remote-store'
-import languages from './languages'
+import {Function, Neovim, Plugin} from 'neovim'
 import commands from './commands'
+import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
-import EventEmitter = require('events')
 import Handler from './handler'
+import languages from './languages'
+import remoteStore from './remote-store'
+import services from './services'
+import snippetManager from './snippet/manager'
+import {VimCompleteItem} from './types'
+import {echoErr} from './util'
+import workspace from './workspace'
+import EventEmitter = require('events')
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
@@ -214,6 +212,10 @@ export default class CompletePlugin {
           return await handler.documentRangeFormatting(args[1])
         case 'format':
           return await handler.documentFormatting()
+        case 'services':
+          return services.getServiceStats()
+        case 'codeAction':
+          return handler.doCodeAction(args[1])
         default:
           logger.error(`unknown action ${args[0]}`)
       }

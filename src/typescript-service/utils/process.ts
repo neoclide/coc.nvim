@@ -125,11 +125,6 @@ export function fork(
     serverClosed = true
     stdOutServer.close()
     stdErrServer.close()
-    ;[stdInPipeName, stdOutPipeName, stdErrPipeName].forEach(name => {
-      if (process.platform !== 'win32') {
-        fs.unlinkSync(name)
-      }
-    })
   }
 
   const bootstrapperPath = require.resolve('./electronForkStart')

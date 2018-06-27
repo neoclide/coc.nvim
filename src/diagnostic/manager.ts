@@ -121,14 +121,6 @@ class DiagnosticManager {
     if (idx !== -1) this.collections.splice(idx, 1)
   }
 
-  private getBuffer(uri:string):DiagnosticBuffer {
-    return this.buffers.find(buf => buf.uri == uri)
-  }
-
-  private getCollections(uri:string):DiagnosticCollection[] {
-    return this.collections.filter(c => c.has(uri))
-  }
-
   /**
    * Add diagnoctics for owner and uri
    *
@@ -166,6 +158,24 @@ class DiagnosticManager {
       }
       return b.start.character - a.start.character
     })
+    return res
+  }
+
+  public getDiagnosticsInRange(document:TextDocument, range:Range):Diagnostic[] {
+    let collections = this.getCollections(document.uri)
+    let si = document.offsetAt(range.start)
+    let ei = document.offsetAt(range.end)
+    let res:Diagnostic[] = []
+    for (let collection of collections) {
+      let items = collection.get(document.uri)
+      for (let item of items) {
+        let {range} = item
+        if (document.offsetAt(range.start) >= si
+          && document.offsetAt(range.end) <= ei) {
+          res.push(item)
+        }
+      }
+    }
     return res
   }
 
@@ -324,6 +334,14 @@ class DiagnosticManager {
     this.clearAll()
     this.buffers = []
     this.collections = []
+  }
+
+  private getBuffer(uri:string):DiagnosticBuffer {
+    return this.buffers.find(buf => buf.uri == uri)
+  }
+
+  private getCollections(uri:string):DiagnosticCollection[] {
+    return this.collections.filter(c => c.has(uri))
   }
 }
 

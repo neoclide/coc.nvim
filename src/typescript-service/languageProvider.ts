@@ -1,5 +1,6 @@
 import languages from '../languages'
 import workspace from '../workspace'
+import commandManager from '../commands'
 import {
   Diagnostic,
 } from 'vscode-languageserver-protocol'
@@ -24,9 +25,11 @@ import DocumentSymbolProvider from './features/documentSymbol'
 import FormattingProvider from './features/formatting'
 import RenameProvider from './features/rename'
 import WorkspaceSymbolProvider from './features/workspaceSymbols'
+import OrganizeImportsProvider from './features/organizeImports'
 import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
 import {LanguageDescription} from './utils/languageDescription'
+import API from './utils/api'
 const logger = require('../util/logger')('typescript-langauge-provider')
 
 const validateSetting = 'validate.enable'
@@ -169,6 +172,13 @@ export default class LanguageProvider {
     this.disposables.push(
       languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
     )
+    if (this.client.apiVersion.gte(API.v280)) {
+      this.disposables.push(
+        languages.registerCodeActionProvider(
+          languageIds,
+          new OrganizeImportsProvider(client, commandManager))
+      )
+    }
   }
 
   public handles(resource: Uri): boolean {

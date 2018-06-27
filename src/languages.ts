@@ -11,6 +11,7 @@ import {
   RenameProvider,
   DocumentFormattingEditProvider,
   DocumentRangeFormattingEditProvider,
+  CodeActionProvider,
 } from './provider'
 import {
   ISource,
@@ -38,6 +39,8 @@ import {
   WorkspaceEdit,
   Range,
   FormattingOptions,
+  CodeAction,
+  CodeActionContext,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -85,6 +88,7 @@ class Languages {
   private hoverProviderMap: Map<string, HoverProvider> = new Map()
   private documentSymbolMap: Map<string, DocumentSymbolProvider> = new Map()
   private signatureHelpProviderMap: Map<string, SignatureHelpProvider> = new Map()
+  private codeActionProviderMap: Map<string, CodeActionProvider[]> = new Map()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
 
@@ -120,6 +124,27 @@ class Languages {
       dispose: () => {
         for (let languageId of languageIds) {
           map.delete(languageId)
+        }
+      }
+    }
+  }
+
+  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider) {
+    languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
+    let map = this.codeActionProviderMap
+    for (let languageId of languageIds) {
+      let providers = map.get(languageId) || []
+      providers.push(provider)
+      map.set(languageId, providers)
+    }
+    return {
+      dispose: () => {
+        for (let languageId of languageIds) {
+          let providers = map.get(languageId) || []
+          let idx = providers.findIndex(o => o == provider)
+          if (idx != -1) {
+            providers.splice(idx, 1)
+          }
         }
       }
     }
@@ -253,9 +278,30 @@ class Languages {
     return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, this.token))
   }
 
-  private getProvider<T>(document:TextDocument, map:Map<string, T>):T {
-    this.cancelRequest()
-    return map.get(document.languageId)
+  /**
+   * Get CodeAction list for current document
+   *
+   * @public
+   * @param {TextDocument} document
+   * @param {Range} range
+   * @param {CodeActionContext} context
+   * @returns {Promise<CodeAction[]>}
+   */
+  public async getCodeActions(document:TextDocument, range:Range, context:CodeActionContext):Promise<CodeAction[]> {
+    let providers = this.codeActionProviderMap.get(document.languageId)
+    if (!providers || providers.length == 0) return []
+    let res:CodeAction[] = []
+    for (let provider of providers) {
+      let actions =  await Promise.resolve(provider.provideCodeActions(document, range, context, this.token))
+      for (let action of actions) {
+        if (CodeAction.is(action)) {
+          res.push(action)
+        } else {
+          res.push(CodeAction.create(action.title, action))
+        }
+      }
+    }
+    return res
   }
 
   public dispose():void {
@@ -456,6 +502,11 @@ class Languages {
       end: changedLines.end,
       strictIndexing: false,
     })
+  }
+
+  private getProvider<T>(document:TextDocument, map:Map<string, T>):T {
+    this.cancelRequest()
+    return map.get(document.languageId)
   }
 }
 

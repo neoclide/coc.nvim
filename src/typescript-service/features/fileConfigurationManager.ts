@@ -2,6 +2,7 @@ import workspace from '../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as languageIds from '../utils/languageModeIds'
+import API from '../utils/api'
 const logger = require('../../util/logger')('typescript-service-fileConfigurationManager')
 
 function objAreEqual<T>(a: T, b: T): boolean {
@@ -119,7 +120,7 @@ export default class FileConfigurationManager {
   }
 
   public getPreferences(language:string): Proto.UserPreferences {
-    if (!this.client.apiVersion.has290Features()) {
+    if (!this.client.apiVersion.gte(API.v290)) {
       return {}
     }
     const config = workspace.getConfiguration(`${language}.preferences`)

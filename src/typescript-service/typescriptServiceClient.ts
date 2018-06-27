@@ -182,11 +182,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
    * API version obtained from the version picker after checking the corresponding path exists.
    */
   private _apiVersion: API
-  /**
-   * Version reported by currently-running tsserver.
-   */
-  private _tsserverVersion: string | undefined
-
   private readonly disposables: Disposable[] = []
 
   constructor() {
@@ -201,7 +196,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this._configuration = TypeScriptServiceConfiguration.loadFromWorkspace()
     this.versionProvider = new TypeScriptVersionProvider(this._configuration)
     this._apiVersion = API.defaultVersion
-    this._tsserverVersion = undefined
     this.tracer = new Tracer(logger)
   }
 
@@ -244,22 +238,22 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this._onResendModelsRequested.dispose()
   }
 
-  public restartTsServer(): void {
+  public restartTsServer():Promise<any> {
     const start = () => {
       this.servicePromise = this.startService(true)
       return this.servicePromise
     }
 
     if (this.servicePromise) {
-      this.servicePromise.then(childProcess => {
+      return Promise.resolve(this.servicePromise.then(childProcess => {
           this.info('Killing TS Server')
           this.state = ServiceStat.Restarting
           childProcess.kill()
           this.resetClientVersion()
           this.servicePromise = null
-        }).then(start)
+        }).then(start))
     } else {
-      start()
+      return Promise.resolve(start())
     }
   }
 
@@ -337,7 +331,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this.requestQueue = new RequestQueue()
     this.callbacks = new CallbackMap()
     this.lastError = null
-    const tsServerForkArgs = await this.getTsServerArgs(currentVersion)
+    const tsServerForkArgs = await this.getTsServerArgs()
     const debugPort = this._configuration.debugPort
     const options = {
       execArgv: debugPort ? [`--inspect=${debugPort}`] : [], // [`--debug-brk=5859`]
@@ -411,7 +405,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public async openTsServerLogFile(): Promise<boolean> {
-    if (!this.apiVersion.has222Features()) {
+    if (!this.apiVersion.gte(API.v222)) {
       echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+') // tslint:disable-line
       return false
     }
@@ -451,9 +445,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private setCompilerOptionsForInferredProjects(
     configuration: TypeScriptServiceConfiguration
   ): void {
-    if (!this.apiVersion.has206Features()) {
-      return
-    }
+    if (!this.apiVersion.gte(API.v206)) return
 
     const args: Proto.SetCompilerOptionsForInferredProjectsArgs = {
       options: this.getCompilerOptionsForInferredProjects(configuration)
@@ -512,7 +504,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public normalizePath(resource: Uri): string | null {
-    if (this._apiVersion.has213Features()) {
+    if (this._apiVersion.gte(API.v213)) {
       if (resource.scheme !== FileSchemes.File) {
         const dirName = path.dirname(resource.path)
         const fileName = this.inMemoryResourcePrefix + path.basename(resource.path)
@@ -530,12 +522,12 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   private get inMemoryResourcePrefix(): string {
-    return this._apiVersion.has270Features() ? '^' : ''
+    return this._apiVersion.gte(API.v270) ? '^' : ''
   }
 
   public asUrl(filepath: string): Uri {
     filepath = filepath.replace(/^\/file:/, '')
-    if (this._apiVersion.has213Features()) {
+    if (this._apiVersion.gte(API.v213)) {
       if (!filepath.startsWith('file:')) {
         let resource = Uri.parse(filepath)
         if (this.inMemoryResourcePrefix) {
@@ -643,7 +635,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         return true
       }
 
-      if (this.apiVersion.has222Features() && this.cancellationPipeName) {
+      if (this.apiVersion.gte(API.v222) && this.cancellationPipeName) {
         this.tracer.logTrace(
           `TypeScript Service: trying to cancel ongoing request with sequence number ${seq}`
         )
@@ -747,12 +739,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
   }
 
-  private async getTsServerArgs(
-    currentVersion: TypeScriptVersion
-  ): Promise<string[]> {
+  private async getTsServerArgs(): Promise<string[]> {
     const args: string[] = []
 
-    if (this.apiVersion.has206Features()) {
+    if (this.apiVersion.gte(API.v206)) {
       args.push('--useSingleInferredProject')
 
       if (this._configuration.disableAutomaticTypeAcquisition) {
@@ -760,12 +750,12 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       }
     }
 
-    if (this.apiVersion.has222Features()) {
+    if (this.apiVersion.gte(API.v222)) {
       this.cancellationPipeName = getTempFile(`tscancellation-${makeRandomHexString(20)}`)
       args.push('--cancellationPipeName', this.cancellationPipeName + '*')
     }
 
-    if (this.apiVersion.has222Features()) {
+    if (this.apiVersion.gte(API.v222)) {
       if (this._configuration.tsServerLogLevel !== TsServerLogLevel.Off) {
         const logDir = os.tmpdir()
         if (logDir) {
@@ -786,7 +776,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       }
     }
 
-    if (this.apiVersion.has230Features()) {
+    if (this.apiVersion.gte(API.v230)) {
       const plugins = this._configuration.tsServerPluginNames
       const pluginRoot = this._configuration.tsServerPluginRoot
       if (plugins.length) {
@@ -797,7 +787,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       }
     }
 
-    if (this.apiVersion.has234Features()) {
+    if (this.apiVersion.gte(API.v234)) {
       if (this._configuration.npmLocation) {
         args.push('--npmLocation', `"${this._configuration.npmLocation}"`)
       } else {
@@ -811,7 +801,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private resetClientVersion():void {
     this._apiVersion = API.defaultVersion
-    this._tsserverVersion = undefined
   }
 }
 

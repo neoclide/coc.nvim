@@ -8,6 +8,7 @@ import {
   DidChangeTextDocumentParams,
   Disposable,
 } from 'vscode-languageserver-protocol'
+import API from '../utils/api'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {Delayer} from '../utils/async'
@@ -89,7 +90,7 @@ export default class BufferSyncSupport {
       fileContent: document.getText()
     }
 
-    if (this.client.apiVersion.has203Features()) {
+    if (this.client.apiVersion.gte(API.v203)) {
       const scriptKind = mode2ScriptKind(document.languageId)
       if (scriptKind) {
         args.scriptKindName = scriptKind

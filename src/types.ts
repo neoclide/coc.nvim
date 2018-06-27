@@ -280,7 +280,7 @@ export interface IServiceProvider {
   state: ServiceStat
   init():void
   dispose():void
-  restart():void
+  restart():Promise<void> | void
   onServiceReady: Event<void>
 }
 

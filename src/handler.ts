@@ -1,7 +1,8 @@
+import {Neovim} from 'neovim'
 import languages from './languages'
 import workspace from './workspace'
-import {Neovim} from 'neovim'
-import debounce = require('debounce')
+import diagnosticManager from './diagnostic/manager'
+import commandManager from './commands'
 import {
   Hover,
   MarkedString,
@@ -22,8 +23,10 @@ import {
   Uri,
   echoWarning,
   echoErr,
+  showQuickpick,
 } from './util'
 import {getLine} from './util/fs'
+import debounce = require('debounce')
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -202,7 +205,7 @@ export default class Handler {
   public async gotoReferences():Promise<void> {
     let {document, position} = await workspace.getCurrentState()
     let locs = await languages.getReferences(document, {includeDeclaration: false},position)
-    if (locs.length) {
+    if (locs && locs.length) {
       await this.handleDefinition(locs)
     } else {
       await echoWarning(this.nvim, 'not found')
@@ -310,12 +313,7 @@ export default class Handler {
     let {document} = await workspace.getCurrentState()
     if (!document) return
     let buffer = await this.nvim.buffer
-    let tabSize = await buffer.getOption('tabstop') as number
-    let insertSpaces = (await buffer.getOption('expandtab')) == 1
-    let options:FormattingOptions = {
-      tabSize,
-      insertSpaces
-    }
+    let options = await workspace.getFormatOptions()
     let textEdits = await languages.provideDocumentFormattingEdits(document, options)
     if (!textEdits) return
     let content = TextDocument.applyEdits(document, textEdits)
@@ -346,6 +344,36 @@ export default class Handler {
       end: -1,
       strictIndexing: false
     })
+  }
+
+  public async doCodeAction(mode:string|null):Promise<void> {
+    let {document} = await workspace.getCurrentState()
+    if (!document) return
+    let range:Range
+    if (mode) {
+      range = await this.getSelectedRange(mode, document)
+    } else {
+      let lnum = await this.nvim.call('line', ['.'])
+      range = {
+        start: {
+          line: lnum - 1,
+          character: 0
+        },
+        end: {
+          line: lnum,
+          character: 0
+        }
+      }
+    }
+    let diagnostics = diagnosticManager.getDiagnosticsInRange(document, range)
+    let context = {diagnostics}
+    let codeActions = await languages.getCodeActions(document, range, context)
+    let idx = await showQuickpick(this.nvim, codeActions.map(o => o.title))
+    if (idx == -1) return
+    let action = codeActions[idx]
+    if (action && action.command) {
+      commandManager.execute(action.command)
+    }
   }
 
   private validWorkspaceSymbol(symbol: SymbolInformation):boolean {

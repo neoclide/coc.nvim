@@ -12,6 +12,7 @@ import {
 } from './types'
 import {
   echoErr,
+  echoMessage,
 } from './util'
 import {
   isWord
@@ -151,10 +152,7 @@ export default class Sources {
 
   private addSource(name:string, source:ISource):void {
     if (this.names.indexOf(name) !== -1) {
-      echoErr(this.nvim, `Source "${name}" duplicated, skipped`).catch(err => {
-        // noop
-      })
-      return
+      echoMessage(this.nvim, `Source "${name}" recreated`).catch(_e => { })
     }
     this.sourceMap.set(name, source)
   }

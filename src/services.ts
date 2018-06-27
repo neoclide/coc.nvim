@@ -2,6 +2,7 @@ import {Neovim} from 'neovim'
 import {
   echoWarning,
   echoMessage,
+  echoErr,
 } from './util/'
 import {
   Disposable
@@ -12,6 +13,30 @@ import {
 } from './types'
 import tsserverService from './typescript-service'
 const logger = require('./util/logger')('services')
+
+interface ServiceInfo {
+  name: string
+  state: string
+  languageIds: string[]
+}
+
+function getStateName(state:ServiceStat):string {
+  switch (state) {
+    case ServiceStat.Init:
+      return 'init'
+    case ServiceStat.Restarting:
+      return 'restarting'
+    case ServiceStat.Running:
+      return 'running'
+    case ServiceStat.Starting:
+      return 'starting'
+    case ServiceStat.Stopped:
+      return 'stopped'
+    default:
+      return 'unknown'
+  }
+  
+}
 
 export class ServiceManager implements Disposable {
 
@@ -33,6 +58,12 @@ export class ServiceManager implements Disposable {
 
   public regist(service:IServiceProvider): void {
     let {name, languageIds} = service
+    if (this.registed.get(name)) {
+      echoErr(this.nvim, `Service ${name} already exists`).catch(_e => {
+        //noop
+      })
+      return
+    }
     this.registed.set(name, service)
     languageIds.forEach(lang => {
       this.languageIds.add(lang)
@@ -75,12 +106,25 @@ export class ServiceManager implements Disposable {
     }
   }
 
-  public restart(languageId:string):void {
-    if (!this.checkProvider(languageId, true)) return
-    let services = this.getServices(languageId)
-    for (let service of services.values()) {
-      service.restart()
+  public async restart(name:string):Promise<void> {
+    let service = this.registed.get(name)
+    if (!service) {
+      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {})
+      return
     }
+    await Promise.resolve(service.restart())
+  }
+
+  public getServiceStats():ServiceInfo[] {
+    let res:ServiceInfo[] = []
+    for (let [name, service] of this.registed) {
+      res.push({
+        name,
+        languageIds: service.languageIds,
+        state: getStateName(service.state)
+      })
+    }
+    return res
   }
 }
 

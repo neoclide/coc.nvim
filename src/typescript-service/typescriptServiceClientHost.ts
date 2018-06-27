@@ -65,15 +65,15 @@ export default class TypeScriptServiceClientHost implements Disposable {
       configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
     }
 
-    const fileWatcher = workspace.createFileSystemWatcher('**/*.[tj]s')
-    if (fileWatcher) {
-      this.disposables.push(fileWatcher)
-      fileWatcher.onDidChange(
-        this.handleFileChange,
-        this,
-        this.disposables
-      )
-    }
+    // const fileWatcher = workspace.createFileSystemWatcher('**/*.[tj]s')
+    // if (fileWatcher) {
+    //   this.disposables.push(fileWatcher)
+    //   fileWatcher.onDidChange(
+    //     this.handleFileChange,
+    //     this,
+    //     this.disposables
+    //   )
+    // }
 
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)

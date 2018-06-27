@@ -26,6 +26,7 @@ import {
 import Configurations, { parseContentFromFile } from './configurations'
 import {
   TextDocument,
+  FormattingOptions,
   DidChangeTextDocumentParams,
   TextDocumentWillSaveEvent,
   TextDocumentSaveReason,
@@ -212,11 +213,11 @@ export class Workspace {
     }
   }
 
-  public async applyEdit(edit: WorkspaceEdit):Promise<void> {
+  public async applyEdit(edit: WorkspaceEdit):Promise<boolean> {
     let {nvim} = this
     let {documentChanges, changes} = edit
-    if (!this.validteDocumentChanges(documentChanges)) return
-    if (!this.validateChanges(changes)) return
+    if (!this.validteDocumentChanges(documentChanges)) return false
+    if (!this.validateChanges(changes)) return false
     if (documentChanges && documentChanges.length) {
       for (let change of documentChanges) {
         let {textDocument, edits} = change
@@ -227,9 +228,9 @@ export class Workspace {
       await echoMessage(nvim, `${documentChanges.length} buffers changed!`)
     } else if (changes) {
       let keys = Object.keys(changes)
-      if (!keys.length) return
+      if (!keys.length) return false
       let c = await nvim.call('coc#util#prompt_change', [keys.length])
-      if (c != 1) return
+      if (c != 1) return false
       let filetype = await nvim.buffer.getOption('filetype') as string
       for (let uri of Object.keys(changes)) {
         let edits = changes[uri]
@@ -247,8 +248,8 @@ export class Workspace {
           await writeFile(filepath, res)
         }
       }
-      await nvim.command('wa')
     }
+    return true
   }
 
   private async isValidBuffer(buffer: Buffer):Promise<boolean> {
@@ -376,6 +377,17 @@ export class Workspace {
         character: byteIndex(line, col - 1)
       }
     }
+  }
+
+  public async getFormatOptions():Promise<FormattingOptions> {
+    let buffer = await this.nvim.buffer
+    let tabSize = await buffer.getOption('tabstop') as number
+    let insertSpaces = (await buffer.getOption('expandtab')) == 1
+    let options:FormattingOptions = {
+      tabSize,
+      insertSpaces
+    }
+    return options
   }
 
   private async parseConfigFile(file):Promise<IConfigurationModel> {

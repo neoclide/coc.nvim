@@ -10,9 +10,10 @@ function! coc#snippet#range_select(lnum, col, len) abort
     let move = a:len == 1 ? '' : a:len - 1 . 'l'
     if m ==# 'i'
       stopinsert
-      execute 'normal! l'
+    else
+      execute 'normal! h'
     endif
-    call timer_start(10, { -> execute('normal! v'.move."\<C-g>")})
+    call timer_start(20, { -> execute('normal! lv'.move."\<C-g>")})
   endif
   let &virtualedit = old
 endfunction

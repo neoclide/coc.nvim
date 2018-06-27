@@ -33,6 +33,7 @@ import FileConfigurationManager, {CompletionOptions} from './fileConfigurationMa
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import * as typeConverters from '../utils/typeConverters'
+import API from '../utils/api'
 const logger = require('../../util/logger')('typescript-completionItemProvider')
 
 class ApplyCompletionCodeActionCommand implements CommandItem {
@@ -300,7 +301,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
         return false
       }
     } else if (triggerCharacter === '<') {
-      return this.client.apiVersion.has290Features()
+      return this.client.apiVersion.gte(API.v290)
     }
 
     return true
