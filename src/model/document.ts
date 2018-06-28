@@ -292,7 +292,7 @@ export default class Document {
 
   /**
    * Current word for replacement, used by completion
-   * For increment completion, the document is initailized document
+   * For increment completion, the document is initialized document
    *
    * @public
    * @param {Position} position
