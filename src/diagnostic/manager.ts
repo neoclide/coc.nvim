@@ -40,7 +40,7 @@ class DiagnosticManager {
   private nvim: Neovim
   public showMessage: () => void
   constructor() {
-    workspace.onDidWorkspaceInitailized(() => {
+    workspace.onDidWorkspaceInitialized(() => {
       this.nvim = workspace.nvim
       this.setConfiguration()
       if (this.enabled) {
