@@ -59,13 +59,13 @@ function! s:Init(sync)
   let func = a:sync ? 'CocInitSync' : 'CocInitAsync'
   if a:sync
     echohl MoreMsg
-    echom '[coc.nvim] Lazyload takes more time for initailize, consider disable lazyload'
+    echom '[coc.nvim] Lazyload takes more time for initialize, consider disable lazyload'
     echohl None
   endif
   try
     execute 'call '.func.'()'
   catch /^Vim\%((\a\+)\)\=:E117/
-    call coc#util#on_error('Initailize failed, try :UpdateRemotePlugins and restart')
+    call coc#util#on_error('Initialize failed, try :UpdateRemotePlugins and restart')
   endtry
 endfunction
 

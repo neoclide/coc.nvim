@@ -33,7 +33,7 @@ export default class FileSystemWatcher implements Disposable {
         return this.listen(client)
       }
     }).catch(error => {
-      logger.error('watchman initailize failed')
+      logger.error('watchman initialize failed')
       logger.error(error.stack)
     })
   }
