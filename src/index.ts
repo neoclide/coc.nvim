@@ -15,7 +15,7 @@ const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
 export default class CompletePlugin {
-  private initailized = false
+  private initialized = false
   private emitter: EventEmitter
   private handler: Handler
 
@@ -50,13 +50,13 @@ export default class CompletePlugin {
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('silent doautocmd User CocNvimInit')
       services.init(nvim)
-      this.initailized = true
-      logger.info('Coc service Initailized')
+      this.initialized = true
+      logger.info('Coc service Initialized')
       let filetype = await nvim.eval('&filetype') as string
       services.start(filetype)
     } catch (err) {
       logger.error(err.stack)
-      return echoErr(nvim, `Initailize failed, ${err.message}`)
+      return echoErr(nvim, `Initialize failed, ${err.message}`)
     }
   }
 
@@ -139,7 +139,7 @@ export default class CompletePlugin {
 
   @Function('CocAction', {sync: true})
   public async cocAction (args: any): Promise<any> {
-    if (!this.initailized) return
+    if (!this.initialized) return
     let {handler} = this
     try {
       switch (args[0] as string) {
