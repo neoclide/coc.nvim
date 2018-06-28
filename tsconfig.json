@@ -18,7 +18,6 @@
     "src"
   ],
   "exclude": [
-    ".git",
-    "src/language-client"
+    ".git"
   ]
 }

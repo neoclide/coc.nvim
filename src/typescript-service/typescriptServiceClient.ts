@@ -310,6 +310,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (!this.servicePromise) {
       this.state = ServiceStat.Starting
       this.startService().catch(err => {
+        echoErr(workspace.nvim, `TSServer start failed: ${err.message}`) // tslint:disable-line
         logger.error(`Service start failed: ${err.stack}`)
       })
     }

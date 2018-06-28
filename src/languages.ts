@@ -174,8 +174,31 @@ class Languages {
     return this.registerProvider(languageIds, provider, this.documentSymbolMap)
   }
 
-  public registerSignatureHelpProvider(languageIds: string| string[], provider:SignatureHelpProvider):Disposable {
+  public registerSignatureHelpProvider(
+    languageIds: string| string[],
+    provider:SignatureHelpProvider,
+    _triggerCharacters?:string[]):Disposable {
     return this.registerProvider(languageIds, provider, this.signatureHelpProviderMap)
+  }
+
+  public registerDocumentHighlightProvider(_languageIds: string| string[], _provider:any):Disposable {
+    // TODO
+    return Disposable.create(() => { })
+  }
+
+  public registerCodeActionsProvider(_languageIds: string| string[], _provider:any):Disposable {
+    // TODO
+    return Disposable.create(() => { })
+  }
+
+  public registerCodeLensProvider(_languageIds: string| string[], _provider:any):Disposable {
+    // TODO
+    return Disposable.create(() => { })
+  }
+
+  public registerDocumentLinkProvider(_languageIds: string| string[], _provider:any):Disposable {
+    // TODO
+    return Disposable.create(() => { })
   }
 
   public registerDefinitionProvider(languageIds: string| string[], provider:DefinitionProvider):Disposable {
@@ -214,7 +237,7 @@ class Languages {
   public getDeifinition(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.definitionMap)
     if (!provider) return
-    return provider.provideDefinition(document, position, this.token)
+    return Promise.resolve(provider.provideDefinition(document, position, this.token))
   }
 
   @check
@@ -235,28 +258,28 @@ class Languages {
   public getReferences(document:TextDocument, context:ReferenceContext, position:Position):Promise<Location[]> {
     let provider = this.getProvider(document, this.referencesMap)
     if (!provider) return
-    return provider.provideReferences(document, position, context, this.token)
+    return Promise.resolve(provider.provideReferences(document, position, context, this.token))
   }
 
   @check
   public getHover(document:TextDocument, position:Position):Promise<Hover> {
     let provider = this.getProvider(document, this.hoverProviderMap)
     if (!provider) return
-    return provider.provideHover(document, position, this.token)
+    return Promise.resolve(provider.provideHover(document, position, this.token))
   }
 
   @check
   public getSignatureHelp(document:TextDocument, position:Position):Promise<SignatureHelp> {
     let provider = this.getProvider(document, this.signatureHelpProviderMap)
     if (!provider) return
-    return provider.provideSignatureHelp(document, position, this.token)
+    return Promise.resolve(provider.provideSignatureHelp(document, position, this.token))
   }
 
   @check
   public getDocumentSymbol(document:TextDocument):Promise<SymbolInformation[]> {
     let provider = this.getProvider(document, this.documentSymbolMap)
     if (!provider) return
-    return provider.provideDocumentSymbols(document, this.token)
+    return Promise.resolve(provider.provideDocumentSymbols(document, this.token))
   }
 
   @check

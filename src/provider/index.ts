@@ -119,7 +119,7 @@ export interface CompletionItemProvider {
     position: Position,
     token: CancellationToken,
     context: CompletionContext
-  ): Promise<CompletionItem[] | CompletionList>
+  ): ProviderResult<CompletionItem[] | CompletionList>
 
   /**
    * Given a completion item fill in more data, like [doc-comment](#CompletionItem.documentation)
@@ -135,7 +135,7 @@ export interface CompletionItemProvider {
   resolveCompletionItem?(
     item: CompletionItem,
     token: CancellationToken
-  ): Promise<CompletionItem>
+  ): ProviderResult<CompletionItem>
 }
 
 /**
@@ -158,7 +158,7 @@ export interface HoverProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Hover>
+  ): ProviderResult<Hover>
 }
 
 /**
@@ -180,7 +180,7 @@ export interface DefinitionProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Definition>
+  ): ProviderResult<Definition>
 }
 
 /**
@@ -201,7 +201,7 @@ export interface SignatureHelpProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<SignatureHelp>
+  ): ProviderResult<SignatureHelp>
 }
 
 /**
@@ -256,7 +256,7 @@ export interface ReferenceProvider {
     position: Position,
     context: ReferenceContext,
     token: CancellationToken
-  ): Promise<Location[]>
+  ): ProviderResult<Location[]>
 }
 
 /**
@@ -343,7 +343,7 @@ export interface DocumentSymbolProvider {
   provideDocumentSymbols(
     document: TextDocument,
     token: CancellationToken
-  ): Promise<SymbolInformation[]>
+  ):ProviderResult<SymbolInformation[]>
 }
 
 /**
@@ -391,7 +391,7 @@ export interface WorkspaceSymbolProvider {
   provideWorkspaceSymbols(
     query: string,
     token: CancellationToken
-  ): Promise<SymbolInformation[]>
+  ): ProviderResult<SymbolInformation[]>
 
   /**
    * Given a symbol fill in its [location](#SymbolInformation.location). This method is called whenever a symbol
@@ -408,7 +408,7 @@ export interface WorkspaceSymbolProvider {
   resolveWorkspaceSymbol?(
     symbol: SymbolInformation,
     token: CancellationToken
-  ): Promise<SymbolInformation>
+  ): ProviderResult<SymbolInformation>
 }
 
 /**

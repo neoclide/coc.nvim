@@ -2,7 +2,7 @@ import path = require('path')
 import os = require('os')
 import net = require('net')
 import cp = require('child_process')
-import fs = require('fs')
+import {ROOT} from '../../util'
 const logger = require('../../util/logger')('typescript-service-process')
 
 export interface IForkOptions {
@@ -126,8 +126,7 @@ export function fork(
     stdOutServer.close()
     stdErrServer.close()
   }
-
-  const bootstrapperPath = require.resolve('./electronForkStart')
+  const bootstrapperPath =path.join(ROOT, 'bin/tsserverForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,
     env: newEnv,
