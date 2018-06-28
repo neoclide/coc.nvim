@@ -133,15 +133,16 @@ export class DiagnosticBuffer {
     let {buffer} = document
     let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
     let lines:string[] = content.split('\n')
+    let ids = []
     for (let line of lines) {
       let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
       if (!ms) continue
       let [, id, name] = ms
       if (severityNames.indexOf(name) == -1) continue
       if (signs.indexOf(Number(id)) !== -1) continue
-      logger.debug('unplace sign', id)
-      await this.nvim.command(`sign unplace ${id} buffer=${buffer.id}`)
+      ids.push(id)
     }
+    await this.nvim.call('coc#util#unplace_signs', [buffer.id, ids])
   }
 
   private get signs():number[] {
@@ -153,12 +154,17 @@ export class DiagnosticBuffer {
   }
 
   private async _clear(owner?:string):Promise<void> {
+    let {document, nvim} = this
+    if (!document) return
     try {
       this.operating = true
+      let {buffer} = document
       for (let key of this.signMap.keys()) {
         if (!owner || owner == key) {
           let ids = this.signMap.get(key)
-          if (ids) await this.clearSigns(ids)
+          if (ids && ids.length) {
+            await nvim.call('coc#util#unplace_signs', [buffer.id, ids])
+          }
           this.signMap.delete(key)
         }
       }
@@ -242,14 +248,6 @@ export class DiagnosticBuffer {
     let {document} = this
     let {buffer} = document
     await buffer.clearHighlight({srcId})
-  }
-
-  private async clearSigns(signs:number[]):Promise<void> {
-    let {document} = this
-    let {buffer} = document
-    for (let sign of signs) {
-      await this.nvim.command(`sign unplace ${sign} buffer=${buffer.id}`)
-    }
   }
 
   private get document():Document {

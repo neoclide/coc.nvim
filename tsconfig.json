@@ -15,10 +15,10 @@
     "plugins": []
   },
   "include": [
-    "src/**/*.ts"
+    "src"
   ],
   "exclude": [
     ".git",
-    "lib"
+    "src/language-client"
   ]
 }

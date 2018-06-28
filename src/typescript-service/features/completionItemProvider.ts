@@ -45,17 +45,19 @@ class ApplyCompletionCodeActionCommand implements CommandItem {
   }
 
   // apply code action on complete
-  public async execute(codeActions: Proto.CodeAction[]):Promise<boolean> {
+  public async execute(codeActions: Proto.CodeAction[]):Promise<void> {
     if (codeActions.length === 0) {
-      return true
+      return
     }
     if (codeActions.length === 1) {
-      return applyCodeAction(this.client, codeActions[0])
+      applyCodeAction(this.client, codeActions[0])
+      return
     }
     const idx = await showQuickpick(workspace.nvim, codeActions.map(o => o.description), 'Select code action to apply')
     if (idx < 0) return
     const action = codeActions[idx]
-    return applyCodeAction(this.client, action)
+    applyCodeAction(this.client, action)
+    return
   }
 }
 

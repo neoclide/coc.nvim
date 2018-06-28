@@ -41,6 +41,7 @@ import {
   FormattingOptions,
   CodeAction,
   CodeActionContext,
+  DocumentSelector,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -220,14 +221,14 @@ class Languages {
   public getTypeDefinition(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.typeDefinitionMap)
     if (!provider) return
-    return provider.provideTypeDefinition(document, position, this.token)
+    return Promise.resolve(provider.provideTypeDefinition(document, position, this.token))
   }
 
   @check
   public getImplementation(document:TextDocument, position:Position):Promise<Definition> {
     let provider = this.getProvider(document, this.implementationMap)
     if (!provider) return
-    return provider.provideImplementation(document, position, this.token)
+    return Promise.resolve(provider.provideImplementation(document, position, this.token))
   }
 
   @check
@@ -464,6 +465,24 @@ class Languages {
         }
       }
     }
+  }
+
+  public match(documentSelector:DocumentSelector, document:TextDocument):boolean {
+    if (documentSelector.length == 0) {
+      throw new Error('Invliad document selector')
+    }
+    let languageIds = documentSelector.map(filter => {
+      if (typeof filter == 'string') {
+        return filter
+      }
+      return filter.language
+    })
+    languageIds = languageIds.filter(s => s != null)
+    if (languageIds.length == 0) {
+      throw new Error('Invliad document selector')
+    }
+    let {languageId} = document
+    return languageIds.indexOf(languageId) != -1
   }
 
   private get token():CancellationToken {

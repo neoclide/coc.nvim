@@ -261,3 +261,8 @@ function! s:echo_signatureItem(list)
   endfor
 endfunction
 
+function! coc#util#unplace_signs(bufnr, sign_ids)
+  for id in a:sign_ids
+    execute 'sign unplace '.id.' buffer='.a:bufnr
+  endfor
+endfunction

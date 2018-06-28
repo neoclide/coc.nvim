@@ -24,7 +24,7 @@ class OrganizeImportsCommand implements Command {
 
   constructor(private readonly client: ITypeScriptServiceClient) {}
 
-  public async execute(file: string): Promise<boolean> {
+  public async execute(file: string): Promise<void> {
     const args: Proto.OrganizeImportsRequestArgs = {
       scope: {
         type: 'file',
@@ -35,14 +35,15 @@ class OrganizeImportsCommand implements Command {
     }
     const response = await this.client.execute('organizeImports', args)
     if (!response || !response.success) {
-      return false
+      return
     }
 
     const edits = typeconverts.WorkspaceEdit.fromFileCodeEdits(
       this.client,
       response.body
     )
-    return await workspace.applyEdit(edits)
+    await workspace.applyEdit(edits)
+    return
   }
 }
 

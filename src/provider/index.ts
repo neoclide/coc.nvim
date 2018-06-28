@@ -14,6 +14,7 @@ import {
   CodeActionContext,
   Command,
   CodeAction,
+  Definition,
   CodeActionKind,
 } from 'vscode-languageserver-protocol'
 
@@ -161,13 +162,6 @@ export interface HoverProvider {
 }
 
 /**
- * The definition of a symbol represented as one or many [locations](#Location).
- * For most programming languages there is only one location at which a symbol is
- * defined. If no definition can be found `null` is returned.
- */
-export declare type Definition = Location | Location[] | null
-
-/**
  * The definition provider interface defines the contract between extensions and
  * the [go to definition](https://code.visualstudio.com/docs/editor/editingevolved#_go-to-definition)
  * and peek definition features.
@@ -228,7 +222,7 @@ export interface TypeDefinitionProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Definition>
+  ): ProviderResult<Definition>
 }
 
 /**
@@ -370,7 +364,7 @@ export interface ImplementationProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Definition>
+  ): ProviderResult<Definition>
 }
 
 /**
