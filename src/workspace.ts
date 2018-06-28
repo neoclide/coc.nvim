@@ -70,7 +70,7 @@ export class Workspace {
   private _onWillSaveDocument = new EventEmitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new EventEmitter<TextDocument>()
   private _onDidChangeConfiguration = new EventEmitter<void>()
-  private _onDidWorkspaceInitailized = new EventEmitter<void>()
+  private _onDidWorkspaceInitialized = new EventEmitter<void>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
@@ -79,7 +79,7 @@ export class Workspace {
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<void> = this._onDidChangeConfiguration.event
-  public readonly onDidWorkspaceInitailized: Event<void> = this._onDidWorkspaceInitailized.event
+  public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   private watchmanPath:string
   private nvimSettings:NvimSettings
   private configFiles:string[]
@@ -112,7 +112,7 @@ export class Workspace {
       this._configurations = new Configurations(config)
       this._onDidChangeConfiguration.fire()
     })
-    this._onDidWorkspaceInitailized.fire()
+    this._onDidWorkspaceInitialized.fire()
   }
 
   public getNvimSetting<K extends keyof NvimSettings>(name:K):NvimSettings[K] {
