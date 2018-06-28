@@ -79,7 +79,7 @@
     "log4js": "^2.10.0",
     "matcher": "^1.1.1",
     "minimatch": "^3.0.4",
-    "neovim": "^4.1.0",
+    "neovim": "^4.2.0",
     "node-serial": "^0.1.1",
     "opn": "^5.3.0",
     "pify": "^3.0.0",
