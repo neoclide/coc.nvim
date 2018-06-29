@@ -106,7 +106,7 @@ export default class Configurations {
         if (result == null || (typeof result == 'string' && result.length == 0)) return null
         return result
       },
-      update: (key: string, value: any, isGlobal?: boolean) => {
+      update: (key: string, value: any, _isGlobal?: boolean) => {
         this._configuration.updateValue(key, value)
         // TODO change configuration file
       },

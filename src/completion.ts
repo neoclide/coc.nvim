@@ -131,7 +131,7 @@ export class Completion {
         type: item.sourceType == SourceType.Native
               ? 'native' : item.sourceType == SourceType.Remote
               ? 'remote' : 'service',
-        disabled: !!item.disabled
+        disabled: !item.enable
       })
     }
     return res

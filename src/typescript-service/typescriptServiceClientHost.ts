@@ -8,9 +8,9 @@ import {
   DiagnosticKind,
 } from '../types'
 import {
-  Uri,
   disposeAll,
 } from '../util'
+import Uri from 'vscode-uri'
 import {
   errorMsg
 } from './utils/nvimBinding'

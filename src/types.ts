@@ -1,22 +1,15 @@
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import {Neovim} from 'neovim'
 import {
   Event,
-  Uri,
   EventEmitter,
   Disposable,
 } from './util'
 import {
-  TextDocument,
-  WorkspaceEdit,
-  DidChangeTextDocumentParams,
-  TextDocumentWillSaveEvent,
   Diagnostic,
 } from 'vscode-languageserver-protocol'
 
 export {
-  Uri,
   Event,
   EventEmitter,
   Disposable,
@@ -87,6 +80,7 @@ export interface SourceConfig {
   shortcut?: string
   firstMatch?: boolean
   filepath?: string
+  enable?: boolean
   [index: string]: any
 }
 
@@ -255,10 +249,11 @@ export enum DiagnosticKind {
 }
 
 export enum ServiceStat {
-  Init,
+  Initial,
   Starting,
+  StartFailed,
   Running,
-  Restarting,
+  Stopping,
   Stopped,
 }
 
@@ -274,12 +269,14 @@ export interface DocumentInfo {
 export interface IServiceProvider {
   // unique service name
   name: string
+  enable: boolean
   // supported language types
   languageIds: string[]
   // current state
   state: ServiceStat
   init():void
   dispose():void
+  stop():Promise<void> | void
   restart():Promise<void> | void
   onServiceReady: Event<void>
 }
@@ -287,7 +284,7 @@ export interface IServiceProvider {
 export interface ISource {
   // identifier
   name: string
-  disabled: boolean
+  enable: boolean
   priority: number
   sourceType: SourceType
   triggerCharacters: string[]

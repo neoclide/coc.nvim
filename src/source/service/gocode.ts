@@ -31,7 +31,7 @@ export default class Gocode extends ServiceSource {
 
   public async shouldComplete(opt: CompleteOption):Promise<boolean> {
     let {filetype} = opt
-    if (!this.checkFileType(filetype) || this.disabled) return false
+    if (!this.checkFileType(filetype) || this.enable) return false
     return true
   }
 

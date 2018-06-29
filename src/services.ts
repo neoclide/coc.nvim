@@ -11,7 +11,8 @@ import {
   IServiceProvider,
   ServiceStat,
 } from './types'
-import tsserverService from './typescript-service'
+import TsserverService from './typescript-service'
+import CssService from './css'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -22,14 +23,16 @@ interface ServiceInfo {
 
 function getStateName(state:ServiceStat):string {
   switch (state) {
-    case ServiceStat.Init:
+    case ServiceStat.Initial:
       return 'init'
-    case ServiceStat.Restarting:
-      return 'restarting'
     case ServiceStat.Running:
       return 'running'
     case ServiceStat.Starting:
       return 'starting'
+    case ServiceStat.StartFailed:
+      return 'startFailed'
+    case ServiceStat.Stopping:
+      return 'stopping'
     case ServiceStat.Stopped:
       return 'stopped'
     default:
@@ -46,7 +49,8 @@ export class ServiceManager implements Disposable {
 
   public init(nvim:Neovim):void {
     this.nvim = nvim
-    this.regist(new tsserverService())
+    this.regist(new TsserverService())
+    this.regist(new CssService())
     // TODO regist more services
   }
 
@@ -58,6 +62,7 @@ export class ServiceManager implements Disposable {
 
   public regist(service:IServiceProvider): void {
     let {name, languageIds} = service
+    if (!service.enable) return
     if (this.registed.get(name)) {
       echoErr(this.nvim, `Service ${name} already exists`).catch(_e => {
         //noop
@@ -100,11 +105,21 @@ export class ServiceManager implements Disposable {
     let services = this.getServices(languageId)
     for (let service of services) {
       let {state} = service
-      if (state === ServiceStat.Init || state === ServiceStat.Stopped) {
+      if (state === ServiceStat.Initial || state === ServiceStat.Stopped) {
         service.init()
       }
     }
   }
+
+  public async stop(name:string):Promise<void> {
+    let service = this.registed.get(name)
+    if (!service) {
+      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {})
+      return
+    }
+    await Promise.resolve(service.stop())
+  }
+
 
   public async restart(name:string):Promise<void> {
     let service = this.registed.get(name)

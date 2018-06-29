@@ -14,9 +14,7 @@ import {
   CompletionParams,
   TextDocumentPositionParams,
 } from 'vscode-languageserver-protocol'
-import {
-  Uri
-} from '../../util'
+import Uri from 'vscode-uri'
 
 export function documentSelectorToLanguageIds(documentSelector:DocumentSelector):string[] {
   let res = documentSelector.map(filter => {

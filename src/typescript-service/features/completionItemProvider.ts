@@ -14,9 +14,7 @@ import {
   CompletionItemProvider,
 } from '../../provider'
 import commands, { Command as CommandItem } from '../../commands'
-import {
-  Uri,
-} from '../../types'
+import Uri from 'vscode-uri'
 import workspace from '../../workspace'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as Previewer from '../utils/previewer'

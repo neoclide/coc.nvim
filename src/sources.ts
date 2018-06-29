@@ -39,15 +39,10 @@ export default class Sources {
     })
     languages.onDidCompletionSourceCreated(source => {
       let {name} = source
-      let config:Partial<SourceConfig> = this.getSourceConfig(name)
-      if (!config.disabled) {
-        delete config.name
-        delete config.sourceType
-        // priority filetypes triggerCharacters
-        Object.assign(source, config)
+      if (source.enable) {
         this.addSource(name, source)
+        logger.debug('created service source', name)
       }
-      logger.debug('created service source ', name)
     })
   }
 
@@ -77,11 +72,7 @@ export default class Sources {
   public async onlySource(name:string):Promise<void> {
     for (let n of this.names) {
       let source = this.sourceMap.get(n)
-      if (name != n) {
-        source.disabled = true
-      } else {
-        source.disabled = false
-      }
+      source.enable = name == n
     }
     if (this.names.indexOf(name) == -1) {
       require(`./__tests__/test-sources/${name}`)
@@ -122,7 +113,7 @@ export default class Sources {
   public getTriggerSources(character:string, languageId: string):ISource[] {
     let special = !isWord(character)
     let sources = this.sources.filter(s => {
-      if (s.disabled) return false
+      if (!s.enable) return false
       let {filetypes} = s
       if (filetypes && filetypes[0] == '-') return true
       if (filetypes && filetypes.indexOf(languageId) == -1) {
@@ -141,7 +132,7 @@ export default class Sources {
   public getSourcesForFiletype(filetype:string, includeDisabled = true):ISource[] {
     return this.sources.filter(source => {
       let {filetypes} = source
-      if (!includeDisabled && source.disabled) return false
+      if (!includeDisabled && !source.enable) return false
       if (!filetypes || filetypes[0] == '-') return true
       if (filetype && filetypes.indexOf(filetype) !== -1) {
         return true
@@ -166,7 +157,7 @@ export default class Sources {
         try {
           let Clz = await require(`./source/${name}`).default
           let config:Partial<SourceConfig> = this.getSourceConfig(name)
-          if (!config.disabled) {
+          if (config.enable) {
             config.name = name
             config.filepath = path.join(__dirname, `source/${name}.ts`)
             let instance = new Clz(this.nvim, config || {})
@@ -203,7 +194,7 @@ export default class Sources {
       await echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
       return
     }
-    let valid = await this.checkRemoteSource(name, p)
+    let valid = await this.checkRemoteSource(name)
     if (valid) {
       let source = await this.createRemoteSource(name, opts)
       if (source) this.addSource(name, source)
@@ -231,7 +222,7 @@ export default class Sources {
     }))
   }
 
-  private async checkRemoteSource(name: string, fullpath: string):Promise<boolean> {
+  private async checkRemoteSource(name: string):Promise<boolean> {
     let {nvim} = this
     let fns = ['init', 'complete']
     let valid = true

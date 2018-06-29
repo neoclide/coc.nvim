@@ -16,13 +16,13 @@ const logger = require('../util/logger')('model-source')
 const boolOptions = ['firstMatch']
 
 export default abstract class Source implements ISource {
-  public disabled:boolean
+  public enable:boolean
   public readonly name: string
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
-  private _disabled = false
+  private _disabled:boolean
   constructor(nvim: Neovim, option: Partial<SourceConfig>) {
     let {name, optionalFns}  = option
     delete option.name
@@ -44,13 +44,13 @@ export default abstract class Source implements ISource {
       sourceType: SourceType.Native,
       triggerCharacters: [],
     }, option)
-    this._disabled = option.disable
-    Object.defineProperty(this, 'disabled', {
+    this._disabled = option.enable === false
+    Object.defineProperty(this, 'enable', {
       get: () => {
-        return this._disabled
+        return !this._disabled
       },
       set: (val:boolean) => {
-        this._disabled = val
+        this._disabled = !val
       }
     })
   }

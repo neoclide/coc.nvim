@@ -20,9 +20,10 @@ const logger = require('../util/logger')('typescript-service-index')
 
 export default class TsserverService implements IServiceProvider {
   public name = 'tsserver'
+  public enable:boolean
   // supported language types
   public languageIds:string[]
-  public state = ServiceStat.Init
+  public state = ServiceStat.Initial
   private clientHost: TypeScriptServiceClientHost
   private _onDidServiceReady = new EventEmitter<void>()
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
@@ -35,6 +36,7 @@ export default class TsserverService implements IServiceProvider {
     if (!enableJavascript) {
       ids = ids.filter(id => id.indexOf('javascript') == -1)
     }
+    this.enable = config.get<boolean>('enable') != false
     this.languageIds = ids
   }
 
@@ -62,5 +64,11 @@ export default class TsserverService implements IServiceProvider {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
     await client.restartTsServer()
+  }
+
+  public async stop():Promise<void> {
+    if (!this.clientHost) return
+    let client = this.clientHost.serviceClient
+    
   }
 }

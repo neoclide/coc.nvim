@@ -36,7 +36,11 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.triggerSuggest',
       execute: () => {
-        nvim.call('coc#refresh').catch(() => { }) // tslint:disable-line
+        setTimeout(() => {
+          nvim.call('coc#start').catch(e => {
+            logger.error(e.stack)
+          })
+        }, 30)
       }
     })
   }

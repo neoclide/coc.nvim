@@ -6,9 +6,9 @@ import {
 } from 'vscode-languageserver-protocol'
 import {
   Disposable,
-  Uri,
   disposeAll,
 } from '../util'
+import Uri from 'vscode-uri'
 import {
   DiagnosticKind,
   ServiceStat,

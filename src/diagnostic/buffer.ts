@@ -108,12 +108,13 @@ export class DiagnosticBuffer {
       let srcId = await this.getSrcId(document, owner)
       await this._clear(owner)
       if (diagnostics && diagnostics.length != 0) {
+        diagnostics.sort((a, b) => b.severity - a.severity)
         let signIds = this.getSignIds(owner, diagnostics.length)
         let i = 0
         for (let diagnostic of diagnostics) {
           let line = diagnostic.range.start.line
           let signId = signIds[i]
-          await this.addSign(owner, signId, line, diagnostic.severity)
+          await this.addSign(signId, line, diagnostic.severity)
           await this.addHighlight(srcId, diagnostic.range)
           i++
         }
@@ -197,8 +198,9 @@ export class DiagnosticBuffer {
     }
   }
 
-  private async addSign(owner:string, signId:number, line:number, severity:DiagnosticSeverity):Promise<void> {
+  private async addSign(signId:number, line:number, severity:DiagnosticSeverity):Promise<void> {
     let {document, nvim} = this
+    if (!document) return
     let {buffer} = document
     let name = getNameFromSeverity(severity)
     await nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${buffer.id}`)
@@ -206,6 +208,7 @@ export class DiagnosticBuffer {
 
   private async setDiagnosticInfo():Promise<void> {
     let {document} = this
+    if (!document) return
     let {buffer} = document
     let error =0
     let warning = 0
@@ -246,6 +249,7 @@ export class DiagnosticBuffer {
 
   private async clearHighlight(srcId:number):Promise<void> {
     let {document} = this
+    if (!document) return
     let {buffer} = document
     await buffer.clearHighlight({srcId})
   }

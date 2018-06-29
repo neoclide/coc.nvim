@@ -3,11 +3,15 @@ import * as fs from 'fs'
 import ChildProcess = cp.ChildProcess
 
 import {
+  ServiceStat,
+} from '../types'
+import {
   BaseLanguageClient,
   LanguageClientOptions,
   MessageTransports,
   StaticFeature,
-  DynamicFeature
+  DynamicFeature,
+  ClientState,
 } from './client'
 import workspace from '../workspace'
 import {
@@ -209,6 +213,46 @@ export class LanguageClient extends BaseLanguageClient {
         this._isDetached = undefined
       }
     })
+  }
+
+  public get serviceState():ServiceStat {
+    let state = this._state
+    switch (state) {
+      case ClientState.Initial:
+        return ServiceStat.Initial
+      case ClientState.Running:
+        return ServiceStat.Running
+      case ClientState.StartFailed:
+        return ServiceStat.StartFailed
+      case ClientState.Starting:
+        return ServiceStat.Starting
+      case ClientState.Stopped:
+        return ServiceStat.Stopped
+      case ClientState.Stopping:
+        return ServiceStat.Stopping
+      default:
+        logger.error(`Unknown state: ${state}`)
+        return ServiceStat.Stopped
+    }
+  }
+
+  public static stateName(state: ClientState) {
+    switch (state) {
+      case ClientState.Initial:
+        return 'Initial'
+      case ClientState.Running:
+        return 'Running'
+      case ClientState.StartFailed:
+        return 'StartFailed'
+      case ClientState.Starting:
+        return 'Starting'
+      case ClientState.Stopped:
+        return 'Stopped'
+      case ClientState.Stopping:
+        return 'Stopping'
+      default:
+        return 'Unknonw'
+    }
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {

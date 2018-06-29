@@ -1,5 +1,5 @@
 // test code of vscode folder
-import {Uri} from '../util'
+import Uri from 'vscode-uri'
 import {parseContent} from '../configurations'
 
 describe('vscode uri', () => {

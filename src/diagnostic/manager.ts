@@ -13,7 +13,8 @@ import { Neovim } from 'neovim'
 import Document from '../model/document'
 import workspace from '../workspace'
 import debounce = require('debounce')
-import {Uri, DiagnosticItem} from '../types'
+import {DiagnosticItem} from '../types'
+import Uri from 'vscode-uri'
 const logger = require('../util/logger')('diagnostic-manager')
 
 function severityName(severity:DiagnosticSeverity):string {
@@ -272,39 +273,28 @@ class DiagnosticManager {
     if (!document) return
     let offset = await workspace.getOffset()
     let {textDocument} = document
-    let position = textDocument.positionAt(offset)
     let collections = this.getCollections(document.uri)
-    let {line} = position
     let res:Diagnostic[] = []
     for (let collection of collections) {
       let diagnostics = collection.get(document.uri)
-      diagnostics = diagnostics.filter(item => {
-        let {range} = item
-        let endLine = range.end.character == 0 ? range.end.line - 1 : range.end.line
-        return range.start.line <= line && endLine >= line
-      })
-      res = res.concat(diagnostics)
-    }
-    if (res.length == 0) return
-    let diagnostic = res.length == 1 ? res[0] : this.getCurrentDiagnostic(offset, textDocument, res)
-    diagnostic = diagnostic || res[0]
-    let {source, code, severity, message} = diagnostic
-    let s = severityName(severity)[0]
-    let msg = message.replace(/"/g, '\\"')
-    let lines = `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`.split('\n')
-    await workspace.echoLines(lines)
-  }
-
-  private getCurrentDiagnostic(offset:number, textDocument: TextDocument, diagnostics:Diagnostic[]):Diagnostic {
-    for (let diagnostic of diagnostics) {
-      let {range} = diagnostic
-      let start = textDocument.offsetAt(range.start)
-      let end = textDocument.offsetAt(range.end)
-      if (start <= offset && end >= offset) {
-        return diagnostic
+      for (let diagnostic of diagnostics) {
+        let {range} = diagnostic
+        let start = textDocument.offsetAt(range.start)
+        let end = textDocument.offsetAt(range.end)
+        if (start <= offset && end >= offset) {
+          res.push(diagnostic)
+        }
       }
     }
-    return null
+    if (res.length == 0) return
+    res = res.slice(0, 2)
+    let lines:string[] = res.map(diagnostic => {
+      let {source, code, severity, message} = diagnostic
+      let s = severityName(severity)[0]
+      let msg = message.replace(/\n/g, ' ')
+      return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
+    })
+    await workspace.echoLines(lines)
   }
 
   public clear(owner:string, uri?:string):void {

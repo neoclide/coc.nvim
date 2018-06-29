@@ -5,9 +5,7 @@ import {
 import {
   DiagnosticCollection
 } from '../../types'
-import {
-  Uri
-} from '../../util'
+import Uri from 'vscode-uri'
 import languages from '../../languages'
 const logger = require('../../util/logger')('typescript-langauge-diagnostics')
 

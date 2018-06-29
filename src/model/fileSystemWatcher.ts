@@ -1,9 +1,9 @@
 import {
   EventEmitter,
   Event,
-  Uri,
   Disposable,
 } from '../util'
+import Uri from 'vscode-uri'
 import Watchman, {FileChange} from '../watchman'
 import path = require('path')
 const logger = require('../util/logger')('filesystem-watcher')

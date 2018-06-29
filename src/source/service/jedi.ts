@@ -71,7 +71,7 @@ export default class Jedi extends ServiceSource {
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {filetype} = opt
-    if (!this.checkFileType(filetype) || this.disabled) return false
+    if (!this.checkFileType(filetype) || !this.enable) return false
     if (!this.service || !this.service.isRunnning) {
       await this.onInit()
     }

@@ -20,9 +20,9 @@ import {
   echoErr,
   EventEmitter,
   Event,
-  Uri,
   echoMessage,
 } from './util/index'
+import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
 import {
   TextDocument,
@@ -352,8 +352,10 @@ export class Workspace {
       let last = lines[cmdHeight - 1]
       lines[cmdHeight - 1] = `${last} ...`
     }
-    let str = lines.join('\\n').replace(/"/g, '\\"')
-    await nvim.command(`echo "${str}"`)
+    let cmd = lines.map(line => {
+      return `echo '${line.replace(/'/g, "''")}'`
+    }).join('|')
+    await nvim.command(cmd)
   }
 
   public async currentDocument():Promise<TextDocument> {

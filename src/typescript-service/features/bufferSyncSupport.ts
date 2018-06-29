@@ -1,8 +1,8 @@
 import workspace from '../../workspace'
 import {
   disposeAll,
-  Uri,
 } from '../../util'
+import Uri from 'vscode-uri'
 import {
   TextDocument,
   DidChangeTextDocumentParams,

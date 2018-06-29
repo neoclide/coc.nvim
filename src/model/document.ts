@@ -1,8 +1,8 @@
 import { Neovim, Buffer } from 'neovim'
 import {
-  Uri,
   BufferOption,
 } from '../types'
+import Uri from 'vscode-uri'
 import {
   TextDocument,
   Position,

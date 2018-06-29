@@ -214,6 +214,8 @@ export default class CompletePlugin {
           return await handler.documentFormatting()
         case 'services':
           return services.getServiceStats()
+        case 'restartService':
+          return services.restart(args[1])
         case 'codeAction':
           return handler.doCodeAction(args[1])
         default:

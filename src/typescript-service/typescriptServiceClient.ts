@@ -20,8 +20,8 @@ import {
   TypeScriptServiceConfiguration,
   TsServerLogLevel
 } from './utils/configuration'
+import Uri from 'vscode-uri'
 import {
-  Uri,
   EventEmitter,
   Event,
   disposeAll,
@@ -158,7 +158,7 @@ export interface TsDiagnostics {
 }
 
 export default class TypeScriptServiceClient implements ITypeScriptServiceClient {
-  public state = ServiceStat.Init
+  public state = ServiceStat.Initial
   private pathSeparator: string
   private tracer: Tracer
   private _configuration: TypeScriptServiceConfiguration
@@ -246,8 +246,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
     if (this.servicePromise) {
       return Promise.resolve(this.servicePromise.then(childProcess => {
+          this.state = ServiceStat.Stopping
           this.info('Killing TS Server')
-          this.state = ServiceStat.Restarting
           childProcess.kill()
           this.resetClientVersion()
           this.servicePromise = null
@@ -255,6 +255,18 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     } else {
       return Promise.resolve(start())
     }
+  }
+
+  public stop():Promise<void> {
+    if (!this.servicePromise) return
+    return Promise.resolve(this.servicePromise.then(childProcess => {
+      if (this.state == ServiceStat.Running) {
+        this.info('Killing TS Server')
+        childProcess.kill()
+        this.resetClientVersion()
+        this.servicePromise = null
+      }
+    }))
   }
 
   public get onTsServerStarted(): Event<API> {
@@ -298,7 +310,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (this.lastError) {
       return Promise.reject<ForkedTsServerProcess>(this.lastError)
     }
-    this.state = ServiceStat.Starting
     return this.startService().then(() => {
       if (this.servicePromise) {
         return this.servicePromise
@@ -308,9 +319,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public ensureServiceStarted():void {
     if (!this.servicePromise) {
-      this.state = ServiceStat.Starting
       this.startService().catch(err => {
-        echoErr(workspace.nvim, `TSServer start failed: ${err.message}`) // tslint:disable-line
+        echoErr(workspace.nvim, `TSServer start failed: ${err.message}`).catch(_e => {
+          // noop
+        })
         logger.error(`Service start failed: ${err.stack}`)
       })
     }
@@ -343,6 +355,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   private startProcess(currentVersion: TypeScriptVersion, args: string[], options:IForkOptions, resendModels:boolean):Promise<ForkedTsServerProcess> {
+    this.state = ServiceStat.Starting
     return new Promise((resolve, reject) => {
       try {
         fork(
@@ -351,6 +364,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
           options,
           (err: any, childProcess: cp.ChildProcess | null) => {
             if (err || !childProcess) {
+              this.state = ServiceStat.StartFailed
               this.lastError = err
 
               this.error('Starting TSServer failed with error.', err)
@@ -383,7 +397,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
               if (this.tsServerLogFile) {
                 this.info(`TSServer log file: ${this.tsServerLogFile}`)
               }
-              this.serviceExited(this.state !== ServiceStat.Restarting && this.state !== ServiceStat.Stopped)
+              this.serviceExited(this.state !== ServiceStat.Starting)
             })
 
             handle.createReader(
@@ -490,7 +504,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         }
       }
       if (startService) {
-        this.state = ServiceStat.Restarting
         this.startService(true) // tslint:disable-line
       }
     }

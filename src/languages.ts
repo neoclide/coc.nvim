@@ -395,7 +395,7 @@ class Languages {
     }
     return {
       name,
-      disabled: false,
+      enable: true,
       priority: 99,
       sourceType: SourceType.Service,
       filetypes: languageIds,
@@ -459,7 +459,7 @@ class Languages {
           option = null
           completeItems = []
           resolving = ''
-        }, 30)
+        }, 50)
         return
       },
       doComplete: async (opt:CompleteOption):Promise<CompleteResult|null> => {
@@ -553,12 +553,14 @@ class Languages {
     let start = line.substr(0, character)
     let end = line.substr(option.col + inserted.length + deleteCount)
     let newLine = `${start}${newText}${end}`
-    if (!isSnippet) {
-      await nvim.call('setline', [option.linenr, newLine])
-      return false
+    if (isSnippet) {
+      await snippetManager.insertSnippet(document, option.linenr - 1, newLine)
+      return true
     }
-    await snippetManager.insertSnippet(document, option.linenr - 1, newLine)
-    return true
+    if (newLine != line) {
+      await nvim.call('setline', [option.linenr, newLine])
+    }
+    return false
   }
 
   private async applyAdditionaLEdits(textEdits:TextEdit[], bufnr:number):Promise<void> {
@@ -594,6 +596,11 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
     sortText: validString(item.sortText) ? item.sortText : item.label,
     filterText: validString(item.filterText) ? item.filterText : item.label,
     isSnippet
+  }
+  if (!isSnippet && !item.insertText && item.textEdit) {
+    obj.word = item.textEdit.newText
+    // make sure we can find it on CompleteDone
+    item.insertText = obj.word
   }
   obj.abbr = obj.filterText
   if (isSnippet) obj.abbr = obj.abbr + '~'

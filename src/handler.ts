@@ -20,11 +20,11 @@ import {
   QuickfixItem,
 } from './types'
 import {
-  Uri,
   echoWarning,
   echoErr,
   showQuickpick,
 } from './util'
+import Uri from 'vscode-uri'
 import {getLine} from './util/fs'
 import debounce = require('debounce')
 const logger = require('./util/logger')('Handler')
@@ -216,6 +216,10 @@ export default class Handler {
     let {document} = await workspace.getCurrentState()
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document)
+    if (!symbols) {
+      await echoErr(this.nvim, 'service does not support document symbols')
+      return []
+    }
     let level = 0
     let res:SymbolInfo[] = []
     let pre = null
@@ -255,6 +259,10 @@ export default class Handler {
     let cword = await this.nvim.call('expand', ['<cword>'])
     let query = await this.nvim.call('input', ['Query:', cword])
     let symbols = await languages.getWorkspaceSymbols(document, query)
+    if (!symbols) {
+      await echoErr(this.nvim, 'service does not support workspace symbols')
+      return []
+    }
     this.currentSymbols = symbols
     let res:SymbolInfo[] = []
     for (let s of symbols) {
@@ -273,7 +281,7 @@ export default class Handler {
   }
 
   public async resolveWorkspaceSymbol(symbolIndex:number):Promise<SymbolInformation> {
-    // TODO figure out how to work with this
+    // TODO find out better way to work with  workspace symbols
     if (!this.currentSymbols) return null
     let symbol = this.currentSymbols[symbolIndex]
     if (!symbol) return null

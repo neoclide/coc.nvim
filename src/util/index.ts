@@ -4,16 +4,14 @@ import {
 } from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
 import {Event, Emitter} from './event'
-import Uri, {UriComponents} from './uri'
 import * as platform from './platform'
 export {
   Event,
   Emitter as EventEmitter,
   Disposable,
-  Uri,
-  UriComponents,
   platform,
 }
+import Uri from 'vscode-uri'
 import net = require('net')
 import path = require('path')
 const logger = require('./logger')('util-index')

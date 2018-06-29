@@ -5,8 +5,8 @@ import Commands from '../commands'
 import * as Window from './utils/window'
 import {
   DiagnosticCollection,
-  Uri,
 } from '../types'
+import Uri from 'vscode-uri'
 import { ProviderResult } from '../provider'
 import * as cv from './utils/converter'
 import FileWatcher from '../model/fileSystemWatcher'
@@ -14,7 +14,6 @@ import {
   Command,
   TextDocument,
   CancellationToken,
-  FileSystemWatcher,
   Diagnostic,
   Disposable,
   Position,
@@ -243,7 +242,7 @@ class ConsoleLogger implements Logger {
     logger.info(message)
   }
   public log(message: string): void {
-    logger.debug(message)
+    logger.log(message)
   }
 }
 
@@ -776,7 +775,7 @@ export interface StateChangeEvent {
   newState: State
 }
 
-enum ClientState {
+export enum ClientState {
   Initial,
   Starting,
   StartFailed,
@@ -1871,8 +1870,8 @@ class CompletionItemFeature extends TextDocumentFeature<
     let middleware = this._client.clientOptions.middleware!
     let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerCompletionItemProvider(
-      'lsp',
-      'LSP',
+      this._client.id,
+      'LS',
       languageIds,
       {
         provideCompletionItems: (
@@ -3114,7 +3113,7 @@ export abstract class BaseLanguageClient {
   private _name: string
   private _clientOptions: ResolvedClientOptions
 
-  private _state: ClientState
+  protected _state: ClientState
   private _onReady: Promise<void>
   private _onReadyCallbacks: {resolve: () => void; reject: (error: any) => void}
   private _onStop: Thenable<void> | undefined
@@ -3189,6 +3188,10 @@ export abstract class BaseLanguageClient {
 
   private get state(): ClientState {
     return this._state
+  }
+
+  public get id():string {
+    return this._id
   }
 
   private set state(value: ClientState) {
@@ -3384,6 +3387,13 @@ export abstract class BaseLanguageClient {
     }
   }
 
+  public debug(message: string, data?: any): void {
+    this._logger.debug(message)
+    if (data) {
+      this._logger.debug(this.data2String(data))
+    }
+  }
+
   public warn(message: string, data?: any): void {
     this._logger.warn(message)
     if (data) {
@@ -3454,7 +3464,7 @@ export abstract class BaseLanguageClient {
               this.info(message.message)
               break
             default:
-              this._logger.log(message.message)
+              this.debug(message.message)
           }
         })
         connection.onShowMessage(message => {
@@ -3772,6 +3782,12 @@ export abstract class BaseLanguageClient {
       this.state = ClientState.Initial
       this.start()
     }
+  }
+
+  public restart():void {
+    this.cleanUp(false)
+    this.state = ClientState.Initial
+    this.start()
   }
 
   private handleConnectionError(error: Error, message: Message, count: number) {
