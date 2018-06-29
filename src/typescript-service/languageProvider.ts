@@ -3,9 +3,9 @@ import workspace from '../workspace'
 import commandManager from '../commands'
 import {
   Diagnostic,
+  Disposable,
 } from 'vscode-languageserver-protocol'
 import {
-  Disposable,
   disposeAll,
 } from '../util'
 import Uri from 'vscode-uri'

@@ -115,7 +115,6 @@ export default class BufferSyncSupport {
     let {uri} = textDocument
     if (!this.uris.has(uri)) return
     let filepath = Uri.parse(uri).fsPath
-    logger.debug('changes: ', filepath, contentChanges.length)
     for (const { range, text } of contentChanges) {
       const args: Proto.ChangeRequestArgs = {
         file: filepath,

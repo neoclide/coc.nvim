@@ -10,17 +10,17 @@ import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
 import {echoErr} from './util'
 import workspace from './workspace'
-import EventEmitter = require('events')
+import Emitter = require('events')
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
 export default class CompletePlugin {
   private initialized = false
-  private emitter: EventEmitter
+  private emitter: Emitter
   private handler: Handler
 
   constructor(public nvim: Neovim) {
-    this.emitter = new EventEmitter()
+    this.emitter = new Emitter()
     this.handler = new Handler(nvim)
     workspace.nvim = nvim
     languages.nvim = nvim
@@ -115,7 +115,6 @@ export default class CompletePlugin {
         emitter.emit('InsertEnter')
         break
       case 'CompleteDone':
-        logger.debug('completeDone')
         await completion.onCompleteDone(args[1] as VimCompleteItem)
         break
       case 'TextChangedP':

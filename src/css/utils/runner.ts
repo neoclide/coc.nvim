@@ -1,3 +1,4 @@
+/*tslint:disable:no-console*/
 import {
   ResponseError,
   ErrorCodes,
@@ -8,7 +9,7 @@ import {
 
 export function formatError(message: string, err: any): string {
   if (err instanceof Error) {
-    let error = <Error>err
+    let error = err as Error
     return `${message}: ${error.message}\n${error.stack}`
   } else if (typeof err === 'string') {
     return `${message}: ${err}`
@@ -24,7 +25,7 @@ export function runSafe<T, E>(
   errorMessage: string,
   token: CancellationToken
 ): Thenable<T | ResponseError<E>> {
-  return new Promise<T | ResponseError<E>>((resolve, reject) => {
+  return new Promise<T | ResponseError<E>>(resolve => {
     setImmediate(() => {
       if (token.isCancellationRequested) {
         resolve(cancelValue())
@@ -46,6 +47,6 @@ export function runSafe<T, E>(
   })
 }
 
-function cancelValue<E>() {
+function cancelValue<E>():any {
   return new ResponseError<E>(ErrorCodes.RequestCancelled, 'Request cancelled')
 }

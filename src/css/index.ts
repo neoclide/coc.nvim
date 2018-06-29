@@ -8,11 +8,13 @@ import {
   State,
 } from '../language-client/main'
 import {
+  Disposable,
+  Emitter,
+  Event,
+} from 'vscode-languageserver-protocol'
+import {
   IServiceProvider,
   ServiceStat,
-  EventEmitter,
-  Disposable,
-  Event,
 } from '../types'
 import {
   disposeAll,
@@ -26,7 +28,7 @@ export default class CssService implements IServiceProvider {
   public name = ID
   public enable:boolean
   public languageIds:string[] = ['css', 'less', 'scss']
-  private _onDidServiceReady = new EventEmitter<void>()
+  private _onDidServiceReady = new Emitter<void>()
   private readonly disposables: Disposable[] = []
   private client:LanguageClient
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
@@ -34,14 +36,14 @@ export default class CssService implements IServiceProvider {
 
   constructor() {
     const config = workspace.getConfiguration(ID)
-    this.enable = config.get<boolean>('enable') != false
+    this.enable = config.get<boolean>('enable')
     let languageIds = config.get<string[]>('filetypes')
     if (languageIds) this.languageIds = languageIds
   }
 
   public init():void {
     let serverModule = path.join(ROOT, 'lib/css/server.js')
-    let debugOptions = { execArgv: ['--nolazy', '--inspect=6044'] };
+    let debugOptions = { execArgv: ['--nolazy', '--inspect=6044'] }
 
     let serverOptions: ServerOptions = {
       run: {module: serverModule, transport: TransportKind.ipc},
@@ -75,10 +77,12 @@ export default class CssService implements IServiceProvider {
         client.serviceState
       }
     })
-    client.registerProposedFeatures();
+    client.registerProposedFeatures()
     let disposable = client.start()
     client.onReady().then(() => {
-      this._onDidServiceReady.fire()
+      this._onDidServiceReady.fire(void 0)
+    }, e => {
+      logger.error(e.message)
     })
     this.disposables.push(disposable)
   }
@@ -90,15 +94,13 @@ export default class CssService implements IServiceProvider {
   public async restart():Promise<void> {
     if (!this.client) return
     if (this.state == ServiceStat.Running) {
-      await this.client.stop()
-      this.client.restart()
-      return
+      await this.stop()
     }
+    this.client.restart()
   }
 
   public async stop():Promise<void> {
     if (!this.client) return
-    await this.client.stop()
-    return
+    await Promise.resolve(this.client.stop())
   }
 }

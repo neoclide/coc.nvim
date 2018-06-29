@@ -9,12 +9,12 @@ import {
   Range,
   TextEdit,
   DidChangeTextDocumentParams,
+  Emitter,
+  Event,
+  Disposable,
 } from 'vscode-languageserver-protocol'
 import {Chars} from './chars'
 import {
-  EventEmitter,
-  Event,
-  Disposable,
   disposeAll,
   getUri,
 } from '../util/index'
@@ -34,7 +34,7 @@ export default class Document {
   public paused: boolean
   public textDocument: TextDocument
   private _fireContentChanges: Function & { clear(): void; }
-  private _onDocumentChange = new EventEmitter<DidChangeTextDocumentParams>()
+  private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
   private hasChange = false
   private disposables:Disposable[] = []

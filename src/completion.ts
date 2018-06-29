@@ -13,7 +13,7 @@ import {
   SourceStat,
   SourceType
 } from './types'
-import EventEmitter = require('events')
+import Emitter = require('events')
 import workspace from './workspace'
 import Sources from './sources'
 import completes from './completes'
@@ -31,7 +31,7 @@ export class Completion {
   private lastChangedI: number
   private nvim:Neovim
 
-  public init(nvim, emitter:EventEmitter):void {
+  public init(nvim, emitter:Emitter):void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
     this.sources = new Sources(nvim)

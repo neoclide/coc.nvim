@@ -1,13 +1,13 @@
 import * as cp from 'child_process'
 import ChildProcess = cp.ChildProcess
-import EventEmitter = require('events')
+import Emitter = require('events')
 import {RequestOptions} from 'http'
 import got = require('got')
 const logger = require('../util/logger')('model-httpService')
 
 export type Callback = (msg:string) => void
 
-export default class HttpService extends EventEmitter {
+export default class HttpService extends Emitter {
   private child:ChildProcess
   private running:boolean
 

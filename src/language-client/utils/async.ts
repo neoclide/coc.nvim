@@ -1,6 +1,6 @@
 
 export interface ITask<T> {
-  (): T
+  (): T // tslint:disable-line
 }
 
 export class Delayer<T> {
@@ -33,7 +33,7 @@ export class Delayer<T> {
       }).then(() => {
         this.completionPromise = undefined
         this.onSuccess = undefined
-        var result = this.task!()
+        let result = this.task!()
         this.task = undefined
         return result
       })

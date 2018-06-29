@@ -1,5 +1,5 @@
 import * as UUID from './utils/uuid'
-import * as Is from  './utils/is'
+import * as Is from './utils/is'
 import languages from '../languages'
 import { ProviderResult } from '../provider'
 import {
@@ -25,7 +25,7 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideImplementationSignature {
-  (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition>
+  (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition> // tslint:disable-line
 }
 
 export interface ImplementationMiddleware {
@@ -52,7 +52,7 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
       }
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, { documentSelector: documentSelector })
+        registerOptions: Object.assign({}, { documentSelector })
       })
     } else {
       const implCapabilities = capabilities.implementationProvider
@@ -71,7 +71,7 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
     let client = this._client
     let provideImplementation: ProvideImplementationSignature = (document, position, token) => {
       return client.sendRequest(ImplementationRequest.type, {textDocument:document, position}, token)
-        .then(res => res, (error) => {
+        .then(res => res, error => {
           client.logFailedRequest(ImplementationRequest.type, error)
           return Promise.resolve(null)
         }
@@ -88,4 +88,3 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
     })
   }
 }
-

@@ -1,21 +1,7 @@
-import Document from './model/document'
-import FileSystemWatcher from './model/fileSystemWatcher'
-import {
-  Event,
-  EventEmitter,
-  Disposable,
-} from './util'
 import {
   Diagnostic,
-} from 'vscode-languageserver-protocol'
-
-export {
   Event,
-  EventEmitter,
-  Disposable,
-  FileSystemWatcher,
-  Document,
-}
+} from 'vscode-languageserver-protocol'
 
 export type Filter = 'word' | 'fuzzy'
 

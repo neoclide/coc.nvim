@@ -89,7 +89,7 @@ export default class Handler {
       }
     } else if (typeof contents == 'string') {
       lines.push(contents)
-    } else if (MarkedString.is(contents)) {
+    } else if (MarkedString.is(contents)) { // tslint:disable-line
       lines.push('``` ' + contents.language)
       lines.push(contents.value)
       lines.push('```')

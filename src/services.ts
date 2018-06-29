@@ -38,7 +38,6 @@ function getStateName(state:ServiceStat):string {
     default:
       return 'unknown'
   }
-  
 }
 
 export class ServiceManager implements Disposable {
@@ -65,7 +64,7 @@ export class ServiceManager implements Disposable {
     if (!service.enable) return
     if (this.registed.get(name)) {
       echoErr(this.nvim, `Service ${name} already exists`).catch(_e => {
-        //noop
+        // noop
       })
       return
     }
@@ -114,17 +113,18 @@ export class ServiceManager implements Disposable {
   public async stop(name:string):Promise<void> {
     let service = this.registed.get(name)
     if (!service) {
-      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {})
+      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {
+        // noop
+      })
       return
     }
     await Promise.resolve(service.stop())
   }
 
-
   public async restart(name:string):Promise<void> {
     let service = this.registed.get(name)
     if (!service) {
-      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {})
+      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {}) // tslint:disable-line
       return
     }
     await Promise.resolve(service.restart())

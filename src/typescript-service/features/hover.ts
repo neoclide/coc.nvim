@@ -42,7 +42,7 @@ export default class TypeScriptHoverProvider implements HoverProvider {
     return undefined
   }
 
-  private static getContents(data: Proto.QuickInfoResponseBody):MarkedString[] {
+  private static getContents(data: Proto.QuickInfoResponseBody):MarkedString[] { // tslint:disable-line
     const parts = []
 
     if (data.displayString) {

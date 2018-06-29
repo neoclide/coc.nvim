@@ -44,7 +44,7 @@ export class DiagnosticsManager {
   private _validate = true
   private _enableSuggestions = true
 
-  private readonly updateDelay = 50
+  private readonly updateDelay = 200
 
   constructor() {
     for (const kind of allDiagnosticKinds) {

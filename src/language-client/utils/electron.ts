@@ -56,13 +56,9 @@ function generatePatchedEnv(
 ): any {
   // Set the two unique pipe names and the electron flag as process env
 
-  let newEnv: any = {}
-  for (let key in env) {
-    newEnv[key] = env[key]
-  }
-
-  newEnv['STDIN_PIPE_NAME'] = stdInPipeName
-  newEnv['STDOUT_PIPE_NAME'] = stdOutPipeName
+  let newEnv: any = Object.assign({}, env)
+  newEnv['STDIN_PIPE_NAME'] = stdInPipeName // tslint:disable-line
+  newEnv['STDOUT_PIPE_NAME'] = stdOutPipeName // tslint:disable-line
   return newEnv
 }
 
@@ -106,7 +102,7 @@ export function fork(
 
     stdOutStream.once('data', (_chunk: Buffer) => {
       // The child process is sending me the `ready` chunk, time to connect to the stdin pipe
-      childProcess.stdin = <any>net.connect(stdInPipeName)
+      childProcess.stdin = net.connect(stdInPipeName) as any
 
       // From now on the childProcess.stdout is available for reading
       childProcess.stdout = stdOutStream
@@ -129,12 +125,12 @@ export function fork(
 
   // Create the process
   let bootstrapperPath = path.join(ROOT, 'bin/lspForkStart')
-  childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), <any>{
+  childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,
     cwd: options.cwd,
     env: newEnv,
     execArgv: options.execArgv
-  })
+  } as any)
 
   childProcess.once('error', (err: Error) => {
     closeServer()

@@ -18,7 +18,7 @@ export function terminate(process: ChildProcess, cwd?: string): boolean {
       if (cwd) {
         options.cwd = cwd
       }
-      ;(<any>cp).execFileSync(
+      cp.execFileSync(
         'taskkill',
         ['/T', '/F', '/PID', process.pid.toString()],
         options
@@ -29,8 +29,8 @@ export function terminate(process: ChildProcess, cwd?: string): boolean {
     }
   } else if (isLinux || isMacintosh) {
     try {
-      var cmd = join(__dirname, 'terminateProcess.sh')
-      var result = (<any>cp).spawnSync(cmd, [process.pid.toString()])
+      let cmd = join(__dirname, 'terminateProcess.sh')
+      let result = cp.spawnSync(cmd, [process.pid.toString()])
       return result.error ? false : true
     } catch (err) {
       return false

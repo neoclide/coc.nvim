@@ -272,6 +272,10 @@ COMMANDS 					*coc-commands*
 :CocEnable 					*coc-command-enable*
 		Reenable completion of coc
 
+:CocRefresh [{name}]				*coc-command-refresh*
+
+		Refresh source of {name}, or all sources without {name}.
+
 ------------------------------------------------------------------------------
 
 AUTOCMD 					*coc-autocmds*

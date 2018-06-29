@@ -3,12 +3,8 @@ import {
   Range,
 } from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
-import {Event, Emitter} from './event'
 import * as platform from './platform'
 export {
-  Event,
-  Emitter as EventEmitter,
-  Disposable,
   platform,
 }
 import Uri from 'vscode-uri'

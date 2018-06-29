@@ -64,7 +64,7 @@ export function getLanguageModelCache<T>(
       if (nModels === maxEntries) {
         let oldestTime = Number.MAX_VALUE
         let oldestUri = null
-        for (let uri in languageModels) {
+        for (let uri of Object.keys(languageModels)) {
           let languageModelInfo = languageModels[uri]
           if (languageModelInfo.cTime < oldestTime) {
             oldestUri = uri
@@ -78,14 +78,14 @@ export function getLanguageModelCache<T>(
       }
       return languageModel
     },
-    onDocumentRemoved(document: TextDocument) {
+    onDocumentRemoved(document: TextDocument):void {
       let uri = document.uri
       if (languageModels[uri]) {
         delete languageModels[uri]
         nModels--
       }
     },
-    dispose() {
+    dispose():void {
       if (typeof cleanupInterval !== 'undefined') {
         clearInterval(cleanupInterval)
         cleanupInterval = void 0

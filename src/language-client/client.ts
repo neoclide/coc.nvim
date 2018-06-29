@@ -1,3 +1,4 @@
+/*tslint:disable*/
 import * as log4js from 'log4js'
 import workspace from '../workspace'
 import languages from '../languages'
@@ -150,8 +151,8 @@ const createLogger = require('../util/logger')
 const logger = require('../util/logger')('language-client-client')
 
 interface Thenable<T> {
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>;
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>;
+	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
+	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
 }
 
 
@@ -1060,7 +1061,9 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
       workspace.onDidOpenTextDocument,
       DidOpenTextDocumentNotification.type,
       client.clientOptions.middleware!.didOpen,
-      (textDocument) => cv.convertToTextDocumentItem(textDocument),
+      (textDocument) => {
+        return {textDocument: cv.convertToTextDocumentItem(textDocument)}
+      },
       DocumentNotifiactions.textDocumentFilter
     )
   }
@@ -3134,7 +3137,7 @@ export abstract class BaseLanguageClient {
 
   private _logger: log4js.Logger
   private _trace: Trace
-  private _tracer: Tracer;
+  private _tracer: Tracer
 
   public constructor(
     id: string,
@@ -3695,7 +3698,7 @@ export abstract class BaseLanguageClient {
   }
 
   private forceDocumentSync(): void {
-    ;(this._dynamicFeatures.get(
+    (this._dynamicFeatures.get(
       DidChangeTextDocumentNotification.type.method
     ) as DidChangeTextDocumentFeature).forceDelivery()
   }
@@ -3831,7 +3834,7 @@ export abstract class BaseLanguageClient {
     if (!watchers) {
       return
     }
-    ;(this._dynamicFeatures.get(
+    (this._dynamicFeatures.get(
       DidChangeWatchedFilesNotification.type.method
     )! as FileSystemWatcherFeature).registerRaw(UUID.generateUuid(), watchers)
   }

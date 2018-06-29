@@ -236,7 +236,7 @@ export class LanguageClient extends BaseLanguageClient {
     }
   }
 
-  public static stateName(state: ClientState) {
+  public static stateName(state: ClientState):string {
     switch (state) {
       case ClientState.Initial:
         return 'Initial'
@@ -262,7 +262,7 @@ export class LanguageClient extends BaseLanguageClient {
     setTimeout(() => {
       // Test if the process is still alive. Throws an exception if not
       try {
-        process.kill(childProcess.pid, <any>0)
+        process.kill(childProcess.pid, 0)
         terminate(childProcess)
       } catch (error) {
         // All is fine.
@@ -270,14 +270,12 @@ export class LanguageClient extends BaseLanguageClient {
     }, 2000)
   }
 
-  protected handleConnectionClosed() {
+  protected handleConnectionClosed():void {
     this._serverProcess = undefined
     super.handleConnectionClosed()
   }
 
-  protected createMessageTransports(
-    encoding: string
-  ): Thenable<MessageTransports> {
+  protected createMessageTransports(encoding: string): Thenable<MessageTransports> {
     function getEnvironment(env: any): any {
       if (!env) {
         return process.env
@@ -336,7 +334,7 @@ export class LanguageClient extends BaseLanguageClient {
       })
     }
     let json: NodeModule | Executable
-    let runDebug = <{run: any; debug: any}>server
+    let runDebug = server as{run: any; debug: any}
     if (runDebug.run || runDebug.debug) {
       // We are under debugging. So use debug as well.
       if (
@@ -368,10 +366,10 @@ export class LanguageClient extends BaseLanguageClient {
           let execOptions: ExecutableOptions = Object.create(null)
           execOptions.cwd = serverWorkingDir
           execOptions.env = getEnvironment(options.env)
-          let pipeName: string | undefined = undefined
+          let pipeName: string | undefined
           if (transport === TransportKind.ipc) {
             // exec options not correctly typed in lib
-            execOptions.stdio = <any>[null, null, null, 'ipc']
+            execOptions.stdio = [null, null, null, 'ipc']
             args.push('--node-ipc')
           } else if (transport === TransportKind.stdio) {
             args.push('--stdio')
@@ -458,7 +456,7 @@ export class LanguageClient extends BaseLanguageClient {
             )
           }
         } else {
-          let pipeName: string | undefined = undefined
+          let pipeName: string | undefined
           return new Promise<MessageTransports>((resolve, reject) => {
             let args = (node.args && node.args.slice()) || []
             if (transport === TransportKind.ipc) {
@@ -562,7 +560,7 @@ export class LanguageClient extends BaseLanguageClient {
           })
         }
       } else if (Executable.is(json) && json.command) {
-        let command: Executable = <Executable>json
+        let command: Executable = json as Executable
         let args = command.args || []
         let options = Object.assign({}, command.options)
         options.cwd = options.cwd || serverWorkingDir
@@ -592,11 +590,11 @@ export class LanguageClient extends BaseLanguageClient {
     })
   }
 
-  public registerProposedFeatures() {
+  public registerProposedFeatures():void {
     this.registerFeatures(ProposedFeatures.createAll(this))
   }
 
-  protected registerBuiltinFeatures() {
+  protected registerBuiltinFeatures():void {
     super.registerBuiltinFeatures()
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))

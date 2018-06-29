@@ -6,6 +6,7 @@ import {
   DocumentSelector,
   TextDocument,
   DidChangeTextDocumentParams,
+  DidCloseTextDocumentParams,
   TextDocumentWillSaveEvent,
   WillSaveTextDocumentParams,
   DidSaveTextDocumentParams,
@@ -13,6 +14,7 @@ import {
   CompletionContext,
   CompletionParams,
   TextDocumentPositionParams,
+  TextDocumentItem,
 } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 
@@ -30,18 +32,16 @@ export function documentSelectorToLanguageIds(documentSelector:DocumentSelector)
   return res
 }
 
-export function convertToTextDocumentItem(document:TextDocument) {
+export function convertToTextDocumentItem(document:TextDocument):TextDocumentItem {
   return {
-    textDocument: {
-      uri: document.uri,
-      languageId: document.languageId,
-      version: document.version,
-      text: document.getText()
-    }
+    uri: document.uri,
+    languageId: document.languageId,
+    version: document.version,
+    text: document.getText()
   }
 }
 
-export function asCloseTextDocumentParams(document:TextDocument) {
+export function asCloseTextDocumentParams(document:TextDocument):DidCloseTextDocumentParams {
   return {
     textDocument: {
       uri: document.uri
@@ -71,7 +71,7 @@ export function asVersionedTextDocumentIdentifier(textDocument: TextDocument):Ve
   return {
     uri: textDocument.uri,
     version: textDocument.version
-  };
+  }
 }
 
 export function asSaveTextDocumentParams(document:TextDocument, includeText:boolean):DidSaveTextDocumentParams {
@@ -114,7 +114,7 @@ export function asReferenceParams(textDocument:TextDocument, position:Position, 
     },
     position,
     context: { includeDeclaration: options.includeDeclaration }
-  };
+  }
 }
 
 export function asDocumentSymbolParams(textDocument:TextDocument):DocumentSymbolParams {
@@ -132,4 +132,3 @@ export function asCodeLensParams(textDocument:TextDocument):CodeLensParams {
     }
   }
 }
-

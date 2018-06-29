@@ -18,13 +18,13 @@ import {
 } from './util/string'
 import {
   echoErr,
-  EventEmitter,
-  Event,
   echoMessage,
 } from './util/index'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
 import {
+  Emitter,
+  Event,
   TextDocument,
   FormattingOptions,
   DidChangeTextDocumentParams,
@@ -63,14 +63,14 @@ export class Workspace {
   private buffers:{[index:number]:Document|null}
   private watchmanPromise: Promise<Watchman>
   private _configurations: Configurations
-  private _onDidEnterDocument = new EventEmitter<DocumentInfo>()
-  private _onDidAddDocument = new EventEmitter<TextDocument>()
-  private _onDidRemoveDocument = new EventEmitter<TextDocument>()
-  private _onDidChangeDocument = new EventEmitter<DidChangeTextDocumentParams>()
-  private _onWillSaveDocument = new EventEmitter<TextDocumentWillSaveEvent>()
-  private _onDidSaveDocument = new EventEmitter<TextDocument>()
-  private _onDidChangeConfiguration = new EventEmitter<void>()
-  private _onDidWorkspaceInitialized = new EventEmitter<void>()
+  private _onDidEnterDocument = new Emitter<DocumentInfo>()
+  private _onDidAddDocument = new Emitter<TextDocument>()
+  private _onDidRemoveDocument = new Emitter<TextDocument>()
+  private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
+  private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
+  private _onDidSaveDocument = new Emitter<TextDocument>()
+  private _onDidChangeConfiguration = new Emitter<void>()
+  private _onDidWorkspaceInitialized = new Emitter<void>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
@@ -110,9 +110,9 @@ export class Workspace {
     watchFiles(this.configFiles, async () => {
       let config = await this.loadConfigurations()
       this._configurations = new Configurations(config)
-      this._onDidChangeConfiguration.fire()
+      this._onDidChangeConfiguration.fire(void 0)
     })
-    this._onDidWorkspaceInitialized.fire()
+    this._onDidWorkspaceInitialized.fire(void 0)
   }
 
   public getNvimSetting<K extends keyof NvimSettings>(name:K):NvimSettings[K] {

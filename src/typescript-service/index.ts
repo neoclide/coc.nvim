@@ -2,10 +2,12 @@ import workspace from '../workspace'
 import {
   IServiceProvider,
   ServiceStat,
-  EventEmitter,
-  Disposable,
-  Event,
 } from '../types'
+import {
+  Disposable,
+  Emitter,
+  Event,
+} from 'vscode-languageserver-protocol'
 import {
   disposeAll
 } from '../util/index'
@@ -25,7 +27,7 @@ export default class TsserverService implements IServiceProvider {
   public languageIds:string[]
   public state = ServiceStat.Initial
   private clientHost: TypeScriptServiceClientHost
-  private _onDidServiceReady = new EventEmitter<void>()
+  private _onDidServiceReady = new Emitter<void>()
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
   private readonly disposables: Disposable[] = []
 
@@ -36,7 +38,7 @@ export default class TsserverService implements IServiceProvider {
     if (!enableJavascript) {
       ids = ids.filter(id => id.indexOf('javascript') == -1)
     }
-    this.enable = config.get<boolean>('enable') != false
+    this.enable = config.get<boolean>('enable')
     this.languageIds = ids
   }
 
@@ -51,7 +53,7 @@ export default class TsserverService implements IServiceProvider {
     })
     let client = this.clientHost.serviceClient
     client.onTsServerStarted(() => {
-      this._onDidServiceReady.fire()
+      this._onDidServiceReady.fire(void 0)
     })
     this.disposables.push(client)
   }
@@ -69,6 +71,6 @@ export default class TsserverService implements IServiceProvider {
   public async stop():Promise<void> {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
-    
+    return client.stop()
   }
 }

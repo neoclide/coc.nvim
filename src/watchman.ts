@@ -3,8 +3,8 @@ import {resolveRoot} from './util/fs'
 import watchman = require('fb-watchman')
 import uuidv1 = require('uuid/v1')
 import fs = require('fs')
+import which = require('which')
 const logger = require('./util/logger')('watchman')
-const which = require('which')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
 export interface WatchResponse {

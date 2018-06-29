@@ -42,6 +42,9 @@ import {
   CodeAction,
   CodeActionContext,
   DocumentSelector,
+  Emitter,
+  Event,
+  Disposable,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -50,11 +53,8 @@ import {
   ReferenceContext,
 } from './provider'
 import {
-  Disposable,
   echoMessage,
-  EventEmitter,
   rangeOfLine,
-  Event,
 } from './util'
 import {
   byteSlice,
@@ -73,7 +73,7 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-export function check(_target: any, _key: string, descriptor: any) {
+export function check(_target: any, _key: string, descriptor: any):void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
@@ -91,7 +91,7 @@ export function check(_target: any, _key: string, descriptor: any) {
 
 class Languages {
   public nvim:Neovim
-  private _onDidCompletionSourceCreated = new EventEmitter<ISource>()
+  private _onDidCompletionSourceCreated = new Emitter<ISource>()
   private completionProviders: CompletionSource[] = []
   private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
   private renameProviderMap: Map<string, RenameProvider> = new Map()
@@ -145,7 +145,7 @@ class Languages {
     }
   }
 
-  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider) {
+  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider):Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     let map = this.codeActionProviderMap
     for (let languageId of languageIds) {
@@ -153,17 +153,15 @@ class Languages {
       providers.push(provider)
       map.set(languageId, providers)
     }
-    return {
-      dispose: () => {
-        for (let languageId of languageIds) {
-          let providers = map.get(languageId) || []
-          let idx = providers.findIndex(o => o == provider)
-          if (idx != -1) {
-            providers.splice(idx, 1)
-          }
+    return Disposable.create(() => {
+      for (let languageId of languageIds) {
+        let providers = map.get(languageId) || []
+        let idx = providers.findIndex(o => o == provider)
+        if (idx != -1) {
+          providers.splice(idx, 1)
         }
       }
-    }
+    })
   }
 
   public registerHoverProvider(languageIds: string| string[], provider:HoverProvider):Disposable {
@@ -416,7 +414,7 @@ class Languages {
         } else {
           prevItem.data.resolving = true
           let token = this.token
-          resolved = await provider.resolveCompletionItem(prevItem, this.token)
+          resolved = await Promise.resolve(provider.resolveCompletionItem(prevItem, this.token))
           prevItem.data.resolving = false
           if (!resolved || token.isCancellationRequested) return
           resolved.data = Object.assign(resolved.data || {}, {
@@ -474,7 +472,7 @@ class Languages {
           triggerCharacter
         }
         let cancellSource = new CancellationTokenSource()
-        let result = await provider.provideCompletionItems(document, position, cancellSource.token, context)
+        let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         let isIncomplete = (result as CompletionList).isIncomplete || false
         completeItems = Array.isArray(result) ? result : result.items
         if (firstChar) {
@@ -597,10 +595,10 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
     filterText: validString(item.filterText) ? item.filterText : item.label,
     isSnippet
   }
-  if (!isSnippet && !item.insertText && item.textEdit) {
+  if (!isSnippet && !item.insertText && item.textEdit) { // tslint:disable-line
     obj.word = item.textEdit.newText
     // make sure we can find it on CompleteDone
-    item.insertText = obj.word
+    item.insertText = obj.word // tslint:disable-line
   }
   obj.abbr = obj.filterText
   if (isSnippet) obj.abbr = obj.abbr + '~'

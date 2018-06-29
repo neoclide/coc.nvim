@@ -64,20 +64,6 @@ ultisnips      |Snippets name completion   |User defined | Install [ultisnips](h
 languageclient |Completion from LSP service|User defined | Install [LanguageClient-neovim](https://github.com/autozimu/LanguageClient-neovim)
 neco           |VimL completion            |vim          | Install [neco-vim](https://github.com/Shougo/neco-vim)
 
-### Variables
-
-* `g:coc_snippet_next`, navigate to next placeholder, default `<C-j>`
-* `g:coc_snippet_previous`, navigate to previous placeholder, default `<C-k>`
-
-### Commands
-
-Commands are used change the service status on the fly.
-
-Name                 | Description
-------------         | -------------
-`:CocRefresh [name]` | Refresh `name` source, or all sources without argument.
-`:Denite coc`        | Check source list of current buffer in [denite.nvim](https://github.com/Shougo/denite.nvim) buffer.
-
 ## Trouble shooting
 
 When you find the plugin is not working as you would expected, run command

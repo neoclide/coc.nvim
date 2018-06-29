@@ -1,11 +1,11 @@
 import * as cp from 'child_process'
 import ChildProcess = cp.ChildProcess
-import EventEmitter = require('events')
+import Emitter = require('events')
 const logger = require('../util/logger')('model-stdioService')
 
 export type Callback = (msg:string) => void
 
-export default class StdioService extends EventEmitter {
+export default class StdioService extends Emitter {
   private child:ChildProcess
   private running:boolean
 

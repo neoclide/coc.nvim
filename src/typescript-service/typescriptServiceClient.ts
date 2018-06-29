@@ -22,14 +22,14 @@ import {
 } from './utils/configuration'
 import Uri from 'vscode-uri'
 import {
-  EventEmitter,
-  Event,
   disposeAll,
   FileSchemes,
   echoErr,
   echoMessage,
 } from '../util'
 import {
+  Emitter,
+  Event,
   Disposable,
   CancellationToken,
 } from 'vscode-languageserver-protocol'
@@ -171,11 +171,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private cancellationPipeName: string | null = null
   private requestQueue: RequestQueue
   private callbacks: CallbackMap
-  private readonly _onTsServerStarted = new EventEmitter<API>()
-  private readonly _onProjectLanguageServiceStateChanged = new EventEmitter<Proto.ProjectLanguageServiceStateEventBody>()
-  private readonly _onDidBeginInstallTypings = new EventEmitter<Proto.BeginInstallTypesEventBody>()
-  private readonly _onDidEndInstallTypings = new EventEmitter<Proto.EndInstallTypesEventBody>()
-  private readonly _onTypesInstallerInitializationFailed = new EventEmitter<
+  private readonly _onTsServerStarted = new Emitter<API>()
+  private readonly _onProjectLanguageServiceStateChanged = new Emitter<Proto.ProjectLanguageServiceStateEventBody>()
+  private readonly _onDidBeginInstallTypings = new Emitter<Proto.BeginInstallTypesEventBody>()
+  private readonly _onDidEndInstallTypings = new Emitter<Proto.EndInstallTypesEventBody>()
+  private readonly _onTypesInstallerInitializationFailed = new Emitter<
     Proto.TypesInstallerInitializationFailedEventBody
   >()
   /**
@@ -199,17 +199,17 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this.tracer = new Tracer(logger)
   }
 
-  private _onDiagnosticsReceived = new EventEmitter<TsDiagnostics>()
+  private _onDiagnosticsReceived = new Emitter<TsDiagnostics>()
   public get onDiagnosticsReceived(): Event<TsDiagnostics> {
     return this._onDiagnosticsReceived.event
   }
 
-  private _onConfigDiagnosticsReceived = new EventEmitter<Proto.ConfigFileDiagnosticEvent>()
+  private _onConfigDiagnosticsReceived = new Emitter<Proto.ConfigFileDiagnosticEvent>()
   public get onConfigDiagnosticsReceived(): Event<Proto.ConfigFileDiagnosticEvent> {
     return this._onConfigDiagnosticsReceived.event
   }
 
-  private _onResendModelsRequested = new EventEmitter<void>()
+  private _onResendModelsRequested = new Emitter<void>()
   public get onResendModelsRequested(): Event<void> {
     return this._onResendModelsRequested.event
   }
@@ -453,7 +453,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     })
     this.setCompilerOptionsForInferredProjects(this._configuration)
     if (resendModels) {
-      this._onResendModelsRequested.fire()
+      this._onResendModelsRequested.fire(void 0)
     }
   }
 
@@ -643,16 +643,12 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private tryCancelRequest(seq: number): boolean {
     try {
       if (this.requestQueue.tryCancelPendingRequest(seq)) {
-        this.tracer.logTrace(
-          `TypeScript Service: canceled request with sequence number ${seq}`
-        )
+        this.tracer.logTrace(`TypeScript Service: canceled request with sequence number ${seq}`)
         return true
       }
 
       if (this.apiVersion.gte(API.v222) && this.cancellationPipeName) {
-        this.tracer.logTrace(
-          `TypeScript Service: trying to cancel ongoing request with sequence number ${seq}`
-        )
+        this.tracer.logTrace(`TypeScript Service: trying to cancel ongoing request with sequence number ${seq}`)
         try {
           fs.writeFileSync(this.cancellationPipeName + seq, '')
         } catch {

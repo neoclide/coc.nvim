@@ -1,6 +1,6 @@
 import * as cp from 'child_process'
 import ChildProcess = cp.ChildProcess
-import EventEmitter = require('events')
+import Emitter = require('events')
 const logger = require('../util/logger')('model-child')
 
 export type Callback = (msg:string) => void
@@ -9,9 +9,9 @@ export type Callback = (msg:string) => void
  * IpcService for commnucate with another nodejs process
  * @public
  *
- * @extends {EventEmitter}
+ * @extends {Emitter}
  */
-export default class IpcService extends EventEmitter {
+export default class IpcService extends Emitter {
   private child:ChildProcess
   private running:boolean
 

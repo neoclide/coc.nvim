@@ -1,9 +1,9 @@
-import {
-  EventEmitter,
-  Event,
-  Disposable,
-} from '../util'
 import Uri from 'vscode-uri'
+import {
+  Disposable,
+  Emitter,
+  Event,
+} from 'vscode-languageserver-protocol'
 import Watchman, {FileChange} from '../watchman'
 import path = require('path')
 const logger = require('../util/logger')('filesystem-watcher')
@@ -11,9 +11,9 @@ const logger = require('../util/logger')('filesystem-watcher')
 export default class FileSystemWatcher implements Disposable {
 
   private subscription: string
-  private _onDidCreate = new EventEmitter<Uri>()
-  private _onDidChange = new EventEmitter<Uri>()
-  private _onDidDelete = new EventEmitter<Uri>()
+  private _onDidCreate = new Emitter<Uri>()
+  private _onDidChange = new Emitter<Uri>()
+  private _onDidDelete = new Emitter<Uri>()
   private watchmanClient: Watchman
 
   public readonly onDidCreate: Event<Uri> = this._onDidCreate.event

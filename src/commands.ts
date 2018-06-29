@@ -66,17 +66,17 @@ export class CommandManager implements Disposable {
   }
 
   /**
-  * Registers a command that can be invoked via a keyboard shortcut,
-  * a menu item, an action, or directly.
-  *
-  * Registering a command with an existing command identifier twice
-  * will cause an error.
-  *
-  * @param command A unique identifier for the command.
-  * @param impl A command handler function.
-  * @param thisArg The `this` context used when invoking the handler function.
-  * @return Disposable which unregisters this command on disposal.
-  */
+   * Registers a command that can be invoked via a keyboard shortcut,
+   * a menu item, an action, or directly.
+   *
+   * Registering a command with an existing command identifier twice
+   * will cause an error.
+   *
+   * @param command A unique identifier for the command.
+   * @param impl A command handler function.
+   * @param thisArg The `this` context used when invoking the handler function.
+   * @return Disposable which unregisters this command on disposal.
+   */
   public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any):Disposable {
     if (this.commands.has(id)) {
       return
@@ -87,7 +87,7 @@ export class CommandManager implements Disposable {
     })
   }
 
-  /**
+ /**
   * Executes the command denoted by the given command identifier.
   *
   * * *Note 1:* When executing an editor command not all types are allowed to

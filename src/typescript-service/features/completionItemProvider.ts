@@ -48,13 +48,13 @@ class ApplyCompletionCodeActionCommand implements CommandItem {
       return
     }
     if (codeActions.length === 1) {
-      applyCodeAction(this.client, codeActions[0])
+      await applyCodeAction(this.client, codeActions[0])
       return
     }
     const idx = await showQuickpick(workspace.nvim, codeActions.map(o => o.description), 'Select code action to apply')
     if (idx < 0) return
     const action = codeActions[idx]
-    applyCodeAction(this.client, action)
+    await applyCodeAction(this.client, action)
     return
   }
 }

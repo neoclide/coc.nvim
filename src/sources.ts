@@ -143,7 +143,9 @@ export default class Sources {
 
   private addSource(name:string, source:ISource):void {
     if (this.names.indexOf(name) !== -1) {
-      echoMessage(this.nvim, `Source "${name}" recreated`).catch(_e => { })
+      echoMessage(this.nvim, `Source "${name}" recreated`).catch(_e => {
+        // noop
+      })
     }
     this.sourceMap.set(name, source)
   }

@@ -27,7 +27,7 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
 }
 
 export interface ProvideTypeDefinitionSignature {
-  (
+  ( // tslint:disable-line
     document: TextDocument,
     position: Position,
     token: CancellationToken
@@ -63,7 +63,7 @@ export class TypeDefinitionFeature extends TextDocumentFeature<TextDocumentRegis
       }
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, {documentSelector: documentSelector})
+        registerOptions: Object.assign({}, {documentSelector})
       })
     } else {
       const implCapabilities = capabilities.typeDefinitionProvider

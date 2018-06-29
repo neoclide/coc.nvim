@@ -2,7 +2,7 @@ import {Neovim} from 'neovim'
 import {CompleteOption} from './types'
 import completes from './completes'
 import workspace from './workspace'
-import EventEmitter = require('events')
+import Emitter = require('events')
 const logger = require('./util/logger')('increment')
 
 export interface LastInsert {
@@ -16,7 +16,7 @@ export interface LastChange {
   timestamp: number
 }
 
-export default class Increment extends EventEmitter {
+export default class Increment extends Emitter {
   public lastInsert?: LastInsert
   public search: string
   // private lastChange: LastChange | null | undefined
