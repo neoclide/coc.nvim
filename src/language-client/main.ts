@@ -337,11 +337,7 @@ export class LanguageClient extends BaseLanguageClient {
     let runDebug = server as{run: any; debug: any}
     if (runDebug.run || runDebug.debug) {
       // We are under debugging. So use debug as well.
-      if (
-        typeof v8debug === 'object' ||
-        this._forceDebug ||
-        startedInDebugMode()
-      ) {
+      if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode()) {
         json = runDebug.debug
       } else {
         json = runDebug.run

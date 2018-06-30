@@ -7,7 +7,6 @@ import {
   TextDocument,
   DidChangeTextDocumentParams,
   DidCloseTextDocumentParams,
-  TextDocumentWillSaveEvent,
   WillSaveTextDocumentParams,
   DidSaveTextDocumentParams,
   VersionedTextDocumentIdentifier,
@@ -16,6 +15,9 @@ import {
   TextDocumentPositionParams,
   TextDocumentItem,
 } from 'vscode-languageserver-protocol'
+import {
+  TextDocumentWillSaveEvent,
+} from '../../types'
 import Uri from 'vscode-uri'
 
 export function documentSelectorToLanguageIds(documentSelector:DocumentSelector):string[] {

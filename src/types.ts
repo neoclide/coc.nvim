@@ -1,6 +1,9 @@
 import {
   Diagnostic,
   Event,
+  TextDocument,
+  TextEdit,
+  TextDocumentSaveReason,
 } from 'vscode-languageserver-protocol'
 
 export type Filter = 'word' | 'fuzzy'
@@ -406,4 +409,60 @@ export interface DiagnosticCollection {
    * [clear](#DiagnosticCollection.clear).
    */
   dispose(): void
+}
+
+/**
+ * An event that is fired when a [document](#TextDocument) will be saved.
+ *
+ * To make modifications to the document before it is being saved, call the
+ * [`waitUntil`](#TextDocumentWillSaveEvent.waitUntil)-function with a thenable
+ * that resolves to an array of [text edits](#TextEdit).
+ */
+export interface TextDocumentWillSaveEvent {
+
+  /**
+   * The document that will be saved.
+   */
+  document: TextDocument;
+
+  /**
+   * The reason why save was triggered.
+   */
+  reason: TextDocumentSaveReason;
+
+  /**
+   * Allows to pause the event loop and to apply [pre-save-edits](#TextEdit).
+   * Edits of subsequent calls to this function will be applied in order. The
+   * edits will be *ignored* if concurrent modifications of the document happened.
+   *
+   * *Note:* This function can only be called during event dispatch and not
+   * in an asynchronous manner:
+   *
+   * ```ts
+   * workspace.onWillSaveTextDocument(event => {
+   * 	// async, will *throw* an error
+   * 	setTimeout(() => event.waitUntil(promise));
+   *
+   * 	// sync, OK
+   * 	event.waitUntil(promise);
+   * })
+   * ```
+   *
+   * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
+   */
+  waitUntil(thenable: Thenable<TextEdit[]>): void;
+
+  /**
+   * Allows to pause the event loop until the provided thenable resolved.
+   *
+   * *Note:* This function can only be called during event dispatch.
+   *
+   * @param thenable A thenable that delays saving.
+   */
+  waitUntil(thenable: Thenable<any>): void;
+}
+
+export interface Thenable<T> {
+  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
+  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
 }

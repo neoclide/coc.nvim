@@ -12,6 +12,7 @@ import {
   IConfigurationModel,
   WorkspaceConfiguration,
   DocumentInfo,
+  TextDocumentWillSaveEvent,
 } from './types'
 import {
   byteIndex
@@ -28,7 +29,6 @@ import {
   TextDocument,
   FormattingOptions,
   DidChangeTextDocumentParams,
-  TextDocumentWillSaveEvent,
   TextDocumentSaveReason,
   WorkspaceEdit,
   Position,
@@ -303,12 +303,45 @@ export class Workspace {
   }
 
   public async onBufferWillSave(bufnr:number):Promise<void> {
+    let {nvim} = this
     let doc = this.buffers[bufnr]
+    let called = false
+    let waitUntil
+    let promise = (resolve, reject):void => {
+      waitUntil = (thenable: Thenable<TextEdit[]|any>):void => {
+        if (called) {
+          reject(new Error('WaitUntil could only be called once'))
+          return
+        }
+        called = true
+        Promise.resolve(thenable).then(res => {
+          if (Array.isArray(res) && typeof res[0].newText == 'string') {
+            doc.applyEdits(nvim, res as TextEdit[]).then(resolve, reject)
+          } else {
+            resolve()
+          }
+        }, reject)
+        setTimeout(() => {
+          reject(new Error('WaitUntil timeout after 1 second'))
+        }, 1000)
+      }
+    }
     if (doc) {
       this._onWillSaveDocument.fire({
         document: doc.textDocument,
-        reason: TextDocumentSaveReason.Manual
+        reason: TextDocumentSaveReason.Manual,
+        waitUntil
       })
+    }
+    if (called) {
+      try {
+        await promise
+      } catch (e) {
+        logger.error(e.message)
+        echoErr(nvim, e.message).catch(_e => {
+          // noop
+        })
+      }
     }
   }
 

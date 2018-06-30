@@ -6,6 +6,8 @@ import Commands from '../commands'
 import * as Window from './utils/window'
 import {
   DiagnosticCollection,
+  Thenable,
+  TextDocumentWillSaveEvent,
 } from '../types'
 import Uri from 'vscode-uri'
 import { ProviderResult } from '../provider'
@@ -40,7 +42,6 @@ import {
   Hover,
   CodeAction,
   RequestType,
-  TextDocumentWillSaveEvent,
   RequestType0,
   RequestHandler,
   RequestHandler0,
@@ -149,11 +150,6 @@ import {Delayer} from './utils/async'
 import * as UUID from './utils/uuid'
 const createLogger = require('../util/logger')
 const logger = require('../util/logger')('language-client-client')
-
-interface Thenable<T> {
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
-	then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
-}
 
 
 interface IConnection {
@@ -1360,10 +1356,7 @@ class DidChangeTextDocumentFeature
   }
 }
 
-class WillSaveFeature extends DocumentNotifiactions<
-  WillSaveTextDocumentParams,
-  TextDocumentWillSaveEvent
-> {
+class WillSaveFeature extends DocumentNotifiactions<WillSaveTextDocumentParams, TextDocumentWillSaveEvent> {
   constructor(client: BaseLanguageClient) {
     super(
       client,
@@ -1403,8 +1396,7 @@ class WillSaveFeature extends DocumentNotifiactions<
   }
 }
 
-class WillSaveWaitUntilFeature
-  implements DynamicFeature<TextDocumentRegistrationOptions> {
+class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistrationOptions> {
   private _listener: Disposable | undefined
   private _selectors: Map<string, DocumentSelector> = new Map<string, DocumentSelector> ()
 
@@ -1415,10 +1407,7 @@ class WillSaveWaitUntilFeature
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    let value = ensure(
-      ensure(capabilities, 'textDocument')!,
-      'synchronization'
-    )!
+    let value = ensure(ensure(capabilities, 'textDocument')!, 'synchronization')!
     value.willSaveWaitUntil = true
   }
 
@@ -1454,12 +1443,9 @@ class WillSaveWaitUntilFeature
   }
 
   private callback(event: TextDocumentWillSaveEvent): void {
-    if (
-      DocumentNotifiactions.textDocumentFilter(
+    if (DocumentNotifiactions.textDocumentFilter(
         this._selectors.values(),
-        event.document
-      )
-    ) {
+        event.document)) {
       let middleware = this._client.clientOptions.middleware!
       let willSaveWaitUntil = (event: TextDocumentWillSaveEvent): Thenable<TextEdit[]> => {
         return this._client
@@ -1471,9 +1457,11 @@ class WillSaveWaitUntilFeature
             return edits ? edits : []
           })
       }
-      middleware.willSaveWaitUntil
+      event.waitUntil(
+        middleware.willSaveWaitUntil
         ? middleware.willSaveWaitUntil(event, willSaveWaitUntil)
         : willSaveWaitUntil(event)
+      )
     }
   }
 
@@ -3875,19 +3863,13 @@ export abstract class BaseLanguageClient {
 
   protected registerBuiltinFeatures() {
     this.registerFeature(new ConfigurationFeature(this))
-    this.registerFeature(
-      new DidOpenTextDocumentFeature(this, this._syncedDocuments)
-    )
+    this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new DidChangeTextDocumentFeature(this))
     this.registerFeature(new WillSaveFeature(this))
     this.registerFeature(new WillSaveWaitUntilFeature(this))
     this.registerFeature(new DidSaveTextDocumentFeature(this))
-    this.registerFeature(
-      new DidCloseTextDocumentFeature(this, this._syncedDocuments)
-    )
-    this.registerFeature(
-      new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event))
-    )
+    this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments))
+    this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
     this.registerFeature(new CompletionItemFeature(this))
     this.registerFeature(new HoverFeature(this))
     this.registerFeature(new SignatureHelpFeature(this))
@@ -3916,14 +3898,8 @@ export abstract class BaseLanguageClient {
   private computeClientCapabilities(): ClientCapabilities {
     let result: ClientCapabilities = {}
     ensure(result, 'workspace')!.applyEdit = true
-    ensure(
-      ensure(result, 'workspace')!,
-      'workspaceEdit'
-    )!.documentChanges = true
-    ensure(
-      ensure(result, 'textDocument')!,
-      'publishDiagnostics'
-    )!.relatedInformation = true
+    ensure(ensure(result, 'workspace')!,'workspaceEdit')!.documentChanges = true
+    ensure(ensure(result, 'textDocument')!,'publishDiagnostics')!.relatedInformation = true
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
     }
@@ -3946,9 +3922,7 @@ export abstract class BaseLanguageClient {
         if (!feature) {
           reject(
             new Error(
-              `No feature implementation for ${
-                registration.method
-              } found. Registration failed.`
+              `No feature implementation for ${registration.method} found. Registration failed.`
             )
           )
           return
@@ -3975,9 +3949,7 @@ export abstract class BaseLanguageClient {
         if (!feature) {
           reject(
             new Error(
-              `No feature implementation for ${
-                unregistration.method
-              } found. Unregistration failed.`
+              `No feature implementation for ${unregistration.method} found. Unregistration failed.`
             )
           )
           return
