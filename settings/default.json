@@ -44,8 +44,7 @@
   "typescript.preferences.completion.nameSuggestions" : true,
   "typescript.preferences.completion.autoImportSuggestions" : true,
   "typescript.preferences.completion.commaAfterImport" : true,
-  // If enabled, the completion list will include completions with invalid identifier names.
-  "typescript.preferences.completion.moduleExports" : false,
+  "typescript.preferences.completion.moduleExports" : true,
   // 'non-relative' or 'relative'
   "typescript.preferences.importModuleSpecifier" : "non-relative",
   "typescript.preferences.suggestionActions.enabled" : true,

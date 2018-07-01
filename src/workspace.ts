@@ -5,6 +5,7 @@ import {
   statAsync,
   resolveDirectory,
   resolveRoot,
+  getLine,
 } from './util/fs'
 import {watchFiles} from './util/watch'
 import {
@@ -13,6 +14,7 @@ import {
   WorkspaceConfiguration,
   DocumentInfo,
   TextDocumentWillSaveEvent,
+  QuickfixItem,
 } from './types'
 import {
   byteIndex
@@ -34,6 +36,7 @@ import {
   Position,
   TextDocumentEdit,
   TextEdit,
+  Location,
 } from 'vscode-languageserver-protocol'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Watchman from './watchman'
@@ -279,8 +282,31 @@ export class Workspace {
       })
       logger.trace('buffer change', bufnr, version)
     })
-    logger.trace('buffer created', bufnr)
+    logger.debug('buffer created', bufnr)
     return document
+  }
+
+  public async getQuickfixItem(loc: Location):Promise<QuickfixItem> {
+    let {uri, range} = loc
+    let {line, character} = range.start
+    let text:string
+    let fullpath = Uri.parse(uri).fsPath
+    let bufnr = await this.nvim.call('bufnr', fullpath)
+    if (bufnr !== -1) {
+      let document = this.getDocument(bufnr)
+      if (document) text = document.getline(line)
+    }
+    if (text == null) {
+      text = await getLine(fullpath, line)
+    }
+    let item:QuickfixItem = {
+      filename: fullpath,
+      lnum: line + 1,
+      col: character + 1,
+      text
+    }
+    if (bufnr !== -1) item.bufnr = bufnr
+    return item
   }
 
   public async onBufferUnload(bufnr:number):Promise<void> {
@@ -290,7 +316,7 @@ export class Workspace {
       this._onDidRemoveDocument.fire(doc.textDocument)
     }
     this.buffers[bufnr] = null
-    logger.trace('bufnr unload', bufnr)
+    logger.debug('bufnr unload', bufnr)
   }
 
   public async bufferEnter(bufnr:number):Promise<void> {

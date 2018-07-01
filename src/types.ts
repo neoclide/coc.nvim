@@ -181,7 +181,7 @@ export interface WorkspaceConfiguration {
    * @param section Configuration name, supports _dotted_ names.
    * @return Information about a configuration setting or `undefined`.
    */
-  inspect<T>(section: string): { key: string; defaultValue?: T; globalValue?: T; folderValue?: T} | undefined
+  inspect<T>(section: string): ConfigurationInspect<T> | undefined
   /**
    * Update a configuration value. The updated configuration values are persisted.
    *

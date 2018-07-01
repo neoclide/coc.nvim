@@ -2464,7 +2464,7 @@ class CodeActionFeature extends TextDocumentFeature<TextDocumentRegistrationOpti
     }
     let middleware = client.clientOptions.middleware!
     let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
-    return languages.registerCodeActionsProvider(
+    return languages.registerCodeActionProvider(
       languageIds,
       {
       provideCodeActions: (

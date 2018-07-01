@@ -266,3 +266,37 @@ function! coc#util#unplace_signs(bufnr, sign_ids)
     execute 'sign unplace '.id.' buffer='.a:bufnr
   endfor
 endfunction
+
+function! s:codelens_jump() abort
+  let lnum = matchstr(getline('.'), '^\d\+')
+  if !empty(lnum)
+    let wnr = bufwinnr(get(b:, 'bufnr', 0))
+    if wnr != -1
+      execute wnr.'wincmd w'
+      execute 'normal! '.lnum.'G'
+    endif
+  endif
+endfunction
+
+function! coc#util#open_codelens()
+  pclose
+  execute &previewheight.'new +setlocal\ buftype=nofile [CodeLens]'
+  setl noswapfile
+  setl nowrap
+  setl nonumber
+  setl norelativenumber
+  setl cursorline
+  setl bufhidden=wipe
+  setl nobuflisted
+  setl nospell
+  execute 'nnoremap <silent> <buffer> '.get(g:, 'coc_codelen_jump_key', '<CR>').' :call <SID>codelens_jump()<CR>'
+  execute 'nnoremap <silent> <buffer> '.get(g:, 'coc_codelen_action_key', 'd').' :call CocAction("codeLensAction")<CR>'
+  syntax clear
+  syntax case match
+  syntax match codelinesLine        /^.*$/
+  syntax match codelinesLineNumbder /^\d\+/       contained nextgroup=codelinesAction containedin=codelinesLine
+  syntax match codelinesAction      /\%x0c.*\%x0c/ contained containedin=codelinesLine contains=codelinesSepChar
+  syntax match codelinesSepChar     /\%x0c/        conceal cchar=:
+  hi def link codelinesLineNumbder Comment
+  hi def link codelinesAction      MoreMsg
+endfunction

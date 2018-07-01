@@ -1,12 +1,12 @@
-import {Disposable} from 'vscode-languageserver-protocol'
+import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
+import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
 // command center
 export interface Command {
   readonly id: string | string[]
-
   execute(...args: any[]): void | Promise<void>
 }
 
@@ -41,6 +41,22 @@ export class CommandManager implements Disposable {
             logger.error(e.stack)
           })
         }, 30)
+      }
+    })
+    this.register({
+      id: 'editor.action.showReferences',
+      execute: async (_filepath:string, _position:Position, references:Location[]) => {
+        try {
+          let show = await nvim.getVar('coc_show_quickfix')
+          let items = await Promise.all(references.map(loc => {
+            return workspace.getQuickfixItem(loc)
+          }))
+          await nvim.call('setqflist', [items, 'r', 'Results of references'])
+          if (show) await nvim.command('copen')
+          await nvim.command('doautocmd User CocQuickfixChange')
+        } catch (e) {
+          logger.error(e.stack)
+        }
       }
     })
   }

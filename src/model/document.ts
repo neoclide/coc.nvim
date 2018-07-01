@@ -176,7 +176,7 @@ export default class Document {
     let {buffer} = this
     // don't listen to terminal buffer
     let buftype = await buffer.getOption('buftype') as string
-    if (buftype !== '') return this.detach()
+    if (buftype != '') return this.detach()
     this.lines = await buffer.lines as string[]
     this._changedtick = await buffer.changedtick
     this.createDocument()

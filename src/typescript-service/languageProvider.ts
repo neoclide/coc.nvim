@@ -28,6 +28,9 @@ import WorkspaceSymbolProvider from './features/workspaceSymbols'
 import OrganizeImportsProvider from './features/organizeImports'
 import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
+import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
+import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
+import ReferencesCodeLensProvider from './features/referencesCodeLens'
 import {LanguageDescription} from './utils/languageDescription'
 import API from './utils/api'
 const logger = require('../util/logger')('typescript-langauge-provider')
@@ -178,6 +181,20 @@ export default class LanguageProvider {
           languageIds,
           new OrganizeImportsProvider(client, commandManager))
       )
+    }
+
+    if (this.client.apiVersion.gte(API.v206)) {
+      let cachedResponse = new CachedNavTreeResponse()
+      this.disposables.push(
+        languages.registerCodeLensProvider(
+          languageIds,
+          new ReferencesCodeLensProvider(client, cachedResponse)))
+      if (this.client.apiVersion.gte(API.v220)) {
+        this.disposables.push(
+          languages.registerCodeLensProvider(
+            languageIds,
+            new ImplementationsCodeLensProvider(client, cachedResponse)))
+      }
     }
   }
 

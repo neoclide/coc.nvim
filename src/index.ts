@@ -21,7 +21,7 @@ export default class CompletePlugin {
 
   constructor(public nvim: Neovim) {
     this.emitter = new Emitter()
-    this.handler = new Handler(nvim)
+    this.handler = new Handler(nvim, this.emitter)
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
@@ -217,6 +217,10 @@ export default class CompletePlugin {
           return services.restart(args[1])
         case 'codeAction':
           return handler.doCodeAction(args[1])
+        case 'codeLens':
+          return handler.doCodeLens()
+        case 'codeLensAction':
+          return handler.doCodeLensAction()
         default:
           logger.error(`unknown action ${args[0]}`)
       }

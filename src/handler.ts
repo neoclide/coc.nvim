@@ -26,6 +26,7 @@ import {
 } from './util'
 import Uri from 'vscode-uri'
 import {getLine} from './util/fs'
+import CodeLensBuffer from './codelens'
 import debounce = require('debounce')
 const logger = require('./util/logger')('Handler')
 
@@ -42,13 +43,22 @@ interface SymbolInfo {
 export default class Handler {
   public showSignatureHelp: ()=>void
   private currentSymbols: SymbolInformation[]
+  private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
+  // codeLens instances
 
-  constructor(private nvim:Neovim) {
+  constructor(private nvim:Neovim, emitter) {
     this.showSignatureHelp = debounce(() => {
       this._showSignatureHelp().catch(e=> {
         logger.error(e.stack)
       })
     }, 100)
+    emitter.on('BufUnload', bufnr => {
+      let codeLensBuffer = this.codeLensBuffers.get(bufnr)
+      if (codeLensBuffer) {
+        codeLensBuffer.dispose()
+        this.codeLensBuffers.delete(bufnr)
+      }
+    })
   }
 
   private async getSelectedRange (mode: string, document: TextDocument): Promise<Range> {
@@ -134,33 +144,10 @@ export default class Handler {
     }
   }
 
-  private async getQuickfixItem(loc: Location):Promise<QuickfixItem> {
-    let {uri, range} = loc
-    let {line, character} = range.start
-    let text:string
-    let fullpath = Uri.parse(uri).fsPath
-    let bufnr = await this.nvim.call('bufnr', fullpath)
-    if (bufnr !== -1) {
-      let document = workspace.getDocument(bufnr)
-      if (document) text = document.getline(line)
-    }
-    if (text == null) {
-      text = await getLine(fullpath, line)
-    }
-    let item:QuickfixItem = {
-      filename: fullpath,
-      lnum: line + 1,
-      col: character + 1,
-      text
-    }
-    if (bufnr !== -1) item.bufnr = bufnr
-    return item
-  }
-
   private async addQuickfix(locations:Location[]):Promise<void> {
     let show = await this.nvim.getVar('coc_show_quickfix')
     let items = await Promise.all(locations.map(loc => {
-      return this.getQuickfixItem(loc)
+      return workspace.getQuickfixItem(loc)
     }))
     await this.nvim.call('setqflist', [items, 'r', 'Results of coc'])
     if (show) await this.nvim.command('copen')
@@ -381,6 +368,28 @@ export default class Handler {
     let action = codeActions[idx]
     if (action && action.command) {
       commandManager.execute(action.command)
+    }
+  }
+
+  public async doCodeLens():Promise<void> {
+    let {document} = await workspace.getCurrentState()
+    if (!document) return
+    let codeLens = await languages.getCodeLens(document)
+    let buffer = await this.nvim.buffer
+    let codeLensBuffer = new CodeLensBuffer(this.nvim, buffer.id, codeLens)
+    this.codeLensBuffers.set(buffer.id, codeLensBuffer)
+  }
+
+  public async doCodeLensAction():Promise<void> {
+    let {nvim} = this
+    let buffer = await nvim.buffer
+    let bufnr = await buffer.getVar('bufnr')
+    if (!bufnr) return
+    let line = await nvim.call('getline', ['.'])
+    let ms = line.match(/^\d+/)
+    if (ms) {
+      let codeLensBuffer = this.codeLensBuffers.get(Number(bufnr))
+      if (codeLensBuffer) await codeLensBuffer.doAction(Number(ms[0]))
     }
   }
 

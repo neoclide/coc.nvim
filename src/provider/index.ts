@@ -16,6 +16,9 @@ import {
   CodeAction,
   Definition,
   CodeActionKind,
+  DocumentLink,
+  DocumentHighlight,
+  CodeLens,
 } from 'vscode-languageserver-protocol'
 
 /**
@@ -557,3 +560,81 @@ export interface CodeActionProviderMetadata {
    */
   readonly providedCodeActionKinds?: ReadonlyArray<CodeActionKind>
 }
+
+/**
+ * The document highlight provider interface defines the contract between extensions and
+ * the word-highlight-feature.
+ */
+export interface DocumentHighlightProvider {
+
+  /**
+   * Provide a set of document highlights, like all occurrences of a variable or
+   * all exit-points of a function.
+   *
+   * @param document The document in which the command was invoked.
+   * @param position The position at which the command was invoked.
+   * @param token A cancellation token.
+   * @return An array of document highlights or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentHighlights(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<DocumentHighlight[]>
+}
+
+/**
+ * The document link provider defines the contract between extensions and feature of showing
+ * links in the editor.
+ */
+export interface DocumentLinkProvider {
+
+  /**
+   * Provide links for the given document. Note that the editor ships with a default provider that detects
+   * `http(s)` and `file` links.
+   *
+   * @param document The document in which the command was invoked.
+   * @param token A cancellation token.
+   * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
+   * can be signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>;
+
+  /**
+   * Given a link fill in its [target](#DocumentLink.target). This method is called when an incomplete
+   * link is selected in the UI. Providers can implement this method and return incomple links
+   * (without target) from the [`provideDocumentLinks`](#DocumentLinkProvider.provideDocumentLinks) method which
+   * often helps to improve performance.
+   *
+   * @param link The link that is to be resolved.
+   * @param token A cancellation token.
+   */
+  resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>;
+}
+
+/**
+ * A code lens provider adds [commands](#Command) to source text. The commands will be shown
+ * as dedicated horizontal lines in between the source text.
+ */
+export interface CodeLensProvider {
+
+  /**
+   * Compute a list of [lenses](#CodeLens). This call should return as fast as possible and if
+   * computing the commands is expensive implementors should only return code lens objects with the
+   * range set and implement [resolve](#CodeLensProvider.resolveCodeLens).
+   *
+   * @param document The document in which the command was invoked.
+   * @param token A cancellation token.
+   * @return An array of code lenses or a thenable that resolves to such. The lack of a result can be
+   * signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>;
+
+  /**
+   * This function will be called for each visible code lens, usually when scrolling and after
+   * calls to [compute](#CodeLensProvider.provideCodeLenses)-lenses.
+   *
+   * @param codeLens code lens that must be resolved.
+   * @param token A cancellation token.
+   * @return The given, resolved code lens or thenable that resolves to such.
+   */
+  resolveCodeLens?(codeLens: CodeLens, token: CancellationToken): ProviderResult<CodeLens>;
+}
+

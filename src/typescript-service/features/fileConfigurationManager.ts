@@ -128,9 +128,9 @@ export default class FileConfigurationManager {
       importModuleSpecifierPreference: getImportModuleSpecifier(config) as any,
       disableSuggestions: !config.get<boolean>('suggestionActions.enabled'),
       quotePreference: getQuoteType(config),
-      includeCompletionsForModuleExports: config.get<boolean>('completion.moduleExports', false),
+      includeCompletionsForModuleExports: config.get<boolean>('completion.moduleExports', true),
       includeCompletionsWithInsertText: false,
-      allowTextChangesInNewFiles: false,
+      allowTextChangesInNewFiles: true,
     }
   }
 }

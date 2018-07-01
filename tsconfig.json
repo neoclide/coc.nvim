@@ -18,6 +18,5 @@
     "src"
   ],
   "exclude": [
-    ".git"
   ]
 }

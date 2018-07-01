@@ -12,6 +12,9 @@ import {
   DocumentFormattingEditProvider,
   DocumentRangeFormattingEditProvider,
   CodeActionProvider,
+  DocumentHighlightProvider,
+  DocumentLinkProvider,
+  CodeLensProvider,
 } from './provider'
 import {
   ISource,
@@ -45,6 +48,9 @@ import {
   Emitter,
   Event,
   Disposable,
+  DocumentHighlight,
+  DocumentLink,
+  CodeLens,
 } from 'vscode-languageserver-protocol'
 import {
   CompletionContext,
@@ -71,6 +77,26 @@ export interface CompletionSource {
   id: string
   source: ISource
   languageIds: string[]
+}
+
+export function checkTimeout(_target: any, _key: string, descriptor: any):void {
+  let fn = descriptor.value
+  if (typeof fn !== 'function') {
+    return
+  }
+
+  descriptor.value = function(...args):any {
+    return new Promise((resolve, reject) => {
+      let resolved = false
+      setTimeout(() => {
+        if (!resolved) reject(new Error('timeout after 1s'))
+      }, 1000)
+      Promise.resolve(fn.apply(this, args)).then(res => {
+        resolved = true
+        resolve(res)
+      })
+    })
+  }
 }
 
 export function check(_target: any, _key: string, descriptor: any):void {
@@ -105,6 +131,9 @@ class Languages {
   private documentSymbolMap: Map<string, DocumentSymbolProvider> = new Map()
   private signatureHelpProviderMap: Map<string, SignatureHelpProvider> = new Map()
   private codeActionProviderMap: Map<string, CodeActionProvider[]> = new Map()
+  private documentHighlightMap: Map<string, DocumentHighlightProvider> = new Map()
+  private documentLinkMap: Map<string, DocumentLinkProvider> = new Map()
+  private codeLensProviderMap: Map<string, CodeLensProvider[]> = new Map()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
 
@@ -145,9 +174,8 @@ class Languages {
     }
   }
 
-  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider):Disposable {
+  private registerProviderList<T>(languageIds: string| string[], provider: T, map:Map<string, T[]>):Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    let map = this.codeActionProviderMap
     for (let languageId of languageIds) {
       let providers = map.get(languageId) || []
       providers.push(provider)
@@ -162,6 +190,10 @@ class Languages {
         }
       }
     })
+  }
+
+  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider):Disposable {
+    return this.registerProviderList(languageIds, provider, this.codeActionProviderMap)
   }
 
   public registerHoverProvider(languageIds: string| string[], provider:HoverProvider):Disposable {
@@ -179,24 +211,16 @@ class Languages {
     return this.registerProvider(languageIds, provider, this.signatureHelpProviderMap)
   }
 
-  public registerDocumentHighlightProvider(_languageIds: string| string[], _provider:any):Disposable {
-    // TODO
-    return Disposable.create(() => { })
+  public registerDocumentHighlightProvider(languageIds: string| string[], provider:any):Disposable {
+    return this.registerProvider(languageIds, provider, this.documentHighlightMap)
   }
 
-  public registerCodeActionsProvider(_languageIds: string| string[], _provider:any):Disposable {
-    // TODO
-    return Disposable.create(() => { })
+  public registerCodeLensProvider(languageIds: string| string[], provider:any):Disposable {
+    return this.registerProviderList(languageIds, provider, this.codeLensProviderMap)
   }
 
-  public registerCodeLensProvider(_languageIds: string| string[], _provider:any):Disposable {
-    // TODO
-    return Disposable.create(() => { })
-  }
-
-  public registerDocumentLinkProvider(_languageIds: string| string[], _provider:any):Disposable {
-    // TODO
-    return Disposable.create(() => { })
+  public registerDocumentLinkProvider(languageIds: string| string[], provider:any):Disposable {
+    return this.registerProvider(languageIds, provider, this.documentLinkMap)
   }
 
   public registerDefinitionProvider(languageIds: string| string[], provider:DefinitionProvider):Disposable {
@@ -355,6 +379,56 @@ class Languages {
     return res
   }
 
+  @check
+  public async getDocumentHighLight(document:TextDocument, position:Position):Promise<DocumentHighlight[]> {
+    let provider = this.getProvider(document, this.documentHighlightMap)
+    if (!provider) return null
+    return await Promise.resolve(provider.provideDocumentHighlights(document, position, this.token))
+  }
+
+  @check
+  public async getDocumentLinks(document:TextDocument):Promise<DocumentLink[]> {
+    let provider = this.getProvider(document, this.documentLinkMap)
+    if (!provider) return null
+    return await Promise.resolve(provider.provideDocumentLinks(document, this.token))
+  }
+
+  @check
+  public async resolveDocumentLink(document:TextDocument, link:DocumentLink):Promise<DocumentLink> {
+    let provider = this.getProvider(document, this.documentLinkMap)
+    if (!provider) return null
+    return await Promise.resolve(provider.resolveDocumentLink(link, this.token))
+  }
+
+  @check
+  public async getCodeLens(document:TextDocument):Promise<CodeLens[]> {
+    let providers = this.getProvider(document, this.codeLensProviderMap)
+    if (!providers || providers.length == 0) return null
+    let codeLens = []
+    let index = 0
+    for (let provider of providers) {
+      let items = await Promise.resolve(provider.provideCodeLenses(document, this.token))
+      codeLens = codeLens.concat(items.map(o => {
+        o.data.index = index
+        return o
+      }))
+      index = index + 1
+    }
+    return codeLens
+  }
+
+  @checkTimeout
+  public async resolveCodeLens(document:TextDocument, codeLens:CodeLens):Promise<CodeLens> {
+    let providers = this.getProvider(document, this.codeLensProviderMap)
+    if (!providers || providers.length == 0) return null
+    let {data} = codeLens
+    let provider = providers[data.index]
+    if (!provider) return null
+    let cancelTokenSource = new CancellationTokenSource()
+    let token = cancelTokenSource.token
+    return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
+  }
+
   public dispose():void {
     // noop
   }
@@ -490,7 +564,7 @@ class Languages {
 
   public match(documentSelector:DocumentSelector, document:TextDocument):boolean {
     if (documentSelector.length == 0) {
-      throw new Error('Invliad document selector')
+      return false
     }
     let languageIds = documentSelector.map(filter => {
       if (typeof filter == 'string') {
@@ -499,9 +573,7 @@ class Languages {
       return filter.language
     })
     languageIds = languageIds.filter(s => s != null)
-    if (languageIds.length == 0) {
-      throw new Error('Invliad document selector')
-    }
+    if (languageIds.length == 0) return false
     let {languageId} = document
     return languageIds.indexOf(languageId) != -1
   }
