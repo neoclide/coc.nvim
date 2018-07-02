@@ -189,8 +189,24 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			  endif
 			  return join(msgs, ' ')
 			endfunction
-
 <
+
+g:coc_codelen_jump_key 				*g:coc_codelen_jump_key*
+
+			Jump key for jump to original position in codeLens
+			buffer.
+
+			Default: <CR>
+
+g:coc_codelen_action_key 			*g:coc_codelen_action_key*
+
+			Do command of codeLens in codeLens buffer, a prompt
+			would be shown if multiply codeLens found at the
+			same line.
+
+			Default: <d>
+
+
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
 
@@ -250,16 +266,25 @@ CocAction({action}, [...{args}])
 
 	'codeAction': prompty for a code action and do it.
 
+	'codeLens': open codelens buffer in split window, you can jump
+		    (use <CR> by default) and do command in codelens buffer
+
+	'codeLensAction': do command of codelens, should only be used in
+			  codelens buffer
+
 						*coc#refresh()*
 coc#refresh()
 
-	Start or refresh completion at current cursor position.
+	Start or refresh completion at current cursor position, bind this to
+	'imap' for trigger completion, like: >
 
+	  inoremap <silent><expr> <c-space> coc#refresh()
+<
 
 						*health#coc#check()*
 health#coc#check()
 	
-	Run health check.
+	Run health check, triggered by ':checkhealth' command.
 
 ------------------------------------------------------------------------------
 
@@ -284,12 +309,17 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocQuickfixChange {command}
 
-		Used for open a custom list for the quickfix results, for
-		example: >
+		Used for open a custom list for the quickfix results of coc,
+		for example: >
 
   	autocmd User CocQuickfixChange :Denite -immediately quickfix
-
 <
+		If you want to keep the behavior of open quickfix list after
+		quickfix change, you can use:
+>
+	  autocmd QuickFixCmdPost * botright copen 8
+<
+
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
 
