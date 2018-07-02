@@ -7,7 +7,7 @@ import workspace from '../../workspace'
 
 export function errorMsg(msg):void {
   if (workspace.nvim) {
-    echoErr(workspace.nvim, msg).catch(err => {
+    echoErr(workspace.nvim, msg).catch(_err => {
       // noop
     })
   }
@@ -15,7 +15,7 @@ export function errorMsg(msg):void {
 
 export function moreMsg(msg):void {
   if (workspace.nvim) {
-    echoMessage(workspace.nvim, msg).catch(err => {
+    echoMessage(workspace.nvim, msg).catch(_err => {
       // noop
     })
   }
@@ -23,7 +23,7 @@ export function moreMsg(msg):void {
 
 export function warningMsg(msg):void {
   if (workspace.nvim) {
-    echoWarning(workspace.nvim, msg).catch(err => {
+    echoWarning(workspace.nvim, msg).catch(_err => {
       // noop
     })
   }

@@ -1,8 +1,13 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 import workspace from '../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as languageIds from '../utils/languageModeIds'
 import API from '../utils/api'
+import {WorkspaceConfiguration} from '../../types'
 const logger = require('../../util/logger')('typescript-service-fileConfigurationManager')
 
 function objAreEqual<T>(a: T, b: T): boolean {
@@ -62,6 +67,10 @@ export default class FileConfigurationManager {
 
   public reset():void {
     this.cachedOption = null
+  }
+
+  public getLanguageConfiguration(languageId:string):WorkspaceConfiguration {
+    return workspace.getConfiguration(languageId)
   }
 
   public isTypeScriptDocument(languageId: string):boolean {

@@ -1,4 +1,4 @@
-import {Function, Neovim, Plugin} from 'neovim'
+import { Function, Neovim, Plugin } from 'neovim'
 import commands from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -7,8 +7,8 @@ import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import {VimCompleteItem} from './types'
-import {echoErr} from './util'
+import { VimCompleteItem } from './types'
+import { echoErr } from './util'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('index')
@@ -48,7 +48,7 @@ export default class CompletePlugin {
       await workspace.init()
       completion.init(nvim, this.emitter)
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
-      await nvim.command('silent doautocmd User CocNvimInit')
+      await nvim.command('doautocmd User CocNvimInit')
       services.init(nvim)
       this.initialized = true
       logger.info('Coc service Initialized')
@@ -216,7 +216,7 @@ export default class CompletePlugin {
         case 'restartService':
           return services.restart(args[1])
         case 'codeAction':
-          return handler.doCodeAction(args[1])
+          return handler.doCodeAction(args[1], args[2])
         case 'codeLens':
           return handler.doCodeLens()
         case 'codeLensAction':

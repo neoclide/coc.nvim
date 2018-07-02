@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {Command, CommandManager} from '../../commands'
@@ -15,14 +19,18 @@ import {
   CodeActionKind,
 } from 'vscode-languageserver-protocol'
 import workspace from '../../workspace'
+import FileConfigurationManager from './fileConfigurationManager'
 const logger = require('../../util/logger')('typescript-organizeImports')
 
 class OrganizeImportsCommand implements Command {
   public static readonly Id = '_typescript.organizeImports'
-
   public readonly id = OrganizeImportsCommand.Id
 
-  constructor(private readonly client: ITypeScriptServiceClient) {}
+  constructor(
+    private readonly client: ITypeScriptServiceClient,
+    private commaAfterImport:boolean,
+  ) {
+  }
 
   public async execute(file: string): Promise<void> {
     const args: Proto.OrganizeImportsRequestArgs = {
@@ -38,11 +46,21 @@ class OrganizeImportsCommand implements Command {
       return
     }
 
-    const edits = typeconverts.WorkspaceEdit.fromFileCodeEdits(
+    const edit = typeconverts.WorkspaceEdit.fromFileCodeEdits(
       this.client,
       response.body
     )
-    await workspace.applyEdit(edits)
+    if (!this.commaAfterImport) {
+      let {changes} = edit
+      if (changes) {
+        for (let c of Object.keys(changes)) {
+          for (let textEdit of changes[c]) {
+            textEdit.newText = textEdit.newText.replace(/;/g, '')
+          }
+        }
+      }
+    }
+    await workspace.applyEdit(edit)
     return
   }
 }
@@ -51,8 +69,11 @@ export default class OrganizeImportsCodeActionProvider implements CodeActionProv
   public constructor(
     private readonly client: ITypeScriptServiceClient,
     commandManager: CommandManager,
+    fileConfigurationManager: FileConfigurationManager,
+    languageId: string
   ) {
-    commandManager.register(new OrganizeImportsCommand(client))
+    let option = fileConfigurationManager.getCompleteOptions(languageId)
+    commandManager.register(new OrganizeImportsCommand(client, option.commaAfterImport))
   }
 
   public readonly metadata: CodeActionProviderMetadata = {

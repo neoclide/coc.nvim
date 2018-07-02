@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 import languages from '../languages'
 import workspace from '../workspace'
 import commandManager from '../commands'
@@ -98,7 +102,7 @@ export default class LanguageProvider {
     let languageIds = this.description.modeIds
     this.disposables.push(
       languages.registerCompletionItemProvider(
-        'tsserver',
+        `tsserver-${this.description.id}`,
         'TSC',
         languageIds,
         new CompletionItemProvider(
@@ -179,22 +183,25 @@ export default class LanguageProvider {
       this.disposables.push(
         languages.registerCodeActionProvider(
           languageIds,
-          new OrganizeImportsProvider(client, commandManager))
+          new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id))
       )
     }
-
-    if (this.client.apiVersion.gte(API.v206)) {
-      let cachedResponse = new CachedNavTreeResponse()
+    let {fileConfigurationManager, description} = this
+    let conf = fileConfigurationManager.getLanguageConfiguration(description.id)
+    let cachedResponse = new CachedNavTreeResponse()
+    if (this.client.apiVersion.gte(API.v206)
+      && conf.get('referencesCodeLens.enable')) {
       this.disposables.push(
         languages.registerCodeLensProvider(
           languageIds,
           new ReferencesCodeLensProvider(client, cachedResponse)))
-      if (this.client.apiVersion.gte(API.v220)) {
-        this.disposables.push(
-          languages.registerCodeLensProvider(
-            languageIds,
-            new ImplementationsCodeLensProvider(client, cachedResponse)))
-      }
+    }
+    if (this.client.apiVersion.gte(API.v220)
+      && conf.get('implementationsCodeLens.enable')) {
+      this.disposables.push(
+        languages.registerCodeLensProvider(
+          languageIds,
+          new ImplementationsCodeLensProvider(client, cachedResponse)))
     }
   }
 

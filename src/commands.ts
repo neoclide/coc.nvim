@@ -1,6 +1,6 @@
-import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
-import {Neovim} from 'neovim'
+import { Neovim } from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
+import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
 import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 

@@ -265,6 +265,8 @@ CocAction({action}, [...{args}])
 	'restartService': restart a service.
 
 	'codeAction': prompty for a code action and do it.
+		      First {args} is result of `visualmode()`,
+		      second {args} is title of a code action.
 
 	'codeLens': open codelens buffer in split window, you can jump
 		    (use <CR> by default) and do command in codelens buffer

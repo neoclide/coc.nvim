@@ -39,10 +39,13 @@
   "tsserver.implicitProjectConfig.experimentalDecorators": false,
   "tsserver.disableAutomaticTypeAcquisition": false,
   // enable support for javascript file, experiment
-  "tsserver.enableJavascript": false,
+  "tsserver.enableJavascript": true,
+  "typescript.implementationsCodeLens.enable": true,
+  "typescript.referencesCodeLens.enable": true,
   "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "typescript.preferences.completion.nameSuggestions" : true,
   "typescript.preferences.completion.autoImportSuggestions" : true,
+  // if true comma if removed after import for on completionDone
   "typescript.preferences.completion.commaAfterImport" : true,
   "typescript.preferences.completion.moduleExports" : true,
   // 'non-relative' or 'relative'
@@ -63,6 +66,8 @@
   "typescript.format.insertSpaceAfterTypeAssertion" : false,
   "typescript.format.placeOpenBraceOnNewLineForFunctions" : false,
   "typescript.format.placeOpenBraceOnNewLineForControlBlocks" : false,
+  "javascript.implementationsCodeLens.enable": true,
+  "javascript.referencesCodeLens.enable": true,
   "javascript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "javascript.preferences.completion.nameSuggestions" : true,
   "javascript.preferences.completion.autoImportSuggestions" : true,

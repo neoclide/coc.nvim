@@ -1,3 +1,7 @@
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
 import { TypeScriptServiceConfiguration } from './configuration'
 import * as Proto from '../protocol'
 const logger = require('../../util/logger')('typescript-service-tsconfig')
@@ -16,7 +20,7 @@ export function inferredProjectConfig(
   }
 
   if (config.experimentalDecorators) {
-    base.experimentalDecorators = false
+    base.experimentalDecorators = true
   }
 
   return base

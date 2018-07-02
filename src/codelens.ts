@@ -1,14 +1,9 @@
-import {
-  Neovim,
-  Buffer,
-} from 'neovim'
-import {
-  CodeLens,
-} from 'vscode-languageserver-protocol'
-import languages from './languages'
-import workspace from './workspace'
+import {Buffer, Neovim} from 'neovim'
+import {CodeLens} from 'vscode-languageserver-protocol'
 import commandManager from './commands'
+import languages from './languages'
 import {showQuickpick} from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('codelens')
 
 export interface LineItem {

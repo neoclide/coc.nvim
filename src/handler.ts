@@ -341,7 +341,7 @@ export default class Handler {
     })
   }
 
-  public async doCodeAction(mode:string|null):Promise<void> {
+  public async doCodeAction(mode:string|null, title?:string):Promise<void> {
     let {document} = await workspace.getCurrentState()
     if (!document) return
     let range:Range
@@ -363,11 +363,22 @@ export default class Handler {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document, range)
     let context = {diagnostics}
     let codeActions = await languages.getCodeActions(document, range, context)
-    let idx = await showQuickpick(this.nvim, codeActions.map(o => o.title))
-    if (idx == -1) return
-    let action = codeActions[idx]
-    if (action && action.command) {
-      commandManager.execute(action.command)
+    let action
+    if (title) {
+      action = codeActions.find(o => o.title == title)
+    } else {
+      let idx = await showQuickpick(this.nvim, codeActions.map(o => o.title))
+      if (idx == -1) return
+      action = codeActions[idx]
+    }
+    if (action) {
+      let {command, edit} = action
+      if (edit) {
+        await workspace.applyEdit(edit)
+      }
+      if (command) commandManager.execute(command)
+    } else {
+      await echoErr(this.nvim, 'code action not found')
     }
   }
 
