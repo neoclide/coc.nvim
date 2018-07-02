@@ -423,12 +423,12 @@ export interface TextDocumentWillSaveEvent {
   /**
    * The document that will be saved.
    */
-  document: TextDocument;
+  document: TextDocument
 
   /**
    * The reason why save was triggered.
    */
-  reason: TextDocumentSaveReason;
+  reason: TextDocumentSaveReason
 
   /**
    * Allows to pause the event loop and to apply [pre-save-edits](#TextEdit).
@@ -450,19 +450,10 @@ export interface TextDocumentWillSaveEvent {
    *
    * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
    */
-  waitUntil(thenable: Thenable<TextEdit[]>): void;
-
-  /**
-   * Allows to pause the event loop until the provided thenable resolved.
-   *
-   * *Note:* This function can only be called during event dispatch.
-   *
-   * @param thenable A thenable that delays saving.
-   */
-  waitUntil(thenable: Thenable<any>): void;
+  waitUntil(thenable: Thenable<TextEdit[]|any>): void
 }
 
 export interface Thenable<T> {
   then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => TResult | Thenable<TResult>): Thenable<TResult>
-  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult>
+  then<TResult>(onfulfilled?: (value: T) => TResult | Thenable<TResult>, onrejected?: (reason: any) => void): Thenable<TResult> // tslint:disable-line
 }

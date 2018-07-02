@@ -595,7 +595,7 @@ export interface DocumentLinkProvider {
    * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
    * can be signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>;
+  provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
 
   /**
    * Given a link fill in its [target](#DocumentLink.target). This method is called when an incomplete
@@ -606,7 +606,7 @@ export interface DocumentLinkProvider {
    * @param link The link that is to be resolved.
    * @param token A cancellation token.
    */
-  resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>;
+  resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>
 }
 
 /**
@@ -625,7 +625,7 @@ export interface CodeLensProvider {
    * @return An array of code lenses or a thenable that resolves to such. The lack of a result can be
    * signaled by returning `undefined`, `null`, or an empty array.
    */
-  provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>;
+  provideCodeLenses(document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
 
   /**
    * This function will be called for each visible code lens, usually when scrolling and after
@@ -635,6 +635,5 @@ export interface CodeLensProvider {
    * @param token A cancellation token.
    * @return The given, resolved code lens or thenable that resolves to such.
    */
-  resolveCodeLens?(codeLens: CodeLens, token: CancellationToken): ProviderResult<CodeLens>;
+  resolveCodeLens?(codeLens: CodeLens, token: CancellationToken): ProviderResult<CodeLens>
 }
-

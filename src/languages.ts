@@ -86,7 +86,7 @@ export function checkTimeout(_target: any, _key: string, descriptor: any):void {
   }
 
   descriptor.value = function(...args):any {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve, reject):void => { // tslint:disable-line
       let resolved = false
       setTimeout(() => {
         if (!resolved) reject(new Error('timeout after 1s'))
@@ -94,7 +94,7 @@ export function checkTimeout(_target: any, _key: string, descriptor: any):void {
       Promise.resolve(fn.apply(this, args)).then(res => {
         resolved = true
         resolve(res)
-      })
+      }, reject)
     })
   }
 }

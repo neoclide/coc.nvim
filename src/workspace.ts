@@ -333,16 +333,20 @@ export class Workspace {
     let doc = this.buffers[bufnr]
     let called = false
     let waitUntil
-    let promise = (resolve, reject):void => {
+    let promise = new Promise((resolve, reject):void => { // tslint:disable-line
       waitUntil = (thenable: Thenable<TextEdit[]|any>):void => {
         if (called) {
-          reject(new Error('WaitUntil could only be called once'))
+          echoErr(nvim, 'WaitUntil could only be called once').catch(_e => {
+            // noop
+          })
           return
         }
         called = true
         Promise.resolve(thenable).then(res => {
           if (Array.isArray(res) && typeof res[0].newText == 'string') {
-            doc.applyEdits(nvim, res as TextEdit[]).then(resolve, reject)
+            doc.applyEdits(nvim, res as TextEdit[]).then(() => {
+              resolve()
+            }, reject)
           } else {
             resolve()
           }
@@ -351,7 +355,7 @@ export class Workspace {
           reject(new Error('WaitUntil timeout after 1 second'))
         }, 1000)
       }
-    }
+    })
     if (doc) {
       this._onWillSaveDocument.fire({
         document: doc.textDocument,

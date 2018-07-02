@@ -1,18 +1,9 @@
 import {Neovim} from 'neovim'
-import {
-  echoWarning,
-  echoMessage,
-  echoErr,
-} from './util/'
-import {
-  Disposable
-} from 'vscode-languageserver-protocol'
-import {
-  IServiceProvider,
-  ServiceStat,
-} from './types'
-import TsserverService from './typescript-service'
-import CssService from './css'
+import {Disposable} from 'vscode-languageserver-protocol'
+import CssService from './extensions/css'
+import TsserverService from './extensions/typescript-service'
+import {IServiceProvider, ServiceStat} from './types'
+import {echoErr, echoMessage, echoWarning} from './util'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
