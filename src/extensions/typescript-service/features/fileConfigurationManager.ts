@@ -8,6 +8,10 @@ import {ITypeScriptServiceClient} from '../typescriptService'
 import * as languageIds from '../utils/languageModeIds'
 import API from '../utils/api'
 import {WorkspaceConfiguration} from '../../../types'
+import {
+  TextDocument,
+  CancellationToken,
+} from 'vscode-languageserver-protocol'
 const logger = require('../../../util/logger')('typescript-service-fileConfigurationManager')
 
 function objAreEqual<T>(a: T, b: T): boolean {
@@ -64,6 +68,14 @@ export default class FileConfigurationManager {
     this.cachedOption = options
     this.requesting = false
   }
+
+  public async ensureConfigurationForDocument(document: TextDocument): Promise<void> {
+    const formattingOptions = await workspace.getFormatOptions()
+    let {tabSize, insertSpaces} = formattingOptions
+    return this.ensureConfigurationOptions(document.languageId, insertSpaces, tabSize);
+  }
+
+
 
   public reset():void {
     this.cachedOption = null

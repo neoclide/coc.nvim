@@ -8,17 +8,24 @@ import Watchman, {FileChange} from '../watchman'
 import path = require('path')
 const logger = require('../util/logger')('filesystem-watcher')
 
+export interface RenameEvent {
+  oldUri: Uri
+  newUri: Uri
+}
+
 export default class FileSystemWatcher implements Disposable {
 
   private subscription: string
   private _onDidCreate = new Emitter<Uri>()
   private _onDidChange = new Emitter<Uri>()
   private _onDidDelete = new Emitter<Uri>()
+  private _onDidRename = new Emitter<RenameEvent>()
   private watchmanClient: Watchman
 
   public readonly onDidCreate: Event<Uri> = this._onDidCreate.event
   public readonly onDidChange: Event<Uri> = this._onDidChange.event
   public readonly onDidDelete: Event<Uri> = this._onDidDelete.event
+  public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
 
   constructor(
     clientPromise:Promise<Watchman>,
@@ -55,6 +62,16 @@ export default class FileSystemWatcher implements Disposable {
           } else {
             if (!ignoreCreateEvents) this._onDidCreate.fire(uri)
           }
+        }
+      }
+      if (files.length == 2 && !files[0].exists && files[1].exists) {
+        let oldFile = files[0]
+        let newFile = files[1]
+        if (oldFile.size == newFile.size) {
+          this._onDidRename.fire({
+            oldUri: Uri.file(path.join(root, oldFile.name)),
+            newUri:Uri.file(path.join(root, newFile.name))
+          })
         }
       }
     })

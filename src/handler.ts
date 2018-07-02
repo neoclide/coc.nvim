@@ -17,15 +17,11 @@ import {
   Range,
 } from 'vscode-languageserver-protocol'
 import {
-  QuickfixItem,
-} from './types'
-import {
   echoWarning,
   echoErr,
   showQuickpick,
 } from './util'
 import Uri from 'vscode-uri'
-import {getLine} from './util/fs'
 import CodeLensBuffer from './codelens'
 import debounce = require('debounce')
 const logger = require('./util/logger')('Handler')
@@ -134,13 +130,13 @@ export default class Handler {
       if (len == 0) return
       if (len == 1) {
         let {uri, range} = definition[0] as Location
-        await this.jumpTo(uri, range.start)
+        await workspace.jumpTo(uri, range.start)
       } else {
         await this.addQuickfix(definition as Location[])
       }
     } else {
       let {uri, range} = definition as Location
-      await this.jumpTo(uri, range.start)
+      await workspace.jumpTo(uri, range.start)
     }
   }
 
@@ -152,23 +148,6 @@ export default class Handler {
     await this.nvim.call('setqflist', [items, ' ', 'Results of coc'])
     if (show) await this.nvim.command('copen')
     await this.nvim.command('doautocmd User CocQuickfixChange')
-  }
-
-  private async jumpTo(uri:string, position:Position):Promise<void> {
-    let {line, character} = position
-    let cmd = `+call\\ cursor(${line + 1},${character + 1})`
-    let filepath = Uri.parse(uri).fsPath
-    let bufnr = await this.nvim.call('bufnr', [filepath])
-    let curbuf = await this.nvim.call('bufnr', ['%'])
-    if (bufnr != -1) {
-      if (bufnr != curbuf) {
-        let winnr = await this.nvim.call('bufwinnr', [bufnr])
-        if (winnr != -1) await this.nvim.command(`${winnr}wincmd w`)
-      }
-      await this.nvim.command(`buffer ${cmd} ${bufnr}`)
-    } else {
-      await this.nvim.command(`edit ${cmd} ${filepath}`)
-    }
   }
 
   public async gotoDefinition():Promise<void> {
@@ -281,12 +260,6 @@ export default class Handler {
     let {nvim} = this
     let {document, position} = await workspace.getCurrentState()
     if (!document) return
-    try {
-      await nvim.command('wa')
-    } catch (e) {
-      await echoErr(nvim, `Save buffer failed: ${e.message}`)
-      return
-    }
     let curname = await nvim.call('expand', '<cword>')
     let doc = workspace.getDocument(document.uri)
     if (!doc.isWord(curname)) {

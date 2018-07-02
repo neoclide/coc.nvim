@@ -1,44 +1,14 @@
-import {Neovim, Buffer} from 'neovim'
-import Document from './model/document'
-import {
-  writeFile,
-  statAsync,
-  resolveDirectory,
-  resolveRoot,
-  getLine,
-} from './util/fs'
-import {watchFiles} from './util/watch'
-import {
-  IConfigurationData,
-  IConfigurationModel,
-  WorkspaceConfiguration,
-  DocumentInfo,
-  TextDocumentWillSaveEvent,
-  QuickfixItem,
-} from './types'
-import {
-  byteIndex
-} from './util/string'
-import {
-  echoErr,
-  echoMessage,
-} from './util/index'
+import { Buffer, Neovim } from 'neovim'
+import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
-import {
-  Emitter,
-  Event,
-  TextDocument,
-  FormattingOptions,
-  DidChangeTextDocumentParams,
-  TextDocumentSaveReason,
-  WorkspaceEdit,
-  Position,
-  TextDocumentEdit,
-  TextEdit,
-  Location,
-} from 'vscode-languageserver-protocol'
+import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
+import { DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
+import { echoErr, echoMessage } from './util/index'
+import { byteIndex } from './util/string'
+import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import path = require('path')
 const logger = require('./util/logger')('workspace')
@@ -221,19 +191,30 @@ export class Workspace {
     let {documentChanges, changes} = edit
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
+    let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
+      let n = 0
       for (let change of documentChanges) {
         let {textDocument, edits} = change
         let {uri} = textDocument
         let doc = this.getDocument(uri)
-        await doc.applyEdits(nvim, edits)
+        if (textDocument.version == doc.version) {
+          await doc.applyEdits(nvim, edits)
+          n = n + 1
+        } else {
+          await echoErr(nvim, `version mismatch of ${uri}`)
+        }
       }
-      await echoMessage(nvim, `${documentChanges.length} buffers changed!`)
-    } else if (changes) {
+      await echoMessage(nvim, `${n} buffers changed!`)
+    }
+    if (changes) {
       let keys = Object.keys(changes)
       if (!keys.length) return false
-      let c = await nvim.call('coc#util#prompt_change', [keys.length])
-      if (c != 1) return false
+      let n = this.fileCount(edit)
+      if (n > 0) {
+        let c = await nvim.call('coc#util#prompt_change', [keys.length])
+        if (c != 1) return false
+      }
       let filetype = await nvim.buffer.getOption('filetype') as string
       for (let uri of Object.keys(changes)) {
         let edits = changes[uri]
@@ -244,6 +225,11 @@ export class Workspace {
           doc = document.textDocument
           await document.applyEdits(nvim, edits)
         } else {
+          let stat = await statAsync(filepath)
+          if (!stat || !stat.isFile()) {
+            await echoErr(nvim, `file ${filepath} not exists!`)
+            continue
+          }
           // we don't know the encoding, let vim do that
           let content = (await nvim.call('readfile', filepath)).join('\n')
           doc = TextDocument.create(uri, filetype, 0, content)
@@ -252,6 +238,7 @@ export class Workspace {
         }
       }
     }
+    await nvim.call('setpos', ['.', curpos])
     return true
   }
 
@@ -455,6 +442,21 @@ export class Workspace {
     return options
   }
 
+  public async jumpTo(uri:string, position:Position):Promise<void> {
+    let {nvim} = this
+    let {line, character} = position
+    let cmd = `+call\\ cursor(${line + 1},${character + 1})`
+    let filepath = Uri.parse(uri).fsPath
+    let bufnr = await nvim.call('bufnr', [filepath])
+    if (bufnr != -1) {
+      await nvim.command(`buffer ${cmd} ${bufnr}`)
+    } else {
+      let cwd = await nvim.call('getcwd')
+      let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+      await nvim.command(`exe "edit ${cmd} " . fnameescape(${file})`)
+    }
+  }
+
   private async parseConfigFile(file):Promise<IConfigurationModel> {
     let config
     try {
@@ -494,6 +496,19 @@ export class Workspace {
   private async getBuffer(bufnr:number):Promise<Buffer|null> {
     let buffers = await this.nvim.buffers
     return buffers.find(buf => toNumber(buf.data) == bufnr)
+  }
+
+  private fileCount(edit: WorkspaceEdit):number {
+    let {changes} = edit
+    if (!changes) return 0
+    let n = 0
+    for (let uri of Object.keys(changes)) {
+      let filepath = Uri.parse(uri).fsPath
+      if (this.getDocument(filepath) != null) {
+        n = n + 1
+      }
+    }
+    return n
   }
 }
 

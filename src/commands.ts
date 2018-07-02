@@ -2,12 +2,13 @@ import { Neovim } from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
 import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
 import workspace from './workspace'
+import {wait} from './util'
 const logger = require('./util/logger')('commands')
 
 // command center
 export interface Command {
   readonly id: string | string[]
-  execute(...args: any[]): void | Promise<void>
+  execute(...args: any[]): void | Promise<any>
 }
 
 class CommandItem implements Disposable {
@@ -32,7 +33,7 @@ class CommandItem implements Disposable {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
 
-  public init(nvim:Neovim):void {
+  public init(nvim:Neovim, plugin:any):void {
     this.register({
       id: 'editor.action.triggerSuggest',
       execute: () => {
@@ -54,6 +55,18 @@ export class CommandManager implements Disposable {
           await nvim.call('setqflist', [items, ' ', 'Results of references'])
           if (show) await nvim.command('copen')
           await nvim.command('doautocmd User CocQuickfixChange')
+        } catch (e) {
+          logger.error(e.stack)
+        }
+      }
+    })
+    this.register({
+      id: 'editor.action.rename',
+      execute: async (uri:string, position:Position) => {
+        try {
+          await workspace.jumpTo(uri, position)
+          await wait(100)
+          await plugin.cocAction(['rename'])
         } catch (e) {
           logger.error(e.stack)
         }

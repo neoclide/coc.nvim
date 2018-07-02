@@ -235,7 +235,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       return {}
     }
     let {commaAfterImport} = this.completeOption
-    logger.debug('detail:', JSON.stringify(detail.codeActions, null, 2))
+    // logger.debug('detail:', JSON.stringify(detail.codeActions, null, 2))
     // Try to extract out the additionalTextEdits for the current file.
     // Also check if we still have to apply other workspace edits
     const additionalTextEdits: TextEdit[] = []

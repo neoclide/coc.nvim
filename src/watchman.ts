@@ -19,6 +19,7 @@ export interface FileChangeItem {
   exists: boolean
   type: string
   mtime_ms: number
+  ['content.sha1hex']: string
 }
 
 export interface FileChange {
@@ -93,7 +94,7 @@ export default class Watchman {
     let uid = uuidv1()
     let sub = {
       expression: ['allof', ['match', globPattern, 'wholename']],
-      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
+      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms', 'content.sha1hex'],
       since: clock,
     }
     let {subscribe} = await this.command(['subscribe', relative_path, uid, sub])

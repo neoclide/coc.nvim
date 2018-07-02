@@ -106,11 +106,17 @@ export function check(_target: any, _key: string, descriptor: any):void {
   }
 
   descriptor.value = function(...args):any {
-    if (this._requesting) this.cancelTokenSource.cancel()
-    this._requesting = true
-    return Promise.resolve(fn.apply(this, args)).then(res => {
-      this._requesting = false
-      return res
+    let {cancelTokenSource} = this
+    this.cancelTokenSource = new CancellationTokenSource()
+    return new Promise((resolve, reject):void => { // tslint:disable-line
+      let resolved = false
+      setTimeout(() => {
+        cancelTokenSource.cancel()
+        if (!resolved) reject(new Error('timeout after 1s'))
+      }, 1000)
+      Promise.resolve(fn.apply(this, args)).then(res => {
+        resolve(res)
+      }, reject)
     })
   }
 }
@@ -370,7 +376,8 @@ class Languages {
       let actions =  await Promise.resolve(provider.provideCodeActions(document, range, context, this.token))
       for (let action of actions) {
         if (CodeAction.is(action)) {
-          res.push(action)
+          let idx = res.findIndex(o => o.title == action.title)
+          if (idx == -1) res.push(action)
         } else {
           res.push(CodeAction.create(action.title, action))
         }
@@ -536,8 +543,7 @@ class Languages {
       },
       doComplete: async (opt:CompleteOption):Promise<CompleteResult|null> => {
         option = opt
-        let {triggerCharacter, bufnr, input} = opt
-        let firstChar = input.length ? input[0]: ''
+        let {triggerCharacter, bufnr} = opt
         let doc = workspace.getDocument(bufnr)
         let document = doc.textDocument
         let position = getPosition(opt)
@@ -547,13 +553,9 @@ class Languages {
         }
         let cancellSource = new CancellationTokenSource()
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
+        if (!result) return null
         let isIncomplete = (result as CompletionList).isIncomplete || false
         completeItems = Array.isArray(result) ? result : result.items
-        if (firstChar) {
-          completeItems = completeItems.filter(item => {
-            return item.label[0] == firstChar
-          })
-        }
         return {
           isIncomplete,
           items: completeItems.map(o => convertVimCompleteItem(o, shortcut))

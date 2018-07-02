@@ -23,9 +23,7 @@ export default class TypeScriptDocumentHighlightProvider implements DocumentHigh
     token: CancellationToken
   ): Promise<DocumentHighlight[]> {
     const file = this.client.toPath(resource.uri)
-    if (!file) {
-      return []
-    }
+    if (!file) return []
 
     const args = typeConverters.Position.toFileLocationRequestArgs(
       file,

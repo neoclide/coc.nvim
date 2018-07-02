@@ -35,6 +35,9 @@ import FileConfigurationManager from './features/fileConfigurationManager'
 import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
 import ReferencesCodeLensProvider from './features/referencesCodeLens'
+import TagCompletionProvider from './features/tagCompletion'
+import QuickfixProvider from './features/quickfix'
+import RefactorProvider from './features/refactor'
 import {LanguageDescription} from './utils/languageDescription'
 import API from './utils/api'
 const logger = require('../../util/logger')('typescript-langauge-provider')
@@ -100,6 +103,7 @@ export default class LanguageProvider {
     typingsStatus: TypingsStatus
   ): Promise<void> {
     let languageIds = this.description.modeIds
+
     this.disposables.push(
       languages.registerCompletionItemProvider(
         `tsserver-${this.description.id}`,
@@ -179,6 +183,7 @@ export default class LanguageProvider {
     this.disposables.push(
       languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
     )
+
     if (this.client.apiVersion.gte(API.v280)) {
       this.disposables.push(
         languages.registerCodeActionProvider(
@@ -186,6 +191,17 @@ export default class LanguageProvider {
           new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id))
       )
     }
+    if (this.client.apiVersion.gte(API.v240)) {
+      this.disposables.push(
+        languages.registerCodeActionProvider(
+          languageIds,
+          new RefactorProvider(client, this.fileConfigurationManager)))
+    }
+    this.disposables.push(
+      languages.registerCodeActionProvider(
+        languageIds,
+        new QuickfixProvider(client, this.diagnosticsManager, this.bufferSyncSupport)))
+
     let {fileConfigurationManager, description} = this
     let conf = fileConfigurationManager.getLanguageConfiguration(description.id)
     let cachedResponse = new CachedNavTreeResponse()
@@ -202,6 +218,18 @@ export default class LanguageProvider {
         languages.registerCodeLensProvider(
           languageIds,
           new ImplementationsCodeLensProvider(client, cachedResponse)))
+    }
+
+    if (this.client.apiVersion.gte(API.v300)) {
+      this.disposables.push(
+        languages.registerCompletionItemProvider(
+          `tsserver-${this.description.id}-tag`,
+          'TSC',
+          languageIds,
+          new TagCompletionProvider(client),
+          ['>']
+        )
+      )
     }
   }
 

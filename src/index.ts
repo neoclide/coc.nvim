@@ -25,7 +25,7 @@ export default class CompletePlugin {
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
-    commands.init(nvim)
+    commands.init(nvim, this)
   }
 
   @Function('CocInitAsync', {sync: false})
