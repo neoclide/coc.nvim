@@ -48,7 +48,6 @@ Name         | Description                                             | Use cac
 `omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | []
 `word`       | Words from google 10000 english repo.                   | ✓           | all
 `emoji`      | Eomji characters.                                       | ✓           | ['markdown']
-`module`     | Words of module names.                                  | ✗           | [Limited](/src/source/module_resolve)
 `include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
 
 `omni` source could be slow, it requires configuration for `filetypes` to work.

@@ -121,9 +121,6 @@
   "coc.source.include.trimSameExts": [".ts", ".js"],
   // when ripgrep installed, it would be `rg --color never --files`
   "coc.source.include.listFileCommand": "",
-  "coc.source.module.enable": true,
-  "coc.source.module.shortcut": "M",
-  "coc.source.module.priority": 10,
   "coc.source.omni.enable": true,
   "coc.source.omni.shortcut": "O",
   "coc.source.omni.priority": 3,

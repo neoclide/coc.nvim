@@ -1,4 +1,4 @@
-import { Function, Neovim, Plugin } from 'neovim'
+import {Function, Neovim, Plugin} from 'neovim'
 import commands from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -7,8 +7,8 @@ import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import { VimCompleteItem } from './types'
-import { echoErr } from './util'
+import {VimCompleteItem} from './types'
+import {echoErr} from './util'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('index')
