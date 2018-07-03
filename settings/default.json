@@ -40,6 +40,7 @@
   "tsserver.disableAutomaticTypeAcquisition": false,
   // enable support for javascript file, experiment
   "tsserver.enableJavascript": true,
+  "typescript.updateImportsOnFileMove.enable": true,
   "typescript.implementationsCodeLens.enable": true,
   "typescript.referencesCodeLens.enable": true,
   "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
@@ -66,6 +67,7 @@
   "typescript.format.insertSpaceAfterTypeAssertion" : false,
   "typescript.format.placeOpenBraceOnNewLineForFunctions" : false,
   "typescript.format.placeOpenBraceOnNewLineForControlBlocks" : false,
+  "javascript.updateImportsOnFileMove.enable": true,
   "javascript.implementationsCodeLens.enable": true,
   "javascript.referencesCodeLens.enable": true,
   "javascript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,

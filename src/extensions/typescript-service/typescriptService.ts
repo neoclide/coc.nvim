@@ -180,6 +180,11 @@ export interface ITypeScriptServiceClient {
     token?: CancellationToken
   ): Promise<Proto.GetEditsForRefactorResponse>
   execute(
+    command: 'getEditsForFileRename',
+    args: Proto.GetEditsForFileRenameRequestArgs,
+    token?: CancellationToken
+  ): Promise<Proto.GetEditsForFileRenameResponse>
+  execute(
     command: 'applyCodeActionCommand',
     args: Proto.ApplyCodeActionCommandRequestArgs,
     token?: CancellationToken

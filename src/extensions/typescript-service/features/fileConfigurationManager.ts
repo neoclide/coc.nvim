@@ -2,16 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {TextDocument} from 'vscode-languageserver-protocol'
+import {WorkspaceConfiguration} from '../../../types'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
-import * as languageIds from '../utils/languageModeIds'
 import API from '../utils/api'
-import {WorkspaceConfiguration} from '../../../types'
-import {
-  TextDocument,
-  CancellationToken,
-} from 'vscode-languageserver-protocol'
+import * as languageIds from '../utils/languageModeIds'
 const logger = require('../../../util/logger')('typescript-service-fileConfigurationManager')
 
 function objAreEqual<T>(a: T, b: T): boolean {

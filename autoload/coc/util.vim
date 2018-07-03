@@ -193,6 +193,18 @@ function! coc#util#prompt_change(count)
   return 1
 endfunction
 
+function! coc#util#prompt_confirm(title)
+  echohl MoreMsg
+  echom a:title.' Confirm? (y/n)'
+  echohl None
+  let confirm = nr2char(getchar()) | redraw!
+  if !(confirm ==? "y" || confirm ==? "\r")
+    echohl Moremsg | echo 'Cancelled.' | echohl None
+    return 0
+  end
+  return 1
+endfunction
+
 function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction

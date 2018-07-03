@@ -453,8 +453,18 @@ export class Workspace {
     } else {
       let cwd = await nvim.call('getcwd')
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-      await nvim.command(`exe '"edit ${cmd} " . fnameescape(${file})'`)
+      await nvim.command(`exe 'edit ${cmd} ' . fnameescape('${file}')`)
     }
+  }
+
+  public async openResource(uri:string):Promise<void> {
+    let {nvim} = this
+    let filepath = Uri.parse(uri).fsPath
+    let bufnr = await nvim.call('bufnr', [filepath])
+    if (bufnr != -1) return
+    let cwd = await nvim.call('getcwd')
+    let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+    await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
   }
 
   private async parseConfigFile(file):Promise<IConfigurationModel> {

@@ -69,16 +69,6 @@ export default class TypeScriptServiceClientHost implements Disposable {
       configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
     }
 
-    // const fileWatcher = workspace.createFileSystemWatcher('**/*.[tj]s')
-    // if (fileWatcher) {
-    //   this.disposables.push(fileWatcher)
-    //   fileWatcher.onDidChange(
-    //     this.handleFileChange,
-    //     this,
-    //     this.disposables
-    //   )
-    // }
-
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)
     this.client.onDiagnosticsReceived(({kind, resource, diagnostics}) => {
@@ -136,11 +126,6 @@ export default class TypeScriptServiceClientHost implements Disposable {
   // typescript or javascript
   public getProvider(languageId:string):LanguageProvider {
     return this.languagePerId.get(languageId)
-  }
-
-  private handleFileChange(e:Uri):void {
-    let file = e.fsPath
-    this.client.execute('reload', { file, tmpfile: file}) // tslint:disable-line
   }
 
   private configurationChanged(): void {

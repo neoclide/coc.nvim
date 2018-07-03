@@ -38,6 +38,7 @@ import ReferencesCodeLensProvider from './features/referencesCodeLens'
 import TagCompletionProvider from './features/tagCompletion'
 import QuickfixProvider from './features/quickfix'
 import RefactorProvider from './features/refactor'
+import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
 import {LanguageDescription} from './utils/languageDescription'
 import API from './utils/api'
 const logger = require('../../util/logger')('typescript-langauge-provider')
@@ -191,19 +192,28 @@ export default class LanguageProvider {
           new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id))
       )
     }
+
+    let {fileConfigurationManager} = this
+    let conf = fileConfigurationManager.getLanguageConfiguration(this.id)
+
+    if (this.client.apiVersion.gte(API.v290)
+      && conf.get<boolean>('updateImportsOnFileMove.enable')) {
+      this.disposables.push(
+        new UpdateImportsOnFileRenameHandler(client, this.fileConfigurationManager, this.id)
+      )
+    }
+
     if (this.client.apiVersion.gte(API.v240)) {
       this.disposables.push(
         languages.registerCodeActionProvider(
           languageIds,
           new RefactorProvider(client, this.fileConfigurationManager)))
     }
+
     this.disposables.push(
       languages.registerCodeActionProvider(
         languageIds,
         new QuickfixProvider(client, this.diagnosticsManager, this.bufferSyncSupport)))
-
-    let {fileConfigurationManager, description} = this
-    let conf = fileConfigurationManager.getLanguageConfiguration(description.id)
     let cachedResponse = new CachedNavTreeResponse()
     if (this.client.apiVersion.gte(API.v206)
       && conf.get<boolean>('referencesCodeLens.enable')) {
@@ -212,6 +222,7 @@ export default class LanguageProvider {
           languageIds,
           new ReferencesCodeLensProvider(client, cachedResponse)))
     }
+
     if (this.client.apiVersion.gte(API.v220)
       && conf.get<boolean>('implementationsCodeLens.enable')) {
       this.disposables.push(
@@ -244,7 +255,7 @@ export default class LanguageProvider {
     return false
   }
 
-  private get id(): string { // tslint:disable-line
+  private get id():string { // tslint:disable-line
     return this.description.id
   }
 
