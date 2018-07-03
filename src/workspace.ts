@@ -408,18 +408,18 @@ export class Workspace {
     await nvim.command(cmd)
   }
 
-  public async currentDocument():Promise<TextDocument> {
-    let buffer = await this.nvim.buffer
-    let document = this.getDocument(buffer.id)
-    return document ? document.textDocument : null
+  public get document():Promise<Document> {
+    return this.nvim.buffer.then(buffer => {
+      let document = this.getDocument(buffer.id)
+      if (!document) return this.onBufferCreate(buffer)
+      return document
+    })
   }
 
   public async getCurrentState():Promise<EditerState> {
-    let buffer = await this.nvim.buffer
-    let [, lnum, col] = await this.nvim.call('getcurpos')
-    let document = this.getDocument(buffer.id)
-    if (!document) document = await this.onBufferCreate(buffer)
+    let document = await this.document
     if (!document) return {document: null, position: null}
+    let [, lnum, col] = await this.nvim.call('getcurpos')
     let line = document.getline(lnum - 1)
     if (!line) return {document: null, position: null}
     return {
@@ -453,7 +453,7 @@ export class Workspace {
     } else {
       let cwd = await nvim.call('getcwd')
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-      await nvim.command(`exe "edit ${cmd} " . fnameescape(${file})`)
+      await nvim.command(`exe '"edit ${cmd} " . fnameescape(${file})'`)
     }
   }
 

@@ -7,7 +7,6 @@ import {
   Hover,
   MarkedString,
   MarkupContent,
-  Position,
   Definition,
   Location,
   SymbolKind,
@@ -179,9 +178,9 @@ export default class Handler {
   }
 
   public async getDocumentSymbols():Promise<SymbolInfo[]> {
-    let {document} = await workspace.getCurrentState()
+    let document = await workspace.document
     if (!document) return []
-    let symbols = await languages.getDocumentSymbol(document)
+    let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols) {
       await echoErr(this.nvim, 'service does not support document symbols')
       return []
@@ -220,11 +219,11 @@ export default class Handler {
   }
 
   public async getWorkspaceSymbols():Promise<SymbolInfo[]> {
-    let {document} = await workspace.getCurrentState()
+    let document = await workspace.document
     if (!document) return
     let cword = await this.nvim.call('expand', ['<cword>'])
     let query = await this.nvim.call('input', ['Query:', cword])
-    let symbols = await languages.getWorkspaceSymbols(document, query)
+    let symbols = await languages.getWorkspaceSymbols(document.textDocument, query)
     if (!symbols) {
       await echoErr(this.nvim, 'service does not support workspace symbols')
       return []
@@ -247,13 +246,12 @@ export default class Handler {
   }
 
   public async resolveWorkspaceSymbol(symbolIndex:number):Promise<SymbolInformation> {
-    // TODO find out better way to work with  workspace symbols
     if (!this.currentSymbols) return null
     let symbol = this.currentSymbols[symbolIndex]
     if (!symbol) return null
-    let document = await workspace.currentDocument()
+    let document = await workspace.document
     if (!document) return null
-    return await languages.resolveWorkspaceSymbol(document, symbol)
+    return await languages.resolveWorkspaceSymbol(document.textDocument, symbol)
   }
 
   public async rename():Promise<void> {
@@ -278,24 +276,18 @@ export default class Handler {
   }
 
   public async documentFormatting():Promise<void> {
-    let {document} = await workspace.getCurrentState()
+    let document = await workspace.document
     if (!document) return
-    let buffer = await this.nvim.buffer
     let options = await workspace.getFormatOptions()
-    let textEdits = await languages.provideDocumentFormattingEdits(document, options)
+    let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
     if (!textEdits) return
-    let content = TextDocument.applyEdits(document, textEdits)
-    await buffer.setLines(content.split('\n'), {
-      start: 0,
-      end: -1,
-      strictIndexing: false
-    })
+    await document.applyEdits(this.nvim, textEdits)
   }
 
   public async documentRangeFormatting(mode:string):Promise<void> {
-    let {document} = await workspace.getCurrentState()
+    let document = await workspace.document
     if (!document || !mode) return
-    let range = await this.getSelectedRange(mode, document)
+    let range = await this.getSelectedRange(mode, document.textDocument)
     if (!range) return
     let buffer = await this.nvim.buffer
     let tabSize = await buffer.getOption('tabstop') as number
@@ -304,38 +296,27 @@ export default class Handler {
       tabSize,
       insertSpaces
     }
-    let textEdits = await languages.provideDocumentRangeFormattingEdits(document, range, options)
+    let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
     if (!textEdits) return
-    let content = TextDocument.applyEdits(document, textEdits)
-    await buffer.setLines(content.split('\n'), {
-      start: 0,
-      end: -1,
-      strictIndexing: false
-    })
+    await document.applyEdits(this.nvim, textEdits)
   }
 
   public async doCodeAction(mode:string|null, title?:string):Promise<void> {
-    let {document} = await workspace.getCurrentState()
+    let document = await workspace.document
     if (!document) return
     let range:Range
     if (mode) {
-      range = await this.getSelectedRange(mode, document)
+      range = await this.getSelectedRange(mode, document.textDocument)
     } else {
       let lnum = await this.nvim.call('line', ['.'])
       range = {
-        start: {
-          line: lnum - 1,
-          character: 0
-        },
-        end: {
-          line: lnum,
-          character: 0
-        }
+        start: { line: lnum - 1, character: 0 },
+        end: { line: lnum, character: 0 }
       }
     }
-    let diagnostics = diagnosticManager.getDiagnosticsInRange(document, range)
+    let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context = {diagnostics}
-    let codeActions = await languages.getCodeActions(document, range, context)
+    let codeActions = await languages.getCodeActions(document.textDocument, range, context)
     let action
     if (title) {
       action = codeActions.find(o => o.title == title)

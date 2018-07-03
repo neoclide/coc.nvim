@@ -18,6 +18,7 @@ documentation.
 * Async generate complete items in parallel.
 * Scoped configuration file.
 * Full featured completion support defined in LSP.
+* Works with VSCode language server based extensions.
 
 ## Install
 
