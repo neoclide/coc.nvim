@@ -24,32 +24,4 @@ export default class JsonService extends LanguageService {
       enable: config.enable !== false
     }, ['html', 'javascript'])
   }
-
-  protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {
-    // fix textEdit issue
-    clientOptions.middleware = {
-      provideCompletionItem: (
-        document:TextDocument,
-        position:Position,
-        context: CompletionContext,
-        token: CancellationToken,
-        provideCompletionItems: ProvideCompletionItemsSignature,
-      ):ProviderResult<CompletionItem[]> => {
-        return Promise.resolve(provideCompletionItems(document, position, context, token)).then(result => {
-          let doc = workspace.getDocument(document.uri)
-          let currWord = doc.getWordRangeAtPosition(position)
-          let items:CompletionItem[] = result.hasOwnProperty('isIncomplete') ? (result as CompletionList).items : result as CompletionItem[]
-          for (let item of items) {
-            let {textEdit} = item
-            if (!textEdit) continue
-            let {range} = textEdit
-            if (range.start.character != range.end.character) continue
-            textEdit.range = currWord
-          }
-          return items
-        })
-      }
-    }
-    return clientOptions
-  }
 }

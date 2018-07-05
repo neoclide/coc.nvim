@@ -157,7 +157,13 @@
   "json.schemas": [],
   // "json.execArgv": ["--nolazy", "--inspect=6045"],
   "languageserver": {},
+  "html.enable": true,
+  "html.filetypes": ["html", "handlebars", "razor"],
   // "html.execArgv": ["--nolazy", "--inspect-brk=6045"],
-  "html.filetypes": ["html", "handlebars", "razor"]
+  "wxml.enable": true,
+  "wxml.filetypes": ["wxml"],
+  "wxml.complete.completeEvent": false,
+  "wxml.complete.useSnippet": true,
+  // "wxml.execArgv": ["--nolazy", "--inspect-brk=6045"],
 }
 // vim:ft=jsonc

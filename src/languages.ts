@@ -1,76 +1,15 @@
 import {Neovim} from 'neovim'
-import {
-  CompletionItemProvider,
-  DefinitionProvider,
-  TypeDefinitionProvider,
-  ImplementationProvider,
-  HoverProvider,
-  SignatureHelpProvider,
-  DocumentSymbolProvider,
-  WorkspaceSymbolProvider,
-  RenameProvider,
-  DocumentFormattingEditProvider,
-  DocumentRangeFormattingEditProvider,
-  CodeActionProvider,
-  DocumentHighlightProvider,
-  DocumentLinkProvider,
-  CodeLensProvider,
-} from './provider'
-import {
-  ISource,
-  VimCompleteItem,
-  CompleteOption,
-  CompleteResult,
-  SourceType,
-  DiagnosticCollection,
-} from './types'
-import {
-  Definition,
-  Position,
-  CancellationTokenSource,
-  CancellationToken,
-  CompletionList,
-  CompletionItem,
-  CompletionItemKind,
-  InsertTextFormat,
-  TextEdit,
-  Location,
-  TextDocument,
-  Hover,
-  SignatureHelp,
-  SymbolInformation,
-  WorkspaceEdit,
-  Range,
-  FormattingOptions,
-  CodeAction,
-  CodeActionContext,
-  DocumentSelector,
-  Emitter,
-  Event,
-  Disposable,
-  DocumentHighlight,
-  DocumentLink,
-  CodeLens,
-} from 'vscode-languageserver-protocol'
-import {
-  CompletionContext,
-  CompletionTriggerKind,
-  ReferenceProvider,
-  ReferenceContext,
-} from './provider'
-import {
-  echoMessage,
-  rangeOfLine,
-} from './util'
-import {
-  byteSlice,
-} from './util/string'
+import {CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit} from 'vscode-languageserver-protocol'
+import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
+import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider} from './provider'
+import snippetManager from './snippet/manager'
+import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
+import {echoMessage, rangeOfLine} from './util'
+import {diffLines} from './util/diff'
+import {byteSlice} from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
-import snippetManager from './snippet/manager'
-import {diffLines} from './util/diff'
-import commands from './commands'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -690,11 +629,11 @@ function getDocumentation(item: CompletionItem):string | null {
 }
 
 function getPosition(opt: CompleteOption):Position {
-  let {line, linenr, col} = opt
+  let {line, linenr, col, colnr} = opt
   let part = byteSlice(line, 0, col - 1)
   return {
     line: linenr - 1,
-    character: part.length + 1
+    character: part.length + 1 + (colnr - col > 1 ? 1 : 0)
   }
 }
 

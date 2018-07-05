@@ -5,6 +5,7 @@ import Handler from './handler'
 import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
+import commandManager from './commands'
 import languageClient from './language-client'
 import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
@@ -25,6 +26,7 @@ export default class CompletePlugin {
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
+    commandManager.init(nvim, this)
   }
 
   @Function('CocInitAsync', {sync: false})

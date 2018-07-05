@@ -4174,7 +4174,7 @@ type-check@~0.3.2:
   dependencies:
     prelude-ls "~1.1.2"
 
-typescript@^2.9.1:
+typescript@^2.9.1, typescript@^2.9.2:
   version "2.9.2"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-2.9.2.tgz#1cbf61d05d6b96269244eb6a3bce4bd914e0f00c"
 
@@ -4475,6 +4475,21 @@ ws@^4.0.0:
   dependencies:
     async-limiter "~1.0.0"
     safe-buffer "~5.1.0"
+
+wxml-langserver@2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/wxml-langserver/-/wxml-langserver-2.0.1.tgz#db3c4e32fce17a502e39be7c7e4b81ca0ae4296b"
+  dependencies:
+    "@types/uuid" "^3.4.3"
+    log4js "^2.10.0"
+    merge "^1.2.0"
+    typescript "^2.9.2"
+    uuid "^3.3.2"
+    vscode-jsonrpc "^3.6.2"
+    vscode-languageserver "^4.2.1"
+    vscode-languageserver-protocol "^3.8.1"
+    vscode-languageserver-types "^3.8.2"
+    yargs "^12.0.1"
 
 xml-name-validator@^3.0.0:
   version "3.0.0"

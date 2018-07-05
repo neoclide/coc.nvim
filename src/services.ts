@@ -3,6 +3,7 @@ import {Disposable} from 'vscode-languageserver-protocol'
 import CssService from './extensions/css'
 import JsonService from './extensions/json'
 import HtmlService from './extensions/html'
+import WxmlService from './extensions/wxml'
 import TsserverService from './extensions/typescript-service'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
@@ -45,6 +46,7 @@ export class ServiceManager implements Disposable {
     this.regist(new CssService())
     this.regist(new JsonService())
     this.regist(new HtmlService())
+    this.regist(new WxmlService())
   }
 
   public dispose():void {
