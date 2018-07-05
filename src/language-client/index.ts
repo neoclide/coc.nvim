@@ -12,7 +12,7 @@ export interface LspConfig {
   [index: string]: LanguageServerConfig
 }
 
-export class LanguageService implements IServiceProvider{
+export class LanguageService implements IServiceProvider {
   public enable: boolean
   public languageIds: string[]
   public readonly state: ServiceStat
@@ -76,6 +76,7 @@ export class LanguageService implements IServiceProvider{
       },
       initializationOptions: config.initializationOptions || {}
     }
+    clientOptions = this.resolveClientOptions(clientOptions)
     // Create the language client and start the client.
     let client = this.client = new LanguageClient(
       this.id,
@@ -104,6 +105,10 @@ export class LanguageService implements IServiceProvider{
     this.disposables.push(disposable)
   }
 
+  protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {
+    return clientOptions
+  }
+
   private getOptions(isModule = false):ExecutableOptions | ForkOptions {
     let {config} = this
     let {cwd, shell, execArgv} = config
@@ -115,7 +120,7 @@ export class LanguageService implements IServiceProvider{
     } catch (e) {
       cwd = workspace.root
     }
-    if (isModule) return {cwd, execArgv}
+    if (isModule) return {cwd, execArgv: execArgv || []}
     return {
       cwd,
       detached: false,

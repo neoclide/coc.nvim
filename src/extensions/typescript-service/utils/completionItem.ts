@@ -96,10 +96,7 @@ export function convertCompletionEntry(
     }
     insertText = null
   }
-  if (tsEntry.kindModifiers && tsEntry.kindModifiers.match(/\boptional\b/)) {
-    if (!insertText) insertText = label
-    label = `${insertText}?`
-  }
+  let optional = tsEntry.kindModifiers && tsEntry.kindModifiers.match(/\boptional\b/)
   return {
     label,
     insertText,
@@ -109,6 +106,7 @@ export function convertCompletionEntry(
     sortText,
     data: {
       uri,
+      optional,
       position,
       source: tsEntry.source || ''
     }

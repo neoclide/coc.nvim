@@ -152,8 +152,12 @@
   "cssserver.wxss.lint": true,
   "http.proxy": "",
   "http.proxyStrictSSL": "",
+  "json.filetypes": ["json", "jsonc"],
   "json.format.enable": true,
   "json.schemas": [],
-  "languageserver": {}
+  // "json.execArgv": ["--nolazy", "--inspect=6045"],
+  "languageserver": {},
+  // "html.execArgv": ["--nolazy", "--inspect-brk=6045"],
+  "html.filetypes": ["html", "handlebars", "razor"]
 }
 // vim:ft=jsonc

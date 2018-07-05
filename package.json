@@ -86,6 +86,7 @@
     "typescript": "^3.0.0-dev.20180704",
     "uuid": "^3.3.2",
     "vscode-css-languageservice": "^3.0.9-next.19",
+    "vscode-html-languageserver-bin": "^1.4.0",
     "vscode-json-languageserver": "^1.0.1",
     "vscode-languageserver": "^4.2.1",
     "vscode-languageserver-protocol": "^3.8.1",

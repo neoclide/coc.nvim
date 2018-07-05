@@ -502,7 +502,7 @@ class Languages {
             resolved: true
           })
         }
-        logger.trace('Resolved complete item', resolved)
+        logger.debug('Resolved complete item', JSON.stringify(resolved, null, 2))
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolving == item.word) {
           // vim have no suppport for update complete item
@@ -672,6 +672,9 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
     item.insertText = obj.word // tslint:disable-line
   }
   obj.abbr = obj.filterText
+  if (item.data && item.data.optional) {
+    obj.abbr = obj.abbr + '?'
+  }
   if (isSnippet) obj.abbr = obj.abbr + '~'
   let document = getDocumentation(item)
   if (document) obj.info = document
