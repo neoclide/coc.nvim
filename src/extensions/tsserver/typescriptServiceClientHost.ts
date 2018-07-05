@@ -25,7 +25,7 @@ import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
 import * as typeConverters from './utils/typeConverters'
 import LanguageProvider from './languageProvider'
 import {LanguageDescription} from './utils/languageDescription'
-const logger = require('../../util/logger')('typescript-service-clienthost')
+const logger = require('../../util/logger')('tsserver-clienthost')
 
 // Style check diagnostics that can be reported as warnings
 const styleCheckDiagnostics = [

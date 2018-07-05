@@ -7,7 +7,7 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import {ROOT} from '../../../util'
-const logger = require('../../../util/logger')('typescript-service-process')
+const logger = require('../../../util/logger')('tsserver-process')
 
 export interface IForkOptions {
   cwd?: string

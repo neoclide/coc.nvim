@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import { TypeScriptServiceConfiguration } from './configuration'
 import * as Proto from '../protocol'
-const logger = require('../../../util/logger')('typescript-service-tsconfig')
+const logger = require('../../../util/logger')('tsserver-tsconfig')
 
 export function inferredProjectConfig(
   config: TypeScriptServiceConfiguration

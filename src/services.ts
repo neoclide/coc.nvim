@@ -4,7 +4,7 @@ import CssService from './extensions/css'
 import JsonService from './extensions/json'
 import HtmlService from './extensions/html'
 import WxmlService from './extensions/wxml'
-import TsserverService from './extensions/typescript-service'
+import TsserverService from './extensions/tsserver'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
 const logger = require('./util/logger')('services')

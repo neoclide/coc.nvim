@@ -17,7 +17,7 @@ import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {Delayer} from '../utils/async'
 import * as languageModeIds from '../utils/languageModeIds'
-const logger = require('../../../util/logger')('typescript-service-bufferSyncSupport')
+const logger = require('../../../util/logger')('tsserver-bufferSyncSupport')
 
 function mode2ScriptKind(
   mode: string

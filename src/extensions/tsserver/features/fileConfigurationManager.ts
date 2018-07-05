@@ -9,7 +9,7 @@ import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import API from '../utils/api'
 import * as languageIds from '../utils/languageModeIds'
-const logger = require('../../../util/logger')('typescript-service-fileConfigurationManager')
+const logger = require('../../../util/logger')('tsserver-fileConfigurationManager')
 
 function objAreEqual<T>(a: T, b: T): boolean {
   let keys = Object.keys(a)
