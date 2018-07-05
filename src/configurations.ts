@@ -30,6 +30,7 @@ function lookUp(tree: any, key: string):any {
     }
     return node
   }
+  return tree
 }
 
 export default class Configurations {
@@ -47,7 +48,7 @@ export default class Configurations {
    * @param {string} section
    * @returns {WorkspaceConfiguration}
    */
-  public getConfiguration(section: string): WorkspaceConfiguration {
+  public getConfiguration(section?: string): WorkspaceConfiguration {
 
     const config = Object.freeze(lookUp(this._configuration.getValue(null), section))
 
@@ -59,49 +60,6 @@ export default class Configurations {
         let result = lookUp(config, key)
         if (typeof result === 'undefined') {
           result = defaultValue
-        } else {
-          let clonedConfig = void 0
-          const cloneOnWriteProxy = (target: any, accessor: string): any => {
-            let clonedTarget = void 0
-            const cloneTarget = () => {
-              clonedConfig = clonedConfig ? clonedConfig : deepClone(config)
-              clonedTarget = clonedTarget ? clonedTarget : lookUp(clonedConfig, accessor)
-            }
-            return isObject(target) ?
-              new Proxy(target, {
-                get: (target: any, property: string) => {
-                  if (typeof property === 'string' && property.toLowerCase() === 'tojson') {
-                    cloneTarget()
-                    return () => clonedTarget
-                  }
-                  if (clonedConfig) {
-                    clonedTarget = clonedTarget ? clonedTarget : lookUp(clonedConfig, accessor)
-                    return clonedTarget[property]
-                  }
-                  const result = target[property]
-                  if (typeof property === 'string') {
-                    return cloneOnWriteProxy(result, `${accessor}.${property}`)
-                  }
-                  return result
-                },
-                set: (target: any, property: string, value: any) => {
-                  cloneTarget()
-                  clonedTarget[property] = value
-                  return true
-                },
-                deleteProperty: (target: any, property: string) => {
-                  cloneTarget()
-                  delete clonedTarget[property]
-                  return true
-                },
-                defineProperty: (target: any, property: string, descriptor: any) => {
-                  cloneTarget()
-                  Object.defineProperty(clonedTarget, property, descriptor)
-                  return true
-                }
-              }) : target
-          }
-          result = cloneOnWriteProxy(result, key)
         }
         if (result == null || (typeof result == 'string' && result.length == 0)) return null
         return result
@@ -111,7 +69,7 @@ export default class Configurations {
         // TODO change configuration file
       },
       inspect: <T>(key: string): ConfigurationInspect<T> => {
-        key = `${section}.${key}`
+        key = section ? `${section}.${key}` : key
         const config = this._configuration.inspect<T>(key)
         if (config) {
           return {

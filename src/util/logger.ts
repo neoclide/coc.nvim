@@ -1,7 +1,7 @@
-import os = require('os')
-import path = require('path')
-import fs = require('fs')
-import * as log4js from 'log4js'
+import os from 'os'
+import path from 'path'
+import fs from 'fs'
+import log4js from 'log4js'
 
 const MAX_LOG_SIZE = 1024 * 1024
 const MAX_LOG_BACKUPS = 10

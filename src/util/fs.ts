@@ -1,9 +1,9 @@
-import pify = require('pify')
-import fs = require('fs')
-import path = require('path')
-import readline = require('readline')
-import os = require('os')
-const exec = require('child_process').exec
+import fs from 'fs'
+import path from 'path'
+import os from 'os'
+import readline from 'readline'
+import pify from 'pify'
+import {exec} from 'child_process'
 const logger = require('./logger')('util-fs')
 
 let tmpFolder:string|null = null

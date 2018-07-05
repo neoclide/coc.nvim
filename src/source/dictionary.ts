@@ -1,12 +1,9 @@
-import { Neovim } from 'neovim'
-import {
-  SourceConfig,
-  CompleteOption,
-  CompleteResult} from '../types'
+import fs from 'fs'
+import {Neovim} from 'neovim'
+import pify from 'pify'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
 import {statAsync} from '../util/fs'
-import * as fs from 'fs'
-import pify = require('pify')
 const logger = require('../util/logger')('source-dictionary')
 
 interface Dicts {

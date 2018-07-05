@@ -3,155 +3,22 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import * as log4js from 'log4js'
-import workspace from '../workspace'
-import languages from '../languages'
-import Commands from '../commands'
-import * as Window from './utils/window'
-import {
-  DiagnosticCollection,
-  Thenable,
-  TextDocumentWillSaveEvent,
-} from '../types'
+import log4js from 'log4js'
+import {ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import { ProviderResult } from '../provider'
-import * as cv from './utils/converter'
+import Commands from '../commands'
+import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
-import {
-  Command,
-  TextDocument,
-  CancellationToken,
-  Diagnostic,
-  Disposable,
-  Position,
-  Location,
-  Range,
-  Message,
-  CompletionItem,
-  CompletionList,
-  RPCMessageType,
-  SignatureHelp,
-  Definition,
-  DocumentHighlight,
-  SymbolInformation,
-  CodeActionContext,
-  Logger,
-  CodeLens,
-  ErrorCodes,
-  TextEdit,
-  ResponseError,
-  DocumentLink,
-  CompletionContext,
-  FormattingOptions,
-  Hover,
-  CodeAction,
-  RequestType,
-  RequestType0,
-  RequestHandler,
-  RequestHandler0,
-  GenericRequestHandler,
-  NotificationType,
-  NotificationType0,
-  NotificationHandler,
-  NotificationHandler0,
-  GenericNotificationHandler,
-  MessageReader,
-  MessageWriter,
-  Trace,
-  Tracer,
-  Event,
-  Emitter,
-  createProtocolConnection,
-  ClientCapabilities,
-  WorkspaceEdit,
-  RegistrationRequest,
-  RegistrationParams,
-  UnregistrationRequest,
-  UnregistrationParams,
-  TextDocumentRegistrationOptions,
-  InitializeRequest,
-  InitializeParams,
-  InitializeResult,
-  InitializeError,
-  ServerCapabilities,
-  TextDocumentSyncKind,
-  TextDocumentSyncOptions,
-  InitializedNotification,
-  ShutdownRequest,
-  ExitNotification,
-  LogMessageNotification,
-  LogMessageParams,
-  MessageType,
-  ShowMessageNotification,
-  ShowMessageParams,
-  ShowMessageRequest,
-  TelemetryEventNotification,
-  DidChangeConfigurationNotification,
-  DidChangeConfigurationParams,
-  DidChangeConfigurationRegistrationOptions,
-  DocumentSelector,
-  DidOpenTextDocumentNotification,
-  DidOpenTextDocumentParams,
-  DidChangeTextDocumentNotification,
-  DidChangeTextDocumentParams,
-  TextDocumentChangeRegistrationOptions,
-  DidCloseTextDocumentNotification,
-  DidCloseTextDocumentParams,
-  DidSaveTextDocumentNotification,
-  DidSaveTextDocumentParams,
-  TextDocumentSaveRegistrationOptions,
-  WillSaveTextDocumentNotification,
-  WillSaveTextDocumentWaitUntilRequest,
-  WillSaveTextDocumentParams,
-  DidChangeWatchedFilesNotification,
-  DidChangeWatchedFilesParams,
-  FileEvent,
-  FileChangeType,
-  DidChangeWatchedFilesRegistrationOptions,
-  WatchKind,
-  PublishDiagnosticsNotification,
-  PublishDiagnosticsParams,
-  CompletionRequest,
-  CompletionResolveRequest,
-  CompletionRegistrationOptions,
-  HoverRequest,
-  SignatureHelpRequest,
-  SignatureHelpRegistrationOptions,
-  DefinitionRequest,
-  ReferencesRequest,
-  DocumentHighlightRequest,
-  DocumentSymbolRequest,
-  WorkspaceSymbolRequest,
-  CodeActionRequest,
-  CodeActionParams,
-  CodeLensRequest,
-  CodeLensResolveRequest,
-  CodeLensRegistrationOptions,
-  DocumentFormattingRequest,
-  DocumentFormattingParams,
-  DocumentRangeFormattingRequest,
-  DocumentRangeFormattingParams,
-  RenameRequest,
-  RenameParams,
-  DocumentLinkRequest,
-  DocumentLinkResolveRequest,
-  DocumentLinkRegistrationOptions,
-  ExecuteCommandRequest,
-  ExecuteCommandParams,
-  ExecuteCommandRegistrationOptions,
-  ApplyWorkspaceEditRequest,
-  ApplyWorkspaceEditParams,
-  ApplyWorkspaceEditResponse,
-  MarkupKind,
-  SymbolKind,
-  CompletionItemKind,
-  CodeActionKind
-} from 'vscode-languageserver-protocol'
+import {ProviderResult} from '../provider'
+import {DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../types'
+import workspace from '../workspace'
 import {ImplementationMiddleware} from './implementation'
 import {TypeDefinitionMiddleware} from './typeDefinition'
-import * as Is from './utils/is'
 import {Delayer} from './utils/async'
+import * as cv from './utils/converter'
+import * as Is from './utils/is'
 import * as UUID from './utils/uuid'
+import * as Window from './utils/window'
 const createLogger = require('../util/logger')
 const logger = require('../util/logger')('language-client-client')
 
@@ -2906,10 +2773,7 @@ class ConfigurationFeature
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
-    ensure(
-      ensure(capabilities, 'workspace')!,
-      'didChangeConfiguration'
-    )!.dynamicRegistration = true
+    ensure(ensure(capabilities, 'workspace')!, 'didChangeConfiguration')!.dynamicRegistration = true
   }
 
   public initialize(): void {
@@ -2952,7 +2816,7 @@ class ConfigurationFeature
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration( configurationSection: string | string[] | undefined): void {
+  private onDidChangeConfiguration(configurationSection: string|string[]): void {
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
       sections = [configurationSection]
@@ -2977,36 +2841,17 @@ class ConfigurationFeature
   }
 
   private extractSettingsInformation(keys: string[]): any {
-    function ensurePath(config: any, path: string[]): any {
-      let current = config
-      for (let i = 0; i < path.length - 1; i++) {
-        let obj = current[path[i]]
-        if (!obj) {
-          obj = Object.create(null)
-          current[path[i]] = obj
-        }
-        current = obj
-      }
-      return current
+    if (keys.length == 1) {
+      let res = workspace.getConfiguration().get(keys[0])
+      return res
     }
-    let result = Object.create(null)
-    for (let i = 0; i < keys.length; i++) {
-      let key = keys[i]
-      let index: number = key.indexOf('.')
-      let config: any = null
-      if (index >= 0) {
-        config = workspace.getConfiguration(key.substr(0, index)).get(
-          key.substr(index + 1)
-        )
-      } else {
-        config = workspace.getConfiguration(key)
-      }
-      if (config) {
-        let path = keys[i].split('.')
-        ensurePath(result, path)[path[path.length - 1]] = config
-      }
+    let res:any = {}
+    for (let key of keys) {
+      let parts = key.split('.')
+      let p = parts[parts.length - 1]
+      res[p] = workspace.getConfiguration().get(key)
     }
-    return result
+    return res
   }
 
   private getMiddleware() {
@@ -3138,7 +2983,7 @@ export abstract class BaseLanguageClient {
   ) {
     this._id = id
     this._name = name
-    this._logger = createLogger(name)
+    this._logger = createLogger(`lsp-${id}`)
     clientOptions = clientOptions || {}
     this._clientOptions = {
       documentSelector: clientOptions.documentSelector || [],

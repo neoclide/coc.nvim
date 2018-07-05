@@ -14,6 +14,19 @@ export enum SourceType {
   Service,
 }
 
+export interface LanguageServerConfig {
+  module?: string
+  command?: string
+  filetypes: string[]
+  enable: boolean
+  args?: string[]
+  cwd?: string
+  detached?: boolean
+  shell?: boolean
+  execArgv?: string[]
+  initializationOptions?: any
+}
+
 export interface QuickfixItem {
   filename?: string
   bufnr?: number

@@ -80,7 +80,7 @@ your need.
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for detail.
 
-Check out file 'settings/default.json' for all available options.
+Check out file 'settings.json' for all available options.
 
 ==============================================================================
 INTERFACE					*coc-interface*

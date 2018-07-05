@@ -10,14 +10,16 @@ import {
   CompletionItem,
   InsertTextFormat,
   Position,
+  TextEdit,
 } from 'vscode-languageserver-protocol'
+import workspace from '../../../workspace'
 const logger = require('../../../util/logger')('typscript-utils-completionItem')
 
 export function resolveItem(
   item: CompletionItem,
   document: Document,
 ):void {
-  let {textEdit, label, insertText} = item // tslint:disable-line
+  let {textEdit, label} = item // tslint:disable-line
   let {position} = item.data
   if (textEdit) return
   // try replace more characters after cursor
@@ -81,16 +83,21 @@ export function convertCompletionEntry(
   let insertTextFormat = (
     useCodeSnippetsOnMethodSuggest &&
     (kind === CompletionItemKind.Function ||
-    kind === CompletionItemKind.Method)
+      kind === CompletionItemKind.Method)
   ) ? InsertTextFormat.Snippet : InsertTextFormat.PlainText
-  let textEdit = null
+
+  let textEdit:TextEdit = null
   let insertText = tsEntry.insertText
-  if (insertText && textEdit) {
-    textEdit.newText = insertText
+  if (insertText) {
+    let document = workspace.getDocument(uri)
+    textEdit = {
+      range: document.getWordRangeAtPosition(position),
+      newText: insertText
+    }
     insertText = null
   }
   if (tsEntry.kindModifiers && tsEntry.kindModifiers.match(/\boptional\b/)) {
-    insertText = label
+    if (!insertText) insertText = label
     label = `${insertText}?`
   }
   return {

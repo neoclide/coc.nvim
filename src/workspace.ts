@@ -122,7 +122,7 @@ export class Workspace {
     await this.nvim.command(`wa${force ? '!' : ''}`)
   }
 
-  public getConfiguration(section:string):WorkspaceConfiguration {
+  public getConfiguration(section?:string):WorkspaceConfiguration {
     return this._configurations.getConfiguration(section)
   }
 
@@ -448,6 +448,7 @@ export class Workspace {
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
     let bufnr = await nvim.call('bufnr', [filepath])
+    await nvim.command("execute 'normal! m'''")
     if (bufnr != -1) {
       await nvim.command(`buffer ${cmd} ${bufnr}`)
     } else {
@@ -479,7 +480,7 @@ export class Workspace {
   }
 
   private async loadConfigurations():Promise<IConfigurationData> {
-    let file = path.resolve(__dirname, '../settings/default.json')
+    let file = path.resolve(__dirname, '../settings.json')
     this.configFiles.push(file)
     let defaultConfig = await this.parseConfigFile(file)
     let home = await this.nvim.call('coc#util#get_config_home')

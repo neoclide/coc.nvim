@@ -2,37 +2,19 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import * as cp from 'child_process'
-import * as fs from 'fs'
-import ChildProcess = cp.ChildProcess
-
-import {
-  ServiceStat,
-} from '../types'
-import {
-  BaseLanguageClient,
-  LanguageClientOptions,
-  MessageTransports,
-  StaticFeature,
-  DynamicFeature,
-  ClientState,
-} from './client'
+import cp from 'child_process'
+import fs from 'fs'
+import {createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter} from 'vscode-languageserver-protocol'
+import {ServiceStat} from '../types'
 import workspace from '../workspace'
-import {
-  Disposable,
-  StreamMessageReader,
-  StreamMessageWriter,
-  IPCMessageReader,
-  IPCMessageWriter,
-  createClientPipeTransport,
-  generateRandomPipeName,
-  createClientSocketTransport
-} from 'vscode-languageserver-protocol'
+import {BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature} from './client'
 import {ImplementationFeature} from './implementation'
 import {TypeDefinitionFeature} from './typeDefinition'
-import * as Is from './utils/is'
 import * as electron from './utils/electron'
+import * as Is from './utils/is'
 import {terminate} from './utils/processes'
+import ChildProcess = cp.ChildProcess
+
 const logger = require('../util/logger')('language-client-main')
 
 export * from './client'
@@ -570,6 +552,11 @@ export class LanguageClient extends BaseLanguageClient {
             `Launching server using command ${command.command} failed.`
           )
         }
+        serverProcess.on('exit', code => {
+          if (code != 0) {
+            logger.error(`${command} exist with code: ${code}`)
+          }
+        })
         serverProcess.stderr.on('data', data =>
           logger.error(
             Is.string(data) ? data : data.toString(encoding)

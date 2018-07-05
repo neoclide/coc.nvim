@@ -1,6 +1,7 @@
 import {Neovim} from 'neovim'
 import {Disposable} from 'vscode-languageserver-protocol'
 import CssService from './extensions/css'
+import JsonService from './extensions/json'
 import TsserverService from './extensions/typescript-service'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
@@ -41,12 +42,18 @@ export class ServiceManager implements Disposable {
     this.nvim = nvim
     this.regist(new TsserverService())
     this.regist(new CssService())
-    // TODO regist more services
+    this.regist(new JsonService())
   }
 
   public dispose():void {
     for (let service of this.registed.values()) {
       service.dispose()
+    }
+  }
+
+  public registServices(services:IServiceProvider[]):void {
+    for (let service of services) {
+      this.regist(service)
     }
   }
 

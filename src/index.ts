@@ -1,11 +1,11 @@
 import {Function, Neovim, Plugin} from 'neovim'
-import commands from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import Handler from './handler'
 import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
+import languageClient from './language-client'
 import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
 import {echoErr} from './util'
@@ -25,7 +25,6 @@ export default class CompletePlugin {
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
-    commands.init(nvim, this)
   }
 
   @Function('CocInitAsync', {sync: false})
@@ -50,6 +49,8 @@ export default class CompletePlugin {
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('doautocmd User CocNvimInit')
       services.init(nvim)
+      languageClient.init()
+      services.registServices(languageClient.services)
       this.initialized = true
       logger.info('Coc service Initialized')
       let filetype = await nvim.eval('&filetype') as string

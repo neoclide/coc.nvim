@@ -28,6 +28,7 @@ export interface Settings {
   css: LanguageSettings
   less: LanguageSettings
   scss: LanguageSettings
+  wxss: LanguageSettings
 }
 
 // Create a connection for the server.
@@ -98,7 +99,8 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
 const languageServices: {[id: string]: LanguageService} = {
   css: getCSSLanguageService(),
   scss: getSCSSLanguageService(),
-  less: getLESSLanguageService()
+  less: getLESSLanguageService(),
+  wxss: getCSSLanguageService(),
 }
 
 function getLanguageService(document: TextDocument) {
@@ -127,7 +129,8 @@ function getDocumentSettings(textDocument: TextDocument): Thenable<LanguageSetti
 
 // The settings have changed. Is send on server activation as well.
 connection.onDidChangeConfiguration(change => {
-  updateConfiguration(<Settings>change.settings)
+  let settings = change.settings as Settings
+  updateConfiguration(settings)
 })
 
 function updateConfiguration(settings: Settings) {

@@ -22,7 +22,6 @@ export default class TypingsStatus implements Disposable {
 
   constructor(client: ITypeScriptServiceClient) {
     this._client = client
-
     this._subscriptions.push(
       this._client.onDidBeginInstallTypings(event =>
         this.onBeginInstallTypings(event.eventId)

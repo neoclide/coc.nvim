@@ -147,7 +147,7 @@ export default class FileConfigurationManager {
       disableSuggestions: !config.get<boolean>('suggestionActions.enabled'),
       quotePreference: getQuoteType(config),
       includeCompletionsForModuleExports: config.get<boolean>('completion.moduleExports', true),
-      includeCompletionsWithInsertText: false,
+      includeCompletionsWithInsertText: true,
       allowTextChangesInNewFiles: true,
     }
   }

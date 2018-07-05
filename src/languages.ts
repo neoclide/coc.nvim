@@ -468,8 +468,7 @@ class Languages {
       if (!completeItems || completeItems.length == 0) return null
       let {word} = item
       return completeItems.find(o => {
-        let insertText = o.insertText || o.label // tslint:disable-line
-        return word == insertText
+        return word == o.label
       })
     }
     return {
@@ -601,9 +600,8 @@ class Languages {
     let {nvim} = this
     let mode = await nvim.call('mode')
     if (mode !== 'i') return false
-    let inserted = item.insertText || item.label // tslint:disable-line
     let curcol = await nvim.call('col', ['.'])
-    if (curcol != col + inserted.length + 1) return false
+    if (curcol != col + item.label.length + 1) return false
     return true
   }
 
@@ -611,7 +609,6 @@ class Languages {
     let {nvim} = this
     let {textEdit} = item
     if (!textEdit) return false
-    let inserted = item.insertText || item.label // tslint:disable-line
     let {range, newText} = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     let valid = rangeOfLine(range, option.linenr - 1)
@@ -623,7 +620,7 @@ class Languages {
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let end = line.substr(option.col + inserted.length + deleteCount)
+    let end = line.substr(option.col + item.label.length + deleteCount)
     let newLine = `${start}${newText}${end}`
     if (isSnippet) {
       await snippetManager.insertSnippet(document, option.linenr - 1, newLine)
@@ -662,7 +659,7 @@ function validString(str:any):boolean {
 function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
-    word: item.insertText ? item.insertText : item.label, // tslint:disable-line
+    word: item.label, // tslint:disable-line
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,

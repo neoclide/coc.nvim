@@ -4,6 +4,7 @@ import {
 } from '../types'
 import {isObject} from '../util/types'
 import {deepClone, deepFreeze} from '../util/object'
+const logger = require('../util/logger')('model-configuration')
 
 export class ConfigurationModel implements IConfigurationModel {
   private isFrozen = false

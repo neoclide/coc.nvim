@@ -231,17 +231,17 @@ export default class LanguageProvider {
           new ImplementationsCodeLensProvider(client, cachedResponse)))
     }
 
-    if (this.client.apiVersion.gte(API.v300)) {
-      this.disposables.push(
-        languages.registerCompletionItemProvider(
-          `tsserver-${this.description.id}-tag`,
-          'TSC',
-          languageIds,
-          new TagCompletionProvider(client),
-          ['>']
-        )
-      )
-    }
+    // if (this.client.apiVersion.gte(API.v300)) {
+    //   this.disposables.push(
+    //     languages.registerCompletionItemProvider(
+    //       `tsserver-${this.description.id}-tag`,
+    //       'TSC',
+    //       languageIds,
+    //       new TagCompletionProvider(client),
+    //       ['>']
+    //     )
+    //   )
+    // }
   }
 
   public handles(resource: Uri): boolean {

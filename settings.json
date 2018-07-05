@@ -5,8 +5,6 @@
   "coc.preferences.timeout": 300,
   // not make vim select first item on completion start
   "coc.preferences.noselect": true,
-  // autocmd events for echo function signature
-  "coc.preferences.signatureEvents": ["CursorHold"],
   // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
   "coc.preferences.watchmanPath": "",
   // enable diagnoctic
@@ -143,11 +141,19 @@
   "coc.source.neco.triggerCharacters": [":", "&"],
   "coc.source.neco.firstMatch": true,
   "cssserver.enable": true,
-  "cssserver.filetypes": ["css", "scss", "less"],
+  "cssserver.filetypes": ["css", "scss", "less", "wxss"],
   "cssserver.css.validate": true,
   "cssserver.css.lint": true,
   "cssserver.scss.validate": true,
   "cssserver.scss.lint": true,
   "cssserver.less.validate": true,
-  "cssserver.less.lint": true
+  "cssserver.less.lint": true,
+  "cssserver.wxss.validate": true,
+  "cssserver.wxss.lint": true,
+  "http.proxy": "",
+  "http.proxyStrictSSL": "",
+  "json.format.enable": true,
+  "json.schemas": [],
+  "languageserver": {}
 }
+// vim:ft=jsonc

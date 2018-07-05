@@ -1,15 +1,10 @@
-import {
-  Disposable,
-  Range,
-} from 'vscode-languageserver-protocol'
 import {Neovim} from 'neovim'
-import * as platform from './platform'
-export {
-  platform,
-}
+import net from 'net'
+import path from 'path'
+import {Disposable, Range} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import net = require('net')
-import path = require('path')
+import * as platform from './platform'
+export {platform}
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
 
@@ -21,28 +16,28 @@ export enum FileSchemes {
 }
 
 export function isSupportedScheme(scheme: string): boolean {
-  return [
-    FileSchemes.File,
-    FileSchemes.Untitled].indexOf(scheme as FileSchemes) >= 0
+  return (
+    [FileSchemes.File, FileSchemes.Untitled].indexOf(scheme as FileSchemes) >= 0
+  )
 }
 
-export function escapeSingleQuote(str: string):string {
+export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
 }
 
-export async function echoErr(nvim: Neovim, msg: string):Promise<void> {
-  return await echoMsg(nvim, prefix + msg, 'Error')
+export async function echoErr(nvim: Neovim, msg: string): Promise<void> {
+  await echoMsg(nvim, prefix + msg, 'Error')
 }
 
-export async function echoWarning(nvim: Neovim, msg: string):Promise<void> {
-  return await echoMsg(nvim, prefix + msg, 'WarningMsg')
+export async function echoWarning(nvim: Neovim, msg: string): Promise<void> {
+  await echoMsg(nvim, prefix + msg, 'WarningMsg')
 }
 
-export async function echoMessage(nvim: Neovim, msg: string):Promise<void> {
-  return await echoMsg(nvim, prefix + msg, 'MoreMsg')
+export async function echoMessage(nvim: Neovim, msg: string): Promise<void> {
+  await echoMsg(nvim, prefix + msg, 'MoreMsg')
 }
 
-export function wait(ms: number):Promise<any> {
+export function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve()
@@ -50,7 +45,7 @@ export function wait(ms: number):Promise<any> {
   })
 }
 
-async function echoMsg(nvim:Neovim, msg: string, hl: string):Promise<void> {
+async function echoMsg(nvim: Neovim, msg: string, hl: string): Promise<void> {
   try {
     await nvim.call('coc#util#echo_messages', [hl, msg.split('\n')])
   } catch (e) {
@@ -59,8 +54,8 @@ async function echoMsg(nvim:Neovim, msg: string, hl: string):Promise<void> {
   return
 }
 
-export function isCocItem(item: any):boolean {
-  if (!item ||!item.hasOwnProperty('user_data')) return false
+export function isCocItem(item: any): boolean {
+  if (!item || !item.hasOwnProperty('user_data')) return false
   let {user_data} = item
   try {
     let res = JSON.parse(user_data)
@@ -70,7 +65,7 @@ export function isCocItem(item: any):boolean {
   }
 }
 
-function getValidPort(port:number, cb:(port:number)=>void):void {
+function getValidPort(port: number, cb: (port: number) => void): void {
   let server = net.createServer()
   server.listen(port, () => {
     server.once('close', () => {
@@ -84,7 +79,7 @@ function getValidPort(port:number, cb:(port:number)=>void):void {
   })
 }
 
-export function getPort(port = 44877):Promise<number> {
+export function getPort(port = 44877): Promise<number> {
   return new Promise(resolve => {
     getValidPort(port, result => {
       resolve(result)
@@ -92,25 +87,31 @@ export function getPort(port = 44877):Promise<number> {
   })
 }
 
-export function getUri(fullpath:string, id:number):string {
+export function getUri(fullpath: string, id: number): string {
   if (!fullpath) return `untitled:///${id}`
   if (/^\w+:\/\//.test(fullpath)) return fullpath
   return Uri.file(fullpath).toString()
 }
 
 // -1 is cancel
-export async function showQuickpick(nvim:Neovim, items:string[], placeholder = 'Choose by number'):Promise<number> {
+export async function showQuickpick(
+  nvim: Neovim,
+  items: string[],
+  placeholder = 'Choose by number'
+): Promise<number> {
   let msgs = [placeholder + ':']
-  msgs = msgs.concat(items.map((str, index) => {
-    return `${index + 1}. ${str}`
-  }))
+  msgs = msgs.concat(
+    items.map((str, index) => {
+      return `${index + 1}. ${str}`
+    })
+  )
   let res = await nvim.call('inputlist', [msgs])
   let n = parseInt(res, 10)
   if (isNaN(n) || n <= 0 || n > res.length) return -1
   return n - 1
 }
 
-export function disposeAll(disposables: Disposable[]):void {
+export function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
     const item = disposables.pop()
     if (item) {
@@ -119,7 +120,7 @@ export function disposeAll(disposables: Disposable[]):void {
   }
 }
 
-export function rangeOfLine(range:Range, line:number):boolean {
+export function rangeOfLine(range: Range, line: number): boolean {
   let {start, end} = range
   if (start.line != line) return false
   if (end.line == line || (end.line == line + 1 && end.character == 0)) {

@@ -2,49 +2,25 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import * as cp from 'child_process'
-import * as path from 'path'
-import * as fs from 'fs'
-import Tracer from './utils/tracer'
-import * as Proto from './protocol'
-import {
-  fork,
-  getTempFile,
-  IForkOptions,
-  makeRandomHexString
-} from './utils/process'
-import API from './utils/api'
-import workspace from '../../workspace'
-import {Reader, ICallback} from './utils/wireProtocol'
-import {
-  DiagnosticKind,
-  ServiceStat,
-} from '../../types'
-import {
-  TypeScriptServiceConfiguration,
-  TsServerLogLevel
-} from './utils/configuration'
+import cp from 'child_process'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+import {CancellationToken, Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {
-  disposeAll,
-  FileSchemes,
-  echoErr,
-  echoMessage,
-} from '../../util'
-import {
-  Emitter,
-  Event,
-  Disposable,
-  CancellationToken,
-} from 'vscode-languageserver-protocol'
-import which = require('which')
+import which from 'which'
+import {DiagnosticKind, ServiceStat} from '../../types'
+import {disposeAll, echoErr, echoMessage, FileSchemes} from '../../util'
+import workspace from '../../workspace'
+import * as Proto from './protocol'
 import {ITypeScriptServiceClient} from './typescriptService'
+import API from './utils/api'
+import {TsServerLogLevel, TypeScriptServiceConfiguration} from './utils/configuration'
+import {fork, getTempFile, IForkOptions, makeRandomHexString} from './utils/process'
+import Tracer from './utils/tracer'
 import {inferredProjectConfig} from './utils/tsconfig'
-import {
-  TypeScriptVersionProvider,
-  TypeScriptVersion
-} from './utils/versionProvider'
-import os = require('os')
+import {TypeScriptVersion, TypeScriptVersionProvider} from './utils/versionProvider'
+import {ICallback, Reader} from './utils/wireProtocol'
 const logger = require('../../util/logger')('tsserver-client')
 
 interface CallbackItem {

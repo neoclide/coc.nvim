@@ -1,5 +1,5 @@
-import * as fs from 'fs'
-import debounce = require('debounce')
+import debounce from 'debounce'
+import fs from 'fs'
 import {statAsync} from './fs'
 const logger = require('./logger')('util-watch')
 

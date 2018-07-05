@@ -2,10 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import * as path from 'path'
-import * as os from 'os'
-import * as net from 'net'
-import * as cp from 'child_process'
+import cp from 'child_process'
+import net from 'net'
+import os from 'os'
+import path from 'path'
 import {ROOT} from '../../util'
 
 export interface IForkOpts {
