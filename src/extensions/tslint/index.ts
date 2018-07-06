@@ -47,6 +47,17 @@ namespace AllFixesRequest {
   >('textDocument/tslint/allFixes')
 }
 
+interface NoTSLintLibraryParams {
+	readonly source: TextDocumentIdentifier
+}
+
+interface NoTSLintLibraryResult {
+}
+
+namespace NoTSLintLibraryRequest {
+	export const type = new RequestType<NoTSLintLibraryParams, NoTSLintLibraryResult, void, void>('tslint/noLibrary')
+}
+
 interface Settings {
   enable: boolean
   jsEnable: boolean
@@ -75,6 +86,10 @@ export default class TslintService extends LanguageService {
     }, 'tslint')
 
     this.onServiceReady(() => {
+      this.client.onRequest(NoTSLintLibraryRequest.type, () => {
+        return {}
+      })
+
       workspace.onWillSaveTextDocument(this.willSaveTextDocument)
       commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits)
       commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits)

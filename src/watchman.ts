@@ -1,9 +1,10 @@
 import {Client} from 'fb-watchman'
-import {resolveRoot} from './util/fs'
 import watchman = require('fb-watchman')
 import uuidv1 = require('uuid/v1')
 import fs = require('fs')
 import which = require('which')
+import {echoErr} from './util'
+import {Neovim} from 'neovim'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -62,20 +63,18 @@ export default class Watchman {
     })
   }
 
-  private async watchProject(root:string):Promise<boolean> {
-    let projectRoot = resolveRoot(root, ['.git', '.hg', '.svn', '.watchmanconfig'])
-    if (!projectRoot) {
-      logger.error(`valid root not found from ${root}`)
+  private async watchProject(root:string, nvim:Neovim):Promise<boolean> {
+    if (root === process.env.HOME) {
+      echoErr(nvim, 'root is home, file watching disabled!')
       return false
     }
     let resp = await this.command(['watch-project', root])
-    logger.debug(resp)
     let {watch, warning} = (resp as WatchResponse)
     if (warning) logger.warn(warning)
     this.relative_path = watch
     resp = await this.command(['clock', watch])
     this.clock = resp.clock
-    logger.info('watchman watching project ', projectRoot)
+    logger.info('watchman watching project ', root)
     return true
   }
 
@@ -113,11 +112,11 @@ export default class Watchman {
     })
   }
 
-  public static async createClient(binaryPath:string, root:string):Promise<Watchman|null> {
+  public static async createClient(binaryPath:string, root:string, nvim:Neovim):Promise<Watchman|null> {
     let client = new Watchman(binaryPath)
     let checked = await client.checkCapability()
     if (!checked) return null
-    let watching = await client.watchProject(root)
+    let watching = await client.watchProject(root, nvim)
     return watching ? client : null
   }
 

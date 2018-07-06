@@ -94,7 +94,7 @@ export class Workspace {
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
     if (!this.watchmanPath) return null
-    let watchmanPromise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root)
+    let watchmanPromise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root, this.nvim)
     return new FileSystemWatcher(
       watchmanPromise,
       globPattern,
