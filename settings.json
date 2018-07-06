@@ -165,5 +165,15 @@
   "wxml.complete.completeEvent": false,
   "wxml.complete.useSnippet": true,
   // "wxml.execArgv": ["--nolazy", "--inspect-brk=6045"],
+  "tslint.jsEnable": false,
+  "tslint.enable": true,
+  "tslint.autoFixOnSave": false,
+  "tslint.configFile": "tslint.json",
+  "tslint.ignoreDefinitionFiles": false,
+  "tslint.exclude": [],
+  "tslint.validateWithDefaultConfig": true,
+  // or onSave
+  "tslint.run": "onType",
+  "alwaysShowRuleFailuresAsWarnings": true,
 }
 // vim:ft=jsonc

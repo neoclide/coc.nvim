@@ -12,5 +12,10 @@
     "return-undefined": false,
     "no-unused-variable": false,
     "no-console":true
+  },
+  "linterOptions": {
+    "exclude": [
+      "**/catalog.json"
+    ]
   }
 }

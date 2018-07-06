@@ -14,6 +14,7 @@ import {DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../type
 import workspace from '../workspace'
 import {ImplementationMiddleware} from './implementation'
 import {TypeDefinitionMiddleware} from './typeDefinition'
+import { ConfigurationWorkspaceMiddleware } from './configuration';
 import {Delayer} from './utils/async'
 import * as cv from './utils/converter'
 import * as Is from './utils/is'
@@ -447,7 +448,7 @@ export interface _WorkspaceMiddleware {
   ) => void
 }
 
-export type WorkspaceMiddleware = _WorkspaceMiddleware
+export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware
 
 /**
  * The Middleware lets extensions intercept the request and notications send and received

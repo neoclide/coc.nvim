@@ -29,7 +29,7 @@ export class LanguageService implements IServiceProvider {
     configSections?:string|string[]
   ) {
     this.state = ServiceStat.Initial
-    this.enable = config.enable !== false
+    this.enable = config.enable
     this.languageIds = config.filetypes
     this.configSections = configSections || `${this.id}.settings`
     if (!config.command && !config.module) {
@@ -39,7 +39,7 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
-  public init (): void {
+  public init ():void {
     let {config, name} = this
     let {args, module} = config
 
@@ -124,7 +124,7 @@ export class LanguageService implements IServiceProvider {
     return {
       cwd,
       detached: false,
-      shell: shell === false ? false : true
+      shell: !!shell
     }
   }
 
@@ -151,7 +151,7 @@ class LanguageClientManager {
 
   public init():void {
     let base = 'languageserver'
-    let lspConfig = workspace.getConfiguration().get(base)
+    let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
     for (let key of Object.keys(lspConfig)) {
       let config = workspace.getConfiguration(base).get<LanguageServerConfig>(key)
       let id = `${base}.${key}`

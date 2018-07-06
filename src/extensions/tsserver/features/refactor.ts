@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Range, TextDocument} from 'vscode-languageserver-protocol'
+import {CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Range, TextDocument, WorkspaceEdit} from 'vscode-languageserver-protocol'
 import commandManager, {Command} from '../../../commands'
 import {CodeActionProvider, CodeActionProviderMetadata} from '../../../provider'
 import {showQuickpick} from '../../../util'
@@ -10,9 +10,9 @@ import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
-import FormattingOptionsManager from './fileConfigurationManager';
+import FormattingOptionsManager from './fileConfigurationManager'
 import touch = require('touch')
-const logger = require('../../../util/logger')('typescript-langauge-refactor')
+const logger = require('../../../util/logger')('tsserver-refactor')
 
 class ApplyRefactoringCommand implements Command {
   public static readonly ID = '_typescript.applyRefactoring'
@@ -38,14 +38,13 @@ class ApplyRefactoringCommand implements Command {
       return false
     }
 
-    const workspaceEdit = await this.toWorkspaceEdit(body)
+    const workspaceEdit = this.toWorkspaceEdit(body)
     if (!(await workspace.applyEdit(workspaceEdit))) {
       return false
     }
 
     const renameLocation = body.renameLocation
     if (renameLocation) {
-      logger.debug('renameLocation:', renameLocation)
       await commandManager.executeCommand('editor.action.rename', [
         document.uri,
         typeConverters.Position.fromLocation(renameLocation)
@@ -54,7 +53,7 @@ class ApplyRefactoringCommand implements Command {
     return true
   }
 
-  private async toWorkspaceEdit(body: Proto.RefactorEditInfo) {
+  private toWorkspaceEdit(body: Proto.RefactorEditInfo):WorkspaceEdit {
     for (const edit of body.edits) {
       touch.sync(edit.fileName)
     }
@@ -124,16 +123,14 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     }
     const file = this.client.toPath(document.uri)
     if (!file) return undefined
-    await this.formattingOptionsManager.ensureConfigurationForDocument(document);
+    await this.formattingOptionsManager.ensureConfigurationForDocument(document)
     const args: Proto.GetApplicableRefactorsRequestArgs = typeConverters.Range.toFileRangeRequestArgs(
       file,
       range
     )
-    logger.debug(args)
     let response: Proto.GetApplicableRefactorsResponse
     try {
       response = await this.client.execute('getApplicableRefactors', args, token)
-      logger.debug(response)
       if (!response || !response.body) {
         return undefined
       }
@@ -154,10 +151,10 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     document: TextDocument,
     file: string,
     rangeOrSelection: Range
-  ) {
+  ):CodeAction[] {
     const actions: CodeAction[] = []
     for (const info of body) {
-      if (info.inlineable === false) {
+      if (!info.inlineable) {
         const codeAction:CodeAction = {
           title: info.description,
           kind: CodeActionKind.Refactor
@@ -191,7 +188,7 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     file: string,
     info: Proto.ApplicableRefactorInfo,
     rangeOrSelection: Range
-  ) {
+  ):CodeAction {
     const codeAction:CodeAction = {
       title: action.description,
       kind: TypeScriptRefactorProvider.getKind(action)
@@ -204,7 +201,7 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     return codeAction
   }
 
-  private shouldTrigger(context: CodeActionContext) {
+  private shouldTrigger(context: CodeActionContext):boolean {
     if (
       context.only &&
       context.only.indexOf(CodeActionKind.Refactor) == -1
@@ -214,7 +211,7 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     return true
   }
 
-  private static getKind(refactor: Proto.RefactorActionInfo) {
+  private static getKind(refactor: Proto.RefactorActionInfo):string {
     if (refactor.name.startsWith('function_')) {
       return TypeScriptRefactorProvider.extractFunctionKind
     } else if (refactor.name.startsWith('constant_')) {

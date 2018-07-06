@@ -19,7 +19,7 @@ export default class TypeScriptTagCompletion implements CompletionItemProvider {
     private readonly client: ITypeScriptServiceClient
   ) { }
 
-  async provideCompletionItems(
+  public async provideCompletionItems(
     document: TextDocument,
     position: Position,
     token: CancellationToken,
@@ -32,7 +32,7 @@ export default class TypeScriptTagCompletion implements CompletionItemProvider {
     }
 
     const args: Proto.JsxClosingTagRequestArgs = typeConverters.Position.toFileLocationRequestArgs(filepath, position)
-    let body: Proto.TextInsertion | undefined = undefined
+    let body: Proto.TextInsertion | undefined
     try {
       const response = await this.client.execute('jsxClosingTag', args, token)
       body = response && response.body

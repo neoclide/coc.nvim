@@ -5,6 +5,7 @@ import JsonService from './extensions/json'
 import HtmlService from './extensions/html'
 import WxmlService from './extensions/wxml'
 import TsserverService from './extensions/tsserver'
+import TslintService from './extensions/tslint'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
 const logger = require('./util/logger')('services')
@@ -47,6 +48,7 @@ export class ServiceManager implements Disposable {
     this.regist(new JsonService())
     this.regist(new HtmlService())
     this.regist(new WxmlService())
+    this.regist(new TslintService())
   }
 
   public dispose():void {

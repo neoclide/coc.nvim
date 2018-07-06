@@ -11,7 +11,7 @@ import {
 } from '../../../types'
 import Uri from 'vscode-uri'
 import languages from '../../../languages'
-const logger = require('../../../util/logger')('typescript-langauge-diagnostics')
+const logger = require('../../../util/logger')('tsserver-diagnostics')
 
 export class DiagnosticSet {
   private _map = new ResourceMap<Diagnostic[]>()

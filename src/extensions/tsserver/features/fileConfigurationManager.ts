@@ -69,10 +69,8 @@ export default class FileConfigurationManager {
   public async ensureConfigurationForDocument(document: TextDocument): Promise<void> {
     const formattingOptions = await workspace.getFormatOptions()
     let {tabSize, insertSpaces} = formattingOptions
-    return this.ensureConfigurationOptions(document.languageId, insertSpaces, tabSize);
+    return this.ensureConfigurationOptions(document.languageId, insertSpaces, tabSize)
   }
-
-
 
   public reset():void {
     this.cachedOption = null

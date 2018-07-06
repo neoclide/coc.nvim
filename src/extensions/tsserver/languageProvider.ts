@@ -41,7 +41,7 @@ import RefactorProvider from './features/refactor'
 import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
 import {LanguageDescription} from './utils/languageDescription'
 import API from './utils/api'
-const logger = require('../../util/logger')('typescript-langauge-provider')
+const logger = require('../../util/logger')('tsserver-provider')
 
 const validateSetting = 'validate.enable'
 const suggestionSetting = 'suggestionActions.enabled'

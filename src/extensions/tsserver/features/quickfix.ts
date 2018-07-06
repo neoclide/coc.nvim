@@ -79,7 +79,7 @@ class ApplyFixAllCodeAction implements Command {
  * Unique set of diagnostics keyed on diagnostic range and error code.
  */
 class DiagnosticsSet {
-  public static from(diagnostics: Diagnostic[]) {
+  public static from(diagnostics: Diagnostic[]):DiagnosticsSet {
     const values = new Map<string, Diagnostic>()
     for (const diagnostic of diagnostics) {
       values.set(DiagnosticsSet.key(diagnostic), diagnostic)
@@ -87,11 +87,9 @@ class DiagnosticsSet {
     return new DiagnosticsSet(values)
   }
 
-  private static key(diagnostic: Diagnostic) {
+  private static key(diagnostic: Diagnostic):string {
     const {start, end} = diagnostic.range
-    return `${diagnostic.code}-${start.line},${start.character}-${end.line},${
-      end.character
-    }`
+    return `${diagnostic.code}-${start.line},${start.character}-${end.line},${end.character}`
   }
 
   private constructor(

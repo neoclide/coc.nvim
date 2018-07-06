@@ -2,12 +2,9 @@ import path from 'path'
 import {LanguageService} from '../../language-client'
 import {ROOT} from '../../util'
 import workspace from '../../workspace'
-import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
-import {CompletionItem, CompletionContext, CancellationToken, TextDocument, Position, CompletionList} from 'vscode-languageserver-protocol'
-import {ProviderResult} from '../../provider'
 const logger = require('../../util/logger')('extension-html')
 
-export default class JsonService extends LanguageService {
+export default class HtmlService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get('html') as any
     super('html', 'HTML Language Server', {

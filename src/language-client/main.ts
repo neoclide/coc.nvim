@@ -10,6 +10,7 @@ import workspace from '../workspace'
 import {BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature} from './client'
 import {ImplementationFeature} from './implementation'
 import {TypeDefinitionFeature} from './typeDefinition'
+import { ConfigurationFeature as PullConfigurationFeature} from './configuration'
 import * as electron from './utils/electron'
 import * as Is from './utils/is'
 import {terminate} from './utils/processes'
@@ -310,7 +311,7 @@ export class LanguageClient extends BaseLanguageClient {
           }
           cp.stderr.on('data', data => {
             let msg = Is.string(data) ? data : data.toString(encoding)
-            logger.error(msg)
+            if (msg.length) logger.error(msg)
           })
           return {
             reader: new StreamMessageReader(cp.stdout),
@@ -403,9 +404,7 @@ export class LanguageClient extends BaseLanguageClient {
                 logger.error(Is.string(data) ? data : data.toString(encoding))
               })
               process.stdout.on('data', data =>
-                logger.log.append(
-                  Is.string(data) ? data : data.toString(encoding)
-                )
+                logger.log.append(Is.string(data) ? data : data.toString(encoding))
               )
               return transport.onConnected().then(protocol => {
                 return {reader: protocol[0], writer: protocol[1]}
@@ -422,9 +421,7 @@ export class LanguageClient extends BaseLanguageClient {
                 }
                 this._serverProcess = process
                 process.stderr.on('data', data =>
-                  logger.error(
-                    Is.string(data) ? data : data.toString(encoding)
-                  )
+                  logger.error(Is.string(data) ? data : data.toString(encoding))
                 )
                 process.stdout.on('data', data =>
                   logger.log(
@@ -469,15 +466,12 @@ export class LanguageClient extends BaseLanguageClient {
                   } else {
                     this._serverProcess = serverProcess
                     serverProcess.stderr.on('data', data =>
-                      logger.log(
-                        Is.string(data) ? data : data.toString(encoding)
+                      logger.log(Is.string(data) ? data : data.toString(encoding)
                       )
                     )
                     if (transport === TransportKind.ipc) {
                       serverProcess.stdout.on('data', data =>
-                        logger.log(
-                          Is.string(data) ? data : data.toString(encoding)
-                        )
+                        logger.log(Is.string(data) ? data : data.toString(encoding))
                       )
                       resolve({
                         reader: new IPCMessageReader(this._serverProcess),
@@ -583,6 +577,7 @@ export class LanguageClient extends BaseLanguageClient {
 
   protected registerBuiltinFeatures():void {
     super.registerBuiltinFeatures()
+    this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))
   }

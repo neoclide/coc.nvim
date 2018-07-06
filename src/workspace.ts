@@ -122,7 +122,7 @@ export class Workspace {
     await this.nvim.command(`wa${force ? '!' : ''}`)
   }
 
-  public getConfiguration(section?:string):WorkspaceConfiguration {
+  public getConfiguration(section?:string, _resource?:Uri):WorkspaceConfiguration {
     return this._configurations.getConfiguration(section)
   }
 

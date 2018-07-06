@@ -6,7 +6,7 @@ import catalog from './catalog.json'
 const logger = require('../../util/logger')('extension-json')
 
 interface ISchemaAssociations {
-    [pattern: string]: string[];
+    [pattern: string]: string[]
 }
 
 const ID = 'json'

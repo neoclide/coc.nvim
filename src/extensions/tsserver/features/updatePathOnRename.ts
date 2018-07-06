@@ -11,9 +11,10 @@ import {wait} from '../../../util'
 import {
   Disposable,
   TextDocument,
+  WorkspaceEdit,
 } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-const logger = require('../../../util/logger')('typescript-langauge-updatePathOnRename')
+const logger = require('../../../util/logger')('tsserver-updatePathOnRename')
 
 export default class UpdateImportsOnFileRenameHandler {
   private readonly _onDidRenameSub: Disposable
@@ -26,11 +27,13 @@ export default class UpdateImportsOnFileRenameHandler {
     let glob = languageId == 'typescript' ? '**/*.ts' : '**/*.js'
     const watcher = workspace.createFileSystemWatcher(glob)
     watcher.onDidRename(e => {
-      this.doRename(e.oldUri, e.newUri)
+      this.doRename(e.oldUri, e.newUri).catch(e => {
+        logger.error(e.message)
+      })
     })
   }
 
-  public dispose() {
+  public dispose():void {
     this._onDidRenameSub.dispose()
   }
 
@@ -38,7 +41,6 @@ export default class UpdateImportsOnFileRenameHandler {
     oldResource: Uri,
     newResource: Uri
   ): Promise<void> {
-    logger.debug('rename', oldResource, newResource)
     const targetFile = newResource.fsPath
     const oldFile = oldResource.fsPath
     await workspace.openResource(newResource.toString())
@@ -65,14 +67,8 @@ export default class UpdateImportsOnFileRenameHandler {
     return res == 1
   }
 
-
-  private async getEditsForFileRename(
-    document: TextDocument,
-    oldFile: string,
-    newFile: string
-  ) {
+  private async getEditsForFileRename(document: TextDocument, oldFile: string, newFile: string):Promise<WorkspaceEdit> {
     await this.fileConfigurationManager.ensureConfigurationForDocument(document)
-
     const args: Proto.GetEditsForFileRenameRequestArgs = {
       oldFilePath: oldFile,
       newFilePath: newFile
