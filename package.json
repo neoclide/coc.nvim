@@ -73,7 +73,6 @@
     "fast-diff": "^1.1.2",
     "fb-watchman": "^2.0.0",
     "fuzzaldrin": "^2.1.0",
-    "got": "^8.3.2",
     "json5": "^1.0.1",
     "log4js": "^2.10.0",
     "matcher": "^1.1.1",
