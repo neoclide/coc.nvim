@@ -1,6 +1,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import net from 'net'
 import readline from 'readline'
 import pify from 'pify'
 import {exec} from 'child_process'
@@ -163,4 +164,17 @@ export async function createTmpFile(content:string):Promise<string> {
   let filename = path.join(tmpFolder, Date.now().toString(26).slice(4))
   await pify(fs.writeFile)(filename, content, 'utf8')
   return filename
+}
+
+export function validSocket(path:string):Promise<boolean> {
+  let clientSocket = new net.Socket()
+  return new Promise(resolve => {
+    clientSocket.on('error', () => {
+      resolve(false)
+    })
+    clientSocket.connect({path}, () => {
+      clientSocket.unref()
+      resolve(true)
+    })
+  })
 }

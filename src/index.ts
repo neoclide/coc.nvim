@@ -10,6 +10,7 @@ import services from './services'
 import snippetManager from './snippet/manager'
 import { VimCompleteItem } from './types'
 import { echoErr } from './util'
+import clean from './util/clean'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('index')
@@ -27,6 +28,7 @@ export default class CompletePlugin {
     languages.nvim = nvim
     snippetManager.init(nvim)
     commandManager.init(nvim, this)
+    clean()
   }
 
   @Function('CocInitAsync', {sync: false})
