@@ -21,6 +21,7 @@ import TypeScriptServiceClientHost from './typescriptServiceClientHost'
 const logger = require('../../util/logger')('tsserver-index')
 
 export default class TsserverService implements IServiceProvider {
+  public id = 'tsserver'
   public name = 'tsserver'
   public enable:boolean
   // supported language types

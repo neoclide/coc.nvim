@@ -1,15 +1,15 @@
-import {Function, Neovim, Plugin} from 'neovim'
+import { Function, Neovim, Plugin } from 'neovim'
+import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import Handler from './handler'
+import languageClient from './language-client'
 import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
-import commandManager from './commands'
-import languageClient from './language-client'
 import snippetManager from './snippet/manager'
-import {VimCompleteItem} from './types'
-import {echoErr} from './util'
+import { VimCompleteItem } from './types'
+import { echoErr } from './util'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('index')
@@ -216,14 +216,16 @@ export default class CompletePlugin {
           return await handler.documentFormatting()
         case 'services':
           return services.getServiceStats()
-        case 'restartService':
-          return services.restart(args[1])
+        case 'toggleService':
+          return services.toggle(args[1])
         case 'codeAction':
-          return handler.doCodeAction(args[1], args[2])
+          return handler.doCodeAction(args[1])
         case 'codeLens':
           return handler.doCodeLens()
         case 'codeLensAction':
           return handler.doCodeLensAction()
+        case 'runCommand':
+          return await handler.runCommand(args[1])
         default:
           logger.error(`unknown action ${args[0]}`)
       }

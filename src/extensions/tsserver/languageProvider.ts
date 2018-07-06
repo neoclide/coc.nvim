@@ -35,7 +35,7 @@ import FileConfigurationManager from './features/fileConfigurationManager'
 import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
 import ReferencesCodeLensProvider from './features/referencesCodeLens'
-import TagCompletionProvider from './features/tagCompletion'
+// import TagCompletionProvider from './features/tagCompletion'
 import QuickfixProvider from './features/quickfix'
 import RefactorProvider from './features/refactor'
 import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
@@ -187,9 +187,7 @@ export default class LanguageProvider {
 
     if (this.client.apiVersion.gte(API.v280)) {
       this.disposables.push(
-        languages.registerCodeActionProvider(
-          languageIds,
-          new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id))
+        new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id)
       )
     }
 

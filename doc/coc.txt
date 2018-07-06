@@ -88,31 +88,33 @@ INTERFACE					*coc-interface*
 ------------------------------------------------------------------------------
 Keymapings 					*coc-keymapings*
 
-<Plug>(coc-diagnostic-next)
+<Plug>(coc-diagnostic-next) 			*n_coc-diagnostic-next*
 			
 			Jump to next diagnostic position.
 
-<Plug>(coc-diagnostic-prev)
+<Plug>(coc-diagnostic-prev) 			*n_coc-diagnostic-prev*
 			
 			Jump to previous diagnostic position.
 
-<Plug>(coc-definition)
+<Plug>(coc-definition) 				*n_coc-definition*
 
 			Jump to definition of current symbol.
 
-<Plug>(coc-implementation)
+<Plug>(coc-implementation) 			*n_coc-implementation*
 
 			Jump to implementations of current symbol.
 
-<Plug>(coc-type-definition)
+<Plug>(coc-type-definition) 			*n_coc-type-definition*
 
 			Jump to type definition of current symbol.
 
-<Plug>(coc-references)
+<Plug>(coc-references) 				*n_coc-references*
 
 			Jump to references of current symbol.
 
-<Plug>(coc-format-selected)
+<Plug>(coc-format-selected) 			*n_coc-format-selected*
+						*v_coc-format-selected*
+
 			Format selected range, would work in both visual mode
 			and normal mode, when work in normal mode, the
 			selections works on motion object.
@@ -125,7 +127,8 @@ Keymapings 					*coc-keymapings*
 	makes `<leader>p` format visual selected range, and you can use
 	`<leader>pap` to format a paragraph.
 
-<Plug>(coc-format)
+<Plug>(coc-format) 				*n_coc-format*
+
 			Format whole buffer, normally you would like to use a
 			command like: >
 
@@ -133,37 +136,41 @@ Keymapings 					*coc-keymapings*
 <
 			to format current buffer.
 
-<Plug>(coc-rename)
+<Plug>(coc-rename) 				*n_coc-rename*
 
 			Rename symbol under cursor to a new word.
+
+<Plug>(coc-codeaction) 				*n_coc-codeaction*
+
+			Get and run code action(s) for current line.
+
+<Plug>(coc-codeaction-selected) 		*n_coc-codeaction-selected*
+						*v_coc-codeaction-selected*
+
+			Get and run code action(s) with selected region.
+			Works with both normal and visual mode.
+
 
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
-g:coc_show_quickfix                            	*g:coc_show_quickfix*
-			Show quickfix window by using `:copen` when one than
-			one location found after jump definition, type
-			definition, or implementations.
-
-			You can use other interface for showing quickfix items
-			by set this to 0 and use autocmd |CocQuickfixChange|
-
-			Default: 1
-		
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
+
 			Trigger key for goto next snippet position, applied
 			on insert and select mode.
 
 			Default: <C-j>
 
 g:coc_snippet_prev                            	*g:coc_snippet_prev*
+
 			Trigger key for goto previous snippet position,
 			applied on insert and select mode.
 
 			Default: <C-k>
 
 g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
+
 			Add key mappings for make snippet select mode easier.  >
 			
 			snoremap <silent> <BS> <c-g>c
@@ -222,57 +229,136 @@ startup, you can avoid this issue by add guard code:
 <
 before the call of ''CocAction'
 
-						*CocAction*
+						*coc-action*
 CocAction({action}, [...{args}])
 
-	Run {action} of coc, available actions:
+	Run {action} of coc with optional extra {args}.
+	
+Available Actions ~
 
-	'sourceStat': 	get the list of current source stats.
+"sourceStat" 					*coc-action-sourceStat*
+	
+	get the list of completion source stats for current buffer.
 
-	'refreshSource': refresh all sources or source of first {args}.
+"refreshSource" [{source}]  			*coc-action-refreshSource*
 
-	'toggleSource': enable/disable source of first {args}.
+	refresh all sources or {source} as name of source.
 
-	'diagnosticList': get all diagnostic items of current session.
+"toggleSource" {source} 			*coc-action-toggleSource*
 
-	'diagnosticInfo': get diagnostic info of current buffer, the format
-			  would like
+	enable/disable {source}.
 
-			  `{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
+"diagnosticList" 				*coc-action-diagnosticList*
 
-	'jumpDefinition': jump to definition of current symbol.
+	Get all diagnostic items of current neovim session.
 
-	'jumpImplementation': jump to implementation of current symbol.
+"diagnosticInfo" 				*coc-action-diagnosticInfo*
 
-	'jumpTypeDefinition': jump to type definition of current symbol.
+	Get diagnostic info of current buffer, the format would like:
 
-	'jumpReferences': jump to references of current symbol.
+	`{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
 
-	'doHover': show documentation of current word at preview window.
+"jumpDefinition" 				*coc-action-jumpDefinition*
 
-	'showSignatureHelp': echo signature help of current position.
+	jump to definition position of current symbol. Use <C-o> and <C-i> to
+	jump forward and backward.
 
-	'documentSymbols': get symbol list of current document.
+	Quickfix list is used when more than one position available.
 
-	'rename': rename symbol under cursor to a new word.
+"jumpImplementation" 				*coc-action-jumpImplementation*
 
-	'workspacesymbols': search for workspace symbols.
+	Jump to implementation position of current symbol.
 
-	'format': format current buffer.
+	Quickfix list is used when more than one position available.
 
-	'services': get service infomation list.
+"jumpTypeDefinition" 				*coc-action-jumpTypeDefinition*
 
-	'restartService': restart a service.
+	Jump to type definition position of current symbol.
 
-	'codeAction': prompty for a code action and do it.
-		      First {args} is result of `visualmode()`,
-		      second {args} is title of a code action.
+	Quickfix list is used when more than one position available.
 
-	'codeLens': open codelens buffer in split window, you can jump
-		    (use <CR> by default) and do command in codelens buffer
+"jumpReferences" 				*coc-action-jumpReferences*
 
-	'codeLensAction': do command of codelens, should only be used in
-			  codelens buffer
+	Jump to references position of current symbol.
+
+	Quickfix list is used when more than one position available.
+
+"doHover" 					*coc-action-doHover*
+
+	Show documentation of current word at preview window.
+
+	Note: the behavior would change when floating windows available for
+	neovim.
+
+"showSignatureHelp" 				*coc-action-showSignatureHelp*
+
+	Echo signature help of current function.
+
+"documentSymbols" 				*coc-action-documentSymbols*
+
+	Get symbol list of current document.
+
+	Used by |coc-denite-symbols|
+
+"rename" 					*coc-action-rename*
+
+	Do rename for symbol under cursor position, user would be prompted for
+	new name.
+
+"workspaceSymbols" 				*coc-action-workspaceSymbols*
+
+	Search for workspace symbols.
+
+	Used for |coc-denite-workspace|.
+
+	Note: the experience would be improved when floating window feature
+	launched.
+
+"services" 					*coc-action-services*
+
+	Get all services infomation list.
+
+	used for |coc-denite-service|
+
+"toggleService" {serviceId} 			*coc-action-toggleService*
+
+	Start or stop one service, used for |coc-denite-service|
+
+"format" 					*coc-action-format*
+
+	Format current buffer using language server.
+
+	Note: some format provider only does indent while others include
+	pretty functionality.
+
+"codeAction" [{mode}] 				*coc-action-codeAction*
+
+	prompty for a code action and do it.
+
+	{mode} should be result of visualmode(), when used in visualmode,
+	could be empty string for none visualmode.
+
+
+"codeLens" 					*coc-action-codeLens*
+
+	Open codelens buffer in split window, you can jump (use <CR> by
+	default) and run command (use <d> by default).
+
+"codeLensAction" 				*coc-action-codeLensAction*
+
+	Do command from codeLens provider, should only be used in codelens
+	buffer.
+
+"runCommand" [{name}] 				*coc-action-runCommand*
+
+	Run global command provided by language server, if {name} not
+	provided, a prompt of command list is shown for select.
+
+	You can bind your custom command like: >
+
+	command! -nargs=0 OrganizeImport :call CocAction('runCommand', 'typescript.organizeImports')
+
+------------------------------------------------------------------------------
 
 						*coc#refresh()*
 coc#refresh()
@@ -280,7 +366,7 @@ coc#refresh()
 	Start or refresh completion at current cursor position, bind this to
 	'imap' for trigger completion, like: >
 
-	  inoremap <silent><expr> <c-space> coc#refresh()
+	inoremap <silent><expr> <c-space> coc#refresh()
 <
 
 						*health#coc#check()*
@@ -311,21 +397,24 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocQuickfixChange {command}
 
-		Used for open a custom list for the quickfix results of coc,
+		Normally used for open a list view of quickfix results,
 		for example: >
 
-  	autocmd User CocQuickfixChange :Denite -immediately quickfix
+  		autocmd User CocQuickfixChange :copen
+
+		autocmd User CocQuickfixChange :Denite -mode=normal quickfix
 <
 		If you want to keep the behavior of open quickfix list after
-		quickfix change, you can use:
+		every time quickfix list change, can use command like:
 >
-	  autocmd QuickFixCmdPost * botright copen 8
+ 		autocmd QuickFixCmdPost * botright copen 8
 <
 
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
 
-Coc make use of list interface provided by |denite.nvim| for advanced actions.
+Coc make use of list interface provided by |denite.nvim| for better filter & sort
+experience and advanced actions.
 
 ------------------------------------------------------------------------------
 						*coc-denite-sources*
@@ -372,7 +461,7 @@ Coc make use of list interface provided by |denite.nvim| for advanced actions.
 
 	Actions: 
 
-	- 'restart' : default action for restart service.
+	- 'toggle' : default action for start/stop service.
 
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
@@ -390,5 +479,4 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 CHANGELOG					*coc-changelog*
 
 ==============================================================================
-vim:tw=78:nosta:ts=8:sts=0:ft=help:noet:fen:fdm=marker:
-
+vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:

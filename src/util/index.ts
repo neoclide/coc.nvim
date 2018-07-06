@@ -94,11 +94,7 @@ export function getUri(fullpath: string, id: number): string {
 }
 
 // -1 is cancel
-export async function showQuickpick(
-  nvim: Neovim,
-  items: string[],
-  placeholder = 'Choose by number'
-): Promise<number> {
+export async function showQuickpick(nvim: Neovim, items: string[], placeholder = 'Choose by number'): Promise<number> {
   let msgs = [placeholder + ':']
   msgs = msgs.concat(
     items.map((str, index) => {

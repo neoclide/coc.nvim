@@ -313,6 +313,7 @@ class Languages {
     let res:CodeAction[] = []
     for (let provider of providers) {
       let actions =  await Promise.resolve(provider.provideCodeActions(document, range, context, this.token))
+      if (!actions) continue
       for (let action of actions) {
         if (CodeAction.is(action)) {
           let idx = res.findIndex(o => o.title == action.title)

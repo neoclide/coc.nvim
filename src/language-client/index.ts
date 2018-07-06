@@ -39,7 +39,7 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
-  public init ():void {
+  public init():Promise<void> {
     let {config, name} = this
     let {args, module} = config
 
@@ -92,17 +92,21 @@ export class LanguageService implements IServiceProvider {
     })
     Object.defineProperty(this, 'state', {
       get: () => {
-        client.serviceState
+        return client.serviceState
       }
     })
     client.registerProposedFeatures()
     let disposable = client.start()
-    client.onReady().then(() => {
-      this._onDidServiceReady.fire(void 0)
-    }, e => {
-      logger.error(e.message)
-    })
     this.disposables.push(disposable)
+    return new Promise(resolve => {
+      client.onReady().then(() => {
+        this._onDidServiceReady.fire(void 0)
+        resolve()
+      }, e => {
+        logger.error(e.message)
+        resolve()
+      })
+    })
   }
 
   protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {

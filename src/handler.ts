@@ -1,28 +1,13 @@
-import {Neovim} from 'neovim'
-import languages from './languages'
-import workspace from './workspace'
-import diagnosticManager from './diagnostic/manager'
-import commandManager from './commands'
-import {
-  Hover,
-  MarkedString,
-  MarkupContent,
-  Definition,
-  Location,
-  SymbolKind,
-  SymbolInformation,
-  FormattingOptions,
-  TextDocument,
-  Range,
-} from 'vscode-languageserver-protocol'
-import {
-  echoWarning,
-  echoErr,
-  showQuickpick,
-} from './util'
+import debounce from 'debounce'
+import { Neovim } from 'neovim'
+import { Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
-import debounce = require('debounce')
+import commandManager from './commands'
+import diagnosticManager from './diagnostic/manager'
+import languages from './languages'
+import { echoErr, echoWarning, showQuickpick, echoMessage } from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -68,7 +53,7 @@ export default class Handler {
     let start = await workspace.getOffset()
     c = isVisual ? '>' : ']'
     await nvim.command('normal! `' + c)
-    let end = await workspace.getOffset()
+    let end = await workspace.getOffset() + 1
     if (start == null || end == null || start == end) {
       await echoErr(this.nvim, 'Failed to get selected range')
       return
@@ -140,12 +125,10 @@ export default class Handler {
   }
 
   private async addQuickfix(locations:Location[]):Promise<void> {
-    let show = await this.nvim.getVar('coc_show_quickfix')
     let items = await Promise.all(locations.map(loc => {
       return workspace.getQuickfixItem(loc)
     }))
     await this.nvim.call('setqflist', [items, ' ', 'Results of coc'])
-    if (show) await this.nvim.command('copen')
     await this.nvim.command('doautocmd User CocQuickfixChange')
   }
 
@@ -301,7 +284,21 @@ export default class Handler {
     await document.applyEdits(this.nvim, textEdits)
   }
 
-  public async doCodeAction(mode:string|null, title?:string):Promise<void> {
+  public async runCommand(id?:string):Promise<void> {
+    if (id) {
+      if (!commandManager.has(id)) {
+        return echoErr(this.nvim, `Command '${id}' not found`)
+      }
+      commandManager.executeCommand(id)
+    } else {
+      let cmds = commandManager.commandList
+      let idx = await showQuickpick(this.nvim, cmds.map(o => o.id))
+      if (idx == -1) return
+      await commandManager.executeCommand(cmds[idx].id)
+    }
+  }
+
+  public async doCodeAction(mode:string|null):Promise<void> {
     let document = await workspace.document
     if (!document) return
     let range:Range
@@ -317,14 +314,12 @@ export default class Handler {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context = {diagnostics}
     let codeActions = await languages.getCodeActions(document.textDocument, range, context)
-    let action
-    if (title) {
-      action = codeActions.find(o => o.title == title)
-    } else {
-      let idx = await showQuickpick(this.nvim, codeActions.map(o => o.title))
-      if (idx == -1) return
-      action = codeActions[idx]
+    if (codeActions.length == 0) {
+      return echoMessage(this.nvim, 'No action available')
     }
+    let idx = await showQuickpick(this.nvim, codeActions.map(o => o.title))
+    if (idx == -1) return
+    let action = codeActions[idx]
     if (action) {
       let {command, edit} = action
       if (edit) {

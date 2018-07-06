@@ -127,20 +127,20 @@ augroup coc_init
   autocmd user CocNvimInit call s:Enable()
 augroup end
 
-vnoremap <Plug>(coc-format-selected)              :<C-u>call CocAction('formatSelected', visualmode())<CR>
-vnoremap <Plug>(coc-codeaction-selected)          :<C-u>call CocAction('codeAction', visualmode())<CR>
-nnoremap <silent> <Plug>(coc-codeaction)          :<C-u>call CocAction('codeAction', '')<CR>
-nnoremap <silent> <Plug>(coc-rename)              :<C-u>call CocAction('rename')<CR>
-nnoremap <silent> <Plug>(coc-format-selected)     :<C-u>set operatorfunc=<SID>FormatFromSelected<CR>g@
-nnoremap <silent> <Plug>(coc-codeaction-selected) :<C-u>set operatorfunc=<SID>CodeActionFromSelected<CR>g@
-nnoremap <silent> <Plug>(coc-format)              :<C-u>call CocAction('format')<CR>
-nnoremap <silent> <Plug>(coc-diagnostic-next)     :<C-u>call CocAction('diagnosticNext')<CR>
-nnoremap <silent> <Plug>(coc-diagnostic-prev)     :<C-u>call CocAction('diagnosticPrevious')<CR>
-nnoremap <silent> <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
-nnoremap <silent> <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
-nnoremap <silent> <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
-nnoremap <silent> <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
-inoremap <silent> <Plug>_ <C-r>=coc#_complete()<CR>
+vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
+vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>
+nnoremap <Plug>(coc-codeaction)          :<C-u>call CocAction('codeAction',     '')<CR>
+nnoremap <Plug>(coc-rename)              :<C-u>call CocAction('rename')<CR>
+nnoremap <Plug>(coc-format-selected)     :<C-u>set  operatorfunc=<SID>FormatFromSelected<CR>g@
+nnoremap <Plug>(coc-codeaction-selected) :<C-u>set  operatorfunc=<SID>CodeActionFromSelected<CR>g@
+nnoremap <Plug>(coc-format)              :<C-u>call CocAction('format')<CR>
+nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocAction('diagnosticNext')<CR>
+nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocAction('diagnosticPrevious')<CR>
+nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
+nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
+nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
+nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
+inoremap <silent>                        <Plug>_    <C-r>=coc#_complete()<CR>
 
 if has('vim_starting')
   autocmd VimEnter * call s:Init(0)

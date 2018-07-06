@@ -269,7 +269,8 @@ export interface DocumentInfo {
 }
 
 export interface IServiceProvider {
-  // unique service name
+  // unique service id
+  id: string
   name: string
   enable: boolean
   // supported language types

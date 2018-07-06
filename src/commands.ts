@@ -1,8 +1,8 @@
-import { Neovim } from 'neovim'
+import {Neovim} from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
+import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
+import {echoErr, wait} from './util'
 import workspace from './workspace'
-import {wait} from './util'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -48,12 +48,10 @@ export class CommandManager implements Disposable {
       id: 'editor.action.showReferences',
       execute: async (_filepath:string, _position:Position, references:Location[]) => {
         try {
-          let show = await nvim.getVar('coc_show_quickfix')
           let items = await Promise.all(references.map(loc => {
             return workspace.getQuickfixItem(loc)
           }))
           await nvim.call('setqflist', [items, ' ', 'Results of references'])
-          if (show) await nvim.command('copen')
           await nvim.command('doautocmd User CocQuickfixChange')
         } catch (e) {
           logger.error(e.stack)
@@ -74,6 +72,17 @@ export class CommandManager implements Disposable {
     })
   }
 
+  public get commandList():CommandItem[] {
+    let res:CommandItem[] = []
+    for (let item of this.commands.values()) {
+      // ignore internal commands
+      if (!/^(_|editor)/.test(item.id)) {
+        res.push(item)
+      }
+    }
+    return res
+  }
+
   public dispose():void {
     for (const registration of this.commands.values()) {
       registration.dispose()
@@ -92,6 +101,17 @@ export class CommandManager implements Disposable {
       this.registerCommand(id, command.execute, command)
     }
     return command
+  }
+
+  public has(id:string):boolean {
+    return this.commands.has(id)
+  }
+
+  public unregister(id:string):void {
+    let item = this.commands.get(id)
+    if (!item) return
+    item.dispose()
+    this.commands.delete(id)
   }
 
   /**
@@ -132,10 +152,12 @@ export class CommandManager implements Disposable {
   */
   public executeCommand(command: string, ...rest: any[]): Promise<void> {
     let cmd = this.commands.get(command)
-    if (!cmd) {
-      return
-    }
-    return Promise.resolve(cmd.execute.apply(cmd, rest))
+    if (!cmd) return
+    Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
+      echoErr(workspace.nvim, `Command error: ${e.message}`)
+      logger.error(e.message)
+    })
+    return
   }
 
 }

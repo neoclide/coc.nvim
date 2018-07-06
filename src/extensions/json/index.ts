@@ -22,8 +22,8 @@ export default class JsonService extends LanguageService {
     }, ['json', 'http'])
   }
 
-  public init():void {
-    super.init()
+  public async init():Promise<void> {
+    await super.init()
     let associations:ISchemaAssociations = {}
     for (let item of catalog.schemas) {
       let {fileMatch, url} = item
@@ -32,11 +32,9 @@ export default class JsonService extends LanguageService {
           associations[key] = [url]
         }
       } else if (typeof fileMatch === 'string') {
-          associations[fileMatch] = [url]
+        associations[fileMatch] = [url]
       }
     }
-    this.client.onReady().then(() => {
-      this.client.sendNotification('json/schemaAssociations', associations)
-    })
+    this.client.sendNotification('json/schemaAssociations', associations)
   }
 }

@@ -6,33 +6,29 @@ import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {Command, CommandManager} from '../../../commands'
 import * as typeconverts from '../utils/typeConverters'
-import {
-  CodeActionProvider,
-  CodeActionProviderMetadata,
-} from '../../../provider'
-import {
-  TextDocument,
-  Range,
-  CancellationToken,
-  CodeAction,
-  CodeActionContext,
-  CodeActionKind,
-} from 'vscode-languageserver-protocol'
 import workspace from '../../../workspace'
 import FileConfigurationManager from './fileConfigurationManager'
+import * as languageIds from '../utils/languageModeIds'
+import Uri from 'vscode-uri'
+import {Disposable} from 'vscode-languageserver-protocol'
+import {disposeAll} from '../../../util'
 const logger = require('../../../util/logger')('typescript-organizeImports')
 
 class OrganizeImportsCommand implements Command {
-  public static readonly Id = '_typescript.organizeImports'
-  public readonly id = OrganizeImportsCommand.Id
+  public readonly id: string
 
   constructor(
     private readonly client: ITypeScriptServiceClient,
     private commaAfterImport:boolean,
+    languageId: string,
   ) {
+    this.id = `${languageId}.organizeImports`
   }
 
-  public async execute(file: string): Promise<void> {
+  public async execute(): Promise<void> {
+    let document = await workspace.document
+    if (languageIds[document.filetype] == null) return
+    let file = Uri.parse(document.uri).fsPath
     const args: Proto.OrganizeImportsRequestArgs = {
       scope: {
         type: 'file',
@@ -65,39 +61,23 @@ class OrganizeImportsCommand implements Command {
   }
 }
 
-export default class OrganizeImportsCodeActionProvider implements CodeActionProvider {
+export default class OrganizeImports {
+  private disposables:Disposable[] = []
   public constructor(
-    private readonly client: ITypeScriptServiceClient,
+    client: ITypeScriptServiceClient,
     commandManager: CommandManager,
     fileConfigurationManager: FileConfigurationManager,
     languageId: string
   ) {
     let option = fileConfigurationManager.getCompleteOptions(languageId)
-    commandManager.register(new OrganizeImportsCommand(client, option.commaAfterImport))
+    let cmd = new OrganizeImportsCommand(client, option.commaAfterImport, languageId)
+    commandManager.register(cmd)
+    this.disposables.push(Disposable.create(()=> {
+      commandManager.unregister(cmd.id)
+    }))
   }
 
-  public readonly metadata: CodeActionProviderMetadata = {
-    providedCodeActionKinds: [CodeActionKind.SourceOrganizeImports]
-  }
-
-  public provideCodeActions(
-    document: TextDocument,
-    _range: Range,
-    _context: CodeActionContext,
-    _token: CancellationToken
-  ): CodeAction[] {
-    const file = this.client.toPath(document.uri)
-    if (!file) return []
-
-    const action:CodeAction = {
-      title: 'Organize Imports',
-      kind: CodeActionKind.SourceOrganizeImports,
-      command: {
-        title: '',
-        command: OrganizeImportsCommand.Id,
-        arguments: [file]
-      }
-    }
-    return [action]
+  public dispose():void {
+    disposeAll(this.disposables)
   }
 }

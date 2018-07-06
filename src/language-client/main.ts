@@ -369,9 +369,7 @@ export class LanguageClient extends BaseLanguageClient {
           ) {
             let serverProcess = cp.spawn(node.runtime, args, execOptions)
             if (!serverProcess || !serverProcess.pid) {
-              return Promise.reject<MessageTransports>(
-                `Launching server using runtime ${node.runtime} failed.`
-              )
+              return Promise.reject<MessageTransports>(new Error(`Launching server using runtime ${node.runtime} failed.`))
             }
             this._serverProcess = serverProcess
             serverProcess.stderr.on('data', data => {
@@ -395,17 +393,15 @@ export class LanguageClient extends BaseLanguageClient {
             return createClientPipeTransport(pipeName!).then(transport => {
               let process = cp.spawn(node.runtime!, args, execOptions)
               if (!process || !process.pid) {
-                return Promise.reject<MessageTransports>(
-                  `Launching server using runtime ${node.runtime} failed.`
-                )
+                return Promise.reject<MessageTransports>(`Launching server using runtime ${node.runtime} failed.`)
               }
               this._serverProcess = process
               process.stderr.on('data', data => {
                 logger.error(Is.string(data) ? data : data.toString(encoding))
               })
-              process.stdout.on('data', data =>
-                logger.log.append(Is.string(data) ? data : data.toString(encoding))
-              )
+              process.stdout.on('data', data => {
+                logger.info.append(Is.string(data) ? data : data.toString(encoding))
+              })
               return transport.onConnected().then(protocol => {
                 return {reader: protocol[0], writer: protocol[1]}
               })
@@ -423,11 +419,9 @@ export class LanguageClient extends BaseLanguageClient {
                 process.stderr.on('data', data =>
                   logger.error(Is.string(data) ? data : data.toString(encoding))
                 )
-                process.stdout.on('data', data =>
-                  logger.log(
-                    Is.string(data) ? data : data.toString(encoding)
-                  )
-                )
+                process.stdout.on('data', data => {
+                  logger.info(Is.string(data) ? data : data.toString(encoding))
+                })
                 return transport.onConnected().then(protocol => {
                   return {reader: protocol[0], writer: protocol[1]}
                 })
@@ -465,14 +459,13 @@ export class LanguageClient extends BaseLanguageClient {
                     reject(error)
                   } else {
                     this._serverProcess = serverProcess
-                    serverProcess.stderr.on('data', data =>
-                      logger.log(Is.string(data) ? data : data.toString(encoding)
-                      )
-                    )
+                    serverProcess.stderr.on('data', data => {
+                      logger.info(Is.string(data) ? data : data.toString(encoding))
+                    })
                     if (transport === TransportKind.ipc) {
-                      serverProcess.stdout.on('data', data =>
-                        logger.log(Is.string(data) ? data : data.toString(encoding))
-                      )
+                      serverProcess.stdout.on('data', data => {
+                        logger.info(Is.string(data) ? data : data.toString(encoding))
+                      })
                       resolve({
                         reader: new IPCMessageReader(this._serverProcess),
                         writer: new IPCMessageWriter(this._serverProcess)
@@ -494,14 +487,10 @@ export class LanguageClient extends BaseLanguageClient {
                   } else {
                     this._serverProcess = cp
                     cp.stderr.on('data', data =>
-                      logger.log(
-                        Is.string(data) ? data : data.toString(encoding)
-                      )
+                      logger.info(Is.string(data) ? data : data.toString(encoding))
                     )
                     cp.stdout.on('data', data =>
-                      logger.log(
-                        Is.string(data) ? data : data.toString(encoding)
-                      )
+                      logger.info(Is.string(data) ? data : data.toString(encoding))
                     )
                     transport.onConnected().then(protocol => {
                       resolve({reader: protocol[0], writer: protocol[1]})
@@ -517,14 +506,10 @@ export class LanguageClient extends BaseLanguageClient {
                   } else {
                     this._serverProcess = cp
                     cp.stderr.on('data', data =>
-                      logger.error(
-                        Is.string(data) ? data : data.toString(encoding)
-                      )
+                      logger.error(Is.string(data) ? data : data.toString(encoding))
                     )
                     cp.stdout.on('data', data =>
-                      logger.log(
-                        Is.string(data) ? data : data.toString(encoding)
-                      )
+                      logger.info(Is.string(data) ? data : data.toString(encoding))
                     )
                     transport.onConnected().then(protocol => {
                       resolve({reader: protocol[0], writer: protocol[1]})
@@ -582,13 +567,9 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new ImplementationFeature(this))
   }
 
-  private _getServerWorkingDir(options?: {
-    cwd?: string
-  }): Thenable<string | undefined> {
+  private _getServerWorkingDir(options?: { cwd?: string }): Thenable<string | undefined> {
     let cwd = options && options.cwd
-    if (!cwd) {
-      cwd = workspace.root
-    }
+    if (!cwd) cwd = workspace.root
     if (cwd) {
       // make sure the folder exists otherwise creating the process will fail
       return new Promise(s => {

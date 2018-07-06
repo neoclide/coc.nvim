@@ -11,7 +11,7 @@ import {echoErr, echoMessage, echoWarning} from './util'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
-  name: string
+  id: string
   state: string
   languageIds: string[]
 }
@@ -64,20 +64,20 @@ export class ServiceManager implements Disposable {
   }
 
   public regist(service:IServiceProvider): void {
-    let {name, languageIds} = service
+    let {id, languageIds} = service
     if (!service.enable) return
-    if (this.registed.get(name)) {
-      echoErr(this.nvim, `Service ${name} already exists`).catch(_e => {
+    if (this.registed.get(id)) {
+      echoErr(this.nvim, `Service ${id} already exists`).catch(_e => {
         // noop
       })
       return
     }
-    this.registed.set(name, service)
+    this.registed.set(id, service)
     languageIds.forEach(lang => {
       this.languageIds.add(lang)
     })
     service.onServiceReady(async () => {
-      await echoMessage(this.nvim, `service ${name} started`)
+      await echoMessage(this.nvim, `service ${id} started`)
     })
   }
 
@@ -114,10 +114,10 @@ export class ServiceManager implements Disposable {
     }
   }
 
-  public async stop(name:string):Promise<void> {
-    let service = this.registed.get(name)
+  public async stop(id:string):Promise<void> {
+    let service = this.registed.get(id)
     if (!service) {
-      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {
+      echoErr(this.nvim, `Service ${id} not found`).catch(_e => {
         // noop
       })
       return
@@ -125,20 +125,26 @@ export class ServiceManager implements Disposable {
     await Promise.resolve(service.stop())
   }
 
-  public async restart(name:string):Promise<void> {
-    let service = this.registed.get(name)
+  public async toggle(id:string):Promise<void> {
+    let service = this.registed.get(id)
     if (!service) {
-      echoErr(this.nvim, `Service ${name} not found`).catch(_e => {}) // tslint:disable-line
-      return
+      return echoErr(this.nvim, `Service ${id} not found`)
     }
-    await Promise.resolve(service.restart())
+    let {state} = service
+    if (state == ServiceStat.Running) {
+      await Promise.resolve(service.stop())
+    } else if (state == ServiceStat.Initial) {
+      await service.init()
+    } else if (state == ServiceStat.Stopped) {
+      await service.restart()
+    }
   }
 
   public getServiceStats():ServiceInfo[] {
     let res:ServiceInfo[] = []
-    for (let [name, service] of this.registed) {
+    for (let [id, service] of this.registed) {
       res.push({
-        name,
+        id,
         languageIds: service.languageIds,
         state: getStateName(service.state)
       })

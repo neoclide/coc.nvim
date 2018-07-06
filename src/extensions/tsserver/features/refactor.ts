@@ -77,11 +77,12 @@ class SelectRefactorCommand implements Command {
     info: Proto.ApplicableRefactorInfo,
     range: Range
   ): Promise<boolean> {
-    const selected = await showQuickpick(workspace.nvim,
-      info.actions.map(action => action.name)
+    let {actions} = info
+    const idx = actions.length == 1 ? 0 : await showQuickpick(workspace.nvim,
+      actions.map(action => action.name)
     )
-    if (selected == -1) return false
-    let label = info.actions[selected].name
+    if (idx == -1) return false
+    let label = info.actions[idx].name
     if (!label) return false
     return this.doRefactoring.execute(
       document,

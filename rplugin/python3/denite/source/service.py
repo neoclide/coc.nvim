@@ -26,22 +26,26 @@ class Source(Base):
                          r'containedin=deniteService_CocHeader')
         self.vim.command(r'syntax match deniteService_CocState /\%25c.*\%35c/ contained '
                          r'containedin=deniteService_CocHeader')
+        self.vim.command(r'syntax match deniteService_CocLanguages /\%36c.*$/ contained '
+                         r'containedin=deniteService_CocHeader')
 
     def highlight(self):
         self.vim.command('highlight default link deniteService_CocStar Special')
         self.vim.command('highlight default link deniteService_CocName Type')
         self.vim.command('highlight default link deniteService_CocState Statement')
+        self.vim.command('highlight default link deniteService_CocLanguages Comment')
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'services')
         candidates = []
         for item in items:
-            name = item['name']
+            name = item['id']
             prefix = '   ' if item['state'] != 'running' else ' * '
             t = '[%s]' % (item['state'])
+            languageIds = ', '.join(item['languageIds'])
             candidates.append({
                 'word': name,
-                'abbr': '%s %-18s %-10s' % (prefix, name, t),
+                'abbr': '%s %-18s %-10s %s' % (prefix, name, t, languageIds),
                 'source__name': name
                 })
 
@@ -52,10 +56,10 @@ class SourceKind(BaseKind):
 
     def __init__(self, vim):
         super().__init__(vim)
-        self.default_action = 'restart'
-        self.redraw_actions += ['restart']
-        self.persist_actions += ['restart']
+        self.default_action = 'toggle'
+        self.redraw_actions += ['toggle']
+        self.persist_actions += ['toggle']
 
-    def action_restart(self, context):
+    def action_toggle(self, context):
         target = context['targets'][0]
-        self.vim.call('CocAction', 'restartService', target['source__name'])
+        self.vim.call('CocAction', 'toggleService', target['source__name'])
