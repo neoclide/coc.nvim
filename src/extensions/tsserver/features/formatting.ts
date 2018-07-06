@@ -14,22 +14,40 @@ import {
   TextEdit,
   Range,
 } from 'vscode-languageserver-protocol'
+import {languageIds} from '../utils/languageModeIds'
+import commandManager from '../../../commands'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 import FileConfigurationManager from './fileConfigurationManager'
+import workspace from '../../../workspace'
 
 export default class TypeScriptFormattingProvider implements DocumentRangeFormattingEditProvider,DocumentFormattingEditProvider {
 
   public constructor(
     private readonly client: ITypeScriptServiceClient,
     private readonly formattingOptionsManager: FileConfigurationManager
-  ) {}
+  ) {
+    commandManager.register({
+      id: 'tsserver.format',
+      execute: async ():Promise<void> => {
+        let document = await workspace.document
+        if (!document) return
+        if (languageIds.indexOf(document.filetype) == -1) {
+          return
+        }
+        let options = await workspace.getFormatOptions()
+        let edit  = await this.provideDocumentFormattingEdits(document.textDocument, options)
+        if (!edit) return
+        await document.applyEdits(workspace.nvim, edit)
+      }
+    })
+  }
 
   private async doFormat(
     document: TextDocument,
     options: FormattingOptions,
     args: Proto.FormatRequestArgs,
-    token: CancellationToken
+    token?: CancellationToken
   ): Promise<TextEdit[]> {
     await this.formattingOptionsManager.ensureConfigurationOptions(
       document.languageId,
@@ -68,7 +86,7 @@ export default class TypeScriptFormattingProvider implements DocumentRangeFormat
   public async provideDocumentFormattingEdits(
     document: TextDocument,
     options: FormattingOptions,
-    token: CancellationToken
+    token?: CancellationToken
   ): Promise<TextEdit[]> {
     const filepath = this.client.toPath(document.uri)
     if (!filepath) return []

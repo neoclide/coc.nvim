@@ -15,14 +15,12 @@ import {disposeAll} from '../../../util'
 const logger = require('../../../util/logger')('typescript-organizeImports')
 
 class OrganizeImportsCommand implements Command {
-  public readonly id: string
+  public readonly id: string = 'tsserver.organizeImports'
 
   constructor(
     private readonly client: ITypeScriptServiceClient,
     private commaAfterImport:boolean,
-    languageId: string,
   ) {
-    this.id = `${languageId}.organizeImports`
   }
 
   public async execute(): Promise<void> {
@@ -70,7 +68,7 @@ export default class OrganizeImports {
     languageId: string
   ) {
     let option = fileConfigurationManager.getCompleteOptions(languageId)
-    let cmd = new OrganizeImportsCommand(client, option.commaAfterImport, languageId)
+    let cmd = new OrganizeImportsCommand(client, option.commaAfterImport)
     commandManager.register(cmd)
     this.disposables.push(Disposable.create(()=> {
       commandManager.unregister(cmd.id)

@@ -22,7 +22,7 @@ export default class CompletePlugin {
 
   constructor(public nvim: Neovim) {
     this.emitter = new Emitter()
-    this.handler = new Handler(nvim, this.emitter)
+    this.handler = new Handler(nvim, this.emitter, services)
     workspace.nvim = nvim
     languages.nvim = nvim
     snippetManager.init(nvim)
@@ -214,6 +214,8 @@ export default class CompletePlugin {
           return await handler.documentRangeFormatting(args[1])
         case 'format':
           return await handler.documentFormatting()
+        case 'commands':
+          return await handler.getCommands()
         case 'services':
           return services.getServiceStats()
         case 'toggleService':

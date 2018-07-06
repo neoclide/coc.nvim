@@ -22,6 +22,7 @@ Denite support 		|coc-denite|
   Denite symbols        |coc-denite-symbols|
   Denite workspace      |coc-denite-workspace|
   Denite service        |coc-denite-service|
+  Denite command        |coc-denite-command|
 Custom Source 		|coc-custom-source|
 Faq			|coc-faq|
 Changelog		|coc-changelog|
@@ -349,6 +350,10 @@ Available Actions ~
 	Do command from codeLens provider, should only be used in codelens
 	buffer.
 
+"commands" 					*coc-action-commands*
+
+	Get available global service command id list of current buffer.
+
 "runCommand" [{name}] 				*coc-action-runCommand*
 
 	Run global command provided by language server, if {name} not
@@ -462,6 +467,16 @@ experience and advanced actions.
 	Actions: 
 
 	- 'toggle' : default action for start/stop service.
+
+------------------------------------------------------------------------------
+						*coc-denite-command*
+:Denite coc-command
+
+	Find and run command of current buffer.
+
+	Actions: 
+
+	- 'run' : default action.
 
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*

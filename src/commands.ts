@@ -127,9 +127,7 @@ export class CommandManager implements Disposable {
    * @return Disposable which unregisters this command on disposal.
    */
   public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any):Disposable {
-    if (this.commands.has(id)) {
-      return
-    }
+    if (this.commands.has(id)) return
     this.commands.set(id, new CommandItem(id, impl, thisArg))
     return Disposable.create(() => {
       this.commands.delete(id)

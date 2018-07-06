@@ -8,6 +8,7 @@ import diagnosticManager from './diagnostic/manager'
 import languages from './languages'
 import { echoErr, echoWarning, showQuickpick, echoMessage } from './util'
 import workspace from './workspace'
+import {ServiceStat} from './types'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -26,7 +27,7 @@ export default class Handler {
   private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
   // codeLens instances
 
-  constructor(private nvim:Neovim, emitter) {
+  constructor(private nvim:Neovim, emitter, private services:import('./services').ServiceManager) {
     this.showSignatureHelp = debounce(() => {
       this._showSignatureHelp().catch(e=> {
         logger.error(e.stack)
@@ -291,10 +292,10 @@ export default class Handler {
       }
       commandManager.executeCommand(id)
     } else {
-      let cmds = commandManager.commandList
-      let idx = await showQuickpick(this.nvim, cmds.map(o => o.id))
+      let ids = await this.getCommands()
+      let idx = await showQuickpick(this.nvim, ids)
       if (idx == -1) return
-      await commandManager.executeCommand(cmds[idx].id)
+      await commandManager.executeCommand(ids[idx])
     }
   }
 
@@ -367,6 +368,30 @@ export default class Handler {
       default:
         return false
     }
+  }
+
+  public async getCommands():Promise<string[]> {
+    let list = commandManager.commandList
+    let res = [] as string[]
+    let document = await workspace.document
+    if (!document) return
+    for (let o of list) {
+      let idx = o.id.indexOf('.')
+      if (idx == -1) {
+        res.push(o.id)
+      } else {
+        let serviceId = o.id.slice(0, idx)
+        let service = this.services.getService(serviceId)
+        if (!service || service.state !== ServiceStat.Running) {
+          continue
+        }
+        if (service.languageIds.indexOf(document.filetype) == -1) {
+          continue
+        }
+        res.push(o.id)
+      }
+    }
+    return res
   }
 }
 
