@@ -37,6 +37,9 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
     \})
 ```
 
+If `npm install` takes too much time, use [yarn](https://yarnpkg.com/en/docs/install#mac-stable)
+instead, it have much better performance.
+
 Run `:checkhealth` in your neovim to make sure the check of coc success.
 
 See [Trouble Shooting](#trouble-shooting) if you have runtime issue.
