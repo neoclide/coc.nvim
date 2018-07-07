@@ -21,6 +21,14 @@ documentation.
 
 ## Install
 
+[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
+
+After install nodejs, install `node-client` for neovim by
+
+``` bash
+npm install -g neovim
+```
+
 Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
 
 ``` vim
@@ -29,9 +37,9 @@ Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
     \})
 ```
 
-[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
+Run `:checkhealth` in your neovim to make sure the check of coc success.
 
-See [trouble Shooting](#trouble-shooting) if you have runtime issue.
+See [Trouble Shooting](#trouble-shooting) if you have runtime issue.
 
 ## Sources
 
