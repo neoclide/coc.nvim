@@ -17,6 +17,8 @@
   "tsserver.enable": true,
   // language locale
   "tsserver.locale": null,
+  // enable support for javascript file, experiment
+  "tsserver.enableJavascript": true,
   // folder of tsserver.js
   // Default priority: module in node_modules > module in $PATH > bundled module
   "tsserver.tsdk": "",
@@ -36,8 +38,6 @@
   "tsserver.implicitProjectConfig.checkJs": false,
   "tsserver.implicitProjectConfig.experimentalDecorators": false,
   "tsserver.disableAutomaticTypeAcquisition": false,
-  // enable support for javascript file, experiment
-  "tsserver.enableJavascript": true,
   "typescript.updateImportsOnFileMove.enable": true,
   "typescript.implementationsCodeLens.enable": true,
   "typescript.referencesCodeLens.enable": true,
@@ -156,7 +156,6 @@
   "json.format.enable": true,
   "json.schemas": [],
   // "json.execArgv": ["--nolazy", "--inspect=6045"],
-  "languageserver": {},
   "html.enable": true,
   "html.filetypes": ["html", "handlebars", "razor"],
   // "html.execArgv": ["--nolazy", "--inspect-brk=6045"],
@@ -169,11 +168,15 @@
   "tslint.enable": true,
   "tslint.autoFixOnSave": false,
   "tslint.configFile": "tslint.json",
-  "tslint.ignoreDefinitionFiles": false,
+  "tslint.ignoreDefinitionFiles": true,
   "tslint.exclude": [],
   "tslint.validateWithDefaultConfig": true,
   // or onSave
   "tslint.run": "onType",
-  "alwaysShowRuleFailuresAsWarnings": true,
+  "tslint.alwaysShowRuleFailuresAsWarnings": true,
+  "stylelint.enable": true,
+  "stylelint.filetypes": ["css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue"],
+  "stylelint.configOverrides": {},
+  "languageserver": {},
 }
 // vim:ft=jsonc

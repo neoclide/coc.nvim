@@ -30,7 +30,10 @@ Changelog		|coc-changelog|
 ==============================================================================
 INTRODUCTION					*coc-introduction*
 
-Coc tries to make best experience LSP features, especially for completion.
+Coc tries to make best experience of LSP features, especially for completion.
+
+It has intergration with some best language server extensions from VSCode, and
+you can configure coc to work with custom language server as well.
 
 ==============================================================================
 INSTALL						*coc-install*
@@ -73,9 +76,9 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
 ==============================================================================
 CONFIGURATION					*coc-configuration*
 
-Coc use JSON5 formated file named `coc-settings.json` for configuration.
+Coc use jsonc formated file named `coc-settings.json` for configuration.
 
-You can create user configuration and/or project configuration file to best fit
+You can create user configuration and/or workspace configuration file to best fit
 your need.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
@@ -293,7 +296,11 @@ Available Actions ~
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
 
-	Echo signature help of current function.
+	Echo signature help of current function, you may want to setup autocmd
+	like this: >
+
+	autocmd CursorHoldI,CursorMovedI * call CocAction('showSignatureHelp')
+<
 
 "documentSymbols" 				*coc-action-documentSymbols*
 

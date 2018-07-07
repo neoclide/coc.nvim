@@ -52,7 +52,7 @@ export default class CompletePlugin {
       completion.init(nvim, this.emitter)
       await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       await nvim.command('doautocmd User CocNvimInit')
-      services.init(nvim)
+      await services.init(nvim)
       languageClient.init()
       services.registServices(languageClient.services)
       this.initialized = true

@@ -18,33 +18,13 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-export function checkTimeout(_target: any, _key: string, descriptor: any):void {
+export function check<R extends (...args:any[])=>Promise<R>>(_target: any, _key: string, descriptor: any):void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
   }
 
-  descriptor.value = function(...args):any {
-    return new Promise((resolve, reject):void => { // tslint:disable-line
-      let resolved = false
-      setTimeout(() => {
-        if (!resolved) reject(new Error('timeout after 1s'))
-      }, 1000)
-      Promise.resolve(fn.apply(this, args)).then(res => {
-        resolved = true
-        resolve(res)
-      }, reject)
-    })
-  }
-}
-
-export function check(_target: any, _key: string, descriptor: any):void {
-  let fn = descriptor.value
-  if (typeof fn !== 'function') {
-    return
-  }
-
-  descriptor.value = function(...args):any {
+  descriptor.value = function(...args):Promise<R> {
     let {cancelTokenSource} = this
     this.cancelTokenSource = new CancellationTokenSource()
     return new Promise((resolve, reject):void => { // tslint:disable-line
@@ -364,7 +344,7 @@ class Languages {
     return codeLens
   }
 
-  @checkTimeout
+  @check
   public async resolveCodeLens(document:TextDocument, codeLens:CodeLens):Promise<CodeLens> {
     let providers = this.getProvider(document, this.codeLensProviderMap)
     if (!providers || providers.length == 0) return null
