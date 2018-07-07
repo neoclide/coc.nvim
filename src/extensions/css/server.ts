@@ -114,18 +114,7 @@ function getLanguageService(document: TextDocument) {
   return service
 }
 
-let documentSettings: {
-  [key: string]: Thenable<LanguageSettings | undefined>
-} = {}
-
-// remove document settings on close
-documents.onDidClose(e => {
-  delete documentSettings[e.document.uri]
-})
-
-function getDocumentSettings(textDocument: TextDocument): Thenable<LanguageSettings | undefined> {
-  return Promise.resolve(void 0)
-}
+let documentSettings: Settings
 
 // The settings have changed. Is send on server activation as well.
 connection.onDidChangeConfiguration(change => {
@@ -138,7 +127,7 @@ function updateConfiguration(settings: Settings) {
     languageServices[languageId].configure((settings as any)[languageId])
   }
   // reset all document settings
-  documentSettings = {}
+  documentSettings = Object.assign({}, settings)
   // Revalidate any open text documents
   documents.all().forEach(triggerValidation)
 }
@@ -175,24 +164,20 @@ function triggerValidation(textDocument: TextDocument): void {
 }
 
 function validateTextDocument(textDocument: TextDocument): void {
-  const settingsPromise = getDocumentSettings(textDocument)
-  settingsPromise.then(
-    settings => {
-      const stylesheet = stylesheets.get(textDocument)
-      const diagnostics = getLanguageService(textDocument).doValidation(
-        textDocument,
-        stylesheet,
-        settings
-      )
-      // Send the computed diagnostics to VSCode.
-      connection.sendDiagnostics({uri: textDocument.uri, diagnostics})
-    },
-    e => {
-      connection.console.error(
-        formatError(`Error while validating ${textDocument.uri}`, e)
-      )
-    }
-  )
+  try {
+    const stylesheet = stylesheets.get(textDocument)
+    const diagnostics = getLanguageService(textDocument).doValidation(
+      textDocument,
+      stylesheet,
+      documentSettings[textDocument.languageId]
+    )
+    // Send the computed diagnostics to VSCode.
+    connection.sendDiagnostics({uri: textDocument.uri, diagnostics})
+  } catch (e) {
+    connection.console.error(
+      formatError(`Error while validating ${textDocument.uri}`, e)
+    )
+  }
 }
 
 connection.onCompletion((textDocumentPosition, token) => {
