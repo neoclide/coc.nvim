@@ -56,9 +56,11 @@ export default class CompletePlugin {
       languageClient.init()
       services.registServices(languageClient.services)
       this.initialized = true
+      let {filetypes} = workspace
+      for (let filetype of filetypes) {
+        services.start(filetype)
+      }
       logger.info('Coc service Initialized')
-      let filetype = await nvim.eval('&filetype') as string
-      services.start(filetype)
     } catch (err) {
       logger.error(err.stack)
       return echoErr(nvim, `Initialize failed, ${err.message}`)

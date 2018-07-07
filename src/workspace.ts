@@ -88,6 +88,14 @@ export class Workspace {
     this._onDidWorkspaceInitialized.fire(void 0)
   }
 
+  public get filetypes():Set<string> {
+    let res = new Set() as Set<string>
+    for (let doc of this.documents) {
+      res.add(doc.filetype)
+    }
+    return res
+  }
+
   public getNvimSetting<K extends keyof NvimSettings>(name:K):NvimSettings[K] {
     return this.nvimSettings[name]
   }
