@@ -2990,14 +2990,14 @@ export abstract class BaseLanguageClient {
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
-      outputChannelName: clientOptions.outputChannelName || this._name,
+      outputChannelName: clientOptions.outputChannelName || this._id,
       revealOutputChannelOn:
         clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Error,
       stdioEncoding: clientOptions.stdioEncoding || 'utf8',
       initializationOptions: clientOptions.initializationOptions,
       initializationFailedHandler: clientOptions.initializationFailedHandler,
       errorHandler:
-        clientOptions.errorHandler || new DefaultErrorHandler(this._name),
+        clientOptions.errorHandler || new DefaultErrorHandler(this._id),
       middleware: clientOptions.middleware || {},
     }
     this._clientOptions.synchronize = this._clientOptions.synchronize || {}
@@ -3187,7 +3187,7 @@ export abstract class BaseLanguageClient {
   }
 
   public createDefaultErrorHandler(): ErrorHandler {
-    return new DefaultErrorHandler(this._name)
+    return new DefaultErrorHandler(this._id)
   }
 
   public set trace(value: Trace) {
@@ -3349,7 +3349,7 @@ export abstract class BaseLanguageClient {
         this.state = ClientState.StartFailed
         this._onReadyCallbacks.reject(error)
         this.error('Starting client failed', error)
-        Window.showErrorMessage(`Couldn't start client ${this._name}`)
+        Window.showErrorMessage(`Couldn't start client ${this._id}`)
       })
     return Disposable.create(() => {
       if (this.needsStop()) {
@@ -3567,6 +3567,8 @@ export abstract class BaseLanguageClient {
 
   private createConnection(): Thenable<IConnection> {
     let errorHandler = (error: Error, message: Message, count: number) => {
+      logger.debug(error)
+      logger.debug(message)
       this.handleConnectionError(error, message, count)
     }
 

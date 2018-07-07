@@ -73,6 +73,7 @@ export class ServiceManager implements Disposable {
 
   public regist(service: IServiceProvider): void {
     let {id, languageIds} = service
+    if (!id) logger.error('invalid service ', service.name)
     if (!service.enable) return
     if (this.registed.get(id)) {
       echoErr(this.nvim, `Service ${id} already exists`).catch(_e => {
@@ -117,6 +118,7 @@ export class ServiceManager implements Disposable {
 
   public start(languageId: string): void {
     if (!this.checkProvider(languageId)) return
+    logger.debug('starting', languageId)
     let services = this.getServices(languageId)
     for (let service of services) {
       let {state} = service

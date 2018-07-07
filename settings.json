@@ -58,7 +58,7 @@
   "typescript.format.insertSpaceBeforeAndAfterBinaryOperators" : true,
   "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements" : true,
   "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions" : true,
-  "typescript.format.insertSpaceBeforeFunctionParenthesis" : true,
+  "typescript.format.insertSpaceBeforeFunctionParenthesis" : false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis" : false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces" : false,
   "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces" : false,
@@ -83,7 +83,7 @@
   "javascript.format.insertSpaceBeforeAndAfterBinaryOperators" : true,
   "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements" : true,
   "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions" : true,
-  "javascript.format.insertSpaceBeforeFunctionParenthesis" : true,
+  "javascript.format.insertSpaceBeforeFunctionParenthesis" : false,
   "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis" : false,
   "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces" : false,
   "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces" : false,
@@ -166,6 +166,7 @@
   // "wxml.execArgv": ["--nolazy", "--inspect-brk=6045"],
   "tslint.jsEnable": false,
   "tslint.enable": true,
+  "tslint.filetypes": ["typescript"],
   "tslint.autoFixOnSave": false,
   "tslint.configFile": "tslint.json",
   "tslint.ignoreDefinitionFiles": true,
@@ -177,6 +178,9 @@
   "stylelint.enable": true,
   "stylelint.filetypes": ["css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue"],
   "stylelint.configOverrides": {},
-  "languageserver": {},
+  "solargraph.enable": true,
+  "solargraph.filetypes": ["ruby"],
+  "solargraph.checkGemVersion": false,
+  "languageserver": {}
 }
 // vim:ft=jsonc

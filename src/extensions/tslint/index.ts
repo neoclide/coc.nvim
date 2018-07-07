@@ -76,12 +76,12 @@ interface Settings {
 
 export default class TslintService extends LanguageService {
   constructor() {
-    const config = workspace.getConfiguration().get('html') as any
+    const config = workspace.getConfiguration().get('tslint') as any
     super('tslint', 'Tslint Language Server', {
       module: path.join(__dirname, 'server/tslintServer.js'),
       args: ['--node-ipc'],
       execArgv: config.execArgv,
-      filetypes: ['typescript', 'javascript', 'typescriptreact', 'javascriptreact'],
+      filetypes: config.filetypes || ['typescript', 'javascript'],
       enable: config.enable !== false
     }, 'tslint')
 

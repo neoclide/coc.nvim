@@ -44,7 +44,7 @@ export default class Complete {
     // new option for each source
     let option = Object.assign({}, this.option)
     let timeout = workspace.getConfiguration('coc.preferences').get('timeout', 300)
-    s.timeout(Math.min(Number(timeout), 300))
+    s.timeout(Math.min(Number(timeout), 3000))
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
         source.shouldComplete(option).then(res => {

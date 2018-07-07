@@ -31,8 +31,8 @@ export function check<R extends (...args:any[])=>Promise<R>>(_target: any, _key:
       let resolved = false
       setTimeout(() => {
         cancelTokenSource.cancel()
-        if (!resolved) reject(new Error('timeout after 1s'))
-      }, 1000)
+        if (!resolved) reject(new Error('timeout after 3s'))
+      }, 3000)
       Promise.resolve(fn.apply(this, args)).then(res => {
         resolve(res)
       }, reject)
