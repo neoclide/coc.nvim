@@ -8,17 +8,16 @@ COC is a **fast**, **reliable** and **flexible** completion framework of
 It also tries hard to have better support for web development and completion
 specifications in [language server protocol](https://github.com/Microsoft/language-server-protocol)
 
-W.I.P.🐒
-
 Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail
 documentation.
 
 ## Features
 
-* Async generate complete items in parallel.
-* Scoped configuration file.
+* Async generate complete items
+* Fuzzy match with smart case.
 * Full featured completion support defined in LSP.
-* Works with VSCode language server based extensions.
+* Built in language server extensions, like tsserver, tslint etc.
+* Custom language server configuration support.
 
 ## Install
 
