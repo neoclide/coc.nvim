@@ -11,6 +11,8 @@ specifications in [language server protocol](https://github.com/Microsoft/langua
 Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail
 documentation.
 
+[Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+
 ## Features
 
 * Async generate complete items
@@ -18,31 +20,6 @@ documentation.
 * Full featured completion support defined in LSP.
 * Built in language server extensions, like tsserver, tslint etc.
 * Custom language server configuration support.
-
-## Install
-
-[nodejs](http://nodejs.org/) version > 8.0 && neovim version > 0.3.0 is required.
-
-After install nodejs, install `node-client` for neovim by
-
-``` bash
-npm install -g neovim
-```
-
-Take [dein.vim](https://github.com/Shougo/dein.vim) as example:
-
-``` vim
- call dein#add('neoclide/coc.nvim', {
-    \ 'build': 'npm install'
-    \})
-```
-
-If `npm install` takes too much time, use [yarn](https://yarnpkg.com/en/docs/install#mac-stable)
-instead, it have much better performance.
-
-Run `:checkhealth` in your neovim to make sure the check of coc success.
-
-See [Trouble Shooting](#trouble-shooting) if you have runtime issue.
 
 ## Sources
 

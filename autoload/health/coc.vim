@@ -26,10 +26,10 @@ endfunction
 
 function! s:checkInitailize() abort
   if get(g:, 'coc_node_channel_id', 0)
-    call health#report_ok('Service initailized')
+    call health#report_ok('Service initialized')
     return 1
   endif
-  call health#report_error('service could not be initailized', [
+  call health#report_error('service could not be initialized', [
         \ 'You may not have neovim package installed correctly,',
         \ 'check out https://github.com/neovim/node-client#debugging--troubleshooting',
         \])
