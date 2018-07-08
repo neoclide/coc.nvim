@@ -95,7 +95,6 @@ export default class Increment extends Emitter {
     if (!activted) return null
     let {option} = completes
     let search = await nvim.call('coc#util#get_search', [option.col])
-    if (search == this.search) return null
     this.search = search
     if (completes.completing) return null
     if (!search || !completes.hasMatch(search)) {
