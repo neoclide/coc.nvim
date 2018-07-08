@@ -1,5 +1,4 @@
 import Complete from './model/complete'
-import {Neovim} from 'neovim'
 import {
   getCharCodes,
   fuzzyMatch

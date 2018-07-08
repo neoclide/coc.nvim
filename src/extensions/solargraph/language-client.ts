@@ -5,7 +5,6 @@ import {
   Middleware,
 } from '../../language-client/main'
 import * as net from 'net'
-import {Hover} from 'vscode-languageserver-protocol'
 import * as solargraph from '@chemzqm/solargraph-utils'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-solargraph-client')
@@ -16,19 +15,6 @@ export function makeLanguageClient(
 ): LanguageClient {
 
   let middleware: Middleware = {
-    provideHover: (document, position, token, next): Promise<Hover> => {
-      return new Promise(resolve => {
-        let promise = next(document, position, token)
-        // HACK: It's a promise, but TypeScript doesn't recognize it
-        promise['then'](hover => {
-          let contents = []
-          hover.contents.forEach(orig => {
-            contents.push(orig.value)
-          })
-          resolve({ contents } as Hover)
-        })
-      })
-    }
   }
 
   // Options to control the language client
@@ -42,7 +28,7 @@ export function makeLanguageClient(
     },
     middleware,
     initializationOptions: {
-      enablePages: true
+      enablePages: false
     }
   }
   let serverOptions: ServerOptions = () => {

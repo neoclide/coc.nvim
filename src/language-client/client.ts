@@ -1709,7 +1709,10 @@ class CompletionItemFeature extends TextDocumentFeature<
           ),
           token
         )
-        .then(result => result, error => {
+        .then(result => {
+          // logger.debug('result', result)
+          return result
+        }, error => {
           client.logFailedRequest(CompletionRequest.type, error)
           return Promise.resolve([])
         })
