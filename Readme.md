@@ -2,18 +2,16 @@
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
 
-COC is a **fast**, **reliable** and **flexible** completion framework of
-[neovim](https://github.com/neovim/neovim).
+Coc is a completion framework of [neovim](https://github.com/neovim/neovim)
+while providing featured language server support.
 
-It also tries hard to have better support for web development and completion
-specifications in [language server protocol](https://github.com/Microsoft/language-server-protocol)
+Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail documentation.
 
-Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail
-documentation.
+## [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-[Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+**Note:** neovim 0.3.0 is required for buffer-updates feature.
 
-## Features
+## Pros.
 
 * Async generate complete items
 * Fuzzy match with smart case.
@@ -21,7 +19,39 @@ documentation.
 * Built in language server extensions, like tsserver, tslint etc.
 * Custom language server configuration support.
 
-## Sources
+## Language server features
+
+Check out the official specification at https://microsoft.github.io/language-server-protocol/specification.
+
+* ✓ Request cancellation support
+* ✓ Full features of workspace (except workspace folders related)
+* ✓ Full features of text synchronization
+* ✓ Full features of window support
+* ✓ Diagnostics
+* ✗ Telemetry
+* ✓ Completion
+* ✓ Completion resolve
+* ✓ Hover
+* ✓ Signature help
+* ✓ Definition
+* ✓ Type definition
+* ✓ Implementation
+* ✓ References
+* ✓ Document highlight
+* ✓ Document symbol
+* ✓ Code action
+* ✓ CodeLens
+* ✓ CodeLens resolve
+* ✗ Document link
+* ✗ Document link resolve
+* ✗ Document color
+* ✗ Color Presentation
+* ✓ Document Formatting
+* ✓ Document Range Formatting
+* ✗ Document on Type Formatting
+* ✓ Rename
+
+## Completion sources
 
 ### Common sources
 
