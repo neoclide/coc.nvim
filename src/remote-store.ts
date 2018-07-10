@@ -11,27 +11,27 @@ const cached: Cached = {}
 let {watched, addWatcher} = watchObj(cached)
 
 export default {
-  getResult(id: number, name: string):Promise<VimCompleteItem[]> {
-    let key= `${id}-${name}`
+  getResult(id: number, name: string): Promise<VimCompleteItem[]> {
+    let key = `${id}-${name}`
     let res = cached[key]
     if (res) {
       delete cached[key]
       return Promise.resolve(res)
     }
     // wait for received data
-    return new Promise((resolve, reject):void => {
-      let remove:any = addWatcher(key, obj => {
+    return new Promise((resolve, reject): void => {
+      let remove: any = addWatcher(key, obj => {
         delete cached[key]
         resolve(obj)
       })
       setTimeout(() => {
         remove()
-        reject(new Error(`Source ${name} timeout in ${timeout/1000}s`))
+        reject(new Error(`Source ${name} timeout in ${timeout / 1000}s`))
       }, timeout)
     })
   },
-  setResult(id: number, name: string, res: VimCompleteItem[]):void {
-    let key= `${id}-${name}`
+  setResult(id: number, name: string, res: VimCompleteItem[]): void {
+    let key = `${id}-${name}`
     watched[key] = res
   }
 }

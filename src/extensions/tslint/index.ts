@@ -326,7 +326,7 @@ async function applyDisableRuleEdit(uri: string, documentVersion: number, edits:
   // prefix disable comment with same indent as line with the diagnostic
   let edit = edits[0]
   let line = document.getline(edit.range.start.line)
-  let indent = await workspace.nvim.call('indent', [edit.range.start.line])
+  let indent = await workspace.nvim.call('indent', [edit.range.start.line + 1])
   let prefix = line.substr(0, indent)
   edit.newText = prefix + edit.newText
   await applyTextEdits(uri, documentVersion, edits)

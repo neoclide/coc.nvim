@@ -1,4 +1,4 @@
-import { mixin, deepClone } from './util/object'
+import {mixin,deepClone} from './util/object'
 import {
   isObject,
   isEmptyObject
@@ -21,7 +21,7 @@ import {
 import JSON5 = require('json5')
 const logger = require('./util/logger')('configurations')
 
-function lookUp(tree: any, key: string):any {
+function lookUp(tree: any,key: string): any {
   if (key) {
     const parts = key.split('.')
     let node = tree
@@ -50,22 +50,22 @@ export default class Configurations {
    */
   public getConfiguration(section?: string): WorkspaceConfiguration {
 
-    const config = Object.freeze(lookUp(this._configuration.getValue(null), section))
+    const config = Object.freeze(lookUp(this._configuration.getValue(null),section))
 
     const result: WorkspaceConfiguration = {
       has(key: string): boolean {
-        return typeof lookUp(config, key) !== 'undefined'
+        return typeof lookUp(config,key) !== 'undefined'
       },
-      get: <T>(key: string, defaultValue?: T) => {
-        let result = lookUp(config, key)
+      get: <T>(key: string,defaultValue?: T) => {
+        let result = lookUp(config,key)
         if (typeof result === 'undefined') {
           result = defaultValue
         }
         if (result == null || (typeof result == 'string' && result.length == 0)) return null
         return result
       },
-      update: (key: string, value: any, _isGlobal?: boolean) => {
-        this._configuration.updateValue(key, value)
+      update: (key: string,value: any,_isGlobal?: boolean) => {
+        this._configuration.updateValue(key,value)
         // TODO change configuration file
       },
       inspect: <T>(key: string): ConfigurationInspect<T> => {
@@ -84,7 +84,7 @@ export default class Configurations {
     }
 
     if (typeof config === 'object') {
-      mixin(result, config, false)
+      mixin(result,config,false)
     }
     return Object.freeze(result) as WorkspaceConfiguration
   }
@@ -97,33 +97,33 @@ export default class Configurations {
     const defaultConfiguration = Configurations.parseConfigurationModel(data.defaults)
     const userConfiguration = Configurations.parseConfigurationModel(data.user)
     const folderConfiguration = Configurations.parseConfigurationModel(data.folder)
-    return new Configuration(defaultConfiguration, userConfiguration, folderConfiguration, new ConfigurationModel())
-	}
+    return new Configuration(defaultConfiguration,userConfiguration,folderConfiguration,new ConfigurationModel())
+  }
 }
 
-export async function parseContentFromFile(filepath:string):Promise<IConfigurationModel> {
+export async function parseContentFromFile(filepath: string): Promise<IConfigurationModel> {
   let stat = await statAsync(filepath)
   if (!stat || !stat.isFile()) return {contents: {}}
-  let content = await readFile(filepath, 'utf8')
+  let content = await readFile(filepath,'utf8')
   return {
     contents: parseContent(content)
   }
 }
 
-export function parseContent(content:string):any {
+export function parseContent(content: string): any {
   let data = JSON5.parse(content)
-  function addProperty(current:object, key:string, remains:string[], value:any):void {
+  function addProperty(current: object,key: string,remains: string[],value: any): void {
     if (remains.length == 0) {
       current[key] = convert(value)
     } else {
       if (!current[key]) current[key] = {}
       let o = current[key]
       let first = remains.shift()
-      addProperty(o, first, remains, value)
+      addProperty(o,first,remains,value)
     }
   }
 
-  function convert(obj:any):any {
+  function convert(obj: any): any {
     if (!isObject(obj)) return obj
     if (isEmptyObject(obj)) return {}
     let dest = {}
@@ -131,7 +131,7 @@ export function parseContent(content:string):any {
       if (key.indexOf('.') !== -1) {
         let parts = key.split('.')
         let first = parts.shift()
-        addProperty(dest, first, parts, obj[key])
+        addProperty(dest,first,parts,obj[key])
       } else {
         dest[key] = convert(obj[key])
       }

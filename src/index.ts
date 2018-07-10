@@ -1,4 +1,4 @@
-import { Function, Neovim, Plugin } from 'neovim'
+import {Function, Neovim, Plugin} from 'neovim'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -8,8 +8,8 @@ import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import { VimCompleteItem } from './types'
-import { echoErr } from './util'
+import {VimCompleteItem} from './types'
+import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
 import Emitter = require('events')
@@ -32,18 +32,18 @@ export default class CompletePlugin {
   }
 
   @Function('CocInitAsync', {sync: false})
-  public async cocInitAsync (): Promise<void> {
+  public async cocInitAsync(): Promise<void> {
     this.onInit().catch(err => {
       logger.error(err.stack)
     })
   }
 
   @Function('CocInitSync', {sync: true})
-  public async cocInitSync (): Promise<void> {
+  public async cocInitSync(): Promise<void> {
     await this.onInit()
   }
 
-  private async onInit (): Promise<void> {
+  private async onInit(): Promise<void> {
     let {nvim} = this
     try {
       let channelId = await (nvim as any).channelId
@@ -69,7 +69,7 @@ export default class CompletePlugin {
 
   // callback for remote sources
   @Function('CocResult', {sync: false})
-  public async cocResult (args: [number, string, VimCompleteItem[]]): Promise<void> {
+  public async cocResult(args: [number, string, VimCompleteItem[]]): Promise<void> {
     let [id, name, items] = args
     id = Number(id)
     items = items || []
@@ -78,7 +78,7 @@ export default class CompletePlugin {
   }
 
   @Function('CocAutocmd', {sync: true})
-  public async cocAutocmd (args: any): Promise<void> {
+  public async cocAutocmd(args: any): Promise<void> {
     let {emitter} = this
     logger.trace('Autocmd:', args[0])
     switch (args[0] as string) {
@@ -144,7 +144,7 @@ export default class CompletePlugin {
   }
 
   @Function('CocAction', {sync: true})
-  public async cocAction (args: any): Promise<any> {
+  public async cocAction(args: any): Promise<any> {
     if (!this.initialized) return
     let {handler} = this
     try {

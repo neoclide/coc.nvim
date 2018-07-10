@@ -30,6 +30,7 @@ export default class TypeScriptFormattingProvider implements DocumentRangeFormat
     commandManager.register({
       id: 'tsserver.format',
       execute: async ():Promise<void> => {
+
         let document = await workspace.document
         if (!document) return
         if (languageIds.indexOf(document.filetype) == -1) {

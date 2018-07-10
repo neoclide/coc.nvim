@@ -1,4 +1,4 @@
-import { Neovim, Buffer } from 'neovim'
+import {Neovim, Buffer} from 'neovim'
 import {
   BufferOption,
 } from '../types'
@@ -30,20 +30,20 @@ const logger = require('../util/logger')('model-document')
 // wrapper class of TextDocument
 export default class Document {
   public isIgnored = false
-  public chars:Chars
+  public chars: Chars
   public paused: boolean
   public textDocument: TextDocument
-  private _fireContentChanges: Function & { clear(): void; }
+  private _fireContentChanges: Function & {clear(): void;}
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
-  private disposables:Disposable[] = []
+  private disposables: Disposable[] = []
   // real current lines
-  private lines:string[] = []
-  private _changedtick:number
-  private _words:string[] = []
-  public readonly words:string[]
+  private lines: string[] = []
+  private _changedtick: number
+  private _words: string[] = []
+  public readonly words: string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
-  constructor(public buffer:Buffer) {
+  constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
       try {
         this.fireContentChanges()
@@ -61,7 +61,7 @@ export default class Document {
       get: () => {
         return paused
       },
-      set: (val:boolean) => {
+      set: (val: boolean) => {
         if (val == paused) return
         if (val) {
           paused = true
@@ -75,7 +75,7 @@ export default class Document {
     })
   }
 
-  private generateWords():void {
+  private generateWords(): void {
     let {content} = this
     this._words = this.chars.matchKeywords(content)
   }
@@ -86,11 +86,11 @@ export default class Document {
    * @public
    * @returns {number}
    */
-  public get changedtick():number {
+  public get changedtick(): number {
     return this._changedtick
   }
 
-  public async init(nvim:Neovim):Promise<void> {
+  public async init(nvim: Neovim): Promise<void> {
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
     let {fullpath, filetype, iskeyword} = opts
@@ -108,7 +108,7 @@ export default class Document {
     })
   }
 
-  public get lineCount():number {
+  public get lineCount(): number {
     return this.lines.length
   }
 
@@ -119,23 +119,23 @@ export default class Document {
    * @param {number} line - zero based line number
    * @returns {string}
    */
-  public getline(line:number):string {
+  public getline(line: number): string {
     if (line < 0) return null
     return this.lines[line]
   }
 
-  public attach():void {
+  public attach(): void {
     let unbindLines = this.buffer.listen('lines', (...args) => {
       try {
         this.onChange.apply(this, args)
-      } catch(e) {
+      } catch (e) {
         logger.error(e.stack)
       }
     })
     let unbindDetach = this.buffer.listen('detach', () => {
       logger.debug('buffer detach')
     })
-    let unbindChange = this.buffer.listen('changedtick', (buf:Buffer, tick:number) => {
+    let unbindChange = this.buffer.listen('changedtick', (buf: Buffer, tick: number) => {
       if (buf.id !== this.buffer.id) return
       this._changedtick = tick
     })
@@ -149,13 +149,13 @@ export default class Document {
   }
 
   private onChange(
-    buf:Buffer,
-    tick:number,
-    firstline:number,
-    lastline:number,
-    linedata:string[],
+    buf: Buffer,
+    tick: number,
+    firstline: number,
+    lastline: number,
+    linedata: string[],
     // more:boolean
-  ):void {
+  ): void {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
     this._changedtick = tick
@@ -169,7 +169,7 @@ export default class Document {
    * @public
    * @returns {Promise<void>}
    */
-  public async checkDocument (): Promise<void> {
+  public async checkDocument(): Promise<void> {
     this._fireContentChanges.clear()
     this.paused = false
     let {buffer} = this
@@ -187,7 +187,7 @@ export default class Document {
     this.generateWords()
   }
 
-  private fireContentChanges():void {
+  private fireContentChanges(): void {
     let {paused, textDocument} = this
     if (paused) return
     this.createDocument()
@@ -208,7 +208,7 @@ export default class Document {
     this.generateWords()
   }
 
-  public detach():void {
+  public detach(): void {
     if (!this.attached) return
     this.attached = false
     disposeAll(this.disposables)
@@ -216,35 +216,35 @@ export default class Document {
     this._onDocumentChange.dispose()
   }
 
-  public get bufnr():number {
+  public get bufnr(): number {
     return this.buffer.id
   }
 
-  public get content():string {
+  public get content(): string {
     return this.textDocument.getText()
   }
 
-  public get filetype():string {
+  public get filetype(): string {
     return this.textDocument.languageId
   }
 
-  public get uri():string {
+  public get uri(): string {
     return this.textDocument ? this.textDocument.uri : null
   }
 
-  public get version():number {
+  public get version(): number {
     return this.textDocument ? this.textDocument.version : null
   }
 
-  public equalTo(doc:TextDocument):boolean {
+  public equalTo(doc: TextDocument): boolean {
     return doc.uri == this.uri
   }
 
-  public setKeywordOption(option: string):void {
+  public setKeywordOption(option: string): void {
     this.chars = new Chars(option)
   }
 
-  public async applyEdits(nvim:Neovim, edits: TextEdit[]):Promise<void> {
+  public async applyEdits(nvim: Neovim, edits: TextEdit[]): Promise<void> {
     let content = TextDocument.applyEdits(this.textDocument, edits)
     let buffers = await nvim.buffers
     let {bufnr} = this
@@ -258,18 +258,18 @@ export default class Document {
     }
   }
 
-  public getOffset(lnum:number, col:number):number {
+  public getOffset(lnum: number, col: number): number {
     return this.textDocument.offsetAt({
       line: lnum - 1,
       character: col
     })
   }
 
-  public isWord(word: string):boolean {
+  public isWord(word: string): boolean {
     return this.chars.isKeyword(word)
   }
 
-  public getMoreWords():string[] {
+  public getMoreWords(): string[] {
     let res = []
     let {words, chars} = this
     if (!chars.isKeywordChar('-')) return res
@@ -298,13 +298,13 @@ export default class Document {
    * @param {string} extraChars?
    * @returns {Range}
    */
-  public getWordRangeAtPosition(position:Position, extraChars?:string):Range {
+  public getWordRangeAtPosition(position: Position, extraChars?: string): Range {
     let {chars, textDocument} = this
     let content = textDocument.getText()
     if (extraChars && extraChars.length) {
       let codes = []
       let keywordOption = '@,'
-      for (let i = 0 ; i < extraChars.length; i++) {
+      for (let i = 0; i < extraChars.length; i++) {
         codes.push(String(extraChars.charCodeAt(i)))
       }
       keywordOption += codes.join(',')
@@ -313,7 +313,7 @@ export default class Document {
     let start = position
     let end = position
     let offset = textDocument.offsetAt(position)
-    for (let i = offset - 1; i >= 0 ; i--) {
+    for (let i = offset - 1; i >= 0; i--) {
       if (i == 0) {
         start = textDocument.positionAt(0)
         break
@@ -322,7 +322,7 @@ export default class Document {
         break
       }
     }
-    for (let i = offset; i <= content.length ; i++) {
+    for (let i = offset; i <= content.length; i++) {
       if (i === content.length) {
         end = textDocument.positionAt(i)
         break
@@ -334,7 +334,7 @@ export default class Document {
     return {start, end}
   }
 
-  private includeDash(filetype):boolean {
+  private includeDash(filetype): boolean {
     return [
       'json',
       'html',
@@ -346,14 +346,14 @@ export default class Document {
     ].indexOf(filetype) != -1
   }
 
-  private async gitCheck():Promise<void> {
+  private async gitCheck(): Promise<void> {
     let {uri} = this
     if (!uri.startsWith('file://')) return
     let filepath = Uri.parse(uri).fsPath
     this.isIgnored = await isGitIgnored(filepath)
   }
 
-  private createDocument(changeCount = 1):void {
+  private createDocument(changeCount = 1): void {
     let {version, uri, filetype} = this
     version = version + changeCount
     this.textDocument = TextDocument.create(uri, filetype, version, this.lines.join('\n'))

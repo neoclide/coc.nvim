@@ -46,9 +46,9 @@ export default class FileConfigurationManager {
   public constructor(private readonly client: ITypeScriptServiceClient) {
   }
 
-  public async ensureConfigurationOptions (languageId:string, expandtab:boolean, tabstop:number): Promise<void> {
+  public async ensureConfigurationOptions(languageId: string, expandtab: boolean, tabstop: number): Promise<void> {
     let {requesting} = this
-    let options:FormatOptions = {
+    let options: FormatOptions = {
       tabSize: tabstop,
       insertSpaces: expandtab
     }
@@ -56,7 +56,6 @@ export default class FileConfigurationManager {
       || (this.cachedOption && objAreEqual(this.cachedOption, options))) return
     const currentOptions = this.getFileOptions(options, languageId)
     this.requesting = true
-
     const args = {
       hostInfo: 'coc',
       ...currentOptions
@@ -72,19 +71,19 @@ export default class FileConfigurationManager {
     return this.ensureConfigurationOptions(document.languageId, insertSpaces, tabSize)
   }
 
-  public reset():void {
+  public reset(): void {
     this.cachedOption = null
   }
 
-  public getLanguageConfiguration(languageId:string):WorkspaceConfiguration {
+  public getLanguageConfiguration(languageId: string): WorkspaceConfiguration {
     return workspace.getConfiguration(languageId)
   }
 
-  public isTypeScriptDocument(languageId: string):boolean {
+  public isTypeScriptDocument(languageId: string): boolean {
     return languageId === languageIds.typescript || languageId === languageIds.typescriptreact
   }
 
-  public enableJavascript():boolean {
+  public enableJavascript(): boolean {
     const config = workspace.getConfiguration('tsserver')
     return !!config.get<boolean>('enableJavascript')
   }
@@ -97,7 +96,7 @@ export default class FileConfigurationManager {
     }
   }
 
-  private getFormatOptions(options: FormatOptions, language:string): Proto.FormatCodeSettings {
+  private getFormatOptions(options: FormatOptions, language: string): Proto.FormatCodeSettings {
     const config = workspace.getConfiguration(`${language}.format`)
 
     return {
@@ -124,7 +123,7 @@ export default class FileConfigurationManager {
     }
   }
 
-  public getCompleteOptions(languageId:string):CompletionOptions {
+  public getCompleteOptions(languageId: string): CompletionOptions {
     const lang = this.isTypeScriptDocument(languageId) ? 'typescript' : 'javascript'
     const config = workspace.getConfiguration(`${lang}.preferences.completion`)
     return {
@@ -135,7 +134,7 @@ export default class FileConfigurationManager {
     }
   }
 
-  public getPreferences(language:string): Proto.UserPreferences {
+  public getPreferences(language: string): Proto.UserPreferences {
     if (!this.client.apiVersion.gte(API.v290)) {
       return {}
     }
@@ -154,7 +153,7 @@ export default class FileConfigurationManager {
 type ModuleImportType = 'relative' | 'non-relative' | 'auto'
 type QuoteType = 'single' | 'double'
 
-function getImportModuleSpecifier(config):ModuleImportType {
+function getImportModuleSpecifier(config): ModuleImportType {
   let val = config.get('importModuleSpecifier')
   switch (val) {
     case 'relative':
@@ -166,7 +165,7 @@ function getImportModuleSpecifier(config):ModuleImportType {
   }
 }
 
-function getQuoteType(config):QuoteType {
+function getQuoteType(config): QuoteType {
   let val = config.get('quoteStyle')
   switch (val) {
     case 'single':

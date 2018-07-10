@@ -92,7 +92,7 @@
     "touch": "^3.1.0",
     "tslib": "^1.9.3",
     "tslint": "^5.10.0",
-    "typescript": "^3.0.0-dev.20180707",
+    "typescript": "^3.0.0-dev.20180710",
     "uuid": "^3.3.2",
     "vscode-css-languageservice": "^3.0.9-next.19",
     "vscode-html-languageserver-bin": "^1.4.0",
