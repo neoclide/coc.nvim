@@ -88,6 +88,12 @@ export class Workspace {
     this._onDidWorkspaceInitialized.fire(void 0)
   }
 
+  public onOptionChange(name, newValue):void {
+    if (name === 'completeopt') {
+      this.nvimSettings.completeOpt = newValue
+    }
+  }
+
   public get filetypes():Set<string> {
     let res = new Set() as Set<string>
     for (let doc of this.documents) {

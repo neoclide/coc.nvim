@@ -199,6 +199,9 @@ export default class CompletePlugin {
         case 'jumpReferences':
           await handler.gotoReferences()
           break
+        case 'setOption':
+          workspace.onOptionChange(args[1], args[2])
+          break
         case 'doHover':
           handler.onHover().catch(e => {
             logger.error(e.message)

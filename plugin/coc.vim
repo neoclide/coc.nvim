@@ -92,6 +92,7 @@ function! s:Enable()
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved')
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
+    autocmd OptionSet completeopt call CocAction('setOption', 'completeopt', v:option_new)
   augroup end
 
   " same behaviour of ultisnips
