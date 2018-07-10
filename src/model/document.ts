@@ -24,7 +24,7 @@ import {
 import {
   getChange
 } from '../util/diff'
-import debounce = require('debounce')
+import debounce from 'debounce'
 const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
@@ -36,11 +36,11 @@ export default class Document {
   private _fireContentChanges: Function & { clear(): void; }
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
-  private hasChange = false
   private disposables:Disposable[] = []
   // real current lines
   private lines:string[] = []
   private _changedtick:number
+  private _words:string[] = []
   public readonly words:string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer:Buffer) {
@@ -51,15 +51,9 @@ export default class Document {
         logger.error('contentChanges error: ', e.stack)
       }
     }, 20)
-    let words = []
     Object.defineProperty(this, 'words', {
       get: () => {
-        // generate it when used
-        if (!this.hasChange) return words
-        let {content} = this
-        words = this.chars.matchKeywords(content)
-        this.hasChange = false
-        return words
+        return this._words
       }
     })
     let paused = false
@@ -79,6 +73,11 @@ export default class Document {
         }
       }
     })
+  }
+
+  private generateWords():void {
+    let {content} = this
+    this._words = this.chars.matchKeywords(content)
   }
 
   /**
@@ -102,8 +101,8 @@ export default class Document {
     this._changedtick = await buffer.changedtick
     this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.attach()
-    this.hasChange = true
     this.attached = true
+    this.generateWords()
     this.gitCheck().catch(e => {
       logger.error('git error', e.stack)
     })
@@ -181,11 +180,11 @@ export default class Document {
     this._changedtick = await buffer.changedtick
     this.createDocument()
     let {version, uri} = this
-    this.hasChange = true
     this._onDocumentChange.fire({
       textDocument: {version, uri},
       contentChanges: [{text: this.lines.join('\n')}]
     })
+    this.generateWords()
   }
 
   private fireContentChanges():void {
@@ -202,11 +201,11 @@ export default class Document {
       text: change.newText
     }]
     let {version, uri} = this
-    this.hasChange = true
     this._onDocumentChange.fire({
       textDocument: {version, uri},
       contentChanges: changes
     })
+    this.generateWords()
   }
 
   public detach():void {

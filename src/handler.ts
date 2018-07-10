@@ -180,15 +180,18 @@ export default class Handler {
     })
     for (let sym of symbols) {
       let {name, kind, location, containerName} = sym
-      if (!containerName) {
+      if (!containerName || !pre) {
         level = 0
-      } else if (pre && containerName == pre.name) {
-        level += 1
-      } else if (containerName != pre.containerName) {
-        level = Math.max(0, level - 1)
+      } else {
+        if (pre.containerName == containerName) {
+          level = pre.level || 0
+        } else {
+          let container = getPreviousContainer(containerName, res)
+          level = container ? container.level + 1 : 0
+        }
       }
       let {start} = location.range
-      res.push({
+      let o:SymbolInfo = {
         filepath: Uri.parse(location.uri).fsPath,
         col: start.character + 1,
         lnum: start.line + 1,
@@ -196,8 +199,9 @@ export default class Handler {
         level,
         kind: getSymbolKind(kind),
         containerName
-      })
-      pre = sym
+      }
+      res.push(o)
+      pre = o
     }
     return res
   }
@@ -452,4 +456,21 @@ function getSymbolKind(kind: SymbolKind): string {
     default:
       return 'Unknown'
   }
+}
+
+function getPreviousContainer(containerName:string, symbols:SymbolInfo[]):SymbolInfo {
+  if (!symbols.length) return null
+  let i = symbols.length - 1
+  let last = symbols[i]
+  if (last.text == containerName) {
+    return last
+  }
+  while(i >= 0) {
+    let sym = symbols[i]
+    if (sym.text == containerName) {
+      return sym
+    }
+    i--
+  }
+  return null
 }
