@@ -205,7 +205,9 @@ export default class CompletePlugin {
           })
           break
         case 'showSignatureHelp':
-          handler.showSignatureHelp()
+          setTimeout(() => {
+            handler.showSignatureHelp()
+          }, 20)
           break
         case 'documentSymbols':
           return handler.getDocumentSymbols()

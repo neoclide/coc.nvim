@@ -9,13 +9,17 @@ function! coc#snippet#range_select(lnum, col, len) abort
   else
     let move = a:len == 1 ? '' : a:len - 1 . 'l'
     if m ==# 'i'
-      stopinsert
+      call feedkeys("\<esc>", 'in')
     else
       execute 'normal! h'
     endif
-    call timer_start(20, { -> execute('normal! lv'.move."\<C-g>")})
+    call timer_start(30, { -> s:start_select(move, old)})
   endif
-  let &virtualedit = old
+endfunction
+
+function! s:start_select(move, virtualedit)
+  execute 'normal! lv'.a:move."\<C-g>"
+  let &virtualedit = a:virtualedit
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort
