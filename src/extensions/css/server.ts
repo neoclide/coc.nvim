@@ -73,16 +73,13 @@ connection.onInitialize((params: InitializeParams): InitializeResult => {
     }
     return c
   }
-  const snippetSupport = !!getClientCapability(
-    'textDocument.completion.completionItem.snippetSupport',
-    false
-  )
+  const snippetSupport = !!getClientCapability('textDocument.completion.completionItem.snippetSupport', false)
 
   const capabilities: ServerCapabilities = {
     // Tell the client that the server works in FULL text document sync mode
     textDocumentSync: documents.syncKind,
     completionProvider: snippetSupport
-      ? {resolveProvider: false, triggerCharacters: [':']}
+      ? {resolveProvider: false, triggerCharacters: [':', '.']}
       : undefined,
     hoverProvider: true,
     documentSymbolProvider: true,
@@ -200,7 +197,7 @@ connection.onCompletion((textDocumentPosition, token) => {
     },
     null,
     `Error while computing completions for ${
-      textDocumentPosition.textDocument.uri
+    textDocumentPosition.textDocument.uri
     }`,
     token
   )
@@ -241,7 +238,7 @@ connection.onDocumentSymbol((documentSymbolParams, token) => {
     },
     [],
     `Error while computing document symbols for ${
-      documentSymbolParams.textDocument.uri
+    documentSymbolParams.textDocument.uri
     }`,
     token
   )
@@ -263,7 +260,7 @@ connection.onDefinition((documentSymbolParams, token) => {
     },
     null,
     `Error while computing definitions for ${
-      documentSymbolParams.textDocument.uri
+    documentSymbolParams.textDocument.uri
     }`,
     token
   )
@@ -285,7 +282,7 @@ connection.onDocumentHighlight((documentSymbolParams, token) => {
     },
     [],
     `Error while computing document highlights for ${
-      documentSymbolParams.textDocument.uri
+    documentSymbolParams.textDocument.uri
     }`,
     token
   )
@@ -328,7 +325,7 @@ connection.onCodeAction((codeActionParams, token) => {
     },
     [],
     `Error while computing code actions for ${
-      codeActionParams.textDocument.uri
+    codeActionParams.textDocument.uri
     }`,
     token
   )

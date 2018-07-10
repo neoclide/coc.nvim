@@ -18,16 +18,16 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-export function check<R extends (...args:any[])=>Promise<R>>(_target: any, _key: string, descriptor: any):void {
+export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _key: string, descriptor: any): void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
   }
 
-  descriptor.value = function(...args):Promise<R> {
+  descriptor.value = function(...args): Promise<R> {
     let {cancelTokenSource} = this
     this.cancelTokenSource = new CancellationTokenSource()
-    return new Promise((resolve, reject):void => { // tslint:disable-line
+    return new Promise((resolve, reject): void => { // tslint:disable-line
       let resolved = false
       setTimeout(() => {
         cancelTokenSource.cancel()
@@ -41,7 +41,7 @@ export function check<R extends (...args:any[])=>Promise<R>>(_target: any, _key:
 }
 
 class Languages {
-  public nvim:Neovim
+  public nvim: Neovim
   private _onDidCompletionSourceCreated = new Emitter<ISource>()
   private completionProviders: CompletionSource[] = []
   private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
@@ -68,7 +68,7 @@ class Languages {
     languageIds: string | string[],
     provider: CompletionItemProvider,
     triggerCharacters?: string[]
-  ):Disposable {
+  ): Disposable {
     let id = uuid()
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters)
@@ -85,7 +85,7 @@ class Languages {
     }
   }
 
-  private registerProvider<T>(languageIds: string| string[], provider: T, map:Map<string, T>):Disposable {
+  private registerProvider<T>(languageIds: string | string[], provider: T, map: Map<string, T>): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     for (let languageId of languageIds) {
       map.set(languageId, provider)
@@ -99,7 +99,7 @@ class Languages {
     }
   }
 
-  private registerProviderList<T>(languageIds: string| string[], provider: T, map:Map<string, T[]>):Disposable {
+  private registerProviderList<T>(languageIds: string | string[], provider: T, map: Map<string, T[]>): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     for (let languageId of languageIds) {
       let providers = map.get(languageId) || []
@@ -117,120 +117,120 @@ class Languages {
     })
   }
 
-  public registerCodeActionProvider(languageIds: string|string[], provider:CodeActionProvider):Disposable {
+  public registerCodeActionProvider(languageIds: string | string[], provider: CodeActionProvider): Disposable {
     return this.registerProviderList(languageIds, provider, this.codeActionProviderMap)
   }
 
-  public registerHoverProvider(languageIds: string| string[], provider:HoverProvider):Disposable {
+  public registerHoverProvider(languageIds: string | string[], provider: HoverProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.hoverProviderMap)
   }
 
-  public registerDocumentSymbolProvider(languageIds: string| string[], provider:DocumentSymbolProvider):Disposable {
+  public registerDocumentSymbolProvider(languageIds: string | string[], provider: DocumentSymbolProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.documentSymbolMap)
   }
 
   public registerSignatureHelpProvider(
-    languageIds: string| string[],
-    provider:SignatureHelpProvider,
-    _triggerCharacters?:string[]):Disposable {
+    languageIds: string | string[],
+    provider: SignatureHelpProvider,
+    _triggerCharacters?: string[]): Disposable {
     return this.registerProvider(languageIds, provider, this.signatureHelpProviderMap)
   }
 
-  public registerDocumentHighlightProvider(languageIds: string| string[], provider:any):Disposable {
+  public registerDocumentHighlightProvider(languageIds: string | string[], provider: any): Disposable {
     return this.registerProvider(languageIds, provider, this.documentHighlightMap)
   }
 
-  public registerCodeLensProvider(languageIds: string| string[], provider:any):Disposable {
+  public registerCodeLensProvider(languageIds: string | string[], provider: any): Disposable {
     return this.registerProviderList(languageIds, provider, this.codeLensProviderMap)
   }
 
-  public registerDocumentLinkProvider(languageIds: string| string[], provider:any):Disposable {
+  public registerDocumentLinkProvider(languageIds: string | string[], provider: any): Disposable {
     return this.registerProvider(languageIds, provider, this.documentLinkMap)
   }
 
-  public registerDefinitionProvider(languageIds: string| string[], provider:DefinitionProvider):Disposable {
+  public registerDefinitionProvider(languageIds: string | string[], provider: DefinitionProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.definitionMap)
   }
 
-  public registerTypeDefinitionProvider(languageIds: string| string[], provider:TypeDefinitionProvider):Disposable {
+  public registerTypeDefinitionProvider(languageIds: string | string[], provider: TypeDefinitionProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.typeDefinitionMap)
   }
 
-  public registerImplementationProvider(languageIds: string| string[], provider:ImplementationProvider):Disposable {
+  public registerImplementationProvider(languageIds: string | string[], provider: ImplementationProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.implementationMap)
   }
 
-  public registerReferencesProvider(languageIds: string| string[], provider:ReferenceProvider):Disposable {
+  public registerReferencesProvider(languageIds: string | string[], provider: ReferenceProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.referencesMap)
   }
 
-  public registerRenameProvider(languageIds: string| string[], provider:RenameProvider):Disposable {
+  public registerRenameProvider(languageIds: string | string[], provider: RenameProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.renameProviderMap)
   }
 
-  public registerWorkspaceSymbolProvider(languageIds: string| string[], provider:WorkspaceSymbolProvider):Disposable {
+  public registerWorkspaceSymbolProvider(languageIds: string | string[], provider: WorkspaceSymbolProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.workspaceSymbolMap)
   }
 
-  public registerDocumentFormatProvider(languageIds: string| string[], provider:DocumentFormattingEditProvider):Disposable {
+  public registerDocumentFormatProvider(languageIds: string | string[], provider: DocumentFormattingEditProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.documentFormattingMap)
   }
 
-  public registerDocumentRangeFormatProvider(languageIds: string| string[], provider:DocumentRangeFormattingEditProvider):Disposable {
+  public registerDocumentRangeFormatProvider(languageIds: string | string[], provider: DocumentRangeFormattingEditProvider): Disposable {
     return this.registerProvider(languageIds, provider, this.documentRangeFormattingMap)
   }
 
   @check
-  public getDeifinition(document:TextDocument, position:Position):Promise<Definition> {
+  public getDeifinition(document: TextDocument, position: Position): Promise<Definition> {
     let provider = this.getProvider(document, this.definitionMap)
     if (!provider) return
     return Promise.resolve(provider.provideDefinition(document, position, this.token))
   }
 
   @check
-  public getTypeDefinition(document:TextDocument, position:Position):Promise<Definition> {
+  public getTypeDefinition(document: TextDocument, position: Position): Promise<Definition> {
     let provider = this.getProvider(document, this.typeDefinitionMap)
     if (!provider) return
     return Promise.resolve(provider.provideTypeDefinition(document, position, this.token))
   }
 
   @check
-  public getImplementation(document:TextDocument, position:Position):Promise<Definition> {
+  public getImplementation(document: TextDocument, position: Position): Promise<Definition> {
     let provider = this.getProvider(document, this.implementationMap)
     if (!provider) return
     return Promise.resolve(provider.provideImplementation(document, position, this.token))
   }
 
   @check
-  public getReferences(document:TextDocument, context:ReferenceContext, position:Position):Promise<Location[]> {
+  public getReferences(document: TextDocument, context: ReferenceContext, position: Position): Promise<Location[]> {
     let provider = this.getProvider(document, this.referencesMap)
     if (!provider) return
     return Promise.resolve(provider.provideReferences(document, position, context, this.token))
   }
 
   @check
-  public getHover(document:TextDocument, position:Position):Promise<Hover> {
+  public getHover(document: TextDocument, position: Position): Promise<Hover> {
     let provider = this.getProvider(document, this.hoverProviderMap)
     if (!provider) return
     return Promise.resolve(provider.provideHover(document, position, this.token))
   }
 
   @check
-  public getSignatureHelp(document:TextDocument, position:Position):Promise<SignatureHelp> {
+  public getSignatureHelp(document: TextDocument, position: Position): Promise<SignatureHelp> {
     let provider = this.getProvider(document, this.signatureHelpProviderMap)
     if (!provider) return
     return Promise.resolve(provider.provideSignatureHelp(document, position, this.token))
   }
 
   @check
-  public getDocumentSymbol(document:TextDocument):Promise<SymbolInformation[]> {
+  public getDocumentSymbol(document: TextDocument): Promise<SymbolInformation[]> {
     let provider = this.getProvider(document, this.documentSymbolMap)
     if (!provider) return
     return Promise.resolve(provider.provideDocumentSymbols(document, this.token))
   }
 
   @check
-  public async getWorkspaceSymbols(document:TextDocument, query: string):Promise<SymbolInformation[]> {
+  public async getWorkspaceSymbols(document: TextDocument, query: string): Promise<SymbolInformation[]> {
     query = query || ''
     let provider = this.getProvider(document, this.workspaceSymbolMap)
     if (!provider) return
@@ -238,7 +238,7 @@ class Languages {
   }
 
   @check
-  public async resolveWorkspaceSymbol(document:TextDocument, symbol:SymbolInformation):Promise<SymbolInformation> {
+  public async resolveWorkspaceSymbol(document: TextDocument, symbol: SymbolInformation): Promise<SymbolInformation> {
     let provider = this.getProvider(document, this.workspaceSymbolMap)
     if (!provider) return
     if (typeof provider.resolveWorkspaceSymbol === 'function') {
@@ -247,14 +247,14 @@ class Languages {
   }
 
   @check
-  public async provideRenameEdits(document:TextDocument, position:Position, newName: string):Promise<WorkspaceEdit> {
+  public async provideRenameEdits(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit> {
     let provider = this.getProvider(document, this.renameProviderMap)
     if (!provider) return
     return await Promise.resolve(provider.provideRenameEdits(document, position, newName, this.token))
   }
 
   @check
-  public async prepareRename(document:TextDocument, position:Position):Promise<Range|false> {
+  public async prepareRename(document: TextDocument, position: Position): Promise<Range | false> {
     let provider = this.getProvider(document, this.renameProviderMap)
     if (!provider) return
     if (typeof provider.prepareRename != 'function') return false
@@ -264,14 +264,14 @@ class Languages {
   }
 
   @check
-  public async provideDocumentFormattingEdits(document:TextDocument, options:FormattingOptions):Promise<TextEdit[]> {
+  public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
     let provider = this.getProvider(document, this.documentFormattingMap)
     if (!provider) return
     return await Promise.resolve(provider.provideDocumentFormattingEdits(document, options, this.token))
   }
 
   @check
-  public async provideDocumentRangeFormattingEdits(document:TextDocument, range:Range, options:FormattingOptions):Promise<TextEdit[]> {
+  public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
     let provider = this.getProvider(document, this.documentRangeFormattingMap)
     if (!provider) return
     return await Promise.resolve(provider.provideDocumentRangeFormattingEdits(document, range, options, this.token))
@@ -287,12 +287,12 @@ class Languages {
    * @returns {Promise<CodeAction[]>}
    */
   @check
-  public async getCodeActions(document:TextDocument, range:Range, context:CodeActionContext):Promise<CodeAction[]> {
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext): Promise<CodeAction[]> {
     let providers = this.codeActionProviderMap.get(document.languageId)
     if (!providers || providers.length == 0) return []
-    let res:CodeAction[] = []
+    let res: CodeAction[] = []
     for (let provider of providers) {
-      let actions =  await Promise.resolve(provider.provideCodeActions(document, range, context, this.token))
+      let actions = await Promise.resolve(provider.provideCodeActions(document, range, context, this.token))
       if (!actions) continue
       for (let action of actions) {
         if (CodeAction.is(action)) {
@@ -307,28 +307,28 @@ class Languages {
   }
 
   @check
-  public async getDocumentHighLight(document:TextDocument, position:Position):Promise<DocumentHighlight[]> {
+  public async getDocumentHighLight(document: TextDocument, position: Position): Promise<DocumentHighlight[]> {
     let provider = this.getProvider(document, this.documentHighlightMap)
     if (!provider) return null
     return await Promise.resolve(provider.provideDocumentHighlights(document, position, this.token))
   }
 
   @check
-  public async getDocumentLinks(document:TextDocument):Promise<DocumentLink[]> {
+  public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
     let provider = this.getProvider(document, this.documentLinkMap)
     if (!provider) return null
     return await Promise.resolve(provider.provideDocumentLinks(document, this.token))
   }
 
   @check
-  public async resolveDocumentLink(document:TextDocument, link:DocumentLink):Promise<DocumentLink> {
+  public async resolveDocumentLink(document: TextDocument, link: DocumentLink): Promise<DocumentLink> {
     let provider = this.getProvider(document, this.documentLinkMap)
     if (!provider) return null
     return await Promise.resolve(provider.resolveDocumentLink(link, this.token))
   }
 
   @check
-  public async getCodeLens(document:TextDocument):Promise<CodeLens[]> {
+  public async getCodeLens(document: TextDocument): Promise<CodeLens[]> {
     let providers = this.getProvider(document, this.codeLensProviderMap)
     if (!providers || providers.length == 0) return null
     let codeLens = []
@@ -345,7 +345,7 @@ class Languages {
   }
 
   @check
-  public async resolveCodeLens(document:TextDocument, codeLens:CodeLens):Promise<CodeLens> {
+  public async resolveCodeLens(document: TextDocument, codeLens: CodeLens): Promise<CodeLens> {
     let providers = this.getProvider(document, this.codeLensProviderMap)
     if (!providers || providers.length == 0) return null
     let {data} = codeLens
@@ -356,15 +356,15 @@ class Languages {
     return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
   }
 
-  public dispose():void {
+  public dispose(): void {
     // noop
   }
 
-  public createDiagnosticCollection(owner: string):DiagnosticCollection {
+  public createDiagnosticCollection(owner: string): DiagnosticCollection {
     return diagnosticManager.create(owner)
   }
 
-  public getCompleteSource(languageId: string):ISource | null {
+  public getCompleteSource(languageId: string): ISource | null {
     let {completionProviders} = this
     // only one for each filetype
     let item = completionProviders.find(o => o.languageIds.indexOf(languageId) !== -1)
@@ -377,14 +377,14 @@ class Languages {
     provider: CompletionItemProvider,
     languageIds: string[],
     triggerCharacters: string[],
-  ):ISource {
+  ): ISource {
     // track them for resolve
     let completeItems: CompletionItem[] = []
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    let resolving:string
+    let resolving: string
     let option: CompleteOption
 
-    function resolveItem(item: VimCompleteItem):CompletionItem {
+    function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
       let {word} = item
       return completeItems.find(o => {
@@ -398,14 +398,14 @@ class Languages {
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
-      onCompleteResolve: async (item: VimCompleteItem):Promise<void> => {
+      onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         if (!hasResolve) return
         if (completeItems.length == 0) return
         if (resolving) {
           this.cancelTokenSource.cancel()
         }
         resolving = item.word
-        let resolved:CompletionItem
+        let resolved: CompletionItem
         let prevItem = resolveItem(item)
         prevItem.data = prevItem.data || {}
         if (!prevItem) return
@@ -437,7 +437,7 @@ class Languages {
         }
         resolving = null
       },
-      onCompleteDone: async (item: VimCompleteItem):Promise<void> => {
+      onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
         setTimeout(async () => {
@@ -460,13 +460,13 @@ class Languages {
         }, 50)
         return
       },
-      doComplete: async (opt:CompleteOption):Promise<CompleteResult|null> => {
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         option = opt
         let {triggerCharacter, bufnr} = opt
         let doc = workspace.getDocument(bufnr)
         let document = doc.textDocument
         let position = getPosition(opt)
-        let context:CompletionContext = {
+        let context: CompletionContext = {
           triggerKind: triggerCharacter ? CompletionTriggerKind.Invoke : CompletionTriggerKind.TriggerCharacter,
           triggerCharacter
         }
@@ -483,7 +483,7 @@ class Languages {
     }
   }
 
-  public match(documentSelector:DocumentSelector, document:TextDocument):boolean {
+  public match(documentSelector: DocumentSelector, document: TextDocument): boolean {
     if (documentSelector.length == 0) {
       return false
     }
@@ -499,7 +499,7 @@ class Languages {
     return languageIds.indexOf(languageId) != -1
   }
 
-  private get token():CancellationToken {
+  private get token(): CancellationToken {
     let token = this.cancelTokenSource.token
     if (token.isCancellationRequested) {
       this.cancelTokenSource = new CancellationTokenSource()
@@ -508,14 +508,14 @@ class Languages {
     return token
   }
 
-  private unregisterCompletionItemProvider(id:string):void {
+  private unregisterCompletionItemProvider(id: string): void {
     let idx = this.completionProviders.findIndex(o => o.id == id)
     if (idx !== -1) {
       this.completionProviders.splice(idx, 1)
     }
   }
 
-  private async checkConfirm(item:CompletionItem, option: CompleteOption):Promise<boolean> {
+  private async checkConfirm(item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let {col} = option
     let {nvim} = this
     let mode = await nvim.call('mode')
@@ -525,7 +525,7 @@ class Languages {
     return true
   }
 
-  private async applyTextEdit(item:CompletionItem, option: CompleteOption):Promise<boolean> {
+  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let {nvim} = this
     let {textEdit} = item
     if (!textEdit) return false
@@ -552,7 +552,7 @@ class Languages {
     return false
   }
 
-  private async applyAdditionaLEdits(textEdits:TextEdit[], bufnr:number):Promise<void> {
+  private async applyAdditionaLEdits(textEdits: TextEdit[], bufnr: number): Promise<void> {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     let orig = document.content
@@ -566,17 +566,17 @@ class Languages {
     })
   }
 
-  private getProvider<T>(document:TextDocument, map:Map<string, T>):T {
+  private getProvider<T>(document: TextDocument, map: Map<string, T>): T {
     return map.get(document.languageId)
   }
 }
 
-function validString(str:any):boolean {
+function validString(str: any): boolean {
   if (typeof str !== 'string') return false
   return str.length > 0
 }
 
-function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompleteItem {
+function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
     word: item.label, // tslint:disable-line
@@ -591,7 +591,7 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
     // make sure we can find it on CompleteDone
     item.insertText = obj.word // tslint:disable-line
   }
-  obj.abbr = obj.filterText
+  obj.abbr = item.data && item.data.abbr ? item.data.abbr : obj.filterText
   if (item.data && item.data.optional) {
     obj.abbr = obj.abbr + '?'
   }
@@ -602,14 +602,14 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string):VimCompl
   return obj
 }
 
-function getDocumentation(item: CompletionItem):string | null {
-  let { documentation } = item
+function getDocumentation(item: CompletionItem): string | null {
+  let {documentation} = item
   if (!documentation) return null
   if (typeof documentation === 'string') return documentation
   return documentation.value
 }
 
-function getPosition(opt: CompleteOption):Position {
+function getPosition(opt: CompleteOption): Position {
   let {line, linenr, col, colnr} = opt
   let part = byteSlice(line, 0, col - 1)
   return {
@@ -618,7 +618,7 @@ function getPosition(opt: CompleteOption):Position {
   }
 }
 
-function completionKindString(kind: CompletionItemKind):string {
+function completionKindString(kind: CompletionItemKind): string {
   switch (kind) {
     case CompletionItemKind.Text:
       return 'Text'

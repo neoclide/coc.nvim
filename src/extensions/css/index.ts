@@ -2,6 +2,10 @@ import path from 'path'
 import {LanguageService} from '../../language-client'
 import {ROOT} from '../../util'
 import workspace from '../../workspace'
+import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
+import {CompletionItem, CancellationToken, TextDocument, Position, CompletionContext, CompletionList, InsertTextFormat} from 'vscode-languageserver-protocol'
+import {ProviderResult} from '../../provider'
+const logger = require('../../util/logger')('cssserver')
 
 const ID = 'cssserver'
 
@@ -16,4 +20,45 @@ export default class CssService extends LanguageService {
       enable: config.enable !== false
     }, ID)
   }
+
+  protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
+    Object.assign(clientOptions, {
+      middleware: {
+        provideCompletionItem: (
+          document: TextDocument,
+          position: Position,
+          context: CompletionContext,
+          token: CancellationToken,
+          next: ProvideCompletionItemsSignature
+        ): ProviderResult<CompletionItem[] | CompletionList> => {
+          return Promise.resolve(next(document, position, context, token)).then((res: CompletionItem[] | CompletionList) => {
+            let doc = workspace.getDocument(document.uri)
+            if (!doc) return []
+            let items: CompletionItem[] = res.hasOwnProperty('isIncomplete') ? (res as CompletionList).items : res as CompletionItem[]
+            let pre = doc.getline(position.line).slice(0, position.character)
+            // searching for class name
+            if (/(^|\s)\.\w*$/.test(pre)) {
+              items = items.filter(o => o.label.startsWith('.'))
+              items.forEach(fixItem)
+            }
+            if (context.triggerCharacter == ':'
+              || /\:\w*$/.test(pre)) {
+              items = items.filter(o => o.label.startsWith(':'))
+              items.forEach(fixItem)
+            }
+            return items
+          })
+        }
+      }
+    })
+    return clientOptions
+  }
+}
+
+function fixItem(item: CompletionItem): void {
+  item.data = item.data || {}
+  item.data.abbr = item.label
+  item.label = item.label.slice(1)
+  item.textEdit = null
+  item.insertTextFormat = InsertTextFormat.PlainText
 }
