@@ -2,17 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, Position, TextDocument, TextEdit, WorkspaceEdit} from 'vscode-languageserver-protocol'
+import {RenameProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
-import {RenameProvider} from '../../../provider'
-import {
-  TextDocument,
-  Position,
-  CancellationToken,
-  WorkspaceEdit,
-  TextEdit,
-} from 'vscode-languageserver-protocol'
 
 export default class TypeScriptRenameProvider implements RenameProvider {
   public constructor(private readonly client: ITypeScriptServiceClient) {}
@@ -57,8 +51,8 @@ export default class TypeScriptRenameProvider implements RenameProvider {
   private toWorkspaceEdit(
     locations: ReadonlyArray<Proto.SpanGroup>,
     newName: string
-  ):WorkspaceEdit {
-    let changes:{[uri: string]: TextEdit[]} = {}
+  ): WorkspaceEdit {
+    let changes: {[uri: string]: TextEdit[]} = {}
     for (const spanGroup of locations) {
       const uri = this.client.toResource(spanGroup.file)
       if (uri) {

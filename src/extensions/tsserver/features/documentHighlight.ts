@@ -2,13 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {
-  Position,
-  TextDocument,
-  CancellationToken,
-  DocumentHighlight,
-  DocumentHighlightKind,
-} from 'vscode-languageserver-protocol'
+import {CancellationToken, DocumentHighlight, DocumentHighlightKind, Position, TextDocument} from 'vscode-languageserver-protocol'
 import {DocumentHighlightProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'

@@ -2,9 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import * as Proto from '../protocol'
 import {Logger} from 'log4js'
 import workspace from '../../../workspace'
+import * as Proto from '../protocol'
 
 enum Trace {
   Off,
@@ -57,9 +57,9 @@ export default class Tracer {
     }
     this.logTrace(
       `Sending request: ${request.command} (${
-        request.seq
+      request.seq
       }). Response expected: ${
-        responseExpected ? 'yes' : 'no'
+      responseExpected ? 'yes' : 'no'
       }. Current queue length: ${queueLength}`,
       data
     )
@@ -75,9 +75,9 @@ export default class Tracer {
     }
     this.logTrace(
       `Response received: ${response.command} (${
-        response.request_seq
+      response.request_seq
       }). Request took ${Date.now() - startTime} ms. Success: ${
-        response.success
+      response.success
       } ${!response.success ? '. Message: ' + response.message : ''}`,
       data
     )

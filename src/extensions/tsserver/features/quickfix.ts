@@ -79,7 +79,7 @@ class ApplyFixAllCodeAction implements Command {
  * Unique set of diagnostics keyed on diagnostic range and error code.
  */
 class DiagnosticsSet {
-  public static from(diagnostics: Diagnostic[]):DiagnosticsSet {
+  public static from(diagnostics: Diagnostic[]): DiagnosticsSet {
     const values = new Map<string, Diagnostic>()
     for (const diagnostic of diagnostics) {
       values.set(DiagnosticsSet.key(diagnostic), diagnostic)
@@ -87,7 +87,7 @@ class DiagnosticsSet {
     return new DiagnosticsSet(values)
   }
 
-  private static key(diagnostic: Diagnostic):string {
+  private static key(diagnostic: Diagnostic): string {
     const {start, end} = diagnostic.range
     return `${diagnostic.code}-${start.line},${start.character}-${end.line},${end.character}`
   }
@@ -235,7 +235,7 @@ export default class TypeScriptQuickFixProvider implements CodeActionProvider {
     diagnostic: Diagnostic,
     tsAction: Proto.CodeAction
   ): CodeAction {
-    const codeAction:CodeAction = {
+    const codeAction: CodeAction = {
       title: tsAction.description,
       kind: CodeActionKind.QuickFix
     }
@@ -263,12 +263,12 @@ export default class TypeScriptQuickFixProvider implements CodeActionProvider {
 
     // Make sure there are multiple diagnostics of the same type in the file
     if (!this.diagnosticsManager
-        .getDiagnostics(document.uri)
-        .some(x => x.code === diagnostic.code && x !== diagnostic)) {
+      .getDiagnostics(document.uri)
+      .some(x => x.code === diagnostic.code && x !== diagnostic)) {
       return
     }
 
-    const action:CodeAction = {
+    const action: CodeAction = {
       title: tsAction.fixAllDescription || 'Fix all in file',
       kind: CodeActionKind.QuickFix
     }

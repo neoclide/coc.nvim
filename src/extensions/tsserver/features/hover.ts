@@ -2,18 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, Hover, MarkedString, Position, TextDocument} from 'vscode-languageserver-protocol'
+import {HoverProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import {tagsMarkdownPreview} from '../utils/previewer'
 import * as typeConverters from '../utils/typeConverters'
-import {HoverProvider} from '../../../provider'
-import {
-  TextDocument,
-  Position,
-  CancellationToken,
-  Hover,
-  MarkedString,
-} from 'vscode-languageserver-protocol'
 
 export default class TypeScriptHoverProvider implements HoverProvider {
   public constructor(private readonly client: ITypeScriptServiceClient) {}
@@ -46,7 +40,7 @@ export default class TypeScriptHoverProvider implements HoverProvider {
     return undefined
   }
 
-  private static getContents(data: Proto.QuickInfoResponseBody):MarkedString[] { // tslint:disable-line
+  private static getContents(data: Proto.QuickInfoResponseBody): MarkedString[] { // tslint:disable-line
     const parts = []
 
     if (data.displayString) {

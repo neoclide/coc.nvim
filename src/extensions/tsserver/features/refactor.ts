@@ -53,7 +53,7 @@ class ApplyRefactoringCommand implements Command {
     return true
   }
 
-  private toWorkspaceEdit(body: Proto.RefactorEditInfo):WorkspaceEdit {
+  private toWorkspaceEdit(body: Proto.RefactorEditInfo): WorkspaceEdit {
     for (const edit of body.edits) {
       touch.sync(edit.fileName)
     }
@@ -152,11 +152,11 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     document: TextDocument,
     file: string,
     rangeOrSelection: Range
-  ):CodeAction[] {
+  ): CodeAction[] {
     const actions: CodeAction[] = []
     for (const info of body) {
       if (!info.inlineable) {
-        const codeAction:CodeAction = {
+        const codeAction: CodeAction = {
           title: info.description,
           kind: CodeActionKind.Refactor
         }
@@ -189,8 +189,8 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     file: string,
     info: Proto.ApplicableRefactorInfo,
     rangeOrSelection: Range
-  ):CodeAction {
-    const codeAction:CodeAction = {
+  ): CodeAction {
+    const codeAction: CodeAction = {
       title: action.description,
       kind: TypeScriptRefactorProvider.getKind(action)
     }
@@ -202,7 +202,7 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     return codeAction
   }
 
-  private shouldTrigger(context: CodeActionContext):boolean {
+  private shouldTrigger(context: CodeActionContext): boolean {
     if (
       context.only &&
       context.only.indexOf(CodeActionKind.Refactor) == -1
@@ -212,7 +212,7 @@ export default class TypeScriptRefactorProvider implements CodeActionProvider {
     return true
   }
 
-  private static getKind(refactor: Proto.RefactorActionInfo):string {
+  private static getKind(refactor: Proto.RefactorActionInfo): string {
     if (refactor.name.startsWith('function_')) {
       return TypeScriptRefactorProvider.extractFunctionKind
     } else if (refactor.name.startsWith('constant_')) {

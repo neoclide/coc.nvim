@@ -1,16 +1,6 @@
-import {
-  CompletionItemProvider
-} from '../../provider'
-import {
-  CompletionItem,
-  TextDocument,
-  Position,
-  CancellationToken,
-  CompletionContext,
-  CompletionList,
-  InsertTextFormat,
-} from 'vscode-languageserver-protocol'
+import {CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument} from 'vscode-languageserver-protocol'
 import languages from '../../languages'
+import {CompletionItemProvider} from '../../provider'
 import workspace from '../../workspace'
 
 class SnippetProvider implements CompletionItemProvider {

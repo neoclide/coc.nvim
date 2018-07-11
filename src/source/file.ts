@@ -1,21 +1,17 @@
-import { Neovim } from 'neovim'
-import {
-  CompleteOption,
-  VimCompleteItem,
-  SourceConfig,
-  CompleteResult} from '../types'
+import fs from 'fs'
+import matcher from 'matcher'
+import {Neovim} from 'neovim'
+import path from 'path'
+import pify from 'pify'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem} from '../types'
 import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
-import matcher = require('matcher')
-import path = require('path')
-import pify = require('pify')
-import fs = require('fs')
 const logger = require('../util/logger')('source-file')
 const pathRe = /\.{0,2}\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
-  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'file',
       ...opts
@@ -25,7 +21,7 @@ export default class File extends Source {
     if (!this.checkFileType(opt.filetype)) return false
     let {line, linenr, colnr, bufnr} = opt
     if (opt.triggerCharacter == '/') {
-      let synName =  await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
+      let synName = await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
       synName = synName.toLowerCase()
       if (['string', 'comment'].indexOf(synName) == -1) {
         return false
@@ -38,24 +34,24 @@ export default class File extends Source {
       opt.pathstr = ms[0]
       let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [bufnr])
       opt.cwd = await this.nvim.call('getcwd', [])
-      opt.ext = fullpath ? path.extname(path.basename(fullpath)) :''
+      opt.ext = fullpath ? path.extname(path.basename(fullpath)) : ''
       return true
     }
     return false
   }
 
-  private async getFileItem(root:string, filename:string):Promise<VimCompleteItem|null> {
+  private async getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
     let f = path.join(root, filename)
     let stat = await statAsync(f)
     if (stat) {
       let abbr = stat.isDirectory() ? filename + '/' : filename
       let word = filename
-      return { word, abbr }
+      return {word, abbr}
     }
     return null
   }
 
-  public filterFiles(files:string[]):string[] {
+  public filterFiles(files: string[]): string[] {
     let {ignoreHidden, ignorePatterns} = this.config
     return files.filter(f => {
       if (f == null) return false
@@ -67,7 +63,7 @@ export default class File extends Source {
     })
   }
 
-  public async getItemsFromRoot(pathstr: string, root: string):Promise<VimCompleteItem[]> {
+  public async getItemsFromRoot(pathstr: string, root: string): Promise<VimCompleteItem[]> {
     let res = []
     let part = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
     let dir = path.isAbsolute(pathstr) ? root : path.join(root, part)

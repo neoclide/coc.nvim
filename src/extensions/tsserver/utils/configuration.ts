@@ -2,12 +2,8 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {
-  WorkspaceConfiguration
-} from '../../../types'
-import {
-  toNumber,
-} from '../../../util/types'
+import {WorkspaceConfiguration} from '../../../types'
+import {toNumber} from '../../../util/types'
 import workspace from '../../../workspace'
 import which = require('which')
 
@@ -75,12 +71,12 @@ export class TypeScriptServiceConfiguration {
     this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
     this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
     this.disableAutomaticTypeAcquisition = configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
-    this.debugPort = configuration.get<number|null>('debugPort', toNumber(process.env['TSS_DEBUG'])) // tslint:disable-line
+    this.debugPort = configuration.get<number | null>('debugPort', toNumber(process.env['TSS_DEBUG'])) // tslint:disable-line
   }
 
   private static extractGlobalTsdk(configuration: WorkspaceConfiguration): string | null {
     const inspect = configuration.inspect('tsdk')
-    if ( inspect
+    if (inspect
       && inspect.globalValue
       && 'string' === typeof inspect.globalValue) {
       return inspect.globalValue.length ? inspect.globalValue : null
@@ -90,7 +86,7 @@ export class TypeScriptServiceConfiguration {
 
   private static extractLocalTsdk(configuration: WorkspaceConfiguration): string | null {
     const inspect = configuration.inspect('tsdk')
-    if ( inspect
+    if (inspect
       && inspect.folderValue
       && 'string' === typeof inspect.folderValue) {
       return inspect.folderValue.length ? inspect.folderValue : null

@@ -17,16 +17,16 @@ export class LanguageService implements IServiceProvider {
   public languageIds: string[]
   public readonly state: ServiceStat
   private configSections: string | string[]
-  protected client:LanguageClient
+  protected client: LanguageClient
   private _onDidServiceReady = new Emitter<void>()
   private readonly disposables: Disposable[] = []
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
 
   constructor(
-    public readonly id:string,
-    public readonly name:string,
-    private config:LanguageServerConfig,
-    configSections?:string|string[]
+    public readonly id: string,
+    public readonly name: string,
+    private config: LanguageServerConfig,
+    configSections?: string | string[]
   ) {
     this.state = ServiceStat.Initial
     this.enable = config.enable
@@ -39,7 +39,7 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
-  public init():Promise<void> {
+  public init(): Promise<void> {
     let {config, name} = this
     let {args, module} = config
 
@@ -63,10 +63,10 @@ export class LanguageService implements IServiceProvider {
       args: config.args,
       options: this.getOptions(true)
     } : {
-      command: config.command,
-      args: config.args || [],
-      options: this.getOptions()
-    }
+        command: config.command,
+        args: config.args || [],
+        options: this.getOptions()
+      }
 
     let documentSelector = this.languageIds
     let clientOptions: LanguageClientOptions = {
@@ -109,11 +109,11 @@ export class LanguageService implements IServiceProvider {
     })
   }
 
-  protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {
+  protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
     return clientOptions
   }
 
-  private getOptions(isModule = false):ExecutableOptions | ForkOptions {
+  private getOptions(isModule = false): ExecutableOptions | ForkOptions {
     let {config} = this
     let {cwd, shell, execArgv} = config
     cwd = cwd ? path.isAbsolute(cwd) ? cwd
@@ -132,11 +132,11 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
-  public dispose():void {
+  public dispose(): void {
     disposeAll(this.disposables)
   }
 
-  public async restart():Promise<void> {
+  public async restart(): Promise<void> {
     if (!this.client) return
     if (this.state == ServiceStat.Running) {
       await this.stop()
@@ -144,16 +144,16 @@ export class LanguageService implements IServiceProvider {
     this.client.restart()
   }
 
-  public async stop():Promise<void> {
+  public async stop(): Promise<void> {
     if (!this.client) return
     await Promise.resolve(this.client.stop())
   }
 }
 
 class LanguageClientManager {
-  private _services:IServiceProvider[] = []
+  private _services: IServiceProvider[] = []
 
-  public init():void {
+  public init(): void {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
     for (let key of Object.keys(lspConfig)) {
@@ -165,7 +165,7 @@ class LanguageClientManager {
     }
   }
 
-  public get services():IServiceProvider[] {
+  public get services(): IServiceProvider[] {
     return this._services || []
   }
 }

@@ -1,8 +1,4 @@
-import {
-  CompletionItem,
-  CompletionItemKind,
-  InsertTextFormat,
-} from 'vscode-languageserver-protocol'
+import {CompletionItem, CompletionItemKind, InsertTextFormat} from 'vscode-languageserver-protocol'
 
 export function convertCompleteItems(items: CompletionItem[]): CompletionItem[] {
   if (items.length == 0) return items

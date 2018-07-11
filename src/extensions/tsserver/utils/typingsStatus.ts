@@ -2,14 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {
-  errorMsg,
-  moreMsg
-} from './nvimBinding'
-import {
-  Disposable
-} from 'vscode-languageserver-protocol'
+import {Disposable} from 'vscode-languageserver-protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
+import {errorMsg, moreMsg} from './nvimBinding'
 
 const typingsInstallTimeout = 30 * 1000
 
@@ -78,7 +73,7 @@ export class AtaProgressReporter {
     disposables.push(client.onTypesInstallerInitializationFailed(_ =>
       this.onTypesInstallerInitializationFailed()
     ))
-    this._disposable = Disposable.create(() => {
+     this._disposable = Disposable.create(() => {
       disposables.forEach(disposable => {
         disposable.dispose()
       })

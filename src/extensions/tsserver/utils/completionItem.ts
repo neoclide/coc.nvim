@@ -2,17 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CompletionItem, CompletionItemKind, InsertTextFormat, Position, TextEdit} from 'vscode-languageserver-protocol'
+import Document from '../../../model/document'
+import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
-import Document from '../../../model/document'
-import {
-  CompletionItemKind,
-  CompletionItem,
-  InsertTextFormat,
-  Position,
-  TextEdit,
-} from 'vscode-languageserver-protocol'
-import workspace from '../../../workspace'
 const logger = require('../../../util/logger')('typscript-utils-completionItem')
 
 export function resolveItem(
@@ -24,7 +18,7 @@ export function resolveItem(
   if (textEdit) return
   // try replace more characters after cursor
   const wordRange = document.getWordRangeAtPosition(position)
-  let text = document.textDocument.getText({
+   let text = document.textDocument.getText({
     start: {
       line: position.line,
       character: Math.max(0, position.character - label.length),
@@ -68,10 +62,10 @@ export function convertCompletionEntry(
 ):CompletionItem {
   let label = tsEntry.name
   let sortText = tsEntry.sortText
-  if (tsEntry.isRecommended) {
+  if ( tsEntry.isRecommended) {
     // Make sure isRecommended property always comes first
     // https://github.com/Microsoft/vscode/issues/40325
-    sortText = '\0' + sortText
+     sortText = '\0' + sortText
   } else if (tsEntry.source) {
     // De-prioritze auto-imports
     // https://github.com/Microsoft/vscode/issues/40311
@@ -92,7 +86,7 @@ export function convertCompletionEntry(
     let document = workspace.getDocument(uri)
     textEdit = {
       range: document.getWordRangeAtPosition(position),
-      newText: insertText
+      newText:  insertText
     }
     insertText = null
   }

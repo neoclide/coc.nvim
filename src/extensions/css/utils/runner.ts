@@ -3,13 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable:no-console*/
-import {
-  ResponseError,
-  ErrorCodes,
-} from 'vscode-languageserver'
-import {
-  CancellationToken
-} from 'vscode-languageserver-protocol'
+import {ErrorCodes, ResponseError} from 'vscode-languageserver'
+import {CancellationToken} from 'vscode-languageserver-protocol'
 
 export function formatError(message: string, err: any): string {
   if (err instanceof Error) {
@@ -51,6 +46,6 @@ export function runSafe<T, E>(
   })
 }
 
-function cancelValue<E>():any {
+function cancelValue<E>(): any {
   return new ResponseError<E>(ErrorCodes.RequestCancelled, 'Request cancelled')
 }

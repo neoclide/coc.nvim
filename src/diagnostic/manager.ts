@@ -1,23 +1,15 @@
-import {
-  DiagnosticBuffer,
-  DiagnosticConfig,
-} from './buffer'
-import DiagnosticCollection from './collection'
-import {
-  Diagnostic,
-  Range,
-  DiagnosticSeverity,
-  TextDocument,
-} from 'vscode-languageserver-protocol'
-import { Neovim } from 'neovim'
-import Document from '../model/document'
-import workspace from '../workspace'
-import debounce = require('debounce')
-import {DiagnosticItem} from '../types'
+import {Neovim} from 'neovim'
+import {Diagnostic, DiagnosticSeverity, Range, TextDocument} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
+import Document from '../model/document'
+import {DiagnosticItem} from '../types'
+import workspace from '../workspace'
+import {DiagnosticBuffer, DiagnosticConfig} from './buffer'
+import DiagnosticCollection from './collection'
+import debounce = require('debounce')
 const logger = require('../util/logger')('diagnostic-manager')
 
-function severityName(severity:DiagnosticSeverity):string {
+function severityName(severity: DiagnosticSeverity): string {
   switch (severity) {
     case DiagnosticSeverity.Error:
       return 'Error'
@@ -35,9 +27,9 @@ function severityName(severity:DiagnosticSeverity):string {
 // maintain buffers
 class DiagnosticManager {
   private enabled = true
-  private config:DiagnosticConfig
-  private buffers:DiagnosticBuffer[] = []
-  private collections:DiagnosticCollection[] = []
+  private config: DiagnosticConfig
+  private buffers: DiagnosticBuffer[] = []
+  private collections: DiagnosticCollection[] = []
   private nvim: Neovim
   public showMessage: () => void
   constructor() {
@@ -80,7 +72,7 @@ class DiagnosticManager {
     }, 100)
   }
 
-  private setConfiguration():void {
+  private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnoctic')
     this.config = {
       signOffset: config.get<number>('signOffset', 1000),
@@ -92,7 +84,7 @@ class DiagnosticManager {
     this.enabled = config.get('enable')
   }
 
-  private async init():Promise<void> {
+  private async init(): Promise<void> {
     let {nvim} = workspace
     let {documents} = workspace
     let {errorSign, warningSign, infoSign, hintSign} = this.config
@@ -113,13 +105,13 @@ class DiagnosticManager {
     })
   }
 
-  public create(name:string):DiagnosticCollection {
+  public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
     return collection
   }
 
-  public removeCollection(owner:string):void {
+  public removeCollection(owner: string): void {
     let idx = this.collections.findIndex(c => c.name == owner)
     if (idx !== -1) this.collections.splice(idx, 1)
   }
@@ -133,21 +125,21 @@ class DiagnosticManager {
    * @param {Diagnostic[]|null} diagnostics
    * @returns {void}
    */
-  public add(owner:string, uri:string, diagnostics:Diagnostic[]|null):void {
+  public add(owner: string, uri: string, diagnostics: Diagnostic[] | null): void {
     if (!this.enabled) return
     let buffer = this.getBuffer(uri)
     if (!buffer) return
     buffer.set(owner, diagnostics || [])
   }
 
-  public getSortedRanges(document:Document):Range[] {
+  public getSortedRanges(document: Document): Range[] {
     let collections = this.getCollections(document.uri)
-    let res:Range[] = []
+    let res: Range[] = []
     for (let collection of collections) {
       let ranges = collection.get(document.uri).map(o => o.range)
       res.push(...ranges)
     }
-    res.sort((a, b)=> {
+    res.sort((a, b) => {
       if (a.start.line < b.start.line) {
         return -1
       }
@@ -159,11 +151,11 @@ class DiagnosticManager {
     return res
   }
 
-  public getDiagnosticsInRange(document:TextDocument, range:Range):Diagnostic[] {
+  public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
     let collections = this.getCollections(document.uri)
     let si = document.offsetAt(range.start)
     let ei = document.offsetAt(range.end)
-    let res:Diagnostic[] = []
+    let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(document.uri)
       for (let item of items) {
@@ -183,7 +175,7 @@ class DiagnosticManager {
    * @public
    * @returns {Promise<void>}
    */
-  public async jumpPrevious():Promise<void> {
+  public async jumpPrevious(): Promise<void> {
     if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
@@ -207,7 +199,7 @@ class DiagnosticManager {
    * @public
    * @returns {Promise<void>}
    */
-  public async jumpNext():Promise<void> {
+  public async jumpNext(): Promise<void> {
     if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
@@ -229,14 +221,14 @@ class DiagnosticManager {
    * @public
    * @returns {any}
    */
-  public diagnosticList():DiagnosticItem[] {
+  public diagnosticList(): DiagnosticItem[] {
     let res = []
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = Uri.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           let {start} = diagnostic.range
-          let o:DiagnosticItem = {
+          let o: DiagnosticItem = {
             file,
             lnum: start.line + 1,
             col: start.character + 1,
@@ -266,7 +258,7 @@ class DiagnosticManager {
    * @private
    * @returns {Promise<void>}
    */
-  private async echoMessage():Promise<void> {
+  private async echoMessage(): Promise<void> {
     if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
@@ -274,7 +266,7 @@ class DiagnosticManager {
     let offset = await workspace.getOffset()
     let {textDocument} = document
     let collections = this.getCollections(document.uri)
-    let res:Diagnostic[] = []
+    let res: Diagnostic[] = []
     for (let collection of collections) {
       let diagnostics = collection.get(document.uri)
       for (let diagnostic of diagnostics) {
@@ -288,7 +280,7 @@ class DiagnosticManager {
     }
     if (res.length == 0) return
     res = res.slice(0, 2)
-    let lines:string[] = res.map(diagnostic => {
+    let lines: string[] = res.map(diagnostic => {
       let {source, code, severity, message} = diagnostic
       let s = severityName(severity)[0]
       let msg = message.replace(/\n/g, ' ')
@@ -297,7 +289,7 @@ class DiagnosticManager {
     await workspace.echoLines(lines)
   }
 
-  public clear(owner:string, uri?:string):void {
+  public clear(owner: string, uri?: string): void {
     let {buffers} = this
     for (let buffer of buffers) {
       if (!uri || buffer.uri == uri) {
@@ -308,7 +300,7 @@ class DiagnosticManager {
     }
   }
 
-  public clearAll():void {
+  public clearAll(): void {
     let {buffers} = this
     for (let buf of buffers) {
       buf.clear().catch(e => {
@@ -317,17 +309,17 @@ class DiagnosticManager {
     }
   }
 
-  public dispose():void {
+  public dispose(): void {
     this.clearAll()
     this.buffers = []
     this.collections = []
   }
 
-  private getBuffer(uri:string):DiagnosticBuffer {
+  private getBuffer(uri: string): DiagnosticBuffer {
     return this.buffers.find(buf => buf.uri == uri)
   }
 
-  private getCollections(uri:string):DiagnosticCollection[] {
+  private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
   }
 }

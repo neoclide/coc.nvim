@@ -2,18 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, Location, Position, TextDocument} from 'vscode-languageserver-protocol'
+import {ReferenceContext, ReferenceProvider} from '../../../provider'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
-import {
-  ReferenceProvider,
-  ReferenceContext,
-} from '../../../provider'
-import {
-  Location,
-  TextDocument,
-  Position,
-  CancellationToken,
-} from 'vscode-languageserver-protocol'
 
 export default class TypeScriptReferences implements ReferenceProvider {
   public constructor(private readonly client: ITypeScriptServiceClient) {

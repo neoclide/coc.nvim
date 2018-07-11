@@ -1,9 +1,5 @@
+import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {
-  Disposable,
-  Emitter,
-  Event,
-} from 'vscode-languageserver-protocol'
 import Watchman, {FileChange} from '../watchman'
 import path = require('path')
 const logger = require('../util/logger')('filesystem-watcher')
@@ -28,11 +24,11 @@ export default class FileSystemWatcher implements Disposable {
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
 
   constructor(
-    clientPromise:Promise<Watchman>,
-    private globPattern:string,
-    public ignoreCreateEvents:boolean,
-    public ignoreChangeEvents:boolean,
-    public ignoreDeleteEvents:boolean
+    clientPromise: Promise<Watchman>,
+    private globPattern: string,
+    public ignoreCreateEvents: boolean,
+    public ignoreChangeEvents: boolean,
+    public ignoreDeleteEvents: boolean
   ) {
     clientPromise.then(client => {
       if (client) {
@@ -45,12 +41,12 @@ export default class FileSystemWatcher implements Disposable {
     })
   }
 
-  private async listen(client:Watchman):Promise<void> {
+  private async listen(client: Watchman): Promise<void> {
     let {globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
       ignoreDeleteEvents} = this
-    this.subscription = await client.subscribe(globPattern, (change:FileChange) => {
+    this.subscription = await client.subscribe(globPattern, (change: FileChange) => {
       let {root, files} = change
       for (let file of files) {
         let uri = Uri.file(path.join(root, file.name))
@@ -70,14 +66,14 @@ export default class FileSystemWatcher implements Disposable {
         if (oldFile.size == newFile.size) {
           this._onDidRename.fire({
             oldUri: Uri.file(path.join(root, oldFile.name)),
-            newUri:Uri.file(path.join(root, newFile.name))
+            newUri: Uri.file(path.join(root, newFile.name))
           })
         }
       }
     })
   }
 
-  public dispose():void {
+  public dispose(): void {
     if (this.watchmanClient && this.subscription) {
       this.watchmanClient.unsubscribe(this.subscription)
     }

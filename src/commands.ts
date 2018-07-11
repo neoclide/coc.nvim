@@ -13,18 +13,18 @@ export interface Command {
 
 class CommandItem implements Disposable {
   constructor(
-    public id:string,
+    public id: string,
     private impl: (...args: any[]) => void,
     private thisArg: any
   ) {
   }
 
-  public execute(args: any[]):void {
+  public execute(args: any[]): void {
     let {impl, thisArg} = this
     impl.apply(thisArg, args || [])
   }
 
-  public dispose():void {
+  public dispose(): void {
     this.thisArg = null
     this.impl = null
   }
@@ -33,7 +33,7 @@ class CommandItem implements Disposable {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
 
-  public init(nvim:Neovim, plugin:any):void {
+  public init(nvim: Neovim, plugin: any): void {
     this.register({
       id: 'editor.action.triggerSuggest',
       execute: () => {
@@ -46,7 +46,7 @@ export class CommandManager implements Disposable {
     })
     this.register({
       id: 'editor.action.showReferences',
-      execute: async (_filepath:string, _position:Position, references:Location[]) => {
+      execute: async (_filepath: string, _position: Position, references: Location[]) => {
         try {
           let items = await Promise.all(references.map(loc => {
             return workspace.getQuickfixItem(loc)
@@ -60,7 +60,7 @@ export class CommandManager implements Disposable {
     })
     this.register({
       id: 'editor.action.rename',
-      execute: async (uri:string, position:Position) => {
+      execute: async (uri: string, position: Position) => {
         try {
           await workspace.jumpTo(uri, position)
           await wait(100)
@@ -72,8 +72,8 @@ export class CommandManager implements Disposable {
     })
   }
 
-  public get commandList():CommandItem[] {
-    let res:CommandItem[] = []
+  public get commandList(): CommandItem[] {
+    let res: CommandItem[] = []
     for (let item of this.commands.values()) {
       // ignore internal commands
       if (!/^(_|editor)/.test(item.id)) {
@@ -83,14 +83,14 @@ export class CommandManager implements Disposable {
     return res
   }
 
-  public dispose():void {
+  public dispose(): void {
     for (const registration of this.commands.values()) {
       registration.dispose()
     }
     this.commands.clear()
   }
 
-  public execute(command: language.Command):void {
+  public execute(command: language.Command): void {
     let cmd = this.commands.get(command.command)
     if (!cmd) return
     cmd.execute(command.arguments)
@@ -103,11 +103,11 @@ export class CommandManager implements Disposable {
     return command
   }
 
-  public has(id:string):boolean {
+  public has(id: string): boolean {
     return this.commands.has(id)
   }
 
-  public unregister(id:string):void {
+  public unregister(id: string): void {
     let item = this.commands.get(id)
     if (!item) return
     item.dispose()
@@ -126,7 +126,7 @@ export class CommandManager implements Disposable {
    * @param thisArg The `this` context used when invoking the handler function.
    * @return Disposable which unregisters this command on disposal.
    */
-  public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any):Disposable {
+  public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any): Disposable {
     if (this.commands.has(id)) return
     this.commands.set(id, new CommandItem(id, impl, thisArg))
     return Disposable.create(() => {
@@ -134,20 +134,20 @@ export class CommandManager implements Disposable {
     })
   }
 
- /**
-  * Executes the command denoted by the given command identifier.
-  *
-  * * *Note 1:* When executing an editor command not all types are allowed to
-  * be passed as arguments. Allowed are the primitive types `string`, `boolean`,
-  * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`Uri`](#Uri) and [`Location`](#Location).
-  * * *Note 2:* There are no restrictions when executing commands that have been contributed
-  * by extensions.
-  *
-  * @param command Identifier of the command to execute.
-  * @param rest Parameters passed to the command function.
-  * @return A thenable that resolves to the returned value of the given command. `undefined` when
-  * the command handler function doesn't return anything.
-  */
+  /**
+   * Executes the command denoted by the given command identifier.
+   *
+   * * *Note 1:* When executing an editor command not all types are allowed to
+   * be passed as arguments. Allowed are the primitive types `string`, `boolean`,
+   * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`Uri`](#Uri) and [`Location`](#Location).
+   * * *Note 2:* There are no restrictions when executing commands that have been contributed
+   * by extensions.
+   *
+   * @param command Identifier of the command to execute.
+   * @param rest Parameters passed to the command function.
+   * @return A thenable that resolves to the returned value of the given command. `undefined` when
+   * the command handler function doesn't return anything.
+   */
   public executeCommand(command: string, ...rest: any[]): Promise<void> {
     let cmd = this.commands.get(command)
     if (!cmd) return

@@ -3,13 +3,13 @@
  *--------------------------------------------------------*/
 'use strict'
 
-import * as server from 'vscode-languageserver'
 import minimatch from 'minimatch'
 import path from 'path'
 import semver from 'semver'
-import Uri from 'vscode-uri'
-import * as util from 'util'
 import tslint, {Linter} from 'tslint'
+import * as util from 'util'
+import * as server from 'vscode-languageserver'
+import Uri from 'vscode-uri'
 import {Delayer} from './delayer'
 import {createVscFixForRuleFailure, TSLintAutofixEdit} from './fixer'
 
@@ -117,7 +117,7 @@ function computeKey(diagnostic: server.Diagnostic): string {
   let range = diagnostic.range
   return `[${range.start.line},${range.start.character},${range.end.line},${
     range.end.character
-  }]-${diagnostic.code}`
+    }]-${diagnostic.code}`
 }
 
 export interface AutoFix {
@@ -155,7 +155,7 @@ namespace NoTSLintLibraryRequest {
     NoTSLintLibraryResult,
     void,
     void
-  >('tslint/noLibrary')
+    >('tslint/noLibrary')
 }
 
 // if tslint < tslint4 then the linter is the module therefore the type `any`
@@ -163,7 +163,7 @@ let path2Library: Map<string, typeof tslint.Linter | any> = new Map()
 let document2Library: Map<
   string,
   Thenable<typeof tslint.Linter | any>
-> = new Map()
+  > = new Map()
 
 let validationDelayer = new Map<string, Delayer<void>>() // key is the URI of the document
 
@@ -327,7 +327,7 @@ function getErrorMessage(err: any, document: server.TextDocument): string {
   let fsPath = server.Files.uriToFilePath(document.uri)
   let message = `vscode-tslint: '${errorMessage}' while validating: ${fsPath} stacktrace: ${
     err.stack
-  }`
+    }`
   return message
 }
 
@@ -1153,7 +1153,7 @@ namespace AllFixesRequest {
     AllFixesResult,
     void,
     void
-  >('textDocument/tslint/allFixes')
+    >('textDocument/tslint/allFixes')
 }
 
 connection.onRequest(AllFixesRequest.type, async params => {

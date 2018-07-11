@@ -2,19 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import workspace from '../../../workspace'
-import {
-  disposeAll,
-} from '../../../util'
+import {DidChangeTextDocumentParams, Disposable, TextDocument} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {
-  TextDocument,
-  DidChangeTextDocumentParams,
-  Disposable,
-} from 'vscode-languageserver-protocol'
-import API from '../utils/api'
+import {disposeAll} from '../../../util'
+import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
+import API from '../utils/api'
 import {Delayer} from '../utils/async'
 import * as languageModeIds from '../utils/languageModeIds'
 const logger = require('../../../util/logger')('tsserver-bufferSyncSupport')
@@ -119,12 +113,12 @@ export default class BufferSyncSupport {
     let {uri} = textDocument
     if (!this.uris.has(uri)) return
     let filepath = Uri.parse(uri).fsPath
-    for (const { range, text } of contentChanges) {
+    for (const {range, text} of contentChanges) {
       const args: Proto.ChangeRequestArgs = {
         file: filepath,
         line: range ? range.start.line + 1 : 1,
         offset: range ? range.start.character + 1 : 1,
-        endLine: range ? range.end.line + 1 : 2**24,
+        endLine: range ? range.end.line + 1 : 2 ** 24,
         endOffset: range ? range.end.character + 1 : 1,
         insertString: text
       }
@@ -133,7 +127,7 @@ export default class BufferSyncSupport {
     this.requestDiagnostic(uri)
   }
 
-  public requestAllDiagnostics():void {
+  public requestAllDiagnostics(): void {
     if (!this._validate) {
       return
     }

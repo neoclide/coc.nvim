@@ -2,18 +2,14 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {Disposable, TextDocument, WorkspaceEdit} from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import {wait} from '../../../util'
+import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 import FileConfigurationManager from './fileConfigurationManager'
-import workspace from '../../../workspace'
-import {wait} from '../../../util'
-import {
-  Disposable,
-  TextDocument,
-  WorkspaceEdit,
-} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
 const logger = require('../../../util/logger')('tsserver-updatePathOnRename')
 
 export default class UpdateImportsOnFileRenameHandler {
@@ -33,7 +29,7 @@ export default class UpdateImportsOnFileRenameHandler {
     })
   }
 
-  public dispose():void {
+  public dispose(): void {
     this._onDidRenameSub.dispose()
   }
 
@@ -67,7 +63,7 @@ export default class UpdateImportsOnFileRenameHandler {
     return res == 1
   }
 
-  private async getEditsForFileRename(document: TextDocument, oldFile: string, newFile: string):Promise<WorkspaceEdit> {
+  private async getEditsForFileRename(document: TextDocument, oldFile: string, newFile: string): Promise<WorkspaceEdit> {
     await this.fileConfigurationManager.ensureConfigurationForDocument(document)
     const args: Proto.GetEditsForFileRenameRequestArgs = {
       oldFilePath: oldFile,
@@ -82,8 +78,8 @@ export default class UpdateImportsOnFileRenameHandler {
     for (const edit of response.body) {
       // Workaround for https://github.com/Microsoft/vscode/issues/52675
       if ((edit as Proto.FileCodeEdits).fileName.match(
-          /[\/\\]node_modules[\/\\]/gi
-        )) {
+        /[\/\\]node_modules[\/\\]/gi
+      )) {
         continue
       }
       for (const change of (edit as Proto.FileCodeEdits).textChanges) {

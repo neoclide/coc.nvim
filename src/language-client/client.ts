@@ -12,9 +12,9 @@ import FileWatcher from '../model/fileSystemWatcher'
 import {ProviderResult} from '../provider'
 import {DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../types'
 import workspace from '../workspace'
+import {ConfigurationWorkspaceMiddleware} from './configuration'
 import {ImplementationMiddleware} from './implementation'
 import {TypeDefinitionMiddleware} from './typeDefinition'
-import { ConfigurationWorkspaceMiddleware } from './configuration';
 import {Delayer} from './utils/async'
 import * as cv from './utils/converter'
 import * as Is from './utils/is'
@@ -323,7 +323,8 @@ export interface ResolveCompletionItemSignature {
   (item: CompletionItem, token: CancellationToken): ProviderResult<CompletionItem>
 }
 
-export interface ProvideHoverSignature { (
+export interface ProvideHoverSignature {
+  (
     document: TextDocument,
     position: Position,
     token: CancellationToken
@@ -381,7 +382,7 @@ export interface ProvideCodeActionsSignature {
 }
 
 export interface ProvideCodeLensesSignature {
-  (document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[] >
+  (document: TextDocument, token: CancellationToken): ProviderResult<CodeLens[]>
 }
 
 export interface ResolveCodeLensSignature {
@@ -459,8 +460,8 @@ export interface _Middleware {
   didChange?: NextSignature<DidChangeTextDocumentParams, void>
   willSave?: NextSignature<TextDocumentWillSaveEvent, void>
   willSaveWaitUntil?: NextSignature<
-    TextDocumentWillSaveEvent,
-    Thenable<TextEdit[]>
+  TextDocumentWillSaveEvent,
+  Thenable<TextEdit[]>
   >
   didSave?: NextSignature<TextDocument, void>
   didClose?: NextSignature<TextDocument, void>
@@ -1003,7 +1004,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
 class DidCloseTextDocumentFeature extends DocumentNotifiactions<
   DidCloseTextDocumentParams,
   TextDocument
-> {
+  > {
   constructor(
     client: BaseLanguageClient,
     private _syncedDocuments: Map<string, TextDocument>
@@ -1085,7 +1086,7 @@ interface DidChangeTextDocumentData {
 class DidChangeTextDocumentFeature
   implements DynamicFeature<TextDocumentChangeRegistrationOptions> {
   private _listener: Disposable | undefined
-  private _changeData: Map<string, DidChangeTextDocumentData> = new Map<string, DidChangeTextDocumentData> ()
+  private _changeData: Map<string, DidChangeTextDocumentData> = new Map<string, DidChangeTextDocumentData>()
   private _forcingDelivery: boolean = false
   private _changeDelayer: {uri: string; delayer: Delayer<void>} | undefined
 
@@ -1270,7 +1271,7 @@ class WillSaveFeature extends DocumentNotifiactions<WillSaveTextDocumentParams, 
 
 class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistrationOptions> {
   private _listener: Disposable | undefined
-  private _selectors: Map<string, DocumentSelector> = new Map<string, DocumentSelector> ()
+  private _selectors: Map<string, DocumentSelector> = new Map<string, DocumentSelector>()
 
   constructor(private _client: BaseLanguageClient) {}
 
@@ -1316,8 +1317,8 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
 
   private callback(event: TextDocumentWillSaveEvent): void {
     if (DocumentNotifiactions.textDocumentFilter(
-        this._selectors.values(),
-        event.document)) {
+      this._selectors.values(),
+      event.document)) {
       let middleware = this._client.clientOptions.middleware!
       let willSaveWaitUntil = (event: TextDocumentWillSaveEvent): Thenable<TextEdit[]> => {
         return this._client
@@ -1331,8 +1332,8 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
       }
       event.waitUntil(
         middleware.willSaveWaitUntil
-        ? middleware.willSaveWaitUntil(event, willSaveWaitUntil)
-        : willSaveWaitUntil(event)
+          ? middleware.willSaveWaitUntil(event, willSaveWaitUntil)
+          : willSaveWaitUntil(event)
       )
     }
   }
@@ -1357,7 +1358,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
 class DidSaveTextDocumentFeature extends DocumentNotifiactions<
   DidSaveTextDocumentParams,
   TextDocument
-> {
+  > {
   private _includeText: boolean
 
   constructor(client: BaseLanguageClient) {
@@ -1550,7 +1551,7 @@ class FileSystemWatcherFeature
 
 export abstract class TextDocumentFeature<
   T extends TextDocumentRegistrationOptions
-> implements DynamicFeature<T> {
+  > implements DynamicFeature<T> {
   protected _providers: Map<string, Disposable> = new Map<string, Disposable>()
 
   constructor(
@@ -1573,7 +1574,7 @@ export abstract class TextDocumentFeature<
     if (message.method !== this.messages.method) {
       throw new Error(
         `Register called on wrong feature. Requested ${
-          message.method
+        message.method
         } but reached feature ${this.messages.method}`
       )
     }
@@ -1653,7 +1654,7 @@ abstract class WorkspaceFeature<T> implements DynamicFeature<T> {
 
 class CompletionItemFeature extends TextDocumentFeature<
   CompletionRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, CompletionRequest.type)
   }
@@ -1748,27 +1749,27 @@ class CompletionItemFeature extends TextDocumentFeature<
         ): ProviderResult<CompletionList | CompletionItem[]> => {
           return middleware.provideCompletionItem
             ? middleware.provideCompletionItem(
-                document,
-                position,
-                context,
-                token,
-                provideCompletionItems
-              )
+              document,
+              position,
+              context,
+              token,
+              provideCompletionItems
+            )
             : provideCompletionItems(document, position, context, token)
         },
         resolveCompletionItem: options.resolveProvider
           ? (
-              item: CompletionItem,
-              token: CancellationToken
-            ): ProviderResult<CompletionItem> => {
-              return middleware.resolveCompletionItem
-                ? middleware.resolveCompletionItem(
-                    item,
-                    token,
-                    resolveCompletionItem
-                  )
-                : resolveCompletionItem(item, token)
-            }
+            item: CompletionItem,
+            token: CancellationToken
+          ): ProviderResult<CompletionItem> => {
+            return middleware.resolveCompletionItem
+              ? middleware.resolveCompletionItem(
+                item,
+                token,
+                resolveCompletionItem
+              )
+              : resolveCompletionItem(item, token)
+          }
           : undefined
       },
       triggerCharacters
@@ -1778,7 +1779,7 @@ class CompletionItemFeature extends TextDocumentFeature<
 
 class HoverFeature extends TextDocumentFeature<
   TextDocumentRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, HoverRequest.type)
   }
@@ -1842,7 +1843,7 @@ class HoverFeature extends TextDocumentFeature<
 
 class SignatureHelpFeature extends TextDocumentFeature<
   SignatureHelpRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, SignatureHelpRequest.type)
   }
@@ -1908,11 +1909,11 @@ class SignatureHelpFeature extends TextDocumentFeature<
         ): ProviderResult<SignatureHelp> => {
           return middleware.provideSignatureHelp
             ? middleware.provideSignatureHelp(
-                document,
-                position,
-                token,
-                providerSignatureHelp
-              )
+              document,
+              position,
+              token,
+              providerSignatureHelp
+            )
             : providerSignatureHelp(document, position, token)
         }
       },
@@ -1923,7 +1924,7 @@ class SignatureHelpFeature extends TextDocumentFeature<
 
 class DefinitionFeature extends TextDocumentFeature<
   TextDocumentRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, DefinitionRequest.type)
   }
@@ -1981,11 +1982,11 @@ class DefinitionFeature extends TextDocumentFeature<
       ): ProviderResult<Definition> => {
         return middleware.provideDefinition
           ? middleware.provideDefinition(
-              document,
-              position,
-              token,
-              provideDefinition
-            )
+            document,
+            position,
+            token,
+            provideDefinition
+          )
           : provideDefinition(document, position, token)
       }
     })
@@ -1994,7 +1995,7 @@ class DefinitionFeature extends TextDocumentFeature<
 
 class ReferencesFeature extends TextDocumentFeature<
   TextDocumentRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, ReferencesRequest.type)
   }
@@ -2055,12 +2056,12 @@ class ReferencesFeature extends TextDocumentFeature<
       ): ProviderResult<Location[]> => {
         return middleware.provideReferences
           ? middleware.provideReferences(
-              document,
-              position,
-              options,
-              token,
-              providerReferences
-            )
+            document,
+            position,
+            options,
+            token,
+            providerReferences
+          )
           : providerReferences(document, position, options, token)
       }
     })
@@ -2069,7 +2070,7 @@ class ReferencesFeature extends TextDocumentFeature<
 
 class DocumentHighlightFeature extends TextDocumentFeature<
   TextDocumentRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentHighlightRequest.type)
   }
@@ -2129,11 +2130,11 @@ class DocumentHighlightFeature extends TextDocumentFeature<
         ): ProviderResult<DocumentHighlight[]> => {
           return middleware.provideDocumentHighlights
             ? middleware.provideDocumentHighlights(
-                document,
-                position,
-                token,
-                provideDocumentHighlights
-              )
+              document,
+              position,
+              token,
+              provideDocumentHighlights
+            )
             : provideDocumentHighlights(document, position, token)
         }
       }
@@ -2143,7 +2144,7 @@ class DocumentHighlightFeature extends TextDocumentFeature<
 
 class DocumentSymbolFeature extends TextDocumentFeature<
   TextDocumentRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentSymbolRequest.type)
   }
@@ -2200,10 +2201,10 @@ class DocumentSymbolFeature extends TextDocumentFeature<
       ): ProviderResult<SymbolInformation[]> => {
         return middleware.provideDocumentSymbols
           ? middleware.provideDocumentSymbols(
-              document,
-              token,
-              provideDocumentSymbols
-            )
+            document,
+            token,
+            provideDocumentSymbols
+          )
           : provideDocumentSymbols(document, token)
       }
     })
@@ -2256,19 +2257,19 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<TextDocumentRegistrationOp
     let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerWorkspaceSymbolProvider(
       languageIds, {
-      provideWorkspaceSymbols: (
-        query: string,
-        token: CancellationToken
-      ): ProviderResult<SymbolInformation[]> => {
-        return middleware.provideWorkspaceSymbols
-          ? middleware.provideWorkspaceSymbols(
+        provideWorkspaceSymbols: (
+          query: string,
+          token: CancellationToken
+        ): ProviderResult<SymbolInformation[]> => {
+          return middleware.provideWorkspaceSymbols
+            ? middleware.provideWorkspaceSymbols(
               query,
               token,
               provideWorkspaceSymbols
             )
-          : provideWorkspaceSymbols(query, token)
-      }
-    })
+            : provideWorkspaceSymbols(query, token)
+        }
+      })
   }
 }
 
@@ -2342,23 +2343,23 @@ class CodeActionFeature extends TextDocumentFeature<TextDocumentRegistrationOpti
     return languages.registerCodeActionProvider(
       languageIds,
       {
-      provideCodeActions: (
-        document: TextDocument,
-        range: Range,
-        context: CodeActionContext,
-        token: CancellationToken
-      ): ProviderResult<(Command | CodeAction)[]> => {
-        return middleware.provideCodeActions
-          ? middleware.provideCodeActions(
+        provideCodeActions: (
+          document: TextDocument,
+          range: Range,
+          context: CodeActionContext,
+          token: CancellationToken
+        ): ProviderResult<(Command | CodeAction)[]> => {
+          return middleware.provideCodeActions
+            ? middleware.provideCodeActions(
               document,
               range,
               context,
               token,
               provideCodeActions
             )
-          : provideCodeActions(document, range, context, token)
-      }
-    })
+            : provideCodeActions(document, range, context, token)
+        }
+      })
   }
 }
 
@@ -2422,16 +2423,16 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensRegistrationOptions> {
     let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerCodeLensProvider(
       languageIds, {
-      provideCodeLenses: (
-        document: TextDocument,
-        token: CancellationToken
-      ): ProviderResult<CodeLens[]> => {
-        return middleware.provideCodeLenses
-          ? middleware.provideCodeLenses(document, token, provideCodeLenses)
-          : provideCodeLenses(document, token)
-      },
-      resolveCodeLens: options.resolveProvider
-        ? (
+        provideCodeLenses: (
+          document: TextDocument,
+          token: CancellationToken
+        ): ProviderResult<CodeLens[]> => {
+          return middleware.provideCodeLenses
+            ? middleware.provideCodeLenses(document, token, provideCodeLenses)
+            : provideCodeLenses(document, token)
+        },
+        resolveCodeLens: options.resolveProvider
+          ? (
             codeLens: CodeLens,
             token: CancellationToken
           ): ProviderResult<CodeLens> => {
@@ -2439,8 +2440,8 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensRegistrationOptions> {
               ? middleware.resolveCodeLens(codeLens, token, resolveCodeLens)
               : resolveCodeLens(codeLens, token)
           }
-        : undefined
-    })
+          : undefined
+      })
   }
 }
 
@@ -2504,11 +2505,11 @@ class DocumentFormattingFeature extends TextDocumentFeature<TextDocumentRegistra
         ): ProviderResult<TextEdit[]> => {
           return middleware.provideDocumentFormattingEdits
             ? middleware.provideDocumentFormattingEdits(
-                document,
-                options,
-                token,
-                provideDocumentFormattingEdits
-              )
+              document,
+              options,
+              token,
+              provideDocumentFormattingEdits
+            )
             : provideDocumentFormattingEdits(document, options, token)
         }
       }
@@ -2578,18 +2579,18 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<TextDocumentReg
         ): ProviderResult<TextEdit[]> => {
           return middleware.provideDocumentRangeFormattingEdits
             ? middleware.provideDocumentRangeFormattingEdits(
-                document,
-                range,
-                options,
-                token,
-                provideDocumentRangeFormattingEdits
-              )
+              document,
+              range,
+              options,
+              token,
+              provideDocumentRangeFormattingEdits
+            )
             : provideDocumentRangeFormattingEdits(
-                document,
-                range,
-                options,
-                token
-              )
+              document,
+              range,
+              options,
+              token
+            )
         }
       }
     )
@@ -2638,39 +2639,39 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
       }
       return client
         .sendRequest(RenameRequest.type, params, token)
-        .then(res => res,(error: ResponseError<void>) => {
-            client.logFailedRequest(RenameRequest.type, error)
-            return Promise.reject(new Error(error.message))
-          }
+        .then(res => res, (error: ResponseError<void>) => {
+          client.logFailedRequest(RenameRequest.type, error)
+          return Promise.reject(new Error(error.message))
+        }
         )
     }
     let middleware = client.clientOptions.middleware!
     let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerRenameProvider(
       languageIds, {
-      provideRenameEdits: (
-        document: TextDocument,
-        position: Position,
-        newName: string,
-        token: CancellationToken
-      ): ProviderResult<WorkspaceEdit> => {
-        return middleware.provideRenameEdits
-          ? middleware.provideRenameEdits(
+        provideRenameEdits: (
+          document: TextDocument,
+          position: Position,
+          newName: string,
+          token: CancellationToken
+        ): ProviderResult<WorkspaceEdit> => {
+          return middleware.provideRenameEdits
+            ? middleware.provideRenameEdits(
               document,
               position,
               newName,
               token,
               provideRenameEdits
             )
-          : provideRenameEdits(document, position, newName, token)
-      }
-    })
+            : provideRenameEdits(document, position, newName, token)
+        }
+      })
   }
 }
 
 class DocumentLinkFeature extends TextDocumentFeature<
   DocumentLinkRegistrationOptions
-> {
+  > {
   constructor(client: BaseLanguageClient) {
     super(client, DocumentLinkRequest.type)
   }
@@ -2703,22 +2704,22 @@ class DocumentLinkFeature extends TextDocumentFeature<
     options: DocumentLinkRegistrationOptions
   ): Disposable {
     let client = this._client
-    let provideDocumentLinks:ProvideDocumentLinksSignature = (document, token) => {
+    let provideDocumentLinks: ProvideDocumentLinksSignature = (document, token) => {
       return client.sendRequest(
-          DocumentLinkRequest.type,
-          {
-            textDocument: {
-              uri: document.uri
-            }
-          },
-          token
-        ).then(
-          res => res,
-          (error: ResponseError<void>) => {
-            client.logFailedRequest(DocumentLinkRequest.type, error)
-            Promise.resolve(new Error(error.message))
+        DocumentLinkRequest.type,
+        {
+          textDocument: {
+            uri: document.uri
           }
-        )
+        },
+        token
+      ).then(
+        res => res,
+        (error: ResponseError<void>) => {
+          client.logFailedRequest(DocumentLinkRequest.type, error)
+          Promise.resolve(new Error(error.message))
+        }
+      )
     }
     let resolveDocumentLink = (link, token) => {
       return client
@@ -2740,20 +2741,20 @@ class DocumentLinkFeature extends TextDocumentFeature<
     return languages.registerDocumentLinkProvider(
       languageIds,
       {
-      provideDocumentLinks: (
-        document: TextDocument,
-        token: CancellationToken
-      ): ProviderResult<DocumentLink[]> => {
-        return middleware.provideDocumentLinks
-          ? middleware.provideDocumentLinks(
+        provideDocumentLinks: (
+          document: TextDocument,
+          token: CancellationToken
+        ): ProviderResult<DocumentLink[]> => {
+          return middleware.provideDocumentLinks
+            ? middleware.provideDocumentLinks(
               document,
               token,
               provideDocumentLinks
             )
-          : provideDocumentLinks(document, token)
-      },
-      resolveDocumentLink: options.resolveProvider
-        ? (
+            : provideDocumentLinks(document, token)
+        },
+        resolveDocumentLink: options.resolveProvider
+          ? (
             link: DocumentLink,
             token: CancellationToken
           ): ProviderResult<DocumentLink> => {
@@ -2761,8 +2762,8 @@ class DocumentLinkFeature extends TextDocumentFeature<
               ? middleware.resolveDocumentLink(link, token, resolveDocumentLink)
               : resolveDocumentLink(link, token)
           }
-        : undefined
-    })
+          : undefined
+      })
   }
 }
 
@@ -2820,7 +2821,7 @@ class ConfigurationFeature
     this._listeners.clear()
   }
 
-  private onDidChangeConfiguration(configurationSection: string|string[]): void {
+  private onDidChangeConfiguration(configurationSection: string | string[]): void {
     let sections: string[] | undefined
     if (Is.string(configurationSection)) {
       sections = [configurationSection]
@@ -2849,7 +2850,7 @@ class ConfigurationFeature
       let res = workspace.getConfiguration().get(keys[0])
       return res
     }
-    let res:any = {}
+    let res: any = {}
     for (let key of keys) {
       let parts = key.split('.')
       let p = parts[parts.length - 1]
@@ -3034,7 +3035,7 @@ export abstract class BaseLanguageClient {
     return this._state
   }
 
-  public get id():string {
+  public get id(): string {
     return this._id
   }
 
@@ -3117,7 +3118,7 @@ export abstract class BaseLanguageClient {
     } catch (error) {
       this.error(
         `Registering request handler ${
-          Is.string(type) ? type : type.method
+        Is.string(type) ? type : type.method
         } failed.`,
         error
       )
@@ -3169,7 +3170,7 @@ export abstract class BaseLanguageClient {
     } catch (error) {
       this.error(
         `Registering notification handler ${
-          Is.string(type) ? type : type.method
+        Is.string(type) ? type : type.method
         } failed.`,
         error
       )
@@ -3210,7 +3211,7 @@ export abstract class BaseLanguageClient {
       const responseError = data as ResponseError<any>
       return `  Message: ${responseError.message}\n  Code: ${
         responseError.code
-      } ${responseError.data ? '\n' + responseError.data.toString() : ''}`
+        } ${responseError.data ? '\n' + responseError.data.toString() : ''}`
     }
     if (data instanceof Error) {
       if (Is.string(data.stack)) {
@@ -3325,7 +3326,7 @@ export abstract class BaseLanguageClient {
           }
         })
         connection.onRequest(ShowMessageRequest.type, params => {
-          let messageFunc:Function
+          let messageFunc: Function
           switch (params.type) {
             case MessageType.Error:
               messageFunc = Window.showErrorMessage
@@ -3557,7 +3558,7 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  private setDiagnostics(uri:string, diagnostics:Diagnostic[] | undefined) {
+  private setDiagnostics(uri: string, diagnostics: Diagnostic[] | undefined) {
     if (!this._diagnostics) {
       return
     }
@@ -3628,7 +3629,7 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  public restart():void {
+  public restart(): void {
     this.cleanUp(false)
     this.state = ClientState.Initial
     this.start()
@@ -3684,11 +3685,11 @@ export abstract class BaseLanguageClient {
   private readonly _method2Message: Map<string, RPCMessageType> = new Map<
     string,
     RPCMessageType
-  >()
+    >()
   private readonly _dynamicFeatures: Map<string, DynamicFeature<any>> = new Map<
     string,
     DynamicFeature<any>
-  >()
+    >()
 
   public registerFeatures(
     features: (StaticFeature | DynamicFeature<any>)[]
@@ -3751,8 +3752,8 @@ export abstract class BaseLanguageClient {
   private computeClientCapabilities(): ClientCapabilities {
     let result: ClientCapabilities = {}
     ensure(result, 'workspace')!.applyEdit = true
-    ensure(ensure(result, 'workspace')!,'workspaceEdit')!.documentChanges = true
-    ensure(ensure(result, 'textDocument')!,'publishDiagnostics')!.relatedInformation = true
+    ensure(ensure(result, 'workspace')!, 'workspaceEdit')!.documentChanges = true
+    ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!.relatedInformation = true
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
     }
@@ -3822,7 +3823,7 @@ export abstract class BaseLanguageClient {
     let openTextDocuments: Map<string, TextDocument> = new Map<
       string,
       TextDocument
-    >()
+      >()
     workspace.textDocuments.forEach(document =>
       openTextDocuments.set(document.uri.toString(), document)
     )

@@ -1,30 +1,22 @@
-import { Neovim } from 'neovim'
+import {Neovim} from 'neovim'
+import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem} from '../types'
 import {fuzzyChar} from '../util/fuzzy'
+import {byteSlice} from '../util/string'
 import {toBool} from '../util/types'
-import {
-  SourceConfig,
-  SourceType,
-  VimCompleteItem,
-  CompleteOption,
-  ISource,
-  CompleteResult} from '../types'
-import {
-  byteSlice,
-} from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
 const boolOptions = ['firstMatch']
 
 export default abstract class Source implements ISource {
-  public enable:boolean
+  public enable: boolean
   public readonly name: string
   public readonly config: SourceConfig
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
-  private _disabled:boolean
+  private _disabled: boolean
   constructor(nvim: Neovim, option: Partial<SourceConfig>) {
-    let {name, optionalFns}  = option
+    let {name, optionalFns} = option
     delete option.name
     delete option.optionalFns
     this.nvim = nvim
@@ -49,46 +41,46 @@ export default abstract class Source implements ISource {
       get: () => {
         return !this._disabled
       },
-      set: (val:boolean) => {
+      set: (val: boolean) => {
         this._disabled = !val
       }
     })
   }
 
-  public toggle():void {
+  public toggle(): void {
     this._disabled = !this._disabled
   }
 
-  public get filepath():string {
+  public get filepath(): string {
     return this.config.filepath || ''
   }
 
-  public get sourceType():SourceType {
+  public get sourceType(): SourceType {
     return this.config.sourceType
   }
 
-  public get triggerCharacters():string[] {
+  public get triggerCharacters(): string[] {
     return this.config.triggerCharacters
   }
 
-  public get priority():number {
+  public get priority(): number {
     return Number(this.config.priority)
   }
 
-  public get firstMatch():boolean {
+  public get firstMatch(): boolean {
     return !!this.config.firstMatch
   }
 
-  public get filetypes():string[] | null {
+  public get filetypes(): string[] | null {
     return this.config.filetypes
   }
 
-  public get menu():string {
+  public get menu(): string {
     let {shortcut} = this.config
-    return `[${shortcut.slice(0,3).toUpperCase()}]`
+    return `[${shortcut.slice(0, 3).toUpperCase()}]`
   }
 
-  protected convertToItems(list:any[], extra: any = {}):VimCompleteItem[] {
+  protected convertToItems(list: any[], extra: any = {}): VimCompleteItem[] {
     let {menu} = this
     let res = []
     for (let item of list) {
@@ -103,7 +95,7 @@ export default abstract class Source implements ISource {
     return res
   }
 
-  protected filterWords(words:string[], opt:CompleteOption):string[] {
+  protected filterWords(words: string[], opt: CompleteOption): string[] {
     let res = []
     let {input} = opt
     let cword = opt.word
@@ -126,7 +118,7 @@ export default abstract class Source implements ISource {
    * @param {string[]} valids - valid charscters
    * @returns {number}
    */
-  protected fixStartcol(opt:CompleteOption, valids:string[]):number {
+  protected fixStartcol(opt: CompleteOption, valids: string[]): number {
     let {col, input, line, bufnr} = opt
     let start = byteSlice(line, 0, col)
     let document = workspace.getDocument(bufnr)
@@ -138,27 +130,27 @@ export default abstract class Source implements ISource {
         break
       }
       input = `${c}${input}`
-      col = col -1
+      col = col - 1
     }
     opt.col = col
     opt.input = input
     return col
   }
 
-  public checkFileType(filetype: string):boolean {
+  public checkFileType(filetype: string): boolean {
     if (this.filetypes == null) return true
     return this.filetypes.indexOf(filetype) !== -1
   }
 
-  public async refresh():Promise<void> {
+  public async refresh(): Promise<void> {
     // do nothing
   }
 
-  public async onCompleteResolve(item:VimCompleteItem):Promise<void> {
+  public async onCompleteResolve(item: VimCompleteItem): Promise<void> {
     // do nothing
   }
 
-  public async onCompleteDone(item:VimCompleteItem):Promise<void> {
+  public async onCompleteDone(item: VimCompleteItem): Promise<void> {
     // do nothing
   }
 

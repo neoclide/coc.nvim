@@ -58,7 +58,7 @@ export class Scanner {
     this.text('')
   }
 
-  public text(value: string):void {
+  public text(value: string): void {
     this.value = value
     this.pos = 0
   }
@@ -192,7 +192,7 @@ export class Text extends Marker {
   constructor(public value: string) {
     super()
   }
-  public toString():string {
+  public toString(): string {
     return this.value
   }
   public toTextmateString(): string {
@@ -227,7 +227,7 @@ export class Placeholder extends Marker {
     super()
   }
 
-  public get isFinalTabstop():boolean {
+  public get isFinalTabstop(): boolean {
     return this.index === 0
   }
 
@@ -267,7 +267,7 @@ export class Choice extends Marker {
     return this
   }
 
-  public toString():string {
+  public toString(): string {
     return this.options[0].value
   }
 
@@ -439,7 +439,7 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 export class TextmateSnippet extends Marker {
   private _placeholders: {all: Placeholder[]; last: Placeholder}
 
-  public get placeholderInfo():{all: Placeholder[]; last: Placeholder} {
+  public get placeholderInfo(): {all: Placeholder[]; last: Placeholder} {
     if (!this._placeholders) {
       // fill in placeholders
       let all: Placeholder[] = []
@@ -512,7 +512,7 @@ export class TextmateSnippet extends Marker {
     return this
   }
 
-  public appendChild(child: Marker):this {
+  public appendChild(child: Marker): this {
     this._placeholders = undefined
     return super.appendChild(child)
   }

@@ -5,9 +5,9 @@
 /**
  * Helpers for converting FROM LanguageServer types language-server ts types
  */
+import * as language from 'vscode-languageserver-protocol'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
-import * as language from 'vscode-languageserver-protocol'
 
 export namespace Range {
   export const fromTextSpan = (span: Proto.TextSpan): language.Range => {

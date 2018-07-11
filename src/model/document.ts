@@ -1,30 +1,12 @@
-import {Neovim, Buffer} from 'neovim'
-import {
-  BufferOption,
-} from '../types'
-import Uri from 'vscode-uri'
-import {
-  TextDocument,
-  Position,
-  Range,
-  TextEdit,
-  DidChangeTextDocumentParams,
-  Emitter,
-  Event,
-  Disposable,
-} from 'vscode-languageserver-protocol'
-import {Chars} from './chars'
-import {
-  disposeAll,
-  getUri,
-} from '../util/index'
-import {
-  isGitIgnored,
-} from '../util/fs'
-import {
-  getChange
-} from '../util/diff'
 import debounce from 'debounce'
+import {Buffer, Neovim} from 'neovim'
+import {DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import {BufferOption} from '../types'
+import {getChange} from '../util/diff'
+import {isGitIgnored} from '../util/fs'
+import {disposeAll, getUri} from '../util/index'
+import {Chars} from './chars'
 const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument

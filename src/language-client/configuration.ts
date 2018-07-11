@@ -2,13 +2,10 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import workspace from '../workspace'
+import {ClientCapabilities, ConfigurationRequest} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {StaticFeature, BaseLanguageClient} from './client'
-import {
-  ClientCapabilities,
-  ConfigurationRequest
-} from 'vscode-languageserver-protocol'
+import workspace from '../workspace'
+import {BaseLanguageClient, StaticFeature} from './client'
 
 export interface ConfigurationWorkspaceMiddleware {
   configuration?: ConfigurationRequest.MiddlewareSignature

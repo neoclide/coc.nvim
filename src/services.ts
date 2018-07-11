@@ -1,10 +1,10 @@
+import fs from 'fs'
 import {Neovim} from 'neovim'
+import path from 'path'
+import pify from 'pify'
 import {Disposable} from 'vscode-languageserver-protocol'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
-import fs from 'fs'
-import pify from 'pify'
-import path from 'path'
 import {statAsync} from './util/fs'
 const logger = require('./util/logger')('services')
 

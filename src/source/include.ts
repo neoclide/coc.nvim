@@ -11,8 +11,8 @@ const logger = require('../util/logger')('source-include')
 const baseDir = path.join(__dirname, 'include_resolve')
 
 export default class Include extends Source {
-  private command:string
-  constructor(nvim:Neovim, opts:Partial<SourceConfig>) {
+  private command: string
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'include',
       ...opts

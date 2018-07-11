@@ -2,27 +2,20 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {
-  CodeLens,
-  CancellationToken,
-  TextDocument,
-  Range,
-  Event,
-  Emitter
-} from 'vscode-languageserver-protocol'
+import {CancellationToken, CodeLens, Emitter, Event, Range, TextDocument} from 'vscode-languageserver-protocol'
+import {CodeLensProvider} from '../../../provider'
 import * as Proto from '../protocol'
-import { CodeLensProvider } from '../../../provider'
-
 import {ITypeScriptServiceClient} from '../typescriptService'
-import * as typeConverters from '../utils/typeConverters'
 import {escapeRegExp} from '../utils/regexp'
+import * as typeConverters from '../utils/typeConverters'
+
 
 export class CachedNavTreeResponse {
   private response?: Promise<Proto.NavTreeResponse>
   private version = -1
   private document = ''
 
-  public execute(document: TextDocument, f: () => Promise<Proto.NavTreeResponse>):Promise<Proto.NavTreeResponse> {
+  public execute(document: TextDocument, f: () => Promise<Proto.NavTreeResponse>): Promise<Proto.NavTreeResponse> {
     if (this.matches(document)) {
       return this.response
     }
@@ -88,7 +81,7 @@ export abstract class TypeScriptBaseCodeLensProvider implements CodeLensProvider
         range => {
           return {
             range,
-            data: { uri: document.uri }
+            data: {uri: document.uri}
           }
         }
       )

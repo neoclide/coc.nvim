@@ -1,10 +1,10 @@
 import path from 'path'
+import {CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument} from 'vscode-languageserver-protocol'
 import {LanguageService} from '../../language-client'
+import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
+import {ProviderResult} from '../../provider'
 import {ROOT} from '../../util'
 import workspace from '../../workspace'
-import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
-import {CompletionItem, CancellationToken, TextDocument, Position, CompletionContext, CompletionList, InsertTextFormat} from 'vscode-languageserver-protocol'
-import {ProviderResult} from '../../provider'
 const logger = require('../../util/logger')('cssserver')
 
 const ID = 'cssserver'

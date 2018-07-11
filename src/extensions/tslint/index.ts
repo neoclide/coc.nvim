@@ -1,29 +1,16 @@
-import path from 'path'
-import fs from 'fs'
-import workspace from '../../workspace'
-import commandManager from '../../commands'
-import Uri from 'vscode-uri'
-import {ProviderResult} from '../../provider'
-import {TextDocumentWillSaveEvent, ServiceStat} from '../../types'
-import {
-  Diagnostic,
-  CodeActionContext,
-  TextDocument,
-  CodeAction,
-  TextEdit,
-  TextDocumentIdentifier,
-  RequestType,
-  Command,
-  ConfigurationParams,
-  CancellationToken,
-} from 'vscode-languageserver-protocol'
-import {
-  LanguageClientOptions, WorkspaceMiddleware,
-} from '../../language-client/main'
-import {LanguageService} from '../../language-client'
-import opn from 'opn'
 import {exec} from 'child_process'
-import {echoErr, echoWarning, echoMessage} from '../../util'
+import fs from 'fs'
+import opn from 'opn'
+import path from 'path'
+import {CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextEdit} from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import commandManager from '../../commands'
+import {LanguageService} from '../../language-client'
+import {LanguageClientOptions, WorkspaceMiddleware} from '../../language-client/main'
+import {ProviderResult} from '../../provider'
+import {ServiceStat, TextDocumentWillSaveEvent} from '../../types'
+import {echoErr, echoMessage, echoWarning} from '../../util'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('tslint')
 
 interface AllFixesParams {
@@ -44,18 +31,18 @@ namespace AllFixesRequest {
     AllFixesResult,
     void,
     void
-  >('textDocument/tslint/allFixes')
+    >('textDocument/tslint/allFixes')
 }
 
 interface NoTSLintLibraryParams {
-	readonly source: TextDocumentIdentifier
+  readonly source: TextDocumentIdentifier
 }
 
 interface NoTSLintLibraryResult {
 }
 
 namespace NoTSLintLibraryRequest {
-	export const type = new RequestType<NoTSLintLibraryParams, NoTSLintLibraryResult, void, void>('tslint/noLibrary')
+  export const type = new RequestType<NoTSLintLibraryParams, NoTSLintLibraryResult, void, void>('tslint/noLibrary')
 }
 
 interface Settings {
@@ -98,11 +85,11 @@ export default class TslintService extends LanguageService {
       commandManager.registerCommand('_tslint.showRuleDocumentation', showRuleDocumentation)
       // user commandManager
       commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems),
-      commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
+        commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
     })
   }
 
-  protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {
+  protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
     Object.assign(clientOptions, {
       synchronize: {
         configurationSection: 'tslint',
@@ -213,7 +200,7 @@ export default class TslintService extends LanguageService {
     return promise
   }
 
-  private async fixAllProblems():Promise<void> {
+  private async fixAllProblems(): Promise<void> {
     // server is not running so there can be no problems to fix
     if (this.state != ServiceStat.Running) return
     let document = await workspace.document
@@ -235,7 +222,7 @@ export default class TslintService extends LanguageService {
     }
   }
 
-  private willSaveTextDocument(e: TextDocumentWillSaveEvent):void {
+  private willSaveTextDocument(e: TextDocumentWillSaveEvent): void {
     if (this.state != ServiceStat.Running) return
     let config = workspace.getConfiguration('tslint')
     let autoFix = config.get('autoFixOnSave', false)
@@ -250,15 +237,15 @@ export default class TslintService extends LanguageService {
   }
 }
 
-function isTypeScriptDocument(document: TextDocument):boolean {
+function isTypeScriptDocument(document: TextDocument): boolean {
   return document.languageId === 'typescript' || document.languageId === 'typescriptreact'
 }
 
-function isJavaScriptDocument(languageId):boolean {
+function isJavaScriptDocument(languageId): boolean {
   return languageId === 'javascript' || languageId === 'javascriptreact'
 }
 
-function isEnabledForJavaScriptDocument(document: TextDocument):boolean {
+function isEnabledForJavaScriptDocument(document: TextDocument): boolean {
   let isJsEnable = workspace.getConfiguration('tslint').get('jsEnable', true)
   if (isJsEnable && isJavaScriptDocument(document.languageId)) {
     return true
@@ -290,7 +277,7 @@ async function findTslint(rootPath: string): Promise<string> {
   }
 }
 
-async function createDefaultConfiguration():Promise<void> {
+async function createDefaultConfiguration(): Promise<void> {
   const folderPath = workspace.root
   const tslintConfigFile = path.join(folderPath, 'tslint.json')
   if (fs.existsSync(tslintConfigFile)) {
@@ -316,7 +303,7 @@ async function applyTextEdits(uri: string, _documentVersion: number, edits: Text
   return true
 }
 
-async function applyDisableRuleEdit(uri: string, documentVersion: number, edits: TextEdit[]):Promise<void> {
+async function applyDisableRuleEdit(uri: string, documentVersion: number, edits: TextEdit[]): Promise<void> {
   let document = workspace.getDocument(uri)
   if (!document) return
   if (document.version != documentVersion) {
@@ -332,7 +319,7 @@ async function applyDisableRuleEdit(uri: string, documentVersion: number, edits:
   await applyTextEdits(uri, documentVersion, edits)
 }
 
-function showRuleDocumentation( _uri: string, _documentVersion: number, _edits: TextEdit[], ruleId: string):void {
+function showRuleDocumentation(_uri: string, _documentVersion: number, _edits: TextEdit[], ruleId: string): void {
   const tslintDocBaseURL = 'https://palantir.github.io/tslint/rules'
   if (!ruleId) return
   opn(tslintDocBaseURL + '/' + ruleId)

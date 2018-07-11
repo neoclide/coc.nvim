@@ -1,9 +1,6 @@
-import { Neovim } from 'neovim'
-import {
-  SourceConfig,
-  CompleteOption,
-  CompleteResult} from '../types'
+import {Neovim} from 'neovim'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
 import {echoErr, echoMessage} from '../util/index'
 import {byteSlice} from '../util/string'
 const logger = require('../util/logger')('source-omni')
@@ -27,14 +24,14 @@ export default class OmniSource extends Source {
     return false
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
+  public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
     let {line, colnr, col, func} = opt
     let {nvim} = this
     if (['LanguageClient#complete', 'jedi#completes'].indexOf('func') !== -1) {
       await echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
-    let startcol:number = col
+    let startcol: number = col
     try {
       startcol = await nvim.call(func, [1, ''])
       startcol = Number(startcol)
@@ -49,7 +46,7 @@ export default class OmniSource extends Source {
     if (words.hasOwnProperty('words')) {
       words = words.words
     }
-    let res:CompleteResult = {
+    let res: CompleteResult = {
       items: this.convertToItems(words)
     }
     if (startcol && startcol !== col && words.length != 0) {

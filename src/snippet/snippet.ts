@@ -1,13 +1,5 @@
-import {
-  SnippetParser,
-  TextmateSnippet,
-  Marker,
-  Text,
-  Placeholder,
-} from './parser'
-import {
-  ChangeItem
-} from '../types'
+import {ChangeItem} from '../types'
+import {Marker, Placeholder, SnippetParser, Text, TextmateSnippet} from './parser'
 const logger = require('../util/logger')('snippet-snippet')
 
 export type FindResult = [Placeholder, number]
@@ -26,19 +18,19 @@ export default class Snippet {
     this.maxIndex = max
   }
 
-  public toString():string {
+  public toString(): string {
     return this.textmateSnippet.toString()
   }
 
-  public offset(marker:Marker):number {
+  public offset(marker: Marker): number {
     return this.textmateSnippet.offset(marker)
   }
 
-  public get marks():Marker[] {
+  public get marks(): Marker[] {
     return this.textmateSnippet.children
   }
 
-  public get firstPlaceholder():Placeholder|null {
+  public get firstPlaceholder(): Placeholder | null {
     let {textmateSnippet} = this
     let items = textmateSnippet.placeholders
     if (items.length == 0) return null
@@ -46,7 +38,7 @@ export default class Snippet {
     return item ? item : items[0]
   }
 
-  public replaceWith(mark:Marker, str:string):void {
+  public replaceWith(mark: Marker, str: string): void {
     let {placeholders} = this.textmateSnippet
     if (mark instanceof Placeholder) {
       let index = mark.index
@@ -73,8 +65,8 @@ export default class Snippet {
    * @param {number} offset - character offset from snippet beginning
    * @returns {FindResult} - placeholder and start offset of change
    */
-  public findPlaceholder(change:ChangeItem, offset:number):FindResult {
-    let marker:Marker = null
+  public findPlaceholder(change: ChangeItem, offset: number): FindResult {
+    let marker: Marker = null
     let start = 0
     let pos = 0
     this.textmateSnippet.walk(o => {
@@ -120,7 +112,7 @@ export default class Snippet {
    * @param {number} start
    * @returns {string}
    */
-  public getNewText(change:ChangeItem, placeholder:Placeholder, start:number):string {
+  public getNewText(change: ChangeItem, placeholder: Placeholder, start: number): string {
     let text = placeholder.toString()
     let pre = text.slice(0, start)
     let {added, removed} = change
@@ -130,7 +122,7 @@ export default class Snippet {
     return pre + newText
   }
 
-  public get hasPlaceholder():boolean {
+  public get hasPlaceholder(): boolean {
     let firstPlaceholder = this.firstPlaceholder
     return firstPlaceholder && firstPlaceholder.index !== 0
   }

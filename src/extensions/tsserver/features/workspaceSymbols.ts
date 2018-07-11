@@ -2,19 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, Range, SymbolInformation, SymbolKind} from 'vscode-languageserver-protocol'
+import {WorkspaceSymbolProvider} from '../../../provider'
+import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
-import workspace from '../../../workspace'
-import {
-  WorkspaceSymbolProvider,
-} from '../../../provider'
-import {
-  SymbolKind,
-  CancellationToken,
-  SymbolInformation,
-  Range,
-} from 'vscode-languageserver-protocol'
 const logger = require('../../../util/logger')('typsscript-workspace-symbols')
 
 function getSymbolKind(item: Proto.NavtoItem): SymbolKind {
@@ -66,7 +59,7 @@ export default class TypeScriptWorkspaceSymbolProvider implements WorkspaceSymbo
         continue
       }
       const label = TypeScriptWorkspaceSymbolProvider.getLabel(item)
-      const range:Range = {
+      const range: Range = {
         start: typeConverters.Position.fromLocation(item.start),
         end: typeConverters.Position.fromLocation(item.end),
       }
@@ -81,7 +74,7 @@ export default class TypeScriptWorkspaceSymbolProvider implements WorkspaceSymbo
     return result
   }
 
-  private static getLabel(item: Proto.NavtoItem):string {
+  private static getLabel(item: Proto.NavtoItem): string {
     let label = item.name
     if (item.kind === 'method' || item.kind === 'function') {
       label += '()'

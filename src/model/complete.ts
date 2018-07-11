@@ -1,17 +1,8 @@
-import {Neovim} from 'neovim'
-import {
-  CompleteOption,
-  VimCompleteItem,
-  RecentScore,
-  ISource,
-  CompleteResult} from '../types'
-import workspace from '../workspace'
-import {byteSlice} from '../util/string'
 import {score} from 'fuzzaldrin'
-import {
-  getCharCodes,
-  fuzzyMatch
-} from '../util/fuzzy'
+import {CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem} from '../types'
+import {fuzzyMatch, getCharCodes} from '../util/fuzzy'
+import {byteSlice} from '../util/string'
+import workspace from '../workspace'
 import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
@@ -24,7 +15,7 @@ export default class Complete {
   public results: CompleteResult[] | null
   public option: CompleteOption
   public readonly recentScores: RecentScore
-  constructor(opts: CompleteOption, recentScores: RecentScore |null) {
+  constructor(opts: CompleteOption, recentScores: RecentScore | null) {
     this.option = opts
     Object.defineProperty(this, 'recentScores', {
       get: (): RecentScore => {
@@ -33,7 +24,7 @@ export default class Complete {
     })
   }
 
-  public get startcol():number {
+  public get startcol(): number {
     return this.option.col || 0
   }
 
@@ -86,7 +77,7 @@ export default class Complete {
     })
   }
 
-  private checkResult(result:CompleteResult, opt:CompleteOption):boolean {
+  private checkResult(result: CompleteResult, opt: CompleteOption): boolean {
     let {items, startcol} = result
     if (!items || items.length == 0) return false
     let {line, colnr, col, input} = opt
@@ -100,12 +91,12 @@ export default class Complete {
     })
   }
 
-  public filterResults(results:CompleteResult[], isIncrement = false):VimCompleteItem[] {
+  public filterResults(results: CompleteResult[], isIncrement = false): VimCompleteItem[] {
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
     let {input, id} = this.option
     let codes = getCharCodes(input)
-    let words:Set<string> = new Set()
+    let words: Set<string> = new Set()
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let {items, source, priority} = res
@@ -124,10 +115,10 @@ export default class Complete {
         }
         if (input.length && !fuzzyMatch(codes, filterText)) continue
         if (!isIncrement) {
-          data = Object.assign(data, { cid: id, source })
+          data = Object.assign(data, {cid: id, source})
           item.user_data = JSON.stringify(data)
         }
-        let factor = priority/100 + this.getBonusScore(input, item)
+        let factor = priority / 100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)
@@ -146,14 +137,14 @@ export default class Complete {
     return arr.slice(0, MAX_ITEM_COUNT)
   }
 
-  public async doComplete(sources:ISource[]): Promise<VimCompleteItem[]> {
+  public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
     let opts = this.option
     let {line, colnr, reload} = opts
     sources.sort((a, b) => b.priority - a.priority)
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => {
       // error source
-      if (r ===false) return false
+      if (r === false) return false
       if (r == null) return false
       return this.checkResult(r, opts)
     })
@@ -174,10 +165,10 @@ export default class Complete {
     return filteredResults
   }
 
-  private getBonusScore(input:string, item: VimCompleteItem):number {
+  private getBonusScore(input: string, item: VimCompleteItem): number {
     let {word, abbr, kind, info} = item
     let score = input.length
-      ? this.recentScores[`${input.slice(0,1)}|${word}`] || 0
+      ? this.recentScores[`${input.slice(0, 1)}|${word}`] || 0
       : 0
     score += kind ? 0.001 : 0
     score += abbr ? 0.001 : 0

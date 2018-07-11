@@ -14,18 +14,18 @@ export interface LineItem {
 }
 
 export default class CodeLensBuffer {
-  private buffer:Buffer
-  private lineItems:Map<number, LineItem> = new Map()
+  private buffer: Buffer
+  private lineItems: Map<number, LineItem> = new Map()
   private hasLines = false
-  private startLnum:number
-  private lines:string[] = []
-  constructor(private nvim:Neovim, private bufnr:number, private codeLens:CodeLens[]) {
+  private startLnum: number
+  private lines: string[] = []
+  constructor(private nvim: Neovim, private bufnr: number, private codeLens: CodeLens[]) {
     this.init().catch(e => {
       logger.error(e.message)
     })
   }
 
-  private async init():Promise<void> {
+  private async init(): Promise<void> {
     let {nvim, lineItems} = this
     let buffer = await nvim.buffer
     this.startLnum = await nvim.call('line', ['.'])
@@ -56,9 +56,9 @@ export default class CodeLensBuffer {
     await this.jump()
   }
 
-  private async sequenceResolve(lineItems: LineItem[], max = 10):Promise<void> {
+  private async sequenceResolve(lineItems: LineItem[], max = 10): Promise<void> {
     let iterable = lineItems.slice()
-    while(iterable.length) {
+    while (iterable.length) {
       let items = iterable.splice(0, max)
       items = await Promise.all(items.map(item => {
         return this.resolveItem(item)
@@ -67,7 +67,7 @@ export default class CodeLensBuffer {
     }
   }
 
-  private async insertLines(items: LineItem[]):Promise<void> {
+  private async insertLines(items: LineItem[]): Promise<void> {
     let {buffer} = this
     items = items.filter(o => o.resolved)
     let lines = items.map(item => {
@@ -90,7 +90,7 @@ export default class CodeLensBuffer {
     }
   }
 
-  private async jump():Promise<void> {
+  private async jump(): Promise<void> {
     let {startLnum, nvim, lineItems, buffer} = this
     let start = startLnum - 1
     let lnums = Array.from(lineItems.keys())
@@ -109,18 +109,18 @@ export default class CodeLensBuffer {
     }
   }
 
-  private async resolveItem(item: LineItem):Promise<LineItem> {
+  private async resolveItem(item: LineItem): Promise<LineItem> {
     let {codeLenses} = item
     let document = workspace.getDocument(this.bufnr)
     if (!document) return
     codeLenses = await Promise.all(codeLenses.map(codeLens => {
       return languages.resolveCodeLens(document.textDocument, codeLens)
     }))
-    Object.assign(item, { resolved: true, codeLenses })
+    Object.assign(item, {resolved: true, codeLenses})
     return item
   }
 
-  public async doAction(lnum:number):Promise<void> {
+  public async doAction(lnum: number): Promise<void> {
     let item = this.lineItems.get(lnum - 1)
     if (item) {
       let commands = item.codeLenses.map(o => o.command)
@@ -136,7 +136,7 @@ export default class CodeLensBuffer {
     }
   }
 
-  public dispose():void {
+  public dispose(): void {
     let {nvim, buffer} = this
     nvim.command(`silent! bd! ${buffer.id}`).catch(e => {
       logger.error(e.message)

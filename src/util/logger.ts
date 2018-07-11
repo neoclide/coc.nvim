@@ -1,7 +1,7 @@
-import os from 'os'
-import path from 'path'
 import fs from 'fs'
 import log4js from 'log4js'
+import os from 'os'
+import path from 'path'
 
 const MAX_LOG_SIZE = 1024 * 1024
 const MAX_LOG_BACKUPS = 10
@@ -29,10 +29,10 @@ log4js.configure({
     }
   },
   categories: {
-    default: { appenders: [ 'out' ], level}
+    default: {appenders: ['out'], level}
   }
 })
 
-module.exports = (name = 'coc-nvim'):log4js.Logger => {
+module.exports = (name = 'coc-nvim'): log4js.Logger => {
   return log4js.getLogger(name)
 }

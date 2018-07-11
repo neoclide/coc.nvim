@@ -2,19 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, CodeLens, Range, TextDocument} from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import * as typeConverters from '../utils/typeConverters'
-import {
-  TypeScriptBaseCodeLensProvider
-} from './baseCodeLensProvider'
-import {
-  TextDocument,
-  CodeLens,
-  CancellationToken,
-  Range,
-} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import {TypeScriptBaseCodeLensProvider} from './baseCodeLensProvider'
 
 export default class TypeScriptReferencesCodeLensProvider extends TypeScriptBaseCodeLensProvider {
   public resolveCodeLens(
@@ -48,7 +41,7 @@ export default class TypeScriptReferencesCodeLensProvider extends TypeScriptBase
                 location.uri.toString() === uri &&
                 location.range.start.line === codeLens.range.start.line &&
                 location.range.start.character ===
-                  codeLens.range.start.character
+                codeLens.range.start.character
               )
           )
 

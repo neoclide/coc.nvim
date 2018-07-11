@@ -41,7 +41,7 @@ class CallbackMap {
     this.pendingResponses = 0
   }
 
-  public add(seq: number, callback: CallbackItem):void {
+  public add(seq: number, callback: CallbackItem): void {
     this.callbacks.set(seq, callback)
     ++this.pendingResponses
   }
@@ -52,7 +52,7 @@ class CallbackMap {
     return callback
   }
 
-  private delete(seq: number):void {
+  private delete(seq: number): void {
     if (this.callbacks.delete(seq)) {
       --this.pendingResponses
     }
@@ -111,7 +111,7 @@ class ForkedTsServerProcess {
     this.childProcess.on('exit', cb)
   }
 
-  public write(serverRequest: Proto.Request):void {
+  public write(serverRequest: Proto.Request): void {
     this.childProcess.stdin.write(
       JSON.stringify(serverRequest) + '\r\n',
       'utf8'
@@ -121,12 +121,12 @@ class ForkedTsServerProcess {
   public createReader(
     callback: ICallback<Proto.Response>,
     onError: (error: any) => void
-  ):void {
+  ): void {
     // tslint:disable-next-line:no-unused-expression
     new Reader<Proto.Response>(this.childProcess.stdout, callback, onError)
   }
 
-  public kill():void {
+  public kill(): void {
     this.childProcess.kill()
   }
 }
@@ -157,7 +157,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private readonly _onDidEndInstallTypings = new Emitter<Proto.EndInstallTypesEventBody>()
   private readonly _onTypesInstallerInitializationFailed = new Emitter<
     Proto.TypesInstallerInitializationFailedEventBody
-  >()
+    >()
   /**
    * API version obtained from the version picker after checking the corresponding path exists.
    */
@@ -194,11 +194,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return this._onResendModelsRequested.event
   }
 
-  public get configuration():TypeScriptServiceConfiguration {
+  public get configuration(): TypeScriptServiceConfiguration {
     return this._configuration
   }
 
-  public dispose():void {
+  public dispose(): void {
     this._onTsServerStarted.dispose()
     this._onDidBeginInstallTypings.dispose()
     this._onDidEndInstallTypings.dispose()
@@ -218,7 +218,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this._onResendModelsRequested.dispose()
   }
 
-  public restartTsServer():Promise<any> {
+  public restartTsServer(): Promise<any> {
     const start = () => {
       this.servicePromise = this.startService(true)
       return this.servicePromise
@@ -226,18 +226,18 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
     if (this.servicePromise) {
       return Promise.resolve(this.servicePromise.then(childProcess => {
-          this.state = ServiceStat.Stopping
-          this.info('Killing TS Server')
-          childProcess.kill()
-          this.resetClientVersion()
-          this.servicePromise = null
-        }).then(start))
+        this.state = ServiceStat.Stopping
+        this.info('Killing TS Server')
+        childProcess.kill()
+        this.resetClientVersion()
+        this.servicePromise = null
+      }).then(start))
     } else {
       return Promise.resolve(start())
     }
   }
 
-  public stop():Promise<void> {
+  public stop(): Promise<void> {
     if (!this.servicePromise) return
     return Promise.resolve(this.servicePromise.then(childProcess => {
       if (this.state == ServiceStat.Running) {
@@ -255,7 +255,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public get onProjectLanguageServiceStateChanged(): Event<
     Proto.ProjectLanguageServiceStateEventBody
-  > {
+    > {
     return this._onProjectLanguageServiceStateChanged.event
   }
 
@@ -267,7 +267,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return this._onDidEndInstallTypings.event
   }
 
-  public get onTypesInstallerInitializationFailed():Event<Proto.TypesInstallerInitializationFailedEventBody> {
+  public get onTypesInstallerInitializationFailed(): Event<Proto.TypesInstallerInitializationFailedEventBody> {
     return this._onTypesInstallerInitializationFailed.event
   }
 
@@ -297,7 +297,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     })
   }
 
-  public ensureServiceStarted():void {
+  public ensureServiceStarted(): void {
     if (!this.servicePromise) {
       this.startService().catch(err => {
         echoErr(workspace.nvim, `TSServer start failed: ${err.message}`).catch(_e => {
@@ -330,11 +330,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       execArgv: debugPort ? [`--inspect=${debugPort}`] : [], // [`--debug-brk=5859`]
       cwd: root
     }
-    this.servicePromise =  this.startProcess(currentVersion, tsServerForkArgs, options, resendModels)
+    this.servicePromise = this.startProcess(currentVersion, tsServerForkArgs, options, resendModels)
     return this.servicePromise
   }
 
-  private startProcess(currentVersion: TypeScriptVersion, args: string[], options:IForkOptions, resendModels:boolean):Promise<ForkedTsServerProcess> {
+  private startProcess(currentVersion: TypeScriptVersion, args: string[], options: IForkOptions, resendModels: boolean): Promise<ForkedTsServerProcess> {
     this.state = ServiceStat.Starting
     return new Promise((resolve, reject) => {
       try {
@@ -489,11 +489,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
   }
 
-  public toPath(uri:string):string {
+  public toPath(uri: string): string {
     return Uri.parse(uri).fsPath
   }
 
-  public toResource(path:string):string {
+  public toResource(path: string): string {
     return Uri.file(path).toString()
   }
 
@@ -674,7 +674,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
   }
 
-  private dispatchEvent(event: Proto.Event):void {
+  private dispatchEvent(event: Proto.Event): void {
     switch (event.event) {
       case 'syntaxDiag':
       case 'semanticDiag':
@@ -789,12 +789,12 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return args
   }
 
-  private resetClientVersion():void {
+  private resetClientVersion(): void {
     this._apiVersion = API.defaultVersion
   }
 }
 
-function getDignosticsKind(event: Proto.Event):DiagnosticKind {
+function getDignosticsKind(event: Proto.Event): DiagnosticKind {
   switch (event.event) {
     case 'syntaxDiag':
       return DiagnosticKind.Syntax

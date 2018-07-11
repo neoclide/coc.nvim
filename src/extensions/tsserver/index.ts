@@ -1,31 +1,18 @@
+import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
+import {IServiceProvider, ServiceStat} from '../../types'
+import {disposeAll} from '../../util/index'
 import workspace from '../../workspace'
-import {
-  IServiceProvider,
-  ServiceStat,
-} from '../../types'
-import {
-  Disposable,
-  Emitter,
-  Event,
-} from 'vscode-languageserver-protocol'
-import {
-  disposeAll
-} from '../../util/index'
-import {
-  standardLanguageDescriptions
-} from './utils/languageDescription'
-import {
-  languageIds
-} from './utils/languageModeIds'
 import TypeScriptServiceClientHost from './typescriptServiceClientHost'
+import {standardLanguageDescriptions} from './utils/languageDescription'
+import {languageIds} from './utils/languageModeIds'
 const logger = require('../../util/logger')('tsserver-index')
 
 export default class TsserverService implements IServiceProvider {
   public id = 'tsserver'
   public name = 'tsserver'
-  public enable:boolean
+  public enable: boolean
   // supported language types
-  public languageIds:string[]
+  public languageIds: string[]
   public state = ServiceStat.Initial
   private clientHost: TypeScriptServiceClientHost
   private _onDidServiceReady = new Emitter<void>()
@@ -43,7 +30,7 @@ export default class TsserverService implements IServiceProvider {
     this.languageIds = ids
   }
 
-  public init():void {
+  public init(): void {
     let {languageIds} = this
     let descriptions = standardLanguageDescriptions.filter(o => languageIds.indexOf(o.id) !== -1)
     this.clientHost = new TypeScriptServiceClientHost(descriptions)
@@ -59,17 +46,17 @@ export default class TsserverService implements IServiceProvider {
     this.disposables.push(client)
   }
 
-  public dispose():void {
+  public dispose(): void {
     disposeAll(this.disposables)
   }
 
-  public async restart():Promise<void> {
+  public async restart(): Promise<void> {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
     await client.restartTsServer()
   }
 
-  public async stop():Promise<void> {
+  public async stop(): Promise<void> {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
     return client.stop()

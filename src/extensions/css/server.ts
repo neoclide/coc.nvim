@@ -3,23 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import {
-  createConnection,
-  IConnection,
-  TextDocuments,
-  InitializeParams,
-  InitializeResult,
-  ServerCapabilities,
-} from 'vscode-languageserver'
+import {getCSSLanguageService, getLESSLanguageService, getSCSSLanguageService, LanguageService, LanguageSettings, Stylesheet} from 'vscode-css-languageservice'
+import {createConnection, IConnection, InitializeParams, InitializeResult, ServerCapabilities, TextDocuments} from 'vscode-languageserver'
 import {TextDocument} from 'vscode-languageserver-types'
-import {
-  getCSSLanguageService,
-  getSCSSLanguageService,
-  getLESSLanguageService,
-  LanguageSettings,
-  LanguageService,
-  Stylesheet
-} from 'vscode-css-languageservice'
 import {getLanguageModelCache} from './languageModelCache'
 import {convertCompleteItems} from './utils/convert'
 import {formatError, runSafe} from './utils/runner'

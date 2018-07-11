@@ -1,33 +1,21 @@
 import {Neovim} from 'neovim'
-import VimSource from './model/source-vim'
-import workspace from './workspace'
 import languages from './languages'
-import {
-  VimCompleteItem,
-  ISource,
-  SourceConfig,
-  WorkspaceConfiguration,
-  SourceType,
-  CompleteOption,
-} from './types'
-import {
-  echoErr,
-  echoMessage,
-} from './util'
-import {
-  isWord
-} from './util/string'
+import VimSource from './model/source-vim'
+import {CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration} from './types'
+import {echoErr, echoMessage} from './util'
 import {statAsync} from './util/fs'
+import {isWord} from './util/string'
+import workspace from './workspace'
 import path = require('path')
 import fs = require('fs')
 import pify = require('pify')
 const logger = require('./util/logger')('sources')
 
 export default class Sources {
-  private sourceMap:Map<string, ISource> = new Map()
+  private sourceMap: Map<string, ISource> = new Map()
   private sourceConfig: WorkspaceConfiguration
 
-  constructor(private nvim:Neovim) {
+  constructor(private nvim: Neovim) {
     this.sourceConfig = workspace.getConfiguration('coc.source')
     Promise.all([
       this.createNativeSources(),
@@ -46,19 +34,19 @@ export default class Sources {
     })
   }
 
-  public get names():string[] {
+  public get names(): string[] {
     return Array.from(this.sourceMap.keys())
   }
 
-  public get sources():ISource[] {
+  public get sources(): ISource[] {
     return Array.from(this.sourceMap.values())
   }
 
-  public has(name):boolean{
+  public has(name): boolean {
     return this.names.findIndex(o => o == name) != -1
   }
 
-  public getSource(name:string):ISource | null {
+  public getSource(name: string): ISource | null {
     return this.sourceMap.get(name) || null
   }
 
@@ -69,7 +57,7 @@ export default class Sources {
    * @param {string} name - source name
    * @returns {Promise<void>}
    */
-  public async onlySource(name:string):Promise<void> {
+  public async onlySource(name: string): Promise<void> {
     for (let n of this.names) {
       let source = this.sourceMap.get(n)
       source.enable = name == n
@@ -79,7 +67,7 @@ export default class Sources {
     }
   }
 
-  public async doCompleteResolve(item: VimCompleteItem):Promise<void> {
+  public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
     let {user_data} = item
     if (!user_data) return
     try {
@@ -92,7 +80,7 @@ export default class Sources {
     }
   }
 
-  public async doCompleteDone(item: VimCompleteItem):Promise<void> {
+  public async doCompleteDone(item: VimCompleteItem): Promise<void> {
     let data = JSON.parse(item.user_data)
     let source = this.getSource(data.source)
     if (source && typeof source.onCompleteDone === 'function') {
@@ -100,17 +88,17 @@ export default class Sources {
     }
   }
 
-  public getCompleteSources(opt:CompleteOption):ISource[] {
+  public getCompleteSources(opt: CompleteOption): ISource[] {
     let {triggerCharacter, filetype} = opt
     if (triggerCharacter) return this.getTriggerSources(triggerCharacter, filetype)
     return this.getSourcesForFiletype(filetype, false)
   }
 
-  public shouldTrigger(character:string, languageId: string):boolean {
+  public shouldTrigger(character: string, languageId: string): boolean {
     return this.getTriggerSources(character, languageId).length > 0
   }
 
-  public getTriggerSources(character:string, languageId: string):ISource[] {
+  public getTriggerSources(character: string, languageId: string): ISource[] {
     let special = !isWord(character)
     let sources = this.sources.filter(s => {
       if (!s.enable) return false
@@ -129,7 +117,7 @@ export default class Sources {
     return sources
   }
 
-  public getSourcesForFiletype(filetype:string, includeDisabled = true):ISource[] {
+  public getSourcesForFiletype(filetype: string, includeDisabled = true): ISource[] {
     return this.sources.filter(source => {
       let {filetypes} = source
       if (!includeDisabled && !source.enable) return false
@@ -141,7 +129,7 @@ export default class Sources {
     })
   }
 
-  private addSource(name:string, source:ISource):void {
+  private addSource(name: string, source: ISource): void {
     if (this.names.indexOf(name) !== -1) {
       echoMessage(this.nvim, `Source "${name}" recreated`).catch(_e => {
         // noop
@@ -150,7 +138,7 @@ export default class Sources {
     this.sourceMap.set(name, source)
   }
 
-  private async createNativeSources():Promise<void> {
+  private async createNativeSources(): Promise<void> {
     let root = path.join(__dirname, 'source')
     let files = await pify(fs.readdir)(root, 'utf8')
     for (let file of files) {
@@ -158,7 +146,7 @@ export default class Sources {
         let name = file.replace(/\.js$/, '')
         try {
           let Clz = await require(`./source/${name}`).default
-          let config:Partial<SourceConfig> = this.getSourceConfig(name)
+          let config: Partial<SourceConfig> = this.getSourceConfig(name)
           if (config.enable) {
             config.name = name
             config.filepath = path.join(__dirname, `source/${name}.ts`)
@@ -175,7 +163,7 @@ export default class Sources {
     }
   }
 
-  private getSourceConfig(name:string):Partial<SourceConfig> {
+  private getSourceConfig(name: string): Partial<SourceConfig> {
     let opt = this.sourceConfig.get(name, {} as any) as any
     let res = {}
     for (let key of Object.keys(opt)) {
@@ -184,7 +172,7 @@ export default class Sources {
     return res
   }
 
-  private async createVimSourceFromPath(p:string):Promise<void> {
+  private async createVimSourceFromPath(p: string): Promise<void> {
     let {nvim} = this
     let name = path.basename(p, '.vim')
     let opts = this.getSourceConfig(name)
@@ -203,7 +191,7 @@ export default class Sources {
     }
   }
 
-  private async createRemoteSources():Promise<void> {
+  private async createRemoteSources(): Promise<void> {
     let {nvim} = this
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
@@ -224,7 +212,7 @@ export default class Sources {
     }))
   }
 
-  private async checkRemoteSource(name: string):Promise<boolean> {
+  private async checkRemoteSource(name: string): Promise<boolean> {
     let {nvim} = this
     let fns = ['init', 'complete']
     let valid = true
@@ -233,14 +221,14 @@ export default class Sources {
       let exists = await nvim.call('exists', [`*${fn}`])
       if (exists != 1) {
         valid = false
-        let msg =  `Function ${fname} not found for '${name}' source`
+        let msg = `Function ${fname} not found for '${name}' source`
         await echoErr(nvim, msg)
       }
     }
     return valid
   }
 
-  private async getOptionalFns(name: string):Promise<string[]> {
+  private async getOptionalFns(name: string): Promise<string[]> {
     let {nvim} = this
     let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete']
     let res = []
@@ -254,7 +242,7 @@ export default class Sources {
     return res
   }
 
-  private async createRemoteSource(name:string, opts:Partial<SourceConfig>):Promise<ISource | null> {
+  private async createRemoteSource(name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
     let {nvim} = this
     let fn = `coc#source#${name}#init`
     let config: SourceConfig | null

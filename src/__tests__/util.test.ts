@@ -1,26 +1,9 @@
 /* tslint:disable:no-console */
-import {
-  isCocItem,
-} from '../util/index'
-import {
-  getCharCodes,
-  fuzzyMatch,
-  fuzzyChar
-} from '../util/fuzzy'
-import {
-  readFileByLine,
-  statAsync,
-  isGitIgnored,
-  findSourceDir,
-  createTmpFile
-} from '../util/fs'
-import {
-  getChange,
-} from '../util/diff'
-import {
-  TextDocument,
-  TextEdit,
-} from 'vscode-languageserver-protocol'
+import {TextDocument, TextEdit} from 'vscode-languageserver-protocol'
+import {getChange} from '../util/diff'
+import {createTmpFile, findSourceDir, isGitIgnored, readFileByLine, statAsync} from '../util/fs'
+import {fuzzyChar, fuzzyMatch, getCharCodes} from '../util/fuzzy'
+import {isCocItem} from '../util/index'
 import watchObj from '../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
@@ -118,8 +101,8 @@ describe('watchObj test', () => {
   test('should trigger watch', () => {
     const cached: {[index: string]: string} = {}
     let {watched, addWatcher} = watchObj(cached)
-    let result:string|null = null
-    addWatcher('foo',res => {
+    let result: string | null = null
+    addWatcher('foo', res => {
       result = res
     })
     watched.foo = 'bar'
@@ -129,8 +112,8 @@ describe('watchObj test', () => {
   test('should not trigger watch', () => {
     const cached: {[index: string]: string} = {}
     let {watched, addWatcher} = watchObj(cached)
-    let result:string|null = null
-    addWatcher('foo',res => {
+    let result: string | null = null
+    addWatcher('foo', res => {
       result = res
     })
     watched.bar = 'bar'
@@ -141,13 +124,13 @@ describe('watchObj test', () => {
 
 describe('diff test', () => {
 
-  function expectChange(from:string, to:string):void {
+  function expectChange(from: string, to: string): void {
     let doc = TextDocument.create('/coc', 'text', 0, from)
     let change = getChange(from, to)
     let {newText} = change
     let start = doc.positionAt(change.start)
     let end = doc.positionAt(change.end)
-    let edit:TextEdit = {
+    let edit: TextEdit = {
       range: {start, end},
       newText
     }
@@ -162,10 +145,10 @@ describe('diff test', () => {
     let arr = new Array(100000)
     let content = arr.fill('a').join('\n')
     let ts = Date.now()
-    expectChange(content,  '')
+    expectChange(content, '')
     console.log(Date.now() - ts)
     ts = Date.now()
-    expectChange('',  content)
+    expectChange('', content)
     console.log(Date.now() - ts)
     expectChange('abc', 'abbc\ndf')
   })

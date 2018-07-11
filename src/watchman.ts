@@ -1,10 +1,10 @@
 import {Client} from 'fb-watchman'
+import {Neovim} from 'neovim'
+import {echoErr} from './util'
 import watchman = require('fb-watchman')
 import uuidv1 = require('uuid/v1')
 import fs = require('fs')
 import which = require('which')
-import {echoErr} from './util'
-import {Neovim} from 'neovim'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -41,29 +41,30 @@ export default class Watchman {
   private relative_path: string | null
   private clock: string | null
 
-  constructor(binaryPath:string) {
+  constructor(binaryPath: string) {
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
   }
 
-  private checkCapability():Promise<boolean> {
+  private checkCapability(): Promise<boolean> {
     let {client} = this
     return new Promise((resolve, reject) => {
       client.capabilityCheck({
         optional: [],
-        required: requiredCapabilities}, (error, resp) => {
-          if (error) return reject(error)
-          let {capabilities} = resp
-          for (let key of Object.keys(capabilities)) {
-            if (!capabilities[key]) return resolve(false)
-          }
-          resolve(true)
-        })
+        required: requiredCapabilities
+      }, (error, resp) => {
+        if (error) return reject(error)
+        let {capabilities} = resp
+        for (let key of Object.keys(capabilities)) {
+          if (!capabilities[key]) return resolve(false)
+        }
+        resolve(true)
+      })
     })
   }
 
-  private async watchProject(root:string, nvim:Neovim):Promise<boolean> {
+  private async watchProject(root: string, nvim: Neovim): Promise<boolean> {
     if (root === process.env.HOME) {
       echoErr(nvim, 'root is home, file watching disabled!')
       return false
@@ -78,7 +79,7 @@ export default class Watchman {
     return true
   }
 
-  private command(args:any[]):Promise<any> {
+  private command(args: any[]): Promise<any> {
     return new Promise((resolve, reject) => {
       this.client.command(args, (error, resp) => {
         if (error) return reject(error)
@@ -87,7 +88,7 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern:string, cb:ChangeCallback):Promise<string> {
+  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<string> {
     let {clock, relative_path} = this
     if (!clock) return null
     let uid = uuidv1()
@@ -106,13 +107,13 @@ export default class Watchman {
     return subscribe
   }
 
-  public unsubscribe(subscription):void {
+  public unsubscribe(subscription): void {
     this.command(['unsubscribe', this.relative_path, subscription]).catch(error => {
       logger.error(error)
     })
   }
 
-  public static async createClient(binaryPath:string, root:string, nvim:Neovim):Promise<Watchman|null> {
+  public static async createClient(binaryPath: string, root: string, nvim: Neovim): Promise<Watchman | null> {
     let client = new Watchman(binaryPath)
     let checked = await client.checkCapability()
     if (!checked) return null
@@ -120,7 +121,7 @@ export default class Watchman {
     return watching ? client : null
   }
 
-  public static getBinaryPath(path:string):string|null {
+  public static getBinaryPath(path: string): string | null {
     if (path && fs.existsSync(path)) return path
     try {
       path = which.sync('watchman')

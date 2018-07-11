@@ -6,9 +6,9 @@ import CodeLensBuffer from './codelens'
 import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
 import languages from './languages'
-import {echoErr, echoWarning, showQuickpick, echoMessage} from './util'
-import workspace from './workspace'
 import {ServiceStat} from './types'
+import {echoErr, echoMessage, echoWarning, showQuickpick} from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -191,7 +191,7 @@ export default class Handler {
         }
       }
       let {start} = location.range
-      let o:SymbolInfo = {
+      let o: SymbolInfo = {
         filepath: Uri.parse(location.uri).fsPath,
         col: start.character + 1,
         lnum: start.line + 1,
@@ -458,14 +458,14 @@ function getSymbolKind(kind: SymbolKind): string {
   }
 }
 
-function getPreviousContainer(containerName:string, symbols:SymbolInfo[]):SymbolInfo {
+function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): SymbolInfo {
   if (!symbols.length) return null
   let i = symbols.length - 1
   let last = symbols[i]
   if (last.text == containerName) {
     return last
   }
-  while(i >= 0) {
+  while (i >= 0) {
     let sym = symbols[i]
     if (sym.text == containerName) {
       return sym

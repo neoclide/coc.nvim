@@ -2,19 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, SymbolInformation, SymbolKind, TextDocument} from 'vscode-languageserver-protocol'
+import {DocumentSymbolProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import {ITypeScriptServiceClient} from '../typescriptService'
-import {
-  DocumentSymbolProvider,
-} from '../../../provider'
 import * as typeConverters from '../utils/typeConverters'
-import {
-  TextDocument,
-  CancellationToken,
-  SymbolInformation,
-  SymbolKind,
-} from 'vscode-languageserver-protocol'
 
 const getSymbolKind = (kind: string): SymbolKind => {
   switch (kind) {
@@ -66,22 +59,22 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
     }
 
     try {
-        const response = await this.client.execute('navtree', args, token)
-        if (response.body) {
-          // The root represents the file. Ignore this when showing in the UI
-          const tree = response.body
-          if (tree.childItems) {
-            const result = new Array<SymbolInformation>()
-            tree.childItems.forEach(item =>
-              TypeScriptDocumentSymbolProvider.convertNavTree(
-                resource.uri,
-                result,
-                item
-              )
+      const response = await this.client.execute('navtree', args, token)
+      if (response.body) {
+        // The root represents the file. Ignore this when showing in the UI
+        const tree = response.body
+        if (tree.childItems) {
+          const result = new Array<SymbolInformation>()
+          tree.childItems.forEach(item =>
+            TypeScriptDocumentSymbolProvider.convertNavTree(
+              resource.uri,
+              result,
+              item
             )
-            return result
-          }
+          )
+          return result
         }
+      }
       return []
     } catch (e) {
       return []

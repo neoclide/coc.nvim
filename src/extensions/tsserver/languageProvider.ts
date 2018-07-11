@@ -2,45 +2,37 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import languages from '../../languages'
-import workspace from '../../workspace'
-import commandManager from '../../commands'
-import {
-  Diagnostic,
-  Disposable,
-} from 'vscode-languageserver-protocol'
-import {
-  disposeAll,
-} from '../../util'
+import {Diagnostic, Disposable} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {
-  DiagnosticKind,
-  ServiceStat,
-} from '../../types'
-import { DiagnosticsManager } from './features/diagnostics'
-import TypeScriptServiceClient from './typescriptServiceClient'
+import commandManager from '../../commands'
+import languages from '../../languages'
+import {DiagnosticKind, ServiceStat} from '../../types'
+import {disposeAll} from '../../util'
+import workspace from '../../workspace'
+import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
 import BufferSyncSupport from './features/bufferSyncSupport'
 import CompletionItemProvider from './features/completionItemProvider'
 import DefinitionProvider from './features/definitionProvider'
-import ReferenceProvider from './features/references'
-import HoverProvider from './features/hover'
-import SignatureHelpProvider from './features/signatureHelp'
+import {DiagnosticsManager} from './features/diagnostics'
 import DocumentSymbolProvider from './features/documentSymbol'
-import FormattingProvider from './features/formatting'
-import RenameProvider from './features/rename'
-import WorkspaceSymbolProvider from './features/workspaceSymbols'
-import OrganizeImportsProvider from './features/organizeImports'
-import TypingsStatus from './utils/typingsStatus'
 import FileConfigurationManager from './features/fileConfigurationManager'
-import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
+import FormattingProvider from './features/formatting'
+import HoverProvider from './features/hover'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
-import ReferencesCodeLensProvider from './features/referencesCodeLens'
+import OrganizeImportsProvider from './features/organizeImports'
 // import TagCompletionProvider from './features/tagCompletion'
 import QuickfixProvider from './features/quickfix'
 import RefactorProvider from './features/refactor'
+import ReferenceProvider from './features/references'
+import ReferencesCodeLensProvider from './features/referencesCodeLens'
+import RenameProvider from './features/rename'
+import SignatureHelpProvider from './features/signatureHelp'
 import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
-import {LanguageDescription} from './utils/languageDescription'
+import WorkspaceSymbolProvider from './features/workspaceSymbols'
+import TypeScriptServiceClient from './typescriptServiceClient'
 import API from './utils/api'
+import {LanguageDescription} from './utils/languageDescription'
+import TypingsStatus from './utils/typingsStatus'
 const logger = require('../../util/logger')('tsserver-provider')
 
 const validateSetting = 'validate.enable'
@@ -253,7 +245,7 @@ export default class LanguageProvider {
     return false
   }
 
-  private get id():string { // tslint:disable-line
+  private get id(): string { // tslint:disable-line
     return this.description.id
   }
 
@@ -261,7 +253,7 @@ export default class LanguageProvider {
     return this.description.diagnosticSource
   }
 
-  private updateValidate(value: boolean):void {
+  private updateValidate(value: boolean): void {
     if (this._validate === value) {
       return
     }
@@ -273,7 +265,7 @@ export default class LanguageProvider {
     }
   }
 
-  private updateSuggestionDiagnostics(value: boolean):void {
+  private updateSuggestionDiagnostics(value: boolean): void {
     if (this._enableSuggestionDiagnostics === value) {
       return
     }

@@ -8,9 +8,9 @@ import {createClientPipeTransport, createClientSocketTransport, Disposable, gene
 import {ServiceStat} from '../types'
 import workspace from '../workspace'
 import {BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature} from './client'
+import {ConfigurationFeature as PullConfigurationFeature} from './configuration'
 import {ImplementationFeature} from './implementation'
 import {TypeDefinitionFeature} from './typeDefinition'
-import { ConfigurationFeature as PullConfigurationFeature} from './configuration'
 import * as electron from './utils/electron'
 import * as Is from './utils/is'
 import {terminate} from './utils/processes'
@@ -202,7 +202,7 @@ export class LanguageClient extends BaseLanguageClient {
     })
   }
 
-  public get serviceState():ServiceStat {
+  public get serviceState(): ServiceStat {
     let state = this._state
     switch (state) {
       case ClientState.Initial:
@@ -223,7 +223,7 @@ export class LanguageClient extends BaseLanguageClient {
     }
   }
 
-  public static stateName(state: ClientState):string {
+  public static stateName(state: ClientState): string {
     switch (state) {
       case ClientState.Initial:
         return 'Initial'
@@ -257,7 +257,7 @@ export class LanguageClient extends BaseLanguageClient {
     }, 2000)
   }
 
-  protected handleConnectionClosed():void {
+  protected handleConnectionClosed(): void {
     this._serverProcess = undefined
     super.handleConnectionClosed()
   }
@@ -321,7 +321,7 @@ export class LanguageClient extends BaseLanguageClient {
       })
     }
     let json: NodeModule | Executable
-    let runDebug = server as{run: any; debug: any}
+    let runDebug = server as {run: any; debug: any}
     if (runDebug.run || runDebug.debug) {
       // We are under debugging. So use debug as well.
       if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode()) {
@@ -556,18 +556,18 @@ export class LanguageClient extends BaseLanguageClient {
     })
   }
 
-  public registerProposedFeatures():void {
+  public registerProposedFeatures(): void {
     this.registerFeatures(ProposedFeatures.createAll(this))
   }
 
-  protected registerBuiltinFeatures():void {
+  protected registerBuiltinFeatures(): void {
     super.registerBuiltinFeatures()
     this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))
   }
 
-  private _getServerWorkingDir(options?: { cwd?: string }): Thenable<string | undefined> {
+  private _getServerWorkingDir(options?: {cwd?: string}): Thenable<string | undefined> {
     let cwd = options && options.cwd
     if (!cwd) cwd = workspace.root
     if (cwd) {

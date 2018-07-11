@@ -1,10 +1,7 @@
-import { Neovim } from 'neovim'
-import {
-  SourceConfig,
-  CompleteOption,
-  CompleteResult} from '../types'
-import {statAsync, readFileByLine} from '../util/fs'
+import {Neovim} from 'neovim'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {readFileByLine, statAsync} from '../util/fs'
 import path = require('path')
 const logger = require('../util/logger')('source-tag')
 
@@ -13,7 +10,7 @@ export interface CacheItem {
   words: Set<string>
 }
 
-let TAG_CACHE:{[index:string]: CacheItem} = {}
+let TAG_CACHE: {[index: string]: CacheItem} = {}
 
 export default class Tag extends Source {
   constructor(nvim: Neovim, opts: SourceConfig) {
@@ -41,14 +38,14 @@ export default class Tag extends Source {
     return true
   }
 
-  public async refresh():Promise<void> {
+  public async refresh(): Promise<void> {
     TAG_CACHE = {}
   }
 
-  private async loadTags(fullpath:string, mtime:Date):Promise<Set<string>> {
-    let item:CacheItem = TAG_CACHE[fullpath]
+  private async loadTags(fullpath: string, mtime: Date): Promise<Set<string>> {
+    let item: CacheItem = TAG_CACHE[fullpath]
     if (item && item.mtime >= mtime) return item.words
-    let words:Set<string> = new Set()
+    let words: Set<string> = new Set()
     await readFileByLine(fullpath, line => {
       if (line[0] == '!') return
       let ms = line.match(/^[^\t\s]+/)
@@ -62,7 +59,7 @@ export default class Tag extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {tagfiles} = opt
     let list = await Promise.all(tagfiles.map(o => this.loadTags(o.file, o.mtime)))
-    let allWords:Set<string> = new Set()
+    let allWords: Set<string> = new Set()
     for (let words of list as any) {
       for (let word of words.values()) {
         allWords.add(word)

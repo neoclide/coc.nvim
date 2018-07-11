@@ -2,20 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, Position, SignatureHelp, SignatureInformation, TextDocument} from 'vscode-languageserver-protocol'
+import {SignatureHelpProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as Previewer from '../utils/previewer'
 import * as typeConverters from '../utils/typeConverters'
-import {
-  SignatureHelpProvider
-} from '../../../provider'
-import {
-  TextDocument,
-  Position,
-  CancellationToken,
-  SignatureHelp,
-  SignatureInformation,
-} from 'vscode-languageserver-protocol'
 const logger = require('../../../util/logger')('typescript-signature')
 
 export default class TypeScriptSignatureHelpProvider implements SignatureHelpProvider {
@@ -55,7 +47,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
     }
     return result
   }
-
+ 
   private getActiveParmeter(info: Proto.SignatureHelpItems): number {
     const activeSignature = info.items[info.selectedItemIndex]
     if (activeSignature && activeSignature.isVariadic) {
@@ -73,7 +65,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
       ),
       parameters: item.parameters.map(p => {
         return {
-          label: Previewer.plain(p.displayParts),
+           label: Previewer.plain(p.displayParts),
           documentation: Previewer.markdownDocumentation(p.documentation, [])
         }
       })

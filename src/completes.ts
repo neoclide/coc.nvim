@@ -1,19 +1,12 @@
 import Complete from './model/complete'
-import {
-  getCharCodes,
-  fuzzyMatch
-} from './util/fuzzy'
-import {
-  ISource,
-  CompleteOption,
-  VimCompleteItem,
-  RecentScore} from './types'
+import {CompleteOption, ISource, RecentScore, VimCompleteItem} from './types'
+import {fuzzyMatch, getCharCodes} from './util/fuzzy'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
-  private completeItems : VimCompleteItem[] | null
+  private completeItems: VimCompleteItem[] | null
   private _completing = false
 
   constructor() {
@@ -21,15 +14,15 @@ export class Completes {
     this.recentScores = {}
   }
 
-  public get completing():boolean {
+  public get completing(): boolean {
     return this._completing
   }
 
-  public addRecent(word: string):void {
+  public addRecent(word: string): void {
     if (!word.length || !this.complete) return
     let {input} = this.complete.option
     if (!input.length) return
-    let key = `${input.slice(0,1)}|${word}`
+    let key = `${input.slice(0, 1)}|${word}`
     let val = this.recentScores[key]
     if (!val) {
       this.recentScores[key] = 0.01
@@ -39,19 +32,19 @@ export class Completes {
   }
 
   public async doComplete(
-    sources:ISource[],
-    option:CompleteOption):Promise<VimCompleteItem[]> {
+    sources: ISource[],
+    option: CompleteOption): Promise<VimCompleteItem[]> {
     this._completing = true
     let complete = new Complete(option, this.recentScores)
     this.complete = complete
     let items = await complete.doComplete(sources)
     this.completeItems = items || []
     // wait for popmenu show
-    setTimeout(() => { this._completing = false }, 20)
+    setTimeout(() => {this._completing = false}, 20)
     return items
   }
 
-  public filterCompleteItems(option:CompleteOption):VimCompleteItem[] {
+  public filterCompleteItems(option: CompleteOption): VimCompleteItem[] {
     let origComplete = this.complete
     if (!origComplete || !origComplete.results) return []
     let complete = new Complete(option, this.recentScores)
@@ -61,23 +54,23 @@ export class Completes {
   }
 
   // TODO this is incorrect sometimes
-  public getCompleteItem(word:string):VimCompleteItem | null {
+  public getCompleteItem(word: string): VimCompleteItem | null {
     let {completeItems} = this
     if (!completeItems) return null
     return completeItems.find(o => o.word == word)
   }
 
-  public reset():void {
+  public reset(): void {
     // noop
   }
 
-  public get option():CompleteOption|null {
+  public get option(): CompleteOption | null {
     let {complete} = this
     if (!complete) return null
     return complete.option
   }
 
-  public hasMatch(search:string):boolean {
+  public hasMatch(search: string): boolean {
     let {complete} = this
     if (!complete) return false
     let {results} = complete

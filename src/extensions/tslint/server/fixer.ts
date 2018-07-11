@@ -1,5 +1,5 @@
-import * as server from 'vscode-languageserver'
 import * as tslint from 'tslint' // this is a dev dependency only
+import * as server from 'vscode-languageserver'
 
 // Tslint fixers provided by the extensions
 

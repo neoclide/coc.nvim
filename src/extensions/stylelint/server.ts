@@ -1,6 +1,6 @@
-import {createConnection, TextDocuments, TextDocument, IConnection} from 'vscode-languageserver'
-import {formatError} from './runner'
 import stylelintVSCode from 'stylelint-vscode'
+import {createConnection, IConnection, TextDocument, TextDocuments} from 'vscode-languageserver'
+import {formatError} from './runner'
 
 const connection: IConnection = createConnection()
 const documents = new TextDocuments()
@@ -11,8 +11,8 @@ process.on('unhandledRejection', (e: any) => {
   connection.console.error(formatError(`Unhandled exception`, e))
 })
 
-let config:any
-let configOverrides:any
+let config: any
+let configOverrides: any
 
 const pendingValidationRequests: {[uri: string]: NodeJS.Timer} = {}
 const validationDelayMs = 200
@@ -33,8 +33,8 @@ function triggerValidation(textDocument: TextDocument): void {
   }, validationDelayMs)
 }
 
-async function validateTextDocument(document:TextDocument):Promise<void> {
-  const options:any = {}
+async function validateTextDocument(document: TextDocument): Promise<void> {
+  const options: any = {}
   if (config) options.config = config
   if (configOverrides) options.configOverrides = configOverrides
 
@@ -65,7 +65,7 @@ async function validateTextDocument(document:TextDocument):Promise<void> {
   }
 }
 
-function validateAll():void {
+function validateAll(): void {
   for (const document of documents.all()) {
     triggerValidation(document)
   }
@@ -92,7 +92,7 @@ connection.onDidChangeWatchedFiles(validateAll)
 documents.onDidChangeContent(({document}) => triggerValidation(document))
 documents.onDidClose(({document}) => {
   cleanPendingValidation(document)
-  connection.sendDiagnostics({ uri: document.uri, diagnostics: [] })
+  connection.sendDiagnostics({uri: document.uri, diagnostics: []})
 })
 
 documents.listen(connection)

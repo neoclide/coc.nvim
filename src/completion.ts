@@ -1,27 +1,17 @@
 /* tslint:disable:no-console */
 import {Neovim} from 'neovim'
-import {
-  echoErr,
-  isCocItem,
-} from './util'
-import {
-  isWord,
-} from './util/string'
-import {
-  CompleteOption,
-  VimCompleteItem,
-  SourceStat,
-  SourceType
-} from './types'
-import Emitter = require('events')
-import workspace from './workspace'
-import Sources from './sources'
 import completes from './completes'
 import Increment from './increment'
 import Document from './model/document'
+import Sources from './sources'
+import {CompleteOption, SourceStat, SourceType, VimCompleteItem} from './types'
+import {echoErr, isCocItem} from './util'
+import {isWord} from './util/string'
+import workspace from './workspace'
+import Emitter = require('events')
 const logger = require('./util/logger')('completion')
 
-function onError(e):void {
+function onError(e): void {
   logger.error(e.stack)
 }
 
@@ -29,9 +19,9 @@ export class Completion {
   private increment: Increment
   private sources: Sources
   private lastChangedI: number
-  private nvim:Neovim
+  private nvim: Neovim
 
-  public init(nvim, emitter:Emitter):void {
+  public init(nvim, emitter: Emitter): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
     this.sources = new Sources(nvim)
@@ -48,7 +38,7 @@ export class Completion {
       this.onTextChangedI().catch(onError)
     })
     // stop change emit on completion
-    let document:Document = null
+    let document: Document = null
     increment.on('start', option => {
       let {bufnr} = option
       document = workspace.getDocument(bufnr)
@@ -60,19 +50,19 @@ export class Completion {
     })
   }
 
-  public get hasLatestChangedI():boolean {
+  public get hasLatestChangedI(): boolean {
     let {lastChangedI} = this
     return lastChangedI && Date.now() - lastChangedI < 30
   }
 
-  public startCompletion(option: CompleteOption):void {
+  public startCompletion(option: CompleteOption): void {
     this._doComplete(option).catch(e => {
       echoErr(this.nvim, e.message).catch(onError)
       logger.error('Error happens on complete: ', e.stack)
     })
   }
 
-  public async resumeCompletion(resumeInput:string):Promise<void> {
+  public async resumeCompletion(resumeInput: string): Promise<void> {
     let {nvim, increment} = this
     let oldComplete = completes.complete
     try {
@@ -99,7 +89,7 @@ export class Completion {
     }
   }
 
-  public toggleSource(name:string):void {
+  public toggleSource(name: string): void {
     if (!name) return
     let source = this.sources.getSource(name)
     if (!source) return
@@ -108,11 +98,11 @@ export class Completion {
     }
   }
 
-  public async onlySource(name:string):Promise<void> {
+  public async onlySource(name: string): Promise<void> {
     return this.sources.onlySource(name)
   }
 
-  public async refreshSource(name:string):Promise<void> {
+  public async refreshSource(name: string): Promise<void> {
     let source = this.sources.getSource(name)
     if (!source) return
     if (typeof source.refresh === 'function') {
@@ -120,7 +110,7 @@ export class Completion {
     }
   }
 
-  public async sourceStat():Promise<SourceStat[]> {
+  public async sourceStat(): Promise<SourceStat[]> {
     let res: SourceStat[] = []
     let filetype = await this.nvim.eval('&filetype') as string
     let items = this.sources.getSourcesForFiletype(filetype)
@@ -129,15 +119,15 @@ export class Completion {
         name: item.name,
         filepath: item.filepath || '',
         type: item.sourceType == SourceType.Native
-              ? 'native' : item.sourceType == SourceType.Remote
-              ? 'remote' : 'service',
+          ? 'native' : item.sourceType == SourceType.Remote
+            ? 'remote' : 'service',
         disabled: !item.enable
       })
     }
     return res
   }
 
-  private async _doComplete(option: CompleteOption):Promise<void> {
+  private async _doComplete(option: CompleteOption): Promise<void> {
     if (completes.completing) return
     let {nvim, increment} = this
     // could happen for auto trigger
@@ -163,7 +153,7 @@ export class Completion {
     }
   }
 
-  private async onTextChangedP():Promise<void> {
+  private async onTextChangedP(): Promise<void> {
     let {increment} = this
     if (increment.latestInsert) {
       if (!increment.isActivted) return
@@ -179,7 +169,7 @@ export class Completion {
     if (item) await this.sources.doCompleteResolve(item)
   }
 
-  private async onTextChangedI():Promise<void> {
+  private async onTextChangedI(): Promise<void> {
     this.lastChangedI = Date.now()
     let {nvim, increment} = this
     let {latestInsertChar} = increment
@@ -192,12 +182,12 @@ export class Completion {
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
     let option = await nvim.call('coc#util#get_complete_option')
-    Object.assign(option, { triggerCharacter: latestInsertChar })
+    Object.assign(option, {triggerCharacter: latestInsertChar})
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
 
-  public async onCompleteDone(item:VimCompleteItem):Promise<void> {
+  public async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (!isCocItem(item)) return
     let {increment} = this
     try {
@@ -210,12 +200,12 @@ export class Completion {
     }
   }
 
-  private async onInsertLeave():Promise<void> {
+  private async onInsertLeave(): Promise<void> {
     await this.nvim.call('coc#_hide')
     this.increment.stop()
   }
 
-  private onInsertCharPre(character:string):void {
+  private onInsertCharPre(character: string): void {
     let {increment} = this
     increment.lastInsert = {
       character,
@@ -223,7 +213,7 @@ export class Completion {
     }
   }
 
-  private async shouldTrigger(character:string):Promise<boolean> {
+  private async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
     let {nvim, sources} = this
     let autoTrigger = workspace.getConfiguration('coc.preferences').get('autoTrigger', 'always')

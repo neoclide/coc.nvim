@@ -1,11 +1,6 @@
-import {
-  LanguageClient,
-  LanguageClientOptions,
-  ServerOptions,
-  Middleware,
-} from '../../language-client/main'
-import * as net from 'net'
 import * as solargraph from '@chemzqm/solargraph-utils'
+import * as net from 'net'
+import {LanguageClient, LanguageClientOptions, Middleware, ServerOptions} from '../../language-client/main'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-solargraph-client')
 

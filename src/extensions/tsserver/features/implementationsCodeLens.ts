@@ -2,19 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import {CancellationToken, CodeLens, Command, Location, Range, TextDocument} from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import * as typeConverters from '../utils/typeConverters'
-import {
-  Range,
-  CodeLens,
-  TextDocument,
-  CancellationToken,
-  Command,
-  Location,
-} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
-import { TypeScriptBaseCodeLensProvider } from './baseCodeLensProvider'
+import {TypeScriptBaseCodeLensProvider} from './baseCodeLensProvider'
 
 export default class TypeScriptImplementationsCodeLensProvider extends TypeScriptBaseCodeLensProvider {
   public async resolveCodeLens(
@@ -33,25 +26,25 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
       if (response && response.body) {
         const locations = response.body
           .map(reference => {
-              return {
-                uri: this.client.toResource(reference.file),
-                range: {
-                  start: typeConverters.Position.fromLocation(reference.start),
-                  end: {
-                    line: reference.start.line,
-                    character: 0
-                  }
+            return {
+              uri: this.client.toResource(reference.file),
+              range: {
+                start: typeConverters.Position.fromLocation(reference.start),
+                end: {
+                  line: reference.start.line,
+                  character: 0
                 }
               }
-            })
+            }
+          })
           // Exclude original from implementations
           .filter(
             location => !(
-                location.uri.toString() === uri &&
-                location.range.start.line === codeLens.range.start.line &&
-                location.range.start.character ===
-                  codeLens.range.start.character
-              )
+              location.uri.toString() === uri &&
+              location.range.start.line === codeLens.range.start.line &&
+              location.range.start.character ===
+              codeLens.range.start.character
+            )
           )
 
         codeLens.command = this.getCommand(locations, codeLens)

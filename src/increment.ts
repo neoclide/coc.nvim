@@ -1,6 +1,6 @@
 import {Neovim} from 'neovim'
-import {CompleteOption} from './types'
 import completes from './completes'
+import {CompleteOption} from './types'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('increment')
@@ -59,10 +59,10 @@ export default class Increment extends Emitter {
    * @returns {Promise<void>}
    */
   public start(option: CompleteOption): void {
-    let {nvim,activted} = this
+    let {nvim, activted} = this
     if (activted) this.stop()
     this.activted = true
-    this.emit('start',Object.assign({},option))
+    this.emit('start', Object.assign({}, option))
     this.clearTimer()
     this.search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
@@ -76,7 +76,7 @@ export default class Increment extends Emitter {
     this.clearTimer()
     this.search = ''
     let completeOpt = workspace.getNvimSetting('completeOpt')
-    this.nvim.call('execute',[`noa set completeopt=${completeOpt}`]) // tslint:disable-line
+    this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
   }
 
   public get isActivted(): boolean {
@@ -91,10 +91,10 @@ export default class Increment extends Emitter {
   }
 
   public async getResumeInput(): Promise<string> {
-    let {activted,nvim} = this
+    let {activted, nvim} = this
     if (!activted) return null
     let {option} = completes
-    let search = await nvim.call('coc#util#get_search',[option.col])
+    let search = await nvim.call('coc#util#get_search', [option.col])
     this.search = search
     if (completes.completing) return null
     if (!search || !completes.hasMatch(search)) {
@@ -108,7 +108,7 @@ export default class Increment extends Emitter {
   // keep other options
   private static getStartOption(): string {
     let opt = workspace.getNvimSetting('completeOpt')
-    let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect','true')
+    let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
     let parts = opt.split(',')
     // longest & menu can't work with increment search
     parts.filter(s => s != 'menu' && s != 'longest')

@@ -1,10 +1,10 @@
+import fs from 'fs'
 import glob from 'glob'
 import {tmpdir} from 'os'
-import {validSocket} from './fs'
-import fs from 'fs'
 import pify from 'pify'
+import {validSocket} from './fs'
 
-export default async function():Promise<void> {
+export default async function(): Promise<void> {
   try {
     let dir = tmpdir()
     let files = glob.sync(dir + '/coc-*.sock')

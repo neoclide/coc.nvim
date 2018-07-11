@@ -2,14 +2,14 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import path from 'path'
 import fs from 'fs'
-import {TypeScriptServiceConfiguration} from './configuration'
-import API from './api'
+import path from 'path'
 import {getParentDirs} from '../../../util/fs'
+import API from './api'
+import {TypeScriptServiceConfiguration} from './configuration'
 
 export class TypeScriptVersion {
-  private _api:API | null | undefined
+  private _api: API | null | undefined
   constructor(
     public readonly path: string,
     private readonly _pathLabel?: string

@@ -2,26 +2,17 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import * as Proto from '../protocol'
-import {
-  DocumentRangeFormattingEditProvider,
-  DocumentFormattingEditProvider,
-  FormattingOptions,
-} from '../../../provider'
-import {
-  TextDocument,
-  CancellationToken,
-  TextEdit,
-  Range,
-} from 'vscode-languageserver-protocol'
-import {languageIds} from '../utils/languageModeIds'
+import {CancellationToken, Range, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
 import commandManager from '../../../commands'
+import {DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, FormattingOptions} from '../../../provider'
+import workspace from '../../../workspace'
+import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
+import {languageIds} from '../utils/languageModeIds'
 import * as typeConverters from '../utils/typeConverters'
 import FileConfigurationManager from './fileConfigurationManager'
-import workspace from '../../../workspace'
 
-export default class TypeScriptFormattingProvider implements DocumentRangeFormattingEditProvider,DocumentFormattingEditProvider {
+export default class TypeScriptFormattingProvider implements DocumentRangeFormattingEditProvider, DocumentFormattingEditProvider {
 
   public constructor(
     private readonly client: ITypeScriptServiceClient,
@@ -29,7 +20,7 @@ export default class TypeScriptFormattingProvider implements DocumentRangeFormat
   ) {
     commandManager.register({
       id: 'tsserver.format',
-      execute: async ():Promise<void> => {
+      execute: async (): Promise<void> => {
 
         let document = await workspace.document
         if (!document) return
@@ -37,7 +28,7 @@ export default class TypeScriptFormattingProvider implements DocumentRangeFormat
           return
         }
         let options = await workspace.getFormatOptions()
-        let edit  = await this.provideDocumentFormattingEdits(document.textDocument, options)
+        let edit = await this.provideDocumentFormattingEdits(document.textDocument, options)
         if (!edit) return
         await document.applyEdits(workspace.nvim, edit)
       }
@@ -93,7 +84,7 @@ export default class TypeScriptFormattingProvider implements DocumentRangeFormat
     if (!filepath) return []
     const args: Proto.FormatRequestArgs = {
       file: filepath,
-      line:1,
+      line: 1,
       offset: 1,
       endLine: document.lineCount + 1,
       endOffset: 1,

@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import {CancellationToken, Event} from 'vscode-languageserver-protocol'
-import {TypeScriptServiceConfiguration} from './utils/configuration'
 import Uri from 'vscode-uri'
 import * as Proto from './protocol'
 import API from './utils/api'
+import {TypeScriptServiceConfiguration} from './utils/configuration'
 
 export interface TypeScriptServerPlugin {
   readonly path: string
@@ -25,8 +25,8 @@ export interface ITypeScriptServiceClient {
 
   normalizePath(resource: Uri): string | null
   asUrl(filepath: string): Uri
-  toPath(uri:string):string
-  toResource(path:string):string
+  toPath(uri: string): string
+  toResource(path: string): string
 
   execute(
     command: 'configure',

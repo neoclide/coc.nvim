@@ -1,10 +1,7 @@
-import { Neovim } from 'neovim'
-import {
-  SourceConfig,
-  CompleteOption,
-  CompleteResult} from '../types'
-import {statAsync} from '../util/fs'
+import {Neovim} from 'neovim'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {statAsync} from '../util/fs'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
@@ -14,7 +11,7 @@ let words = null
 let file = path.resolve(__dirname, '../../data/10k.txt')
 
 export default class Word extends Source {
-  constructor(nvim: Neovim, opts:SourceConfig) {
+  constructor(nvim: Neovim, opts: SourceConfig) {
     super(nvim, {
       name: 'word',
       ...opts,

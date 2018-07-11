@@ -51,6 +51,8 @@ Check out the official specification at https://microsoft.github.io/language-ser
 * ✗ Document on Type Formatting
 * ✓ Rename
 
+**Note:** different server could have different capabilities.
+
 ## Completion sources
 
 ### Common sources

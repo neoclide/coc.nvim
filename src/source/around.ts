@@ -1,17 +1,14 @@
-import { Neovim } from 'neovim'
-import {
-  CompleteOption,
-  SourceConfig,
-  CompleteResult} from '../types'
+import {Neovim} from 'neovim'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
-  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'around',
-      ... opts
+      ...opts
     })
   }
 

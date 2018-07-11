@@ -2,29 +2,19 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import workspace from '../../workspace'
-import {
-  Disposable,
-  Diagnostic,
-  DiagnosticSeverity,
-} from 'vscode-languageserver-protocol'
-import {
-  DiagnosticKind,
-} from '../../types'
-import {
-  disposeAll,
-} from '../../util'
+import {Diagnostic, DiagnosticSeverity, Disposable} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {
-  errorMsg
-} from './utils/nvimBinding'
+import {DiagnosticKind} from '../../types'
+import {disposeAll} from '../../util'
+import workspace from '../../workspace'
+import LanguageProvider from './languageProvider'
 import * as Proto from './protocol'
 import * as PConst from './protocol.const'
 import TypeScriptServiceClient from './typescriptServiceClient'
-import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
-import * as typeConverters from './utils/typeConverters'
-import LanguageProvider from './languageProvider'
 import {LanguageDescription} from './utils/languageDescription'
+import {errorMsg} from './utils/nvimBinding'
+import * as typeConverters from './utils/typeConverters'
+import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
 const logger = require('../../util/logger')('tsserver-clienthost')
 
 // Style check diagnostics that can be reported as warnings
@@ -124,7 +114,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
   }
 
   // typescript or javascript
-  public getProvider(languageId:string):LanguageProvider {
+  public getProvider(languageId: string): LanguageProvider {
     return this.languagePerId.get(languageId)
   }
 
@@ -141,7 +131,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
     }
   }
 
-  private triggerAllDiagnostics():void {
+  private triggerAllDiagnostics(): void {
     for (const language of this.languagePerId.values()) {
       language.triggerAllDiagnostics()
     }
@@ -177,7 +167,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
   }
 
   private tsDiagnosticToLspDiagnostic(diagnostic: Proto.Diagnostic, source: string): Diagnostic {
-    const { start, end, text } = diagnostic
+    const {start, end, text} = diagnostic
     const range = {
       start: typeConverters.Position.fromLocation(start),
       end: typeConverters.Position.fromLocation(end)

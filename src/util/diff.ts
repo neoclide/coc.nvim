@@ -1,10 +1,6 @@
-import {IDiffResult} from 'diff'
-import {
-  ChangedLines,
-  ChangeItem,
-} from '../types'
-import diff = require('diff')
-import fastDiff = require('fast-diff')
+import diff, {IDiffResult} from 'diff'
+import fastDiff from 'fast-diff'
+import {ChangedLines, ChangeItem} from '../types'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -13,9 +9,9 @@ interface Change {
   newText: string
 }
 
-export function diffLines(from:string, to:string):ChangedLines {
-  let diffs:IDiffResult[] = diff.diffLines(from, to)
-  let change:any = {}
+export function diffLines(from: string, to: string): ChangedLines {
+  let diffs: IDiffResult[] = diff.diffLines(from, to)
+  let change: any = {}
   let lnum = 0
   for (let diff of diffs) {
     if (diff.removed) {
@@ -47,7 +43,7 @@ export function diffLines(from:string, to:string):ChangedLines {
   }
 }
 
-export function getChangeItem(oldStr:string, newStr:string):ChangeItem {
+export function getChangeItem(oldStr: string, newStr: string): ChangeItem {
   let change = getChange(oldStr, newStr)
   if (!change) return
   let {start, end} = change
@@ -58,7 +54,7 @@ export function getChangeItem(oldStr:string, newStr:string):ChangeItem {
   }
 }
 
-export function getChange(oldStr:string, newStr:string):Change {
+export function getChange(oldStr: string, newStr: string): Change {
   if (oldStr == newStr) return null
   let result = fastDiff(oldStr, newStr, 1)
   let curr = 0

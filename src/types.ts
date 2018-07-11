@@ -1,10 +1,4 @@
-import {
-  Diagnostic,
-  Event,
-  TextDocument,
-  TextEdit,
-  TextDocumentSaveReason,
-} from 'vscode-languageserver-protocol'
+import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit} from 'vscode-languageserver-protocol'
 
 export type Filter = 'word' | 'fuzzy'
 
@@ -203,7 +197,7 @@ export interface WorkspaceConfiguration {
    * @param value The new value.
    * @param isGlobal if true, update global configuration
    */
-  update(section: string, value: any, isGlobal?: boolean):void
+  update(section: string, value: any, isGlobal?: boolean): void
 
   /**
    * Readable dictionary that backs this configuration.
@@ -260,12 +254,12 @@ export enum ServiceStat {
 }
 
 export interface DocumentInfo {
-  bufnr:number
-  uri:string
-  languageId:string
-  iskeyword:string
-  expandtab:boolean
-  tabstop:number
+  bufnr: number
+  uri: string
+  languageId: string
+  iskeyword: string
+  expandtab: boolean
+  tabstop: number
 }
 
 export interface IServiceProvider {
@@ -277,10 +271,10 @@ export interface IServiceProvider {
   languageIds: string[]
   // current state
   state: ServiceStat
-  init():void
-  dispose():void
-  stop():Promise<void> | void
-  restart():Promise<void> | void
+  init(): void
+  dispose(): void
+  stop(): Promise<void> | void
+  restart(): Promise<void> | void
   onServiceReady: Event<void>
 }
 
@@ -298,13 +292,13 @@ export interface ISource {
   /**
    * @public source
    */
-  refresh?():Promise<void>
+  refresh?(): Promise<void>
   /**
    * For disable/enable
    *
    * @public source
    */
-  toggle?():void
+  toggle?(): void
 
   /**
    * Do completetion
@@ -321,7 +315,7 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteResolve?(item:VimCompleteItem):Promise<void>
+  onCompleteResolve?(item: VimCompleteItem): Promise<void>
   /**
    * Action for complete item on complete done
    *
@@ -329,7 +323,7 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteDone?(item:VimCompleteItem):Promise<void>
+  onCompleteDone?(item: VimCompleteItem): Promise<void>
 
   /**
    * Check if this source should work
@@ -365,7 +359,7 @@ export interface DiagnosticCollection {
    * @param uri A resource identifier.
    * @param diagnostics Array of diagnostics or `undefined`
    */
-  set(uri: string, diagnostics: Diagnostic[] | null):void
+  set(uri: string, diagnostics: Diagnostic[] | null): void
   /**
    * Replace all entries in this collection.
    *
@@ -376,7 +370,7 @@ export interface DiagnosticCollection {
    *
    * @param entries An array of tuples, like `[[file1, [d1, d2]], [file2, [d3, d4, d5]]]`, or `undefined`.
    */
-  set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]):void
+  set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]): void
 
   /**
    * Remove all diagnostics from this collection that belong
@@ -464,7 +458,7 @@ export interface TextDocumentWillSaveEvent {
    *
    * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
    */
-  waitUntil(thenable: Thenable<TextEdit[]|any>): void
+  waitUntil(thenable: Thenable<TextEdit[] | any>): void
 }
 
 export interface Thenable<T> {

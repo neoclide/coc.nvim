@@ -1,19 +1,13 @@
 import {Neovim} from 'neovim'
-import {
-  Placeholder,
-} from './parser'
-import {
-  getChangeItem,
-} from '../util/diff'
-import Snippet from './snippet'
-import workspace from '../workspace'
+import {DidChangeTextDocumentParams} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import {
-  DidChangeTextDocumentParams
-} from 'vscode-languageserver-protocol'
+import {getChangeItem} from '../util/diff'
+import workspace from '../workspace'
+import {Placeholder} from './parser'
+import Snippet from './snippet'
 const logger = require('../util/logger')('snippet-manager')
 
-function onError(err):void {
+function onError(err): void {
   logger.error(err.stack)
 }
 
@@ -28,11 +22,11 @@ export class SnippetManager {
   private currIndex = -1
   private changedtick: number
 
-  public get isActivted():boolean {
+  public get isActivted(): boolean {
     return this.activted
   }
 
-  public init(nvim:Neovim):void {
+  public init(nvim: Neovim): void {
     this.nvim = nvim
     workspace.onDidChangeTextDocument(this.onDocumentChange, this)
     workspace.onDidCloseTextDocument(textDocument => {
@@ -42,7 +36,7 @@ export class SnippetManager {
     })
   }
 
-  public async attach():Promise<void> {
+  public async attach(): Promise<void> {
     let {snippet, document} = this
     if (!snippet || !document) return
     let linenr = await workspace.nvim.call('line', ['.']) as number
@@ -56,7 +50,7 @@ export class SnippetManager {
     this.activted = true
   }
 
-  public async detach():Promise<void> {
+  public async detach(): Promise<void> {
     if (!this.activted) return
     this.activted = false
     this.uri = ''
@@ -69,11 +63,11 @@ export class SnippetManager {
     }
   }
 
-  public get document():Document {
+  public get document(): Document {
     return workspace.getDocument(this.uri)
   }
 
-  private async onLineChange(content:string):Promise<void> {
+  private async onLineChange(content: string): Promise<void> {
     let {snippet, document} = this
     if (!document) return
     let text = snippet.toString()
@@ -96,7 +90,7 @@ export class SnippetManager {
     })
   }
 
-  public async insertSnippet(document: Document,line:number, newLine:string):Promise<void> {
+  public async insertSnippet(document: Document, line: number, newLine: string): Promise<void> {
     if (this.activted) await this.detach()
     try {
       let {buffer} = document
@@ -113,7 +107,7 @@ export class SnippetManager {
     }
   }
 
-  public async jumpTo(marker: Placeholder):Promise<void> {
+  public async jumpTo(marker: Placeholder): Promise<void> {
     // need this since TextChangedP doesn't fire contentChange
     await this.ensureCurrentLine()
     let {snippet, nvim, startLnum} = this
@@ -130,12 +124,12 @@ export class SnippetManager {
     this.currIndex = marker.index
   }
 
-  public async jumpNext():Promise<void> {
+  public async jumpNext(): Promise<void> {
     let {currIndex, snippet} = this
     let {maxIndex} = snippet
     let valid = await this.checkPosition()
     if (!valid) return
-    let idx:number
+    let idx: number
     if (currIndex == maxIndex) {
       idx = 0
     } else {
@@ -147,12 +141,12 @@ export class SnippetManager {
     if (placeholder) await this.jumpTo(placeholder)
   }
 
-  public async jumpPrev():Promise<void> {
+  public async jumpPrev(): Promise<void> {
     let {currIndex, snippet} = this
     let {maxIndex} = snippet
     let valid = await this.checkPosition()
     if (!valid) return
-    let idx:number
+    let idx: number
     if (currIndex == 0) {
       idx = maxIndex
     } else {
@@ -164,7 +158,7 @@ export class SnippetManager {
     if (placeholder) await this.jumpTo(placeholder)
   }
 
-  public async checkPosition():Promise<boolean> {
+  public async checkPosition(): Promise<boolean> {
     let lnum = await this.nvim.call('line', ['.'])
     if (lnum - 1 != this.startLnum) {
       await this.detach()
@@ -178,7 +172,7 @@ export class SnippetManager {
    *
    * @private
    */
-  private async ensureCurrentLine():Promise<void> {
+  private async ensureCurrentLine(): Promise<void> {
     let {document, startLnum} = this
     if (!document) return
     let line = this.snippet.toString()

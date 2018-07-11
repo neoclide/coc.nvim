@@ -3,7 +3,7 @@ import fs from 'fs'
 import {statAsync} from './fs'
 const logger = require('./logger')('util-watch')
 
-export function watchFiles(uris: string[], onChange:()=>void):void {
+export function watchFiles(uris: string[], onChange: () => void): void {
   let callback = debounce(onChange, 200)
   Promise.all(uris.map(uri => {
     return statAsync(uri)

@@ -1,25 +1,4 @@
-import {
-  TextDocument,
-  Position,
-  CancellationToken,
-  CompletionItem,
-  CompletionList,
-  Location,
-  Hover,
-  SignatureHelp,
-  SymbolInformation,
-  Range,
-  WorkspaceEdit,
-  TextEdit,
-  CodeActionContext,
-  Command,
-  CodeAction,
-  Definition,
-  CodeActionKind,
-  DocumentLink,
-  DocumentHighlight,
-  CodeLens,
-} from 'vscode-languageserver-protocol'
+import {CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Command, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit} from 'vscode-languageserver-protocol'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
@@ -346,7 +325,7 @@ export interface DocumentSymbolProvider {
   provideDocumentSymbols(
     document: TextDocument,
     token: CancellationToken
-  ):ProviderResult<SymbolInformation[]>
+  ): ProviderResult<SymbolInformation[]>
 }
 
 /**

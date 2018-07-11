@@ -6,7 +6,7 @@ import catalog from './catalog.json'
 const logger = require('../../util/logger')('extension-json')
 
 interface ISchemaAssociations {
-    [pattern: string]: string[]
+  [pattern: string]: string[]
 }
 
 const ID = 'json'
@@ -22,9 +22,9 @@ export default class JsonService extends LanguageService {
     }, ['json', 'http'])
   }
 
-  public async init():Promise<void> {
+  public async init(): Promise<void> {
     await super.init()
-    let associations:ISchemaAssociations = {}
+    let associations: ISchemaAssociations = {}
     for (let item of catalog.schemas) {
       let {fileMatch, url} = item
       if (Array.isArray(fileMatch)) {

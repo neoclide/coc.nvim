@@ -81,14 +81,14 @@ export function getLanguageModelCache<T>(
       }
       return languageModel
     },
-    onDocumentRemoved(document: TextDocument):void {
+    onDocumentRemoved(document: TextDocument): void {
       let uri = document.uri
       if (languageModels[uri]) {
         delete languageModels[uri]
         nModels--
       }
     },
-    dispose():void {
+    dispose(): void {
       if (typeof cleanupInterval !== 'undefined') {
         clearInterval(cleanupInterval)
         cleanupInterval = void 0

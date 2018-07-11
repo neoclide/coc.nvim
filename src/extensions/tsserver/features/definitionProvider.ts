@@ -2,23 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {ITypeScriptServiceClient} from '../typescriptService'
-import {
-  DefinitionProvider,
-  TypeDefinitionProvider,
-  ImplementationProvider,
-} from '../../../provider'
-import * as typeConverters from '../utils/typeConverters'
+import {CancellationToken, Definition, Location, Position, TextDocument} from 'vscode-languageserver-protocol'
+import {DefinitionProvider, ImplementationProvider, TypeDefinitionProvider} from '../../../provider'
 import * as Proto from '../protocol'
-import {
-  TextDocument,
-  Position,
-  CancellationToken,
-  Definition,
-  Location,
-} from 'vscode-languageserver-protocol'
+import {ITypeScriptServiceClient} from '../typescriptService'
+import * as typeConverters from '../utils/typeConverters'
 
-export default class TypeScriptDefinitionProvider implements DefinitionProvider,TypeDefinitionProvider,ImplementationProvider {
+export default class TypeScriptDefinitionProvider implements DefinitionProvider, TypeDefinitionProvider, ImplementationProvider {
   constructor(private client: ITypeScriptServiceClient) {}
 
   protected async getSymbolLocations(

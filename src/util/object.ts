@@ -1,4 +1,4 @@
-import {isObject, isUndefinedOrNull, isArray} from './types'
+import {isArray, isObject, isUndefinedOrNull} from './types'
 
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
@@ -123,7 +123,7 @@ export function assign(destination: any, ...sources: any[]): any {
   return destination
 }
 
-export function arrayToHash(array: any[]):any {
+export function arrayToHash(array: any[]): any {
   const result: any = {}
   for (let i = 0; i < array.length; ++i) { // tslint:disable-line
     result[array[i]] = true

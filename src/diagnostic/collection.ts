@@ -1,24 +1,20 @@
-import {
-  Diagnostic,
-} from 'vscode-languageserver-protocol'
-import {
-  DiagnosticCollection
-} from '../types'
+import {Diagnostic} from 'vscode-languageserver-protocol'
+import {DiagnosticCollection} from '../types'
 import diagnosticManager from './manager'
 const logger = require('../util/logger')('diagnoctic-collection')
 
 export default class Collection implements DiagnosticCollection {
   public readonly name: string
-  private diagnosticsMap:Map<string, Diagnostic[]> = new Map()
+  private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
 
-  constructor(owner:string) {
+  constructor(owner: string) {
     this.name = owner
   }
 
-  public set(uri: string, diagnostics: Diagnostic[] | null):void
-  public set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]):void {
+  public set(uri: string, diagnostics: Diagnostic[] | null): void
+  public set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]): void {
     if (Array.isArray(entries)) {
-      let map:Map<string, Diagnostic[]> = new Map()
+      let map: Map<string, Diagnostic[]> = new Map()
       for (let item of entries) {
         let [file, diagnostics] = item
         let exists = map.get(file) || []
@@ -39,7 +35,7 @@ export default class Collection implements DiagnosticCollection {
     return
   }
 
-  public delete(uri: string):void {
+  public delete(uri: string): void {
     this.diagnosticsMap.delete(uri)
     diagnosticManager.clear(this.name, uri)
   }

@@ -1,9 +1,6 @@
-import {
-  IConfigurationModel,
-  IConfigurationData,
-} from '../types'
-import {isObject} from '../util/types'
+import {IConfigurationData, IConfigurationModel} from '../types'
 import {deepClone, deepFreeze} from '../util/object'
+import {isObject} from '../util/types'
 const logger = require('../util/logger')('model-configuration')
 
 export class ConfigurationModel implements IConfigurationModel {
@@ -194,7 +191,7 @@ export class Configuration {
     this._consolidateConfiguration = null
   }
 
-  public inspect<C>( key: string): {
+  public inspect<C>(key: string): {
     default: C
     user: C
     folder: C

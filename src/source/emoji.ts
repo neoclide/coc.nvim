@@ -1,10 +1,7 @@
-import { Neovim } from 'neovim'
-import {
-  CompleteOption,
-  SourceConfig,
-  CompleteResult} from '../types'
-import {statAsync} from '../util/fs'
+import {Neovim} from 'neovim'
 import Source from '../model/source'
+import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {statAsync} from '../util/fs'
 import fs = require('fs')
 import path = require('path')
 import pify = require('pify')
@@ -15,11 +12,11 @@ export interface Item {
   character: string
 }
 
-let items:Item[] | null = null
+let items: Item[] | null = null
 let file = path.resolve(__dirname, '../../data/emoji.txt')
 
 export default class Emoji extends Source {
-  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'emoji',
       ...opts,

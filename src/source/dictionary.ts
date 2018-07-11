@@ -7,13 +7,13 @@ import {statAsync} from '../util/fs'
 const logger = require('../util/logger')('source-dictionary')
 
 interface Dicts {
-  [index: string] : string[]
+  [index: string]: string[]
 }
 
-let dicts:Dicts = {}
+let dicts: Dicts = {}
 
 export default class Dictionary extends Source {
-  constructor(nvim: Neovim, opts:Partial<SourceConfig>) {
+  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, {
       name: 'dictionary',
       ...opts
@@ -30,7 +30,7 @@ export default class Dictionary extends Source {
     return true
   }
 
-  public async refresh():Promise<void> {
+  public async refresh(): Promise<void> {
     dicts = {}
     let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
     if (!dictOption) return
@@ -39,7 +39,7 @@ export default class Dictionary extends Source {
     logger.info('dict refreshed')
   }
 
-  public async getWords(files: string[]):Promise<string[]> {
+  public async getWords(files: string[]): Promise<string[]> {
     if (files.length == 0) return []
     let arr = await Promise.all(files.map(file => this.getDictWords(file)))
     let res = []
@@ -53,7 +53,7 @@ export default class Dictionary extends Source {
     return res
   }
 
-  private async getDictWords(file: string):Promise<string[]> {
+  private async getDictWords(file: string): Promise<string[]> {
     if (!file) return []
     let words = dicts[file] || null
     if (words && words.length) return words

@@ -1,7 +1,7 @@
 import path from 'path'
 import {LanguageService} from '../../language-client'
-import workspace from '../../workspace'
 import {LanguageClientOptions} from '../../language-client/main'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-stylelint')
 
 const ID = 'stylelint'
@@ -17,7 +17,7 @@ export default class JsonService extends LanguageService {
     }, ID)
   }
 
-  protected resolveClientOptions(clientOptions:LanguageClientOptions):LanguageClientOptions {
+  protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
     Object.assign(clientOptions, {
       synchronize: {
         configurationSection: ID,

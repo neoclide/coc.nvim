@@ -2,21 +2,17 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {ResourceMap} from './resourceMap'
-import {
-  Diagnostic
-} from 'vscode-languageserver-protocol'
-import {
-  DiagnosticCollection
-} from '../../../types'
+import {Diagnostic} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import languages from '../../../languages'
+import {DiagnosticCollection} from '../../../types'
+import {ResourceMap} from './resourceMap'
 const logger = require('../../../util/logger')('tsserver-diagnostics')
 
 export class DiagnosticSet {
   private _map = new ResourceMap<Diagnostic[]>()
 
-  public set(uri: string, diagnostics: Diagnostic[]):void {
+  public set(uri: string, diagnostics: Diagnostic[]): void {
     this._map.set(uri, diagnostics)
   }
 
@@ -58,7 +54,7 @@ export class DiagnosticsManager {
     this._currentDiagnostics = languages.createDiagnosticCollection('tsserver')
   }
 
-  public dispose():void {
+  public dispose(): void {
     this._currentDiagnostics.dispose()
     for (const value of this._pendingUpdates.values) {
       clearTimeout(value)
@@ -66,7 +62,7 @@ export class DiagnosticsManager {
     this._pendingUpdates = new ResourceMap<any>()
   }
 
-  public reInitialize():void {
+  public reInitialize(): void {
     this._currentDiagnostics.clear()
     for (const diagnosticSet of this._diagnostics.values()) {
       diagnosticSet.clear()
@@ -128,7 +124,7 @@ export class DiagnosticsManager {
     return []
   }
 
-  private scheduleDiagnosticsUpdate(uri: string):void {
+  private scheduleDiagnosticsUpdate(uri: string): void {
     if (!this._pendingUpdates.has(uri)) {
       this._pendingUpdates.set(
         uri,
@@ -137,7 +133,7 @@ export class DiagnosticsManager {
     }
   }
 
-  private updateCurrentDiagnostics(uri: string):void {
+  private updateCurrentDiagnostics(uri: string): void {
     if (this._pendingUpdates.has(uri)) {
       clearTimeout(this._pendingUpdates.get(uri))
       this._pendingUpdates.delete(uri)
@@ -155,7 +151,7 @@ export class DiagnosticsManager {
     this._currentDiagnostics.set(uri, allDiagnostics)
   }
 
-  private getSuggestionDiagnostics(uri: string):Diagnostic[] {
+  private getSuggestionDiagnostics(uri: string): Diagnostic[] {
     return this._diagnostics
       .get(DiagnosticKind.Suggestion)!
       .get(uri)
