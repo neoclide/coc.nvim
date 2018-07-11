@@ -77,7 +77,6 @@ export default class TypeScriptServiceClientHost implements Disposable {
       }
     }, null, this.disposables)
 
-    this.client.onResendModelsRequested(() => this.populateService(), null, this.disposables)
     this.typingsStatus = new TypingsStatus(this.client)
     this.ataProgressReporter = new AtaProgressReporter(this.client)
     for (const description of descriptions) { // tslint:disable-line
@@ -135,17 +134,6 @@ export default class TypeScriptServiceClientHost implements Disposable {
     for (const language of this.languagePerId.values()) {
       language.triggerAllDiagnostics()
     }
-  }
-
-  private populateService(): void {
-    // See https://github.com/Microsoft/TypeScript/issues/5530
-    workspace.saveAll(false).then(() => {
-      for (const language of this.languagePerId.values()) {
-        language.reInitialize()
-      }
-    }, () => {
-      // noop
-    })
   }
 
   private async diagnosticsReceived(

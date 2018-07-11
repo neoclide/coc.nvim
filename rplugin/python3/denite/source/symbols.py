@@ -16,7 +16,7 @@ class Source(Base):
 
         self.name = 'coc-symbols'
         self.matchers = ['matcher_fuzzy']
-        self.sorters = []
+        self.sorters = ['sorter/sublime']
         self.kind = FileKind(vim)
 
     def define_syntax(self):

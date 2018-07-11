@@ -145,12 +145,16 @@ export class ServiceManager implements Disposable {
       return echoErr(this.nvim, `Service ${id} not found`)
     }
     let {state} = service
-    if (state == ServiceStat.Running) {
-      await Promise.resolve(service.stop())
-    } else if (state == ServiceStat.Initial) {
-      await service.init()
-    } else if (state == ServiceStat.Stopped) {
-      await service.restart()
+    try {
+      if (state == ServiceStat.Running) {
+        await Promise.resolve(service.stop())
+      } else if (state == ServiceStat.Initial) {
+        await service.init()
+      } else if (state == ServiceStat.Stopped) {
+        await service.restart()
+      }
+    } catch (e) {
+      echoErr(this.nvim, `Service error: ${e.message}`)
     }
   }
 

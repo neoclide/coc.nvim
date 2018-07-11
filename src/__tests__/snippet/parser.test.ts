@@ -24,10 +24,6 @@ describe('snippet parser', () => {
     let text = 'main(${1|one,two,three|})'
     let snippet = new SnippetParser().parse(text, true, true)
     let placeholder = snippet.placeholders[0]
-    console.log(placeholder.len())
-    console.log(placeholder.choice.toString())
-    console.log(placeholder.choice.len())
-    console.log(placeholder.choice)
-    console.log(placeholder.choice.options.map(o => o.value))
+    expect(placeholder.choice.len()).toBe(3)
   })
 })

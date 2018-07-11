@@ -12,7 +12,7 @@ export default class TsserverService implements IServiceProvider {
   public name = 'tsserver'
   public enable: boolean
   // supported language types
-  public languageIds: string[]
+  public languageIds: string[] = languageIds
   public state = ServiceStat.Initial
   private clientHost: TypeScriptServiceClientHost
   private _onDidServiceReady = new Emitter<void>()
@@ -22,12 +22,10 @@ export default class TsserverService implements IServiceProvider {
   constructor() {
     const config = workspace.getConfiguration('tsserver')
     const enableJavascript = !!config.get<boolean>('enableJavascript')
-    let ids = languageIds
     if (!enableJavascript) {
-      ids = ids.filter(id => id.indexOf('javascript') == -1)
+      this.languageIds = languageIds.filter(id => id.indexOf('javascript') == -1)
     }
     this.enable = config.get<boolean>('enable')
-    this.languageIds = ids
   }
 
   public init(): void {
@@ -59,6 +57,7 @@ export default class TsserverService implements IServiceProvider {
   public async stop(): Promise<void> {
     if (!this.clientHost) return
     let client = this.clientHost.serviceClient
-    return client.stop()
+    await client.stop()
+    return
   }
 }

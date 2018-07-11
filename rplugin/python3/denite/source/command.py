@@ -14,7 +14,7 @@ class Source(Base):
 
         self.name = 'coc-command'
         self.matchers = ['matcher_fuzzy']
-        self.sorters = []
+        self.sorters = ['sorter/sublime']
         self.kind = SourceKind(vim)
 
     def define_syntax(self):

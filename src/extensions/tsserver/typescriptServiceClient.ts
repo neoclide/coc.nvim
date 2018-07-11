@@ -227,7 +227,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (this.servicePromise) {
       return Promise.resolve(this.servicePromise.then(childProcess => {
         this.state = ServiceStat.Stopping
-        this.info('Killing TS Server')
+        logger.info('Killing TS Server')
         childProcess.kill()
         this.resetClientVersion()
         this.servicePromise = null
@@ -239,14 +239,24 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public stop(): Promise<void> {
     if (!this.servicePromise) return
-    return Promise.resolve(this.servicePromise.then(childProcess => {
-      if (this.state == ServiceStat.Running) {
-        this.info('Killing TS Server')
-        childProcess.kill()
-        this.resetClientVersion()
-        this.servicePromise = null
-      }
-    }))
+    return new Promise((resolve, reject) => {
+      this.servicePromise.then(childProcess => {
+        if (this.state == ServiceStat.Running) {
+          logger.info('Killing TS Server')
+          childProcess.onExit(() => {
+            resolve()
+          })
+          setTimeout(() => {
+            reject(new Error('timeout after 1s'))
+          }, 1000)
+          childProcess.kill()
+          this.resetClientVersion()
+          this.servicePromise = null
+        } else {
+          resolve()
+        }
+      }, reject)
+    })
   }
 
   public get onTsServerStarted(): Event<API> {
@@ -273,14 +283,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public get apiVersion(): API {
     return this._apiVersion
-  }
-
-  private info(message: string, data?: any): void {
-    logger.info(message, data)
-  }
-
-  private error(message: string, data?: any): void {
-    logger.error(message, data)
   }
 
   private service(): Thenable<ForkedTsServerProcess> {
@@ -319,7 +321,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       echoErr(workspace.nvim, 'Can not find tsserver') // tslint:disable-line
       return
     }
-    this.info(`Using tsserver from: `, currentVersion.path)
+    logger.info(`Using tsserver from: `, currentVersion.path)
     this._apiVersion = currentVersion.version
     this.requestQueue = new RequestQueue()
     this.callbacks = new CallbackMap()
@@ -346,38 +348,34 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
             if (err || !childProcess) {
               this.state = ServiceStat.StartFailed
               this.lastError = err
-
-              this.error('Starting TSServer failed with error.', err)
-
-              /* __GDPR__
-              "error" : {}
-               */
+              logger.error('Starting TSServer failed with error.', err)
               this.resetClientVersion()
               return
             }
             this.state = ServiceStat.Running
-            this.info('Started TSServer', currentVersion)
+            logger.info('Started TSServer', currentVersion)
             const handle = new ForkedTsServerProcess(childProcess)
             this.lastStart = Date.now()
 
             handle.onError((err: Error) => {
               this.lastError = err
-              this.error('TSServer errored with error.', err)
+              logger.error('TSServer errored with error.', err)
+              echoErr(workspace.nvim, `TSServer errored with error. ${err.message}`)
               if (this.tsServerLogFile) {
-                this.error(`TSServer log file: ${this.tsServerLogFile}`)
+                logger.error(`TSServer log file: ${this.tsServerLogFile}`)
               }
               this.serviceExited(false)
             })
             handle.onExit((code: any) => {
-              if (code === null || typeof code === 'undefined') {
-                this.info('TSServer exited')
+              if (code == null) {
+                logger.info('TSServer normal exit')
               } else {
-                this.error(`TSServer exited with code: ${code}`)
+                logger.error(`TSServer exited with code: ${code}`)
               }
               if (this.tsServerLogFile) {
-                this.info(`TSServer log file: ${this.tsServerLogFile}`)
+                logger.info(`TSServer log file: ${this.tsServerLogFile}`)
               }
-              this.serviceExited(this.state !== ServiceStat.Starting)
+              this.serviceExited(code != null)
             })
 
             handle.createReader(
@@ -385,7 +383,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
                 this.dispatchMessage(msg)
               },
               error => {
-                this.error('ReaderError', error)
+                logger.error('ReaderError', error)
               }
             )
             resolve(handle)
@@ -401,17 +399,17 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   public async openTsServerLogFile(): Promise<boolean> {
     if (!this.apiVersion.gte(API.v222)) {
-      echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+')
       return false
     }
 
     if (this._configuration.tsServerLogLevel === TsServerLogLevel.Off) {
-      echoErr(workspace.nvim, 'TS Server logging is off. Set env TSS_LOG_LEVEL to enable logging') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server logging is off. Set env TSS_LOG_LEVEL to enable logging')
       return false
     }
 
     if (!this.tsServerLogFile) {
-      echoErr(workspace.nvim, 'TS Server has not started logging.') // tslint:disable-line
+      echoErr(workspace.nvim, 'TS Server has not started logging.')
       return false
     }
 
@@ -419,7 +417,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       await workspace.nvim.command(`edit ${this.tsServerLogFile}`)
       return true
     } catch {
-      echoErr(workspace.nvim, 'Could not open TS Server log file') // tslint:disable-line
+      echoErr(workspace.nvim, 'Could not open TS Server log file')
       return false
     }
   }
@@ -441,7 +439,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     configuration: TypeScriptServiceConfiguration
   ): void {
     if (!this.apiVersion.gte(API.v206)) return
-
     const args: Proto.SetCompilerOptionsForInferredProjectsArgs = {
       options: this.getCompilerOptionsForInferredProjects(configuration)
     }
@@ -573,7 +570,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         }
       }).catch((err: any) => {
         if (!wasCancelled && command != 'signatureHelp') {
-          this.error(`'${command}' request failed with error.`, err)
+          logger.error(`'${command}' request failed with error.`, err)
         }
         throw err
       })
@@ -750,10 +747,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         const logDir = os.tmpdir()
         if (logDir) {
           this.tsServerLogFile = path.join(logDir, `coc-nvim-tsc.log`)
-          this.info('TSServer log file :', this.tsServerLogFile)
+          logger.info('TSServer log file :', this.tsServerLogFile)
         } else {
           this.tsServerLogFile = null
-          this.error('Could not create TSServer log directory')
+          logger.error('Could not create TSServer log directory')
         }
 
         if (this.tsServerLogFile) {

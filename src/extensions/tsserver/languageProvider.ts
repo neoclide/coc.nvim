@@ -74,9 +74,16 @@ export default class LanguageProvider {
 
     workspace.onDidChangeConfiguration(this.configurationChanged, this, this.disposables)
 
+    let initialized = false
+
     client.onTsServerStarted(async () => { // tslint:disable-line
-      await this.registerProviders(client, typingsStatus)
-      this.bufferSyncSupport.listen()
+      if (!initialized) {
+        initialized = true
+        await this.registerProviders(client, typingsStatus)
+        this.bufferSyncSupport.listen()
+      } else {
+        this.reInitialize()
+      }
     })
   }
 
@@ -278,7 +285,7 @@ export default class LanguageProvider {
 
   public reInitialize(): void {
     this.diagnosticsManager.reInitialize()
-    this.bufferSyncSupport.requestAllDiagnostics()
+    this.bufferSyncSupport.reInitialize()
   }
 
   public triggerAllDiagnostics(): void {

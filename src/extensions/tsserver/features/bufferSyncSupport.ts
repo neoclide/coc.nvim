@@ -70,6 +70,10 @@ export default class BufferSyncSupport {
     workspace.textDocuments.forEach(this.onDidOpenTextDocument, this)
   }
 
+  public reInitialize(): void {
+    workspace.textDocuments.forEach(this.onDidOpenTextDocument, this)
+  }
+
   public set validate(value: boolean) {
     this._validate = value
   }
