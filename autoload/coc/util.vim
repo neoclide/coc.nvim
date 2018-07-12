@@ -312,3 +312,20 @@ function! coc#util#open_codelens()
   hi def link codelinesLineNumbder Comment
   hi def link codelinesAction      MoreMsg
 endfunction
+
+" change content of current buffer
+function! coc#util#buf_setlines(lines)
+  let l:winview = winsaveview()
+  let count = line('$')
+  keepjumps call setline(1, a:lines)
+  if count > len(a:lines)
+    let lnum = len(a:lines) + 1
+    execute 'keepjumps normal '.lnum.'G'
+    keepjumps normal! dG
+  endif
+  call winrestview(l:winview)
+endfunction
+
+function! coc#util#setline(lnum, line)
+  keepjumps call setline(a:lnum, a:line)
+endfunction

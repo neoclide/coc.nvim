@@ -1,7 +1,7 @@
 import {Neovim} from 'neovim'
 import net from 'net'
 import path from 'path'
-import {Disposable, Range} from 'vscode-languageserver-protocol'
+import {Disposable, Range, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import * as platform from './platform'
 export {platform}
@@ -120,6 +120,16 @@ export function rangeOfLine(range: Range, line: number): boolean {
   let {start, end} = range
   if (start.line != line) return false
   if (end.line == line || (end.line == line + 1 && end.character == 0)) {
+    return true
+  }
+  return false
+}
+
+export function isLineEdit(edit: TextEdit): boolean {
+  let {newText, range} = edit
+  let {start, end} = range
+  if (start.line == end.line) return true
+  if (end.line == start.line + 1 && newText.endsWith('\n')) {
     return true
   }
   return false

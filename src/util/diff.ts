@@ -1,6 +1,7 @@
-import diff, {IDiffResult} from 'diff'
+import {IDiffResult} from 'diff'
 import fastDiff from 'fast-diff'
 import {ChangedLines, ChangeItem} from '../types'
+import diff = require('diff')
 const logger = require('./logger')('util-diff')
 
 interface Change {

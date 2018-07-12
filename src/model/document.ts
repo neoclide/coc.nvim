@@ -5,7 +5,7 @@ import Uri from 'vscode-uri'
 import {BufferOption} from '../types'
 import {getChange} from '../util/diff'
 import {isGitIgnored} from '../util/fs'
-import {disposeAll, getUri} from '../util/index'
+import {disposeAll, getUri, isLineEdit} from '../util/index'
 import {Chars} from './chars'
 const logger = require('../util/logger')('model-document')
 
@@ -227,16 +227,28 @@ export default class Document {
   }
 
   public async applyEdits(nvim: Neovim, edits: TextEdit[]): Promise<void> {
+    if (edits.length == 0) return
     let content = TextDocument.applyEdits(this.textDocument, edits)
+    let buffer = await nvim.buffer
     let buffers = await nvim.buffers
     let {bufnr} = this
     let buf = buffers.find(b => b.id == bufnr)
     if (buf) {
-      await buf.setLines(content.split(/\r?\n/), {
-        start: 0,
-        end: -1,
-        strictIndexing: false
-      })
+      if (buffer.id == bufnr) {
+        if (edits.length == 1 && isLineEdit(edits[0])) {
+          let lnum = edits[0].range.start.line + 1
+          let line = content.split('\n')[lnum - 1]
+          await nvim.call('coc#util#setline', [lnum, line])
+        } else {
+          await nvim.call('coc#util#buf_setlines', [content.split('\n')])
+        }
+      } else {
+        await buf.setLines(content.split(/\r?\n/), {
+          start: 0,
+          end: -1,
+          strictIndexing: false
+        })
+      }
     }
   }
 
