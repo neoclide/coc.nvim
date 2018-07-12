@@ -6,3 +6,5 @@
 # 2018-07-13
 
 * **Break change:** `diagnoctic` in setting.json changed to `diagnostic`
+* Fix clearHighlight arguments
+* Add eslint extension https://github.com/Microsoft/vscode-eslint

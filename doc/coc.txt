@@ -184,6 +184,21 @@ g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 <
 			Default: 1
 
+g:coc_codelen_jump_key 				*g:coc_codelen_jump_key*
+
+			Jump key for jump to original position in codeLens
+			buffer.
+
+			Default: <CR>
+
+g:coc_codelen_action_key 			*g:coc_codelen_action_key*
+
+			Do command of codeLens in codeLens buffer, a prompt
+			would be shown if multiply codeLens found at the
+			same line.
+
+			Default: <d>
+
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			Diagnostic infomation of current buffer, can be used
 			for customize status line, like: >
@@ -201,22 +216,6 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			  return join(msgs, ' ')
 			endfunction
 <
-
-g:coc_codelen_jump_key 				*g:coc_codelen_jump_key*
-
-			Jump key for jump to original position in codeLens
-			buffer.
-
-			Default: <CR>
-
-g:coc_codelen_action_key 			*g:coc_codelen_action_key*
-
-			Do command of codeLens in codeLens buffer, a prompt
-			would be shown if multiply codeLens found at the
-			same line.
-
-			Default: <d>
-
 
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*

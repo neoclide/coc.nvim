@@ -50,7 +50,7 @@ export class ConfigurationFeature implements StaticFeature {
     if (section) {
       let index = section.lastIndexOf('.')
       if (index === -1) {
-        result = workspace.getConfiguration(undefined, resource).get(section)
+        result = workspace.getConfiguration(undefined, resource.toString()).get(section)
       } else {
         let config = workspace.getConfiguration(section.substr(0, index))
         if (config) {
@@ -58,7 +58,7 @@ export class ConfigurationFeature implements StaticFeature {
         }
       }
     } else {
-      let config = workspace.getConfiguration(undefined, resource)
+      let config = workspace.getConfiguration(undefined, resource.toString())
       result = {}
       for (let key of Object.keys(config)) {
         if (config.has(key)) {

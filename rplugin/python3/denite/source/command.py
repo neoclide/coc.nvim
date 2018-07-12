@@ -15,11 +15,7 @@ class Source(Base):
         self.name = 'coc-command'
         self.matchers = ['matcher_fuzzy']
         self.sorters = ['sorter/sublime']
-        self.kind = SourceKind(vim)
-
-    def define_syntax(self):
-        self.vim.command('syntax case ignore')
-        self.vim.command(r'syntax match deniteCommand_CocHeader /\v^.*$/ containedin=' + self.syntax_name)
+        self.kind = Kind(vim)
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'commands')
@@ -34,7 +30,7 @@ class Source(Base):
         return candidates
 
 
-class SourceKind(BaseKind):
+class Kind(BaseKind):
 
     def __init__(self, vim):
         super().__init__(vim)

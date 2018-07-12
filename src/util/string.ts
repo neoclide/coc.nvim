@@ -28,3 +28,11 @@ export function isWord(character:string):boolean {
   if (code >= 97 && code <= 122) return true
   return false
 }
+
+export function trimLast(content:string, character:string):string {
+  let l = content.length
+  if (content[l - 1] == character) {
+    return content.slice(0, -1)
+  }
+  return content
+}

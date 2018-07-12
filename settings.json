@@ -7,13 +7,13 @@
   "coc.preferences.noselect": true,
   // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
   "coc.preferences.watchmanPath": "",
-  // enable diagnoctic
-  "coc.preferences.diagnoctic.enable": true,
-  "coc.preferences.diagnoctic.signOffset": 1000,
-  "coc.preferences.diagnoctic.errorSign": ">>",
-  "coc.preferences.diagnoctic.warningSign": "⚠",
-  "coc.preferences.diagnoctic.infoSign": ">>",
-  "coc.preferences.diagnoctic.hintSign": ">>",
+  // enable diagnostic
+  "coc.preferences.diagnostic.enable": true,
+  "coc.preferences.diagnostic.signOffset": 1000,
+  "coc.preferences.diagnostic.errorSign": ">>",
+  "coc.preferences.diagnostic.warningSign": "⚠",
+  "coc.preferences.diagnostic.infoSign": ">>",
+  "coc.preferences.diagnostic.hintSign": ">>",
   "tsserver.enable": true,
   // language locale
   "tsserver.locale": null,
@@ -175,6 +175,13 @@
   // or onSave
   "tslint.run": "onType",
   "tslint.alwaysShowRuleFailuresAsWarnings": true,
+  "eslint.enable": true,
+  "eslint.filetypes": ['javascript', 'javascript.jsx'],
+  // could be yarn
+  "eslint.packageManager": "npm",
+  "eslint.run": "onType",
+  "eslint.autoFix": true,
+  "eslint.autoFixOnSave": false,
   "stylelint.enable": true,
   "stylelint.filetypes": ["css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue"],
   "stylelint.configOverrides": {},

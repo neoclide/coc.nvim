@@ -47,8 +47,12 @@ export class ServiceManager implements Disposable {
         let fullpath = path.join(root, file)
         let stat = await statAsync(fullpath)
         if (stat && stat.isDirectory) {
-          let ServiceClass = require(fullpath).default
-          this.regist(new ServiceClass())
+          try {
+            let ServiceClass = require(fullpath).default
+            this.regist(new ServiceClass())
+          } catch (e) {
+            logger.error(`error loading ${file}: ${e.message}`)
+          }
         }
       }
       let ids = Array.from(this.registed.keys())

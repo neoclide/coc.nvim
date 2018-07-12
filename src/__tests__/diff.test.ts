@@ -35,4 +35,11 @@ describe('should get diffLines', () => {
     expect(d.end).toBe(5)
     expect(d.replacement).toEqual(['5', '3', '6', '7'])
   })
+
+  it('should get diff for remove', () => {
+    let d = diffLines('1\n2\n3\n4', '1\n4')
+    expect(d.start).toBe(1)
+    expect(d.end).toBe(3)
+    expect(d.replacement).toEqual([])
+  })
 })

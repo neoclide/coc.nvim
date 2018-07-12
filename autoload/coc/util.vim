@@ -329,3 +329,21 @@ endfunction
 function! coc#util#setline(lnum, line)
   keepjumps call setline(a:lnum, a:line)
 endfunction
+
+function! coc#util#open_terminal(cmd, cwd)
+  execute 'belowright 5new'
+  setl winfixheight
+  setl norelativenumber
+  call termopen(a:cmd, {
+        \ 'cwd': a:cwd,
+        \ 'on_exit': function('s:OnExit'),
+        \ 'buffer_nr': bufnr('%'),
+        \})
+  startinsert
+endfunction
+
+function! s:OnExit(job_id, status, event) dict
+  if a:status == 0
+    execute 'silent! bd! '.self.buffer_nr
+  endif
+endfunction

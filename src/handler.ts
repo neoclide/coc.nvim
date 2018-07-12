@@ -327,9 +327,7 @@ export default class Handler {
     let action = codeActions[idx]
     if (action) {
       let {command, edit} = action
-      if (edit) {
-        await workspace.applyEdit(edit)
-      }
+      if (edit) await workspace.applyEdit(edit)
       if (command) commandManager.execute(command)
     } else {
       await echoErr(this.nvim, 'code action not found')

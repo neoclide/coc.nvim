@@ -19,7 +19,7 @@ export class LanguageService implements IServiceProvider {
   private configSections: string | string[]
   protected client: LanguageClient
   private _onDidServiceReady = new Emitter<void>()
-  private readonly disposables: Disposable[] = []
+  protected readonly disposables: Disposable[] = []
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
 
   constructor(

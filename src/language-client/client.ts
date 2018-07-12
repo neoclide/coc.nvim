@@ -3631,7 +3631,6 @@ export abstract class BaseLanguageClient {
 
   public restart(): void {
     this.cleanUp(false)
-    this.state = ClientState.Initial
     this.start()
   }
 
