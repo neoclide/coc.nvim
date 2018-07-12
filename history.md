@@ -9,4 +9,4 @@
 * Fix clearHighlight arguments
 * Add eslint extension https://github.com/Microsoft/vscode-eslint
 * Fix snippet break with line have $variable
-
+* Use jsonc-parser replace json5

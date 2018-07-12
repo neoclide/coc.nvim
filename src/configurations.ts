@@ -1,9 +1,9 @@
 import {Configuration, ConfigurationModel} from './model/configuration'
-import {ConfigurationInspect, IConfigurationData, IConfigurationModel, MainThreadConfigurationShape, WorkspaceConfiguration} from './types'
+import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration} from './types'
 import {readFile, statAsync} from './util/fs'
 import {mixin} from './util/object'
 import {isEmptyObject, isObject} from './util/types'
-import JSON5 = require('json5')
+import {parse} from 'jsonc-parser'
 const logger = require('./util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -19,7 +19,7 @@ function lookUp(tree: any, key: string): any {
 }
 
 export default class Configurations {
-  private readonly _proxy: MainThreadConfigurationShape
+  // private readonly _proxy: MainThreadConfigurationShape
   private _configuration: Configuration
 
   constructor(data: IConfigurationData) {
@@ -96,7 +96,7 @@ export async function parseContentFromFile(filepath: string): Promise<IConfigura
 }
 
 export function parseContent(content: string): any {
-  let data = JSON5.parse(content)
+  let data = parse(content)
   function addProperty(current: object, key: string, remains: string[], value: any): void {
     if (remains.length == 0) {
       current[key] = convert(value)
