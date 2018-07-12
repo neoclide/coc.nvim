@@ -8,7 +8,7 @@ export default class Snippet {
   public textmateSnippet: TextmateSnippet
   public readonly maxIndex: number
 
-  constructor(content: string) {
+  constructor(content: string, private prepend = '', private append = '') {
     this.textmateSnippet = new SnippetParser().parse(content, false, false)
     let max = 0
     let {placeholders} = this.textmateSnippet
@@ -19,11 +19,11 @@ export default class Snippet {
   }
 
   public toString(): string {
-    return this.textmateSnippet.toString()
+    return this.prepend + this.textmateSnippet.toString() + this.append
   }
 
   public offset(marker: Marker): number {
-    return this.textmateSnippet.offset(marker)
+    return this.prepend.length + this.textmateSnippet.offset(marker)
   }
 
   public get marks(): Marker[] {
@@ -62,13 +62,15 @@ export default class Snippet {
    *
    * @public
    * @param {ChangeItem} change
-   * @param {number} offset - character offset from snippet beginning
+   * @param {number} offset - character offset from line beginning
    * @returns {FindResult} - placeholder and start offset of change
    */
   public findPlaceholder(change: ChangeItem, offset: number): FindResult {
     let marker: Marker = null
     let start = 0
     let pos = 0
+    offset = offset - this.prepend.length
+    if (offset < 0) return [null, 0]
     this.textmateSnippet.walk(o => {
       pos += o.len()
       if (pos == offset && o instanceof Placeholder) {
@@ -109,7 +111,7 @@ export default class Snippet {
    * @public
    * @param {ChangeItem} change
    * @param {string} text - original text
-   * @param {number} start
+   * @param {number} start - start position of snippet
    * @returns {string}
    */
   public getNewText(change: ChangeItem, placeholder: Placeholder, start: number): string {

@@ -1,10 +1,11 @@
 import {Neovim} from 'neovim'
-import {DidChangeTextDocumentParams} from 'vscode-languageserver-protocol'
+import {DidChangeTextDocumentParams, TextEdit} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import {getChangeItem} from '../util/diff'
 import workspace from '../workspace'
 import {Placeholder} from './parser'
 import Snippet from './snippet'
+import {wait, isLineEdit} from '../util'
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err): void {
@@ -16,7 +17,6 @@ export class SnippetManager {
   private activted = false
   // zero indexed
   private startLnum: number
-  private lineCount: number
   private uri: string
   private nvim: Neovim
   private currIndex = -1
@@ -41,7 +41,6 @@ export class SnippetManager {
     if (!snippet || !document) return
     let linenr = await workspace.nvim.call('line', ['.']) as number
     this.startLnum = linenr - 1
-    this.lineCount = document.lineCount
     let placeholder = snippet.firstPlaceholder
     if (placeholder) await this.jumpTo(placeholder)
     if (snippet.hasPlaceholder) {
@@ -90,12 +89,12 @@ export class SnippetManager {
     })
   }
 
-  public async insertSnippet(document: Document, line: number, newLine: string): Promise<void> {
+  public async insertSnippet(document: Document, line: number, newLine: string, prepend:string, append:string): Promise<void> {
     if (this.activted) await this.detach()
     try {
       let {buffer} = document
       this.uri = document.uri
-      this.snippet = new Snippet(newLine)
+      this.snippet = new Snippet(newLine, prepend, append)
       let str = this.snippet.toString()
       this.changedtick = document.changedtick
       await buffer.setLines(str, {
@@ -175,6 +174,8 @@ export class SnippetManager {
   private async ensureCurrentLine(): Promise<void> {
     let {document, startLnum} = this
     if (!document) return
+    // need this to make sure we have current line
+    await wait(20)
     let line = this.snippet.toString()
     let currline = document.getline(startLnum)
     if (line == currline) return
@@ -182,23 +183,28 @@ export class SnippetManager {
   }
 
   private onDocumentChange(e: DidChangeTextDocumentParams): void {
-    let {startLnum, lineCount, document, uri, activted} = this
-    let {textDocument} = e
+    let {startLnum, document, uri, activted} = this
+    let {textDocument, contentChanges} = e
     if (!activted || !document || uri !== textDocument.uri) return
-    // line count change
-    if (document.lineCount != lineCount) {
+    // fired by snippet manager
+    if (document.changedtick - this.changedtick == 1) return
+    let valid = true
+    if (contentChanges.length > 1) {
+      valid = false
+    } else {
+      let edit:TextEdit = {
+        range: contentChanges[0].range,
+        newText: contentChanges[0].text
+      }
+      if (edit.range == null || !isLineEdit(edit, startLnum)) {
+        valid = false
+      }
+    }
+    if (!valid) {
       this.detach().catch(onError)
       return
     }
     let newLine = document.getline(startLnum)
-    let line = this.snippet.toString()
-    // fired by snippet manager
-    if (document.changedtick - this.changedtick == 1) return
-    // other line change
-    if (newLine == line) {
-      this.detach().catch(onError)
-      return
-    }
     this.onLineChange(newLine).catch(onError)
   }
 }

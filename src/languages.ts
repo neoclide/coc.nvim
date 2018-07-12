@@ -5,7 +5,7 @@ import diagnosticManager from './diagnostic/manager'
 import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider} from './provider'
 import snippetManager from './snippet/manager'
 import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
-import {echoMessage, rangeOfLine} from './util'
+import {echoMessage, isLineEdit} from './util'
 import {diffLines} from './util/diff'
 import {byteSlice} from './util/string'
 import workspace from './workspace'
@@ -531,7 +531,7 @@ class Languages {
     if (!textEdit) return false
     let {range, newText} = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    let valid = rangeOfLine(range, option.linenr - 1)
+    let valid = isLineEdit(textEdit, option.linenr - 1)
     if (!valid) return false
     let document = workspace.getDocument(option.bufnr)
     if (!document) return false
@@ -543,7 +543,7 @@ class Languages {
     let end = line.substr(option.col + item.label.length + deleteCount)
     let newLine = `${start}${newText}${end}`
     if (isSnippet) {
-      await snippetManager.insertSnippet(document, option.linenr - 1, newLine)
+      await snippetManager.insertSnippet(document, option.linenr - 1, newText, start, end)
       return true
     }
     if (newLine != line) {

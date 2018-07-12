@@ -116,21 +116,12 @@ export function disposeAll(disposables: Disposable[]): void {
   }
 }
 
-export function rangeOfLine(range: Range, line: number): boolean {
-  let {start, end} = range
-  if (start.line != line) return false
-  if (end.line == line || (end.line == line + 1 && end.character == 0)) {
-    return true
-  }
-  return false
-}
-
-export function isLineEdit(edit: TextEdit): boolean {
+export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
   let {newText, range} = edit
   let {start, end} = range
-  if (start.line == end.line) return true
+  if (start.line == end.line) return lnum == null ? true : start.line == lnum
   if (end.line == start.line + 1 && newText.endsWith('\n')) {
-    return true
+    return lnum == null ? true : start.line == lnum
   }
   return false
 }
