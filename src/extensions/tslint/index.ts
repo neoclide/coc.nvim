@@ -83,9 +83,10 @@ export default class TslintService extends LanguageService {
       commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits)
       commandManager.registerCommand('_tslint.applyDisableRule', applyDisableRuleEdit)
       commandManager.registerCommand('_tslint.showRuleDocumentation', showRuleDocumentation)
+
       // user commandManager
-      commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems),
-        commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
+      commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems.bind(this))
+      commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
     })
   }
 

@@ -905,14 +905,7 @@ connection.onCodeAction(params => {
           documentVersion,
           concatenateEdits(all)
         )
-        // Contribute both a kind = Source and kind = Quick Fix. Then
-        // action appears in the light bulb (for backward compatibility) and the Source... quick pick.
         result.push(
-          server.CodeAction.create(
-            `${label} (tslint)`,
-            command,
-            server.CodeActionKind.Source
-          ),
           server.CodeAction.create(
             label,
             command,

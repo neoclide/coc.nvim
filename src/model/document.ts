@@ -3,7 +3,7 @@ import {Buffer, Neovim} from 'neovim'
 import {DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import {BufferOption} from '../types'
-import {getChange} from '../util/diff'
+import {getChange, diffLines} from '../util/diff'
 import {isGitIgnored} from '../util/fs'
 import {disposeAll, getUri, isLineEdit} from '../util/index'
 import {Chars} from './chars'
@@ -228,6 +228,7 @@ export default class Document {
 
   public async applyEdits(nvim: Neovim, edits: TextEdit[]): Promise<void> {
     if (edits.length == 0) return
+    let orig = this.content
     let content = TextDocument.applyEdits(this.textDocument, edits)
     let buffer = await nvim.buffer
     let buffers = await nvim.buffers
@@ -240,7 +241,12 @@ export default class Document {
           let line = content.split('\n')[lnum - 1]
           await nvim.call('coc#util#setline', [lnum, line])
         } else {
-          await nvim.call('coc#util#buf_setlines', [content.split('\n')])
+          let d = diffLines(orig, content)
+          await buf.setLines(d.replacement, {
+            start: d.start,
+            end: d.end,
+            strictIndexing: false
+          })
         }
       } else {
         await buf.setLines(content.split(/\r?\n/), {

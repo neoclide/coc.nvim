@@ -92,7 +92,10 @@ export class CommandManager implements Disposable {
 
   public execute(command: language.Command): void {
     let cmd = this.commands.get(command.command)
-    if (!cmd) return
+    if (!cmd) {
+      logger.error(`Command: ${command.command} not found`)
+      return
+    }
     cmd.execute(command.arguments)
   }
 
