@@ -44,3 +44,14 @@ export function distinct<T>(array: T[], keyFn?: (t: T) => string): T[] {
     return true
   })
 }
+
+export function lastIndex<T>(array: T[], fn: (t: T) => boolean): number {
+  let i = array.length - 1
+  while (i >= 0) {
+    if (fn(array[i])) {
+      break
+    }
+    i--
+  }
+  return i
+}
