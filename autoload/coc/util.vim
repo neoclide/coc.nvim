@@ -142,7 +142,7 @@ function! coc#util#get_config_home()
   if exists('$XDG_CONFIG_HOME')
     return resolve($XDG_CONFIG_HOME."/nvim")
   endif
-  return $HOME.'/.vim'
+  return resolve($HOME.'/.config/nvim')
 endfunction
 
 function! coc#util#get_input()
