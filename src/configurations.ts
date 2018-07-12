@@ -61,7 +61,7 @@ export default class Configurations {
             key,
             defaultValue: config.default,
             globalValue: config.user,
-            folderValue: config.folder,
+            workspaceValue: config.workspace,
           }
         }
         return undefined
@@ -81,8 +81,8 @@ export default class Configurations {
   private static parse(data: IConfigurationData): Configuration {
     const defaultConfiguration = Configurations.parseConfigurationModel(data.defaults)
     const userConfiguration = Configurations.parseConfigurationModel(data.user)
-    const folderConfiguration = Configurations.parseConfigurationModel(data.folder)
-    return new Configuration(defaultConfiguration, userConfiguration, folderConfiguration, new ConfigurationModel())
+    const workspaceConfiguration = Configurations.parseConfigurationModel(data.workspace)
+    return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
   }
 }
 

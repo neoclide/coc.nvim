@@ -162,15 +162,14 @@ export class Configuration {
   constructor(
     private _defaultConfiguration: ConfigurationModel,
     private _userConfiguration: ConfigurationModel,
-    private _folderConfiguration: ConfigurationModel,
+    private _workspaceConfiguration: ConfigurationModel,
     private _memoryConfiguration: ConfigurationModel = new ConfigurationModel(),
-    private _freeze = true
   ) {
   }
 
   private getConsolidateConfiguration(): ConfigurationModel {
     if (!this._consolidateConfiguration) {
-      this._consolidateConfiguration = this._defaultConfiguration.merge(this._userConfiguration, this._folderConfiguration, this._memoryConfiguration)
+      this._consolidateConfiguration = this._defaultConfiguration.merge(this._userConfiguration, this._workspaceConfiguration, this._memoryConfiguration)
       this._consolidateConfiguration = this._consolidateConfiguration.freeze()
     }
     return this._consolidateConfiguration
@@ -194,16 +193,16 @@ export class Configuration {
   public inspect<C>(key: string): {
     default: C
     user: C
-    folder: C
+    workspace: C
     memory?: C
     value: C
   } {
     const consolidateConfigurationModel = this.getConsolidateConfiguration()
-    const {_folderConfiguration, _memoryConfiguration} = this
+    const {_workspaceConfiguration, _memoryConfiguration} = this
     return {
       default: this._defaultConfiguration.freeze().getValue(key),
       user: this._userConfiguration.freeze().getValue(key),
-      folder: _folderConfiguration.freeze().getValue(key),
+      workspace: _workspaceConfiguration.freeze().getValue(key),
       memory: _memoryConfiguration.freeze().getValue(key),
       value: consolidateConfigurationModel.getValue(key)
     }
@@ -217,8 +216,8 @@ export class Configuration {
     return this._userConfiguration
   }
 
-  public get folder(): ConfigurationModel {
-    return this._folderConfiguration
+  public get workspace(): ConfigurationModel {
+    return this._workspaceConfiguration
   }
 
   public toData(): IConfigurationData {
@@ -229,8 +228,8 @@ export class Configuration {
       user: {
         contents: this._userConfiguration.contents
       },
-      folder: {
-        contents: this._folderConfiguration.contents
+      workspace: {
+        contents: this._workspaceConfiguration.contents
       }
     }
   }

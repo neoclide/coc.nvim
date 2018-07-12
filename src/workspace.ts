@@ -514,7 +514,7 @@ export class Workspace {
     return {
       defaults: defaultConfig,
       user: userConfig,
-      folder: projectConfig
+      workspace: projectConfig
     }
   }
 

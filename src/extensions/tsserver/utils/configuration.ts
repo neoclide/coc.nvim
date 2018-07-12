@@ -87,9 +87,9 @@ export class TypeScriptServiceConfiguration {
   private static extractLocalTsdk(configuration: WorkspaceConfiguration): string | null {
     const inspect = configuration.inspect('tsdk')
     if (inspect
-      && inspect.folderValue
-      && 'string' === typeof inspect.folderValue) {
-      return inspect.folderValue.length ? inspect.folderValue : null
+      && inspect.workspaceValue
+      && 'string' === typeof inspect.workspaceValue) {
+      return inspect.workspaceValue.length ? inspect.workspaceValue : null
     }
     return null
   }

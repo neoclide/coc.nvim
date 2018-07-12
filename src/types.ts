@@ -209,7 +209,7 @@ export interface ConfigurationInspect<T> {
   key: string
   defaultValue?: T
   globalValue?: T
-  folderValue?: T
+  workspaceValue?: T
 }
 
 export interface MainThreadConfigurationShape {
@@ -229,7 +229,7 @@ export interface IOverrides {
 export interface IConfigurationData {
   defaults: IConfigurationModel
   user: IConfigurationModel
-  folder: IConfigurationModel
+  workspace: IConfigurationModel
 }
 
 export enum ConfigurationTarget {
