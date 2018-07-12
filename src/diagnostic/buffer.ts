@@ -143,6 +143,11 @@ export class DiagnosticBuffer {
     if (!document) return
     try {
       let {buffer} = document
+      for (let name of this.srcIdMap.keys()) {
+        if (!owner || owner == name) {
+          await this.clearHighlight(this.srcIdMap.get(name))
+        }
+      }
       for (let key of this.signMap.keys()) {
         if (!owner || owner == key) {
           let ids = this.signMap.get(key)
@@ -150,11 +155,6 @@ export class DiagnosticBuffer {
             await nvim.call('coc#util#unplace_signs', [buffer.id, ids])
           }
           this.signMap.delete(key)
-        }
-      }
-      for (let srcId of this.srcIdMap.keys()) {
-        if (!owner || owner == srcId) {
-          await this.clearHighlight(this.srcIdMap.get(srcId))
         }
       }
       for (let srcId of this.infoMap.keys()) {
@@ -228,7 +228,7 @@ export class DiagnosticBuffer {
     let {document} = this
     if (!document) return
     let {buffer} = document
-    await buffer.clearHighlight({srcId})
+    await buffer.clearHighlight({srcId, lineStart: 1, lineEnd: -1})
   }
 
   private get document(): Document {
