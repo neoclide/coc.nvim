@@ -1,7 +1,7 @@
 import {Diagnostic} from 'vscode-languageserver-protocol'
 import {DiagnosticCollection} from '../types'
 import diagnosticManager from './manager'
-const logger = require('../util/logger')('diagnoctic-collection')
+const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
   public readonly name: string
@@ -18,9 +18,9 @@ export default class Collection implements DiagnosticCollection {
       for (let item of entries) {
         let [file, diagnostics] = item
         let exists = map.get(file) || []
-        for (let diagnoctic of diagnostics) {
-          diagnoctic.source = diagnoctic.source || this.name
-          exists.push(diagnoctic)
+        for (let diagnostic of diagnostics) {
+          diagnostic.source = diagnostic.source || this.name
+          exists.push(diagnostic)
         }
         map.set(file, exists)
       }

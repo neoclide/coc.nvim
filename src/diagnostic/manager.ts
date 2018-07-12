@@ -6,7 +6,7 @@ import {DiagnosticItem} from '../types'
 import workspace from '../workspace'
 import {DiagnosticBuffer, DiagnosticConfig} from './buffer'
 import DiagnosticCollection from './collection'
-import debounce = require('debounce')
+import debounce from 'debounce'
 const logger = require('../util/logger')('diagnostic-manager')
 
 function severityName(severity: DiagnosticSeverity): string {
@@ -73,7 +73,7 @@ class DiagnosticManager {
   }
 
   private setConfiguration(): void {
-    let config = workspace.getConfiguration('coc.preferences.diagnoctic')
+    let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.config = {
       signOffset: config.get<number>('signOffset', 1000),
       errorSign: config.get<string>('errorSign', '>>'),
@@ -117,7 +117,7 @@ class DiagnosticManager {
   }
 
   /**
-   * Add diagnoctics for owner and uri
+   * Add diagnostics for owner and uri
    *
    * @public
    * @param {string} owner
