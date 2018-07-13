@@ -89,6 +89,9 @@ Check out file 'settings.json' for all available options.
 ==============================================================================
 INTERFACE					*coc-interface*
 
+Mapping starts with 'n_' works for normal mode, and 'v_' works for visual
+mode.
+
 ------------------------------------------------------------------------------
 Keymapings 					*coc-keymapings*
 

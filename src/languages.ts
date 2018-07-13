@@ -586,6 +586,9 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimComp
     filterText: validString(item.filterText) ? item.filterText : item.label,
     isSnippet
   }
+  if (item.preselect) {
+    obj.sortText = '\0' + obj.sortText
+  }
   if (!isSnippet && !item.insertText && item.textEdit) { // tslint:disable-line
     obj.word = item.textEdit.newText
     // make sure we can find it on CompleteDone

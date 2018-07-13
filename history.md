@@ -11,3 +11,7 @@
 * Fix snippet break with line have $variable
 * Use jsonc-parser replace json5
 * Add `data/schema.json` for coc-settings.json
+
+# 2018-07-14
+
+* Add support for preselect of complete item
