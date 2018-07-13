@@ -123,9 +123,9 @@ export default class TslintService extends LanguageService {
         workspace: {
           configuration: (params: ConfigurationParams, token: CancellationToken, next: Function): any[] => {
             if (!params.items) return []
-            let result = next(params, token, next)
+            let result:Settings[] = next(params, token, next)
             if (!result || !result.length) return []
-            let config = Object.assign({}, result[0])
+            let config:Settings = Object.assign({}, result[0])
             let configFile = result[0].configFile || 'tslint.json'
             config.configFile = convertAbsolute(configFile)
             config.workspaceFolderPath = workspace.root

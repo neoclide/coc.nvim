@@ -35,6 +35,7 @@ export default class JsonService extends LanguageService {
         associations[fileMatch] = [url]
       }
     }
+    associations['coc-settings.json'] = ['https://raw.githubusercontent.com/neoclide/coc.nvim/master/data/schema.json']
     this.client.sendNotification('json/schemaAssociations', associations)
   }
 }
