@@ -1,0 +1,771 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "description": "Configuration file for coc.nvim",
+  "properties": {
+    "coc.preferences.autoTrigger": {
+      "type": "string",
+      "default": "always",
+      "description": "How should completion be triggered",
+      "enum": ["always", "trigger", "none"]
+    },
+    "coc.preferences.timeout": {
+      "type": "integer",
+      "default": 300,
+      "description": "Timeout for completion"
+    },
+    "coc.preferences.noselect": {
+      "type": "boolean",
+      "description": "Not make vim select first item on completion start",
+      "default": true
+    },
+    "coc.preferences.watchmanPath": {
+      "type": "string",
+      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "default": ""
+    },
+    "coc.preferences.diagnostic.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable diagnostic",
+      "default": true
+    },
+    "coc.preferences.diagnostic.signOffset": {
+      "type": "number",
+      "description": "Offset number of sign",
+      "default": 1000
+    },
+    "coc.preferences.diagnostic.errorSign": {
+      "type": "string",
+      "description": "Text of error sign",
+      "default": ">>"
+    },
+    "coc.preferences.diagnostic.warningSign": {
+      "type": "string",
+      "description": "Text of warning sign",
+      "default": "⚠"
+    },
+    "coc.preferences.diagnostic.infoSign": {
+      "type": "string",
+      "description": "Text of info sign",
+      "default": ">>"
+    },
+    "coc.preferences.diagnostic.hintSign": {
+      "type": "string",
+      "description": "Text of hint sign",
+      "default": ">>"
+    },
+    "tsserver.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable tsserver extension"
+    },
+    "tsserver.locale": {
+      "type": "string",
+      "default": "",
+      "description": "Locale of tsserver"
+    },
+    "tsserver.enableJavascript": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use tsserver for javascript files"
+    },
+    "tsserver.tsdk": {
+      "type": "string",
+      "default": "",
+      "description": "Directory contains tsserver.js, works for workspace only"
+    },
+    "tsserver.npm": {
+      "type": "string",
+      "default": "",
+      "description": "Executable path of npm for download typings"
+    },
+    "tsserver.log": {
+      "type": "string",
+      "default": "off",
+      "enum": ["normal", "terse", "verbose", "off"],
+      "description": "Log level of tsserver"
+    },
+    "tsserver.trace": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"],
+      "description": "Trace level of tsserver"
+    },
+    "tserver.pluginNames": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "description": "Module names of tsserver plugins"
+    },
+    "tsserver.pluginRoot": {
+      "type": "string",
+      "default": "",
+      "description": "Folder contains tsserver plugins"
+    },
+    "tsserver.debugPort": {
+      "type": "number",
+      "description": "Debug port number of tsserver"
+    },
+    "tsserver.reportStyleChecksAsWarnings": {
+      "type": "boolean",
+      "default": true
+    },
+    "tsserver.implicitProjectConfig.checkJs": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable checkJs for implicit project"
+    },
+    "tsserver.implicitProjectConfig.experimentalDecorators": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable experimentalDecorators for implicit project"
+    },
+    "tsserver.disableAutomaticTypeAcquisition": {
+      "type": "boolean",
+      "default": false,
+      "description": "Disable download of typings"
+    },
+    "typescript.updateImportsOnFileMove.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable update imports on file move."
+    },
+    "typescript.implementationsCodeLens.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable codeLens for implementations"
+    },
+    "typescript.referencesCodeLens.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable codeLens for references"
+    },
+    "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable snippet for method suggestion"
+    },
+    "typescript.preferences.completion.nameSuggestions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Complete for warning type of tsserver"
+    },
+    "typescript.preferences.completion.autoImportSuggestions": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto import suggestions for completion"
+    },
+    "typescript.preferences.completion.commaAfterImport": {
+      "type": "boolean",
+      "default": true,
+      "description": "Add comma after import"
+    },
+    "typescript.preferences.completion.moduleExports": {
+      "type": "boolean",
+      "default": true,
+      "description": "Include completion for module.exports"
+    },
+    "typescript.preferences.importModuleSpecifier": {
+      "type": "string",
+      "default": "non-relative",
+      "enum": ["non-relative", "relative"]
+    },
+    "typescript.preferences.suggestionActions.enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.preferences.quoteStyle": {
+      "type": "string",
+      "default": "single",
+      "enum": ["single", "double"]
+    },
+    "typescript.format.insertSpaceAfterCommaDelimiter": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.format.insertSpaceAfterConstructor": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.insertSpaceAfterSemicolonInForStatements": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.format.insertSpaceBeforeAndAfterBinaryOperators": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.format.insertSpaceAfterKeywordsInControlFlowStatements": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": {
+      "type": "boolean",
+      "default": true
+    },
+    "typescript.format.insertSpaceBeforeFunctionParenthesis": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.insertSpaceAfterTypeAssertion": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.placeOpenBraceOnNewLineForFunctions": {
+      "type": "boolean",
+      "default": false
+    },
+    "typescript.format.placeOpenBraceOnNewLineForControlBlocks": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.updateImportsOnFileMove.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.implementationsCodeLens.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.referencesCodeLens.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.completion.useCodeSnippetsOnMethodSuggest": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.completion.nameSuggestions": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.completion.autoImportSuggestions": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.importModuleSpecifier": {
+      "type": "string",
+      "default": "non-relative",
+      "enum": ["non-relative", "relative"]
+    },
+    "javascript.preferences.suggestionActions.enabled": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.completion.commaAfterImport": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.preferences.quoteStyle": {
+      "type": "string",
+      "default": "single",
+      "enum": ["single", "double"]
+    },
+    "javascript.format.insertSpaceAfterCommaDelimiter": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.format.insertSpaceAfterConstructor": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.insertSpaceAfterSemicolonInForStatements": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.format.insertSpaceBeforeAndAfterBinaryOperators": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.format.insertSpaceAfterKeywordsInControlFlowStatements": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": {
+      "type": "boolean",
+      "default": true
+    },
+    "javascript.format.insertSpaceBeforeFunctionParenthesis": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyParenthesis": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingTemplateStringBraces": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.insertSpaceAfterOpeningAndBeforeClosingJsxExpressionBraces": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.insertSpaceAfterTypeAssertion": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.placeOpenBraceOnNewLineForFunctions": {
+      "type": "boolean",
+      "default": false
+    },
+    "javascript.format.placeOpenBraceOnNewLineForControlBlocks": {
+      "type": "boolean",
+      "default": false
+    },
+    "coc.source.around.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.around.shortcut": {
+      "type": "string",
+      "default": "A"
+    },
+    "coc.source.around.priority": {
+      "type": "integer",
+      "default": 1
+    },
+    "coc.source.buffer.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.buffer.shortcut": {
+      "type": "string",
+      "default": "B"
+    },
+    "coc.source.buffer.priority": {
+      "type": "integer",
+      "default": 1
+    },
+    "coc.source.buffer.ignoreGitignore": {
+      "type": "boolean",
+      "default": true,
+      "description": "Ignore git ignored files for buffer words"
+    },
+    "coc.source.dictionary.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.dictionary.shortcut": {
+      "type": "string",
+      "default": "D"
+    },
+    "coc.source.dictionary.priority": {
+      "type": "integer",
+      "default": 1
+    },
+    "coc.source.emoji.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.emoji.shortcut": {
+      "type": "string",
+      "default": "EMO"
+    },
+    "coc.source.emoji.priority": {
+      "type": "integer",
+      "default": 9
+    },
+    "coc.source.emoji.filetypes": {
+      "type": "array",
+      "default": ["markdown"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.emoji.triggerCharacters": {
+      "type": "array",
+      "default": [":"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.file.shortcut": {
+      "type": "string",
+      "default": "F"
+    },
+    "coc.source.file.priority": {
+      "type": "integer",
+      "default": 10
+    },
+    "coc.source.file.triggerCharacters": {
+      "type": "array",
+      "default": [ "/" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.trimSameExts": {
+      "type": "array",
+      "default": [".ts", ".js"],
+      "description": "Trim same extension on file completion",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.ignoreHidden": {
+      "type": "boolean",
+      "default": true,
+      "description": "Ignore completion for hidden files"
+    },
+    "coc.source.file.ignorePatterns": {
+      "type": "array",
+      "default": [],
+      "description": "Ignore patterns of matcher",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.include.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.include.shortcut": {
+      "type": "string",
+      "default": "I"
+    },
+    "coc.source.include.priority": {
+      "type": "integer",
+      "default": 10
+    },
+    "coc.source.include.triggerCharacters": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.include.trimSameExts": {
+      "type": "array",
+      "default": [ ".ts", ".js" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.include.listFileCommand": {
+      "type": "string",
+      "default": "rg --color never --files",
+      "description": "Command for list files"
+    },
+    "coc.source.omni.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.omni.shortcut": {
+      "type": "string",
+      "default": "O"
+    },
+    "coc.source.omni.priority": {
+      "type": "integer",
+      "default": 3
+    },
+    "coc.source.omni.filetypes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.tag.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.tag.shortcut": {
+      "type": "string",
+      "default": "T"
+    },
+    "coc.source.tag.priority": {
+      "type": "integer",
+      "default": 3
+    },
+    "coc.source.word.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.word.shortcut": {
+      "type": "string",
+      "default": "10k"
+    },
+    "coc.source.word.priority": {
+      "type": "integer",
+      "default": 0
+    },
+    "coc.source.ultisnips.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.ultisnips.priority": {
+      "type": "integer",
+      "default": 3
+    },
+    "coc.source.ultisnips.shortcut": {
+      "type": "string",
+      "default": "US"
+    },
+    "coc.source.neco.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.neco.shortcut": {
+      "type": "string",
+      "default": "NECO"
+    },
+    "coc.source.neco.priority": {
+      "type": "integer",
+      "default": 9
+    },
+    "coc.source.neco.filetypes": {
+      "type": "array",
+      "default": [ "vim" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.neco.triggerCharacters": {
+      "type": "array",
+      "default": [ ":", "&" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.neco.firstMatch": {
+      "type": "boolean",
+      "default": true,
+      "description": "First letter of complete item should match"
+    },
+    "cssserver.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.filetypes": {
+      "type": "array",
+      "default": [ "css", "scss", "less", "wxss" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "cssserver.css.validate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable validate for cssserver of css"
+    },
+    "cssserver.css.lint": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable lint for cssserver of css"
+    },
+    "cssserver.scss.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.scss.lint": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.less.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.less.lint": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.wxss.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.wxss.lint": {
+      "type": "boolean",
+      "default": true
+    },
+    "http.proxy": {
+      "type": "string",
+      "default": "",
+      "description": "http proxy used for json server"
+    },
+    "http.proxyStrictSSL": {
+      "type": "string",
+      "default": ""
+    },
+    "json.filetypes": {
+      "type": "array",
+      "default": [ "json", "jsonc" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "json.format.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable format for json server"
+    },
+    "json.schemas": {
+      "type": "array",
+      "default": [],
+      "description": "Schemas for json server"
+    },
+    "html.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "html.filetypes": {
+      "type": "array",
+      "default": [ "html", "handlebars", "razor" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "wxml.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "wxml.filetypes": {
+      "type": "array",
+      "default": [ "wxml" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "wxml.complete.completeEvent": {
+      "type": "boolean",
+      "default": false,
+      "description": "Set to true to complete event attributes"
+    },
+    "wxml.complete.useSnippet": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use snippet for attributes completion."
+    },
+    "tslint.jsEnable": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable javascript for tslint"
+    },
+    "tslint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "tslint.filetypes": {
+      "type": "array",
+      "default": [ "typescript" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "tslint.autoFixOnSave": {
+      "type": "boolean",
+      "default": false
+    },
+    "tslint.configFile": {
+      "type": "string",
+      "default": "tslint.json",
+      "description": "Config file of tslint, could be relative path from workspace root"
+    },
+    "tslint.ignoreDefinitionFiles": {
+      "type": "boolean",
+      "default": true
+    },
+    "tslint.exclude": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "tslint.validateWithDefaultConfig": {
+      "type": "boolean",
+      "default": true
+    },
+    "tslint.run": {
+      "type": "string",
+      "default": "onType",
+      "description": "Run mode of tslint",
+      "enum": ["onType", "onSave"]
+    },
+    "tslint.alwaysShowRuleFailuresAsWarnings": {
+      "type": "boolean",
+      "default": true
+    },
+    "eslint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "eslint.filetypes": {
+      "type": "array",
+      "default": [ "javascript", "javascript.jsx" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "eslint.packageManager": {
+      "type": "string",
+      "default": "npm",
+      "enum": ["npm", "yarn"]
+    },
+    "eslint.run": {
+      "type": "string",
+      "default": "onType",
+      "enum": ["onType", "onSave"]
+    },
+    "eslint.autoFix": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto fix feature"
+    },
+    "eslint.autoFixOnSave": {
+      "type": "boolean",
+      "default": false
+    },
+    "stylelint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "stylelint.filetypes": {
+      "type": "array",
+      "default": [ "css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "stylelint.configOverrides": {
+      "type": "object",
+      "default": {},
+      "description": "Override exist stylelint config"
+    },
+    "solargraph.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "solargraph.filetypes": {
+      "type": "array",
+      "default": [ "ruby" ]
+    },
+    "solargraph.checkGemVersion": {
+      "type": "boolean",
+      "default": false,
+      "description": ""
+    },
+    "languageserver": {
+      "type": "object",
+      "default": {},
+      "description": ""
+    }
+  }
+}

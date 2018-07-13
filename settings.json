@@ -1,4 +1,5 @@
 {
+  "$schema": "https://raw.githubusercontent.com/neoclide/coc.nvim/master/data/schema.json",
   // could be 'always' 'trigger' => for specified trigger characters only 'none'
   "coc.preferences.autoTrigger": "always",
   // timeout for completion
@@ -16,7 +17,7 @@
   "coc.preferences.diagnostic.hintSign": ">>",
   "tsserver.enable": true,
   // language locale
-  "tsserver.locale": null,
+  "tsserver.locale": "",
   // enable support for javascript file, experiment
   "tsserver.enableJavascript": true,
   // folder of tsserver.js
@@ -32,8 +33,6 @@
   "tserver.pluginNames": [],
   // folder root of global plugins
   "tsserver.pluginRoot": "",
-  // could also be provided by environment variable `TSS_DEBUG`
-  "tsserver.debugPort": null,
   "tsserver.reportStyleChecksAsWarnings": true,
   "tsserver.implicitProjectConfig.checkJs": false,
   "tsserver.implicitProjectConfig.experimentalDecorators": false,
@@ -176,7 +175,7 @@
   "tslint.run": "onType",
   "tslint.alwaysShowRuleFailuresAsWarnings": true,
   "eslint.enable": true,
-  "eslint.filetypes": ['javascript', 'javascript.jsx'],
+  "eslint.filetypes": ["javascript", "javascript.jsx"],
   // could be yarn
   "eslint.packageManager": "npm",
   "eslint.run": "onType",

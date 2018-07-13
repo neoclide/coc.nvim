@@ -10,3 +10,4 @@
 * Add eslint extension https://github.com/Microsoft/vscode-eslint
 * Fix snippet break with line have $variable
 * Use jsonc-parser replace json5
+* Add `data/schema.json` for coc-settings.json
