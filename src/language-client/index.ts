@@ -41,32 +41,30 @@ export class LanguageService implements IServiceProvider {
 
   public init(): Promise<void> {
     let {config, name} = this
-    let {args, module} = config
-
-    let isModule = config.module || args.indexOf('--node-ipc') !== -1
-    if (!module && args.indexOf('--node-ipc') !== -1) {
+    let {args, module, command} = config
+    if (command) {
       try {
-        module = which.sync(config.command)
+        let resolved = which.sync(config.command)
+        if (args.indexOf('--node-ipc') !== -1) {
+          module = resolved
+        }
       } catch (e) {
-        logger.error(e.message)
-        echoErr(workspace.nvim, `Executable ${config.command} not found`).catch(() => {
-          // noop
-        })
+        echoErr(workspace.nvim, `Executable ${command} not found`)
         this.enable = false
         return
       }
     }
-
+    let isModule = module != null
     let serverOptions: ServerOptions = isModule ? {
       module,
       transport: TransportKind.ipc,
       args: config.args,
       options: this.getOptions(true)
     } : {
-        command: config.command,
-        args: config.args || [],
-        options: this.getOptions()
-      }
+      command,
+      args: config.args || [],
+      options: this.getOptions()
+    }
 
     let documentSelector = this.languageIds
     let clientOptions: LanguageClientOptions = {
@@ -115,7 +113,7 @@ export class LanguageService implements IServiceProvider {
 
   private getOptions(isModule = false): ExecutableOptions | ForkOptions {
     let {config} = this
-    let {cwd, shell, execArgv} = config
+    let {cwd, shell, detached, execArgv} = config
     cwd = cwd ? path.isAbsolute(cwd) ? cwd
       : path.resolve(workspace.root, cwd)
       : workspace.root
@@ -127,7 +125,7 @@ export class LanguageService implements IServiceProvider {
     if (isModule) return {cwd, execArgv: execArgv || []}
     return {
       cwd,
-      detached: false,
+      detached: !!detached,
       shell: !!shell
     }
   }

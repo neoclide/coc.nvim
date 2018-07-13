@@ -543,6 +543,7 @@ export class LanguageClient extends BaseLanguageClient {
         )
         this._serverProcess = serverProcess
         this._isDetached = !!options.detached
+        // TODO support other modes for executable
         return Promise.resolve({
           reader: new StreamMessageReader(serverProcess.stdout),
           writer: new StreamMessageWriter(serverProcess.stdin)

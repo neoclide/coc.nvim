@@ -87,6 +87,14 @@
           "type": "boolean",
           "default": true
         },
+        "execArgv": {
+          "type": "array",
+          "default": ["--nolazy", "--inspect-brk=6045"],
+          "description": "Args passed to node, only available when args contains --node-ipc",
+          "items": {
+            "type": "string"
+          }
+        },
         "cwd": {
           "type": "string",
           "default": "",
