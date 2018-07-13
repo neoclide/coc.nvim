@@ -97,9 +97,9 @@
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@chemzqm/tsconfig/-/tsconfig-0.0.2.tgz#bdf9a2f8cbbe6b7966aac62c00311c22e503015e"
 
-"@chemzqm/tslint-config@^1.0.13":
-  version "1.0.13"
-  resolved "https://registry.yarnpkg.com/@chemzqm/tslint-config/-/tslint-config-1.0.13.tgz#1360ce8e82718e27c1edab3914ffd11d3e919b1e"
+"@chemzqm/tslint-config@^1.0.14":
+  version "1.0.14"
+  resolved "https://registry.yarnpkg.com/@chemzqm/tslint-config/-/tslint-config-1.0.14.tgz#f257012dcce17aa0ac82b795089af747000b20b2"
   dependencies:
     tslint-config-prettier "^1.6.0"
     tslint-react "^3.2.0"
@@ -3221,6 +3221,25 @@ log-symbols@^2.0.0:
 log4js@^2.10.0:
   version "2.10.0"
   resolved "https://registry.yarnpkg.com/log4js/-/log4js-2.10.0.tgz#4980bd9148a030d69f9edde32a5b19c0a551e2c4"
+  dependencies:
+    circular-json "^0.5.4"
+    date-format "^1.2.0"
+    debug "^3.1.0"
+    semver "^5.5.0"
+    streamroller "0.7.0"
+  optionalDependencies:
+    amqplib "^0.5.2"
+    axios "^0.15.3"
+    hipchat-notifier "^1.1.0"
+    loggly "^1.1.0"
+    mailgun-js "^0.18.0"
+    nodemailer "^2.5.0"
+    redis "^2.7.1"
+    slack-node "~0.2.0"
+
+log4js@^2.11.0:
+  version "2.11.0"
+  resolved "https://registry.yarnpkg.com/log4js/-/log4js-2.11.0.tgz#bf3902eff65c6923d9ce9cfbd2db54160e34005a"
   dependencies:
     circular-json "^0.5.4"
     date-format "^1.2.0"

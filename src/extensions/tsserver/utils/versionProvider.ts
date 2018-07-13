@@ -5,8 +5,10 @@
 import fs from 'fs'
 import path from 'path'
 import {getParentDirs} from '../../../util/fs'
+import {globalResolve} from '../../../util/resolve'
 import API from './api'
 import {TypeScriptServiceConfiguration} from './configuration'
+const logger = require('../../../util/logger')('tsserver-versionProvider')
 
 export class TypeScriptVersion {
   private _api: API | null | undefined
@@ -87,8 +89,18 @@ export class TypeScriptVersionProvider {
     this.configuration = configuration
   }
 
-  public get defaultVersion(): TypeScriptVersion {
-    return this.globalVersion || this.bundledVersion
+  public async getDefaultVersion(): Promise<TypeScriptVersion> {
+    // tsdk from configuration
+    let {globalTsdk} = this.configuration
+    if (globalTsdk) return new TypeScriptVersion(globalTsdk)
+    // resolve global module
+    let modulePath = await globalResolve('typescript')
+    if (modulePath) {
+      let p = path.join(modulePath, 'lib')
+      return new TypeScriptVersion(p)
+    }
+    // use bundled
+    return this.bundledVersion
   }
 
   public get globalVersion(): TypeScriptVersion | undefined {

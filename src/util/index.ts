@@ -1,9 +1,10 @@
 import {Neovim} from 'neovim'
 import net from 'net'
 import path from 'path'
-import {Disposable, Range, TextEdit} from 'vscode-languageserver-protocol'
+import {Disposable, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import * as platform from './platform'
+
 export {platform}
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '

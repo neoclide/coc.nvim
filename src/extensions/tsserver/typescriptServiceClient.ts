@@ -314,14 +314,13 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     let root = await workspace.findDirectory('node_modules')
     let currentVersion = this.versionProvider.getLocalVersion(root)
     if (!currentVersion || !fs.existsSync(currentVersion.tsServerPath)) {
-      echoMessage(workspace.nvim, `Local tsserver not found, Falling back to global TypeScript version.`) // tslint:disable-line
-      currentVersion = this.versionProvider.defaultVersion
+      currentVersion = await this.versionProvider.getDefaultVersion()
     }
     if (!currentVersion.isValid) {
       echoErr(workspace.nvim, 'Can not find tsserver') // tslint:disable-line
       return
     }
-    logger.info(`Using tsserver from: `, currentVersion.path)
+    echoMessage(workspace.nvim, `Using tsserver from: ${currentVersion.path}`) // tslint:disable-line
     this._apiVersion = currentVersion.version
     this.requestQueue = new RequestQueue()
     this.callbacks = new CallbackMap()
