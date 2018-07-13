@@ -1,6 +1,120 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema",
   "description": "Configuration file for coc.nvim",
+  "definitions": {
+    "languageServerModule": {
+      "type": "object",
+      "required": ["module", "filetypes"],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path of javascript file, should works in IPC mode"
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments of module",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filetypes": {
+          "type": "array",
+          "default": [],
+          "description": "Supported filetypes",
+          "items": {
+            "type": "string"
+          }
+        },
+        "enable": {
+          "type": "boolean",
+          "default": true
+        },
+        "cwd": {
+          "type": "string",
+          "default": "",
+          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+        },
+        "execArgv": {
+          "type": "array",
+          "default": ["--nolazy", "--inspect-brk=6045"],
+          "description": "Argv passed to node when using module, normally used for debugging",
+          "items": {
+            "type": "string"
+          }
+        },
+        "initializationOptions": {
+          "type": "object",
+          "default": {},
+          "description": "initializationOptions passed to languageserver"
+        },
+        "settings": {
+          "type": "object",
+          "default": {},
+          "description": "Settings of languageserver"
+        }
+      }
+    },
+    "languageServerCommand": {
+      "type": "object",
+      "required": ["command", "filetypes"],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "default": "",
+          "description": "Executable in $PATH to start languageserver, should not used with module"
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments of command",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filetypes": {
+          "type": "array",
+          "default": [],
+          "description": "Supported filetypes",
+          "items": {
+            "type": "string"
+          }
+        },
+        "enable": {
+          "type": "boolean",
+          "default": true
+        },
+        "cwd": {
+          "type": "string",
+          "default": "",
+          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+        },
+        "detached": {
+          "type": "boolean",
+          "default": false,
+          "description": "Detach the languageserver process"
+        },
+        "shell": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use shell for process"
+        },
+        "initializationOptions": {
+          "type": "object",
+          "default": {},
+          "description": "initializationOptions passed to languageserver"
+        },
+        "settings": {
+          "type": "object",
+          "default": {},
+          "description": "Settings of languageserver"
+        }
+      }
+    }
+  },
   "properties": {
     "coc.preferences.autoTrigger": {
       "type": "string",
@@ -611,6 +725,13 @@
         "type": "string"
       }
     },
+    "json.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
     "json.format.enable": {
       "type": "boolean",
       "default": true,
@@ -625,6 +746,13 @@
       "type": "boolean",
       "default": true
     },
+    "html.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
     "html.filetypes": {
       "type": "array",
       "default": [ "html", "handlebars", "razor" ],
@@ -635,6 +763,13 @@
     "wxml.enable": {
       "type": "boolean",
       "default": true
+    },
+    "wxml.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
     },
     "wxml.filetypes": {
       "type": "array",
@@ -653,14 +788,21 @@
       "default": true,
       "description": "Use snippet for attributes completion."
     },
+    "tslint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "tslint.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
     "tslint.jsEnable": {
       "type": "boolean",
       "default": false,
       "description": "Enable javascript for tslint"
-    },
-    "tslint.enable": {
-      "type": "boolean",
-      "default": true
     },
     "tslint.filetypes": {
       "type": "array",
@@ -707,6 +849,13 @@
       "type": "boolean",
       "default": true
     },
+    "eslint.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
     "eslint.filetypes": {
       "type": "array",
       "default": [ "javascript", "javascript.jsx" ],
@@ -737,6 +886,13 @@
       "type": "boolean",
       "default": true
     },
+    "stylelint.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
     "stylelint.filetypes": {
       "type": "array",
       "default": [ "css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue" ],
@@ -765,7 +921,16 @@
     "languageserver": {
       "type": "object",
       "default": {},
-      "description": ""
+      "description": "List of languageservers",
+      "patternProperties": {
+        "^[_a-zA-Z]+$": {
+          "oneOf": [{
+            "$ref": "#/definitions/languageServerModule"
+          }, {
+            "$ref": "#/definitions/languageServerCommand"
+          }]
+        }
+      }
     }
   }
 }

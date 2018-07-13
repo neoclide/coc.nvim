@@ -17,8 +17,8 @@ export class LanguageService implements IServiceProvider {
   public languageIds: string[]
   public readonly state: ServiceStat
   private configSections: string | string[]
-  protected client: LanguageClient
   private _onDidServiceReady = new Emitter<void>()
+  protected client: LanguageClient
   protected readonly disposables: Disposable[] = []
   public readonly onServiceReady: Event<void> = this._onDidServiceReady.event
 
@@ -157,7 +157,7 @@ class LanguageClientManager {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
     for (let key of Object.keys(lspConfig)) {
-      let config = workspace.getConfiguration(base).get<LanguageServerConfig>(key)
+      let config = lspConfig[key]
       let id = `${base}.${key}`
       this._services.push(
         new LanguageService(id, key, config)
