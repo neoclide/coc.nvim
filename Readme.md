@@ -1,15 +1,13 @@
 # [C](#)onqure [o](#)f  [C](#)ompletion
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
+[![](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
+
 
 Coc is a completion framework of [neovim](https://github.com/neovim/neovim)
 while providing featured language server support.
 
-Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail documentation.
-
-## [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
-
-**Note:** neovim 0.3.0 is required for buffer-updates feature.
+Checkout [doc/coc.txt](/doc/coc.txt) for vim interface.
 
 ## Pros.
 
@@ -19,68 +17,42 @@ Refer to [wiki page](https://github.com/neoclide/coc.nvim/wiki) for detail docum
 * Built in language server extensions, like tsserver, tslint etc.
 * Custom language server configuration support.
 
-## Language server features
+## Contents
 
-Check out the official specification at https://microsoft.github.io/language-server-protocol/specification.
+### [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-* ✓ Request cancellation support
-* ✓ Full features of workspace (except workspace folders related)
-* ✓ Full features of text synchronization
-* ✓ Full features of window support
-* ✓ Diagnostics
-* ✗ Telemetry
-* ✓ Completion
-* ✓ Completion resolve
-* ✓ Hover
-* ✓ Signature help
-* ✓ Definition
-* ✓ Type definition
-* ✓ Implementation
-* ✓ References
-* ✓ Document highlight
-* ✓ Document symbol
-* ✓ Code action
-* ✓ CodeLens
-* ✓ CodeLens resolve
-* ✗ Document link
-* ✗ Document link resolve
-* ✗ Document color
-* ✗ Color Presentation
-* ✓ Document Formatting
-* ✓ Document Range Formatting
-* ✗ Document on Type Formatting
-* ✓ Rename
+### [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
-**Note:** different server could have different capabilities.
-
-## Completion sources
-
-### Common sources
+* [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
+* [Snippet completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#snippet-completion)
+* [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
+* [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
+* [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
 
 
-Name         | Description                                             | Use cache   | Default filetypes
------------- | -------------                                           | ------------|------------
-`around`     | Words of current buffer.                                | ✗           | all
-`buffer`     | Words of none current buffer.                           | ✓           | all
-`dictionary` | Words from files of local `dictionary` option.          | ✓           | all
-`tag`        | Words from `taglist` of current buffer.                 | ✓           | all
-`file`       | Filename completion, auto detected.                     | ✗           | all
-`omni`       | Invoke `omnifunc` of current buffer for complete items. | ✗           | []
-`word`       | Words from google 10000 english repo.                   | ✓           | all
-`emoji`      | Eomji characters.                                       | ✓           | ['markdown']
-`include`    | Full path completion for include file paths.            | ✗           | [Limited](/src/source/include_resolve)
+### [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
 
-`omni` source could be slow, it requires configuration for `filetypes` to work.
+* [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
+* [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
+* [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
+* [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
 
-### Vim sources
 
-Vim sources are implemented in viml, and usually requires other vim plugin to
-work.
+### [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
-Name           |Description                |Filetype     | Requirement
-------------   |------------               |------------ | -------------
-ultisnips      |Snippets name completion   |User defined | Install [ultisnips](https://github.com/SirVer/ultisnips)
-neco           |VimL completion            |vim          | Install [neco-vim](https://github.com/Shougo/neco-vim)
+* [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
+* [Built in server extensions](https://github.com/neoclide/coc.nvim/wiki/Language-servers#built-in-server-extensions)
+* [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
+
+### [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
+
+* [Start by a simple example](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#start-by-a-simple-example)
+* [Default options of source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#default-options-of-source)
+* [Options for complete](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#options-for-complete)
+* [Result of complete](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#result-of-complete)
+* [Optional functions](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#optional-functions)
+
+### [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Trouble shooting
 
