@@ -579,7 +579,7 @@ function validString(str: any): boolean {
 function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
-    word: item.label, // tslint:disable-line
+    word: item.insertText || item.label, // eslint-disable-line
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,

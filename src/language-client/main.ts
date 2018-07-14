@@ -536,14 +536,11 @@ export class LanguageClient extends BaseLanguageClient {
             logger.error(`${command} exist with code: ${code}`)
           }
         })
-        serverProcess.stderr.on('data', data =>
-          logger.error(
-            Is.string(data) ? data : data.toString(encoding)
-          )
-        )
+        serverProcess.stderr.on('data', data => {
+          // logger.error(Is.string(data) ? data : data.toString(encoding))
+        })
         this._serverProcess = serverProcess
         this._isDetached = !!options.detached
-        // TODO support other modes for executable
         return Promise.resolve({
           reader: new StreamMessageReader(serverProcess.stdout),
           writer: new StreamMessageWriter(serverProcess.stdin)
