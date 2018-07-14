@@ -36,38 +36,33 @@ export class CommandManager implements Disposable {
   public init(nvim: Neovim, plugin: any): void {
     this.register({
       id: 'editor.action.triggerSuggest',
-      execute: () => {
-        setTimeout(() => {
-          nvim.call('coc#start').catch(e => {
-            logger.error(e.stack)
-          })
-        }, 30)
+      execute: async () => {
+        await wait(30)
+        await nvim.call('coc#start')
       }
     })
     this.register({
       id: 'editor.action.showReferences',
       execute: async (_filepath: string, _position: Position, references: Location[]) => {
-        try {
-          let items = await Promise.all(references.map(loc => {
-            return workspace.getQuickfixItem(loc)
-          }))
-          await nvim.call('setqflist', [items, ' ', 'Results of references'])
-          await nvim.command('doautocmd User CocQuickfixChange')
-        } catch (e) {
-          logger.error(e.stack)
-        }
+        let items = await Promise.all(references.map(loc => {
+          return workspace.getQuickfixItem(loc)
+        }))
+        await nvim.call('setqflist', [items, ' ', 'Results of references'])
+        await nvim.command('doautocmd User CocQuickfixChange')
       }
     })
     this.register({
       id: 'editor.action.rename',
       execute: async (uri: string, position: Position) => {
-        try {
-          await workspace.jumpTo(uri, position)
-          await wait(100)
-          await plugin.cocAction(['rename'])
-        } catch (e) {
-          logger.error(e.stack)
-        }
+        await workspace.jumpTo(uri, position)
+        await wait(50)
+        await plugin.cocAction(['rename'])
+      }
+    })
+    this.register({
+      id: 'workspace.diffDocument',
+      execute: async () => {
+        await workspace.diffDocument()
       }
     })
   }
@@ -91,12 +86,10 @@ export class CommandManager implements Disposable {
   }
 
   public execute(command: language.Command): void {
-    let cmd = this.commands.get(command.command)
-    if (!cmd) {
-      logger.error(`Command: ${command.command} not found`)
-      return
-    }
-    cmd.execute(command.arguments)
+    let args = [command.command]
+    let arr = command.arguments
+    if (arr) args.push(...arr)
+    this.executeCommand.apply(this, args)
   }
 
   public register<T extends Command>(command: T): T {
@@ -153,10 +146,13 @@ export class CommandManager implements Disposable {
    */
   public executeCommand(command: string, ...rest: any[]): Promise<void> {
     let cmd = this.commands.get(command)
-    if (!cmd) return
-    Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
+    if (!cmd) {
+      echoErr(workspace.nvim, `Command: ${command} not found`)
+      return
+    }
+    Promise.resolve(cmd.execute.apply(cmd, rest || [])).catch(e => {
       echoErr(workspace.nvim, `Command error: ${e.message}`)
-      logger.error(e.message)
+      logger.error(e.stack)
     })
     return
   }

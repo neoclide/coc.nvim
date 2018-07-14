@@ -347,3 +347,16 @@ function! s:OnExit(job_id, status, event) dict
     execute 'silent! bd! '.self.buffer_nr
   endif
 endfunction
+
+" show diff of current buffer
+function! coc#util#diff_content(lines) abort
+  let tmpfile = tempname()
+  setl foldenable
+  call writefile(a:lines, tmpfile)
+  let ft = &filetype
+  diffthis
+  execute 'vs '.tmpfile
+  execute 'setf ' . ft
+  diffthis
+  setl foldenable
+endfunction

@@ -379,10 +379,10 @@ export default class Handler {
     if (!document) return
     for (let o of list) {
       let idx = o.id.indexOf('.')
-      if (idx == -1) {
+      let serviceId = o.id.slice(0, idx)
+      if (idx == -1 || serviceId == 'workspace') {
         res.push(o.id)
       } else {
-        let serviceId = o.id.slice(0, idx)
         let service = this.services.getService(serviceId)
         if (!service || service.state !== ServiceStat.Running) {
           continue

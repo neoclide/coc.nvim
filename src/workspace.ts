@@ -518,6 +518,18 @@ export class Workspace {
     }
   }
 
+  public async diffDocument(): Promise<void> {
+    let {nvim} = this
+    let buffer = await nvim.buffer
+    let document = this.getDocument(buffer.id)
+    if (!document) {
+      await echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
+      return
+    }
+    let lines = document.content.split('\n')
+    await nvim.call('coc#util#diff_content', [lines])
+  }
+
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
     let buffers = await this.nvim.buffers
     return buffers.find(buf => toNumber(buf.data) == bufnr)
