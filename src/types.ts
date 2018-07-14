@@ -22,6 +22,7 @@ export interface LanguageServerConfig {
   shell?: boolean
   execArgv?: string[]
   initializationOptions?: any
+  [index:string]: any
 }
 
 export interface QuickfixItem {

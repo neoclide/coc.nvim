@@ -5,7 +5,7 @@ import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import which from 'which'
 import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
 import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
-import {disposeAll, echoErr} from '../util'
+import {disposeAll, echoErr, echoMessage} from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('language-client-index')
 
@@ -58,7 +58,7 @@ export class LanguageService implements IServiceProvider {
           module = resolved
         }
       } catch (e) {
-        echoErr(workspace.nvim, `Executable ${command} not found`)
+        echoMessage(workspace.nvim, `Executable ${command} not found`)
         this.enable = false
         return
       }

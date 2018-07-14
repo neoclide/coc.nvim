@@ -959,10 +959,346 @@
       "type": "array",
       "default": [ "ruby" ]
     },
+    "solargraph.commandPath": {
+      "type": "string",
+      "default": "solargraph",
+      "description": "Path to the solargraph command.  Set this to an absolute path to select from multiple installed Ruby versions."
+    },
+    "solargraph.useBundler": {
+      "type": "boolean",
+      "description": "Use `bundle exec` to run solargraph. (If this is true, the solargraph.commandPath setting is ignored.)",
+      "default": false
+    },
+    "solargraph.bundlerPath": {
+      "type": "string",
+      "description": "Path to the bundle executable, defaults to 'bundle'",
+      "default": "bundle"
+    },
     "solargraph.checkGemVersion": {
       "type": "boolean",
+      "description": "Automatically check if a new version of the Solargraph gem is available.",
+      "default": true,
+      "enum": [ true, false ]
+    },
+    "solargraph.completion": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable completion",
+      "default": true,
+      "enum": [
+        true,
+        false
+      ]
+    },
+    "solargraph.hover": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable hover",
+      "default": true,
+      "enum": [
+        true,
+        false
+      ]
+    },
+    "solargraph.diagnostics": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable diagnostics",
       "default": false,
-      "description": ""
+      "enum": [
+        true,
+        false
+      ]
+    },
+    "solargraph.autoformat": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable automatic formatting while typing (WARNING: experimental)",
+      "default": false,
+      "enum": [
+        true,
+        false
+      ]
+    },
+    "solargraph.formatting": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable document formatting",
+      "enum": [
+        true,
+        false
+      ],
+      "default": false
+    },
+    "solargraph.symbols": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable symbols",
+      "enum": [
+        true,
+        false
+      ],
+      "default": true
+    },
+    "solargraph.definitions": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable definitions (go to, etc.)",
+      "enum": [
+        true,
+        false
+      ],
+      "default": true
+    },
+    "solargraph.rename": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable symbol renaming",
+      "enum": [
+        true,
+        false
+      ],
+      "default": true
+    },
+    "solargraph.references": {
+      "type": [
+        "boolean"
+      ],
+      "description": "Enable finding references",
+      "enum": [
+        true,
+        false
+      ],
+      "default": true
+    },
+    "pyls.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "pyls.commandPath": {
+      "type": "string",
+      "default": ""
+    },
+    "pyls.filetypes": {
+      "type": "array",
+      "default": [ "python" ]
+    },
+    "pyls.configurationSources": {
+      "type": "array",
+      "default": ["pycodestyle"],
+      "description": "List of configuration sources to use.",
+      "items": {
+        "type": "string",
+        "enum": ["pycodestyle", "pyflakes"]
+      },
+      "uniqueItems": true
+    },
+    "pyls.plugins.jedi_completion.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_definition.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_hover.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_references.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_signature_help.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_symbols.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.jedi_symbols.all_scopes": {
+      "type": "boolean",
+      "default": true,
+      "description": "If True lists the names of all scopes instead of only the module namespace."
+    },
+    "pyls.plugins.mccabe.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.mccabe.threshold": {
+      "type": "number",
+      "default": 15,
+      "description": "The minimum threshold that triggers warnings about cyclomatic complexity."
+    },
+    "pyls.plugins.preload.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.preload.modules": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "List of modules to import on startup"
+    },
+    "pyls.plugins.pycodestyle.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pycodestyle.exclude": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Exclude files or directories which match these patterns."
+    },
+    "pyls.plugins.pycodestyle.filename": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "When parsing directories, only check filenames matching these patterns."
+    },
+    "pyls.plugins.pycodestyle.select": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pyls.plugins.pycodestyle.ignore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pyls.plugins.pycodestyle.hangClosing": {
+      "type": "boolean",
+      "default": null,
+      "description": "Hang closing bracket instead of matching indentation of opening bracket's line."
+    },
+    "pyls.plugins.pycodestyle.maxLineLength": {
+      "type": "number",
+      "default": null,
+      "description": "Set maximum allowed line length."
+    },
+    "pyls.plugins.pydocstyle.enabled": {
+      "type": "boolean",
+      "default": false,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.pydocstyle.convention": {
+      "type": "string",
+      "default": null,
+      "enum": [
+        "pep257",
+        "numpy"
+      ],
+      "description": "Choose the basic list of checked errors by specifying an existing convention."
+    },
+    "pyls.plugins.pydocstyle.addIgnore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings in addition to the specified convention."
+    },
+    "pyls.plugins.pydocstyle.addSelect": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings in addition to the specified convention."
+    },
+    "pyls.plugins.pydocstyle.ignore": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Ignore errors and warnings"
+    },
+    "pyls.plugins.pydocstyle.select": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Select errors and warnings"
+    },
+    "pyls.plugins.pydocstyle.match": {
+      "type": "string",
+      "default": "(?!test_).*\\.py",
+      "description": "Check only files that exactly match the given regular expression; default is to match files that don't start with 'test_' but end with '.py'."
+    },
+    "pyls.plugins.pydocstyle.matchDir": {
+      "type": "string",
+      "default": "[^\\.].*",
+      "description": "Search only dirs that exactly match the given regular expression; default is to match dirs which do not begin with a dot."
+    },
+    "pyls.plugins.pyflakes.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.rope_completion.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.plugins.yapf.enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable or disable the plugin."
+    },
+    "pyls.rope.extensionModules": {
+      "type": "string",
+      "default": null,
+      "description": "The name of the folder in which rope stores project configurations and data.  Pass `null` for not using such a folder at all."
+    },
+    "pyls.rope.ropeFolder": {
+      "type": "array",
+      "default": null,
+      "items": {
+        "type": "string"
+      },
+      "uniqueItems": true,
+      "description": "Builtin and c-extension modules that are allowed to be imported and inspected by rope."
     },
     "languageserver": {
       "type": "object",
@@ -973,9 +1309,9 @@
           "oneOf": [{
             "$ref": "#/definitions/languageServerModule"
           }, {
-            "$ref": "#/definitions/languageServerCommand"
+          "$ref": "#/definitions/languageServerCommand"
           }, {
-            "$ref": "#/definitions/languageServerSocket"
+          "$ref": "#/definitions/languageServerSocket"
           }]
         }
       }

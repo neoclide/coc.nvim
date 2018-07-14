@@ -4,7 +4,6 @@
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
 [![](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
 
-
 Coc is a completion framework of [neovim](https://github.com/neovim/neovim)
 while providing featured language server support.
 
@@ -21,6 +20,29 @@ _True snippet and additional text edit support_
 * Full featured completion support defined in LSP.
 * Built in language server extensions, like tsserver, tslint etc.
 * Custom language server configuration support.
+
+## Language support
+
+For filetype `typescript`, `javascript`, `html`, `json`, `css/less/scss/wxss`,
+`wxml`, no extra installation required.
+
+* **Ruby**
+
+    Install [solargraph](http://solargraph.org/) by:
+
+        gem install solargraph
+
+    The configuration field is `solargraph`.
+
+* **Python**
+
+    Install [pyls](https://github.com/palantir/python-language-server) by:
+
+        pip install 'python-language-server[all]'
+
+    The configuration field is `pyls`.
+
+**Note:** auto completion is supported automatically for `coc-settings.json`
 
 ## Contents
 
@@ -42,7 +64,6 @@ _True snippet and additional text edit support_
 * [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
 * [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
 
-
 ### [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
 * [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
@@ -50,12 +71,6 @@ _True snippet and additional text edit support_
 * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
 ### [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
-
-* [Start by a simple example](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#start-by-a-simple-example)
-* [Default options of source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#default-options-of-source)
-* [Options for complete](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#options-for-complete)
-* [Result of complete](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#result-of-complete)
-* [Optional functions](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source#optional-functions)
 
 ### [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 

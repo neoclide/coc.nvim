@@ -184,6 +184,8 @@
   "solargraph.enable": true,
   "solargraph.filetypes": ["ruby"],
   "solargraph.checkGemVersion": false,
+  "pyls.enable": true,
+  "pyls.filetypes": ["python"],
   "languageserver": {}
 }
 // vim:ft=jsonc
