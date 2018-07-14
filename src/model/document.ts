@@ -27,11 +27,7 @@ export default class Document {
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
-      try {
-        this.fireContentChanges()
-      } catch (e) {
-        logger.error('contentChanges error: ', e.stack)
-      }
+      this.fireContentChanges()
     }, 20)
     Object.defineProperty(this, 'words', {
       get: () => {
@@ -58,6 +54,7 @@ export default class Document {
   }
 
   private generateWords(): void {
+    if (this.isIgnored) return
     let {content} = this
     this._words = this.chars.matchKeywords(content)
   }
@@ -84,8 +81,9 @@ export default class Document {
     this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.attach()
     this.attached = true
-    this.generateWords()
-    this.gitCheck().catch(e => {
+    this.gitCheck().then(() => {
+      this.generateWords()
+    }, e => {
       logger.error('git error', e.stack)
     })
   }
@@ -121,13 +119,13 @@ export default class Document {
       if (buf.id !== this.buffer.id) return
       this._changedtick = tick
     })
-    this.disposables.push({
-      dispose: () => {
+    this.disposables.push(
+      Disposable.create(() => {
         unbindDetach()
         unbindLines()
         unbindChange()
-      }
-    })
+      })
+    )
   }
 
   private onChange(
@@ -172,22 +170,26 @@ export default class Document {
   private fireContentChanges(): void {
     let {paused, textDocument} = this
     if (paused) return
-    this.createDocument()
-    let change = getChange(textDocument.getText(), this.content)
-    if (!change) return
-    let changes = [{
-      range: {
-        start: textDocument.positionAt(change.start),
-        end: textDocument.positionAt(change.end)
-      },
-      text: change.newText
-    }]
-    let {version, uri} = this
-    this._onDocumentChange.fire({
-      textDocument: {version, uri},
-      contentChanges: changes
-    })
-    this.generateWords()
+    try {
+      this.createDocument()
+      let change = getChange(textDocument.getText(), this.content)
+      if (!change) return
+      let changes = [{
+        range: {
+          start: textDocument.positionAt(change.start),
+          end: textDocument.positionAt(change.end)
+        },
+        text: change.newText
+      }]
+      let {version, uri} = this
+      this._onDocumentChange.fire({
+        textDocument: {version, uri},
+        contentChanges: changes
+      })
+      this.generateWords()
+    } catch (e) {
+      logger.error(e.message)
+    }
   }
 
   public detach(): void {

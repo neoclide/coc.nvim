@@ -17,3 +17,4 @@
 * Add support for preselect of complete item
 * Add support for socket language server configuration
 * Fix configured language server doesn't work
+* Add `workspace.diffDocument` coc command
