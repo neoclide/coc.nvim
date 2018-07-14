@@ -15,6 +15,9 @@ export interface LanguageServerConfig {
   enable: boolean
   args?: string[]
   cwd?: string
+  // socket port
+  port?: number
+  host?: string
   detached?: boolean
   shell?: boolean
   execArgv?: string[]

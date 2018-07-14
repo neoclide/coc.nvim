@@ -1,8 +1,9 @@
 import fs from 'fs'
+import net from 'net'
 import path from 'path'
 import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import which from 'which'
-import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind} from '../language-client/main'
+import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
 import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
 import {disposeAll, echoErr} from '../util'
 import workspace from '../workspace'
@@ -10,6 +11,14 @@ const logger = require('../util/logger')('language-client-index')
 
 export interface LspConfig {
   [index: string]: LanguageServerConfig
+}
+
+function isInteger(o:any):boolean {
+  if (typeof o === 'number') return true
+  if (typeof o === 'string') {
+    return /^\d+$/.test(o)
+  }
+  return false
 }
 
 export class LanguageService implements IServiceProvider {
@@ -41,7 +50,7 @@ export class LanguageService implements IServiceProvider {
 
   public init(): Promise<void> {
     let {config, name} = this
-    let {args, module, command} = config
+    let {args, module, command, port, host} = config
     if (command) {
       try {
         let resolved = which.sync(config.command)
@@ -54,16 +63,37 @@ export class LanguageService implements IServiceProvider {
         return
       }
     }
+
     let isModule = module != null
-    let serverOptions: ServerOptions = isModule ? {
-      module,
-      transport: TransportKind.ipc,
-      args: config.args,
-      options: this.getOptions(true)
-    } : {
-      command,
-      args: config.args || [],
-      options: this.getOptions()
+    let serverOptions: ServerOptions
+    if (isModule) {
+      serverOptions = {
+        module,
+        transport: this.getTransportKind(),
+        args: config.args,
+        options: this.getOptions(true)
+      }
+    } else if (command) {
+      serverOptions = {
+        command,
+        args: config.args || [],
+        options: this.getOptions()
+      }
+    } else if (port) {
+      serverOptions = () => {
+        return new Promise((resolve, reject) => {
+          let client = new net.Socket()
+          client.connect(port, host || '127.0.0.1', () => {
+            resolve({
+              reader: client,
+              writer: client
+            })
+          })
+          client.on('error', e => {
+            reject(new Error(`Connection error for ${this.id}: ${e.message}`))
+          })
+        })
+      }
     }
 
     let documentSelector = this.languageIds
@@ -105,6 +135,26 @@ export class LanguageService implements IServiceProvider {
         resolve()
       })
     })
+  }
+
+  private getTransportKind():Transport {
+    let {config} = this
+    let {args} = config
+    if (!args || args.indexOf('--node-ipc') !== -1) {
+      return TransportKind.ipc
+    }
+    if (args.indexOf('--stdio') !== -1) {
+      return TransportKind.stdio
+    }
+    let idx = args.findIndex(s => s === '--socket' || s === '--port')
+    if (idx !== -1 && isInteger(args[idx + 1])) {
+      let n = args[idx + 1]
+      return {
+        kind: TransportKind.socket,
+        port: Number(n)
+      }
+    }
+    return TransportKind.ipc
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {

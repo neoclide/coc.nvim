@@ -2,6 +2,22 @@
   "$schema": "http://json-schema.org/draft-04/schema",
   "description": "Configuration file for coc.nvim",
   "definitions": {
+    "languageServerSocket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["port"],
+      "properties" : {
+        "port": {
+          "type": "integer",
+          "description": "Port number of socket server"
+        },
+        "host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host of server"
+        }
+      }
+    },
     "languageServerModule": {
       "type": "object",
       "required": ["module", "filetypes"],
@@ -936,6 +952,8 @@
             "$ref": "#/definitions/languageServerModule"
           }, {
             "$ref": "#/definitions/languageServerCommand"
+          }, {
+            "$ref": "#/definitions/languageServerSocket"
           }]
         }
       }

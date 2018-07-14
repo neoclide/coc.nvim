@@ -15,3 +15,4 @@
 # 2018-07-14
 
 * Add support for preselect of complete item
+* Add support for socket language server configuration
