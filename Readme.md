@@ -10,6 +10,9 @@ while providing featured language server support.
 
 Checkout [doc/coc.txt](/doc/coc.txt) for vim interface.
 
+![1](https://user-images.githubusercontent.com/251450/42721172-7d9ab238-8768-11e8-804c-a1dc7e20fd88.gif)
+_True snippet and additional text edit support_
+
 ## Pros.
 
 * Async generate complete items
