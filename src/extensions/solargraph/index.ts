@@ -30,11 +30,12 @@ export default class SolargraphService implements IServiceProvider {
     let config = this.config = workspace
       .getConfiguration()
       .get<LanguageServerConfig>('solargraph')
+    let commandPath = config.commandPath || 'solargraph'
     try {
-      which.sync('solargraph')
-      this.enable = true
-    } catch (e) {
+      which.sync(commandPath)
       this.enable = this.config.enable !== false
+    } catch (e) {
+      this.enable = false
     }
     this.languageIds = config.filetypes || ['ruby']
   }
