@@ -6,6 +6,8 @@ import {ROOT} from '../../util'
 import workspace from '../../workspace'
 import catalog from './catalog.json'
 import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
+import Uri from 'vscode-uri'
+import {readdirAsync} from '../../util/fs'
 const logger = require('../../util/logger')('extension-json')
 
 interface ISchemaAssociations {
@@ -38,8 +40,21 @@ export default class JsonService extends LanguageService {
         associations[fileMatch] = [url]
       }
     }
-    associations['coc-settings.json'] = ['https://raw.githubusercontent.com/neoclide/coc.nvim/master/data/schema.json']
+    const files = await this.getSchemaFiles()
+    associations['coc-settings.json'] = files.map(f => Uri.file(f).toString())
     this.client.sendNotification('json/schemaAssociations', associations)
+  }
+
+  private async getSchemaFiles(): Promise<string[]> {
+    const files = [path.join(ROOT, 'data/schema.json')]
+    try {
+      const base = path.join(ROOT, 'src/extensions')
+      const folders = await readdirAsync(base)
+      files.push(...folders.map(f => path.join(base, f + '/schema.json')))
+    } catch (e) {
+      logger.error(e.message)
+    }
+    return files
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "properties": {
+    "cssserver.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.filetypes": {
+      "type": "array",
+      "default": [ "css", "scss", "less", "wxss" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "cssserver.css.validate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable validate for cssserver of css"
+    },
+    "cssserver.css.lint": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable lint for cssserver of css"
+    },
+    "cssserver.scss.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.scss.lint": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.less.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.less.lint": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.wxss.validate": {
+      "type": "boolean",
+      "default": true
+    },
+    "cssserver.wxss.lint": {
+      "type": "boolean",
+      "default": true
+    }
+  }
+}

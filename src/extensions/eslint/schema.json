@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "properties": {
+    "eslint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "eslint.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "eslint.filetypes": {
+      "type": "array",
+      "default": [ "javascript", "javascript.jsx" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "eslint.packageManager": {
+      "type": "string",
+      "default": "npm",
+      "enum": ["npm", "yarn"]
+    },
+    "eslint.run": {
+      "type": "string",
+      "default": "onType",
+      "enum": ["onType", "onSave"]
+    },
+    "eslint.autoFix": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto fix feature"
+    },
+    "eslint.autoFixOnSave": {
+      "type": "boolean",
+      "default": false
+    }
+  }
+}

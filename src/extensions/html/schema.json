@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "properties": {
+    "html.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "html.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "html.filetypes": {
+      "type": "array",
+      "default": [ "html", "handlebars", "razor" ],
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

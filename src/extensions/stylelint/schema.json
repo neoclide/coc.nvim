@@ -1,0 +1,28 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "properties": {
+    "stylelint.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "stylelint.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "stylelint.filetypes": {
+      "type": "array",
+      "default": [ "css", "wxss", "scss", "less", "markdown", "postcss", "sugarss", "vue" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "stylelint.configOverrides": {
+      "type": "object",
+      "default": {},
+      "description": "Override exist stylelint config"
+    }
+  }
+}

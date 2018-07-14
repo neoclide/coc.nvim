@@ -1,0 +1,29 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "properties": {
+    "json.filetypes": {
+      "type": "array",
+      "default": [ "json", "jsonc" ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "json.execArgv": {
+      "type": "array",
+      "default": ["--nolazy", "--inspect-brk=6045"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "json.format.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable format for json server"
+    },
+    "json.schemas": {
+      "type": "array",
+      "default": [],
+      "description": "Schemas for json server"
+    }
+  }
+}
