@@ -77,7 +77,7 @@ export default class TslintService extends LanguageService {
         return {}
       })
 
-      workspace.onWillSaveTextDocument(this.willSaveTextDocument)
+      workspace.onWillSaveTextDocument(this.willSaveTextDocument.bind(this))
       commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits)
       commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits)
       commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits)
