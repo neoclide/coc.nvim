@@ -9,7 +9,7 @@ export default class Snippet {
   public readonly maxIndex: number
 
   constructor(content: string, private prepend = '', private append = '') {
-    this.textmateSnippet = new SnippetParser().parse(content, false, false)
+    this.textmateSnippet = new SnippetParser().parse(content, true, true)
     let max = 0
     let {placeholders} = this.textmateSnippet
     for (let o of placeholders) {
