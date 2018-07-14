@@ -38,7 +38,7 @@ export class LanguageService implements IServiceProvider {
     configSections?: string | string[]
   ) {
     this.state = ServiceStat.Initial
-    this.enable = config.enable
+    this.enable = config.enable !== false
     this.languageIds = config.filetypes
     this.configSections = configSections || `${this.id}.settings`
     if (!config.command && !config.module) {
@@ -95,7 +95,6 @@ export class LanguageService implements IServiceProvider {
         })
       }
     }
-
     let documentSelector = this.languageIds
     let clientOptions: LanguageClientOptions = {
       documentSelector,

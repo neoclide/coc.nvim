@@ -16,6 +16,10 @@
           "default": "127.0.0.1",
           "description": "Host of server"
         },
+        "enable": {
+          "type": "boolean",
+          "default": true
+        },
         "filetypes": {
           "type": "array",
           "default": [],
@@ -23,6 +27,16 @@
           "items": {
             "type": "string"
           }
+        },
+        "initializationOptions": {
+          "type": "object",
+          "default": {},
+          "description": "initializationOptions passed to languageserver"
+        },
+        "settings": {
+          "type": "object",
+          "default": {},
+          "description": "Settings of languageserver"
         }
       }
     },
