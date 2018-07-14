@@ -18,3 +18,4 @@
 * Add support for socket language server configuration
 * Fix configured language server doesn't work
 * Add `workspace.diffDocument` coc command
+* Fix buffer sometimes not attached.
