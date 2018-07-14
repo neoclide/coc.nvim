@@ -5,7 +5,7 @@
     "languageServerSocket": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["port"],
+      "required": ["port", "filetypes"],
       "properties" : {
         "port": {
           "type": "integer",
@@ -15,6 +15,14 @@
           "type": "string",
           "default": "127.0.0.1",
           "description": "Host of server"
+        },
+        "filetypes": {
+          "type": "array",
+          "default": [],
+          "description": "Supported filetypes",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
