@@ -458,7 +458,7 @@ class Languages {
           option = null
           completeItems = []
           resolving = ''
-        }, 50)
+        }, 30)
         return
       },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {

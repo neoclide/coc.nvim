@@ -14,10 +14,6 @@ import path = require('path')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
-function toNumber(o: any): number {
-  return Number(o.toString())
-}
-
 // global neovim settings
 export interface NvimSettings {
   completeOpt: string
@@ -66,14 +62,15 @@ export class Workspace {
     let config = await this.loadConfigurations()
     this._configurations = new Configurations(config)
     this.root = await this.findProjectRoot()
-    const buffers = await this.nvim.buffers
-    Promise.all(buffers.map(buf => {
+    let buffers = await this.nvim.buffers
+    buffers = await this.filterLoadedBufer(buffers)
+    await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
     })).catch(error => {
       logger.error(`buffer create error: ${error.message}`)
     })
     let buf = await this.nvim.buffer
-    await this.bufferEnter(toNumber(buf.data))
+    await this.bufferEnter(buf.id)
     let watchmanPath = this.getConfiguration('coc.preferences').get('watchmanPath', '') as string
     this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
     this.nvimSettings = {
@@ -281,7 +278,6 @@ export class Workspace {
         textDocument: {version, uri},
         contentChanges
       })
-      logger.trace('buffer change', bufnr, version)
     })
     logger.debug('buffer created', bufnr)
     return document
@@ -532,7 +528,7 @@ export class Workspace {
 
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
     let buffers = await this.nvim.buffers
-    return buffers.find(buf => toNumber(buf.data) == bufnr)
+    return buffers.find(buf => buf.id == bufnr)
   }
 
   private fileCount(edit: WorkspaceEdit): number {
@@ -546,6 +542,15 @@ export class Workspace {
       }
     }
     return n
+  }
+
+  private async filterLoadedBufer(buffers: Buffer[]): Promise<Buffer[]> {
+    let res:Buffer[] = []
+    for (let buf of buffers) {
+      let loaded = await this.nvim.call('bufloaded', buf.id)
+      if (loaded) res.push(buf)
+    }
+    return res
   }
 }
 
