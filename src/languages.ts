@@ -388,7 +388,7 @@ class Languages {
       if (!completeItems || completeItems.length == 0) return null
       let {word} = item
       return completeItems.find(o => {
-        return word == o.label
+        return word == o.insertText || word == o.label
       })
     }
     return {
@@ -407,6 +407,7 @@ class Languages {
         resolving = item.word
         let resolved: CompletionItem
         let prevItem = resolveItem(item)
+        if (!prevItem) return
         prevItem.data = prevItem.data || {}
         if (!prevItem) return
         if (prevItem.data.resolved) {
@@ -521,7 +522,8 @@ class Languages {
     let mode = await nvim.call('mode')
     if (mode !== 'i') return false
     let curcol = await nvim.call('col', ['.'])
-    if (curcol != col + item.label.length + 1) return false
+    let label = item.insertText || item.label
+    if (curcol != col + label.length + 1) return false
     return true
   }
 
@@ -540,7 +542,8 @@ class Languages {
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let end = line.substr(option.col + item.label.length + deleteCount)
+    let label = item.insertText || item.label
+    let end = line.substr(option.col + label.length + deleteCount)
     let newLine = `${start}${newText}${end}`
     if (isSnippet) {
       await snippetManager.insertSnippet(document, option.linenr - 1, newText, start, end)
