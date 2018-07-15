@@ -39,7 +39,7 @@ export default class TypeScriptDocumentHighlightProvider implements DocumentHigh
 }
 
 function documentHighlightFromOccurance(
-  occurrence: Proto.OccurrencesResponseItem
+  occurrence: Proto.OccurrencesResponseItem // tslint:disable-line
 ): DocumentHighlight {
   return {
     range: typeConverters.Range.fromTextSpan(occurrence),

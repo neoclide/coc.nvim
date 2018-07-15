@@ -22,7 +22,11 @@ export default class JsonService extends LanguageService {
       synchronize: {
         configurationSection: ID,
         diagnosticCollectionName: 'stylelint',
-        fileEvents: workspace.createFileSystemWatcher('**/stylelint.config.js')
+        fileEvents: [
+          workspace.createFileSystemWatcher('**/stylelint.config.js'),
+          workspace.createFileSystemWatcher('**/.stylelintrc'),
+          workspace.createFileSystemWatcher('**/package.json')
+        ]
       }
     })
     return clientOptions

@@ -279,7 +279,7 @@ export default class EslintService extends LanguageService {
               packageManager: pm === 'yarn' ? 'yarn' : 'npm',
               autoFix: config.get('autoFix', false),
               autoFixOnSave: config.get('autoFixOnSave', false),
-              options: config.get('options', {}),
+              options: config.get<Object>('options', {}),
               run: config.get('run', 'onType'),
               workingDirectory: {directory: workspace.root, changeProcessCWD: false}
             }

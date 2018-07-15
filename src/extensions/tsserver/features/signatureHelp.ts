@@ -47,7 +47,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
     }
     return result
   }
- 
+
   private getActiveParmeter(info: Proto.SignatureHelpItems): number {
     const activeSignature = info.items[info.selectedItemIndex]
     if (activeSignature && activeSignature.isVariadic) {

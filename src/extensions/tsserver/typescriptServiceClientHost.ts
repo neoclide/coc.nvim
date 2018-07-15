@@ -44,27 +44,23 @@ export default class TypeScriptServiceClientHost implements Disposable {
     }
 
     const configFileWatcher = workspace.createFileSystemWatcher('**/[tj]sconfig.json')
-    if (configFileWatcher) {
-      this.disposables.push(configFileWatcher)
-      configFileWatcher.onDidCreate(
-        this.reloadProjects,
-        this,
-        this.disposables
-      )
-      configFileWatcher.onDidDelete(
-        this.reloadProjects,
-        this,
-        this.disposables
-      )
-      configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
-    }
+    configFileWatcher.onDidCreate(
+      this.reloadProjects,
+      this,
+      this.disposables
+    )
+    configFileWatcher.onDidDelete(
+      this.reloadProjects,
+      this,
+      this.disposables
+    )
+    configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
+    this.disposables.push(configFileWatcher)
 
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)
     this.client.onDiagnosticsReceived(({kind, resource, diagnostics}) => {
-      this.diagnosticsReceived(kind, resource, diagnostics).catch(() => {
-        // noop
-      })
+      this.diagnosticsReceived(kind, resource, diagnostics)
     }, null, this.disposables)
 
     this.client.onConfigDiagnosticsReceived(diag => {
@@ -72,7 +68,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
       if (body) {
         let {configFile, diagnostics} = body
         if (diagnostics.length) {
-          errorMsg(`Issue found with config file: ${configFile}`)
+          errorMsg(`Invalid config file: ${configFile}`)
         }
       }
     }, null, this.disposables)
@@ -122,11 +118,11 @@ export default class TypeScriptServiceClientHost implements Disposable {
     this.reportStyleCheckAsWarnings = config.get('reportStyleChecksAsWarnings', true)
   }
 
-  private async findLanguage(resource: Uri): Promise<LanguageProvider | undefined> {
+  private findLanguage(resource: Uri): LanguageProvider | null {
     try {
       return this.languages.find(language => language.handles(resource))
     } catch {
-      return undefined
+      return null
     }
   }
 
@@ -136,25 +132,25 @@ export default class TypeScriptServiceClientHost implements Disposable {
     }
   }
 
-  private async diagnosticsReceived(
+  private diagnosticsReceived(
     kind: DiagnosticKind,
     resource: Uri,
     diagnostics: Proto.Diagnostic[]
-  ): Promise<void> {
-    const language = await this.findLanguage(resource)
+  ): void {
+    const language = this.findLanguage(resource)
     if (language) {
       language.diagnosticsReceived(
         kind,
         resource,
-        this.createMarkerDatas(diagnostics, language.diagnosticSource))
+        this.createMarkerDatas(diagnostics))
     }
   }
 
-  private createMarkerDatas(diagnostics: Proto.Diagnostic[], source: string): Diagnostic[] {
-    return diagnostics.map(tsDiag => this.tsDiagnosticToLspDiagnostic(tsDiag, source))
+  private createMarkerDatas(diagnostics: Proto.Diagnostic[]): Diagnostic[] {
+    return diagnostics.map(tsDiag => this.tsDiagnosticToLspDiagnostic(tsDiag))
   }
 
-  private tsDiagnosticToLspDiagnostic(diagnostic: Proto.Diagnostic, source: string): Diagnostic {
+  private tsDiagnosticToLspDiagnostic(diagnostic: Proto.Diagnostic): Diagnostic {
     const {start, end, text} = diagnostic
     const range = {
       start: typeConverters.Position.fromLocation(start),

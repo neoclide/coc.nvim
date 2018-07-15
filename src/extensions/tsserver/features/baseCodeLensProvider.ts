@@ -9,7 +9,6 @@ import {ITypeScriptServiceClient} from '../typescriptService'
 import {escapeRegExp} from '../utils/regexp'
 import * as typeConverters from '../utils/typeConverters'
 
-
 export class CachedNavTreeResponse {
   private response?: Promise<Proto.NavTreeResponse>
   private version = -1

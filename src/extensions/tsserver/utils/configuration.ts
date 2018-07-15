@@ -56,6 +56,7 @@ export class TypeScriptServiceConfiguration {
   public readonly tsServerPluginNames: string[]
   public readonly tsServerPluginRoot: string | null
   public readonly debugPort: number | null
+  public readonly typingsCacheLocation: string | null
   private constructor() {
     const configuration = workspace.getConfiguration('tsserver')
 
@@ -67,6 +68,7 @@ export class TypeScriptServiceConfiguration {
     } catch (e) {} // tslint:disable-line
     this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('log', 'off'))
     this.tsServerPluginNames = configuration.get<string[]>('pluginNames', [])
+    this.typingsCacheLocation = configuration.get<string>('typingsCacheLocation', null)
     this.tsServerPluginRoot = configuration.get<string>('pluginRoot', null)
     this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
     this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)

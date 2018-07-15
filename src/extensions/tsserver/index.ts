@@ -28,7 +28,7 @@ export default class TsserverService implements IServiceProvider {
     this.enable = config.get<boolean>('enable')
   }
 
-  public init(): void {
+  public init(): Promise<void> {
     let {languageIds} = this
     let descriptions = standardLanguageDescriptions.filter(o => languageIds.indexOf(o.id) !== -1)
     this.clientHost = new TypeScriptServiceClientHost(descriptions)
@@ -38,10 +38,20 @@ export default class TsserverService implements IServiceProvider {
       }
     })
     let client = this.clientHost.serviceClient
-    client.onTsServerStarted(() => {
-      this._onDidServiceReady.fire(void 0)
-    })
     this.disposables.push(client)
+    return new Promise(resolve => {
+      let started = false
+      client.onTsServerStarted(() => {
+        this._onDidServiceReady.fire(void 0)
+        if (!started) {
+          started = true
+          resolve()
+        }
+      })
+      setTimeout(() => {
+        resolve()
+      }, 3000)
+    })
   }
 
   public dispose(): void {

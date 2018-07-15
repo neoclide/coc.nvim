@@ -71,7 +71,7 @@ export interface ITypeScriptServiceClient {
     command: 'completions',
     args: Proto.CompletionsRequestArgs,
     token?: CancellationToken
-  ): Promise<Proto.CompletionsResponse>
+  ): Promise<Proto.CompletionsResponse> // tslint:disable-line
   execute(
     command: 'completionEntryDetails',
     args: Proto.CompletionDetailsRequestArgs,

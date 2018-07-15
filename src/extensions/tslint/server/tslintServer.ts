@@ -2,7 +2,7 @@
  * Copyright (C) Microsoft Corporation. All rights reserved.
  *--------------------------------------------------------*/
 'use strict'
-
+/* tslint:disable */
 import minimatch from 'minimatch'
 import path from 'path'
 import semver from 'semver'

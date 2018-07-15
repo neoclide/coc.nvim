@@ -131,9 +131,7 @@ export default class Sources {
 
   private addSource(name: string, source: ISource): void {
     if (this.names.indexOf(name) !== -1) {
-      echoMessage(this.nvim, `Source "${name}" recreated`).catch(_e => {
-        // noop
-      })
+      echoMessage(this.nvim, `Source "${name}" recreated`)
     }
     this.sourceMap.set(name, source)
   }
@@ -181,7 +179,7 @@ export default class Sources {
     try {
       await nvim.command(`source ${p}`)
     } catch (e) {
-      await echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
+      echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
       return
     }
     let valid = await this.checkRemoteSource(name)
@@ -222,7 +220,7 @@ export default class Sources {
       if (exists != 1) {
         valid = false
         let msg = `Function ${fname} not found for '${name}' source`
-        await echoErr(nvim, msg)
+        echoErr(nvim, msg)
       }
     }
     return valid
@@ -256,7 +254,7 @@ export default class Sources {
       })
       source = new VimSource(nvim, config)
     } catch (e) {
-      await echoErr(nvim, `Vim error on init from source ${name}: ${e.message}`)
+      echoErr(nvim, `Vim error on init from source ${name}: ${e.message}`)
       return null
     }
     return source

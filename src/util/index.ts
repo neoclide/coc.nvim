@@ -26,16 +26,16 @@ export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
 }
 
-export async function echoErr(nvim: Neovim, msg: string): Promise<void> {
-  await echoMsg(nvim, prefix + msg, 'Error')
+export function echoErr(nvim: Neovim, msg: string): void {
+  echoMsg(nvim, prefix + msg, 'Error') // tslint:disable-line
 }
 
-export async function echoWarning(nvim: Neovim, msg: string): Promise<void> {
-  await echoMsg(nvim, prefix + msg, 'WarningMsg')
+export function echoWarning(nvim: Neovim, msg: string): void {
+  echoMsg(nvim, prefix + msg, 'WarningMsg') // tslint:disable-line
 }
 
-export async function echoMessage(nvim: Neovim, msg: string): Promise<void> {
-  await echoMsg(nvim, prefix + msg, 'MoreMsg')
+export function echoMessage(nvim: Neovim, msg: string): void {
+  echoMsg(nvim, prefix + msg, 'MoreMsg') // tslint:disable-line
 }
 
 export function wait(ms: number): Promise<any> {

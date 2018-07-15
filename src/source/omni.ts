@@ -20,7 +20,7 @@ export default class OmniSource extends Source {
     let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
     opt.func = func
     if (typeof func == 'string' && func.length != 0) return true
-    await echoMessage(this.nvim, 'omnifunc option is empty, omni source skipped')
+    echoMessage(this.nvim, 'omnifunc option is empty, omni source skipped')
     return false
   }
 
@@ -28,7 +28,7 @@ export default class OmniSource extends Source {
     let {line, colnr, col, func} = opt
     let {nvim} = this
     if (['LanguageClient#complete', 'jedi#completes'].indexOf('func') !== -1) {
-      await echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
+      echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
     let startcol: number = col
@@ -36,7 +36,7 @@ export default class OmniSource extends Source {
       startcol = await nvim.call(func, [1, ''])
       startcol = Number(startcol)
     } catch (e) {
-      await echoErr(nvim, `vim error from ${func} :${e.message}`)
+      echoErr(nvim, `vim error from ${func} :${e.message}`)
       return null
     }
     // invalid startcol

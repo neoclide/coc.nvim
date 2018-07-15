@@ -33,7 +33,7 @@ export default class SolargraphService implements IServiceProvider {
     let commandPath = config.commandPath || 'solargraph'
     try {
       which.sync(commandPath)
-      this.enable = this.config.enable !== false
+      this.enable = this.config.enable !== false // tslint:disable-line
     } catch (e) {
       this.enable = false
     }
@@ -77,7 +77,7 @@ export default class SolargraphService implements IServiceProvider {
         checkGemVersion(solargraphConfiguration)
       }
 
-      return new Promise(resolve => {
+      return new Promise((resolve):void => { // tslint:disable-line
         client.onReady().then(() => {
           this.registerCommand()
           this._onDidServiceReady.fire(void 0)
@@ -113,6 +113,8 @@ export default class SolargraphService implements IServiceProvider {
           let uri = 'solargraph:/search?query=' + encodeURIComponent(val)
           commandManager.executeCommand('solargraph._openDocument', uri)
         }
+      }, () => {
+        // noop
       })
     })
     this.disposables.push(disposableSearch)
@@ -177,7 +179,7 @@ export default class SolargraphService implements IServiceProvider {
     if (this.state == ServiceStat.Running) {
       await this.stop()
     }
-    return new Promise(resolve => {
+    return new Promise(resolve => { // tslint:disable-line
       if (client) {
         this.dispose()
         this.socketProvider.restart().then(() => {
@@ -195,6 +197,8 @@ export default class SolargraphService implements IServiceProvider {
             resolve()
           }
           )
+        }, e => {
+          echoErr(workspace.nvim, `Initialize solargraph socket server failed: ${e.message}`)
         })
       } else {
         this.init().then(resolve, _e => {

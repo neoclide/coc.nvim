@@ -57,7 +57,7 @@ export class Completion {
 
   public startCompletion(option: CompleteOption): void {
     this._doComplete(option).catch(e => {
-      echoErr(this.nvim, e.message).catch(onError)
+      echoErr(this.nvim, e.message)
       logger.error('Error happens on complete: ', e.stack)
     })
   }
@@ -84,7 +84,7 @@ export class Completion {
         await nvim.call('coc#_do_complete')
       }
     } catch (e) {
-      await echoErr(nvim, `completion error: ${e.message}`)
+      echoErr(nvim, `completion error: ${e.message}`)
       logger.error(e.stack)
     }
   }

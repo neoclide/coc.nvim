@@ -72,8 +72,8 @@ export default class JsonService extends LanguageService {
             if (!doc) return []
             let items: CompletionItem[] = res.hasOwnProperty('isIncomplete') ? (res as CompletionList).items : res as CompletionItem[]
             for (let item of items) {
-              let {textEdit, insertText} = item
-              item.insertText = null
+              let {textEdit, insertText} = item // tslint:disable-line
+              item.insertText = null // tslint:disable-line
               if (textEdit && textEdit.newText) {
                 let newText = insertText || textEdit.newText
                 textEdit.newText = newText.replace(/(\n|\t)/g, '')

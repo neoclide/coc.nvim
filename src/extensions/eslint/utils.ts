@@ -1,11 +1,9 @@
-import fs from 'fs'
 import path from 'path'
+import {statAsync} from '../../util/fs'
 
 function exists(file: string): Promise<boolean> {
-  return new Promise<boolean>((resolve, _reject) => {
-    fs.exists(file, value => {
-      resolve(value)
-    })
+  return statAsync(file).then(stat => {
+    return stat.isFile()
   })
 }
 

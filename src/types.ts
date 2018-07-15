@@ -283,7 +283,7 @@ export interface IServiceProvider {
   languageIds: string[]
   // current state
   state: ServiceStat
-  init(): void
+  init(): Promise<void>
   dispose(): void
   stop(): Promise<void> | void
   restart(): Promise<void> | void

@@ -509,12 +509,12 @@ class BufferedMessageQueue {
     if (Request.is(message)) {
       let requestMessage = message
       if (requestMessage.token.isCancellationRequested) {
-        requestMessage.reject(new ResponseError(ErrorCodes.RequestCancelled, 'Request got cancelled'))
+        requestMessage.reject(new ResponseError(ErrorCodes.RequestCancelled, 'Request got cancelled')) // tslint:disable-line
         return
       }
       let elem = this.requestHandlers.get(requestMessage.method)
       if (elem.versionProvider && requestMessage.documentVersion !== void 0 && requestMessage.documentVersion !== elem.versionProvider(requestMessage.params)) {
-        requestMessage.reject(new ResponseError(ErrorCodes.RequestCancelled, 'Request got cancelled'))
+        requestMessage.reject(new ResponseError(ErrorCodes.RequestCancelled, 'Request got cancelled')) // tslint:disable-line
         return
       }
       let result = elem.handler(requestMessage.params, requestMessage.token)
@@ -1087,4 +1087,3 @@ messageQueue.registerRequest(ExecuteCommandRequest.type, params => {
 
 connection.tracer.attach(connection)
 connection.listen()
-

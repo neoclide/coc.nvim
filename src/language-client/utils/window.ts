@@ -6,19 +6,13 @@ import {echoErr, echoMessage, echoWarning} from '../../util'
 import workspace from '../../workspace'
 
 export function showErrorMessage(...args: string[]): void {
-  echoErr(workspace.nvim, args.join('\n')).catch(_e => {
-    // noop
-  })
+  echoErr(workspace.nvim, args.join('\n'))
 }
 export function showWarningMessage(...args: string[]): void {
-  echoWarning(workspace.nvim, args.join('\n')).catch(_e => {
-    // noop
-  })
+  echoWarning(workspace.nvim, args.join('\n'))
 }
 export function showInformationMessage(...args: string[]): void {
-  echoMessage(workspace.nvim, args.join('\n')).catch(_e => {
-    // noop
-  })
+  echoMessage(workspace.nvim, args.join('\n'))
 }
 
 export function promptAction(input: string): Promise<boolean> {

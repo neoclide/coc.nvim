@@ -66,7 +66,7 @@ export default class Watchman {
 
   private async watchProject(root: string, nvim: Neovim): Promise<boolean> {
     if (root === process.env.HOME) {
-      echoErr(nvim, 'root is home, file watching disabled!')
+      echoErr(nvim, 'root is home, file watching disabled!') // tslint:disable-line
       return false
     }
     let resp = await this.command(['watch-project', root])

@@ -8,10 +8,6 @@ const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
 
-  private async echoError(str: string): Promise<void> {
-    await echoErr(this.nvim, `Vim error from source ${this.name}: ${str}`)
-  }
-
   private async callOptinalFunc(fname: string, args: any[]): Promise<any> {
     let exists = this.optionalFns.indexOf(fname) !== -1
     if (!exists) return null
@@ -20,7 +16,7 @@ export default class VimSource extends Source {
     try {
       res = await this.nvim.call(name, args)
     } catch (e) {
-      await this.echoError(e.message)
+      echoErr(this.nvim, `Vim error from source ${this.name}: ${e.message}`)
       return null
     }
     return res

@@ -11,6 +11,7 @@ import {ProviderResult} from '../../provider'
 import {ServiceStat, TextDocumentWillSaveEvent} from '../../types'
 import {echoErr, echoMessage, echoWarning} from '../../util'
 import workspace from '../../workspace'
+import which = require('which')
 const logger = require('../../util/logger')('tslint')
 
 interface AllFixesParams {
@@ -185,7 +186,7 @@ export default class TslintService extends LanguageService {
             if (retry) {
               retryCount++
             }
-            result = await this.client.sendRequest(AllFixesRequest.type, {
+            result = await this.client.sendRequest(AllFixesRequest.type, { // tslint:disable-line
               textDocument: {uri: document.uri.toString()},
               isOnSave: true
             })
@@ -207,7 +208,7 @@ export default class TslintService extends LanguageService {
     let document = await workspace.document
     let uri: string = document.uri
     try {
-      let result = await this.client.sendRequest(AllFixesRequest.type, {textDocument: {uri}})
+      let result = await this.client.sendRequest(AllFixesRequest.type, {textDocument: {uri}}) // tslint:disable-line
       if (result) {
         let success = await applyTextEdits(
           uri,
@@ -256,7 +257,7 @@ function isEnabledForJavaScriptDocument(document: TextDocument): boolean {
 
 function exists(file: string): Promise<boolean> {
   return new Promise<boolean>((resolve, _reject) => {
-    fs.exists(file, value => {
+    fs.exists(file, value => { // tslint:disable-line
       resolve(value)
     })
   })
@@ -274,7 +275,11 @@ async function findTslint(rootPath: string): Promise<string> {
   ) {
     return path.join('.', 'node_modules', '.bin', 'tslint')
   } else {
-    return 'tslint'
+    try {
+      return which.sync('tslint')
+    } catch (e) {
+      return null
+    }
   }
 }
 
@@ -285,6 +290,7 @@ async function createDefaultConfiguration(): Promise<void> {
     await workspace.openResource(Uri.file(tslintConfigFile).toString())
   } else {
     const tslintCmd = await findTslint(folderPath)
+    if (!tslintCmd) return
     const cmd = `${tslintCmd} --init`
     const p = exec(cmd, {cwd: folderPath, env: process.env})
     p.on('exit', async (code: number, _signal: string) => {
@@ -323,7 +329,9 @@ async function applyDisableRuleEdit(uri: string, documentVersion: number, edits:
 function showRuleDocumentation(_uri: string, _documentVersion: number, _edits: TextEdit[], ruleId: string): void {
   const tslintDocBaseURL = 'https://palantir.github.io/tslint/rules'
   if (!ruleId) return
-  opn(tslintDocBaseURL + '/' + ruleId)
+  opn(tslintDocBaseURL + '/' + ruleId).catch(() => {
+    echoErr(workspace.nvim, 'Failed to open browser')
+  })
 }
 
 function convertAbsolute(file: string): string {

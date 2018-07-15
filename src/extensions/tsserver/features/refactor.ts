@@ -45,7 +45,7 @@ class ApplyRefactoringCommand implements Command {
 
     const renameLocation = body.renameLocation
     if (renameLocation) {
-      await commandManager.executeCommand('editor.action.rename', [
+      commandManager.executeCommand('editor.action.rename', [
         document.uri,
         typeConverters.Position.fromLocation(renameLocation)
       ])

@@ -158,9 +158,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private readonly _onTypesInstallerInitializationFailed = new Emitter<
     Proto.TypesInstallerInitializationFailedEventBody
     >()
-  /**
-   * API version obtained from the version picker after checking the corresponding path exists.
-   */
   private _apiVersion: API
   private readonly disposables: Disposable[] = []
 
@@ -229,7 +226,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         this.state = ServiceStat.Stopping
         logger.info('Killing TS Server')
         childProcess.kill()
-        this.resetClientVersion()
         this.servicePromise = null
       }).then(start))
     } else {
@@ -250,7 +246,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
             reject(new Error('timeout after 1s'))
           }, 1000)
           childProcess.kill()
-          this.resetClientVersion()
           this.servicePromise = null
         } else {
           resolve()
@@ -302,9 +297,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   public ensureServiceStarted(): void {
     if (!this.servicePromise) {
       this.startService().catch(err => {
-        echoErr(workspace.nvim, `TSServer start failed: ${err.message}`).catch(_e => {
-          // noop
-        })
+        echoErr(workspace.nvim, `TSServer start failed: ${err.message}`)
         logger.error(`Service start failed: ${err.stack}`)
       })
     }
@@ -347,8 +340,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
             if (err || !childProcess) {
               this.state = ServiceStat.StartFailed
               this.lastError = err
-              logger.error('Starting TSServer failed with error.', err)
-              this.resetClientVersion()
+              logger.error('Starting TSServer failed with error.', err.stack)
               return
             }
             this.state = ServiceStat.Running
@@ -359,10 +351,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
             handle.onError((err: Error) => {
               this.lastError = err
               logger.error('TSServer errored with error.', err)
+              logger.error(`TSServer log file: ${this.tsServerLogFile || ''}`)
               echoErr(workspace.nvim, `TSServer errored with error. ${err.message}`)
-              if (this.tsServerLogFile) {
-                logger.error(`TSServer log file: ${this.tsServerLogFile}`)
-              }
               this.serviceExited(false)
             })
             handle.onExit((code: any) => {
@@ -371,9 +361,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
               } else {
                 logger.error(`TSServer exited with code: ${code}`)
               }
-              if (this.tsServerLogFile) {
-                logger.info(`TSServer log file: ${this.tsServerLogFile}`)
-              }
+              logger.info(`TSServer log file: ${this.tsServerLogFile || ''}`)
               this.serviceExited(code != null)
             })
 
@@ -401,17 +389,14 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+')
       return false
     }
-
     if (this._configuration.tsServerLogLevel === TsServerLogLevel.Off) {
-      echoErr(workspace.nvim, 'TS Server logging is off. Set env TSS_LOG_LEVEL to enable logging')
+      echoErr(workspace.nvim, `TS Server logging is off. Change 'tsserver.log' to enable`)
       return false
     }
-
     if (!this.tsServerLogFile) {
       echoErr(workspace.nvim, 'TS Server has not started logging.')
       return false
     }
-
     try {
       await workspace.nvim.command(`edit ${this.tsServerLogFile}`)
       return true
@@ -461,9 +446,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this.tsServerLogFile = null
     this.callbacks.destroy(new Error('Service died.'))
     this.callbacks = new CallbackMap()
-    if (!restart) {
-      this.resetClientVersion()
-    } else {
+    if (restart) {
       const diff = Date.now() - this.lastStart
       this.numberRestarts++
       let startService = true
@@ -473,7 +456,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
           this.lastStart = Date.now()
           startService = false
           echoErr(workspace.nvim, 'The TypeScript language service died 5 times right after it got started.') // tslint:disable-line
-          this.resetClientVersion()
         } else if (diff < 60 * 1000 /* 1 Minutes */) {
           this.lastStart = Date.now()
           echoErr(workspace.nvim, 'The TypeScript language service died unexpectedly 5 times in the last 5 Minutes.') // tslint:disable-line
@@ -727,6 +709,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private async getTsServerArgs(): Promise<string[]> {
     const args: string[] = []
+    args.push('--allowLocalPluginLoads')
 
     if (this.apiVersion.gte(API.v206)) {
       args.push('--useSingleInferredProject')
@@ -773,20 +756,20 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       }
     }
 
+    if (this._configuration.typingsCacheLocation) {
+      args.push('--globalTypingsCacheLocation', `"${this._configuration.typingsCacheLocation}"`)
+    }
+
     if (this.apiVersion.gte(API.v234)) {
       if (this._configuration.npmLocation) {
         args.push('--npmLocation', `"${this._configuration.npmLocation}"`)
       } else {
         try {
-          args.push('--npmLocation', `${which.sync('npm')}`)
+          args.push('--npmLocation', `"${which.sync('npm')}"`)
         } catch (e) {} // tslint:disable-line
       }
     }
     return args
-  }
-
-  private resetClientVersion(): void {
-    this._apiVersion = API.defaultVersion
   }
 }
 

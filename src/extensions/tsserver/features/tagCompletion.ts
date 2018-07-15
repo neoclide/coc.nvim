@@ -46,9 +46,9 @@ export default class TypeScriptTagCompletion implements CompletionItemProvider {
     return [this.getCompletion(body)]
   }
 
-  private getCompletion(body: Proto.TextInsertion) {
+  private getCompletion(body: Proto.TextInsertion): CompletionItem {
     const completion = CompletionItem.create(body.newText)
-    completion.insertText = this.getTagSnippet(body)
+    completion.insertText = this.getTagSnippet(body) // tslint:disable-line
     return completion
   }
 

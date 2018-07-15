@@ -117,7 +117,7 @@ export class Workspace {
 
   private async findProjectRoot(): Promise<string> {
     let cwd = await this.nvim.call('getcwd')
-    let root = resolveRoot(cwd, ['.vim', '.git', '.hg', 'package.json'], process.env.HOME)
+    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], process.env.HOME)
     return root ? root : cwd
   }
 
@@ -170,11 +170,11 @@ export class Workspace {
       let {uri, version} = textDocument
       let doc = this.getDocument(uri)
       if (!doc) {
-        await echoErr(this.nvim, `${uri} not found`)
+        echoErr(this.nvim, `${uri} not found`)
         return false
       }
       if (doc.version != version) {
-        await echoErr(this.nvim, `${uri} changed before apply edit`)
+        echoErr(this.nvim, `${uri} changed before apply edit`)
         return false
       }
     }
@@ -185,13 +185,13 @@ export class Workspace {
     if (!changes) return true
     for (let uri of Object.keys(changes)) {
       if (!uri.startsWith('file://')) {
-        await echoErr(this.nvim, `Invalid schema for ${uri}`)
+        echoErr(this.nvim, `Invalid schema for ${uri}`)
         return false
       }
       let filepath = Uri.parse(uri).fsPath
       let stat = await statAsync(filepath)
       if (!stat && stat.isFile()) {
-        await echoErr(this.nvim, `File ${filepath} not exists`)
+        echoErr(this.nvim, `File ${filepath} not exists`)
         return false
       }
     }
@@ -213,10 +213,10 @@ export class Workspace {
           await doc.applyEdits(nvim, edits)
           n = n + 1
         } else {
-          await echoErr(nvim, `version mismatch of ${uri}`)
+          echoErr(nvim, `version mismatch of ${uri}`)
         }
       }
-      await echoMessage(nvim, `${n} buffers changed!`)
+      echoMessage(nvim, `${n} buffers changed!`)
     }
     if (changes) {
       let keys = Object.keys(changes)
@@ -238,7 +238,7 @@ export class Workspace {
         } else {
           let stat = await statAsync(filepath)
           if (!stat || !stat.isFile()) {
-            await echoErr(nvim, `file ${filepath} not exists!`)
+            echoErr(nvim, `file ${filepath} not exists!`)
             continue
           }
           // we don't know the encoding, let vim do that
@@ -333,9 +333,7 @@ export class Workspace {
     let promise = new Promise((resolve, reject): void => { // tslint:disable-line
       waitUntil = (thenable: Thenable<TextEdit[] | any>): void => {
         if (called) {
-          echoErr(nvim, 'WaitUntil could only be called once').catch(_e => {
-            // noop
-          })
+          echoErr(nvim, 'WaitUntil could only be called once')
           return
         }
         called = true
@@ -365,9 +363,7 @@ export class Workspace {
         await promise
       } catch (e) {
         logger.error(e.message)
-        echoErr(nvim, e.message).catch(_e => {
-          // noop
-        })
+        echoErr(nvim, e.message)
       }
     }
   }
@@ -483,7 +479,7 @@ export class Workspace {
     try {
       config = await parseContentFromFile(file)
     } catch (e) {
-      await echoErr(this.nvim, `parseFile ${file} error: ${e.message}`)
+      echoErr(this.nvim, `parseFile ${file} error: ${e.message}`)
       config = {contents: {}}
     }
     return config
@@ -519,7 +515,7 @@ export class Workspace {
     let buffer = await nvim.buffer
     let document = this.getDocument(buffer.id)
     if (!document) {
-      await echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
+      echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
       return
     }
     let lines = document.content.split('\n')

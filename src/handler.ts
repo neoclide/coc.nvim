@@ -45,7 +45,7 @@ export default class Handler {
   private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
     let {nvim} = this
     if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
-      await echoErr(nvim, `Mode '${mode}' is not supported`)
+      echoErr(nvim, `Mode '${mode}' is not supported`)
       return
     }
     let isVisual = ['v', 'V'].indexOf(mode) != -1
@@ -56,7 +56,7 @@ export default class Handler {
     await nvim.command('normal! `' + c)
     let end = await workspace.getOffset() + 1
     if (start == null || end == null || start == end) {
-      await echoErr(this.nvim, 'Failed to get selected range')
+      echoErr(this.nvim, 'Failed to get selected range')
       return
     }
     return {
@@ -158,7 +158,7 @@ export default class Handler {
     if (locs && locs.length) {
       await this.handleDefinition(locs)
     } else {
-      await echoWarning(this.nvim, 'not found')
+      echoWarning(this.nvim, 'not found')
     }
   }
 
@@ -167,7 +167,7 @@ export default class Handler {
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols) {
-      await echoErr(this.nvim, 'service does not support document symbols')
+      echoErr(this.nvim, 'service does not support document symbols')
       return []
     }
     let level = 0
@@ -214,7 +214,7 @@ export default class Handler {
     let query = await this.nvim.call('input', ['Query:', cword])
     let symbols = await languages.getWorkspaceSymbols(document.textDocument, query)
     if (!symbols) {
-      await echoErr(this.nvim, 'service does not support workspace symbols')
+      echoErr(this.nvim, 'service does not support workspace symbols')
       return []
     }
     this.currentSymbols = symbols
@@ -250,13 +250,13 @@ export default class Handler {
     let curname = await nvim.call('expand', '<cword>')
     let doc = workspace.getDocument(document.uri)
     if (!doc.isWord(curname)) {
-      await echoErr(nvim, `'${curname}' is not a valid word!`)
+      echoErr(nvim, `'${curname}' is not a valid word!`)
       return
     }
     let newName = await nvim.call('input', ['new name:', curname])
     await nvim.command('normal! :<C-u>')
     if (!newName) {
-      await echoWarning(nvim, 'Empty word, canceled')
+      echoWarning(nvim, 'Empty word, canceled')
       return
     }
     let edit = await languages.provideRenameEdits(document, position, newName)
@@ -300,7 +300,7 @@ export default class Handler {
       let ids = await this.getCommands()
       let idx = await showQuickpick(this.nvim, ids)
       if (idx == -1) return
-      await commandManager.executeCommand(ids[idx])
+      commandManager.executeCommand(ids[idx])
     }
   }
 
@@ -331,7 +331,7 @@ export default class Handler {
       if (edit) await workspace.applyEdit(edit)
       if (command) commandManager.execute(command)
     } else {
-      await echoErr(this.nvim, 'code action not found')
+      echoErr(this.nvim, 'code action not found')
     }
   }
 

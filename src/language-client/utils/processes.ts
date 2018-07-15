@@ -6,7 +6,6 @@ import * as cp from 'child_process'
 import {join} from 'path'
 import ChildProcess = cp.ChildProcess
 
-
 const isWindows = process.platform === 'win32'
 const isMacintosh = process.platform === 'darwin'
 const isLinux = process.platform === 'linux'

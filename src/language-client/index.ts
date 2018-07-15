@@ -38,7 +38,7 @@ export class LanguageService implements IServiceProvider {
     configSections?: string | string[]
   ) {
     this.state = ServiceStat.Initial
-    this.enable = config.enable !== false
+    this.enable = config.enable !== false // tslint:disable-line
     this.languageIds = config.filetypes
     this.configSections = configSections || `${this.id}.settings`
     if (!config.command && !config.module) {

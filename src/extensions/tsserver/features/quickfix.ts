@@ -64,7 +64,7 @@ class ApplyFixAllCodeAction implements Command {
       await workspace.applyEdit(edit)
 
       if (combinedCodeFixesResponse.command) {
-        await commandManager.executeCommand(
+        commandManager.executeCommand(
           ApplyCodeActionCommand.ID,
           combinedCodeFixesResponse.command
         )
@@ -118,7 +118,7 @@ class SupportedCodeActionProvider {
     return Array.from(fixableDiagnostics.values)
   }
 
-  private get supportedCodeActions(): Thenable<Set<number>> {
+  private get supportedCodeActions(): Promise<Set<number>> {
     if (!this._supportedCodeActions) {
       this._supportedCodeActions = this.client
         .execute('getSupportedCodeFixes', null, undefined)
@@ -126,7 +126,7 @@ class SupportedCodeActionProvider {
         .then(codes => codes.map(code => +code).filter(code => !isNaN(code)))
         .then(codes => new Set(codes))
     }
-    return this._supportedCodeActions
+    return Promise.resolve(this._supportedCodeActions)
   }
 }
 

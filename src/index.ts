@@ -28,7 +28,7 @@ export default class CompletePlugin {
     languages.nvim = nvim
     snippetManager.init(nvim)
     commandManager.init(nvim, this)
-    clean()
+    clean() // tslint:disable-line
   }
 
   @Function('CocInitAsync', {sync: false})

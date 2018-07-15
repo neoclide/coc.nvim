@@ -144,7 +144,7 @@ export class CommandManager implements Disposable {
    * @return A thenable that resolves to the returned value of the given command. `undefined` when
    * the command handler function doesn't return anything.
    */
-  public executeCommand(command: string, ...rest: any[]): Promise<void> {
+  public executeCommand(command: string, ...rest: any[]): void {
     let cmd = this.commands.get(command)
     if (!cmd) {
       echoErr(workspace.nvim, `Command: ${command} not found`)

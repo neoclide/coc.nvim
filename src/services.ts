@@ -80,17 +80,15 @@ export class ServiceManager implements Disposable {
     if (!id) logger.error('invalid service ', service.name)
     if (!service.enable) return
     if (this.registed.get(id)) {
-      echoErr(this.nvim, `Service ${id} already exists`).catch(_e => {
-        // noop
-      })
+      echoErr(this.nvim, `Service ${id} already exists`)
       return
     }
     this.registed.set(id, service)
     languageIds.forEach(lang => {
       this.languageIds.add(lang)
     })
-    service.onServiceReady(async () => {
-      await echoMessage(this.nvim, `service ${id} started`)
+    service.onServiceReady(() => {
+       echoMessage(this.nvim, `service ${id} started`)
     })
   }
 
@@ -98,7 +96,7 @@ export class ServiceManager implements Disposable {
     if (!languageId) return false
     if (!this.languageIds.has(languageId)) {
       if (warning) {
-        echoWarning(this.nvim, `service not found for ${languageId}`) // tslint:disable-line
+        echoWarning(this.nvim, `service not found for ${languageId}`)
       }
       return false
     }
@@ -127,7 +125,9 @@ export class ServiceManager implements Disposable {
     for (let service of services) {
       let {state} = service
       if (state === ServiceStat.Initial) {
-        service.init()
+        service.init().catch(e => {
+          logger.error(`service ${service.name} start failed: ${e.message}`)
+        })
       }
     }
   }
@@ -135,9 +135,7 @@ export class ServiceManager implements Disposable {
   public async stop(id: string): Promise<void> {
     let service = this.registed.get(id)
     if (!service) {
-      echoErr(this.nvim, `Service ${id} not found`).catch(_e => {
-        // noop
-      })
+      echoErr(this.nvim, `Service ${id} not found`)
       return
     }
     await Promise.resolve(service.stop())

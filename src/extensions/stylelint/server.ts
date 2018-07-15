@@ -29,7 +29,9 @@ function triggerValidation(textDocument: TextDocument): void {
   cleanPendingValidation(textDocument)
   pendingValidationRequests[textDocument.uri] = setTimeout(() => {
     delete pendingValidationRequests[textDocument.uri]
-    validateTextDocument(textDocument)
+    validateTextDocument(textDocument).catch(_e => {
+      // noop
+    })
   }, validationDelayMs)
 }
 

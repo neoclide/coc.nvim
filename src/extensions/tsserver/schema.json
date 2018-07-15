@@ -11,6 +11,11 @@
       "default": "",
       "description": "Locale of tsserver"
     },
+    "tsserver.typingsCacheLocation": {
+      "type": "string",
+      "default": "",
+      "description": "Folder path for cache typings"
+    },
     "tsserver.enableJavascript": {
       "type": "boolean",
       "default": true,

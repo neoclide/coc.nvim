@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import {Disposable, TextDocument, WorkspaceEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {wait} from '../../../util'
+import {wait, disposeAll} from '../../../util'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import {ITypeScriptServiceClient} from '../typescriptService'
@@ -13,7 +13,7 @@ import FileConfigurationManager from './fileConfigurationManager'
 const logger = require('../../../util/logger')('tsserver-updatePathOnRename')
 
 export default class UpdateImportsOnFileRenameHandler {
-  private readonly _onDidRenameSub: Disposable
+  private disposables:Disposable[] = []
 
   public constructor(
     private readonly client: ITypeScriptServiceClient,
@@ -27,10 +27,11 @@ export default class UpdateImportsOnFileRenameHandler {
         logger.error(e.message)
       })
     })
+    this.disposables.push(watcher)
   }
 
   public dispose(): void {
-    this._onDidRenameSub.dispose()
+    disposeAll(this.disposables)
   }
 
   private async doRename(
