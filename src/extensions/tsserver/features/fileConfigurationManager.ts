@@ -57,7 +57,7 @@ export default class FileConfigurationManager {
     const currentOptions = this.getFileOptions(options, languageId)
     this.requesting = true
     const args = {
-      hostInfo: 'coc',
+      hostInfo: workspace.version,
       ...currentOptions
     } as Proto.ConfigureRequestArguments
     await this.client.execute('configure', args)
@@ -127,10 +127,10 @@ export default class FileConfigurationManager {
     const lang = this.isTypeScriptDocument(languageId) ? 'typescript' : 'javascript'
     const config = workspace.getConfiguration(`${lang}.preferences.completion`)
     return {
-      useCodeSnippetsOnMethodSuggest: config.get<boolean>('useCodeSnippetsOnMethodSuggest'),
-      commaAfterImport: config.get<boolean>('commaAfterImport'),
-      nameSuggestions: config.get<boolean>('nameSuggestions'),
-      autoImportSuggestions: config.get<boolean>('autoImportSuggestions')
+      useCodeSnippetsOnMethodSuggest: config.get<boolean>('useCodeSnippetsOnMethodSuggest', true),
+      commaAfterImport: config.get<boolean>('commaAfterImport', true),
+      nameSuggestions: config.get<boolean>('nameSuggestions', true),
+      autoImportSuggestions: config.get<boolean>('autoImportSuggestions', true)
     }
   }
 
@@ -141,11 +141,11 @@ export default class FileConfigurationManager {
     const config = workspace.getConfiguration(`${language}.preferences`)
     return {
       importModuleSpecifierPreference: getImportModuleSpecifier(config) as any,
-      disableSuggestions: !config.get<boolean>('suggestionActions.enabled'),
+      disableSuggestions: !config.get<boolean>('suggestionActions.enabled', true),
       quotePreference: getQuoteType(config),
       includeCompletionsForModuleExports: config.get<boolean>('completion.moduleExports', true),
       includeCompletionsWithInsertText: true,
-      allowTextChangesInNewFiles: true,
+      allowTextChangesInNewFiles: false,
     }
   }
 }

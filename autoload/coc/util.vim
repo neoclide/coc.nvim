@@ -348,6 +348,15 @@ function! s:OnExit(job_id, status, event) dict
   endif
 endfunction
 
+function! coc#util#vim_info()
+  let out = execute('version')
+  return {
+        \ 'completeOpt': &completeopt,
+        \ 'hasUserData': has('nvim-0.2.3') ? v:true : v:false,
+        \ 'version': split(out, '\n')[0]
+        \}
+endfunction
+
 " show diff of current buffer
 function! coc#util#diff_content(lines) abort
   let tmpfile = tempname()

@@ -24,12 +24,13 @@ export default class FileSystemWatcher implements Disposable {
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
 
   constructor(
-    clientPromise: Promise<Watchman>,
+    clientPromise: Promise<Watchman> | null,
     private globPattern: string,
     public ignoreCreateEvents: boolean,
     public ignoreChangeEvents: boolean,
     public ignoreDeleteEvents: boolean
   ) {
+    if (!clientPromise) return
     clientPromise.then(client => {
       if (client) {
         this.watchmanClient = client

@@ -10,7 +10,7 @@ import {echoErr, echoMessage} from './util/index'
 import {byteIndex} from './util/string'
 import {watchFiles} from './util/watch'
 import Watchman from './watchman'
-import path = require('path')
+import path from 'path'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
@@ -18,6 +18,7 @@ const CONFIG_FILE_NAME = 'coc-settings.json'
 export interface NvimSettings {
   completeOpt: string
   hasUserData: boolean
+  version: string
 }
 
 interface EditerState {
@@ -38,7 +39,7 @@ export class Workspace {
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new Emitter<TextDocument>()
-  private _onDidChangeConfiguration = new Emitter<void>()
+  private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
@@ -47,7 +48,7 @@ export class Workspace {
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
-  public readonly onDidChangeConfiguration: Event<void> = this._onDidChangeConfiguration.event
+  public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   private watchmanPath: string
   private nvimSettings: NvimSettings
@@ -73,15 +74,8 @@ export class Workspace {
     await this.bufferEnter(buf.id)
     let watchmanPath = this.getConfiguration('coc.preferences').get('watchmanPath', '') as string
     this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
-    this.nvimSettings = {
-      completeOpt: await this.nvim.getOption('completeopt') as string,
-      hasUserData: await this.nvim.call('has', ['nvim-0.2.3']) == 1,
-    }
-    watchFiles(this.configFiles, async () => {
-      let config = await this.loadConfigurations()
-      this._configurations = new Configurations(config)
-      this._onDidChangeConfiguration.fire(void 0)
-    })
+    this.nvimSettings = await this.nvim.call('coc#util#vim_info') as NvimSettings
+    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
   }
 
@@ -89,6 +83,10 @@ export class Workspace {
     if (name === 'completeopt') {
       this.nvimSettings.completeOpt = newValue
     }
+  }
+
+  public get version(): string {
+    return this.nvimSettings.version
   }
 
   public get filetypes(): Set<string> {
@@ -104,10 +102,12 @@ export class Workspace {
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
-    if (!this.watchmanPath) return null
-    let watchmanPromise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root, this.nvim)
+    let promise
+    if (this.watchmanPath) {
+      promise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root, this.nvim)
+    }
     return new FileSystemWatcher(
-      watchmanPromise,
+      promise,
       globPattern,
       !!ignoreCreate,
       !!ignoreChange,
@@ -551,6 +551,16 @@ export class Workspace {
       if (loaded) res.push(buf)
     }
     return res
+  }
+
+  private async onConfigurationChange():Promise<void> {
+    try {
+      let config = await this.loadConfigurations()
+      this._configurations = new Configurations(config)
+      this._onDidChangeConfiguration.fire(this.getConfiguration())
+    } catch (e) {
+      logger.error(`Load configuration error: ${e.message}`)
+    }
   }
 }
 

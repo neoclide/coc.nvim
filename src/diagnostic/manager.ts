@@ -36,9 +36,7 @@ export class DiagnosticManager {
     workspace.onDidWorkspaceInitialized(() => {
       this.nvim = workspace.nvim
       this.setConfiguration()
-      logger.debug(55555555)
       if (this.enabled) {
-        logger.debug(66666)
         this.init().catch(err => {
           logger.error(err.stack)
         })

@@ -423,7 +423,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private serviceStarted(resendModels: boolean): void {
     const configureOptions: Proto.ConfigureRequestArguments = {
-      hostInfo: 'vscode'
+      hostInfo: workspace.version
     }
     this.execute('configure', configureOptions).catch(err => {
       logger.error(err)
