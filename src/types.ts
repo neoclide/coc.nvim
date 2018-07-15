@@ -25,6 +25,14 @@ export interface LanguageServerConfig {
   [index:string]: any
 }
 
+export interface LocationListItem {
+  bufnr: number
+  lnum: number
+  col: number
+  text: string
+  type: string
+}
+
 export interface QuickfixItem {
   filename?: string
   bufnr?: number

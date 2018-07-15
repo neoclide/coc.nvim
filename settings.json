@@ -9,6 +9,7 @@
   // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
   "coc.preferences.watchmanPath": "",
   // enable diagnostic
+  "coc.preferences.diagnostic.locationlist": true,
   "coc.preferences.diagnostic.enable": true,
   "coc.preferences.diagnostic.signOffset": 1000,
   "coc.preferences.diagnostic.errorSign": ">>",

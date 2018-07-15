@@ -1,12 +1,14 @@
 import {Neovim} from 'neovim'
 import {Diagnostic, DiagnosticSeverity, Range} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import {DiagnosticInfo} from '../types'
+import {DiagnosticInfo, LocationListItem} from '../types'
 import {byteIndex} from '../util/string'
 import workspace from '../workspace'
+import {DiagnosticManager} from './manager'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 export interface DiagnosticConfig {
+  locationlist: boolean,
   signOffset: number
   errorSign: string
   warningSign: string
@@ -66,11 +68,13 @@ export class DiagnosticBuffer {
   private infoMap: Map<string, DiagnosticInfo> = new Map()
   private nvim: Neovim
   private signId: number
+  private locationlist: boolean
   private promise = Promise.resolve(null)
 
-  constructor(public readonly uri: string, config: DiagnosticConfig) {
+  constructor(public readonly uri: string, private manager: DiagnosticManager) {
     this.nvim = workspace.nvim
-    this.signId = config.signOffset || 1000
+    this.signId = manager.config.signOffset || 1000
+    this.locationlist = manager.config.locationlist
   }
 
   public set(owner: string, diagnostics: Diagnostic[] | null): void {
@@ -81,10 +85,22 @@ export class DiagnosticBuffer {
     })
   }
 
+  private async setLocationlist(): Promise<void> {
+    if (!this.locationlist) return
+    let {nvim, document} = this
+    if (!document) return
+    let {bufnr, uri} = document
+    let winid = await nvim.call('bufwinid', [bufnr])
+    if (winid == -1) return
+    let items = this.manager.getLocationList(uri, bufnr)
+    await nvim.call('setloclist', [winid, items, ' ', 'Diagnostics of coc'])
+  }
+
   private async _set(owner: string, diagnostics: Diagnostic[] | null): Promise<void> {
     let {document} = this
     if (!document) return
     try {
+      await this.setLocationlist()
       let srcId = await this.getSrcId(document, owner)
       await this._clear(owner)
       if (diagnostics && diagnostics.length != 0) {

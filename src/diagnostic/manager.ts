@@ -2,7 +2,7 @@ import {Neovim} from 'neovim'
 import {Diagnostic, DiagnosticSeverity, Range, TextDocument} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Document from '../model/document'
-import {DiagnosticItem} from '../types'
+import {DiagnosticItem, LocationListItem} from '../types'
 import workspace from '../workspace'
 import {DiagnosticBuffer, DiagnosticConfig} from './buffer'
 import DiagnosticCollection from './collection'
@@ -25,9 +25,9 @@ function severityName(severity: DiagnosticSeverity): string {
 }
 
 // maintain buffers
-class DiagnosticManager {
+export class DiagnosticManager {
   private enabled = true
-  private config: DiagnosticConfig
+  public config: DiagnosticConfig
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private nvim: Neovim
@@ -36,7 +36,9 @@ class DiagnosticManager {
     workspace.onDidWorkspaceInitialized(() => {
       this.nvim = workspace.nvim
       this.setConfiguration()
+      logger.debug(55555555)
       if (this.enabled) {
+        logger.debug(66666)
         this.init().catch(err => {
           logger.error(err.stack)
         })
@@ -75,13 +77,14 @@ class DiagnosticManager {
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.config = {
+      locationlist: config.get<boolean>('locationlist', true),
       signOffset: config.get<number>('signOffset', 1000),
       errorSign: config.get<string>('errorSign', '>>'),
       warningSign: config.get<string>('warningSign', '>>'),
       infoSign: config.get<string>('infoSign', '>>'),
       hintSign: config.get<string>('hintSign', '>>'),
     }
-    this.enabled = config.get('enable')
+    this.enabled = config.get<boolean>('enable')
   }
 
   private async init(): Promise<void> {
@@ -94,10 +97,10 @@ class DiagnosticManager {
     await nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`)
     // create buffers
     for (let doc of documents) {
-      this.buffers.push(new DiagnosticBuffer(doc.uri, this.config))
+      this.buffers.push(new DiagnosticBuffer(doc.uri, this))
     }
     workspace.onDidOpenTextDocument(textDocument => {
-      this.buffers.push(new DiagnosticBuffer(textDocument.uri, this.config))
+      this.buffers.push(new DiagnosticBuffer(textDocument.uri, this))
     })
     workspace.onDidCloseTextDocument(textDocument => {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
@@ -213,6 +216,33 @@ class DiagnosticManager {
         break
       }
     }
+  }
+
+  public getLocationList(uri: string, bufnr: number): LocationListItem[] {
+    let res: LocationListItem[] = []
+    for (let collection of this.collections) {
+      collection.forEach((u, diagnostics) => {
+        if (u != uri) return
+        for (let diagnostic of diagnostics) {
+          let {start} = diagnostic.range
+          let o: LocationListItem = {
+            bufnr,
+            lnum: start.line + 1,
+            col: start.character + 1,
+            text: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
+            type: severityName(diagnostic.severity).slice(0, 1).toUpperCase(),
+          }
+          res.push(o)
+        }
+      })
+    }
+    res.sort((a, b) => {
+      if (a.lnum != b.lnum) {
+        return a.lnum - b.lnum
+      }
+      return a.col - b.col
+    })
+    return res
   }
 
   /**
