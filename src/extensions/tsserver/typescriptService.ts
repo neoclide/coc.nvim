@@ -58,6 +58,11 @@ export interface ITypeScriptServiceClient {
     token?: CancellationToken
   ): Promise<any>
   execute(
+    command: 'geterrForProject',
+    args: Proto.GeterrForProjectRequestArgs,
+    token?: CancellationToken
+  ): Promise<any>
+  execute(
     command: 'quickinfo',
     args: Proto.FileLocationRequestArgs,
     token?: CancellationToken

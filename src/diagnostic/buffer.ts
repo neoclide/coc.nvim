@@ -1,7 +1,7 @@
 import {Neovim} from 'neovim'
 import {Diagnostic, DiagnosticSeverity, Range} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import {DiagnosticInfo, LocationListItem} from '../types'
+import {DiagnosticInfo} from '../types'
 import {byteIndex} from '../util/string'
 import workspace from '../workspace'
 import {DiagnosticManager} from './manager'

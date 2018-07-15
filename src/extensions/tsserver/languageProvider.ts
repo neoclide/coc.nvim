@@ -21,6 +21,7 @@ import HoverProvider from './features/hover'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
 import OrganizeImportsProvider from './features/organizeImports'
 // import TagCompletionProvider from './features/tagCompletion'
+import ProjectError from './features/projectError'
 import QuickfixProvider from './features/quickfix'
 import RefactorProvider from './features/refactor'
 import ReferenceProvider from './features/references'
@@ -182,6 +183,10 @@ export default class LanguageProvider {
     )
     this.disposables.push(
       languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
+    )
+
+    this.disposables.push(
+      new ProjectError(client, commandManager)
     )
 
     if (this.client.apiVersion.gte(API.v280)) {

@@ -14,9 +14,14 @@
 
 # 2018-07-14
 
-* Add support for preselect of complete item.
+* Add support for `preselect` of complete item.
 * Add support for socket language server configuration.
 * Fix configured language server doesn't work.
 * Add `workspace.diffDocument` coc command.
 * Fix buffer sometimes not attached.
 * Improve completion of JSON extension.
+
+# 2018-07-15
+
+* Support location list for diagnoctic
+* Add tsserver project errors command

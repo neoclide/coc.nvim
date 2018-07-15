@@ -129,8 +129,9 @@ export default class Handler {
     let items = await Promise.all(locations.map(loc => {
       return workspace.getQuickfixItem(loc)
     }))
-    await this.nvim.call('setqflist', [items, ' ', 'Results of coc'])
-    await this.nvim.command('doautocmd User CocQuickfixChange')
+    let {nvim} = this
+    await nvim.call('setqflist', [items, ' ', 'Results of coc'])
+    await nvim.command('doautocmd User CocQuickfixChange')
   }
 
   public async gotoDefinition(): Promise<void> {
