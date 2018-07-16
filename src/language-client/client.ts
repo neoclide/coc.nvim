@@ -10,7 +10,7 @@ import Commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
 import {ProviderResult} from '../provider'
-import {DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../types'
+import {OutputChannel, DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../types'
 import workspace from '../workspace'
 import {ConfigurationWorkspaceMiddleware} from './configuration'
 import {ImplementationMiddleware} from './implementation'
@@ -610,6 +610,7 @@ export interface LanguageClientOptions {
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   outputChannelName?: string
+  outputChannel?: OutputChannel;
   revealOutputChannelOn?: RevealOutputChannelOn
   /**
    * The encoding use to read stdout and stderr. Defaults
@@ -1423,7 +1424,7 @@ class FileSystemWatcherFeature
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
 
   constructor(
-    private _client: BaseLanguageClient,
+     _client: BaseLanguageClient,
     private _notifyFileEvent: (event: FileEvent) => void
   ) {}
 
@@ -2966,6 +2967,8 @@ export abstract class BaseLanguageClient {
   private _connectionPromise: Thenable<IConnection> | undefined
   private _resolvedConnection: IConnection | undefined
   private _initializeResult: InitializeResult | undefined
+  private _disposeOutputChannel: boolean;
+  private _outputChannel: OutputChannel | undefined;
   private _capabilities: ServerCapabilities &
     ResolvedTextDocumentSyncCapabilities
 
@@ -3011,6 +3014,13 @@ export abstract class BaseLanguageClient {
     this._connectionPromise = undefined
     this._resolvedConnection = undefined
     this._initializeResult = undefined
+    if (clientOptions.outputChannel) {
+      this._outputChannel = clientOptions.outputChannel;
+      this._disposeOutputChannel = false;
+    } else {
+      this._outputChannel = undefined;
+      this._disposeOutputChannel = true;
+    }
 
     this._listeners = undefined
     this._providers = undefined
@@ -3187,6 +3197,14 @@ export abstract class BaseLanguageClient {
     return this._stateChangeEmitter.event
   }
 
+  public get outputChannel(): OutputChannel {
+    if (!this._outputChannel) {
+      let {outputChannelName} = this._clientOptions
+      this._outputChannel = workspace.createOutputChannel(outputChannelName ? outputChannelName : this._name)
+    }
+    return this._outputChannel
+  }
+
   public get diagnostics(): DiagnosticCollection | undefined {
     return this._diagnostics
   }
@@ -3227,37 +3245,39 @@ export abstract class BaseLanguageClient {
   }
 
   public info(message: string, data?: any): void {
-    this._logger.info(message)
+    this.outputChannel.appendLine(`[Info  - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
-      this._logger.info(this.data2String(data))
+      this.outputChannel.appendLine(this.data2String(data))
     }
-  }
-
-  public debug(message: string, data?: any): void {
-    this._logger.debug(message)
-    if (data) {
-      this._logger.debug(this.data2String(data))
+    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Info) {
+      this.outputChannel.show(true)
     }
   }
 
   public warn(message: string, data?: any): void {
-    this._logger.warn(message)
+    this.outputChannel.appendLine(`[Warn  - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
-      this._logger.warn(this.data2String(data))
+      this.outputChannel.appendLine(this.data2String(data))
+    }
+    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Warn) {
+      this.outputChannel.show(true)
     }
   }
 
   public error(message: string, data?: any): void {
-    this._logger.error(message)
+    this.outputChannel.appendLine(`[Error - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
-      this._logger.error(this.data2String(data))
+      this.outputChannel.appendLine(this.data2String(data))
+    }
+    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Error) {
+      this.outputChannel.show(true)
     }
   }
 
   private logTrace(message: string, data?: any): void {
-    this._logger.trace(message)
+    this.outputChannel.appendLine(`[Trace - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
-      this._logger.trace(this.data2String(data))
+      this.outputChannel.appendLine(this.data2String(data))
     }
   }
 
@@ -3308,7 +3328,7 @@ export abstract class BaseLanguageClient {
               this.info(message.message)
               break
             default:
-              this.debug(message.message)
+              this.outputChannel.appendLine(message.message)
           }
         })
         connection.onShowMessage(message => {
@@ -3498,7 +3518,7 @@ export abstract class BaseLanguageClient {
     }))
   }
 
-  private cleanUp(diagnostics: boolean = true): void {
+  private cleanUp(channel: boolean = true, diagnostics: boolean = true): void {
     if (this._listeners) {
       this._listeners.forEach(listener => listener.dispose())
       this._listeners = undefined
@@ -3512,6 +3532,10 @@ export abstract class BaseLanguageClient {
     }
     for (let handler of this._dynamicFeatures.values()) {
       handler.dispose()
+    }
+    if (channel && this._outputChannel && this._disposeOutputChannel) {
+      this._outputChannel.dispose()
+      this._outputChannel = undefined
     }
     if (diagnostics && this._diagnostics) {
       this._diagnostics.dispose()
@@ -3621,17 +3645,17 @@ export abstract class BaseLanguageClient {
         'Connection to server got closed. Server will not be restarted.'
       )
       this.state = ClientState.Stopped
-      this.cleanUp(true)
+      this.cleanUp(false, true)
     } else if (action === CloseAction.Restart) {
       this.info('Connection to server got closed. Server will restart.')
-      this.cleanUp(false)
+      this.cleanUp(false, false)
       this.state = ClientState.Initial
       this.start()
     }
   }
 
   public restart(): void {
-    this.cleanUp(false)
+    this.cleanUp(true, false)
     this.start()
   }
 

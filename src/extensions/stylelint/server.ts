@@ -83,9 +83,8 @@ connection.onInitialize(() => {
 })
 
 connection.onDidChangeConfiguration(({settings}) => {
-  config = settings.stylelint.config
-  configOverrides = settings.stylelint.configOverrides
-
+  config = settings.config
+  configOverrides = settings.configOverrides
   validateAll()
 })
 

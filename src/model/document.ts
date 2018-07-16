@@ -115,8 +115,7 @@ export default class Document {
     let unbindDetach = this.buffer.listen('detach', () => {
       logger.debug('buffer detach')
     })
-    let unbindChange = this.buffer.listen('changedtick', (buf: Buffer, tick: number) => {
-      if (buf.id !== this.buffer.id) return
+    let unbindChange = this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
     })
     this.disposables.push(
@@ -150,16 +149,17 @@ export default class Document {
    * @returns {Promise<void>}
    */
   public async checkDocument(): Promise<void> {
-    this._fireContentChanges.clear()
     this.paused = false
-    let {buffer} = this
-    // don't listen to terminal buffer
-    let buftype = await buffer.getOption('buftype') as string
-    if (buftype != '') return this.detach()
-    this.lines = await buffer.lines as string[]
+    let {buffer, content} = this
+    let lines = await buffer.lines as string[]
+    if (content == lines.join('\n')) {
+      return
+    }
+    this.lines = lines
     this._changedtick = await buffer.changedtick
     this.createDocument()
     let {version, uri} = this
+    this._fireContentChanges.clear()
     this._onDocumentChange.fire({
       textDocument: {version, uri},
       contentChanges: [{text: this.lines.join('\n')}]

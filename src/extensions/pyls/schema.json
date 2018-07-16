@@ -5,6 +5,11 @@
       "type": "boolean",
       "default": true
     },
+    "pyls.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"]
+    },
     "pyls.commandPath": {
       "type": "string",
       "default": ""

@@ -12,6 +12,11 @@
         "type": "string"
       }
     },
+    "cssserver.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"]
+    },
     "cssserver.css.validate": {
       "type": "boolean",
       "default": true,

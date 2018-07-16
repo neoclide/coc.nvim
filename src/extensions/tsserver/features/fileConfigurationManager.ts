@@ -57,7 +57,7 @@ export default class FileConfigurationManager {
     const currentOptions = this.getFileOptions(options, languageId)
     this.requesting = true
     const args = {
-      hostInfo: workspace.version,
+      hostInfo: 'nvim-coc',
       ...currentOptions
     } as Proto.ConfigureRequestArguments
     await this.client.execute('configure', args)

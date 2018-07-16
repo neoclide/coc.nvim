@@ -7,7 +7,7 @@ import net from 'net'
 import os from 'os'
 import path from 'path'
 import {ROOT} from '../../../util'
-const logger = require('../../../util/logger')('tsserver-process')
+import Logger from './logger';
 
 export interface IForkOptions {
   cwd?: string
@@ -66,6 +66,7 @@ export function fork(
   modulePath: string,
   args: string[],
   options: IForkOptions,
+  logger: Logger,
   callback: (error: any, cp: cp.ChildProcess | null) => void
 ): void {
   let callbackCalled = false
@@ -96,8 +97,8 @@ export function fork(
     stdErrPipeName
   )
   newEnv['NODE_PATH'] = path.join(modulePath, '..', '..', '..') // tslint:disable-line
-  let childProcess: cp.ChildProcess
 
+  let childProcess: cp.ChildProcess
   // Begin listening to stderr pipe
   let stdErrServer = net.createServer(stdErrStream => {
     // From now on the childProcess.stderr is available for reading
@@ -130,6 +131,10 @@ export function fork(
     stdOutServer.close()
     stdErrServer.close()
   }
+
+  // Create the process
+  logger.info('Forking TSServer', `PATH: ${newEnv['PATH']} `);
+
   const bootstrapperPath = path.join(ROOT, 'bin/tsserverForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,

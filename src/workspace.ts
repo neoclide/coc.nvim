@@ -4,13 +4,16 @@ import Uri from 'vscode-uri'
 import Configurations, {parseContentFromFile} from './configurations'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import {DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration} from './types'
+import BufferChannel from './model/outputChannel'
+import {DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel} from './types'
 import {getLine, resolveDirectory, resolveRoot, statAsync, writeFile} from './util/fs'
 import {echoErr, echoMessage} from './util/index'
 import {byteIndex} from './util/string'
 import {watchFiles} from './util/watch'
 import Watchman from './watchman'
 import path from 'path'
+import uuidv1 = require('uuid/v1')
+import {EventEmitter} from 'events'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
@@ -18,7 +21,6 @@ const CONFIG_FILE_NAME = 'coc-settings.json'
 export interface NvimSettings {
   completeOpt: string
   hasUserData: boolean
-  version: string
 }
 
 interface EditerState {
@@ -30,12 +32,14 @@ export class Workspace {
   public nvim: Neovim
   // project root
   public root: string
+  private _initialized = false
   private buffers: {[index: number]: Document | null}
+  private outputChannels: Map<string, OutputChannel> = new Map()
   private watchmanPromise: Promise<Watchman>
   private _configurations: Configurations
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
   private _onDidAddDocument = new Emitter<TextDocument>()
-  private _onDidRemoveDocument = new Emitter<TextDocument>()
+  private _onDidCloseDocument = new Emitter<TextDocument>()
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new Emitter<TextDocument>()
@@ -44,12 +48,13 @@ export class Workspace {
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
-  public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidRemoveDocument.event
+  public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidCloseDocument.event
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
+  public emitter: EventEmitter
   private watchmanPath: string
   private nvimSettings: NvimSettings
   private configFiles: string[]
@@ -64,7 +69,6 @@ export class Workspace {
     this._configurations = new Configurations(config)
     this.root = await this.findProjectRoot()
     let buffers = await this.nvim.buffers
-    buffers = await this.filterLoadedBufer(buffers)
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
     })).catch(error => {
@@ -77,16 +81,17 @@ export class Workspace {
     this.nvimSettings = await this.nvim.call('coc#util#vim_info') as NvimSettings
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
+    this._initialized = true
+  }
+
+  public get initialized():boolean {
+    return this._initialized
   }
 
   public onOptionChange(name, newValue): void {
     if (name === 'completeopt') {
       this.nvimSettings.completeOpt = newValue
     }
-  }
-
-  public get version(): string {
-    return this.nvimSettings.version
   }
 
   public get filetypes(): Set<string> {
@@ -102,9 +107,10 @@ export class Workspace {
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
-    let promise
-    if (this.watchmanPath) {
-      promise = this.watchmanPromise || Watchman.createClient(this.watchmanPath, this.root, this.nvim)
+    let promise = this.watchmanPromise
+    if (this.watchmanPath && !this.watchmanPromise) {
+      let channel = this.createOutputChannel('watchman')
+      promise = this.watchmanPromise = Watchman.createClient(this.watchmanPath, this.root, channel)
     }
     return new FileSystemWatcher(
       promise,
@@ -113,12 +119,6 @@ export class Workspace {
       !!ignoreChange,
       !!ignoreDelete
     )
-  }
-
-  private async findProjectRoot(): Promise<string> {
-    let cwd = await this.nvim.call('getcwd')
-    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], process.env.HOME)
-    return root ? root : cwd
   }
 
   public async findDirectory(sub: string): Promise<string> {
@@ -162,41 +162,6 @@ export class Workspace {
       character
     })
   }
-
-  private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): Promise<boolean> {
-    if (!documentChanges) return true
-    for (let change of documentChanges) {
-      let {textDocument} = change
-      let {uri, version} = textDocument
-      let doc = this.getDocument(uri)
-      if (!doc) {
-        echoErr(this.nvim, `${uri} not found`)
-        return false
-      }
-      if (doc.version != version) {
-        echoErr(this.nvim, `${uri} changed before apply edit`)
-        return false
-      }
-    }
-    return true
-  }
-
-  private async validateChanges(changes: {[uri: string]: TextEdit[]}): Promise<boolean> {
-    if (!changes) return true
-    for (let uri of Object.keys(changes)) {
-      if (!uri.startsWith('file://')) {
-        echoErr(this.nvim, `Invalid schema for ${uri}`)
-        return false
-      }
-      let filepath = Uri.parse(uri).fsPath
-      let stat = await statAsync(filepath)
-      if (!stat && stat.isFile()) {
-        echoErr(this.nvim, `File ${filepath} not exists`)
-        return false
-      }
-    }
-  }
-
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let {nvim} = this
     let {documentChanges, changes} = edit
@@ -253,11 +218,6 @@ export class Workspace {
     return true
   }
 
-  private async isValidBuffer(buffer: Buffer): Promise<boolean> {
-    let buftype = await buffer.getOption('buftype')
-    return buftype == ''
-  }
-
   public async onBufferCreate(buf: number | Buffer): Promise<Document> {
     const buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
     const valid = await this.isValidBuffer(buffer)
@@ -310,7 +270,7 @@ export class Workspace {
     let doc = this.buffers[bufnr]
     if (doc) {
       doc.detach()
-      this._onDidRemoveDocument.fire(doc.textDocument)
+      this._onDidCloseDocument.fire(doc.textDocument)
     }
     this.buffers[bufnr] = null
     logger.debug('bufnr unload', bufnr)
@@ -415,6 +375,9 @@ export class Workspace {
   }
 
   public get document(): Promise<Document> {
+    if (!this._initialized) {
+      return Promise.resolve(null)
+    }
     return this.nvim.buffer.then(buffer => {
       let document = this.getDocument(buffer.id)
       if (!document) return this.onBufferCreate(buffer)
@@ -474,6 +437,108 @@ export class Workspace {
     await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
   }
 
+  public async diffDocument(): Promise<void> {
+    let {nvim} = this
+    let buffer = await nvim.buffer
+    let document = this.getDocument(buffer.id)
+    if (!document) {
+      echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
+      return
+    }
+    let lines = document.content.split('\n')
+    await nvim.call('coc#util#diff_content', [lines])
+  }
+
+  public get channelNames():string[] {
+    return Array.from(this.outputChannels.keys())
+  }
+
+  public createOutputChannel(name:string):OutputChannel {
+    if (this.outputChannels.has(name)) {
+      name = `${name}-${uuidv1()}`
+    }
+    let channel = new BufferChannel(name, this.nvim)
+    this.outputChannels.set(name, channel)
+    return channel
+  }
+
+  public showOutputChannel(name:string):void {
+    let channel = this.outputChannels.get(name)
+    if (!channel) {
+      echoErr(this.nvim, `Channel "${name}" not found`)
+      return
+    }
+    channel.show(false)
+  }
+
+  private async getBuffer(bufnr: number): Promise<Buffer | null> {
+    let buffers = await this.nvim.buffers
+    return buffers.find(buf => buf.id == bufnr)
+  }
+
+  private fileCount(edit: WorkspaceEdit): number {
+    let {changes} = edit
+    if (!changes) return 0
+    let n = 0
+    for (let uri of Object.keys(changes)) {
+      let filepath = Uri.parse(uri).fsPath
+      if (this.getDocument(filepath) != null) {
+        n = n + 1
+      }
+    }
+    return n
+  }
+
+  private async onConfigurationChange():Promise<void> {
+    try {
+      let config = await this.loadConfigurations()
+      this._configurations = new Configurations(config)
+      this._onDidChangeConfiguration.fire(this.getConfiguration())
+    } catch (e) {
+      logger.error(`Load configuration error: ${e.message}`)
+    }
+  }
+
+  private async findProjectRoot(): Promise<string> {
+    let cwd = await this.nvim.call('getcwd')
+    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], process.env.HOME)
+    return root ? root : cwd
+  }
+
+  private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): Promise<boolean> {
+    if (!documentChanges) return true
+    for (let change of documentChanges) {
+      let {textDocument} = change
+      let {uri, version} = textDocument
+      let doc = this.getDocument(uri)
+      if (!doc) {
+        echoErr(this.nvim, `${uri} not found`)
+        return false
+      }
+      if (doc.version != version) {
+        echoErr(this.nvim, `${uri} changed before apply edit`)
+        return false
+      }
+    }
+    return true
+  }
+
+  private async validateChanges(changes: {[uri: string]: TextEdit[]}): Promise<boolean> {
+    if (!changes) return true
+    for (let uri of Object.keys(changes)) {
+      if (!uri.startsWith('file://')) {
+        echoErr(this.nvim, `Invalid schema for ${uri}`)
+        return false
+      }
+      let filepath = Uri.parse(uri).fsPath
+      let stat = await statAsync(filepath)
+      if (!stat && stat.isFile()) {
+        echoErr(this.nvim, `File ${filepath} not exists`)
+        return false
+      }
+    }
+  }
+
   private async parseConfigFile(file): Promise<IConfigurationModel> {
     let config
     try {
@@ -483,6 +548,13 @@ export class Workspace {
       config = {contents: {}}
     }
     return config
+  }
+
+  private async isValidBuffer(buffer: Buffer): Promise<boolean> {
+    let loaded = await this.nvim.call('bufloaded', buffer.id)
+    if (loaded !== 1) return false
+    let buftype = await buffer.getOption('buftype')
+    return buftype == ''
   }
 
   private async loadConfigurations(): Promise<IConfigurationData> {
@@ -510,54 +582,6 @@ export class Workspace {
     }
   }
 
-  public async diffDocument(): Promise<void> {
-    let {nvim} = this
-    let buffer = await nvim.buffer
-    let document = this.getDocument(buffer.id)
-    if (!document) {
-      echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
-      return
-    }
-    let lines = document.content.split('\n')
-    await nvim.call('coc#util#diff_content', [lines])
-  }
-
-  private async getBuffer(bufnr: number): Promise<Buffer | null> {
-    let buffers = await this.nvim.buffers
-    return buffers.find(buf => buf.id == bufnr)
-  }
-
-  private fileCount(edit: WorkspaceEdit): number {
-    let {changes} = edit
-    if (!changes) return 0
-    let n = 0
-    for (let uri of Object.keys(changes)) {
-      let filepath = Uri.parse(uri).fsPath
-      if (this.getDocument(filepath) != null) {
-        n = n + 1
-      }
-    }
-    return n
-  }
-
-  private async filterLoadedBufer(buffers: Buffer[]): Promise<Buffer[]> {
-    let res:Buffer[] = []
-    for (let buf of buffers) {
-      let loaded = await this.nvim.call('bufloaded', buf.id)
-      if (loaded) res.push(buf)
-    }
-    return res
-  }
-
-  private async onConfigurationChange():Promise<void> {
-    try {
-      let config = await this.loadConfigurations()
-      this._configurations = new Configurations(config)
-      this._onDidChangeConfiguration.fire(this.getConfiguration())
-    } catch (e) {
-      logger.error(`Load configuration error: ${e.message}`)
-    }
-  }
 }
 
 export default new Workspace()

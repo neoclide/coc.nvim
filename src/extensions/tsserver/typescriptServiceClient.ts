@@ -18,10 +18,10 @@ import API from './utils/api'
 import {TsServerLogLevel, TypeScriptServiceConfiguration} from './utils/configuration'
 import {fork, getTempFile, IForkOptions, makeRandomHexString} from './utils/process'
 import Tracer from './utils/tracer'
+import Logger from './utils/logger'
 import {inferredProjectConfig} from './utils/tsconfig'
 import {TypeScriptVersion, TypeScriptVersionProvider} from './utils/versionProvider'
 import {ICallback, Reader} from './utils/wireProtocol'
-const logger = require('../../util/logger')('tsserver-client')
 
 interface CallbackItem {
   c: (value: any) => void
@@ -139,6 +139,7 @@ export interface TsDiagnostics {
 
 export default class TypeScriptServiceClient implements ITypeScriptServiceClient {
   public state = ServiceStat.Initial
+  public readonly logger: Logger = new Logger()
   private pathSeparator: string
   private tracer: Tracer
   private _configuration: TypeScriptServiceConfiguration
@@ -173,7 +174,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this._configuration = TypeScriptServiceConfiguration.loadFromWorkspace()
     this.versionProvider = new TypeScriptVersionProvider(this._configuration)
     this._apiVersion = API.defaultVersion
-    this.tracer = new Tracer(logger)
+    this.tracer = new Tracer(this.logger)
   }
 
   private _onDiagnosticsReceived = new Emitter<TsDiagnostics>()
@@ -215,6 +216,14 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this._onResendModelsRequested.dispose()
   }
 
+  private info(message: string, data?: any): void {
+    this.logger.info(message, data)
+  }
+
+  private error(message: string, data?: any): void {
+    this.logger.error(message, data)
+  }
+
   public restartTsServer(): Promise<any> {
     const start = () => {
       this.servicePromise = this.startService(true)
@@ -224,7 +233,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (this.servicePromise) {
       return Promise.resolve(this.servicePromise.then(childProcess => {
         this.state = ServiceStat.Stopping
-        logger.info('Killing TS Server')
+        this.info('Killing TS Server')
         childProcess.kill()
         this.servicePromise = null
       }).then(start))
@@ -238,7 +247,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return new Promise((resolve, reject) => {
       this.servicePromise.then(childProcess => {
         if (this.state == ServiceStat.Running) {
-          logger.info('Killing TS Server')
+          this.info('Killing TS Server')
           childProcess.onExit(() => {
             resolve()
           })
@@ -298,7 +307,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (!this.servicePromise) {
       this.startService().catch(err => {
         echoErr(workspace.nvim, `TSServer start failed: ${err.message}`)
-        logger.error(`Service start failed: ${err.stack}`)
+        this.error(`Service start failed: ${err.stack}`)
       })
     }
   }
@@ -336,32 +345,33 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
           currentVersion.tsServerPath,
           args,
           options,
+          this.logger,
           (err: any, childProcess: cp.ChildProcess | null) => {
             if (err || !childProcess) {
               this.state = ServiceStat.StartFailed
               this.lastError = err
-              logger.error('Starting TSServer failed with error.', err.stack)
+              this.error('Starting TSServer failed with error.', err.stack)
               return
             }
             this.state = ServiceStat.Running
-            logger.info('Started TSServer', currentVersion)
+            this.info('Started TSServer', currentVersion)
             const handle = new ForkedTsServerProcess(childProcess)
             this.lastStart = Date.now()
 
             handle.onError((err: Error) => {
               this.lastError = err
-              logger.error('TSServer errored with error.', err)
-              logger.error(`TSServer log file: ${this.tsServerLogFile || ''}`)
+              this.error('TSServer errored with error.', err)
+              this.error(`TSServer log file: ${this.tsServerLogFile || ''}`)
               echoErr(workspace.nvim, `TSServer errored with error. ${err.message}`)
               this.serviceExited(false)
             })
             handle.onExit((code: any) => {
               if (code == null) {
-                logger.info('TSServer normal exit')
+                this.info('TSServer normal exit')
               } else {
-                logger.error(`TSServer exited with code: ${code}`)
+                this.error(`TSServer exited with code: ${code}`)
               }
-              logger.info(`TSServer log file: ${this.tsServerLogFile || ''}`)
+              this.info(`TSServer log file: ${this.tsServerLogFile || ''}`)
               this.serviceExited(code != null)
             })
 
@@ -370,7 +380,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
                 this.dispatchMessage(msg)
               },
               error => {
-                logger.error('ReaderError', error)
+                this.error('ReaderError', error)
               }
             )
             resolve(handle)
@@ -408,10 +418,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
 
   private serviceStarted(resendModels: boolean): void {
     const configureOptions: Proto.ConfigureRequestArguments = {
-      hostInfo: workspace.version
+      hostInfo: 'nvim-coc',
     }
     this.execute('configure', configureOptions).catch(err => {
-      logger.error(err)
+      this.error(err)
     })
     this.setCompilerOptionsForInferredProjects(this._configuration)
     if (resendModels) {
@@ -551,7 +561,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         }
       }).catch((err: any) => {
         if (!wasCancelled && command != 'signatureHelp') {
-          logger.error(`'${command}' request failed with error.`, err)
+          this.error(`'${command}' request failed with error.`, err)
         }
         throw err
       })
@@ -729,10 +739,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         const logDir = os.tmpdir()
         if (logDir) {
           this.tsServerLogFile = path.join(logDir, `coc-nvim-tsc.log`)
-          logger.info('TSServer log file :', this.tsServerLogFile)
+          this.info('TSServer log file :', this.tsServerLogFile)
         } else {
           this.tsServerLogFile = null
-          logger.error('Could not create TSServer log directory')
+          this.error('Could not create TSServer log directory')
         }
 
         if (this.tsServerLogFile) {

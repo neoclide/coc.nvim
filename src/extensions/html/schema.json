@@ -12,6 +12,11 @@
         "type": "string"
       }
     },
+    "html.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"]
+    },
     "html.filetypes": {
       "type": "array",
       "default": [ "html", "handlebars", "razor" ],

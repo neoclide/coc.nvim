@@ -1,7 +1,7 @@
 import {Neovim} from 'neovim'
 import * as language from 'vscode-languageserver-protocol'
 import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
-import {echoErr, wait} from './util'
+import {echoErr, wait, showQuickpick} from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
@@ -63,6 +63,25 @@ export class CommandManager implements Disposable {
       id: 'workspace.diffDocument',
       execute: async () => {
         await workspace.diffDocument()
+      }
+    })
+    this.register({
+      id: 'workspace.showOutput',
+      execute: async (name?:string) => {
+        if (name) {
+          workspace.showOutputChannel(name)
+        } else {
+          let names = workspace.channelNames
+          if (names.length == 0) return
+          if (names.length == 1) {
+            workspace.showOutputChannel(names[0])
+          } else {
+            let idx = await showQuickpick(nvim, names)
+            if (idx == -1) return
+            let name = names[idx]
+            workspace.showOutputChannel(name)
+          }
+        }
       }
     })
   }
@@ -144,19 +163,17 @@ export class CommandManager implements Disposable {
    * @return A thenable that resolves to the returned value of the given command. `undefined` when
    * the command handler function doesn't return anything.
    */
-  public executeCommand(command: string, ...rest: any[]): void {
+  public executeCommand(command: string, ...rest: any[]): Promise<void> {
     let cmd = this.commands.get(command)
     if (!cmd) {
       echoErr(workspace.nvim, `Command: ${command} not found`)
       return
     }
-    Promise.resolve(cmd.execute.apply(cmd, rest || [])).catch(e => {
+    return Promise.resolve(cmd.execute.apply(cmd, rest || [])).catch(e => {
       echoErr(workspace.nvim, `Command error: ${e.message}`)
       logger.error(e.stack)
     })
-    return
   }
-
 }
 
 export default new CommandManager()

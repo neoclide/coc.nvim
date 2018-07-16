@@ -7,6 +7,7 @@
 from denite.kind.base import Base as BaseKind
 from denite.source.base import Base
 
+
 class Source(Base):
 
     def __init__(self, vim):
@@ -19,6 +20,8 @@ class Source(Base):
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'commands')
+        if items is None:
+            return []
         candidates = []
         for item in items:
             candidates.append({
@@ -39,3 +42,4 @@ class Kind(BaseKind):
     def action_run(self, context):
         target = context['targets'][0]
         self.vim.call('CocAction', 'runCommand', target['source__name'])
+

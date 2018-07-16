@@ -1,14 +1,8 @@
 {
-  "$schema": "https://raw.githubusercontent.com/neoclide/coc.nvim/master/data/schema.json",
-  // could be 'always' 'trigger' => for specified trigger characters only 'none'
   "coc.preferences.autoTrigger": "always",
-  // timeout for completion
   "coc.preferences.timeout": 300,
-  // not make vim select first item on completion start
   "coc.preferences.noselect": true,
-  // executable path for https://facebook.github.io/watchman/, detected from $PATH by default
   "coc.preferences.watchmanPath": "",
-  // enable diagnostic
   "coc.preferences.diagnostic.locationlist": true,
   "coc.preferences.diagnostic.enable": true,
   "coc.preferences.diagnostic.signOffset": 1000,
@@ -17,22 +11,13 @@
   "coc.preferences.diagnostic.infoSign": ">>",
   "coc.preferences.diagnostic.hintSign": ">>",
   "tsserver.enable": true,
-  // language locale
   "tsserver.locale": "",
-  // enable support for javascript file, experiment
   "tsserver.enableJavascript": true,
-  // folder of tsserver.js
-  // Default priority: module in node_modules > module in $PATH > bundled module
   "tsserver.tsdk": "",
-  // absolute path of npm, infered from $PAHT if empty
   "tsserver.npm": "",
-  // could be 'normal' 'terse' 'verbose' 'off'
   "tsserver.log": "off",
-  // could be 'off' 'messages' 'verbose', could also be provided by environment variable 'TSS_TRACE'
-  "tsserver.trace": "off",
-  // module name of global plugins
+  "tsserver.trace.server": "off",
   "tserver.pluginNames": [],
-  // folder root of global plugins
   "tsserver.pluginRoot": "",
   "tsserver.reportStyleChecksAsWarnings": true,
   "tsserver.implicitProjectConfig.checkJs": false,
@@ -44,13 +29,10 @@
   "typescript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "typescript.preferences.completion.nameSuggestions" : true,
   "typescript.preferences.completion.autoImportSuggestions" : true,
-  // if true comma if removed after import for on completionDone
   "typescript.preferences.completion.commaAfterImport" : true,
   "typescript.preferences.completion.moduleExports" : true,
-  // 'non-relative' or 'relative'
   "typescript.preferences.importModuleSpecifier" : "non-relative",
   "typescript.preferences.suggestionActions.enabled" : true,
-  // 'single' or 'double'
   "typescript.preferences.quoteStyle" : "single",
   "typescript.format.insertSpaceAfterCommaDelimiter" : true,
   "typescript.format.insertSpaceAfterConstructor" : false,
@@ -71,11 +53,9 @@
   "javascript.preferences.completion.useCodeSnippetsOnMethodSuggest" : true,
   "javascript.preferences.completion.nameSuggestions" : true,
   "javascript.preferences.completion.autoImportSuggestions" : true,
-  // 'non-relative' or 'relative'
   "javascript.preferences.importModuleSpecifier" : "non-relative",
   "javascript.preferences.suggestionActions.enabled" : true,
   "javascript.preferences.completion.commaAfterImport" : true,
-  // 'single' or 'double'
   "javascript.preferences.quoteStyle" : "single",
   "javascript.format.insertSpaceAfterCommaDelimiter" : true,
   "javascript.format.insertSpaceAfterConstructor" : false,
@@ -96,7 +76,6 @@
   "coc.source.buffer.enable": true,
   "coc.source.buffer.shortcut": "B",
   "coc.source.buffer.priority": 1,
-  // ignore keywords from git ignored files
   "coc.source.buffer.ignoreGitignore": true,
   "coc.source.dictionary.enable": true,
   "coc.source.dictionary.shortcut": "D",
@@ -112,14 +91,12 @@
   "coc.source.file.triggerCharacters": ["/"],
   "coc.source.file.trimSameExts": [".ts", ".js"],
   "coc.source.file.ignoreHidden": true,
-  // array of file patterns, like '*.bundle.js'
   "coc.source.file.ignorePatterns": [],
   "coc.source.include.enable": true,
   "coc.source.include.shortcut": "I",
   "coc.source.include.priority": 10,
   "coc.source.include.triggerCharacters": [],
   "coc.source.include.trimSameExts": [".ts", ".js"],
-  // when ripgrep installed, it would be `rg --color never --files`
   "coc.source.include.listFileCommand": "",
   "coc.source.omni.enable": true,
   "coc.source.omni.shortcut": "O",
@@ -169,12 +146,10 @@
   "tslint.ignoreDefinitionFiles": true,
   "tslint.exclude": [],
   "tslint.validateWithDefaultConfig": true,
-  // or onSave
   "tslint.run": "onType",
   "tslint.alwaysShowRuleFailuresAsWarnings": true,
   "eslint.enable": true,
   "eslint.filetypes": ["javascript", "javascript.jsx"],
-  // could be yarn
   "eslint.packageManager": "npm",
   "eslint.run": "onType",
   "eslint.autoFix": true,
@@ -189,4 +164,3 @@
   "pyls.filetypes": ["python"],
   "languageserver": {}
 }
-// vim:ft=jsonc

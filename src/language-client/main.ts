@@ -309,10 +309,7 @@ export class LanguageClient extends BaseLanguageClient {
             cp = result
             this._isDetached = false
           }
-          cp.stderr.on('data', data => {
-            let msg = Is.string(data) ? data : data.toString(encoding)
-            if (msg.length) logger.error(msg)
-          })
+          cp.stderr.on('data', data => this.appendOutput(data, encoding))
           return {
             reader: new StreamMessageReader(cp.stdout),
             writer: new StreamMessageWriter(cp.stdin)
@@ -372,13 +369,9 @@ export class LanguageClient extends BaseLanguageClient {
               return Promise.reject<MessageTransports>(new Error(`Launching server using runtime ${node.runtime} failed.`))
             }
             this._serverProcess = serverProcess
-            serverProcess.stderr.on('data', data => {
-              logger.error(Is.string(data) ? data : data.toString(encoding))
-            })
+            serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
             if (transport === TransportKind.ipc) {
-              serverProcess.stdout.on('data', data => {
-                logger.debug(Is.string(data) ? data : data.toString(encoding))
-              })
+              serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
               return Promise.resolve({
                 reader: new IPCMessageReader(serverProcess),
                 writer: new IPCMessageWriter(serverProcess)
@@ -396,12 +389,8 @@ export class LanguageClient extends BaseLanguageClient {
                 return Promise.reject<MessageTransports>(`Launching server using runtime ${node.runtime} failed.`)
               }
               this._serverProcess = process
-              process.stderr.on('data', data => {
-                logger.error(Is.string(data) ? data : data.toString(encoding))
-              })
-              process.stdout.on('data', data => {
-                logger.info.append(Is.string(data) ? data : data.toString(encoding))
-              })
+              process.stderr.on('data', data => this.appendOutput(data, encoding))
+              process.stdout.on('data', data => this.appendOutput(data, encoding))
               return transport.onConnected().then(protocol => {
                 return {reader: protocol[0], writer: protocol[1]}
               })
@@ -416,12 +405,8 @@ export class LanguageClient extends BaseLanguageClient {
                   )
                 }
                 this._serverProcess = process
-                process.stderr.on('data', data =>
-                  logger.error(Is.string(data) ? data : data.toString(encoding))
-                )
-                process.stdout.on('data', data => {
-                  logger.info(Is.string(data) ? data : data.toString(encoding))
-                })
+                process.stderr.on('data', data => this.appendOutput(data, encoding))
+                process.stdout.on('data', data => this.appendOutput(data, encoding))
                 return transport.onConnected().then(protocol => {
                   return {reader: protocol[0], writer: protocol[1]}
                 })
@@ -459,13 +444,9 @@ export class LanguageClient extends BaseLanguageClient {
                     reject(error)
                   } else {
                     this._serverProcess = serverProcess
-                    serverProcess.stderr.on('data', data => {
-                      logger.info(Is.string(data) ? data : data.toString(encoding))
-                    })
+                    serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
                     if (transport === TransportKind.ipc) {
-                      serverProcess.stdout.on('data', data => {
-                        logger.info(Is.string(data) ? data : data.toString(encoding))
-                      })
+                      serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
                       resolve({
                         reader: new IPCMessageReader(this._serverProcess),
                         writer: new IPCMessageWriter(this._serverProcess)
@@ -486,12 +467,8 @@ export class LanguageClient extends BaseLanguageClient {
                     reject(error)
                   } else {
                     this._serverProcess = cp
-                    cp.stderr.on('data', data =>
-                      logger.info(Is.string(data) ? data : data.toString(encoding))
-                    )
-                    cp.stdout.on('data', data =>
-                      logger.info(Is.string(data) ? data : data.toString(encoding))
-                    )
+                    cp.stderr.on('data', data => this.appendOutput(data, encoding))
+                    cp.stdout.on('data', data => this.appendOutput(data, encoding))
                     transport.onConnected().then(protocol => {
                       resolve({reader: protocol[0], writer: protocol[1]})
                     })
@@ -505,12 +482,8 @@ export class LanguageClient extends BaseLanguageClient {
                     reject(error)
                   } else {
                     this._serverProcess = cp
-                    cp.stderr.on('data', data =>
-                      logger.error(Is.string(data) ? data : data.toString(encoding))
-                    )
-                    cp.stdout.on('data', data =>
-                      logger.info(Is.string(data) ? data : data.toString(encoding))
-                    )
+                    cp.stderr.on('data', data => this.appendOutput(data, encoding))
+                    cp.stdout.on('data', data => this.appendOutput(data, encoding))
                     transport.onConnected().then(protocol => {
                       resolve({reader: protocol[0], writer: protocol[1]})
                     })
@@ -533,12 +506,12 @@ export class LanguageClient extends BaseLanguageClient {
         }
         serverProcess.on('exit', code => {
           if (code != 0) {
-            logger.error(`${command} exist with code: ${code}`)
+            let str = `${command} exited with code: ${code}`
+            logger.error(str)
+            this.appendOutput(str, 'utf8')
           }
         })
-        serverProcess.stderr.on('data', data => {
-          // logger.error(Is.string(data) ? data : data.toString(encoding))
-        })
+        serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
         this._serverProcess = serverProcess
         this._isDetached = !!options.detached
         return Promise.resolve({
@@ -577,6 +550,10 @@ export class LanguageClient extends BaseLanguageClient {
       })
     }
     return Promise.resolve(undefined)
+  }
+
+  private appendOutput(data:string|Buffer, encoding:string):void {
+    this.outputChannel.append(Is.string(data) ? data : data.toString(encoding))
   }
 }
 

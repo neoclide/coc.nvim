@@ -1,4 +1,4 @@
-import {Function, Neovim, Plugin} from 'neovim'
+import {Function, NeovimClient as Neovim, Plugin} from 'neovim'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -25,6 +25,7 @@ export default class CompletePlugin {
     this.emitter = new Emitter()
     this.handler = new Handler(nvim, this.emitter, services)
     workspace.nvim = nvim
+    workspace.emitter = this.emitter
     languages.nvim = nvim
     snippetManager.init(nvim)
     commandManager.init(nvim, this)
@@ -46,7 +47,8 @@ export default class CompletePlugin {
   private async onInit(): Promise<void> {
     let {nvim} = this
     try {
-      let channelId = await (nvim as any).channelId
+      let channelId = await nvim.channelId
+      await nvim.getChanInfo
       // workspace configuration
       await workspace.init()
       completion.init(nvim, this.emitter)
@@ -55,11 +57,11 @@ export default class CompletePlugin {
       await services.init(nvim)
       languageClient.init()
       services.registServices(languageClient.services)
-      this.initialized = true
       let {filetypes} = workspace
       for (let filetype of filetypes) {
         services.start(filetype)
       }
+      this.initialized = true
       logger.info('Coc service Initialized')
     } catch (err) {
       logger.error(err.stack)
@@ -106,6 +108,10 @@ export default class CompletePlugin {
       case 'BufUnload': {
         await workspace.onBufferUnload(args[1])
         emitter.emit('BufUnload', args[1])
+        break
+      }
+      case 'BufHidden': {
+        emitter.emit('BufHidden', args[1])
         break
       }
       case 'BufLeave': {

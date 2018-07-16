@@ -5,6 +5,11 @@
       "type": "boolean",
       "default": true
     },
+    "tslint.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"]
+    },
     "tslint.execArgv": {
       "type": "array",
       "default": ["--nolazy", "--inspect-brk=6045"],

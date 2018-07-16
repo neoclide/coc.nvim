@@ -5,7 +5,7 @@ let did_coc_loaded = 1
 
 function! s:Autocmd(...)
   " care about normal buffer only
-  if !empty(&buftype) | return | endif
+  if &buftype == 'terminal' | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
   try
     call call('CocAutocmd', a:000)
@@ -83,6 +83,7 @@ function! s:Enable()
     autocmd TextChangedI        * call s:Autocmd('TextChangedI')
     autocmd InsertLeave         * call s:Autocmd('InsertLeave')
     autocmd InsertEnter         * call s:Autocmd('InsertEnter')
+    autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
     autocmd BufLeave            * call s:Autocmd('BufLeave', +expand('<abuf>'))
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))

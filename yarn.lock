@@ -3237,24 +3237,14 @@ log4js@^2.10.0:
     redis "^2.7.1"
     slack-node "~0.2.0"
 
-log4js@^2.11.0:
-  version "2.11.0"
-  resolved "https://registry.yarnpkg.com/log4js/-/log4js-2.11.0.tgz#bf3902eff65c6923d9ce9cfbd2db54160e34005a"
+log4js@^3.0.0:
+  version "3.0.0"
+  resolved "https://registry.yarnpkg.com/log4js/-/log4js-3.0.0.tgz#521f7e431a96fbb64f32d348dea112b23d619e9d"
   dependencies:
     circular-json "^0.5.4"
     date-format "^1.2.0"
     debug "^3.1.0"
-    semver "^5.5.0"
     streamroller "0.7.0"
-  optionalDependencies:
-    amqplib "^0.5.2"
-    axios "^0.15.3"
-    hipchat-notifier "^1.1.0"
-    loggly "^1.1.0"
-    mailgun-js "^0.18.0"
-    nodemailer "^2.5.0"
-    redis "^2.7.1"
-    slack-node "~0.2.0"
 
 loggly@^1.1.0:
   version "1.1.1"

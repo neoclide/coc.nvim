@@ -9,6 +9,11 @@
       "type": "array",
       "default": [ "ruby" ]
     },
+    "solargraph.trace.server": {
+      "type": "string",
+      "default": "off",
+      "enum": ["off", "messages", "verbose"]
+    },
     "solargraph.commandPath": {
       "type": "string",
       "default": "solargraph",

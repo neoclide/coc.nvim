@@ -1,11 +1,9 @@
 import {Client} from 'fb-watchman'
-import {Neovim} from 'neovim'
-import {echoErr} from './util'
 import watchman = require('fb-watchman')
+import fs from 'fs'
+import which from 'which'
 import uuidv1 = require('uuid/v1')
-import fs = require('fs')
-import which = require('which')
-const logger = require('./util/logger')('watchman')
+import {OutputChannel} from './types'
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
 export interface WatchResponse {
@@ -41,7 +39,7 @@ export default class Watchman {
   private relative_path: string | null
   private clock: string | null
 
-  constructor(binaryPath: string) {
+  constructor(binaryPath: string, private outputChannel: OutputChannel) {
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
@@ -64,18 +62,17 @@ export default class Watchman {
     })
   }
 
-  private async watchProject(root: string, nvim: Neovim): Promise<boolean> {
+  private async watchProject(root: string): Promise<boolean> {
     if (root === process.env.HOME) {
-      echoErr(nvim, 'root is home, file watching disabled!') // tslint:disable-line
       return false
     }
     let resp = await this.command(['watch-project', root])
     let {watch, warning} = (resp as WatchResponse)
-    if (warning) logger.warn(warning)
+    if (warning) this.appendOutput(warning, 'warning')
     this.relative_path = watch
     resp = await this.command(['clock', watch])
     this.clock = resp.clock
-    logger.info('watchman watching project ', root)
+    this.appendOutput(`watchman watching project ${root}`, 'info')
     return true
   }
 
@@ -86,6 +83,10 @@ export default class Watchman {
         resolve(resp)
       })
     })
+  }
+
+  private appendOutput(message:string, type: string):void {
+    this.outputChannel.appendLine(`[${type}] ${message}`)
   }
 
   public async subscribe(globPattern: string, cb: ChangeCallback): Promise<string> {
@@ -109,15 +110,21 @@ export default class Watchman {
 
   public unsubscribe(subscription): void {
     this.command(['unsubscribe', this.relative_path, subscription]).catch(error => {
-      logger.error(error)
+      this.outputChannel.appendLine(`[error] ${error.message}`)
     })
   }
 
-  public static async createClient(binaryPath: string, root: string, nvim: Neovim): Promise<Watchman | null> {
-    let client = new Watchman(binaryPath)
-    let checked = await client.checkCapability()
-    if (!checked) return null
-    let watching = await client.watchProject(root, nvim)
+  public static async createClient(binaryPath: string, root: string, outputChannel: OutputChannel): Promise<Watchman | null> {
+    let client = new Watchman(binaryPath, outputChannel)
+    let watching
+    try {
+      let checked = await client.checkCapability()
+      if (!checked) return null
+      watching = await client.watchProject(root)
+    } catch (e) {
+      outputChannel.appendLine(`[error] ${e.message}`)
+      return null
+    }
     return watching ? client : null
   }
 

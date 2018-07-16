@@ -295,12 +295,12 @@ export default class Handler {
       if (!commandManager.has(id)) {
         return echoErr(this.nvim, `Command '${id}' not found`)
       }
-      commandManager.executeCommand(id, ...args)
+      await commandManager.executeCommand(id, ...args)
     } else {
       let ids = await this.getCommands()
       let idx = await showQuickpick(this.nvim, ids)
       if (idx == -1) return
-      commandManager.executeCommand(ids[idx])
+      await commandManager.executeCommand(ids[idx])
     }
   }
 
@@ -375,9 +375,9 @@ export default class Handler {
 
   public async getCommands(): Promise<string[]> {
     let list = commandManager.commandList
-    let res = [] as string[]
+    let res:string[] = []
     let document = await workspace.document
-    if (!document) return
+    if (!document) return []
     for (let o of list) {
       let idx = o.id.indexOf('.')
       let serviceId = o.id.slice(0, idx)

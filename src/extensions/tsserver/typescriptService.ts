@@ -7,6 +7,7 @@ import Uri from 'vscode-uri'
 import * as Proto from './protocol'
 import API from './utils/api'
 import {TypeScriptServiceConfiguration} from './utils/configuration'
+import Logger from './utils/logger'
 
 export interface TypeScriptServerPlugin {
   readonly path: string
@@ -22,6 +23,7 @@ export interface ITypeScriptServiceClient {
   onDidBeginInstallTypings: Event<Proto.BeginInstallTypesEventBody>
   onDidEndInstallTypings: Event<Proto.EndInstallTypesEventBody>
   onTypesInstallerInitializationFailed: Event<Proto.TypesInstallerInitializationFailedEventBody>
+  readonly logger: Logger
 
   normalizePath(resource: Uri): string | null
   asUrl(filepath: string): Uri

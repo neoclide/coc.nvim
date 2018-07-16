@@ -37,7 +37,7 @@
       "enum": ["normal", "terse", "verbose", "off"],
       "description": "Log level of tsserver"
     },
-    "tsserver.trace": {
+    "tsserver.trace.server": {
       "type": "string",
       "default": "off",
       "enum": ["off", "messages", "verbose"],

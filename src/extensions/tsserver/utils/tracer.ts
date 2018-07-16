@@ -2,9 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Logger} from 'log4js'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
+import Logger from './logger'
 
 enum Trace {
   Off,
@@ -37,7 +37,7 @@ export default class Tracer {
   }
 
   private static readTrace(): Trace {
-    let result: Trace = Trace.fromString(workspace.getConfiguration('tsserver').get<string>('trace', 'off'))
+    let result: Trace = Trace.fromString(workspace.getConfiguration('tsserver').get<string>('trace.server', 'off'))
     if (result === Trace.Off && !!process.env.TSS_TRACE) {
       result = Trace.Messages
     }
@@ -96,7 +96,7 @@ export default class Tracer {
 
   public logTrace(message: string, data?: any): void {
     if (this.trace !== Trace.Off) {
-      this.logger.trace(message, data)
+			this.logger.logLevel('Trace', message, data)
     }
   }
 }
