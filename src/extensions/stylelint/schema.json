@@ -19,6 +19,14 @@
         "type": "string"
       }
     },
+    "stylelint.config": {
+      "type": [
+        "object",
+        "null"
+      ],
+      "default": null,
+      "description": "A stylelint configuration object."
+    },
     "stylelint.configOverrides": {
       "type": "object",
       "default": {},
