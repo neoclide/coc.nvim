@@ -66,6 +66,12 @@
       "url": "http://json.schemastore.org/babelrc"
     },
     {
+      "name": "batect.yml",
+      "description": "batect configuration file",
+      "fileMatch": [ "batect.yml" ],
+      "url": "https://batect.charleskorn.com/configSchema.json"
+    },
+    {
       "name": ".bootstraprc",
       "description": "Webpack bootstrap-loader configuration file",
       "fileMatch": [ ".bootstraprc" ],
@@ -94,6 +100,12 @@
       "description": "Schema for CircleCI 2.0 config files",
       "fileMatch": [ ".circleci/config.yml" ],
       "url": "http://json.schemastore.org/circleciconfig"
+    },
+    {
+      "name": ".cirrus.yml",
+      "description": "Cirrus CI configuration files",
+      "fileMatch": [ ".cirrus.yml" ],
+      "url": "http://json.schemastore.org/cirrus"
     },
     {
       "name": "compilerconfig.json",
@@ -546,6 +558,12 @@
       "url": "http://json.schemastore.org/resume"
     },
     {
+      "name": "Renovate",
+      "description": "Renovate config file (https://renovatebot.com/)",
+      "fileMatch": [ "renovate.json" ],
+      "url": "http://json.schemastore.org/renovate"
+    },
+    {
       "name": "sarif-1.0.0.json",
       "description": "Static Analysis Results Interchange Format (SARIF)",
       "fileMatch": [ "*.sarif", "*.sarif.json" ],
@@ -832,7 +850,7 @@
       "description": "A JSON schema for CRYENGINE projects (.cryproj files)",
       "fileMatch": [ "*.cryproj" ],
       "url": "http://json.schemastore.org/cryproj.55.schema"
-    },  
+    },
     {
       "name": ".cryproj engine-dev",
       "description": "A JSON schema for CRYENGINE projects (.cryproj files)",
