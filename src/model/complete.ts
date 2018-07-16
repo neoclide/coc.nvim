@@ -130,6 +130,10 @@ export default class Complete {
       if (sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa > sb ? 1 : -1
+      } else if (sa && !sb) {
+        return 1
+      } else if (sb && !sa) {
+        return -1
       } else {
         return b.score - a.score
       }

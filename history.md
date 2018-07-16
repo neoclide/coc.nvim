@@ -23,5 +23,12 @@
 
 # 2018-07-15
 
-* Support location list for diagnoctic
-* Add tsserver project errors command
+* Support location list for diagnoctic.
+* Add tsserver project errors command.
+
+# 2018-07-16
+
+* Support arguments for `runCommand` action.
+* Add coc command `workspace.showOutput`.
+* Support output channel for language server.
+* Support `[extension].trace.server` setting for trace server communication.
