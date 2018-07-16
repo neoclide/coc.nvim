@@ -290,12 +290,12 @@ export default class Handler {
     await document.applyEdits(this.nvim, textEdits)
   }
 
-  public async runCommand(id?: string): Promise<void> {
+  public async runCommand(id?: string, ...args:any[]): Promise<void> {
     if (id) {
       if (!commandManager.has(id)) {
         return echoErr(this.nvim, `Command '${id}' not found`)
       }
-      commandManager.executeCommand(id)
+      commandManager.executeCommand(id, ...args)
     } else {
       let ids = await this.getCommands()
       let idx = await showQuickpick(this.nvim, ids)

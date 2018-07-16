@@ -12,7 +12,7 @@ import {VimCompleteItem} from './types'
 import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
-import Emitter = require('events')
+import Emitter from 'events'
 const logger = require('./util/logger')('index')
 
 @Plugin({dev: false})
@@ -236,7 +236,7 @@ export default class CompletePlugin {
         case 'codeLensAction':
           return handler.doCodeLensAction()
         case 'runCommand':
-          return await handler.runCommand(args[1])
+          return await handler.runCommand(args[1], args.slice(2))
         default:
           logger.error(`unknown action ${args[0]}`)
       }
