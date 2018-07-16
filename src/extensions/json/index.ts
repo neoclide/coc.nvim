@@ -72,11 +72,16 @@ export default class JsonService extends LanguageService {
             if (!doc) return []
             let items: CompletionItem[] = res.hasOwnProperty('isIncomplete') ? (res as CompletionList).items : res as CompletionItem[]
             for (let item of items) {
-              let {textEdit, insertText} = item // tslint:disable-line
+              let {textEdit, insertText, label} = item // tslint:disable-line
               item.insertText = null // tslint:disable-line
               if (textEdit && textEdit.newText) {
                 let newText = insertText || textEdit.newText
                 textEdit.newText = newText.replace(/(\n|\t)/g, '')
+                let {start, end} = textEdit.range
+                let line = doc.getline(position.line)
+                if (line[start.character] && line[end.character - 1] && /^".*"$/.test(label)) {
+                  item.label = item.label.slice(1, -1)
+                }
               }
             }
             return items
