@@ -120,7 +120,10 @@ export function disposeAll(disposables: Disposable[]): void {
 export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
   let {newText, range} = edit
   let {start, end} = range
-  if (start.line == end.line) return lnum == null ? true : start.line == lnum
+  if (start.line == end.line) {
+    if (newText.endsWith('\n')) return false
+    return lnum == null ? true : start.line == lnum
+  }
   if (end.line == start.line + 1 && newText.endsWith('\n')) {
     return lnum == null ? true : start.line == lnum
   }
