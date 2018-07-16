@@ -3,8 +3,6 @@ import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import Handler from './handler'
-import languageClient from './language-client'
-import languages from './languages'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
@@ -22,12 +20,18 @@ export default class CompletePlugin {
   private handler: Handler
 
   constructor(public nvim: Neovim) {
-    this.emitter = new Emitter()
+    let emitter = this.emitter = new Emitter()
     this.handler = new Handler(nvim, this.emitter, services)
-    workspace.nvim = nvim
-    workspace.emitter = this.emitter
-    languages.nvim = nvim
-    snippetManager.init(nvim)
+    Object.defineProperty(workspace, 'nvim', {
+      get: () => {
+        return nvim
+      }
+    })
+    Object.defineProperty(workspace, 'emitter', {
+      get: () => {
+        return emitter
+      }
+    })
     commandManager.init(nvim, this)
     clean() // tslint:disable-line
   }
@@ -48,24 +52,17 @@ export default class CompletePlugin {
     let {nvim} = this
     try {
       let channelId = await nvim.channelId
-      await nvim.getChanInfo
       // workspace configuration
       await workspace.init()
       completion.init(nvim, this.emitter)
-      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
-      await nvim.command('doautocmd User CocNvimInit')
       await services.init(nvim)
-      languageClient.init()
-      services.registServices(languageClient.services)
-      let {filetypes} = workspace
-      for (let filetype of filetypes) {
-        services.start(filetype)
-      }
+      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       this.initialized = true
-      logger.info('Coc service Initialized')
+      await nvim.command('doautocmd User CocNvimInit')
+      logger.info('Coc initialized')
     } catch (err) {
       logger.error(err.stack)
-      return echoErr(nvim, `Initialize failed, ${err.message}`)
+      echoErr(nvim, `Initialize failed, ${err.message}`)
     }
   }
 
@@ -151,7 +148,10 @@ export default class CompletePlugin {
 
   @Function('CocAction', {sync: true})
   public async cocAction(args: any): Promise<any> {
-    if (!this.initialized) return
+    if (!this.initialized) {
+      echoErr(this.nvim, 'coc not initialized')
+      return
+    }
     let {handler} = this
     try {
       switch (args[0] as string) {

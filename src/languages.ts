@@ -6,7 +6,6 @@ import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemP
 import snippetManager from './snippet/manager'
 import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
 import {echoMessage, isLineEdit} from './util'
-import {diffLines} from './util/diff'
 import {byteSlice} from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
@@ -61,6 +60,14 @@ class Languages {
   private codeLensProviderMap: Map<string, CodeLensProvider[]> = new Map()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
+
+  constructor() {
+    Object.defineProperty(this, 'nvim', {
+      get: () => {
+        return workspace.nvim
+      }
+    })
+  }
 
   public registerCompletionItemProvider(
     name: string,
@@ -558,15 +565,8 @@ class Languages {
   private async applyAdditionaLEdits(textEdits: TextEdit[], bufnr: number): Promise<void> {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
-    let orig = document.content
-    let text = TextDocument.applyEdits(document.textDocument, textEdits)
-    let changedLines = diffLines(orig, text)
-    let buffer = await this.nvim.buffer
-    await buffer.setLines(changedLines.replacement, {
-      start: changedLines.start,
-      end: changedLines.end,
-      strictIndexing: false,
-    })
+    if (!document) return
+    await document.applyEdits(this.nvim, textEdits)
   }
 
   private getProvider<T>(document: TextDocument, map: Map<string, T>): T {

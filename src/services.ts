@@ -2,6 +2,8 @@ import fs from 'fs'
 import {Neovim} from 'neovim'
 import path from 'path'
 import pify from 'pify'
+import languageClient from './language-client'
+import workspace from './workspace'
 import {Disposable} from 'vscode-languageserver-protocol'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
@@ -55,8 +57,16 @@ export class ServiceManager implements Disposable {
           }
         }
       }
+      languageClient.init()
+      for (let service of languageClient.services) {
+        this.regist(service)
+      }
       let ids = Array.from(this.registed.keys())
       logger.info(`Created services: ${ids.join(',')}`)
+      let {filetypes} = workspace
+      for (let filetype of filetypes) {
+       this.start(filetype)
+      }
     } catch (e) {
       echoErr(this.nvim, `Service init error: ${e.message}`)
       logger.error(e.message)

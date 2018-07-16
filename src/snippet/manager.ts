@@ -22,18 +22,22 @@ export class SnippetManager {
   private currIndex = -1
   private changedtick: number
 
-  public get isActivted(): boolean {
-    return this.activted
-  }
-
-  public init(nvim: Neovim): void {
-    this.nvim = nvim
+  constructor() {
+    Object.defineProperty(this, 'nvim', {
+      get: () => {
+        return workspace.nvim
+      }
+    })
     workspace.onDidChangeTextDocument(this.onDocumentChange, this)
     workspace.onDidCloseTextDocument(textDocument => {
       if (textDocument.uri == this.uri) {
         this.detach().catch(onError)
       }
     })
+  }
+
+  public get isActivted(): boolean {
+    return this.activted
   }
 
   public async attach(): Promise<void> {
