@@ -1,0 +1,182 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "description": "微信小程序 app.json 的 schema",
+  "type": "object",
+  "definitions": {
+    "pages": {
+      "type": "array",
+      "description": "接受一个数组，每一项都是字符串，来指定小程序由哪些页面组成，数组的第一项代表小程序的初始页面",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    }
+  },
+  "properties": {
+    "pages": {
+      "$ref": "#/definitions/pages"
+    },
+    "subPackages": {
+      "type": "array",
+      "description": "分包加载",
+      "items": {
+        "type": "object",
+        "properties": {
+          "root": {
+            "type": "string",
+            "description": "指定分包的名称，对应会自动生成一个文件夹"
+          },
+          "pages": {
+            "$ref": "#/definitions/pages"
+          }
+        }
+      }
+    },
+    "window": {
+      "type": "object",
+      "properties": {
+        "navigationBarBackgroundColor": {
+          "type": "string",
+          "default": "#000000",
+          "description": "导航栏背景颜色，HexColor"
+        },
+        "navigationBarTextStyle": {
+          "type": "string",
+          "description": "导航栏标题颜色，仅支持 black/white",
+          "default": "white",
+          "enum": [
+            "white", "black"
+          ]
+        },
+        "navigationBarTitleText": {
+          "type": "string",
+          "description": "导航栏标题文字内容"
+        },
+        "backgroundColor": {
+          "type": "string",
+          "default": "#ffffff",
+          "description": "窗口的背景色， HexColor"
+        },
+        "backgroundTextStyle": {
+          "type": "string",
+          "default": "dark",
+          "enum": [
+            "dark", "light"
+          ],
+          "description": "下拉背景字体、loading 图的样式，仅支持 dark/light"
+        },
+        "enablePullDownRefresh": {
+          "type": "boolean",
+          "default": false,
+          "description": "是否开启下拉刷新"
+        },
+        "onReachBottomDistance": {
+          "type": "number",
+          "default": 50,
+          "description": "页面上拉触底事件触发时距页面底部距离，单位为px"
+        }
+      }
+    },
+    "tabBar": {
+      "type": "object",
+      "required": [
+        "color", "selectedColor", "backgroundColor", "list"
+      ],
+      "default": {
+        "color": "",
+        "selectedColor": "",
+        "backgroundColor": "",
+        "list": []
+      },
+      "properties": {
+        "color": {
+          "type": "string",
+          "description": "tab 上的文字默认颜色"
+        },
+        "selectedColor": {
+          "type": "string",
+          "description": "tab 上的文字选中时的颜色"
+        },
+        "backgroundColor": {
+          "type": "string",
+          "description": "tab 的背景色"
+        },
+        "borderStyle": {
+          "type": "string",
+          "enum": [
+            "black", "white"
+          ],
+          "default": "black",
+          "description": "tabbar上边框的颜色， 仅支持 black/white"
+        },
+        "position": {
+          "type": "string",
+          "default": "bottom",
+          "enum": [
+            "bottom", "top"
+          ],
+          "description": "可选值 bottom、top"
+        },
+        "list": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["pagePath", "text"],
+            "properties": {
+              "pagePath": {
+                "type": "string",
+                "description": "页面路径，必须在 pages 中先定义"
+              },
+              "text": {
+                "type": "string",
+                "description": "tab 上按钮文字"
+              },
+              "iconPath": {
+                "type": "string",
+                "description": "图片路径，icon 大小限制为40kb，建议尺寸为 81px * 81px，当 postion 为 top 时，此参数无效，不支持网络图片"
+              },
+              "selectedIconPath": {
+                "type": "string",
+                "description": "选中时的图片路径，icon 大小限制为40kb，建议尺寸为 81px * 81px ，当 postion 为 top 时，此参数无效"
+              }
+            }
+          },
+          "minItems": 2,
+          "maxItems": 5
+        }
+      }
+    },
+    "networkTimeout": {
+      "type": "object",
+      "properties": {
+        "request": {
+          "type": "number",
+          "default": 60000,
+          "description": "wx.request的超时时间，单位毫秒，默认为：60000"
+        },
+        "connectSocket": {
+          "type": "number",
+          "default": 60000,
+          "description": "wx.connectSocket的超时时间，单位毫秒，默认为：60000"
+        },
+        "uploadFile": {
+          "type": "number",
+          "default": 60000,
+          "description": "wx.uploadFile的超时时间，单位毫秒，默认为：60000"
+        },
+        "downloadFile": {
+          "type": "number",
+          "default": 60000,
+          "description": "wx.downloadFile的超时时间，单位毫秒，默认为：60000"
+        }
+      }
+    },
+    "plugins": {
+      "type": "object",
+      "default": {},
+      "description": "引入插件代码包"
+    },
+    "debug": {
+      "type": "boolean",
+      "description": "可以在开发者工具中开启 debug 模式，在开发者工具的控制台面板，调试信息以 info 的形式给出，其信息有Page的注册，页面路由，数据更新，事件触发 。 可以帮助开发者快速定位一些常见的问题"
+    }
+  }
+}

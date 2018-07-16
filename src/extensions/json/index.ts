@@ -7,7 +7,8 @@ import workspace from '../../workspace'
 import catalog from './catalog.json'
 import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
 import Uri from 'vscode-uri'
-import {readdirAsync} from '../../util/fs'
+import {readdirAsync, resolveRoot} from '../../util/fs'
+import { LanguageServerConfig } from '../../types'
 const logger = require('../../util/logger')('extension-json')
 
 interface ISchemaAssociations {
@@ -16,8 +17,10 @@ interface ISchemaAssociations {
 
 const ID = 'json'
 export default class JsonService extends LanguageService {
+  private miniProgrameRoot:string
+
   constructor() {
-    const config = workspace.getConfiguration().get(ID) as any
+    const config = workspace.getConfiguration().get(ID) as LanguageServerConfig
     super('json', 'JSON Language Server', {
       module: path.join(ROOT, 'node_modules/vscode-json-languageserver/out/jsonServerMain.js'),
       args: ['--node-ipc'],
@@ -27,8 +30,37 @@ export default class JsonService extends LanguageService {
     }, ['json', 'http'])
   }
 
+  private async onDocumentEnter(uri:string):Promise<void> {
+    if (!/\.json$/.test(uri)) return
+    let {miniProgrameRoot} = this
+    let doc = workspace.getDocument(uri)
+    if (!doc) return
+    let file = Uri.parse(uri).fsPath
+    let associations:ISchemaAssociations = {}
+    let {content} = doc
+    if (content.indexOf('$schema') !== -1) return
+    if (miniProgrameRoot) {
+      if (path.dirname(file) == miniProgrameRoot) {
+        return
+      }
+      let arr = ['page', 'component'].map(str => {
+        return Uri.file(path.join(ROOT, `data/${str}.json`)).toString()
+      })
+      associations[file] = arr
+    }
+    if (Object.keys(associations).length > 0) {
+      this.client.sendNotification('json/schemaAssociations', associations)
+    }
+  }
+
+  public checkMiniProgram():void {
+    let {root} = workspace
+    this.miniProgrameRoot = resolveRoot(root, ['project.config.json'])
+  }
+
   public async init(): Promise<void> {
     await super.init()
+    this.checkMiniProgram()
     let associations: ISchemaAssociations = {}
     for (let item of catalog.schemas) {
       let {fileMatch, url} = item
@@ -42,7 +74,17 @@ export default class JsonService extends LanguageService {
     }
     const files = await this.getSchemaFiles()
     associations['coc-settings.json'] = files.map(f => Uri.file(f).toString())
+    associations['app.json'] = [Uri.file(path.join(ROOT, 'data/app.json')).toString()]
     this.client.sendNotification('json/schemaAssociations', associations)
+    this.disposables.push(
+      workspace.onDidEnterTextDocument(documentInfo => {
+        let {uri} = documentInfo
+        this.onDocumentEnter(uri)
+      })
+    )
+    for (let document of workspace.documents) {
+      this.onDocumentEnter(document.uri)
+    }
   }
 
   private async getSchemaFiles(): Promise<string[]> {
@@ -60,6 +102,7 @@ export default class JsonService extends LanguageService {
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
     Object.assign(clientOptions, {
       middleware: {
+        // fix completeItem
         provideCompletionItem: (
           document: TextDocument,
           position: Position,

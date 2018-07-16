@@ -1,0 +1,50 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "description": "微信小程序 page.json 的 schema",
+  "type": "object",
+  "properties": {
+    "usingComponents": {
+      "type": "object"
+    },
+    "navigationBarBackgroundColor": {
+      "type": "string",
+      "default": "#000000",
+      "description": "导航栏背景颜色，HexColor"
+    },
+    "navigationBarTextStyle": {
+      "type": "string",
+      "description": "导航栏标题颜色，仅支持 black/white",
+      "default": "white",
+      "enum": [
+        "white", "black"
+      ]
+    },
+    "navigationBarTitleText": {
+      "type": "string",
+      "description": "导航栏标题文字内容"
+    },
+    "backgroundColor": {
+      "type": "string",
+      "default": "#ffffff",
+      "description": "窗口的背景色， HexColor"
+    },
+    "backgroundTextStyle": {
+      "type": "string",
+      "default": "dark",
+      "enum": [
+        "dark", "light"
+      ],
+      "description": "下拉背景字体、loading 图的样式，仅支持 dark/light"
+    },
+    "enablePullDownRefresh": {
+      "type": "boolean",
+      "default": false,
+      "description": "是否开启下拉刷新"
+    },
+    "onReachBottomDistance": {
+      "type": "number",
+      "default": 50,
+      "description": "页面上拉触底事件触发时距页面底部距离，单位为px"
+    }
+  }
+}

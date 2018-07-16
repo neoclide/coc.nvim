@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-04/schema",
+  "description": "微信小程序 自定义组件 的 schema",
+  "type": "object",
+  "properties": {
+    "component": {
+      "type": "boolean",
+      "default": true
+    },
+    "usingComponents": {
+      "type": "object"
+    }
+  }
+}
+

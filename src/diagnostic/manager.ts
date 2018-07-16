@@ -299,6 +299,7 @@ export class DiagnosticManager {
       let diagnostics = collection.get(document.uri)
       for (let diagnostic of diagnostics) {
         let {range} = diagnostic
+        diagnostic.source = diagnostic.source || collection.name
         let start = textDocument.offsetAt(range.start)
         let end = textDocument.offsetAt(range.end)
         if (start <= offset && end >= offset) {

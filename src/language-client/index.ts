@@ -9,10 +9,6 @@ import {disposeAll, echoErr, echoMessage} from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('language-client-index')
 
-export interface LspConfig {
-  [index: string]: LanguageServerConfig
-}
-
 function isInteger(o:any):boolean {
   if (typeof o === 'number') return true
   if (typeof o === 'string') {
