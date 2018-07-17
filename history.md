@@ -1,16 +1,19 @@
-# 2018-07-12
+# 2018-07-17
 
-* Fix restart of tsserver not working.
-* Fix edit of current buffer change jumplist by using `:keepjumps`.
+* Add `coc.preference.jumpCommand` to settings.
+* Make coc service standalone.
 
-# 2018-07-13
+# 2018-07-16
 
-* **Break change:** `diagnoctic` in setting.json changed to `diagnostic`.
-* Fix clearHighlight arguments.
-* Add eslint extension https://github.com/Microsoft/vscode-eslint.
-* Fix snippet break with line have $variable.
-* Use jsonc-parser replace json5.
-* Add `data/schema.json` for coc-settings.json.
+* Support arguments for `runCommand` action.
+* Add coc command `workspace.showOutput`.
+* Support output channel for language server.
+* Support `[extension].trace.server` setting for trace server communication.
+
+# 2018-07-15
+
+* Support location list for diagnoctic.
+* Add tsserver project errors command.
 
 # 2018-07-14
 
@@ -21,19 +24,17 @@
 * Fix buffer sometimes not attached.
 * Improve completion of JSON extension.
 
-# 2018-07-15
+# 2018-07-13
 
-* Support location list for diagnoctic.
-* Add tsserver project errors command.
+* **Break change:** `diagnoctic` in setting.json changed to `diagnostic`.
+* Fix clearHighlight arguments.
+* Add eslint extension https://github.com/Microsoft/vscode-eslint.
+* Fix snippet break with line have $variable.
+* Use jsonc-parser replace json5.
+* Add `data/schema.json` for coc-settings.json.
 
-# 2018-07-16
+# 2018-07-12
 
-* Support arguments for `runCommand` action.
-* Add coc command `workspace.showOutput`.
-* Support output channel for language server.
-* Support `[extension].trace.server` setting for trace server communication.
+* Fix restart of tsserver not working.
+* Fix edit of current buffer change jumplist by using `:keepjumps`.
 
-# 2018-07-17
-
-* Add `coc.preference.jumpCommand` to settings.
-* Make coc service standalone.
