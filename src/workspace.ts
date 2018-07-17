@@ -58,6 +58,7 @@ export class Workspace {
   private watchmanPath: string
   private nvimSettings: NvimSettings
   private configFiles: string[]
+  private jumpCommand: string
 
   constructor() {
     this.buffers = {}
@@ -76,7 +77,9 @@ export class Workspace {
     })
     let buf = await this.nvim.buffer
     await this.bufferEnter(buf.id)
-    let watchmanPath = this.getConfiguration('coc.preferences').get('watchmanPath', '') as string
+    const preferences = this.getConfiguration('coc.preferences')
+    const watchmanPath = preferences.get<string>('watchmanPath', '')
+    this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
     this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
     this.nvimSettings = await this.nvim.call('coc#util#vim_info') as NvimSettings
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
@@ -412,18 +415,17 @@ export class Workspace {
   }
 
   public async jumpTo(uri: string, position: Position): Promise<void> {
-    let {nvim} = this
+    let {nvim, jumpCommand} = this
     let {line, character} = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
     let bufnr = await nvim.call('bufnr', [filepath])
-    await nvim.command("execute 'normal! m'''")
-    if (bufnr != -1) {
+    if (bufnr != -1 && cmd == 'edit') {
       await nvim.command(`buffer ${cmd} ${bufnr}`)
     } else {
       let cwd = await nvim.call('getcwd')
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-      await nvim.command(`exe 'edit ${cmd} ' . fnameescape('${file}')`)
+      await nvim.command(`exe '${jumpCommand} ${cmd} ' . fnameescape('${file}')`)
     }
   }
 

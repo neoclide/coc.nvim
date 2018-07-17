@@ -183,6 +183,12 @@
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": ""
     },
+    "coc.preferences.jumpCommand": {
+      "type": "string",
+      "description": "Command used for location jump, like goto definition, goto references etc.",
+      "default": "edit",
+      "enum": ["edit", "split", "vsplit", "tabe"]
+    },
     "coc.preferences.diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic",

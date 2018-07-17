@@ -3,6 +3,7 @@
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
   "coc.preferences.watchmanPath": "",
+  "coc.preferences.jumpCommand": "edit",
   "coc.preferences.diagnostic.locationlist": true,
   "coc.preferences.diagnostic.enable": true,
   "coc.preferences.diagnostic.signOffset": 1000,
