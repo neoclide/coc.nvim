@@ -64,6 +64,7 @@
     "cross-spawn": "^6.0.5",
     "debounce": "^1.1.0",
     "diff": "^3.5.0",
+    "et-improve": "^1.0.0",
     "fast-diff": "^1.1.2",
     "fb-watchman": "^2.0.0",
     "fuzzaldrin": "^2.1.0",

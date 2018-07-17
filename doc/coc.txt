@@ -38,33 +38,19 @@ you can configure coc to work with custom language server as well.
 ==============================================================================
 INSTALL						*coc-install*
 
-Install [nodejs](http://nodejs.org/) version > 8.0, and run command: >
+Install [nodejs](http://nodejs.org/) version > 8.0.
 
-  npm install -g neovim
-<
-to install neovim node client globally.
+Install [yarn](https://yarnpkg.com/en/docs/install)
 
-Install plugin by plugin manager, like https://github.com/Shougo/dein.vim by add: >
+Use plugin manager, like https://github.com/junegunn/vim-plug by add: >
 
-  call dein#add('neoclide/coc.nvim', {
-      \ 'build': 'npm install'
-      \})
+  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
 
 to your `init.vim` and run: >
 
-  :call dein#install()
+  :PlugInstall
 
-in neovim.
-
-When using other plugin manager, you may need to run: >
-
-  npm install
-
-in the directory of this plugin and run >
-
-  :UpdateRemotePlugins
->
-in neovim and restart neovim to make remote plugin works.
+then restart neovim.
 
 ==============================================================================
 COMPLETION					*coc-completion*

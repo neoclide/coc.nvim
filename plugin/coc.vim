@@ -144,8 +144,8 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinitio
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 inoremap <silent>                        <Plug>_    <C-r>=coc#_complete()<CR>
 
-if has('vim_starting')
-  autocmd VimEnter * call s:Init(0)
+if v:vim_did_enter
+  call coc#rpc#start_server()
 else
-  call s:Init(1)
+  autocmd VimEnter * call coc#rpc#start_server()
 endif

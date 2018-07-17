@@ -1,4 +1,4 @@
-import {Function, NeovimClient as Neovim, Plugin} from 'neovim'
+import {NeovimClient as Neovim} from 'neovim'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -9,11 +9,14 @@ import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
 import {echoErr} from './util'
 import clean from './util/clean'
+import {writeFile} from './util/fs'
 import workspace from './workspace'
 import Emitter from 'events'
+import os from 'os'
+import path from 'path'
+import et from 'et-improve'
 const logger = require('./util/logger')('index')
 
-@Plugin({dev: false})
 export default class CompletePlugin {
   private initialized = false
   private emitter: Emitter
@@ -36,29 +39,25 @@ export default class CompletePlugin {
     clean() // tslint:disable-line
   }
 
-  @Function('CocInitAsync', {sync: false})
-  public async cocInitAsync(): Promise<void> {
-    this.onInit().catch(err => {
-      logger.error(err.stack)
-    })
-  }
+//   public async cocInitAsync(): Promise<void> {
+//     this.onInit().catch(err => {
+//       logger.error(err.stack)
+//     })
+//   }
+//   public async cocInitSync(): Promise<void> {
+//     await this.onInit()
+//   }
 
-  @Function('CocInitSync', {sync: true})
-  public async cocInitSync(): Promise<void> {
-    await this.onInit()
-  }
-
-  private async onInit(): Promise<void> {
+  public async onInit(channelId): Promise<void> {
     let {nvim} = this
     try {
-      let channelId = await nvim.channelId
       // workspace configuration
       await workspace.init()
       completion.init(nvim, this.emitter)
       await services.init(nvim)
-      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       this.initialized = true
       await nvim.command('doautocmd User CocNvimInit')
+      await this.registerFunctions(channelId)
       logger.info('Coc initialized')
     } catch (err) {
       logger.error(err.stack)
@@ -67,7 +66,6 @@ export default class CompletePlugin {
   }
 
   // callback for remote sources
-  @Function('CocResult', {sync: false})
   public async cocResult(args: [number, string, VimCompleteItem[]]): Promise<void> {
     let [id, name, items] = args
     id = Number(id)
@@ -76,7 +74,6 @@ export default class CompletePlugin {
     remoteStore.setResult(id, name, items)
   }
 
-  @Function('CocAutocmd', {sync: true})
   public async cocAutocmd(args: any): Promise<void> {
     let {emitter} = this
     logger.trace('Autocmd:', args[0])
@@ -146,7 +143,6 @@ export default class CompletePlugin {
     }
   }
 
-  @Function('CocAction', {sync: true})
   public async cocAction(args: any): Promise<any> {
     if (!this.initialized) {
       echoErr(this.nvim, 'coc not initialized')
@@ -249,5 +245,29 @@ export default class CompletePlugin {
     } catch (e) {
       logger.error(e.stack)
     }
+  }
+
+  private async registerFunctions(channelId):Promise<void> {
+    let {nvim} = this
+    let file = path.join(os.tmpdir(), 'coc-funcs.vim')
+    const template = `
+    {{each _.funcs as func}}
+      function! {{= func.name}}(...) abort
+        let args = [${channelId}, '{{= func.name}}'] + a:000
+        return call('{{= func.method}}', args)
+      endfunction
+    {{/}}
+    `
+    const definition = {
+      funcs: [
+        { method: 'rpcnotify',  name: 'CocResult'},
+        { method: 'rpcrequest', name: 'CocAutocmd'},
+        { method: 'rpcrequest', name: 'CocAction'}
+      ]
+    }
+    let fn = et.compile(template)
+    await writeFile(file, fn(definition, {}, str => str))
+    await nvim.command('source ' + file)
+
   }
 }

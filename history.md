@@ -32,3 +32,8 @@
 * Add coc command `workspace.showOutput`.
 * Support output channel for language server.
 * Support `[extension].trace.server` setting for trace server communication.
+
+# 2018-07-17
+
+* Add `coc.preference.jumpCommand` to settings.
+* Make coc service standalone.
