@@ -1,4 +1,8 @@
 {
+  /*
+  * create coc-settings.json in folder $XDG_CONFIG_HOME/nvim
+  * validate and completion would be enabled automatically
+  */
   "coc.preferences.autoTrigger": "always",
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
@@ -165,3 +169,4 @@
   "pyls.filetypes": ["python"],
   "languageserver": {}
 }
+// vim:ft=jsonc

@@ -46,7 +46,19 @@ For filetype `typescript`, `javascript`, `html`, `json`, `css/less/scss/wxss`,
 
 ## Contents
 
-### [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+### Installation
+
+Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install)
+
+For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
+
+``` vim
+Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
+```
+
+to your `.vimrc`, restart neovim and run `:PlugInstall`.
+
+Checkout [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim) for more information.
 
 ### [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
