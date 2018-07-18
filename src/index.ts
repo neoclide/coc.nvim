@@ -56,8 +56,8 @@ export default class CompletePlugin {
       completion.init(nvim, this.emitter)
       await services.init(nvim)
       this.initialized = true
-      await nvim.command('doautocmd User CocNvimInit')
       await this.registerFunctions(channelId)
+      await nvim.command('doautocmd User CocNvimInit')
       logger.info('Coc initialized')
     } catch (err) {
       logger.error(err.stack)
