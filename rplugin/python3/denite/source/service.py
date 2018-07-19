@@ -22,11 +22,11 @@ class Source(Base):
         self.vim.command(r'syntax match deniteService_CocHeader /\v^.*$/ containedin=' + self.syntax_name)
         self.vim.command(r'syntax match deniteService_CocStar /\v^\%1c.*\%3c/ contained '
                          r'containedin=deniteService_CocHeader')
-        self.vim.command(r'syntax match deniteService_CocName /\%4c.*\%22c/ contained '
+        self.vim.command(r'syntax match deniteService_CocName /\v%4c[^[]*(\[)@=/ contained '
                          r'containedin=deniteService_CocHeader')
-        self.vim.command(r'syntax match deniteService_CocState /\%25c.*\%35c/ contained '
+        self.vim.command(r'syntax match deniteService_CocState /\v\[[^[\]]*\]/ contained '
                          r'containedin=deniteService_CocHeader')
-        self.vim.command(r'syntax match deniteService_CocLanguages /\%36c.*$/ contained '
+        self.vim.command(r'syntax match deniteService_CocLanguages /\v(\])@<=.*$/ contained '
                          r'containedin=deniteService_CocHeader')
 
     def highlight(self):
