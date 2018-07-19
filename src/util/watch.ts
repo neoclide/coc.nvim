@@ -9,6 +9,7 @@ export function watchFiles(uris: string[], onChange: () => void): void {
     return statAsync(uri)
   })).then(stats => {
     for (let i = 0; i < stats.length; i++) {
+      if (stats[i] == null) continue
       if (stats[i].isFile()) {
         fs.watch(uris[i], {
           persistent: false,

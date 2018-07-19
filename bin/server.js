@@ -1,6 +1,19 @@
-const attach = require('neovim').attach
 const Plugin = require('..').default
 const logger = require('../lib/util/logger')('server')
+const os = require('os')
+const path = require('path')
+Object.defineProperty(process.env, 'NVIM_NODE_LOG_FILE', {
+  get: function () {
+    return path.join(os.tmpdir(), 'coc-nvim-client.log')
+  }
+})
+let logLevel = 'info'
+Object.defineProperty(process.env, 'NVIM_NODE_LOG_LEVEL', {
+  get: function () {
+    return logLevel
+  }
+})
+const attach = require('neovim').attach
 
 const nvim = attach({
   socket: process.env.NVIM_LISTEN_ADDRESS

@@ -89,7 +89,7 @@ Checkout [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-co
 ## Trouble shooting
 
 When you find the plugin is not working as you would expected, run command
-`:checkhealth` and make use that output from `coc.nvim` are `OK`.
+`:checkhealth` and make sure that output from `coc.nvim` are `OK`.
 
 To get the log file, run shell command:
 

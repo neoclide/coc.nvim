@@ -534,7 +534,7 @@ export class Workspace {
       }
       let filepath = Uri.parse(uri).fsPath
       let stat = await statAsync(filepath)
-      if (!stat && stat.isFile()) {
+      if (!stat || !stat.isFile()) {
         echoErr(this.nvim, `File ${filepath} not exists`)
         return false
       }

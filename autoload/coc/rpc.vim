@@ -30,3 +30,8 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
     return
   endif
 endfunction
+
+function! coc#rpc#show_error()
+  belowright vs +setl\ buftype=nofile [coc error]
+  setl bufhidden=wipe
+endfunction

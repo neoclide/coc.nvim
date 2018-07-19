@@ -3,7 +3,7 @@ import {statAsync} from '../../util/fs'
 
 function exists(file: string): Promise<boolean> {
   return statAsync(file).then(stat => {
-    return stat.isFile()
+    return stat && stat.isFile()
   })
 }
 
