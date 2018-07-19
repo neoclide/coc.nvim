@@ -3,20 +3,14 @@ if !has('nvim') || exists('did_coc_loaded') || v:version < 700
 endif
 let did_coc_loaded = 1
 
-function! s:Autocmd(...)
+function! s:Autocmd(...) abort
   " care about normal buffer only
   if &buftype == 'terminal' | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
   try
     call call('CocAutocmd', a:000)
-  catch /^Vim\%((\a\+)\)\=:E117/
-    call s:OnFuncUndefined()
+  catch /*/
   endtry
-endfunction
-
-function! s:OnFuncUndefined() abort
-  call s:Disable()
-  call coc#util#on_error('Disabled, try :UpdateRemotePlugins and restart!')
 endfunction
 
 function! s:Disable() abort
@@ -41,32 +35,18 @@ function! s:RefreshSource(...) abort
   echohl None
 endfunction
 
-function! s:CheckState() abort
-  let enabled = get(g:, 'coc_enabled', 0)
-  if !enabled
-    call coc#util#on_error('Service disabled')
-  endif
-  return enabled
-endfunction
-
 function! s:CocSourceNames(A, L, P) abort
   if !s:CheckState() | return | endif
   let items = CocAction('sourceStat')
   return filter(map(items, 'v:val["name"]'), 'v:val =~ "^'.a:A.'"')
 endfunction
 
-function! s:Init(sync)
-  let func = a:sync ? 'CocInitSync' : 'CocInitAsync'
-  if a:sync
-    echohl MoreMsg
-    echom '[coc.nvim] Lazyload takes more time for initialize, consider disable lazyload'
-    echohl None
+function! s:CheckState() abort
+  let enabled = get(g:, 'coc_enabled', 0)
+  if !enabled
+    call coc#util#on_error('Service disabled')
   endif
-  try
-    execute 'call '.func.'()'
-  catch /^Vim\%((\a\+)\)\=:E117/
-    call coc#util#on_error('Initialize failed, try :UpdateRemotePlugins and restart')
-  endtry
+  return enabled
 endfunction
 
 function! s:Enable()

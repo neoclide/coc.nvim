@@ -268,6 +268,5 @@ export default class CompletePlugin {
     let fn = et.compile(template)
     await writeFile(file, fn(definition, {}, str => str))
     await nvim.command('source ' + file)
-
   }
 }
