@@ -46,7 +46,6 @@ let initialized = false
 
 nvim.channelId.then(channelId => {
   initialized = true
-  nvim.command('let g:coc_node_channel_id=' + channelId).catch(onError)
   plugin.onInit(channelId).catch(onError)
 })
 

@@ -3,14 +3,29 @@ if !has('nvim') || exists('did_coc_loaded') || v:version < 700
 endif
 let did_coc_loaded = 1
 
+function! CocResult(...) abort
+  call coc#rpc#notify('CocResult', a:000)
+endfunction
+
+function! CocAutocmd(...) abort
+  call coc#rpc#request('CocAutocmd', a:000)
+endfunction
+
+function! CocAction(...) abort
+  if get(g:, 'coc_enabled', 0) == 0
+    echohl Error
+    echon '[coc.nvim] Service not avaiable!'
+    echohl None
+    return
+  endif
+  return coc#rpc#request('CocAction', a:000)
+endfunction
+
 function! s:Autocmd(...) abort
   " care about normal buffer only
   if &buftype == 'terminal' | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
-  try
-    call call('CocAutocmd', a:000)
-  catch /*/
-  endtry
+  call call('CocAutocmd', a:000)
 endfunction
 
 function! s:Disable() abort

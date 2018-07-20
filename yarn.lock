@@ -1401,10 +1401,6 @@ esutils@^2.0.2:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/esutils/-/esutils-2.0.2.tgz#0abf4f1caa5bcb1f7a9d8acc6dea4faaa04bac9b"
 
-et-improve@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/et-improve/-/et-improve-1.0.0.tgz#a8bbdfb6ca7e285afc4acab91f96907e10fc2515"
-
 event-lite@^0.1.1:
   version "0.1.1"
   resolved "https://registry.yarnpkg.com/event-lite/-/event-lite-0.1.1.tgz#47cf08a8d37d0b694cdb7b3b17b51faac6576086"

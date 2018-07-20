@@ -9,12 +9,8 @@ import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
 import {echoErr} from './util'
 import clean from './util/clean'
-import {writeFile} from './util/fs'
 import workspace from './workspace'
 import Emitter from 'events'
-import os from 'os'
-import path from 'path'
-import et from 'et-improve'
 const logger = require('./util/logger')('index')
 
 export default class CompletePlugin {
@@ -39,15 +35,15 @@ export default class CompletePlugin {
     clean() // tslint:disable-line
   }
 
-  public async onInit(channelId): Promise<void> {
+  public async onInit(channelId:number): Promise<void> {
     let {nvim} = this
     try {
+      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
       // workspace configuration
       await workspace.init()
       completion.init(nvim, this.emitter)
       await services.init(nvim)
       this.initialized = true
-      await this.registerFunctions(channelId)
       await nvim.command('doautocmd User CocNvimInit')
       logger.info('Coc initialized')
     } catch (err) {
@@ -236,28 +232,5 @@ export default class CompletePlugin {
     } catch (e) {
       logger.error(e.stack)
     }
-  }
-
-  private async registerFunctions(channelId):Promise<void> {
-    let {nvim} = this
-    let file = path.join(os.tmpdir(), 'coc-funcs.vim')
-    const template = `
-    {{each _.funcs as func}}
-      function! {{= func.name}}(...) abort
-        let args = [${channelId}, '{{= func.name}}'] + a:000
-        return call('{{= func.method}}', args)
-      endfunction
-    {{/}}
-    `
-    const definition = {
-      funcs: [
-        { method: 'rpcnotify',  name: 'CocResult'},
-        { method: 'rpcrequest', name: 'CocAutocmd'},
-        { method: 'rpcrequest', name: 'CocAction'}
-      ]
-    }
-    let fn = et.compile(template)
-    await writeFile(file, fn(definition, {}, str => str))
-    await nvim.command('source ' + file)
   }
 }
