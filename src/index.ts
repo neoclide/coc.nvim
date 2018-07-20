@@ -39,15 +39,6 @@ export default class CompletePlugin {
     clean() // tslint:disable-line
   }
 
-//   public async cocInitAsync(): Promise<void> {
-//     this.onInit().catch(err => {
-//       logger.error(err.stack)
-//     })
-//   }
-//   public async cocInitSync(): Promise<void> {
-//     await this.onInit()
-//   }
-
   public async onInit(channelId): Promise<void> {
     let {nvim} = this
     try {

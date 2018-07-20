@@ -1,3 +1,8 @@
+# 2018-07-19
+
+* b57074c fix error of `isFile` check
+* 0efc7cf ignore undefined function on service start
+
 # 2018-07-17
 
 * Add `coc.preference.jumpCommand` to settings.

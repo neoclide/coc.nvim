@@ -84,6 +84,8 @@ Checkout [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-co
 
 ### [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
+### [Debug-language-server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+
 ### [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Trouble shooting
@@ -99,8 +101,6 @@ You can also use environment variable to change logger behaviour:
 
 * `$NVIM_COC_LOG_LEVEL` set to `debug` for debug messages.
 * `$NVIM_COC_LOG_FILE` set the file path of log file.
-
-Note: Coc would disable itself when there is vim error during autocmd.
 
 ## LICENSE
 
