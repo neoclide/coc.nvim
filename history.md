@@ -1,7 +1,12 @@
+# 2018-07-20
+
+* Add documentation for language server debug.
+* Rework register of functions, avoid undefined function.
+
 # 2018-07-19
 
-* b57074c7b0e56972c0a0863efe8796f825de84d9 fix error of `isFile` check
-* 0efc7cfde9fa3a25fe63599e89594aee6ec45316 ignore undefined function on service start
+* Fix error of `isFile` check.
+* Ignore undefined function on service start.
 
 # 2018-07-17
 

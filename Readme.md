@@ -84,7 +84,7 @@ Checkout [Install coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Install-co
 
 ### [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
-### [Debug-language-server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+### [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
 ### [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
