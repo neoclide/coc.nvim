@@ -14,7 +14,7 @@ endfunction
 function! CocAction(...) abort
   if get(g:, 'coc_enabled', 0) == 0
     echohl Error
-    echon '[coc.nvim] Service not avaiable!'
+    echon "[coc.nvim] Can't run '".a:1."', service not avaiable!"
     echohl None
     return
   endif

@@ -48,7 +48,7 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
   let g:coc_node_channel_id = 0
   if v:dying != 0 | return | endif
   if a:code != 0
-    echohl Error | echomsg '[coc.nvim] abnormal exited' | echohl None
+    echohl Error | echomsg '[coc.nvim] Abnormal exited' | echohl None
     if !empty(s:std_err)
       call coc#rpc#show_error()
     endif
@@ -57,7 +57,7 @@ endfunction
 
 function! coc#rpc#show_error()
   if empty(s:std_err)
-    echohl MoreMsg | echon '[coc.nvim] no errors found.' | echohl None
+    echohl MoreMsg | echon '[coc.nvim] No errors found.' | echohl None
   endif
   belowright vs +setl\ buftype=nofile [coc error]
   setl bufhidden=wipe
