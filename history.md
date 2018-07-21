@@ -1,3 +1,7 @@
+# 2018-07-21
+
+* Fix issue with `completeopt`.
+
 # 2018-07-20
 
 * Add documentation for language server debug.
