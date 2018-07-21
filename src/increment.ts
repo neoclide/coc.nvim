@@ -106,12 +106,12 @@ export default class Increment extends Emitter {
   }
 
   // keep other options
-  private static getStartOption(): string {
+  public static getStartOption(): string {
     let opt = workspace.getNvimSetting('completeOpt')
     let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
     let parts = opt.split(',')
     // longest & menu can't work with increment search
-    parts.filter(s => s != 'menu' && s != 'longest')
+    parts = parts.filter(s => s != 'menu' && s != 'longest')
     if (parts.indexOf('menuone') === -1) {
       parts.push('menuone')
     }
