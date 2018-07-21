@@ -460,6 +460,32 @@
       "default": true,
       "description": "First letter of complete item should match"
     },
+    "coc.source.gocode.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.gocode.priority": {
+      "type": "integer",
+      "default": 99
+    },
+    "coc.source.gocode.shortcut": {
+      "type": "string",
+      "default": "GOC"
+    },
+    "coc.source.gocode.filetypes": {
+      "type": "array",
+      "default": ["go"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.gocode.triggerCharacters": {
+      "type": "array",
+      "default": [".", ":"],
+      "items": {
+        "type": "string"
+      }
+    },
     "http.proxy": {
       "type": "string",
       "default": "",

@@ -3,6 +3,7 @@
   * create coc-settings.json in folder $XDG_CONFIG_HOME/nvim
   * validate and completion would be enabled automatically
   */
+  "$schema": "./data/schema.json",
   "coc.preferences.autoTrigger": "always",
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
@@ -125,6 +126,11 @@
   "coc.source.neco.filetypes": ["vim"],
   "coc.source.neco.triggerCharacters": [":", "&"],
   "coc.source.neco.firstMatch": true,
+  "coc.source.gocode.enable": true,
+  "coc.source.gocode.filetypes": ["go"],
+  "coc.source.gocode.priority": 99,
+  "coc.source.gocode.shortcut": "GOC",
+  "coc.source.gocode.triggerCharacters": [".",":"],
   "cssserver.enable": true,
   "cssserver.filetypes": ["css", "scss", "less", "wxss"],
   "cssserver.css.validate": true,

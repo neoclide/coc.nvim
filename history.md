@@ -1,6 +1,8 @@
 # 2018-07-21
 
 * Fix issue with `completeopt`.
+* Add source `neosnippet`.
+* Add source `gocode`.
 
 # 2018-07-20
 
