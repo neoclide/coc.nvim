@@ -61,6 +61,7 @@
   },
   "dependencies": {
     "@chemzqm/solargraph-utils": "0.7.5",
+    "babel-polyfill": "^6.26.0",
     "cross-spawn": "^6.0.5",
     "debounce": "^1.1.0",
     "diff": "^3.5.0",

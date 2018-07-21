@@ -1,3 +1,4 @@
+require('babel-polyfill')
 const os = require('os')
 const path = require('path')
 let logLevel = 'debug'
