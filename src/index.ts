@@ -43,6 +43,8 @@ export default class CompletePlugin {
       await workspace.init()
       completion.init(nvim, this.emitter)
       await services.init(nvim)
+      let buf = await nvim.buffer
+      await workspace.bufferEnter(buf.id)
       this.initialized = true
       await nvim.command('doautocmd User CocNvimInit')
       logger.info('Coc initialized')

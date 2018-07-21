@@ -1,5 +1,5 @@
 import remoteStore from '../remote-store'
-import {CompleteOption, CompleteResult, VimCompleteItem} from '../types'
+import {CompleteOption, CompleteResult, VimCompleteItem, DocumentInfo} from '../types'
 import {fuzzyChar} from '../util/fuzzy'
 import {echoErr} from '../util/index'
 import {byteSlice} from '../util/string'
@@ -36,6 +36,13 @@ export default class VimSource extends Source {
   public async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (this.optionalFns.indexOf('on_complete') === -1) return
     await this.callOptinalFunc('on_complete', [item])
+  }
+
+  public onEnter(info:DocumentInfo):void {
+    if (this.optionalFns.indexOf('on_enter') === -1) return
+    this.callOptinalFunc('on_enter', [info]).catch(_e => {
+      // noop
+    })
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {

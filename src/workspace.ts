@@ -75,8 +75,6 @@ export class Workspace {
     })).catch(error => {
       logger.error(`buffer create error: ${error.message}`)
     })
-    let buf = await this.nvim.buffer
-    await this.bufferEnter(buf.id)
     const preferences = this.getConfiguration('coc.preferences')
     const watchmanPath = preferences.get<string>('watchmanPath', '')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')

@@ -1,5 +1,5 @@
 import {Neovim} from 'neovim'
-import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem} from '../types'
+import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem, DocumentInfo} from '../types'
 import {fuzzyChar} from '../util/fuzzy'
 import {byteSlice} from '../util/string'
 import {toBool} from '../util/types'
@@ -36,7 +36,7 @@ export default abstract class Source implements ISource {
       sourceType: SourceType.Native,
       triggerCharacters: [],
     }, option)
-    this._disabled = !option.enable
+    this._disabled = option.enable === false
     Object.defineProperty(this, 'enable', {
       get: () => {
         return !this._disabled

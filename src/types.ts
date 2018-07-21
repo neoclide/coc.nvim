@@ -89,7 +89,7 @@ export interface SourceConfig {
   firstMatch?: boolean
   filepath?: string
   enable?: boolean
-  ;[index: string]: any
+  [index: string]: any
 }
 
 export interface RecentScore {
@@ -311,6 +311,13 @@ export interface ISource {
    * @public source
    */
   toggle?(): void
+
+  /**
+   * Used for cache normally
+   *
+   * @returns {undefined}
+   */
+  onEnter?(info: DocumentInfo): void
 
   /**
    * Do completetion

@@ -1,29 +1,32 @@
 import {Neovim} from 'neovim'
 import languages from './languages'
 import VimSource from './model/source-vim'
-import {CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration} from './types'
+import {CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration, DocumentInfo} from './types'
 import {echoErr, echoMessage} from './util'
 import {statAsync} from './util/fs'
 import {isWord} from './util/string'
 import workspace from './workspace'
-import path = require('path')
-import fs = require('fs')
-import pify = require('pify')
+import path from 'path'
+import fs from 'fs'
+import pify from 'pify'
+import {EventEmitter} from 'events'
 const logger = require('./util/logger')('sources')
 
-export default class Sources {
+export default class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
   private sourceConfig: WorkspaceConfiguration
+  private _ready = false
 
   constructor(private nvim: Neovim) {
+    super()
     this.sourceConfig = workspace.getConfiguration('coc.source')
     Promise.all([
       this.createNativeSources(),
       this.createRemoteSources(),
-    ]).then(() => {
+    ]).finally(() => {
+      this._ready = true
+      this.emit('ready')
       logger.debug(`Created sources ${this.names}`)
-    }, err => {
-      logger.error(err.stack)
     })
     languages.onDidCompletionSourceCreated(source => {
       let {name} = source
@@ -31,6 +34,19 @@ export default class Sources {
         this.addSource(name, source)
         logger.debug('created service source', name)
       }
+    })
+    workspace.onDidEnterTextDocument(this.onDocumentEnter.bind(this))
+  }
+
+  public get ready(): Promise<void> {
+    if (this._ready) {
+      return Promise.resolve()
+    }
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        reject('source create timeout')
+      }, 5000)
+      this.once('ready', resolve)
     })
   }
 
@@ -228,7 +244,7 @@ export default class Sources {
 
   private async getOptionalFns(name: string): Promise<string[]> {
     let {nvim} = this
-    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete']
+    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
     let res = []
     for (let fname of fns) {
       let fn = `coc#source#${name}#${fname}`
@@ -258,5 +274,17 @@ export default class Sources {
       return null
     }
     return source
+  }
+
+  private onDocumentEnter(info: DocumentInfo): void {
+    this.ready.then(() => {
+      let {sources} = this
+      for (let s of sources) {
+        if (!s.enable) continue
+        if (typeof s.onEnter == 'function') {
+          s.onEnter(info)
+        }
+      }
+    })
   }
 }

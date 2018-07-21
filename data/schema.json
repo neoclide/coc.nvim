@@ -405,6 +405,18 @@
       "type": "integer",
       "default": 0
     },
+    "coc.source.neosnippet.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.neosnippet.priority": {
+      "type": "integer",
+      "default": 3
+    },
+    "coc.source.neosnippet.shortcut": {
+      "type": "string",
+      "default": "US"
+    },
     "coc.source.ultisnips.enable": {
       "type": "boolean",
       "default": true
