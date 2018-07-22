@@ -77,3 +77,7 @@ process.on('unhandledRejection', (reason, p) => {
   }
   logger.error('unhandledRejection', reason)
 })
+
+process.stderr.on('data', data => {
+  logger.error(data)
+})

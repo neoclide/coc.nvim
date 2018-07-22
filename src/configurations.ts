@@ -46,7 +46,7 @@ export default class Configurations {
         if (typeof result === 'undefined') {
           result = defaultValue
         }
-        if (result == null || (typeof result == 'string' && result.length == 0)) return null
+        if (result == null || (typeof result == 'string' && result.length == 0)) return undefined
         return result
       },
       update: (key: string, value: any, _isGlobal?: boolean) => {

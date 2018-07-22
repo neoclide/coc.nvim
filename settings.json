@@ -4,6 +4,46 @@
   * validate and completion would be enabled automatically
   */
   "$schema": "./data/schema.json",
+    // Invalid number of parameters
+  "css.lint.argumentsInColorFunction": "error",
+  // Do not use width or height when using padding or border
+  "css.lint.boxModel": "ignore",
+  // When using a vendor-specific prefix make sure to also include all other vendor-specific properties
+  "css.lint.compatibleVendorPrefixes": "ignore",
+  // Do not use duplicate style definitions
+  "css.lint.duplicateProperties": "ignore",
+  // Do not use empty rulesets
+  "css.lint.emptyRules": "warning",
+  // Avoid using 'float'. Floats lead to fragile CSS that is easy to break if one aspect of the layout changes.
+  "css.lint.float": "ignore",
+  // @font-face rule must define 'src' and 'font-family' properties
+  "css.lint.fontFaceProperties": "warning",
+  // Hex colors must consist of three or six hex numbers
+  "css.lint.hexColorLength": "error",
+  // Selectors should not contain IDs because these rules are too tightly coupled with the HTML.
+  "css.lint.idSelector": "ignore",
+  // IE hacks are only necessary when supporting IE7 and older
+  "css.lint.ieHack": "ignore",
+  // Avoid using !important. It is an indication that the specificity of the entire CSS has gotten out of control and needs to be refactored.
+  "css.lint.important": "ignore",
+  // Import statements do not load in parallel
+  "css.lint.importStatement": "ignore",
+  // Property is ignored due to the display. E.g. with 'display: inline', the width, height, margin-top, margin-bottom, and float properties have no effect
+  "css.lint.propertyIgnoredDueToDisplay": "warning",
+  // The universal selector (*) is known to be slow
+  "css.lint.universalSelector": "ignore",
+  // Unknown at-rule.
+  "css.lint.unknownAtRules": "warning",
+  // Unknown property.
+  "css.lint.unknownProperties": "warning",
+  // Unknown vendor specific property.
+  "css.lint.unknownVendorSpecificProperties": "ignore",
+  // When using a vendor-specific prefix also include the standard property
+  "css.lint.vendorPrefix": "warning",
+  "less.lint": {},
+  "scss.lint": {},
+  // No unit for zero needed
+  "css.lint.zeroUnits": "ignore",
   "coc.preferences.autoTrigger": "always",
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
