@@ -6,34 +6,31 @@ import {disposeAll} from '../util'
 const logger = require('../util/logger')("outpubChannel")
 
 export default class BufferChannel implements OutputChannel {
-  private shown = false
   private buffer:Buffer = null
   private content = ''
   private disposables:Disposable[] = []
   constructor(public name:string, private nvim:Neovim) {
     let {emitter} = workspace
     let onUnload = this.onUnload.bind(this)
-    let onHide = this.onHide.bind(this)
     emitter.on('BufUnload', onUnload)
-    emitter.on('BufHidden', onHide)
     this.disposables.push(Disposable.create(() => {
       emitter.removeListener('BufUnload', onUnload)
-      emitter.removeListener('BufHidden', onHide)
     }))
+  }
+
+  private async isShown():Promise<boolean> {
+    let {nvim, name} = this
+    let exists = await nvim.call('bufexists', [`[coc ${name}]`])
+    if (!exists && this.buffer) {
+      this.buffer = null
+    }
+    return exists == 1
   }
 
   private onUnload(bufnr:number):void {
     let {buffer} = this
     if (buffer && buffer.id == bufnr) {
       this.buffer = null
-      this.shown = false
-    }
-  }
-
-  private onHide(bufnr:number):void {
-    let {buffer} = this
-    if (buffer && buffer.id == bufnr) {
-      this.shown = false
     }
   }
 
@@ -75,18 +72,19 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public show(preserveFocus?:boolean): void {
-    let {shown} = this
-    if (shown) return
-    this.openBuffer(preserveFocus).catch(e => {
-      logger.error(e.stack)
+    this.isShown().then(shown => {
+      if (!shown) {
+        return this.openBuffer(preserveFocus)
+      }
+    }).catch(err => {
+      logger.error(err)
     })
   }
 
   public hide(): void {
-    if (!this.shown) return
-    this.shown = false
-    this.buffer = null
     let {buffer, nvim} = this
+    if (!buffer) return
+    this.buffer = null
     nvim.command(`slient! bd! ${buffer.id}`)
   }
 
@@ -110,7 +108,6 @@ export default class BufferChannel implements OutputChannel {
       end: -1,
       strictIndexing: false
     })
-    this.shown = true
     if (preserveFocus) {
       await this.nvim.command('wincmd p')
     }
