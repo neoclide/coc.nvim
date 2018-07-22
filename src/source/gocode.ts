@@ -22,8 +22,8 @@ export default class Gocode extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
-    let {filepath, linenr, col, input} = opt
-    let document = await workspace.document
+    let {filepath, linenr, col, input, bufnr} = opt
+    let document = workspace.getDocument(bufnr)
 
     let {menu} = this
     if (input.length) {
