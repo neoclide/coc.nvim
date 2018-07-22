@@ -1,7 +1,8 @@
-if !has('nvim') || exists('did_coc_loaded') || v:version < 700
+if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
-let did_coc_loaded = 1
+let g:did_coc_loaded = 1
+let s:is_vim = !has('nvim')
 
 if has('nvim') && !has('nvim-0.3.0')
   echohl Error | echon '[coc.nvim] coc requires neovim 0.3.0 to work' | echohl None
@@ -11,14 +12,6 @@ if !has('nvim') && !has('patch-8.1.001')
   echohl Error | echon '[coc.nvim] coc requires vim 8.1 to work' | echohl None
   finish
 endif
-
-function! CocResult(...) abort
-  call coc#rpc#notify('CocResult', a:000)
-endfunction
-
-function! CocAutocmd(...) abort
-  call coc#rpc#request('CocAutocmd', a:000)
-endfunction
 
 function! CocAction(...) abort
   if get(g:, 'coc_enabled', 0) == 0
@@ -34,7 +27,7 @@ function! s:Autocmd(...) abort
   " care about normal buffer only
   if &buftype == 'terminal' | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
-  call call('CocAutocmd', a:000)
+  call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
 function! s:Disable() abort
@@ -131,6 +124,7 @@ endfunction
 augroup coc_init
   autocmd!
   autocmd user CocNvimInit call s:Enable()
+  autocmd user NvimRpcReady call coc#rpc#start_vim_server()
 augroup end
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
@@ -148,8 +142,18 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinitio
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 inoremap <silent>                        <Plug>_    <C-r>=coc#_complete()<CR>
 
-if v:vim_did_enter
-  call coc#rpc#start_server()
+if s:is_vim
+  let rpc_root = resolve(expand('<sfile>:h:h').'/node_modules/vim-node-rpc')
+  execute 'set rtp+='.fnameescape(rpc_root)
+  if v:vim_did_enter
+    call nvim#rpc#start_server()
+  else
+    autocmd VimEnter * call nvim#rpc#start_server()
+  endif
 else
-  autocmd VimEnter * call coc#rpc#start_server()
+  if v:vim_did_enter
+    call coc#rpc#start_server()
+  else
+    autocmd VimEnter * call coc#rpc#start_server()
+  endif
 endif

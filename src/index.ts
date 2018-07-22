@@ -65,7 +65,7 @@ export default class CompletePlugin {
 
   public async cocAutocmd(args: any): Promise<void> {
     let {emitter} = this
-    logger.trace('Autocmd:', args[0])
+    logger.trace('Autocmd:', args)
     switch (args[0] as string) {
       case 'TextChanged':
         emitter.emit('TextChanged', Date.now())

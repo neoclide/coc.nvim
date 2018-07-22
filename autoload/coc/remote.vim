@@ -29,7 +29,7 @@ function! s:TimerCallback(job_id, Handler,...)
 endfunction
 
 function! s:OnCompletionReceived(name, opt, items)
-  call CocResult(a:opt.id, a:name, a:items)
+  call coc#rpc#notify('CocResult', [a:opt.id, a:name, a:items])
   let tid = get(s:timer_map, a:name, 0)
   if tid
     try

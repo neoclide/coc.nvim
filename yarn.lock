@@ -93,7 +93,7 @@
     shell-escape "^0.2.0"
     uri-path "^1.0.0"
 
-"@chemzqm/tsconfig@0.0.2":
+"@chemzqm/tsconfig@0.0.2", "@chemzqm/tsconfig@^0.0.2":
   version "0.0.2"
   resolved "https://registry.yarnpkg.com/@chemzqm/tsconfig/-/tsconfig-0.0.2.tgz#bdf9a2f8cbbe6b7966aac62c00311c22e503015e"
 
@@ -156,6 +156,12 @@
 "@types/minimatch@*", "@types/minimatch@^3.0.3":
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/@types/minimatch/-/minimatch-3.0.3.tgz#3dca0e3f33b200fc7d1139c0cd96c1268cadfd9d"
+
+"@types/msgpack-lite@^0.1.6":
+  version "0.1.6"
+  resolved "https://registry.yarnpkg.com/@types/msgpack-lite/-/msgpack-lite-0.1.6.tgz#27e2a7eea4514f084ed4f9b53f8f63e6db4d6d50"
+  dependencies:
+    "@types/node" "*"
 
 "@types/node@*", "@types/node@^10.5.2":
   version "10.5.2"
@@ -5250,6 +5256,23 @@ tslint@^5.10.0:
     tslib "^1.8.0"
     tsutils "^2.12.1"
 
+tslint@^5.11.0:
+  version "5.11.0"
+  resolved "https://registry.yarnpkg.com/tslint/-/tslint-5.11.0.tgz#98f30c02eae3cde7006201e4c33cb08b48581eed"
+  dependencies:
+    babel-code-frame "^6.22.0"
+    builtin-modules "^1.1.1"
+    chalk "^2.3.0"
+    commander "^2.12.1"
+    diff "^3.2.0"
+    glob "^7.1.1"
+    js-yaml "^3.7.0"
+    minimatch "^3.0.4"
+    resolve "^1.3.2"
+    semver "^5.3.0"
+    tslib "^1.8.0"
+    tsutils "^2.27.2"
+
 tsscmp@~1.0.0:
   version "1.0.5"
   resolved "https://registry.yarnpkg.com/tsscmp/-/tsscmp-1.0.5.tgz#7dc4a33af71581ab4337da91d85ca5427ebd9a97"
@@ -5257,6 +5280,12 @@ tsscmp@~1.0.0:
 tsutils@^2.12.1, tsutils@^2.13.1:
   version "2.27.2"
   resolved "https://registry.yarnpkg.com/tsutils/-/tsutils-2.27.2.tgz#60ba88a23d6f785ec4b89c6e8179cac9b431f1c7"
+  dependencies:
+    tslib "^1.8.1"
+
+tsutils@^2.27.2:
+  version "2.28.0"
+  resolved "https://registry.yarnpkg.com/tsutils/-/tsutils-2.28.0.tgz#6bd71e160828f9d019b6f4e844742228f85169a1"
   dependencies:
     tslib "^1.8.1"
 
@@ -5451,6 +5480,20 @@ vfile@^2.0.0:
     replace-ext "1.0.0"
     unist-util-stringify-position "^1.0.0"
     vfile-message "^1.0.0"
+
+vim-node-rpc@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/vim-node-rpc/-/vim-node-rpc-0.1.0.tgz#909f42f7a76e01befdb90c0ad147feb2941a28cc"
+  dependencies:
+    "@chemzqm/tsconfig" "^0.0.2"
+    "@chemzqm/tslint-config" "^1.0.14"
+    "@types/msgpack-lite" "^0.1.6"
+    log4js "^3.0.0"
+    msgpack-lite "^0.1.26"
+    tslib "^1.9.3"
+    tslint "^5.11.0"
+    typescript "^2.9.2"
+    uuid "^3.3.2"
 
 vscode-css-languageservice@^3.0.9-next.18, vscode-css-languageservice@^3.0.9-next.19:
   version "3.0.9-next.19"

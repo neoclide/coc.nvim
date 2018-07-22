@@ -1,3 +1,8 @@
+# 2018-07-23
+
+* Add vim-node-rpc module
+* **Break change** global function `CocAutocmd` and `CocResult` are removed.
+
 # 2018-07-21
 
 * Fix issue with `completeopt`.

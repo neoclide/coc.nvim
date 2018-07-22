@@ -4,16 +4,10 @@ let s:root_file = expand('<sfile>:h:h:h').'/lib/index.js'
 let s:std_err = []
 let s:job_opts = {}
 let s:error_buf = -1
+let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
-  if !executable('node')
-    echoerr '[coc.nvim] node not find in $PATH'
-    return
-  endif
-  if !filereadable(s:root_file)
-    echoerr '[coc.nvim] Unable to start, run `yarn install` in coc.nvim folder'
-    return
-  endif
+  if !s:check_env() | return | endif
   if s:server_running | return | endif
   let channel_id = jobstart(['node', s:script], s:job_opts)
   if channel_id <= 0
@@ -23,13 +17,47 @@ function! coc#rpc#start_server()
   let s:server_running = 1
 endfunction
 
+function! coc#rpc#start_vim_server()
+  if !s:check_env() | return | endif
+  if s:server_running | return | endif
+  let job = job_start(['node', s:script], {
+        \ 'in_io': 'null',
+        \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
+        \ 'close_cb': function('s:close_cb'),
+        \ 'env': {
+        \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
+        \ }
+        \})
+  let status = job_status(job)
+  if status !=# 'run'
+    echoerr '[coc.nvim] Failed to start service'
+    return
+  endif
+  let s:server_running = 1
+endfunction
+
+function! s:check_env()
+  if !executable('node')
+    echoerr '[coc.nvim] node not find in $PATH'
+    return 0
+  endif
+  if !filereadable(s:root_file)
+    echoerr '[coc.nvim] Unable to start, run `yarn install` in coc.nvim folder'
+    return 0
+  endif
+  return 1
+endfunction
+
 function! s:GetChannel()
   " server started
   if get(s:, 'server_running', 0) == 0 | return 0 | endif
   " workspace initialized
   if get(g:, 'coc_enabled', 0) == 0 | return 0 | endif
-  " channel exists
-  return get(g:, 'coc_node_channel_id', 0)
+  let cid = get(g:, 'coc_node_channel_id', 0)
+  if s:is_vim
+     return nvim#rpc#check_client(cid) ? cid : 0
+  endif
+  return cid
 endfunction
 
 function! s:job_opts.on_stderr(chan_id, data, event) dict
@@ -55,6 +83,11 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
   endif
 endfunction
 
+function! s:close_cb()
+  let s:server_running = 0
+  let g:coc_node_channel_id = 0
+endfunction
+
 function! coc#rpc#show_error()
   if empty(s:std_err)
     echohl MoreMsg | echon '[coc.nvim] No errors found.' | echohl None
@@ -68,11 +101,18 @@ endfunction
 function! coc#rpc#request(method, args)
   let channel = s:GetChannel()
   if !channel | return | endif
+  if s:is_vim
+    return nvim#rpc#request(channel, a:method, a:args)
+  endif
   return call('rpcrequest', [channel, a:method] + a:args)
 endfunction
 
 function! coc#rpc#notify(method, args)
   let channel = s:GetChannel()
   if !channel | return | endif
-  call call('rpcnotify', [channel, a:method] + a:args)
+  if s:is_vim
+    call nvim#rpc#notify(channel, a:method, a:args)
+  else
+    call call('rpcnotify', [channel, a:method] + a:args)
+  endif
 endfunction

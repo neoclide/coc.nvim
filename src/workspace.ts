@@ -220,6 +220,7 @@ export class Workspace {
 
   public async onBufferCreate(buf: number | Buffer): Promise<Document> {
     const buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
+    if (!buffer) return
     const valid = await this.isValidBuffer(buffer)
     if (!valid) return
     const {buffers} = this
