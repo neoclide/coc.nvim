@@ -18,9 +18,8 @@ const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
 // global neovim settings
-export interface NvimSettings {
+export interface VimSettings {
   completeOpt: string
-  hasUserData: boolean
 }
 
 interface EditerState {
@@ -56,7 +55,7 @@ export class Workspace {
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public emitter: EventEmitter
   private watchmanPath: string
-  private nvimSettings: NvimSettings
+  private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
 
@@ -79,7 +78,7 @@ export class Workspace {
     const watchmanPath = preferences.get<string>('watchmanPath', '')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
     this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
-    this.nvimSettings = await this.nvim.call('coc#util#vim_info') as NvimSettings
+    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
@@ -91,7 +90,7 @@ export class Workspace {
 
   public onOptionChange(name, newValue): void {
     if (name === 'completeopt') {
-      this.nvimSettings.completeOpt = newValue
+      this.vimSettings.completeOpt = newValue
     }
   }
 
@@ -103,8 +102,8 @@ export class Workspace {
     return res
   }
 
-  public getNvimSetting<K extends keyof NvimSettings>(name: K): NvimSettings[K] {
-    return this.nvimSettings[name]
+  public getVimSetting<K extends keyof VimSettings>(name: K): VimSettings[K] {
+    return this.vimSettings[name]
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {

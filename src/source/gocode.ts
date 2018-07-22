@@ -21,10 +21,6 @@ export default class Gocode extends Source {
     }
   }
 
-  public async shouldComplete(_opt: CompleteOption):Promise<boolean> {
-    return this.enable
-  }
-
   public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
     let {filepath, linenr, col, input} = opt
     let document = await workspace.document

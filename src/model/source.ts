@@ -154,7 +154,5 @@ export default abstract class Source implements ISource {
     // do nothing
   }
 
-  public abstract shouldComplete(opt: CompleteOption): Promise<boolean>
-
   public abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>
 }

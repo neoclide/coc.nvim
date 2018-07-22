@@ -3,6 +3,15 @@ if !has('nvim') || exists('did_coc_loaded') || v:version < 700
 endif
 let did_coc_loaded = 1
 
+if has('nvim') && !has('nvim-0.3.0')
+  echohl Error | echon '[coc.nvim] coc requires neovim 0.3.0 to work' | echohl None
+  finish
+endif
+if !has('nvim') && !has('patch-8.1.001')
+  echohl Error | echon '[coc.nvim] coc requires vim 8.1 to work' | echohl None
+  finish
+endif
+
 function! CocResult(...) abort
   call coc#rpc#notify('CocResult', a:000)
 endfunction

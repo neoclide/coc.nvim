@@ -75,7 +75,7 @@ export default class Increment extends Emitter {
     this.emit('stop')
     this.clearTimer()
     this.search = ''
-    let completeOpt = workspace.getNvimSetting('completeOpt')
+    let completeOpt = workspace.getVimSetting('completeOpt')
     this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
   }
 
@@ -107,7 +107,7 @@ export default class Increment extends Emitter {
 
   // keep other options
   public static getStartOption(): string {
-    let opt = workspace.getNvimSetting('completeOpt')
+    let opt = workspace.getVimSetting('completeOpt')
     let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
     let parts = opt.split(',')
     // longest & menu can't work with increment search
