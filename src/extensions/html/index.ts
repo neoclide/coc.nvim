@@ -14,7 +14,7 @@ export default class HtmlService extends LanguageService {
       filetypes: config.filetypes,
       initializationOptions: {
         embeddedLanguages: {
-          css: true,
+          css: false,
           javascript: true
         }
       },
