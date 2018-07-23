@@ -4,22 +4,68 @@
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
 [![](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
 
-Coc is a completion framework of [neovim](https://github.com/neovim/neovim)
-while providing featured language server support.
+Coc is an intellisense engine for neovim.
 
-Checkout [doc/coc.txt](/doc/coc.txt) for vim interface.
+It's a completion framework, language server client while comes with bundled
+extensions from [VSCode](https://github.com/Microsoft/vscode) that just works.
 
 ![example.gif](https://user-images.githubusercontent.com/251450/42722527-028898ea-8780-11e8-959f-09db0d39ba05.gif)
 
 _True snippet and additional text edit support_
 
+Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
+
 ## Pros.
 
-* Async generate complete items
-* Fuzzy match with smart case.
-* Full featured completion support defined in LSP.
-* Built in language server extensions, like tsserver, tslint etc.
+* Easy to install and many features just work.
+* Super fast initialization and completion.
+* Full completion feature support of LSP.
+* Featured language server extensions from VSCode, like tsserver, tslint etc.
 * Custom language server configuration support.
+
+## Language support
+
+* **Typescript** and **Javascript**
+
+  Extension [tsserver](src/extensions/tsserver).
+
+* **HTML**
+
+  Extension [html](src/extensions/html).
+
+* **JSON**
+
+  Extension [json](src/extensions/json).
+
+* **Css**, **less**, **scss** and **wxss**
+
+  Extension [css](src/extensions/css)
+
+* **Wxml**
+
+  Extension [wxml](src/extensions/wxml)
+
+* **Vue**
+
+  Extension [vetur](src/extensions/vetur)
+
+* **Ruby**
+
+    Install [solargraph](http://solargraph.org/) by:
+
+        gem install solargraph
+
+    The configuration field is `solargraph`.
+
+* **Python**
+
+    Install [pyls](https://github.com/palantir/python-language-server) by:
+
+        pip install 'python-language-server[all]'
+
+    The configuration field is `pyls`.
+
+**Note:** auto completion is supported automatically for `coc-settings.json`
 
 ## Table of contents
 
@@ -60,61 +106,6 @@ _True snippet and additional text edit support_
 * [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
 * [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
-
-## Language support
-
-For filetype `typescript`, `javascript`, `html`, `json`, `css/less/scss/wxss`,
-`wxml`, no extra installation required.
-
-* **Ruby**
-
-    Install [solargraph](http://solargraph.org/) by:
-
-        gem install solargraph
-
-    The configuration field is `solargraph`.
-
-* **Python**
-
-    Install [pyls](https://github.com/palantir/python-language-server) by:
-
-        pip install 'python-language-server[all]'
-
-    The configuration field is `pyls`.
-
-* <details>
-    <summary>Vue</summary>
-
-    Install vls by
-
-    ```
-    npm install vue-language-server -g
-    ```
-
-    Add configuration to `languageserver` section in `coc-settings.json` with:
-
-
-    ``` json
-    "vue": {
-      "command": "vls",
-      "args": [],
-      "configSection": "languageserver.vue.initializationOptions.config",
-      "filetypes": ["vue"],
-      "initializationOptions": {
-        "config": {
-          "html": {
-            "suggest": true
-          },
-          "vetur": {
-            "validation": {}
-          }
-        }
-      }
-    }
-    ```
-  </details>
-
-**Note:** auto completion is supported automatically for `coc-settings.json`
 
 ## Trouble shooting
 

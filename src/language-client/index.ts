@@ -5,7 +5,7 @@ import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import which from 'which'
 import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
 import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
-import {disposeAll, echoErr, echoMessage} from '../util'
+import {disposeAll, echoErr, echoMessage, echoWarning} from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('language-client-index')
 
@@ -202,6 +202,11 @@ class LanguageClientManager {
     let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
     for (let key of Object.keys(lspConfig)) {
       let config = lspConfig[key]
+      let filetypes = config.filetypes || []
+      if (config.command == 'vls' && filetypes.indexOf('vue') !== -1) {
+        echoWarning(workspace.nvim, `Vetur is now build in extension, config for languageserver.${key} is ignored!`)
+        continue
+      }
       let id = `${base}.${key}`
       this._services.push(
         new LanguageService(id, key, config)
