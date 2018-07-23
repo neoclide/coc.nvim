@@ -1,9 +1,8 @@
 require('babel-polyfill')
 const os = require('os')
 const path = require('path')
-let logLevel = 'debug'
 process.env.NVIM_NODE_LOG_FILE = path.join(os.tmpdir(), 'coc-nvim-client.log')
-process.env.NVIM_NODE_LOG_LEVEL = logLevel
+process.env.NVIM_NODE_LOG_LEVEL = process.env.NVIM_COC_LOG_LEVEL || 'info'
 const Plugin = require('..').default
 const attach = require('neovim').attach
 const logger = require('../lib/util/logger')('server')
@@ -17,6 +16,12 @@ nvim.on('notification', (method, args) => {
   switch (method) {
     case 'CocResult':
       plugin.cocResult.call(plugin, args)
+      break
+    case 'VimEnter':
+      plugin.onEnter()
+      break
+    default:
+      logger.debug('notification', method)
   }
 })
 
@@ -47,13 +52,14 @@ let initialized = false
 
 nvim.channelId.then(channelId => {
   initialized = true
-  plugin.onInit(channelId).catch(onError)
+  nvim.setVar('coc_node_channel_id', channelId).catch(err => {
+    logger.error(err.message)
+  })
+  nvim.getVvar('vim_did_enter').then(entered => {
+    logger.debug('entered:', entered)
+    if (entered) plugin.onEnter()
+  })
 })
-
-function onError(err) {
-  console.error('[coc.nvim] error: ' + err.message)
-  process.exit(1)
-}
 
 process.on('uncaughtException', function(err) {
   let msg = '[coc.nvim] uncaught exception: ' + err.stack

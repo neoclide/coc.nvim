@@ -45,6 +45,7 @@ export class ServiceManager implements Disposable {
     let root = path.join(__dirname, 'extensions')
     try {
       let files = await pify(fs.readdir)(root, 'utf8')
+      // TODO
       for (let file of files) {
         let fullpath = path.join(root, file)
         let stat = await statAsync(fullpath)
@@ -65,7 +66,7 @@ export class ServiceManager implements Disposable {
       logger.info(`Created services: ${ids.join(',')}`)
       let {filetypes} = workspace
       for (let filetype of filetypes) {
-       this.start(filetype)
+        this.start(filetype)
       }
     } catch (e) {
       echoErr(this.nvim, `Service init error: ${e.message}`)

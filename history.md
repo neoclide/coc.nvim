@@ -1,6 +1,7 @@
 # 2018-07-23
 
-* Add vim-node-rpc module
+* Coc service start much faster.
+* Add vim-node-rpc module.
 * **Break change** global function `CocAutocmd` and `CocResult` are removed.
 
 # 2018-07-21

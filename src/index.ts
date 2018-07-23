@@ -11,12 +11,14 @@ import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
 import Emitter from 'events'
+import once from 'once'
 const logger = require('./util/logger')('index')
 
 export default class CompletePlugin {
   private initialized = false
   private emitter: Emitter
   private handler: Handler
+  public onEnter: () => void
 
   constructor(public nvim: Neovim) {
     let emitter = this.emitter = new Emitter()
@@ -32,26 +34,26 @@ export default class CompletePlugin {
       }
     })
     commandManager.init(nvim, this)
+    this.onEnter = once(() => {
+      this.onInit().catch(err => {
+        logger.error(err.stack)
+        echoErr(nvim, `Initialize failed, ${err.message}`)
+      })
+    })
     clean() // tslint:disable-line
   }
 
-  public async onInit(channelId:number): Promise<void> {
+  private async onInit(): Promise<void> {
     let {nvim} = this
-    try {
-      await nvim.command(`let g:coc_node_channel_id=${channelId}`)
-      // workspace configuration
-      await workspace.init()
-      completion.init(nvim, this.emitter)
-      await services.init(nvim)
-      let buf = await nvim.buffer
-      await workspace.bufferEnter(buf.id)
-      this.initialized = true
-      await nvim.command('doautocmd User CocNvimInit')
-      logger.info('Coc initialized')
-    } catch (err) {
-      logger.error(err.stack)
-      echoErr(nvim, `Initialize failed, ${err.message}`)
-    }
+    // workspace configuration
+    await workspace.init()
+    completion.init(nvim, this.emitter)
+    await services.init(nvim)
+    let buf = await nvim.buffer
+    await workspace.bufferEnter(buf.id)
+    this.initialized = true
+    await nvim.command('doautocmd User CocNvimInit')
+    logger.info('Coc initialized')
   }
 
   // callback for remote sources
@@ -133,10 +135,7 @@ export default class CompletePlugin {
   }
 
   public async cocAction(args: any): Promise<any> {
-    if (!this.initialized) {
-      echoErr(this.nvim, 'coc not initialized')
-      return
-    }
+    if (!this.initialized) return
     let {handler} = this
     try {
       switch (args[0] as string) {

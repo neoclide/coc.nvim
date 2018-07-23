@@ -9,29 +9,26 @@ let s:is_vim = !has('nvim')
 function! coc#rpc#start_server()
   if !s:check_env() | return | endif
   if s:server_running | return | endif
-  let channel_id = jobstart(['node', s:script], s:job_opts)
-  if channel_id <= 0
-    echoerr '[coc.nvim] Failed to start service'
-    return
-  endif
-  let s:server_running = 1
-endfunction
-
-function! coc#rpc#start_vim_server()
-  if !s:check_env() | return | endif
-  if s:server_running | return | endif
-  let job = job_start(['node', s:script], {
-        \ 'in_io': 'null',
-        \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
-        \ 'close_cb': function('s:close_cb'),
-        \ 'env': {
-        \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
-        \ }
-        \})
-  let status = job_status(job)
-  if status !=# 'run'
-    echoerr '[coc.nvim] Failed to start service'
-    return
+  if s:is_vim
+    let job = job_start(['node', s:script], {
+          \ 'in_io': 'null',
+          \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
+          \ 'close_cb': function('s:close_cb'),
+          \ 'env': {
+          \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
+          \ }
+          \})
+    let status = job_status(job)
+    if status !=# 'run'
+      echoerr '[coc.nvim] Failed to start coc service'
+      return
+    endif
+  else
+    let channel_id = jobstart(['node', s:script], s:job_opts)
+    if channel_id <= 0
+      echoerr '[coc.nvim] Failed to start coc service'
+      return
+    endif
   endif
   let s:server_running = 1
 endfunction
@@ -51,8 +48,6 @@ endfunction
 function! s:GetChannel()
   " server started
   if get(s:, 'server_running', 0) == 0 | return 0 | endif
-  " workspace initialized
-  if get(g:, 'coc_enabled', 0) == 0 | return 0 | endif
   let cid = get(g:, 'coc_node_channel_id', 0)
   if s:is_vim
      return nvim#rpc#check_client(cid) ? cid : 0
