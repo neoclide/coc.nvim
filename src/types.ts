@@ -22,6 +22,7 @@ export interface LanguageServerConfig {
   shell?: boolean
   execArgv?: string[]
   initializationOptions?: any
+  configSection?: string,
   [index: string]: any
 }
 

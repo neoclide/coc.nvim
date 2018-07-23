@@ -37,6 +37,11 @@
           "type": "object",
           "default": {},
           "description": "Settings of languageserver"
+        },
+        "configSection": {
+          "type": "string",
+          "default": {},
+          "description": "Config section of languageserver"
         }
       }
     },
@@ -92,6 +97,11 @@
           "type": "object",
           "default": {},
           "description": "Settings of languageserver"
+        },
+        "configSection": {
+          "type": "string",
+          "default": {},
+          "description": "Config section of languageserver"
         }
       }
     },
@@ -157,6 +167,11 @@
           "type": "object",
           "default": {},
           "description": "Settings of languageserver"
+        },
+        "configSection": {
+          "type": "string",
+          "default": {},
+          "description": "Config section of languageserver"
         }
       }
     }

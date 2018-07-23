@@ -36,7 +36,7 @@ export class LanguageService implements IServiceProvider {
     this.state = ServiceStat.Initial
     this.enable = config.enable !== false // tslint:disable-line
     this.languageIds = config.filetypes
-    this.configSections = configSections || `${this.id}.settings`
+    this.configSections = configSections || config.configSection || `${this.id}.settings`
     if (!config.command && !config.module) {
       echoErr(workspace.nvim, `Command and module not found for ${id}`)
       logger.error(`invalid command of ${id}`)
