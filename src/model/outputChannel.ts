@@ -100,8 +100,6 @@ export default class BufferChannel implements OutputChannel {
       await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
       await nvim.command('setl bufhidden=wipe')
       buffer = this.buffer = await nvim.buffer
-    } else {
-      await this.nvim.command(`belowright vs +b\\ ${buffer.id}`) // tslint:disable-line
     }
     await buffer.setLines(content.split('\n'), {
       start: 1,
