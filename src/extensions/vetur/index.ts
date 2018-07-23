@@ -36,7 +36,7 @@ export default class VeturService extends LanguageService {
     Object.assign(clientOptions, {
       synchronize: {
         configurationSection: sections,
-        fileEvents: workspace.createFileSystemWatcher('{**/*.js,**/*.ts}', true, false, true)
+        fileEvents: workspace.createFileSystemWatcher('**/*.[tj]s', true, false, true)
       }
     })
     return clientOptions

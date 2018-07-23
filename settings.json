@@ -4,6 +4,11 @@
   * validate and completion would be enabled automatically
   */
   "$schema": "./data/schema.json",
+  // stupid vetur throw without this
+  "emmet.showAbbreviationSuggestions": false,
+  "emmet.showExpandedAbbreviation": "always",
+  "prettier": {},
+  "stylusSupremacy":{},
     // Invalid number of parameters
   "css.lint.argumentsInColorFunction": "error",
   // Do not use width or height when using padding or border

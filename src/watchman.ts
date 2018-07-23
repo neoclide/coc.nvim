@@ -115,6 +115,7 @@ export default class Watchman {
   }
 
   public static async createClient(binaryPath: string, root: string, outputChannel: OutputChannel): Promise<Watchman | null> {
+    if (root == process.env.HOME) return null
     let client = new Watchman(binaryPath, outputChannel)
     let watching
     try {
