@@ -2,7 +2,7 @@ import debounce from 'debounce'
 import {Buffer, Neovim} from 'neovim'
 import {DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {BufferOption} from '../types'
+import {BufferOption, ChangeInfo} from '../types'
 import {getChange, diffLines} from '../util/diff'
 import {isGitIgnored} from '../util/fs'
 import {disposeAll, getUri, isLineEdit} from '../util/index'
@@ -11,10 +11,12 @@ const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
 export default class Document {
+  private nvim:Neovim
   public isIgnored = false
   public chars: Chars
   public paused: boolean
   public textDocument: TextDocument
+  public fetchContent: Function & {clear(): void;}
   private _fireContentChanges: Function & {clear(): void;}
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
@@ -29,6 +31,17 @@ export default class Document {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 20)
+    let fetching = false
+    this.fetchContent = debounce(() => {
+      if (fetching) {
+        this.fetchContent.clear()
+        this.fetchContent()
+      }
+      fetching = true
+      this._fetchContent().finally(() => {
+        fetching = false
+      })
+    }, 50)
     Object.defineProperty(this, 'words', {
       get: () => {
         return this._words
@@ -70,6 +83,7 @@ export default class Document {
   }
 
   public async init(nvim: Neovim): Promise<void> {
+    this.nvim = nvim
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
     let {fullpath, filetype, iskeyword} = opts
@@ -359,5 +373,24 @@ export default class Document {
     let {version, uri, filetype} = this
     version = version + changeCount
     this.textDocument = TextDocument.create(uri, filetype, version, this.lines.join('\n'))
+  }
+
+  private async _fetchContent():Promise<void> {
+    let {nvim, buffer} = this
+    let {id} = buffer
+    let o = await nvim.call('coc#util#get_content', [id]) as any
+    if (!o) return
+    let {content, changedtick} = o
+    this._changedtick = changedtick
+    this.lines = content.split('\n')
+    this.fireContentChanges()
+  }
+
+  public patchChange(change:ChangeInfo):void {
+    let {lines} = this
+    let {lnum, line, changedtick} = change
+    this._changedtick = changedtick
+    lines[lnum - 1] = line
+    this.fireContentChanges()
   }
 }

@@ -8,6 +8,12 @@ export enum SourceType {
   Service,
 }
 
+export interface ChangeInfo {
+  lnum: number
+  line: string
+  changedtick: number
+}
+
 export interface LanguageServerConfig {
   module?: string
   command?: string

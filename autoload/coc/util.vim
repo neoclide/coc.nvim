@@ -315,6 +315,23 @@ function! coc#util#vim_info()
         \}
 endfunction
 
+function! coc#util#get_content(bufnr)
+  if !bufexists(a:bufnr) | return '' | endif
+  return {
+        \ 'content': join(getbufline(a:bufnr, 1, '$'), "\n"),
+        \ 'changedtick': getbufvar(a:bufnr, 'changedtick')
+        \ }
+endfunction
+
+" used for TextChangedI with InsertCharPre
+function! coc#util#get_changeinfo()
+  return {
+        \ 'lnum': line('.'),
+        \ 'line': getline('.'),
+        \ 'changedtick': b:changedtick,
+        \}
+endfunction
+
 " show diff of current buffer
 function! coc#util#diff_content(lines) abort
   let tmpfile = tempname()

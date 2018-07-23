@@ -38,7 +38,8 @@ export default class Increment extends Emitter {
 
   public get latestInsert(): LastInsert | null {
     let {lastInsert} = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 50) {
+    let d = workspace.isVim ? 100 : 50
+    if (!lastInsert || Date.now() - lastInsert.timestamp > d) {
       return null
     }
     return lastInsert

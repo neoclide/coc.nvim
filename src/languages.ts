@@ -448,6 +448,7 @@ class Languages {
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
+        let timeout = workspace.isVim ? 100 : 30
         setTimeout(async () => {
           try {
             let isConfirm = await this.checkConfirm(completeItem, option)
@@ -465,7 +466,7 @@ class Languages {
           option = null
           completeItems = []
           resolving = ''
-        }, 30)
+        }, timeout)
         return
       },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {

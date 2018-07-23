@@ -5,7 +5,7 @@ import Configurations, {parseContentFromFile} from './configurations'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import {DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel} from './types'
+import {ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel} from './types'
 import {getLine, resolveDirectory, resolveRoot, statAsync, writeFile} from './util/fs'
 import {echoErr, echoMessage} from './util/index'
 import {byteIndex} from './util/string'
@@ -20,6 +20,7 @@ const CONFIG_FILE_NAME = 'coc-settings.json'
 // global neovim settings
 export interface VimSettings {
   completeOpt: string
+  isVim: boolean
 }
 
 interface EditerState {
@@ -31,6 +32,7 @@ export class Workspace {
   public nvim: Neovim
   // project root
   public root: string
+  public bufnr: number
   private _initialized = false
   private buffers: {[index: number]: Document | null}
   private outputChannels: Map<string, OutputChannel> = new Map()
@@ -82,6 +84,13 @@ export class Workspace {
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
+    if (this.isVim) {
+      this.initVimEvents()
+    }
+  }
+
+  public get isVim():boolean {
+    return this.vimSettings.isVim
   }
 
   public get initialized():boolean {
@@ -278,6 +287,7 @@ export class Workspace {
   }
 
   public async bufferEnter(bufnr: number): Promise<void> {
+    this.bufnr = bufnr
     let documentInfo = await this.nvim.call('coc#util#get_bufinfo', [bufnr])
     if (!documentInfo.languageId) return
     let uri = Uri.file(documentInfo.fullpath).toString()
@@ -582,6 +592,34 @@ export class Workspace {
     }
   }
 
+  // events for sync buffer of vim
+  private initVimEvents(): void {
+    let {emitter, nvim} = this
+    let lastChar = ''
+    let lastTs = null
+    emitter.on('InsertCharPre', ch => {
+      lastChar = ch
+      lastTs = Date.now()
+    })
+    emitter.on('TextChangedI', bufnr => {
+      let doc = this.getDocument(bufnr)
+      if (!doc) return
+      if (Date.now() - lastTs < 30 && lastChar) {
+        nvim.call('coc#util#get_changeinfo', []).then(res => {
+          doc.patchChange(res as ChangeInfo)
+        }, () => {
+          // noop
+        })
+      } else {
+        doc.fetchContent()
+      }
+      lastChar = null
+    })
+    emitter.on('TextChanged', bufnr => {
+      let doc = this.getDocument(bufnr)
+      if (doc) doc.fetchContent()
+    })
+  }
 }
 
 export default new Workspace()

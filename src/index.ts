@@ -70,7 +70,7 @@ export default class CompletePlugin {
     logger.debug('Autocmd:', args)
     switch (args[0] as string) {
       case 'TextChanged':
-        emitter.emit('TextChanged', Date.now())
+        emitter.emit('TextChanged', args[1])
         break
       case 'BufEnter':
         await workspace.bufferEnter(args[1])
@@ -119,10 +119,7 @@ export default class CompletePlugin {
         emitter.emit('TextChangedP')
         break
       case 'TextChangedI':
-        // wait for workspace notification
-        setTimeout(() => {
-          emitter.emit('TextChangedI')
-        }, 20)
+        emitter.emit('TextChangedI', args[1])
         break
       case 'CursorMoved': {
         diagnosticManager.showMessage()

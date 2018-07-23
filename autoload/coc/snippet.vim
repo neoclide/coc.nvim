@@ -4,8 +4,12 @@ function! coc#snippet#range_select(lnum, col, len) abort
   let old = &virtualedit
   let &virtualedit = 'onemore'
   call cursor(a:lnum, a:col)
+  redraw
   if a:len == 0
     if m !=# 'i' | startinsert | endif
+    if !has('nvim')
+      call timer_start(30, { -> cursor(a:lnum, a:col)})
+    endif
   else
     let move = a:len == 1 ? '' : a:len - 1 . 'l'
     if m ==# 'i'

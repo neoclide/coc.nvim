@@ -34,8 +34,12 @@ export class Completion {
     emitter.on('TextChangedP', () => {
       this.onTextChangedP().catch(onError)
     })
+    let timeout = workspace.isVim ? 60 : 20
     emitter.on('TextChangedI', () => {
-      this.onTextChangedI().catch(onError)
+      // wait for workspace notification
+      setTimeout(() => {
+        this.onTextChangedI().catch(onError)
+      }, timeout)
     })
     // stop change emit on completion
     let document: Document = null

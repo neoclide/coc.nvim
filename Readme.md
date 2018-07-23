@@ -4,7 +4,7 @@
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
 [![](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
 
-Coc is an intellisense engine for neovim.
+Coc is an intellisense engine for vim & neovim.
 
 It's a completion framework, language server client while comes with bundled
 extensions from [VSCode](https://github.com/Microsoft/vscode) that just works.

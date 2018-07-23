@@ -3,6 +3,7 @@
 * Coc service start much faster.
 * Add vim-node-rpc module.
 * **Break change** global function `CocAutocmd` and `CocResult` are removed.
+* Support Vue with vetur
 
 # 2018-07-21
 
