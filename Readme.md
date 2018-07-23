@@ -82,6 +82,38 @@ For filetype `typescript`, `javascript`, `html`, `json`, `css/less/scss/wxss`,
 
     The configuration field is `pyls`.
 
+* <details>
+    <summary>Vue</summary>
+
+    Install vls by
+
+    ```
+    npm install vue-language-server -g
+    ```
+
+    Add configuration to `languageserver` section in `coc-settings.json` with:
+
+
+    ``` json
+    "vue": {
+      "command": "vls",
+      "args": [],
+      "configSection": "languageserver.vue.initializationOptions.config",
+      "filetypes": ["vue"],
+      "initializationOptions": {
+        "config": {
+          "html": {
+            "suggest": true
+          },
+          "vetur": {
+            "validation": {}
+          }
+        }
+      }
+    }
+    ```
+  </details>
+
 **Note:** auto completion is supported automatically for `coc-settings.json`
 
 ## Trouble shooting
