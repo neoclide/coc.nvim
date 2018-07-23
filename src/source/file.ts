@@ -1,13 +1,12 @@
 import fs from 'fs'
-import matcher from 'matcher'
 import {Neovim} from 'neovim'
 import path from 'path'
 import pify from 'pify'
+import minimatch from 'minimatch'
 import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem} from '../types'
 import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
-const logger = require('../util/logger')('source-file')
 const pathRe = /\.{0,2}\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
@@ -57,7 +56,7 @@ export default class File extends Source {
       if (f == null) return false
       if (ignoreHidden && /^\./.test(f)) return false
       for (let p of ignorePatterns) {
-        if (matcher.isMatch(f, p)) return false
+        if (minimatch(f, p)) return false
       }
       return true
     })
