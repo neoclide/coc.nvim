@@ -10,6 +10,11 @@ const logger = require('../util/logger')('source-gocode')
 export default class Gocode extends Source {
   constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
     super(nvim, { name: 'gocode', ...opts })
+  }
+
+  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+    let {filetype} = opt
+    if (filetype != 'go') return false
     if (!this.config.gocode_binary) {
       try {
         which.sync('gocode')
