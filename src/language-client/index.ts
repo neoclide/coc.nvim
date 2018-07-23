@@ -47,6 +47,7 @@ export class LanguageService implements IServiceProvider {
   public init(): Promise<void> {
     let {config, name} = this
     let {args, module, command, port, host} = config
+    args = args || []
     if (command) {
       try {
         let resolved = which.sync(config.command)

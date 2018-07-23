@@ -12,8 +12,11 @@ function! coc#rpc#start_server()
   if s:is_vim
     let job = job_start(['node', s:script], {
           \ 'in_io': 'null',
+          \ 'err_mode': 'nl',
+          \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
-          \ 'close_cb': function('s:close_cb'),
+          \ 'out_cb': {channel, message -> s:job_opts.on_stdout(0, [message], 'stderr')},
+          \ 'close_cb': { -> s:job_opts.on_exit(0, 0, 'exit')},
           \ 'env': {
           \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
           \ }
@@ -66,6 +69,14 @@ function! s:job_opts.on_stderr(chan_id, data, event) dict
   endif
 endfunction
 
+function! s:job_opts.on_stdout(chan_id, data, event) dict
+  if $NVIM_COC_LOG_LEVEL ==# 'debug'
+    for msg in a:data
+      echom msg
+    endfor
+  endif
+endfunction
+
 function! s:job_opts.on_exit(chan_id, code, event) dict
   let s:server_running = 0
   let g:coc_node_channel_id = 0
@@ -76,11 +87,6 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
       call coc#rpc#show_error()
     endif
   endif
-endfunction
-
-function! s:close_cb()
-  let s:server_running = 0
-  let g:coc_node_channel_id = 0
 endfunction
 
 function! coc#rpc#show_error()
