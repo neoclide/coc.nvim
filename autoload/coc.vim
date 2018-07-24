@@ -29,11 +29,6 @@ function! coc#_hide() abort
   call feedkeys("\<C-e>", 'in')
 endfunction
 
-function! coc#_confirm() abort
-  if !pumvisible() | return | endif
-  call feedkeys("\<C-y>", 'in')
-endfunction
-
 function! coc#start(...)
   if !get(g:, 'coc_enabled', 0) 
     call coc#util#on_error('Service not running!')
@@ -44,4 +39,18 @@ function! coc#start(...)
         \})
   call CocAction('startCompletion', opt)
   return ''
+endfunction
+
+" used for statusline
+function! coc#status()
+  let info = get(b:, 'coc_diagnostic_info', {})
+  if empty(info) | return '' | endif
+  let msgs = []
+  if get(info, 'error', 0)
+    call add(msgs, '❌ ' . info['error'])
+  endif
+  if get(info, 'warning', 0)
+    call add(msgs, '⚠️ ' . info['warning'])
+  endif
+  return join(msgs, ' ')
 endfunction
