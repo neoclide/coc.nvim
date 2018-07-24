@@ -18,10 +18,11 @@ export default class Gocode extends Source {
     if (!this.config.gocode_binary) {
       try {
         which.sync('gocode')
+        return true
       } catch (e) {
         echoWarning(this.nvim, 'Could not find gocode in $PATH')
         if (this.enable) this.toggle()
-        return
+        return false
       }
     }
   }
