@@ -103,6 +103,8 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
   * [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
+* [ Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+
 * [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
 * [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)

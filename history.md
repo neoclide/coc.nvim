@@ -1,3 +1,7 @@
+# 2018-07-24
+
+* better statusline integration with airline and lightline.
+
 # 2018-07-23
 
 * Coc service start much faster.

@@ -23,6 +23,10 @@ Denite support 		|coc-denite|
   Denite workspace      |coc-denite-workspace|
   Denite service        |coc-denite-service|
   Denite command        |coc-denite-command|
+Statueline support      |coc-status|
+  Manual                |coc-status-manual|
+  Airline 		|coc-status-airline|
+  Lightline  		|coc-stauts-lightline|
 Custom Source 		|coc-custom-source|
 Faq			|coc-faq|
 Changelog		|coc-changelog|
@@ -190,21 +194,7 @@ g:coc_codelen_action_key 			*g:coc_codelen_action_key*
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			Diagnostic infomation of current buffer, can be used
-			for customize status line, like: >
-
-			function! MyStatusDiagnostic() abort
-			  let info = get(b:, 'coc_diagnostic_info', {})
-			  if empty(info) | return '' | endif
-			  let msgs = []
-			  if get(info, 'error', 0)
-			    call add(msgs, 'E' . info['error'])
-			  endif
-			  if get(info, 'warning', 0)
-			    call add(msgs, 'W' . info['warning'])
-			  endif
-			  return join(msgs, ' ')
-			endfunction
-<
+			for customize status line. See |coc-status|.
 
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
@@ -472,6 +462,84 @@ experience and advanced actions.
 	Actions: 
 
 	- 'run' : default action.
+
+==============================================================================
+STATUSLINE SUPPORT 				*coc-status*
+
+Show diagnostic info of current buffer in your statusline.
+
+------------------------------------------------------------------------------
+
+						*coc-status-manual*
+
+Create function:
+>
+>
+	function! StatusDiagnostic() abort
+	  let info = get(b:, 'coc_diagnostic_info', {})
+	  if empty(info) | return '' | endif
+	  let msgs = []
+	  if get(info, 'error', 0)
+	    call add(msgs, 'E' . info['error'])
+	  endif
+	  if get(info, 'warning', 0)
+	    call add(msgs, 'W' . info['warning'])
+	  endif
+	  return join(msgs, ' ')
+	endfunction
+<
+Add `%{StatusDiagnostic()}` to your 'statusline' option.
+
+------------------------------------------------------------------------------
+
+						*coc-status-airline*
+
+With vim-airline: https://github.com/vim-airline/vim-airline
+
+Add configuration like: >
+
+	" if you want to disable auto detect, comment out those two lines
+	"let g:airline#extensions#disable_rtp_load = 1
+	"let g:airline_extensions = ['branch', 'hunks', 'coc']
+
+	let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
+	let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
+
+Change error symbol:
+>
+	let airline#extensions#coc#error_symbol = 'Error:'
+<
+Change warning symbol:
+>
+	let airline#extensions#coc#error_symbol = 'Warning:'
+<
+Change error format:
+>
+	let airline#extensions#coc#stl_format_err = '%E{[%e(#%fe)]}'
+<
+Change warning format:
+>
+	let airline#extensions#coc#stl_format_warn = '%W{[%w(#%fw)]}'
+
+------------------------------------------------------------------------------
+						*coc-status-lightline*
+
+With lightline.vim: https://github.com/itchyny/lightline.vim
+				
+Use configuration like: >
+
+  let g:lightline = {
+	\ 'colorscheme': 'wombat',
+	\ 'active': {
+	\   'left': [ [ 'mode', 'paste' ],
+	\             [ 'cocstatus', 'readonly', 'filename', 'modified' ] ]
+	\ },
+	\ 'component_function': {
+	\   'cocstatus': 'coc#status'
+	\ },
+	\ }
+<
+To your .vimrc
 
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
