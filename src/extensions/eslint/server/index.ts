@@ -12,7 +12,7 @@ import {
   CodeActionRequest, VersionedTextDocumentIdentifier,
   ExecuteCommandRequest, DidChangeWatchedFilesNotification, DidChangeConfigurationNotification, CodeAction, CodeActionKind
 } from 'vscode-languageserver'
-
+import {resolveLocalConfig} from './util'
 import URI from 'vscode-uri'
 import * as path from 'path'
 
@@ -370,13 +370,15 @@ function resolveSettings(document: TextDocument): Thenable<TextDocumentSettings>
     if (uri.scheme === 'file') {
       let file = uri.fsPath
       let directory = path.dirname(file)
+      let localConfig = resolveLocalConfig(directory)
       if (settings.nodePath) {
         let nodePath = settings.nodePath
         promise = Files.resolve('eslint', nodePath, nodePath, trace).then<string, string>(undefined, () => {
           return Files.resolve('eslint', settings.resolvedGlobalPackageManagerPath, directory, trace)
         })
       } else {
-        promise = Files.resolve('eslint', settings.resolvedGlobalPackageManagerPath, directory, trace)
+        let dir = localConfig ? directory : process.env.HOME
+        promise = Files.resolve('eslint', settings.resolvedGlobalPackageManagerPath, dir, trace)
       }
     }
     return promise.then(path => {
