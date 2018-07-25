@@ -1,5 +1,5 @@
 /* tslint:disable:no-console */
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import completes from './completes'
 import Increment from './increment'
 import Document from './model/document'

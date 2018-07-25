@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import {Diagnostic, DiagnosticSeverity, Range} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import {DiagnosticInfo} from '../types'

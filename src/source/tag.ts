@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig} from '../types'
 import {readFileByLine, statAsync} from '../util/fs'

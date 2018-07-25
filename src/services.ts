@@ -1,5 +1,5 @@
 import fs from 'fs'
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import pify from 'pify'
 import languageClient from './language-client'

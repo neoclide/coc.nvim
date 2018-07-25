@@ -1,4 +1,4 @@
-import { Neovim } from 'neovim'
+import { Neovim } from '@chemzqm/neovim'
 import {CompleteOption, CompleteResult, SourceConfig} from '../types'
 import Source from '../model/source'
 import {echoWarning} from '../util'

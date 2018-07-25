@@ -1,4 +1,4 @@
-import {Buffer, Neovim} from 'neovim'
+import {Buffer, Neovim} from '@chemzqm/neovim'
 import {DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, {parseContentFromFile} from './configurations'
@@ -604,7 +604,7 @@ export class Workspace {
     emitter.on('TextChangedI', bufnr => {
       let doc = this.getDocument(bufnr)
       if (!doc) return
-      if (Date.now() - lastTs < 30 && lastChar) {
+      if (Date.now() - lastTs < 40 && lastChar) {
         nvim.call('coc#util#get_changeinfo', []).then(res => {
           doc.patchChange(res as ChangeInfo)
         }, () => {

@@ -1,4 +1,4 @@
-import {NeovimClient as Neovim} from 'neovim'
+import {NeovimClient as Neovim} from '@chemzqm/neovim'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'

@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import net from 'net'
 import path from 'path'
 import {Disposable, TextEdit} from 'vscode-languageserver-protocol'

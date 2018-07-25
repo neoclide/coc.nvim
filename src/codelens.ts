@@ -1,4 +1,4 @@
-import {Buffer, Neovim} from 'neovim'
+import {Buffer, Neovim} from '@chemzqm/neovim'
 import {CodeLens} from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import languages from './languages'

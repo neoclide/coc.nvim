@@ -1,5 +1,5 @@
 import debounce from 'debounce'
-import {Buffer, Neovim} from 'neovim'
+import {Buffer, Neovim} from '@chemzqm/neovim'
 import {DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import {BufferOption, ChangeInfo} from '../types'

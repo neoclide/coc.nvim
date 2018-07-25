@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
 import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
 import {echoErr, wait, showQuickpick} from './util'

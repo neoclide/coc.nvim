@@ -1,5 +1,5 @@
 import {OutputChannel} from '../types'
-import {Neovim, Buffer} from 'neovim'
+import {Neovim, Buffer} from '@chemzqm/neovim'
 import workspace from '../workspace'
 import {Disposable} from 'vscode-languageserver-protocol'
 import {disposeAll} from '../util'
@@ -9,6 +9,7 @@ export default class BufferChannel implements OutputChannel {
   private buffer:Buffer = null
   private content = ''
   private disposables:Disposable[] = []
+  private _showing = false
   constructor(public name:string, private nvim:Neovim) {
     let {emitter} = workspace
     let onUnload = this.onUnload.bind(this)
@@ -72,12 +73,14 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public show(preserveFocus?:boolean): void {
+    if (this._showing) return
+    this._showing = true
     this.isShown().then(shown => {
       if (!shown) {
         return this.openBuffer(preserveFocus)
       }
-    }).catch(err => {
-      logger.error(err)
+    }).finally(() => {
+      this._showing = false
     })
   }
 
@@ -98,7 +101,7 @@ export default class BufferChannel implements OutputChannel {
     let {buffer, nvim, content} = this
     if (!buffer) {
       await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
-      await nvim.command('setl bufhidden=wipe')
+      await nvim.command('setl bufhidden=hide')
       buffer = this.buffer = await nvim.buffer
     }
     await buffer.setLines(content.split('\n'), {

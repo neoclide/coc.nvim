@@ -4,7 +4,7 @@ const path = require('path')
 process.env.NVIM_NODE_LOG_FILE = path.join(os.tmpdir(), 'coc-nvim-client.log')
 process.env.NVIM_NODE_LOG_LEVEL = process.env.NVIM_COC_LOG_LEVEL || 'info'
 const Plugin = require('..').default
-const attach = require('neovim').attach
+const attach = require('@chemzqm/neovim').attach
 const logger = require('../lib/util/logger')('server')
 
 const nvim = attach({
@@ -16,10 +16,10 @@ nvim.on('notification', (method, args) => {
   switch (method) {
     case 'CocResult':
       plugin.cocResult.call(plugin, args)
-      return
+      break
     case 'VimEnter':
       plugin.onEnter()
-      return
+      break
     case 'CocAutocmd':
       plugin.cocAutocmd.call(plugin, args).catch(e => {
         logger.error('Autocmd error: ' + e.stack)

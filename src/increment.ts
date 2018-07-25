@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import completes from './completes'
 import {CompleteOption} from './types'
 import workspace from './workspace'

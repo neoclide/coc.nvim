@@ -1,5 +1,5 @@
 import debounce from 'debounce'
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import {Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'

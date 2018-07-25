@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import {DidChangeTextDocumentParams, TextEdit} from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import {getChangeItem} from '../util/diff'

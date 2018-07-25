@@ -1,5 +1,5 @@
 import fs from 'fs'
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import pify from 'pify'
 import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig} from '../types'

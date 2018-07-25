@@ -2,7 +2,7 @@
   "extends": "./node_modules/@chemzqm/tsconfig/tsconfig.json",
   "compilerOptions": {
     "outDir": "lib",
-    "target": "es2016",
+    "target": "es2015",
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
@@ -20,7 +20,6 @@
     "src"
   ],
   "exclude": [
-    "src/extensions/clang",
-    "node_modules"
+    "src/extensions/clang"
   ]
 }

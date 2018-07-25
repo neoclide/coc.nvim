@@ -1,4 +1,4 @@
-import {Neovim} from 'neovim'
+import {Neovim} from '@chemzqm/neovim'
 import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem, DocumentInfo} from '../types'
 import {fuzzyChar} from '../util/fuzzy'
 import {byteSlice} from '../util/string'
