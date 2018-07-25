@@ -252,9 +252,9 @@ export interface IConfigurationData {
 }
 
 export enum ConfigurationTarget {
-  Default,
   Global,
-  Folder
+  User,
+  Workspace
 }
 
 export enum DiagnosticKind {

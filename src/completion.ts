@@ -5,7 +5,7 @@ import Increment from './increment'
 import Document from './model/document'
 import Sources from './sources'
 import {CompleteOption, SourceStat, SourceType, VimCompleteItem} from './types'
-import {echoErr, isCocItem} from './util'
+import {echoErr, isCocItem, wait} from './util'
 import {isWord} from './util/string'
 import workspace from './workspace'
 import Emitter = require('events')
@@ -34,12 +34,8 @@ export class Completion {
     emitter.on('TextChangedP', () => {
       this.onTextChangedP().catch(onError)
     })
-    let timeout = workspace.isVim ? 60 : 20
     emitter.on('TextChangedI', () => {
-      // wait for workspace notification
-      setTimeout(() => {
-        this.onTextChangedI().catch(onError)
-      }, timeout)
+      this.onTextChangedI().catch(onError)
     })
     // stop change emit on completion
     let document: Document = null
@@ -185,6 +181,8 @@ export class Completion {
     // check trigger
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
+    // wait for content sync
+    await wait(workspace.isVim ? 40 : 20)
     let option = await nvim.call('coc#util#get_complete_option')
     Object.assign(option, {triggerCharacter: latestInsertChar})
     logger.trace('trigger completion with', option)

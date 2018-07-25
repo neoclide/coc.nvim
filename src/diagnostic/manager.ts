@@ -69,7 +69,7 @@ export class DiagnosticManager {
       this.echoMessage().catch(e => {
         logger.error(e.stack)
       })
-    }, 100)
+    }, 200)
   }
 
   private setConfiguration(): void {

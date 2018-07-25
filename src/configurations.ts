@@ -1,5 +1,5 @@
 import {Configuration, ConfigurationModel} from './model/configuration'
-import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration} from './types'
+import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, MainThreadConfigurationShape, ConfigurationTarget} from './types'
 import {readFile, statAsync} from './util/fs'
 import {mixin} from './util/object'
 import {isEmptyObject, isObject} from './util/types'
@@ -19,7 +19,7 @@ function lookUp(tree: any, key: string): any {
 }
 
 export default class Configurations {
-  // private readonly _proxy: MainThreadConfigurationShape
+  private readonly _proxy: MainThreadConfigurationShape
   private _configuration: Configuration
 
   constructor(data: IConfigurationData) {
@@ -49,9 +49,15 @@ export default class Configurations {
         if (result == null || (typeof result == 'string' && result.length == 0)) return undefined
         return result
       },
-      update: (key: string, value: any, _isGlobal?: boolean) => {
+      update: (key: string, value: any, isGlobal = true) => {
         this._configuration.updateValue(key, value)
-        // TODO change configuration file
+        let target = isGlobal ? ConfigurationTarget.User : ConfigurationTarget.Workspace
+        let s = section ? `${section}.${key}` : key
+        if (value === undefined) {
+          this._proxy.$removeConfigurationOption(target, s)
+        } else {
+          this._proxy.$updateConfigurationOption(target, s, value)
+        }
       },
       inspect: <T>(key: string): ConfigurationInspect<T> => {
         key = section ? `${section}.${key}` : key

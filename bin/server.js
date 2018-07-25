@@ -16,10 +16,15 @@ nvim.on('notification', (method, args) => {
   switch (method) {
     case 'CocResult':
       plugin.cocResult.call(plugin, args)
-      break
+      return
     case 'VimEnter':
       plugin.onEnter()
-      break
+      return
+    case 'CocAutocmd':
+      plugin.cocAutocmd.call(plugin, args).catch(e => {
+        logger.error('Autocmd error: ' + e.stack)
+      })
+      return
     default:
       logger.debug('notification', method)
   }
@@ -27,14 +32,6 @@ nvim.on('notification', (method, args) => {
 
 nvim.on('request', (method, args, resp) => {
   switch (method) {
-    case 'CocAutocmd':
-      plugin.cocAutocmd.call(plugin, args).then(res => {
-        resp.send(res)
-      }, e => {
-        logger.error('Autocmd error: ' + e.stack)
-        resp.send(null)
-      })
-      return
     case 'CocAction':
       plugin.cocAction.call(plugin, args).then(res => {
         resp.send(res)
@@ -43,7 +40,16 @@ nvim.on('request', (method, args, resp) => {
         resp.send(null)
       })
       return
+    case 'BufWritePre':
+      plugin.cocAutocmd.call(plugin, ['BufWritePre', args[0]]).then(() => {
+        resp.send(null)
+      }, e => {
+        logger.error('Action error: ' + e.stack)
+        resp.send(null)
+      })
+      return
     default:
+      logger.error('Unknown request' + method)
       resp.send(null)
   }
 })

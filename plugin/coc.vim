@@ -35,9 +35,17 @@ endfunction
 
 function! s:Autocmd(...) abort
   " care about normal buffer only
-  if &buftype == 'terminal' | return | endif
   if !get(g:, 'coc_enabled', 0) | return | endif
-  call coc#rpc#request('CocAutocmd', a:000)
+  call coc#rpc#notify('CocAutocmd', a:000)
+endfunction
+
+" This should be sync
+function! s:BufWritePre(bufnr)
+  if !get(g:, 'coc_enabled', 0) | return | endif
+  if getbufvar(a:bufnr, '&buftype') ==# ''
+    return
+  endif
+  call coc#rpc#request('BufWritePre', [a:bufnr])
 endfunction
 
 function! s:Disable() abort
@@ -96,10 +104,10 @@ function! s:Enable()
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
-    autocmd BufWritePre         * call s:Autocmd('BufWritePre', +expand('<abuf>'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved')
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
+    autocmd BufWritePre         * call s:BufWritePre(+expand('<abuf>'))
     autocmd OptionSet completeopt call CocAction('setOption', 'completeopt', v:option_new)
   augroup end
 

@@ -70,7 +70,7 @@ export default class Complete {
           return
         }
         if (ctx.result) {
-          logger.trace(`Complete '${source.name}' takes ${Date.now() - start}ms`)
+          logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
         }
         resolve(ctx.result || null)
       })

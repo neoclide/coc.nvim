@@ -1,8 +1,7 @@
 
 // nvim use utf8
 export function byteLength(str:string):number {
-  let buf = Buffer.from(str, 'utf8')
-  return buf.length
+  return Buffer.byteLength(str)
 }
 
 export function byteIndex(content:string, index:number):number {
