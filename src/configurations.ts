@@ -1,5 +1,5 @@
 import {Configuration, ConfigurationModel} from './model/configuration'
-import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, MainThreadConfigurationShape, ConfigurationTarget} from './types'
+import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, ConfigurationShape, ConfigurationTarget} from './types'
 import {readFile, statAsync} from './util/fs'
 import {mixin} from './util/object'
 import {isEmptyObject, isObject} from './util/types'
@@ -19,7 +19,7 @@ function lookUp(tree: any, key: string): any {
 }
 
 export default class Configurations {
-  private readonly _proxy: MainThreadConfigurationShape
+  private readonly _proxy: ConfigurationShape
   private _configuration: Configuration
 
   constructor(data: IConfigurationData) {

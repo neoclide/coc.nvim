@@ -300,6 +300,7 @@ export class Workspace {
     let {nvim} = this
     let doc = this.buffers[bufnr]
     let called = false
+    if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     let waitUntil
     let promise = new Promise((resolve, reject): void => { // tslint:disable-line
       waitUntil = (thenable: Thenable<TextEdit[] | any>): void => {

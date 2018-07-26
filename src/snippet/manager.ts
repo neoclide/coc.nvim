@@ -120,9 +120,9 @@ export class SnippetManager {
     let choice = marker.choice
     if (choice) {
       let values = choice.options.map(o => o.value)
-      await nvim.call('coc#snippet#show_choices', [startLnum + 1, col, len, values])
+      nvim.call('coc#snippet#show_choices', [startLnum + 1, col, len, values], true)
     } else {
-      await nvim.call('coc#snippet#range_select', [startLnum + 1, col, len])
+      nvim.call('coc#snippet#range_select', [startLnum + 1, col, len], true)
     }
     this.currIndex = marker.index
   }

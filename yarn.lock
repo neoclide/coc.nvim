@@ -81,11 +81,10 @@
     lodash "^4.17.5"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@^4.3.0":
-  version "4.3.0"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.0.tgz#4670875e7b68f881300782fc953ea15c2005cb29"
+"@chemzqm/neovim@^4.3.2":
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.2.tgz#381f031a63c661e9d5731af8dcf583113604c65f"
   dependencies:
-    log4js "^3.0.2"
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
 
@@ -5296,15 +5295,15 @@ vfile@^2.0.0:
     unist-util-stringify-position "^1.0.0"
     vfile-message "^1.0.0"
 
-vim-node-rpc@0.1.6:
-  version "0.1.6"
-  resolved "https://registry.yarnpkg.com/vim-node-rpc/-/vim-node-rpc-0.1.6.tgz#0947a517831661d8a6232e2d75d03c3bf2c269c7"
+vim-node-rpc@0.1.7:
+  version "0.1.7"
+  resolved "https://registry.yarnpkg.com/vim-node-rpc/-/vim-node-rpc-0.1.7.tgz#d1b9b94451b4cb14d34cfc17cb178dc445afb194"
   dependencies:
     log4js "^3.0.2"
     msgpack-lite "^0.1.26"
     uuid "^3.3"
 
-vscode-css-languageservice@^3.0.3, vscode-css-languageservice@^3.0.9-next.18, vscode-css-languageservice@^3.0.9-next.19:
+vscode-css-languageservice@^3.0.3, vscode-css-languageservice@^3.0.9, vscode-css-languageservice@^3.0.9-next.18:
   version "3.0.9"
   resolved "https://registry.yarnpkg.com/vscode-css-languageservice/-/vscode-css-languageservice-3.0.9.tgz#770471350120c5bcf6918632a125638fc0ece3be"
   dependencies:

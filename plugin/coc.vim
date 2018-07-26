@@ -17,6 +17,9 @@ endif
 
 if s:is_vim
   let rpc_root = resolve(expand('<sfile>:h:h').'/node_modules/vim-node-rpc')
+  if !filereadable(rpc_root.'/lib/index.js')
+    finish
+  endif
   execute 'set rtp+='.fnameescape(rpc_root)
   " start vim-node-rpc
   call nvim#rpc#start_server()
@@ -42,9 +45,7 @@ endfunction
 " This should be sync
 function! s:BufWritePre(bufnr)
   if !get(g:, 'coc_enabled', 0) | return | endif
-  if getbufvar(a:bufnr, '&buftype') ==# ''
-    return
-  endif
+  if getbufvar(a:bufnr, '&buftype') !=# '' | return | endif
   call coc#rpc#request('BufWritePre', [a:bufnr])
 endfunction
 

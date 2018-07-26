@@ -231,7 +231,7 @@ export interface ConfigurationInspect<T> {
   workspaceValue?: T
 }
 
-export interface MainThreadConfigurationShape {
+export interface ConfigurationShape {
   $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): Promise<void>
   $removeConfigurationOption(target: ConfigurationTarget, key: string): Promise<void>
 }
@@ -542,4 +542,3 @@ export interface OutputChannel {
    */
   dispose(): void
 }
-

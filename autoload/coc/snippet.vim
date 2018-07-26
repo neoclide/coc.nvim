@@ -1,29 +1,24 @@
+let s:virtualedit = &virtualedit
+let s:is_vim = !has('nvim')
+
 " make a range to select mode
 function! coc#snippet#range_select(lnum, col, len) abort
   let m = mode()
-  let old = &virtualedit
   let &virtualedit = 'onemore'
-  call cursor(a:lnum, a:col)
-  redraw
   if a:len == 0
     if m !=# 'i' | startinsert | endif
-    if !has('nvim')
-      call timer_start(30, { -> cursor(a:lnum, a:col)})
-    endif
+    call timer_start(10, { -> cursor(a:lnum, a:col)})
   else
-    let move = a:len == 1 ? '' : a:len - 1 . 'l'
-    if m ==# 'i'
-      call feedkeys("\<esc>", 'in')
-    else
-      execute 'normal! h'
-    endif
-    call timer_start(30, { -> s:start_select(move, old)})
+    if m ==# 'i' | stopinsert | endif
+    call timer_start(10, { -> s:start_select(a:lnum, a:col, a:len)})
   endif
 endfunction
 
-function! s:start_select(move, virtualedit)
-  execute 'normal! lv'.a:move."\<C-g>"
-  let &virtualedit = a:virtualedit
+function! s:start_select(lnum, col, len)
+  call cursor(a:lnum, a:col)
+  let m = a:len == 1 ? '' : (a:len - 1).'l'
+  execute 'normal! v'.m. "\<C-g>"
+  let &virtualedit = s:virtualedit
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort

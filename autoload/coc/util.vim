@@ -344,3 +344,7 @@ function! coc#util#diff_content(lines) abort
   diffthis
   setl foldenable
 endfunction
+
+function! coc#util#clear()
+  silent! call clearmatches()
+endfunction
