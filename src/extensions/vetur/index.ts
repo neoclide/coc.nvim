@@ -1,14 +1,14 @@
 import path from 'path'
-import {LanguageService} from '../../language-client'
-import {ROOT} from '../../util'
+import { LanguageService } from '../../language-client'
 import workspace from '../../workspace'
 import { WorkspaceConfiguration } from '../../types'
 import { LanguageClientOptions } from '../../language-client/main'
+
 const logger = require('../../util/logger')('extension-vetur')
-
 const sections = ['vetur', 'emmet', 'html', 'javascript', 'typescript', 'prettier', 'stylusSupremacy']
+const file = 'dist/vueServerMain.js'
 
-function getConfig(config:WorkspaceConfiguration):any {
+function getConfig(config: WorkspaceConfiguration): any {
   let res = {}
   for (let section of sections) {
     let o = config.get(section)
@@ -22,13 +22,29 @@ export default class VeturService extends LanguageService {
     let c = workspace.getConfiguration()
     const config = c.get('vetur') as any
     super('vetur', 'Vetur Language Server', {
-      module: path.join(ROOT, 'node_modules/vue-language-server/dist/vueServerMain.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('vue-language-server', 'vetur').then(folder => {
+            resolve(folder ? path.join(folder, file) : null)
+          }, err => {
+            logger.error(err)
+            resolve(null)
+          })
+        })
+      },
       execArgv: config.execArgv || [],
       filetypes: config.filetypes || ['vue'],
       initializationOptions: {
         config: getConfig(c)
       },
       enable: config.enable !== false
+    })
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'vue-language-server') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
     })
   }
 

@@ -19,10 +19,12 @@ function lookUp(tree: any, key: string): any {
 }
 
 export default class Configurations {
-  private readonly _proxy: ConfigurationShape
   private _configuration: Configuration
 
-  constructor(data: IConfigurationData) {
+  constructor(
+    data: IConfigurationData,
+    private readonly _proxy: ConfigurationShape
+  ) {
     this._configuration = Configurations.parse(data)
   }
 

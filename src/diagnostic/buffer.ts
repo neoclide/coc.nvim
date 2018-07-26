@@ -213,7 +213,7 @@ export class DiagnosticBuffer {
   private async addHighlight(owner: string, range: Range): Promise<void> {
     let {start, end} = range
     let {document, srcIdMap} = this
-    if (!document || workspace.bufnr != document.bufnr) return
+    if (!document) return
     try {
       let list:any[] = []
       for (let i = start.line; i <= end.line; i++) {
@@ -235,6 +235,7 @@ export class DiagnosticBuffer {
           list.push(i + 1)
         }
       }
+      if (workspace.bufnr != document.bufnr) return
       let id = await workspace.nvim.call('matchaddpos', ['CocUnderline', list, 99])
       let ids = srcIdMap.get(owner)
       if (ids) {

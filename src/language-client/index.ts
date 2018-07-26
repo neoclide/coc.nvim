@@ -44,7 +44,7 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
-  public init(): Promise<void> {
+  public async init(): Promise<void> {
     let {config, name} = this
     let {args, module, command, port, host} = config
     args = args || []
@@ -60,8 +60,11 @@ export class LanguageService implements IServiceProvider {
         return
       }
     }
-
     let isModule = module != null
+    if (typeof module == 'function') {
+      module = await module()
+    }
+    if (!module) return
     let serverOptions: ServerOptions
     if (isModule) {
       serverOptions = {
@@ -122,7 +125,7 @@ export class LanguageService implements IServiceProvider {
     client.registerProposedFeatures()
     let disposable = client.start()
     this.disposables.push(disposable)
-    return new Promise(resolve => {
+    await new Promise(resolve => {
       client.onReady().then(() => {
         this._onDidServiceReady.fire(void 0)
         resolve()
@@ -131,6 +134,7 @@ export class LanguageService implements IServiceProvider {
         resolve()
       })
     })
+    return
   }
 
   private getTransportKind():Transport {

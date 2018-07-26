@@ -16,14 +16,17 @@ nvim.on('notification', (method, args) => {
   switch (method) {
     case 'CocResult':
       plugin.cocResult.call(plugin, args)
-      break
+      return
     case 'VimEnter':
       plugin.onEnter()
-      break
+      return
     case 'CocAutocmd':
       plugin.cocAutocmd.call(plugin, args).catch(e => {
         logger.error('Autocmd error: ' + e.stack)
       })
+      return
+    case 'TerminalResult':
+      plugin.emitter.emit('terminalResult', args[0])
       return
     default:
       logger.debug('notification', method)

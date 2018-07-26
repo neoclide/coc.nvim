@@ -282,30 +282,42 @@ function! coc#util#setline(lnum, line)
   keepjumps call setline(a:lnum, a:line)
 endfunction
 
-function! coc#util#open_terminal(cmd, cwd)
-  execute 'belowright 5new'
+" id, cmd, cwd
+function! coc#util#open_terminal(opts)
+  execute 'belowright 5new +setl\ buftype=nofile '
+  setl buftype=nofile
   setl winfixheight
   setl norelativenumber
+  setl nonumber
+  setl bufhidden=wipe
+  let cmd = get(a:opts, 'cmd', '')
+  if empty(cmd) | return | endif
+  let cwd = get(a:opts, 'cwd', getcwd())
+  let id = get(a:opts, 'id', 0)
+  let bufnr = bufnr('%')
   if has('nvim')
-    call termopen(a:cmd, {
-          \ 'cwd': a:cwd,
-          \ 'on_exit': function('s:OnExit'),
-          \ 'buffer_nr': bufnr('%'),
+    call termopen(cmd, {
+          \ 'cwd': cwd,
+          \ 'on_exit': function('s:OnExit', [id, bufnr]),
           \})
-    startinsert
   else
-    execute 'lcd '.a:cwd
-    call term_start(a:cmd, {
+    execute 'lcd '.cwd
+    call term_start(cmd, {
           \ 'term_finish': 'close',
+          \ 'exit_cb': function('s:OnExit', [id, bufnr]),
           \ 'curwin': 1,
           \})
   endif
 endfunction
 
-function! s:OnExit(job_id, status, event) dict
-  if a:status == 0
-    execute 'silent! bd! '.self.buffer_nr
+function! s:OnExit(id, bufnr, job_id, status, ...)
+  if has('nvim') && a:status == 0
+    execute 'silent! bd! '.a:bufnr
   endif
+  call coc#rpc#notify('TerminalResult', [{
+        \ 'id': a:id,
+        \ 'success': a:status == 0 ? v:true : v:false
+        \}])
 endfunction
 
 function! coc#util#vim_info()

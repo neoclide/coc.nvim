@@ -3,10 +3,12 @@ import {DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location
 import Uri from 'vscode-uri'
 import Configurations, {parseContentFromFile} from './configurations'
 import Document from './model/document'
+import ModuleManager from './model/moduleManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import {ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel} from './types'
 import {getLine, resolveDirectory, resolveRoot, statAsync, writeFile} from './util/fs'
+import ConfigurationShape from './model/configurationShape'
 import {echoErr, echoMessage} from './util/index'
 import {byteIndex} from './util/string'
 import {watchFiles} from './util/watch'
@@ -37,6 +39,7 @@ export class Workspace {
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private watchmanPromise: Promise<Watchman>
+  private configurationShape: ConfigurationShape
   private _configurations: Configurations
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
   private _onDidAddDocument = new Emitter<TextDocument>()
@@ -46,6 +49,7 @@ export class Workspace {
   private _onDidSaveDocument = new Emitter<TextDocument>()
   private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
+  private _onDidModuleInstalled = new Emitter<string>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
@@ -55,7 +59,9 @@ export class Workspace {
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
+  public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
   public emitter: EventEmitter
+  private moduleManager: ModuleManager
   private watchmanPath: string
   private vimSettings: VimSettings
   private configFiles: string[]
@@ -66,8 +72,14 @@ export class Workspace {
   }
 
   public async init(): Promise<void> {
+    let moduleManager = this.moduleManager = new ModuleManager()
+    moduleManager.on('installed', name => {
+      this._onDidModuleInstalled.fire(name)
+    })
     let config = await this.loadConfigurations()
-    this._configurations = new Configurations(config)
+    let {configFiles} = this
+    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
+    this._configurations = new Configurations(config, configurationShape)
     this.root = await this.findProjectRoot()
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
@@ -480,6 +492,13 @@ export class Workspace {
     channel.show(false)
   }
 
+  public async resolveModule(name:string, section:string):Promise<string> {
+    let res = await this.moduleManager.resolveModule(name)
+    if (res) return res
+    await this.moduleManager.installModule(name, section)
+    return null
+  }
+
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
     let buffers = await this.nvim.buffers
     return buffers.find(buf => buf.id == bufnr)
@@ -501,7 +520,7 @@ export class Workspace {
   private async onConfigurationChange():Promise<void> {
     try {
       let config = await this.loadConfigurations()
-      this._configurations = new Configurations(config)
+      this._configurations = new Configurations(config, this.configurationShape)
       this._onDidChangeConfiguration.fire(this.getConfiguration())
     } catch (e) {
       logger.error(`Load configuration error: ${e.message}`)

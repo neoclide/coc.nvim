@@ -2,6 +2,8 @@ import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit} from 
 
 export type Filter = 'word' | 'fuzzy'
 
+export type ModuleResolve = () => Promise<string>
+
 export enum SourceType {
   Native,
   Remote,
@@ -15,7 +17,7 @@ export interface ChangeInfo {
 }
 
 export interface LanguageServerConfig {
-  module?: string
+  module?: string | ModuleResolve
   command?: string
   filetypes: string[]
   enable: boolean
@@ -229,6 +231,12 @@ export interface ConfigurationInspect<T> {
   defaultValue?: T
   globalValue?: T
   workspaceValue?: T
+}
+
+export interface TerminalResult {
+  id: number
+  success: boolean
+  message?: string
 }
 
 export interface ConfigurationShape {

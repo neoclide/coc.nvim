@@ -111,7 +111,9 @@ async function createDefaultConfiguration(): Promise<void> {
     }
   }
   const eslintCommand = await findEslint(root)
-  await workspace.nvim.call('coc#util#open_terminal', [eslintCommand + ' --init', root])
+  await workspace.nvim.call('coc#util#open_terminal', [{
+    cmd: eslintCommand + ' --init'
+  }])
 }
 
 function shouldBeValidated(textDocument: TextDocument): boolean {
