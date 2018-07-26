@@ -248,11 +248,15 @@ export class DiagnosticBuffer {
   }
 
   private async clearHighlight(owner:string, ids: Set<number>): Promise<void> {
-    let {document} = this
+    let {document, nvim} = this
     if (!document || workspace.bufnr != document.bufnr) return
     this.srcIdMap.set(owner, new Set())
     for (let id of ids) {
-      await workspace.nvim.call('matchdelete', [id])
+      try {
+        await nvim.call('matchdelete', [id])
+      } catch (e) {
+        // ignore E803
+      }
     }
   }
 

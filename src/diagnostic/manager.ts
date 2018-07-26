@@ -47,6 +47,15 @@ export class DiagnosticManager {
       this.setConfiguration()
     })
 
+    workspace.onDidSaveTextDocument(document => {
+      let buf = this.buffers.find(buf => buf.uri == document.uri)
+      if (buf) {
+        buf.checkSigns().catch(e => {
+          logger.error(e.stack)
+        })
+      }
+    })
+
     workspace.onDidCloseTextDocument(textDocument => {
       let {uri} = textDocument
       for (let collection of this.collections) {
