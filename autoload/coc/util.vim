@@ -360,3 +360,9 @@ endfunction
 function! coc#util#clear()
   silent! call clearmatches()
 endfunction
+
+function! coc#util#matchdelete(ids)
+  for id in a:ids
+    silent! call matchdelete(id)
+  endfor
+endfunction

@@ -158,11 +158,10 @@ export class DiagnosticBuffer {
   private async _clear(owner: string): Promise<void> {
     let {document, nvim} = this
     if (!document) return
+    let signIds = this.signMap.get(owner) || []
     try {
-      let ids = this.srcIdMap.get(owner) || new Set()
-      let signIds = this.signMap.get(owner) || []
       await Promise.all([
-        this.clearHighlight(owner, ids),
+        this.clearHighlight(owner),
         nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
       ])
       this.signMap.set(owner, [])
@@ -248,17 +247,12 @@ export class DiagnosticBuffer {
     }
   }
 
-  private async clearHighlight(owner:string, ids: Set<number>): Promise<void> {
+  private async clearHighlight(owner:string): Promise<void> {
     let {document, nvim} = this
-    if (!document || workspace.bufnr != document.bufnr) return
+    let ids = this.srcIdMap.get(owner) || new Set()
     this.srcIdMap.set(owner, new Set())
-    for (let id of ids) {
-      try {
-        await nvim.call('matchdelete', [id])
-      } catch (e) {
-        // ignore E803
-      }
-    }
+    if (!document || workspace.bufnr != document.bufnr) return
+    await nvim.call('coc#util#matchdelete', [ids])
   }
 
   private get document(): Document {

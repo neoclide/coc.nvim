@@ -1,3 +1,7 @@
+# 2018-07-27
+
+* Prompt user for download with big extension like `vetur` and `wxml-langserver`
+
 # 2018-07-24
 
 * better statusline integration with airline and lightline.
