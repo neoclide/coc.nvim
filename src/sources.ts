@@ -42,10 +42,7 @@ export default class Sources extends EventEmitter {
     if (this._ready) {
       return Promise.resolve()
     }
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        reject('source create timeout')
-      }, 5000)
+    return new Promise(resolve => {
       this.once('ready', resolve)
     })
   }
@@ -278,6 +275,7 @@ export default class Sources extends EventEmitter {
 
   private onDocumentEnter(info: DocumentInfo): void {
     this.ready.then(() => {
+      if (info.bufnr != workspace.bufnr) return
       let {sources} = this
       for (let s of sources) {
         if (!s.enable) continue
