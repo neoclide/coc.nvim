@@ -34,7 +34,7 @@ export class Workspace {
   public root: string
   public bufnr: number
   private _initialized = false
-  private buffers: {[index: number]: Document | null}
+  private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private watchmanPromise: Promise<Watchman>
   private _configurations: Configurations
@@ -62,7 +62,6 @@ export class Workspace {
   private jumpCommand: string
 
   constructor() {
-    this.buffers = {}
     this.configFiles = []
   }
 
@@ -149,10 +148,9 @@ export class Workspace {
   public getDocument(uri: string | number): Document
   public getDocument(bufnr: number): Document | null {
     if (typeof bufnr === 'number') {
-      return this.buffers[bufnr]
+      return this.buffers.get(bufnr)
     }
-    for (let key of Object.keys(this.buffers)) {
-      let doc = this.buffers[key]
+    for (let doc of this.buffers.values()) {
       if (doc && doc.uri === bufnr) return doc
     }
     return null
@@ -232,14 +230,13 @@ export class Workspace {
     if (!buffer) return
     const valid = await this.isValidBuffer(buffer)
     if (!valid) return
-    const {buffers} = this
-    const bufnr = buffer.id
-    const doc = buffers[bufnr]
+    const doc = this.buffers.get(buffer.id)
     if (doc) {
       await doc.checkDocument()
       return
     }
-    let document = buffers[bufnr] = new Document(buffer)
+    let document = new Document(buffer)
+    this.buffers.set(buffer.id, document)
     await document.init(this.nvim)
     this._onDidAddDocument.fire(document.textDocument)
     document.onDocumentChange(({textDocument, contentChanges}) => {
@@ -249,7 +246,7 @@ export class Workspace {
         contentChanges
       })
     })
-    logger.debug('buffer created', bufnr)
+    logger.debug('buffer created', buffer.id)
     return document
   }
 
@@ -277,17 +274,18 @@ export class Workspace {
   }
 
   public async onBufferUnload(bufnr: number): Promise<void> {
-    let doc = this.buffers[bufnr]
+    let doc = this.buffers.get(bufnr)
     if (doc) {
       doc.detach()
       this._onDidCloseDocument.fire(doc.textDocument)
     }
-    this.buffers[bufnr] = null
-    logger.debug('bufnr unload', bufnr)
+    this.buffers.delete(bufnr)
+    logger.debug('buffer unload', bufnr)
   }
 
   public async bufferEnter(bufnr: number): Promise<void> {
     this.bufnr = bufnr
+    if (!this.buffers.get(bufnr)) return
     let documentInfo = await this.nvim.call('coc#util#get_bufinfo', [bufnr])
     if (!documentInfo.languageId) return
     let uri = Uri.file(documentInfo.fullpath).toString()
@@ -298,7 +296,8 @@ export class Workspace {
 
   public async onBufferWillSave(bufnr: number): Promise<void> {
     let {nvim} = this
-    let doc = this.buffers[bufnr]
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
     let called = false
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     let waitUntil
@@ -341,27 +340,23 @@ export class Workspace {
   }
 
   public async onBufferDidSave(bufnr: number): Promise<void> {
-    let doc = this.buffers[bufnr]
-    if (doc) {
-      await doc.checkDocument()
-      this._onDidSaveDocument.fire(doc.textDocument)
-    }
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
+    await doc.checkDocument()
+    this._onDidSaveDocument.fire(doc.textDocument)
   }
 
   // all exists documents
   public get textDocuments(): TextDocument[] {
-    let docs = Object.keys(this.buffers).map(key => {
-      return this.buffers[key]
-    })
-    docs = docs.filter(d => d != null)
-    return docs.map(d => d.textDocument)
+    let docs = []
+    for (let b of this.buffers.values()) {
+      docs.push(b.textDocument)
+    }
+    return docs
   }
 
   public get documents(): Document[] {
-    let docs = Object.keys(this.buffers).map(key => {
-      return this.buffers[key]
-    })
-    return docs.filter(d => d != null)
+    return Array.from(this.buffers.values())
   }
 
   public async refresh(): Promise<void> {
@@ -390,6 +385,8 @@ export class Workspace {
     if (!this._initialized) {
       return Promise.resolve(null)
     }
+    let document = this.getDocument(this.bufnr)
+    if (document) return Promise.resolve(document)
     return this.nvim.buffer.then(buffer => {
       let document = this.getDocument(buffer.id)
       if (!document) return this.onBufferCreate(buffer)
@@ -413,7 +410,8 @@ export class Workspace {
   }
 
   public async getFormatOptions(): Promise<FormattingOptions> {
-    let buffer = await this.nvim.buffer
+    let doc = await this.document
+    let {buffer} = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1
     let options: FormattingOptions = {
