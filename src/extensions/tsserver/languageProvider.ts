@@ -185,9 +185,9 @@ export default class LanguageProvider {
       languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
     )
 
-    this.disposables.push(
-      new ProjectError(client, commandManager)
-    )
+    // this.disposables.push(
+    //   new ProjectError(client, commandManager)
+    // )
 
     if (this.client.apiVersion.gte(API.v280)) {
       this.disposables.push(
