@@ -169,7 +169,7 @@ export class CommandManager implements Disposable {
       echoErr(workspace.nvim, `Command: ${command} not found`)
       return
     }
-    return Promise.resolve(cmd.execute.apply(cmd, rest || [])).catch(e => {
+    return Promise.resolve(cmd.execute(rest)).catch(e => {
       echoErr(workspace.nvim, `Command error: ${e.message}`)
       logger.error(e.stack)
     })
