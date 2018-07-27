@@ -83,13 +83,7 @@ process.on('uncaughtException', function (err) {
 })
 
 process.on('unhandledRejection', function (reason, p) {
-  if (initialized) {
-    let msg = '[coc.nvim] Unhandled Rejection at:' + p + ' reason: ' + reason
-    nvim.call('coc#util#echo_messages', ['Error', msg.split('\n')]).catch(() => {
-      // noop
-    })
-  }
-  logger.error('unhandledRejection', reason)
+  logger.error('unhandledRejection ', p, reason)
 })
 
 process.stderr.on('data', function (data) {

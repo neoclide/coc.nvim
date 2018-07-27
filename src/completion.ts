@@ -80,8 +80,8 @@ export class Completion {
       }
       // make sure input not changed
       if (increment.search == resumeInput) {
-        await nvim.call('coc#_set_context', [opt.col, items])
-        await nvim.call('coc#_do_complete')
+        nvim.call('coc#_set_context', [opt.col, items], true)
+        nvim.call('coc#_do_complete', [], true)
       }
     } catch (e) {
       echoErr(nvim, `completion error: ${e.message}`)
@@ -142,8 +142,8 @@ export class Completion {
     }
     let {search} = increment
     if (search === option.input) {
-      await nvim.call('coc#_set_context', [option.col, items])
-      await nvim.call('coc#_do_complete')
+      nvim.call('coc#_set_context', [option.col, items], true)
+      nvim.call('coc#_do_complete', [], true)
     } else {
       if (search && completes.hasMatch(search)) {
         await this.resumeCompletion(search)
