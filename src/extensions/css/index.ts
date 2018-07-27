@@ -18,7 +18,7 @@ export default class CssService extends LanguageService {
       execArgv: config.execArgv,
       filetypes: config.filetypes,
       enable: config.enable !== false
-    }, ID)
+    }, ['cssserver', 'css', 'less', 'scss', 'wxss'])
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {

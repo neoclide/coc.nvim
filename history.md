@@ -1,6 +1,7 @@
 # 2018-07-27
 
 * Prompt user for download with big extension like `vetur` and `wxml-langserver`
+* **Break change**, section of settings changed: `cssserver.[languageId]` moved to `[languageId]`
 
 # 2018-07-24
 
