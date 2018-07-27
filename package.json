@@ -62,7 +62,6 @@
     "tslib": "^1.9.3"
   },
   "dependencies": {
-    "@chemzqm/solargraph-utils": "0.7.5",
     "@chemzqm/neovim": "^4.3.2",
     "babel-polyfill": "^6.26.0",
     "debounce": "^1.1.0",

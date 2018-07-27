@@ -202,7 +202,6 @@ function! coc#util#echo_signature(activeParameter, activeSignature, signatures) 
     call add(arr, texts)
     let i = i + 1
   endfor
-  let g:a = arr
   for idx in range(len(arr))
     call s:echo_signatureItem(arr[idx])
     if idx != len(arr) - 1
@@ -342,6 +341,74 @@ function! coc#util#get_changeinfo()
         \ 'line': getline('.'),
         \ 'changedtick': b:changedtick,
         \}
+endfunction
+
+" run command and get result on succeed
+function! coc#util#run_command(opts)
+  let cmd = get(a:opts, 'cmd', '')
+  let id = get(a:opts, 'id', '')
+  let timeout = get(a:opts, 'timeout', 60)
+  let oldcwd = getcwd()
+  let cwd = get(a:opts, 'cwd', '')
+  if empty(cmd) | return | endif
+  if !empty(cwd) | execute 'lcd '.cwd | endif
+  if has('nvim')
+    let jobid = jobstart(cmd, {
+          \ 'stdout_buffered': 1,
+          \ 'stderr_buffered': 1,
+          \ 'on_stdout': {channel, data -> s:on_result(id, data)},
+          \ 'on_stderr': {channel, data -> s:on_error(id, data)},
+          \})
+    if jobid <= 0
+      echohl Error | echon 'Start job failed: '.cmd | echohl None
+    endif
+    call timer_start(timeout*1000, { -> execute('silent! call jobstop('.jobid.')')})
+  else
+    let job = job_start(cmd, {
+          \ 'in_mode': 'raw',
+          \ 'out_mode': 'raw',
+          \ 'err_mode': 'raw',
+          \ 'err_cb': {channel, data -> s:on_error(id, data)},
+          \ 'out_cb': {channel, data -> s:on_result(id, data)},
+          \})
+    call timer_start(timeout*1000, { -> s:stop_job(job)})
+  endif
+  execute 'lcd '.oldcwd
+endfunction
+
+function! s:stop_job(job)
+  if job_status(a:job) == 'run'
+    call job_stop(a:job, 'kill')
+  endif
+endfunction
+
+function! s:on_result(id, result)
+  if type(a:result) == 3
+    let msg = join(a:result, "\n")
+  else
+    let msg = a:result
+  endif
+  call coc#rpc#notify('JobResult', [a:id, msg])
+endfunction
+
+function! s:on_error(id, msgs)
+  if type(a:msgs) == 1
+    echohl Error | echon a:msgs | echohl None
+  else
+    for msg in a:msgs
+      echohl Error | echon msg | echohl None
+    endfor
+  endif
+  if !s:empty(a:msgs)
+    call coc#rpc#notify('JobResult', [a:id, ''])
+  endif
+endfunction
+
+function! s:empty(msgs)
+  if empty(a:msgs) | return 1 | endif
+  if len(a:msgs) == 1 && get(a:msgs, 1, '') ==# ''
+    return 1
+  endif
 endfunction
 
 " show diff of current buffer

@@ -1,21 +1,22 @@
-import {Buffer, Neovim} from '@chemzqm/neovim'
-import {DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit} from 'vscode-languageserver-protocol'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import Configurations, {parseContentFromFile} from './configurations'
+import Configurations, { parseContentFromFile } from './configurations'
 import Document from './model/document'
 import ModuleManager from './model/moduleManager'
+import JobManager from './model/jobManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import {ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel} from './types'
-import {getLine, resolveDirectory, resolveRoot, statAsync, writeFile} from './util/fs'
+import { ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel } from './types'
+import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import ConfigurationShape from './model/configurationShape'
-import {echoErr, echoMessage} from './util/index'
-import {byteIndex} from './util/string'
-import {watchFiles} from './util/watch'
+import { echoErr, echoMessage } from './util/index'
+import { byteIndex } from './util/string'
+import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import path from 'path'
 import uuidv1 = require('uuid/v1')
-import {EventEmitter} from 'events'
+import { EventEmitter } from 'events'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
@@ -66,6 +67,7 @@ export class Workspace {
   private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
+  private jobManager: JobManager
 
   constructor() {
     this.configFiles = []
@@ -73,11 +75,12 @@ export class Workspace {
 
   public async init(): Promise<void> {
     let moduleManager = this.moduleManager = new ModuleManager()
+    this.jobManager = new JobManager(this.nvim, this.emitter)
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
     let config = await this.loadConfigurations()
-    let {configFiles} = this
+    let { configFiles } = this
     let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
     this._configurations = new Configurations(config, configurationShape)
     this.root = await this.findProjectRoot()
@@ -100,11 +103,11 @@ export class Workspace {
     }
   }
 
-  public get isVim():boolean {
+  public get isVim(): boolean {
     return this.vimSettings.isVim
   }
 
-  public get initialized():boolean {
+  public get initialized(): boolean {
     return this._initialized
   }
 
@@ -181,17 +184,18 @@ export class Workspace {
       character
     })
   }
+
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
-    let {nvim} = this
-    let {documentChanges, changes} = edit
+    let { nvim } = this
+    let { documentChanges, changes } = edit
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
       let n = 0
       for (let change of documentChanges) {
-        let {textDocument, edits} = change
-        let {uri} = textDocument
+        let { textDocument, edits } = change
+        let { uri } = textDocument
         let doc = this.getDocument(uri)
         if (textDocument.version == doc.version) {
           await doc.applyEdits(nvim, edits)
@@ -251,10 +255,10 @@ export class Workspace {
     this.buffers.set(buffer.id, document)
     await document.init(this.nvim)
     this._onDidAddDocument.fire(document.textDocument)
-    document.onDocumentChange(({textDocument, contentChanges}) => {
-      let {version, uri} = textDocument
+    document.onDocumentChange(({ textDocument, contentChanges }) => {
+      let { version, uri } = textDocument
       this._onDidChangeDocument.fire({
-        textDocument: {version, uri},
+        textDocument: { version, uri },
         contentChanges
       })
     })
@@ -263,8 +267,8 @@ export class Workspace {
   }
 
   public async getQuickfixItem(loc: Location): Promise<QuickfixItem> {
-    let {uri, range} = loc
-    let {line, character} = range.start
+    let { uri, range } = loc
+    let { line, character } = range.start
     let text: string
     let fullpath = Uri.parse(uri).fsPath
     let bufnr = await this.nvim.call('bufnr', fullpath)
@@ -307,7 +311,7 @@ export class Workspace {
   }
 
   public async onBufferWillSave(bufnr: number): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     let called = false
@@ -380,7 +384,7 @@ export class Workspace {
   }
 
   public async echoLines(lines: string[]): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let cmdHeight = (await nvim.getOption('cmdheight') as number)
     if (lines.length > cmdHeight) {
       lines = lines.slice(0, cmdHeight)
@@ -408,10 +412,10 @@ export class Workspace {
 
   public async getCurrentState(): Promise<EditerState> {
     let document = await this.document
-    if (!document) return {document: null, position: null}
+    if (!document) return { document: null, position: null }
     let [, lnum, col] = await this.nvim.call('getcurpos')
     let line = document.getline(lnum - 1)
-    if (!line) return {document: null, position: null}
+    if (!line) return { document: null, position: null }
     return {
       document: document.textDocument,
       position: {
@@ -423,7 +427,7 @@ export class Workspace {
 
   public async getFormatOptions(): Promise<FormattingOptions> {
     let doc = await this.document
-    let {buffer} = doc
+    let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1
     let options: FormattingOptions = {
@@ -434,8 +438,8 @@ export class Workspace {
   }
 
   public async jumpTo(uri: string, position: Position): Promise<void> {
-    let {nvim, jumpCommand} = this
-    let {line, character} = position
+    let { nvim, jumpCommand } = this
+    let { line, character } = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
     let bufnr = await nvim.call('bufnr', [filepath])
@@ -449,7 +453,7 @@ export class Workspace {
   }
 
   public async openResource(uri: string): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let filepath = Uri.parse(uri).fsPath
     let bufnr = await nvim.call('bufnr', [filepath])
     if (bufnr != -1) return
@@ -459,7 +463,7 @@ export class Workspace {
   }
 
   public async diffDocument(): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let buffer = await nvim.buffer
     let document = this.getDocument(buffer.id)
     if (!document) {
@@ -470,11 +474,11 @@ export class Workspace {
     await nvim.call('coc#util#diff_content', [lines])
   }
 
-  public get channelNames():string[] {
+  public get channelNames(): string[] {
     return Array.from(this.outputChannels.keys())
   }
 
-  public createOutputChannel(name:string):OutputChannel {
+  public createOutputChannel(name: string): OutputChannel {
     if (this.outputChannels.has(name)) {
       name = `${name}-${uuidv1()}`
     }
@@ -483,7 +487,7 @@ export class Workspace {
     return channel
   }
 
-  public showOutputChannel(name:string):void {
+  public showOutputChannel(name: string): void {
     let channel = this.outputChannels.get(name)
     if (!channel) {
       echoErr(this.nvim, `Channel "${name}" not found`)
@@ -492,11 +496,15 @@ export class Workspace {
     channel.show(false)
   }
 
-  public async resolveModule(name:string, section:string, silent = false):Promise<string> {
+  public async resolveModule(name: string, section: string, silent = false): Promise<string> {
     let res = await this.moduleManager.resolveModule(name)
     if (res) return res
     if (!silent) await this.moduleManager.installModule(name, section)
     return null
+  }
+
+  public async runCommand(cmd: string, cwd?: string):Promise<string> {
+    return await this.jobManager.runCommand(cmd, cwd)
   }
 
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
@@ -505,7 +513,7 @@ export class Workspace {
   }
 
   private fileCount(edit: WorkspaceEdit): number {
-    let {changes} = edit
+    let { changes } = edit
     if (!changes) return 0
     let n = 0
     for (let uri of Object.keys(changes)) {
@@ -517,7 +525,7 @@ export class Workspace {
     return n
   }
 
-  private async onConfigurationChange():Promise<void> {
+  private async onConfigurationChange(): Promise<void> {
     try {
       let config = await this.loadConfigurations()
       this._configurations = new Configurations(config, this.configurationShape)
@@ -536,8 +544,8 @@ export class Workspace {
   private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): Promise<boolean> {
     if (!documentChanges) return true
     for (let change of documentChanges) {
-      let {textDocument} = change
-      let {uri, version} = textDocument
+      let { textDocument } = change
+      let { uri, version } = textDocument
       let doc = this.getDocument(uri)
       if (!doc) {
         echoErr(this.nvim, `${uri} not found`)
@@ -551,7 +559,7 @@ export class Workspace {
     return true
   }
 
-  private async validateChanges(changes: {[uri: string]: TextEdit[]}): Promise<boolean> {
+  private async validateChanges(changes: { [uri: string]: TextEdit[] }): Promise<boolean> {
     if (!changes) return true
     for (let uri of Object.keys(changes)) {
       if (!uri.startsWith('file://')) {
@@ -573,7 +581,7 @@ export class Workspace {
       config = await parseContentFromFile(file)
     } catch (e) {
       echoErr(this.nvim, `parseFile ${file} error: ${e.message}`)
-      config = {contents: {}}
+      config = { contents: {} }
     }
     return config
   }
@@ -601,7 +609,7 @@ export class Workspace {
       this.configFiles.push(file)
       projectConfig = await this.parseConfigFile(file)
     } else {
-      projectConfig = {contents: {}}
+      projectConfig = { contents: {} }
     }
     return {
       defaults: defaultConfig,
@@ -612,7 +620,7 @@ export class Workspace {
 
   // events for sync buffer of vim
   private initVimEvents(): void {
-    let {emitter, nvim} = this
+    let { emitter, nvim } = this
     let lastChar = ''
     let lastTs = null
     emitter.on('InsertCharPre', ch => {

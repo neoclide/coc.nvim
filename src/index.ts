@@ -54,6 +54,9 @@ export default class CompletePlugin {
     this.initialized = true
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('Coc initialized')
+
+    let res = await workspace.runCommand('ls')
+    logger.info('res:', res)
   }
 
   // callback for remote sources

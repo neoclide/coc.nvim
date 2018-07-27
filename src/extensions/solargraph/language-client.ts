@@ -1,12 +1,11 @@
-import * as solargraph from '@chemzqm/solargraph-utils'
-import * as net from 'net'
 import {LanguageClient, LanguageClientOptions, Middleware, ServerOptions} from '../../language-client/main'
 import workspace from '../../workspace'
-const logger = require('../../util/logger')('extension-solargraph-client')
+import { Configuration } from './configuration'
+// const logger = require('../../util/logger')('extension-solargraph-client')
 
 export function makeLanguageClient(
   languageIds: string[],
-  socketProvider: solargraph.SocketProvider,
+  configurations: Configuration
 ): LanguageClient {
 
   let middleware: Middleware = {
@@ -26,14 +25,9 @@ export function makeLanguageClient(
       enablePages: false
     }
   }
-  let serverOptions: ServerOptions = () => {
-    return new Promise(resolve => {
-      let socket: net.Socket = net.createConnection(socketProvider.port, '127.0.0.1')
-      resolve({
-        reader: socket,
-        writer: socket
-      })
-    })
+  let serverOptions: ServerOptions =  {
+    command: configurations.commandPath ||' solargraph',
+    args: ['stdio']
   }
 
   return new LanguageClient(

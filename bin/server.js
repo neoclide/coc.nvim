@@ -28,6 +28,9 @@ nvim.on('notification', (method, args) => {
     case 'TerminalResult':
       plugin.emitter.emit('terminalResult', args[0])
       return
+    case 'JobResult':
+      plugin.emitter.emit('JobResult', args[0], args[1])
+      return
     default:
       logger.debug('notification', method)
   }
