@@ -84,7 +84,6 @@
     "uuid": "^3.3.2",
     "jsonc-parser": "^2.0.1",
     "vim-node-rpc": "0.1.7",
-    "stylelint-vscode": "^7.0.0-6",
     "vscode-css-languageservice": "^3.0.9",
     "vscode-html-languageserver-bin": "^1.4.0",
     "vscode-json-languageserver": "^1.0.1",

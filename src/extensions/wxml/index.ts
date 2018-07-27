@@ -11,7 +11,6 @@ export default class WxmlService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('wxml-langserver', 'wxml').then(folder => {
-            logger.debug('folder:', folder)
             resolve(folder ? path.join(folder, file) : null)
           }, () => {
             resolve(null)

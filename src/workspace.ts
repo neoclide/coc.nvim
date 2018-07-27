@@ -492,10 +492,10 @@ export class Workspace {
     channel.show(false)
   }
 
-  public async resolveModule(name:string, section:string):Promise<string> {
+  public async resolveModule(name:string, section:string, silent = false):Promise<string> {
     let res = await this.moduleManager.resolveModule(name)
     if (res) return res
-    await this.moduleManager.installModule(name, section)
+    if (!silent) await this.moduleManager.installModule(name, section)
     return null
   }
 
