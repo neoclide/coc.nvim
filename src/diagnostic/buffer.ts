@@ -252,7 +252,7 @@ export class DiagnosticBuffer {
     let ids = this.srcIdMap.get(owner) || new Set()
     this.srcIdMap.set(owner, new Set())
     if (!document || workspace.bufnr != document.bufnr) return
-    await nvim.call('coc#util#matchdelete', [ids])
+    await nvim.call('coc#util#matchdelete', [Array.from(ids)])
   }
 
   private get document(): Document {
