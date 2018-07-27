@@ -22,7 +22,7 @@ export default class File extends Source {
     if (opt.triggerCharacter == '/') {
       let synName = await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
       synName = synName.toLowerCase()
-      if (['string', 'comment'].indexOf(synName) == -1) {
+      if (synName && ['string', 'comment'].indexOf(synName) == -1) {
         return false
       }
     }
