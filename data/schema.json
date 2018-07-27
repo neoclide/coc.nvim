@@ -183,6 +183,11 @@
       "description": "How should completion be triggered",
       "enum": ["always", "trigger", "none"]
     },
+    "coc.preferences.triggerAfterInsertEnter": {
+      "type": "boolean",
+      "description": "Trigger completion after InsertEnter, auto trigger should be always to enable this option",
+      "default": true
+    },
     "coc.preferences.timeout": {
       "type": "integer",
       "default": 300,

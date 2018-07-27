@@ -1,7 +1,33 @@
 # 2018-07-27
 
-* Prompt user for download with big extension like `vetur` and `wxml-langserver`
+* Prompt user for download server module with big extension like `vetur` and `wxml-langserver`
 * **Break change**, section of settings changed: `cssserver.[languageId]` moved to `[languageId]`
+  
+  For exmaple: `cssserver.css` section is moved to `css` section.
+
+  This makes coc settings of css languages the same as VSCode.
+
+* **Break change**, `stylelint` extension is disabled by default, add
+
+  ```
+  "stylelint.enable": true,
+  ```
+
+  to your `coc-settings.json` to enable it.
+
+  User will be prompted to download server if `stylelint-langserver` is not
+  installed globally.
+
+* **Break change**, `triggerAfterInsertEnter` is always `true`, add
+
+  ```
+  "coc.preferences.triggerAfterInsertEnter": false,
+  ```
+
+  to your `coc-settings.json` to disable it.
+
+* **Break change**, when `autoTrigger` is `always` completion would be triggered
+after completion item select.
 
 # 2018-07-24
 

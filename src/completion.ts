@@ -31,6 +31,9 @@ export class Completion {
     emitter.on('InsertLeave', () => {
       this.onInsertLeave().catch(onError)
     })
+    emitter.on('InsertEnter', () => {
+      this.onInsertEnter().catch(onError)
+    })
     emitter.on('TextChangedP', () => {
       this.onTextChangedP().catch(onError)
     })
@@ -48,6 +51,10 @@ export class Completion {
       if (!document) return
       document.paused = false
     })
+  }
+
+  private getPreference(name:string, defaultValue: any):any {
+    return workspace.getConfiguration('coc.preferences').get(name,defaultValue)
   }
 
   public get hasLatestChangedI(): boolean {
@@ -207,6 +214,17 @@ export class Completion {
     this.increment.stop()
   }
 
+  private async onInsertEnter(): Promise<void> {
+    let autoTrigger = this.getPreference('autoTrigger', 'always')
+    if (autoTrigger !== 'always') return
+    let trigger = this.getPreference('triggerAfterInsertEnter', false)
+    if (trigger) {
+      let option = await this.nvim.call('coc#util#get_complete_option')
+      logger.debug('trigger completion on InsertEnter')
+      this.startCompletion(option)
+    }
+  }
+
   private onInsertCharPre(character: string): void {
     let {increment} = this
     increment.lastInsert = {
@@ -218,11 +236,11 @@ export class Completion {
   private async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
     let {nvim, sources} = this
-    let autoTrigger = workspace.getConfiguration('coc.preferences').get('autoTrigger', 'always')
+    let autoTrigger = this.getPreference('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     if (isWord(character)) {
       let input = await nvim.call('coc#util#get_input') as string
-      return input.length == 1
+      return input.length > 0
     } else {
       let buffer = await nvim.buffer
       let languageId = await buffer.getOption('filetype') as string
