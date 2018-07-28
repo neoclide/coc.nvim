@@ -1,5 +1,6 @@
 import path from 'path'
 import fs from 'fs'
+import os from 'os'
 
 export function getParentDirs(fullpath: string): string[] {
   let obj = path.parse(fullpath)
@@ -14,7 +15,7 @@ export function getParentDirs(fullpath: string): string[] {
 }
 
 export function resolveRoot(root: string, subs: string[]): string | null {
-  let home =process.env.HOME
+  let home = os.homedir()
   let paths = getParentDirs(root)
   paths.unshift(root)
   for (let p of paths) {

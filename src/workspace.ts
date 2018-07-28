@@ -15,6 +15,7 @@ import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import path from 'path'
+import os from 'os'
 import uuidv1 = require('uuid/v1')
 import { EventEmitter } from 'events'
 const logger = require('./util/logger')('workspace')
@@ -537,7 +538,7 @@ export class Workspace {
 
   private async findProjectRoot(): Promise<string> {
     let cwd = await this.nvim.call('getcwd')
-    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], process.env.HOME)
+    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], os.homedir())
     return root ? root : cwd
   }
 

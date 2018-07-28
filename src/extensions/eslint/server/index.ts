@@ -13,6 +13,7 @@ import {
   ExecuteCommandRequest, DidChangeWatchedFilesNotification, DidChangeConfigurationNotification, CodeAction, CodeActionKind
 } from 'vscode-languageserver'
 import {resolveLocalConfig} from './util'
+import os from 'os'
 import URI from 'vscode-uri'
 import * as path from 'path'
 
@@ -377,7 +378,7 @@ function resolveSettings(document: TextDocument): Thenable<TextDocumentSettings>
           return Files.resolve('eslint', settings.resolvedGlobalPackageManagerPath, directory, trace)
         })
       } else {
-        let dir = localConfig ? directory : process.env.HOME
+        let dir = localConfig ? directory : os.homedir()
         promise = Files.resolve('eslint', settings.resolvedGlobalPackageManagerPath, dir, trace)
       }
     }

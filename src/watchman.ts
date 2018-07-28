@@ -3,6 +3,7 @@ import watchman = require('fb-watchman')
 import fs from 'fs'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
+import os from 'os'
 import {OutputChannel} from './types'
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -63,7 +64,7 @@ export default class Watchman {
   }
 
   private async watchProject(root: string): Promise<boolean> {
-    if (root === process.env.HOME) {
+    if (root === os.homedir()) {
       return false
     }
     let resp = await this.command(['watch-project', root])
@@ -115,7 +116,7 @@ export default class Watchman {
   }
 
   public static async createClient(binaryPath: string, root: string, outputChannel: OutputChannel): Promise<Watchman | null> {
-    if (root == process.env.HOME) return null
+    if (root == os.homedir()) return null
     let client = new Watchman(binaryPath, outputChannel)
     let watching
     try {

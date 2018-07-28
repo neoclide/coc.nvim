@@ -78,7 +78,7 @@ export function resolveDirectory(root: string, sub: string): string | null {
 }
 
 export function resolveRoot(root: string, subs: string[], home?: string): string | null {
-  home = home || process.env.HOME
+  home = home || os.homedir()
   let paths = getParentDirs(root)
   paths.unshift(root)
   for (let p of paths) {
