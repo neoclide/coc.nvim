@@ -1,3 +1,7 @@
+# 2018-07-28
+
+* Use stdio for transport
+
 # 2018-07-27
 
 * Prompt user for download server module with big extension like `vetur` and `wxml-langserver`

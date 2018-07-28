@@ -7,9 +7,10 @@ const Plugin = require('..').default
 const attach = require('@chemzqm/neovim').attach
 const logger = require('../lib/util/logger')('server')
 
-const nvim = attach({
-  socket: process.env.NVIM_LISTEN_ADDRESS
-})
+// use stdio for neovim
+let opts = process.argv.indexOf('--stdio') !== -1 ? {reader: process.stdin, writer: process.stdout} : {socket: process.env.NVIM_LISTEN_ADDRESS}
+const nvim = attach(opts)
+
 const plugin = new Plugin(nvim)
 
 nvim.on('notification', (method, args) => {
