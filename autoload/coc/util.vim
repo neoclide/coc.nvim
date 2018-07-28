@@ -88,6 +88,9 @@ function! coc#util#get_config_home()
     if exists('$XDG_CONFIG_HOME')
       return resolve($XDG_CONFIG_HOME."/nvim")
     endif
+    if s:is_win
+      return resolve($HOME.'/AppData/Local/nvim')
+    endif
     return resolve($HOME.'/.config/nvim')
   else
     if s:is_win
