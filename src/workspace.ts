@@ -24,6 +24,7 @@ const CONFIG_FILE_NAME = 'coc-settings.json'
 // global neovim settings
 export interface VimSettings {
   completeOpt: string
+  pluginRoot: string
   isVim: boolean
 }
 
@@ -80,6 +81,7 @@ export class Workspace {
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
+    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let config = await this.loadConfigurations()
     let { configFiles } = this
     let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
@@ -95,13 +97,16 @@ export class Workspace {
     const watchmanPath = preferences.get<string>('watchmanPath', '')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
     this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
-    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
     if (this.isVim) {
       this.initVimEvents()
     }
+  }
+
+  public get pluginRoot():string {
+    return this.vimSettings.pluginRoot
   }
 
   public get isVim(): boolean {
@@ -595,7 +600,7 @@ export class Workspace {
   }
 
   private async loadConfigurations(): Promise<IConfigurationData> {
-    let file = path.resolve(__dirname, '../settings.json')
+    let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
     let defaultConfig = await this.parseConfigFile(file)
     let home = await this.nvim.call('coc#util#get_config_home')

@@ -1,19 +1,17 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
+import workspace from '../workspace'
 import {CompleteOption, CompleteResult, SourceConfig} from '../types'
-import {statAsync} from '../util/fs'
-import fs = require('fs')
-import path = require('path')
-import pify = require('pify')
+import fs from 'fs'
+import path from 'path'
+import pify from 'pify'
 const logger = require('../util/logger')('source-emoji')
 
 export interface Item {
   description: string
   character: string
 }
-
 let items: Item[] | null = null
-let file = path.resolve(__dirname, '../../data/emoji.txt')
 
 export default class Emoji extends Source {
   constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
@@ -26,10 +24,7 @@ export default class Emoji extends Source {
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {filetype, line} = opt
     if (!this.checkFileType(filetype)) return false
-    let {col, input} = opt
-    if (input.length === 0) return false
-    let stat = await statAsync(file)
-    if (!stat || !stat.isFile()) return false
+    let {col} = opt
     if (line[col] === ':') {
       opt.startcol = col
       return true
@@ -41,6 +36,8 @@ export default class Emoji extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
+    let file = path.resolve(workspace.pluginRoot, 'data/emoji.txt')
+    if (!fs.existsSync(file)) return
     let {input, startcol} = opt
     if (!items) {
       let content = await pify(fs.readFile)(file, 'utf8')

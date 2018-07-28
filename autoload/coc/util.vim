@@ -326,6 +326,7 @@ function! coc#util#vim_info()
   return {
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'pluginRoot': expand('<sfile>:h:h:h'),
         \}
 endfunction
 

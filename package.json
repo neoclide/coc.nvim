@@ -39,6 +39,10 @@
     "testRegex": "(src/__tests__/.*|(\\.|/)(test|spec))\\.ts$",
     "coverageDirectory": "./coverage/"
   },
+  "pkg": {
+    "scripts": ["lib/**/*.js", "lib/**/*.json"],
+    "assets": []
+  },
   "devDependencies": {
     "@chemzqm/tsconfig": "0.0.2",
     "@chemzqm/tslint-config": "^1.0.15",

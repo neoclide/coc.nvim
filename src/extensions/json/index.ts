@@ -32,6 +32,7 @@ export default class JsonService extends LanguageService {
 
   private async onDocumentEnter(uri:string):Promise<void> {
     if (!/\.json$/.test(uri)) return
+    const {pluginRoot} = workspace
     let {miniProgrameRoot} = this
     let doc = workspace.getDocument(uri)
     if (!doc) return
@@ -44,7 +45,7 @@ export default class JsonService extends LanguageService {
         return
       }
       let arr = ['page', 'component'].map(str => {
-        return Uri.file(path.join(ROOT, `data/${str}.json`)).toString()
+        return Uri.file(path.join(pluginRoot, `data/${str}.json`)).toString()
       })
       associations[file] = arr
     }
@@ -74,7 +75,7 @@ export default class JsonService extends LanguageService {
     }
     const files = await this.getSchemaFiles()
     associations['coc-settings.json'] = files.map(f => Uri.file(f).toString())
-    associations['app.json'] = [Uri.file(path.join(ROOT, 'data/app.json')).toString()]
+    associations['app.json'] = [Uri.file(path.join(workspace.pluginRoot, 'data/app.json')).toString()]
     this.client.sendNotification('json/schemaAssociations', associations)
     this.disposables.push(
       workspace.onDidEnterTextDocument(documentInfo => {
@@ -88,9 +89,9 @@ export default class JsonService extends LanguageService {
   }
 
   private async getSchemaFiles(): Promise<string[]> {
-    const files = [path.join(ROOT, 'data/schema.json')]
+    const files = [path.join(workspace.pluginRoot, 'data/schema.json')]
     try {
-      const base = path.join(ROOT, 'src/extensions')
+      const base = path.join(workspace.pluginRoot, 'src/extensions')
       const folders = await readdirAsync(base)
       files.push(...folders.map(f => path.join(base, f + '/schema.json')))
     } catch (e) {
