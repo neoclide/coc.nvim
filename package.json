@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "Completetion manage for neovim",
   "main": "./lib/index.js",
+  "bin": "./bin/server.js",
   "scripts": {
     "clean": "rimraf lib",
     "lint": "tslint -c tslint.json -p .",

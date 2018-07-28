@@ -7,6 +7,7 @@ import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem} from '../types'
 import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
+// const logger = require('../util/logger')('source-file')
 const pathRe = /\.{0,2}\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
@@ -18,14 +19,7 @@ export default class File extends Source {
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     if (!this.checkFileType(opt.filetype)) return false
-    let {line, linenr, colnr, bufnr} = opt
-    if (opt.triggerCharacter == '/') {
-      let synName = await this.nvim.call('coc#util#get_syntax_name', [linenr, colnr - 1]) as string
-      synName = synName.toLowerCase()
-      if (synName && ['string', 'comment'].indexOf(synName) == -1) {
-        return false
-      }
-    }
+    let {line, colnr, bufnr} = opt
     let part = byteSlice(line, 0, colnr - 1)
     if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
