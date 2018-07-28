@@ -76,7 +76,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
 
   ``` vim
-  Plug 'neoclide/coc.nvim', {'do': 'yarn install --prod=false'}
+  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
   ```
 
   to your `.vimrc`, restart neovim and run `:PlugInstall`.

@@ -6,7 +6,6 @@ process.env.NVIM_NODE_LOG_LEVEL = process.env.NVIM_COC_LOG_LEVEL || 'info'
 const Plugin = require('..').default
 const attach = require('@chemzqm/neovim').attach
 const logger = require('../lib/util/logger')('server')
-
 // use stdio for neovim
 let opts = process.argv.indexOf('--stdio') !== -1 ? {reader: process.stdin, writer: process.stdout} : {socket: process.env.NVIM_LISTEN_ADDRESS}
 const nvim = attach(opts)
@@ -88,8 +87,4 @@ process.on('uncaughtException', function (err) {
 
 process.on('unhandledRejection', function (reason, p) {
   logger.error('unhandledRejection ', p, reason)
-})
-
-process.stderr.on('data', function (data) {
-  logger.error(data)
 })

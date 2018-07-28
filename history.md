@@ -1,13 +1,14 @@
 # 2018-07-28
 
 * Use stdio for transport
+* Fix uncaught exception error on windows
 
 # 2018-07-27
 
 * Prompt user for download server module with big extension like `vetur` and `wxml-langserver`
 * **Break change**, section of settings changed: `cssserver.[languageId]` moved to `[languageId]`
   
-  For exmaple: `cssserver.css` section is moved to `css` section.
+  For example: `cssserver.css` section is moved to `css` section.
 
   This makes coc settings of css languages the same as VSCode.
 
