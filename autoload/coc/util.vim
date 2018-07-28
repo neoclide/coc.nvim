@@ -1,4 +1,5 @@
 let s:is_win = has("win32") || has('win64')
+let s:root = expand('<sfile>:h:h:h')
 
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
@@ -326,7 +327,7 @@ function! coc#util#vim_info()
   return {
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
-        \ 'pluginRoot': expand('<sfile>:h:h:h'),
+        \ 'pluginRoot': s:root,
         \}
 endfunction
 
@@ -436,4 +437,20 @@ function! coc#util#matchdelete(ids)
   for id in a:ids
     silent! call matchdelete(id)
   endfor
+endfunction
+
+function! coc#util#open(url)
+  if has('mac') && executable('open')
+    call system('open '.a:url)
+    return
+  endif
+  if executable('xdg-open')
+    call system('xdg-open '.a:url)
+    return
+  endif
+  call system('cmd /c start "" /b '. substitute(a:url, '&', '^&', 'g'))
+  if v:shell_error
+    echohl Error | echon 'Failed to open '.a:url | echohl None
+    return
+  endif 
 endfunction
