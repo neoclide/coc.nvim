@@ -1,7 +1,9 @@
 # 2018-07-28
 
-* Use stdio for transport
-* Fix uncaught exception error on windows
+* Fix uncaught exception error on windows.
+* Use plugin root for assets resolve.
+* Fix emoji source not triggered by `:`.
+* Improve file source to recognize `~` as user home.
 
 # 2018-07-27
 

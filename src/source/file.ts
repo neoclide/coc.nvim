@@ -7,8 +7,9 @@ import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem} from '../types'
 import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
+import os from 'os'
 // const logger = require('../util/logger')('source-file')
-const pathRe = /\.{0,2}\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
+const pathRe = /(?:\.{0,2}|~)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
   constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
@@ -23,8 +24,11 @@ export default class File extends Source {
     let part = byteSlice(line, 0, colnr - 1)
     if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
-    if (ms) {
+    if (ms && ms.length) {
       opt.pathstr = ms[0]
+      if (opt.pathstr.startsWith('~')) {
+        opt.pathstr = os.homedir() + opt.pathstr.slice(1)
+      }
       let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [bufnr])
       opt.cwd = await this.nvim.call('getcwd', [])
       opt.ext = fullpath ? path.extname(path.basename(fullpath)) : ''

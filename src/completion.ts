@@ -139,6 +139,7 @@ export class Completion {
     let {nvim, increment} = this
     // could happen for auto trigger
     increment.start(option)
+    let {input} = option
     logger.trace(`options: ${JSON.stringify(option)}`)
     let sources = this.sources.getCompleteSources(option)
     logger.trace(`Activted sources: ${sources.map(o => o.name).join(',')}`)
@@ -148,9 +149,9 @@ export class Completion {
       return
     }
     let {search} = increment
-    if (search === option.input) {
-      nvim.call('coc#_set_context', [option.col, items], true)
-      nvim.call('coc#_do_complete', [], true)
+    if (search === input) {
+      await nvim.call('coc#_set_context', [option.col, items])
+      await nvim.call('coc#_do_complete', [])
     } else {
       if (search && completes.hasMatch(search)) {
         await this.resumeCompletion(search)
