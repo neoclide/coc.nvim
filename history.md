@@ -4,6 +4,10 @@
 
   A prompt for download is shown when server not found.
 
+* **Break change** `vim-node-rpc` decoupled from coc.nvim
+
+  A prompt would be shown to help user install vim-node-rpc in vim.
+
 # 2018-07-28
 
 * Fix uncaught exception error on windows.

@@ -330,25 +330,30 @@ function! coc#util#open_terminal(opts)
   let cwd = get(a:opts, 'cwd', getcwd())
   let id = get(a:opts, 'id', 0)
   let bufnr = bufnr('%')
+  let Callback = get(a:opts, 'Callback', v:null)
   if has('nvim')
     call termopen(cmd, {
           \ 'cwd': cwd,
-          \ 'on_exit': function('s:OnExit', [id, bufnr]),
+          \ 'on_exit': function('s:OnExit', [id, bufnr, Callback]),
           \})
   else
     execute 'lcd '.cwd
     call term_start(cmd, {
           \ 'term_finish': 'close',
-          \ 'exit_cb': function('s:OnExit', [id, bufnr]),
+          \ 'exit_cb': function('s:OnExit', [id, bufnr, Callback]),
           \ 'curwin': 1,
           \})
   endif
 endfunction
 
-function! s:OnExit(id, bufnr, job_id, status, ...)
+function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
   if has('nvim') && a:status == 0
     execute 'silent! bd! '.a:bufnr
   endif
+  if a:status == 0 && !empty(a:Callback)
+    call call(a:Callback, [a:status])
+  endif
+  if a:id == 0 | return | endif
   call coc#rpc#notify('TerminalResult', [{
         \ 'id': a:id,
         \ 'success': a:status == 0 ? v:true : v:false
@@ -495,4 +500,28 @@ function! coc#util#module_folder(manager) abort
     return ''
   endif
   return is_yarn ? folder . '/node_modules' : folder
+endfunction
+
+function! coc#util#terminal_install() abort
+  let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
+  if res !=? 'y' | return | endif
+  let cmd = ''
+  if executable('npm')
+    let cmd = 'npm i -g vim-node-rpc'
+  elseif executable('yarn')
+    let cmd = 'yarn global add vim-node-rpc'
+  else
+    echohl Error | echon '[coc.nvim] executable "npm" and "yarn" not find in $PATH' | echohl None
+    return
+  endif
+  call coc#util#open_terminal({
+        \ 'cmd': cmd,
+        \ 'Callback': {status -> s:on_installed()}
+        \ })
+endfunction
+
+function! s:on_installed()
+  redraw!
+  echohl MoreMsg | echon 'vim-node-rpc installed, starting rpc server.' | echohl None
+  call nvim#rpc#start_server()
 endfunction

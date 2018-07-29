@@ -7,11 +7,11 @@ let g:did_coc_loaded = 1
 let s:is_vim = !has('nvim')
 
 if has('nvim') && !has('nvim-0.3.0')
-  echohl Error | echon '[coc.nvim] coc requires neovim 0.3.0 to work' | echohl None
+  echohl Error | echon '[coc.nvim] coc requires neovim >= 0.3.0 to work' | echohl None
   finish
 endif
 if !has('nvim') && !has('patch-8.1.001')
-  echohl Error | echon '[coc.nvim] coc requires vim 8.1 to work' | echohl None
+  echohl Error | echon '[coc.nvim] coc requires vim >= 8.1 to work' | echohl None
   finish
 endif
 
@@ -142,6 +142,9 @@ augroup coc_init
   autocmd VimEnter * call coc#rpc#notify('VimEnter', [])
   if s:is_vim
     autocmd User NvimRpcInit call coc#rpc#start_server()
+    if empty(nvim#rpc#get_script())
+      autocmd VimEnter * call coc#util#terminal_install()
+    endif
   endif
 augroup end
 
