@@ -1,6 +1,5 @@
 import path from 'path'
 import {LanguageService} from '../../language-client'
-import {ROOT} from '../../util'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-html')
 
@@ -8,7 +7,15 @@ export default class HtmlService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get('html') as any
     super('html', 'HTML Language Server', {
-      module: path.join(ROOT, 'node_modules/vscode-html-languageserver-bin/htmlServerMain.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('vscode-html-languageserver-bin', 'html').then(folder => {
+            resolve(folder ? path.join(folder, 'htmlServerMain.js') : null)
+          }, () => {
+            resolve(null)
+          })
+        })
+      },
       args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes,
@@ -19,6 +26,14 @@ export default class HtmlService extends LanguageService {
         }
       },
       enable: config.enable !== false
-    }, ['html', 'javascript'])
+    }, ['html', 'javascript', 'css'])
+
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'vscode-html-languageserver-bin') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
   }
 }

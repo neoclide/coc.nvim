@@ -3,7 +3,6 @@ import {CancellationToken, CompletionContext, CompletionItem, CompletionList, In
 import {LanguageService} from '../../language-client'
 import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
 import {ProviderResult} from '../../provider'
-import {ROOT} from '../../util'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('cssserver')
 
@@ -14,11 +13,28 @@ export default class CssService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get(ID) as any
     super(ID, 'CSS Language Server', {
-      module: path.join(ROOT, 'lib/extensions/css/server.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('css-langserver', 'cssserver').then(folder => {
+            resolve(folder ? path.join(folder, 'lib/server.js') : null)
+          }, () => {
+            resolve(null)
+          })
+        })
+      },
+      args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes,
       enable: config.enable !== false
     }, ['cssserver', 'css', 'less', 'scss', 'wxss'])
+
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'css-langserver') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {

@@ -130,12 +130,29 @@ export default class EslintService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get('eslint') as any
     super('eslint', 'Eslint Language Server', {
-      module: path.join(__dirname, 'server/index.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('eslint-server', 'eslint').then(folder => {
+            resolve(folder ? path.join(folder, 'lib/index.js') : null)
+          }, () => {
+            resolve(null)
+          })
+        })
+      },
       args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes || defaultLanguages,
       enable: config.enable !== false
     }, 'tslint')
+
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'eslint-server') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
+
     this.syncedDocuments = new Map()
     this.onServiceReady(() => {
       let {client} = this

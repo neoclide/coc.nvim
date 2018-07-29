@@ -1,6 +1,5 @@
 import {exec} from 'child_process'
 import fs from 'fs'
-import opn from 'opn'
 import path from 'path'
 import {CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
@@ -11,7 +10,7 @@ import {ProviderResult} from '../../provider'
 import {ServiceStat, TextDocumentWillSaveEvent} from '../../types'
 import {echoErr, echoMessage, echoWarning} from '../../util'
 import workspace from '../../workspace'
-import which = require('which')
+import which from 'which'
 const logger = require('../../util/logger')('tslint')
 
 interface AllFixesParams {
@@ -66,12 +65,28 @@ export default class TslintService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get('tslint') as any
     super('tslint', 'Tslint Language Server', {
-      module: path.join(__dirname, 'server/tslintServer.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('tslint-server', 'tslint').then(folder => {
+            resolve(folder ? path.join(folder, 'lib/tslintServer.js') : null)
+          }, () => {
+            resolve(null)
+          })
+        })
+      },
       args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes || ['typescript', 'javascript'],
       enable: config.enable !== false
     }, 'tslint')
+
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'tslint-server') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
 
     this.onServiceReady(() => {
       this.client.onRequest(NoTSLintLibraryRequest.type, () => {
@@ -84,7 +99,6 @@ export default class TslintService extends LanguageService {
       commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits)
       commandManager.registerCommand('_tslint.applyDisableRule', applyDisableRuleEdit)
       commandManager.registerCommand('_tslint.showRuleDocumentation', showRuleDocumentation)
-
       // user commandManager
       commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems.bind(this))
       commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
@@ -329,8 +343,8 @@ async function applyDisableRuleEdit(uri: string, documentVersion: number, edits:
 function showRuleDocumentation(_uri: string, _documentVersion: number, _edits: TextEdit[], ruleId: string): void {
   const tslintDocBaseURL = 'https://palantir.github.io/tslint/rules'
   if (!ruleId) return
-  opn(tslintDocBaseURL + '/' + ruleId).catch(() => {
-    echoErr(workspace.nvim, 'Failed to open browser')
+  workspace.nvim.call('coc#util#open', tslintDocBaseURL + '/' + ruleId).catch(_e => {
+    // noop
   })
 }
 

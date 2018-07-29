@@ -2,7 +2,6 @@ import path from 'path'
 import {CancellationToken, CompletionContext, CompletionItem, CompletionList, Position, TextDocument} from 'vscode-languageserver-protocol'
 import {ProviderResult} from '../../provider'
 import {LanguageService} from '../../language-client'
-import {ROOT} from '../../util'
 import workspace from '../../workspace'
 import catalog from './catalog.json'
 import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
@@ -22,12 +21,28 @@ export default class JsonService extends LanguageService {
   constructor() {
     const config = workspace.getConfiguration().get(ID) as LanguageServerConfig
     super('json', 'JSON Language Server', {
-      module: path.join(ROOT, 'node_modules/vscode-json-languageserver/out/jsonServerMain.js'),
+      module: () => {
+        return new Promise(resolve => {
+          workspace.resolveModule('vscode-json-languageserver', 'json').then(folder => {
+            resolve(folder ? path.join(folder, 'out/jsonServerMain.js') : null)
+          }, () => {
+            resolve(null)
+          })
+        })
+      },
       args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes || ['json', 'jsonc'],
       enable: config.enable !== false
     }, ['json', 'http'])
+
+    workspace.onDidModuleInstalled(mod => {
+      if (mod == 'vscode-json-languageserver') {
+        this.init().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
   }
 
   private async onDocumentEnter(uri:string):Promise<void> {

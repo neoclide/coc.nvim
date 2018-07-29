@@ -10,7 +10,8 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "npm run build && jest --runInBand",
-    "prepublish": "npm run clean && npm run build"
+    "prepublish": "npm run clean && npm run build",
+    "release": "pkg . --out-path ./build"
   },
   "repository": {
     "type": "git",
@@ -40,8 +41,9 @@
     "coverageDirectory": "./coverage/"
   },
   "pkg": {
-    "scripts": ["lib/**/*.js", "lib/**/*.json"],
-    "assets": []
+    "targets": ["node8-linux-x64", "node8-macos-x64", "node8-win-x64"],
+    "scripts": ["lib/source/**/*.js", "lib/extensions/**/*.js"],
+    "assets": "lib/**/*.json"
   },
   "devDependencies": {
     "@chemzqm/tsconfig": "0.0.2",
@@ -56,7 +58,6 @@
     "@types/minimatch": "^3.0.3",
     "@types/node": "^10.5.4",
     "@types/once": "^1.4.0",
-    "@types/opn": "^5.1.0",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
     "@types/uuid": "^3.4.3",
@@ -64,9 +65,11 @@
     "jest": "^23.4.2",
     "rimraf": "^2.6.2",
     "ts-jest": "^23.0.1",
-    "tslib": "^1.9.3"
+    "typescript": "^3.0.0-dev.20180710",
+    "tslint": "^5.11.0"
   },
   "dependencies": {
+    "tslib": "^1.9.3",
     "@chemzqm/neovim": "^4.3.2",
     "babel-polyfill": "^6.26.0",
     "debounce": "^1.1.0",
@@ -79,19 +82,12 @@
     "minimatch": "^3.0.4",
     "node-serial": "^0.1.1",
     "once": "^1.4.0",
-    "opn": "^5.3.0",
     "pify": "^3.0.0",
     "semver": "^5.5.0",
     "touch": "^3.1.0",
-    "tslint": "^5.11.0",
-    "typescript": "^3.0.0-dev.20180710",
     "uuid": "^3.3.2",
     "jsonc-parser": "^2.0.1",
     "vim-node-rpc": "0.1.8",
-    "vscode-css-languageservice": "^3.0.9",
-    "vscode-html-languageserver-bin": "^1.4.0",
-    "vscode-json-languageserver": "^1.0.1",
-    "vscode-languageserver": "^4.4.0",
     "vscode-languageserver-protocol": "^3.10.0",
     "vscode-languageserver-types": "^3.10.0",
     "vscode-uri": "^1.0.5",

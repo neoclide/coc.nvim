@@ -6,8 +6,8 @@ import cp from 'child_process'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import {ROOT} from '../../../util'
-import Logger from './logger';
+import workspace from '../../../workspace'
+import Logger from './logger'
 
 export interface IForkOptions {
   cwd?: string
@@ -135,7 +135,7 @@ export function fork(
   // Create the process
   logger.info('Forking TSServer', `PATH: ${newEnv['PATH']} `);
 
-  const bootstrapperPath = path.join(ROOT, 'bin/tsserverForkStart')
+  const bootstrapperPath = path.join(workspace.pluginRoot, 'bin/tsserverForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,
     env: newEnv,

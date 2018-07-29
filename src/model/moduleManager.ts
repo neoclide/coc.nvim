@@ -1,4 +1,3 @@
-import { Files } from 'vscode-languageserver'
 import path from 'path'
 import {EventEmitter} from 'events'
 import { TerminalResult } from '../types'
@@ -33,20 +32,25 @@ export default class ModuleManager extends EventEmitter {
     return this.workspace.nvim
   }
 
-  public get nodeFolder(): string {
-    if (this._npmFolder) return this._npmFolder
-    this._npmFolder = Files.resolveGlobalNodePath()
-    return this._npmFolder
+  public get nodeFolder(): Promise<string> {
+    if (this._npmFolder) return Promise.resolve(this._npmFolder)
+    return this.nvim.call('coc#util#module_folder', 'npm').then(folder => {
+      this._npmFolder = folder
+      return folder
+    })
   }
 
-  public get yarnFolder(): string {
-    if (this._yarnFolder) return this._yarnFolder
-    this._yarnFolder = Files.resolveGlobalYarnPath()
-    return this._yarnFolder
+  public get yarnFolder(): Promise<string> {
+    if (this._yarnFolder) return Promise.resolve(this._yarnFolder)
+    return this.nvim.call('coc#util#module_folder', 'yarn').then(folder => {
+      this._yarnFolder = folder
+      return folder
+    })
   }
 
   public async resolveModule(mod: string): Promise<string> {
-    let { nodeFolder, yarnFolder } = this
+    let nodeFolder = await this.nodeFolder
+    let yarnFolder = await this.yarnFolder
     if (nodeFolder) {
       let s = await statAsync(path.join(nodeFolder, mod, 'package.json'))
       if (s && s.isFile()) return path.join(nodeFolder, mod)

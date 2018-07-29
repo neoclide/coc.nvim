@@ -23,6 +23,121 @@
       "items": {
         "type": "string"
       }
+    },
+    "html.format.enable": {
+      "type": "boolean",
+      "scope": "window",
+      "default": true,
+      "description": "Enable/disable default HTML formatter"
+    },
+    "html.format.wrapLineLength": {
+      "type": "integer",
+      "scope": "resource",
+      "default": 120,
+      "description": "Maximum amount of characters per line (0 = disable)."
+    },
+    "html.format.unformatted": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "scope": "resource",
+      "default": "wbr",
+      "description": "List of tags, comma separated, that shouldn't be reformatted. 'null' defaults to all tags listed at https://www.w3.org/TR/html5/dom.html#phrasing-content."
+    },
+    "html.format.contentUnformatted": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "scope": "resource",
+      "default": "pre,code,textarea",
+      "description": "List of tags, comma separated, where the content shouldn't be reformatted. 'null' defaults to the 'pre' tag."
+    },
+    "html.format.indentInnerHtml": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": false
+    },
+    "html.format.preserveNewLines": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true
+    },
+    "html.format.maxPreserveNewLines": {
+      "type": [
+        "number",
+        "null"
+      ],
+      "scope": "resource",
+      "default": null,
+      "description": "List of tags, comma separated, that should have an extra newline before them. 'null'"
+    },
+    "html.format.indentHandlebars": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": false
+    },
+    "html.format.endWithNewline": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": false
+    },
+    "html.format.extraLiners": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "scope": "resource",
+      "default": "head, body, /html",
+      "description": "List of tags, comma separated, that should have an extra newline before them."
+    },
+    "html.format.wrapAttributes": {
+      "type": "string",
+      "scope": "resource",
+      "default": "auto",
+      "enum": [
+        "auto",
+        "force",
+        "force-aligned",
+        "force-expand-multiline"
+      ]
+    },
+    "html.suggest.angular1": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Configures if the built-in HTML language support suggests Angular V1 tags and properties."
+    },
+    "html.suggest.ionic": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Configures if the built-in HTML language support suggests Ionic tags, properties and values."
+    },
+    "html.suggest.html5": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Configures if the built-in HTML language support suggests HTML5 tags, properties and values."
+    },
+    "html.validate.scripts": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Configures if the built-in HTML language support validates embedded scripts."
+    },
+    "html.validate.styles": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Configures if the built-in HTML language support validates embedded styles."
+    },
+    "html.autoClosingTags": {
+      "type": "boolean",
+      "scope": "resource",
+      "default": true,
+      "description": "Enable/disable autoclosing of HTML tags."
     }
   }
 }

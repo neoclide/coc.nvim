@@ -1,16 +1,15 @@
 let s:server_running = 0
-let s:script = expand('<sfile>:h:h:h').'/bin/server.js'
-let s:root_file = expand('<sfile>:h:h:h').'/lib/index.js'
 let s:std_err = []
 let s:job_opts = {}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
-  if !s:check_env() | return | endif
   if s:server_running | return | endif
+  let cmd = coc#util#job_command()
+  if empty(cmd) | return | endif
   if s:is_vim
-    let job = job_start(['node', s:script], {
+    let job = job_start(cmd, {
           \ 'err_mode': 'nl',
           \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
@@ -26,7 +25,7 @@ function! coc#rpc#start_server()
       return
     endif
   else
-    let channel_id = jobstart(['node', s:script], s:job_opts)
+    let channel_id = jobstart(cmd, s:job_opts)
     if channel_id <= 0
       echoerr '[coc.nvim] Failed to start coc service'
       return
@@ -35,21 +34,7 @@ function! coc#rpc#start_server()
   let s:server_running = 1
 endfunction
 
-function! s:check_env()
-  if !executable('node')
-    echoerr '[coc.nvim] node not find in $PATH'
-    return 0
-  endif
-  if !filereadable(s:root_file)
-    echoerr '[coc.nvim] Unable to start, run `yarn install` in coc.nvim folder'
-    return 0
-  endif
-  return 1
-endfunction
-
 function! s:GetChannel()
-  " server started
-  if get(s:, 'server_running', 0) == 0 | return 0 | endif
   let cid = get(g:, 'coc_node_channel_id', 0)
   if s:is_vim
      return nvim#rpc#check_client(cid) ? cid : 0

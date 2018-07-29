@@ -23,49 +23,80 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 * Featured language server extensions from VSCode, like tsserver, tslint etc.
 * Custom language server configuration support.
 
-## Language support
+## Extensions
 
-* **Typescript** and **Javascript**
+Language server are decoupled from coc.nvim to make the core smaller, and easier
+for user to use their own version of language server.
 
-  Extension [tsserver](src/extensions/tsserver).
+* **Tsserver**
 
-* **HTML**
+    Used for `javascript` and `typescript`
 
-  Extension [html](src/extensions/html).
+        yarn global add typescript
 
-* **JSON**
+* **Html**
 
-  Extension [json](src/extensions/json).
+    Used for `html` `handlebars` `razor`
 
-* **Css**, **less**, **scss** and **wxss**
+        yarn global add vscode-html-languageserver-bin
 
-  Extension [css](src/extensions/css)
+* **Json**
+
+    Used for `json` and `jsonc`
+
+        yarn global add vscode-json-languageserver
+
+* **Css**
+
+    Used for `css` `scss` `less` and `wxss`
+
+        yarn global add css-langserver
 
 * **Wxml**
 
-  Extension [wxml](src/extensions/wxml)
+        yarn global add wxml-langserver
 
-* **Vue**
+* **Vetur**
 
-  Extension [vetur](src/extensions/vetur)
+    Used for `vue`
 
-* **Ruby**
+        yarn global add vue-language-server
+
+* **Solargraph**
+
+    Used for `ruby`
 
     Install [solargraph](http://solargraph.org/) by:
 
         gem install solargraph
 
-    The configuration field is `solargraph`.
+* **Pyls**
 
-* **Python**
+    Used for `python`
 
     Install [pyls](https://github.com/palantir/python-language-server) by:
 
         pip install 'python-language-server[all]'
 
-    The configuration field is `pyls`.
+* **Stylelint**
 
-**Note:** auto completion is supported automatically for `coc-settings.json`
+    Used for  `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
+
+        yarn global add stylelint-langserver
+
+* **Eslint**
+
+    Used for `javascript`
+
+        yarn global add eslint-server
+
+* **Tslint**
+
+    Used for `typescript`
+
+        yarn global add tslint-server
+
+**Note:** use `:CocConfig` to edit configuration file, auto completion is supported
 
 ## Table of contents
 
@@ -202,17 +233,7 @@ nnoremap <silent> <space>s  :<C-u>Denite coc-service<cr>
 
 ## Trouble shooting
 
-When you find the plugin is not working as you would expected, run command
-`:checkhealth` and make sure that output from `coc.nvim` are `OK`.
-
-To get the log file, run shell command:
-
-    node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
-
-You can also use environment variable to change logger behaviour:
-
-* `$NVIM_COC_LOG_LEVEL` set to `debug` for debug messages.
-* `$NVIM_COC_LOG_FILE` set the file path of log file.
+Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues).
 
 ## LICENSE
 

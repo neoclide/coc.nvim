@@ -6,7 +6,7 @@ import cp from 'child_process'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import {ROOT} from '../../util'
+import workspace from '../../workspace'
 
 export interface IForkOpts {
   cwd?: string
@@ -128,7 +128,7 @@ export function fork(
   }
 
   // Create the process
-  let bootstrapperPath = path.join(ROOT, 'bin/lspForkStart')
+  let bootstrapperPath = path.join(workspace.pluginRoot, 'bin/lspForkStart')
   childProcess = cp.fork(bootstrapperPath, [modulePath].concat(args), {
     silent: true,
     cwd: options.cwd,

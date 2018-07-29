@@ -1,5 +1,37 @@
-let s:is_win = has("win32") || has('win64')
+let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h:h')
+
+function! coc#util#platform()
+  if s:is_win
+    return 'windows'
+  endif
+  if has('mac') || has('macvim')
+    return 'mac'
+  endif
+  return 'linux'
+endfunction
+
+function! coc#util#binary()
+  let platform = coc#util#platform()
+  if platform == 'windows'
+    return s:root.'/build/coc-win.exe'
+  elseif platform == 'mac'
+    return s:root.'/build/coc-macos'
+  endif
+  return s:root.'/build/coc-linux'
+endfunction
+
+function! coc#util#job_command()
+  let binary = coc#util#binary()
+  if filereadable(binary) && !get(g:, 'coc_force_debug', 0)
+    return [binary]
+  endif
+  let file = s:root.'/lib/index.js'
+  if filereadable(file) && executable('node')
+    return ['node', s:root.'./bin/server.js']
+  endif
+  " TODO run download
+endfunction
 
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
@@ -453,4 +485,14 @@ function! coc#util#open(url)
     echohl Error | echon 'Failed to open '.a:url | echohl None
     return
   endif 
+endfunction
+
+function! coc#util#module_folder(manager) abort
+  let is_yarn = a:manager ==# 'yarn'
+  let cmd = is_yarn ? 'yarn global dir' : 'npm --loglevel silent root -g'
+  let folder = get(split(system(cmd), "\n"), 0, '')
+  if v:shell_error || !isdirectory(folder)
+    return ''
+  endif
+  return is_yarn ? folder . '/node_modules' : folder
 endfunction

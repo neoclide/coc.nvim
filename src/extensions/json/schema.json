@@ -1,6 +1,11 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema",
   "properties": {
+    "json.enable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable json server"
+    },
     "json.filetypes": {
       "type": "array",
       "default": [ "json", "jsonc" ],
@@ -27,8 +32,36 @@
     },
     "json.schemas": {
       "type": "array",
-      "default": [],
-      "description": "Schemas for json server"
+      "scope": "resource",
+      "description": "Schemas associations for json files",
+      "items": {
+        "type": "object",
+        "default": {
+          "fileMatch": [
+            "/myfile"
+          ],
+          "url": "schemaURL"
+        },
+        "properties": {
+          "url": {
+            "type": "string",
+            "default": "/user.schema.json"
+          },
+          "fileMatch": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "default": "MyFile.json"
+            },
+            "minItems": 1,
+            "description": "%json.schemas.fileMatch.desc%"
+          },
+          "schema": {
+            "$ref": "http://json-schema.org/draft-04/schema#",
+            "description": "%json.schemas.schema.desc%"
+          }
+        }
+      }
     }
   }
 }
