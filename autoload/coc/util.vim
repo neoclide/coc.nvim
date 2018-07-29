@@ -28,7 +28,7 @@ function! coc#util#job_command()
   endif
   let file = s:root.'/lib/index.js'
   if filereadable(file) && executable('node')
-    return ['node', s:root.'./bin/server.js']
+    return ['node', s:root.'/bin/server.js']
   endif
   " TODO run download
 endfunction
