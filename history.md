@@ -1,3 +1,9 @@
+# 2018-07-29
+
+* **Break change** all servers are decoupled from coc.nvim
+
+  A prompt for download is shown when server not found.
+
 # 2018-07-28
 
 * Fix uncaught exception error on windows.

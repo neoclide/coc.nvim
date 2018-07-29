@@ -15,6 +15,7 @@ GH_REPO="$GH_API/repos/neoclide/coc.nvim"
 GH_TAGS="$GH_REPO/releases/tags/$tag"
 AUTH="Authorization: token $GITHUB_API_TOKEN"
 
+echo "Creating release for $tag"
 curl -X POST -H "Authorization: token $GITHUB_API_TOKEN" \
   -H "Content-Type: application/json" \
   --data "{\"tag_name\":\"$tag\"}" \
