@@ -392,11 +392,16 @@ COMMANDS 					*coc-commands*
 		Disable completion of coc
 
 :CocEnable 					*coc-command-enable*
-		Reenable completion of coc
+		Enable completion of coc
 
 :CocRefresh [{name}]				*coc-command-refresh*
 
 		Refresh source of {name}, or all sources without {name}.
+
+:CocConfig 					*coc-command-config*
+
+		Open config file `coc-setting.json`
+
 
 ------------------------------------------------------------------------------
 

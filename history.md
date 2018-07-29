@@ -8,6 +8,8 @@
 
   A prompt would be shown to help user install vim-node-rpc in vim.
 
+* Add command `CocConfig`
+
 # 2018-07-28
 
 * Fix uncaught exception error on windows.

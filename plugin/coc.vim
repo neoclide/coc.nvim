@@ -31,6 +31,11 @@ function! CocAction(...) abort
   return coc#rpc#request('CocAction', a:000)
 endfunction
 
+function! s:OpenConfig()
+  let home = coc#util#get_config_home()
+  execute 'edit '.home.'/coc-settings.json'
+endfunction
+
 function! s:Autocmd(...) abort
   " care about normal buffer only
   if !get(g:, 'coc_enabled', 0) | return | endif
@@ -118,6 +123,7 @@ function! s:Enable()
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable :call s:Enable()
+  command! -nargs=0 CocConfig :call s:OpenConfig()
   let g:coc_enabled = 1
 endfunction
 
