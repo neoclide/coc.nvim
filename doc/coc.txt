@@ -151,6 +151,14 @@ Keymapings 					*coc-keymapings*
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+g:coc_force_debug  				*g:coc_force_debug*
+
+			Coc would use precompiled binary when the binary file
+			exists, set this to 1 to use complied code instead of
+			prebuild binary.
+
+			Default: 0
+
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
@@ -195,6 +203,10 @@ g:coc_codelen_action_key 			*g:coc_codelen_action_key*
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			Diagnostic infomation of current buffer, can be used
 			for customize status line. See |coc-status|.
+
+g:nvim_node_rpc_debug 				*g:nvim_node_rpc_debug*
+			Log channel commucation by using |ch_logfile|. Vim
+			only.
 
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
@@ -363,6 +375,13 @@ coc#refresh()
 health#coc#check()
 	
 	Run health check, triggered by ':checkhealth' command.
+
+						*nvim#rpc#open_log*
+
+nvim#rpc#open_log
+
+	Open log of channel, vim only. Set |g:nvim_node_rpc_debug| to 1 to
+	enable log.
 
 ------------------------------------------------------------------------------
 

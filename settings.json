@@ -254,7 +254,7 @@
   "wxml.complete.useSnippet": true,
   "tslint.jsEnable": false,
   "tslint.enable": true,
-  "tslint.filetypes": ["typescript"],
+  "tslint.filetypes": ["typescript", "typescript.jsx"],
   "tslint.autoFixOnSave": false,
   "tslint.configFile": "tslint.json",
   "tslint.ignoreDefinitionFiles": true,

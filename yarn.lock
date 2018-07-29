@@ -624,7 +624,7 @@ ci-info@^1.0.0:
   version "1.1.3"
   resolved "https://registry.yarnpkg.com/ci-info/-/ci-info-1.1.3.tgz#710193264bb05c77b8c90d02f5aaf22216a667b2"
 
-circular-json@^0.5.4:
+circular-json@^0.5.4, circular-json@^0.5.5:
   version "0.5.5"
   resolved "https://registry.yarnpkg.com/circular-json/-/circular-json-0.5.5.tgz#64182ef359042d37cd8e767fc9de878b1e9447d3"
 
@@ -2201,6 +2201,15 @@ log4js@^3.0.2:
     debug "^3.1.0"
     streamroller "0.7.0"
 
+log4js@^3.0.3:
+  version "3.0.3"
+  resolved "https://registry.yarnpkg.com/log4js/-/log4js-3.0.3.tgz#b4ba4ebde57b51a6a132329a53b74930a2efbca1"
+  dependencies:
+    circular-json "^0.5.5"
+    date-format "^1.2.0"
+    debug "^3.1.0"
+    streamroller "0.7.0"
+
 longest@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/longest/-/longest-1.0.1.tgz#30a0b2da38f73770e8294a0d22e6625ed77d0097"
@@ -3507,12 +3516,13 @@ verror@1.10.0:
     core-util-is "1.0.2"
     extsprintf "^1.2.0"
 
-vim-node-rpc@0.1.8:
-  version "0.1.8"
-  resolved "https://registry.yarnpkg.com/vim-node-rpc/-/vim-node-rpc-0.1.8.tgz#b6772a3fae388fef42e28192ccb56a4663b70110"
+vim-node-rpc@0.1.13:
+  version "0.1.13"
+  resolved "https://registry.yarnpkg.com/vim-node-rpc/-/vim-node-rpc-0.1.13.tgz#61983ac28acd27fa16a2620e07d123026034c8e6"
   dependencies:
     log4js "^3.0.2"
     msgpack-lite "^0.1.26"
+    tslib "^1.9.3"
     uuid "^3.3"
 
 vscode-jsonrpc@^3.6.2:
