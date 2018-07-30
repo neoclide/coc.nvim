@@ -1,3 +1,10 @@
+# 2018-07-30
+
+* Fix source ultisnip not working.
+* Fix custom language client with command not working.
+* Fix wrong arguments passed to `runCommand` function.
+* Add `sudo` for `npm install` on Linux.
+
 # 2018-07-29
 
 * **Break change** all servers are decoupled from coc.nvim

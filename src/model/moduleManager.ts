@@ -4,7 +4,8 @@ import { TerminalResult } from '../types'
 import { showQuickpick, echoMessage } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { statAsync } from '../util/fs'
-const logger = require('../util/logger')('model-moduleManager')
+// const logger = require('../util/logger')('model-moduleManager')
+const isLinux = process.platform === 'linux'
 
 // manage global modules
 export default class ModuleManager extends EventEmitter {
@@ -87,7 +88,8 @@ export default class ModuleManager extends EventEmitter {
     }
     this.installing.set(id, mod)
     this.taskId = this.taskId + 1
-    let cmd = idx == 0 ? `npm install -g ${mod}` : `yarn global add ${mod}`
+    let pre = isLinux ? 'sudo ' : ''
+    let cmd = idx == 0 ? `${pre} npm install -g ${mod}` : `yarn global add ${mod}`
     await nvim.call('coc#util#open_terminal', [{id, cmd}])
     return id
   }
