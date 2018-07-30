@@ -199,9 +199,12 @@ endfunction
 
 function! coc#util#get_search(col) abort
   let line = getline('.')
-  let colnr = mode() ==# 'n' ? col('.') + 1 : col('.')
-  if colnr <= a:col + 1 | return '' | endif
-  return line[a:col : colnr - 2]
+  let curcol = col('.')
+  if curcol <= a:col || mode() !~ '^i'
+    return v:null
+  endif
+  if curcol == a:col + 1 | return '' | endif
+  return line[a:col : curcol - 2]
 endfunction
 
 function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort

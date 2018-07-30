@@ -3,7 +3,10 @@
 * Fix source ultisnip not working.
 * Fix custom language client with command not working.
 * Fix wrong arguments passed to `runCommand` function.
-* Add `sudo` for `npm install` on Linux.
+* Improve module install, add `sudo` for `npm install` on Linux.
+* Improve completion on backspace.
+    * Completion is resumed when search is empty.
+    * Completion is triggered when user try to fix search.
 
 # 2018-07-29
 

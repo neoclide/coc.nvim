@@ -169,10 +169,10 @@ export class Completion {
       if (search) await this.resumeCompletion(search)
       return
     }
-    if (completes.completing) return
-    if (this.hasLatestChangedI) return
+    if (completes.completing || this.hasLatestChangedI) return
     let {option} = completes
     let search = await this.nvim.call('coc#util#get_search', [option.col])
+    if (search == null) return
     let item = completes.getCompleteItem(search)
     if (item) await this.sources.doCompleteResolve(item)
   }
@@ -183,8 +183,26 @@ export class Completion {
     let {latestInsertChar} = increment
     if (increment.isActivted) {
       let search = await increment.getResumeInput()
-      if (search) await this.resumeCompletion(search)
+      if (search != null) await this.resumeCompletion(search)
+      return
     }
+    if (increment.search && !latestInsertChar) {
+      let d = Date.now()
+      // restart when user correct search
+      let [, lnum] = await nvim.call('getcurpos')
+      let {option} = completes
+      if (lnum == option.linenr) {
+        let search = await this.nvim.call('coc#util#get_search', [option.col])
+        logger.debug(`cost:`, Date.now() - d)
+        if (search.length < increment.search.length) {
+          await wait(workspace.isVim ? 40 : 20)
+          let option = await nvim.call('coc#util#get_complete_option')
+          this.startCompletion(option)
+          return
+        }
+      }
+    }
+
     if (increment.isActivted || !latestInsertChar) return
     // check trigger
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)

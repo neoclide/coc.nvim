@@ -18,7 +18,7 @@ export interface LastChange {
 
 export default class Increment extends Emitter {
   public lastInsert?: LastInsert
-  public search: string
+  private _search: string
   // private lastChange: LastChange | null | undefined
   private activted = false
   private _incrementopt?: string
@@ -26,6 +26,10 @@ export default class Increment extends Emitter {
 
   constructor(private nvim: Neovim) {
     super()
+  }
+
+  public get search():string {
+    return this._search
   }
 
   private clearTimer(): void {
@@ -65,19 +69,19 @@ export default class Increment extends Emitter {
     this.activted = true
     this.emit('start', Object.assign({}, option))
     this.clearTimer()
-    this.search = option.input
+    this._search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
-    nvim.command(`noa set completeopt=${opt}`).catch(() => {}) // tslint:disable-line
+    nvim.command(`noa set completeopt=${opt}`, true)
   }
 
   public stop(): void {
+    this._search = ''
     if (!this.activted) return
     this.activted = false
     this.emit('stop')
     this.clearTimer()
-    this.search = ''
     let completeOpt = workspace.getVimSetting('completeOpt')
-    this.nvim.call('execute', [`noa set completeopt=${completeOpt}`]) // tslint:disable-line
+    this.nvim.command(`noa set completeopt=${completeOpt}`, true)
   }
 
   public get isActivted(): boolean {
@@ -96,11 +100,12 @@ export default class Increment extends Emitter {
     if (!activted) return null
     let {option} = completes
     let search = await nvim.call('coc#util#get_search', [option.col])
-    this.search = search
+    this._search = search
     if (completes.completing) return null
-    if (!search || !completes.hasMatch(search)) {
+    if (search == null || !completes.hasMatch(search)) {
       await this.nvim.call('coc#_hide')
       this.stop()
+      this._search = search
       return null
     }
     return search
