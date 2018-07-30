@@ -1,3 +1,7 @@
+# 2018-07-31
+
+* Improve file source triggered with dirname started path.
+
 # 2018-07-30
 
 * Fix source ultisnip not working.

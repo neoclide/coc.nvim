@@ -9,7 +9,7 @@ import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
 import os from 'os'
 // const logger = require('../util/logger')('source-file')
-const pathRe = /(?:\.{0,2}|~)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
+const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
   constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
@@ -29,7 +29,9 @@ export default class File extends Source {
       if (opt.pathstr.startsWith('~')) {
         opt.pathstr = os.homedir() + opt.pathstr.slice(1)
       }
+      opt.part = ms[1]
       let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [bufnr])
+      opt.dirname = path.dirname(fullpath)
       opt.cwd = await this.nvim.call('getcwd', [])
       opt.ext = fullpath ? path.extname(path.basename(fullpath)) : ''
       return true
@@ -63,7 +65,7 @@ export default class File extends Source {
   public async getItemsFromRoot(pathstr: string, root: string): Promise<VimCompleteItem[]> {
     let res = []
     let part = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
-    let dir = path.isAbsolute(pathstr) ? root : path.join(root, part)
+    let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
     let stat = await statAsync(dir)
     if (stat && stat.isDirectory()) {
       let files = await pify(fs.readdir)(dir)
@@ -78,12 +80,18 @@ export default class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {input, pathstr, col, cwd, ext, fullpath} = opt
+    let {input, pathstr, col, cwd, ext, fullpath, dirname, part} = opt
     let root
     if (/^\./.test(pathstr)) {
       root = fullpath ? path.dirname(fullpath) : cwd
     } else if (/^\//.test(pathstr)) {
       root = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
+    } else if (part) {
+      if (fs.existsSync(path.join(dirname, part))) {
+        root = dirname
+      } else if (fs.existsSync(path.join(cwd, part))) {
+        root = cwd
+      }
     } else {
       root = cwd
     }
