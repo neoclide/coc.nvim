@@ -13,7 +13,8 @@ function! coc#source#ultisnips#complete(opt, cb) abort
   if type(snips) == 3
     let items = map(snips, {idx, val -> {'word': val['key'], 'dup': 1, 'menu': val['description']}})
   else
-    let items = map(snips, {key, val -> {'word': key, 'dup': 1, 'menu': val}})
+    let items = []
+    call map(snips, {key, val -> add(items, {'word': key, 'dup': 1, 'menu': val})})
   endif
   call a:cb(items)
 endfunction
