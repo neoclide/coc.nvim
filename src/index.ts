@@ -223,7 +223,7 @@ export default class CompletePlugin {
         case 'codeLensAction':
           return handler.doCodeLensAction()
         case 'runCommand':
-          return await handler.runCommand(args[1], args.slice(2))
+          return await handler.runCommand(...args.slice(1))
         default:
           logger.error(`unknown action ${args[0]}`)
       }

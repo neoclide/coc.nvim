@@ -11,7 +11,7 @@ export interface Command {
   execute(...args: any[]): void | Promise<any>
 }
 
-class CommandItem implements Disposable {
+class CommandItem implements Disposable, Command {
   constructor(
     public id: string,
     private impl: (...args: any[]) => void,
@@ -19,9 +19,9 @@ class CommandItem implements Disposable {
   ) {
   }
 
-  public execute(args: any[]): void {
+  public execute(...args: any[]): void | Promise<any> {
     let {impl, thisArg} = this
-    impl.apply(thisArg, args || [])
+    return impl.apply(thisArg, args || [])
   }
 
   public dispose(): void {
@@ -169,7 +169,7 @@ export class CommandManager implements Disposable {
       echoErr(workspace.nvim, `Command: ${command} not found`)
       return
     }
-    return Promise.resolve(cmd.execute(rest)).catch(e => {
+    return Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
       echoErr(workspace.nvim, `Command error: ${e.message}`)
       logger.error(e.stack)
     })

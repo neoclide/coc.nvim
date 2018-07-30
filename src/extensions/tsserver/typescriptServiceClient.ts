@@ -354,7 +354,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
               return
             }
             this.state = ServiceStat.Running
-            this.info('Started TSServer', currentVersion)
+            this.info('Started TSServer', JSON.stringify(currentVersion, null, 2))
             const handle = new ForkedTsServerProcess(childProcess)
             this.lastStart = Date.now()
 
