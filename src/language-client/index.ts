@@ -64,7 +64,7 @@ export class LanguageService implements IServiceProvider {
     if (typeof module == 'function') {
       module = await module()
     }
-    if (!module) return
+    if (!module && !command) return
     let serverOptions: ServerOptions
     if (isModule) {
       serverOptions = {
