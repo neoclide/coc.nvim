@@ -3,6 +3,7 @@ import net from 'net'
 import {Disposable, TextEdit} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import * as platform from './platform'
+import which from 'which'
 
 export {platform}
 const logger = require('./logger')('util-index')
@@ -125,4 +126,13 @@ export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
     return lnum == null ? true : start.line == lnum
   }
   return false
+}
+
+export function executable(command:string):boolean {
+  try {
+    which.sync(command)
+  } catch (e) {
+    return false
+  }
+  return true
 }

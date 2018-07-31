@@ -342,7 +342,6 @@ function! coc#util#open_terminal(opts)
   else
     execute 'lcd '.cwd
     call term_start(cmd, {
-          \ 'term_finish': 'close',
           \ 'exit_cb': function('s:OnExit', [id, bufnr, Callback]),
           \ 'curwin': 1,
           \})
@@ -350,7 +349,7 @@ function! coc#util#open_terminal(opts)
 endfunction
 
 function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
-  if has('nvim') && a:status == 0
+  if a:status == 0
     execute 'silent! bd! '.a:bufnr
   endif
   if a:status == 0 && !empty(a:Callback)

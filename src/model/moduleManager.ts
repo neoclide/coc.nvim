@@ -1,10 +1,12 @@
 import path from 'path'
 import {EventEmitter} from 'events'
 import { TerminalResult } from '../types'
-import { showQuickpick, echoMessage } from '../util'
+import { showQuickpick, echoMessage, executable } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { statAsync } from '../util/fs'
 // const logger = require('../util/logger')('model-moduleManager')
+type Callback = (res:TerminalResult)=>void
+
 const isLinux = process.platform === 'linux'
 
 // manage global modules
@@ -15,6 +17,7 @@ export default class ModuleManager extends EventEmitter {
   private installing:Map<number, string> = new Map()
   private disables:string[] = []
   private workspace:any
+  private callbacks:Map<number, Callback> = new Map()
 
   constructor() {
     super()
@@ -22,10 +25,18 @@ export default class ModuleManager extends EventEmitter {
     workspace.emitter.on('terminalResult', (res:TerminalResult) => {
       if (!res.id) return
       let {id} = res
-      if (res.success && this.installing.has(id)) {
-        this.emit('installed', this.installing.get(id))
+      if (this.installing.has(id)) {
+        if (res.success) {
+          this.emit('installed', this.installing.get(id))
+        }
+        this.installing.delete(id)
+      } else {
+        let cb = this.callbacks.get(id)
+        if (cb) {
+          this.callbacks.delete(id)
+          cb(res)
+        }
       }
-      this.installing.delete(id)
     })
   }
 
@@ -90,7 +101,39 @@ export default class ModuleManager extends EventEmitter {
     this.taskId = this.taskId + 1
     let pre = isLinux ? 'sudo ' : ''
     let cmd = idx == 0 ? `${pre} npm install -g ${mod}` : `yarn global add ${mod}`
-    await nvim.call('coc#util#open_terminal', [{id, cmd}])
+    if (idx == 1 && !executable('yarn')) {
+      try {
+        await this.runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash')
+      } catch (e) {
+        return
+      }
+    }
+    nvim.call('coc#util#open_terminal', [{id, cmd}], true)
     return id
+  }
+
+  public runCommand(cmd:string, timeout?:number):Promise<TerminalResult> {
+    let id = this.taskId
+    this.taskId = this.taskId + 1
+    this.nvim.call('coc#util#open_terminal', [{id, cmd}], true)
+    return new Promise((resolve, reject) => {
+      let called = false
+      let tid
+      if (timeout) {
+        tid = setTimeout(() => {
+          called = true
+          reject(new Error(`command ${cmd} timeout after ${timeout}s`))
+        }, timeout*1000)
+      }
+      this.callbacks.set(id, res => {
+        if (called) return
+        if (tid) clearTimeout(tid)
+        if (res.success) {
+          resolve(res)
+        } else {
+          reject(new Error('command failed!'))
+        }
+      })
+    })
   }
 }
