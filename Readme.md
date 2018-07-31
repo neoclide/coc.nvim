@@ -102,15 +102,25 @@ for user to use their own version of language server.
 
 * [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-  Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install)
-
   For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
+
+  ``` vim
+  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
+  ```
+
+  Or install [yarn](https://yarnpkg.com/en/docs/install) by:
+
+  ``` sh
+  curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
+  ```
+
+  And add:
 
   ``` vim
   Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
   ```
 
-  to your `.vimrc`, restart neovim and run `:PlugInstall`.
+  to your `.vimrc`, restart vim and run `:PlugInstall`.
 
 * [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 

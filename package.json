@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "npm run build && jest --runInBand",
-    "prepublish": "npm run clean && npm run build",
+    "prepublish": "yarn clean && yarn build",
     "release": "pkg . --out-path ./build"
   },
   "repository": {
