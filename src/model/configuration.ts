@@ -11,7 +11,7 @@ export class ConfigurationModel implements IConfigurationModel {
   ) {}
 
   public get contents(): any {
-    return this.checkAndFreeze(this._contents)
+    return this._contents
   }
 
   public getValue<V>(section: string): V {
@@ -46,13 +46,6 @@ export class ConfigurationModel implements IConfigurationModel {
     }
   }
 
-  private checkAndFreeze<T>(data: T): T {
-    if (this.isFrozen && !Object.isFrozen(data)) {
-      return deepFreeze(data)
-    }
-    return data
-  }
-
   public toJSON(): IConfigurationModel {
     return {
       contents: this.contents
@@ -85,9 +78,10 @@ export function addToValueTree(
     let s = segments[i]
     let obj = curr[s]
     switch (typeof obj) {
-      case 'undefined':
-        obj = curr[s] = Object.create(null)
+      case 'undefined': {
+        obj = curr[s] = {}
         break
+      }
       case 'object':
         break
       default:

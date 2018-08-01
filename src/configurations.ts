@@ -52,9 +52,9 @@ export default class Configurations {
         return result
       },
       update: (key: string, value: any, isGlobal = true) => {
-        this._configuration.updateValue(key, value)
-        let target = isGlobal ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         let s = section ? `${section}.${key}` : key
+        this._configuration.updateValue(s, value)
+        let target = isGlobal ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         if (value === undefined) {
           this._proxy.$removeConfigurationOption(target, s)
         } else {

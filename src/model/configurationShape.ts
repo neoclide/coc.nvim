@@ -1,9 +1,10 @@
 import { ConfigurationShape, ConfigurationTarget } from '../types'
 import { FormattingOptions } from 'vscode-languageserver-protocol'
 import { modify, applyEdits } from 'jsonc-parser'
-import fs from 'fs'
 import { writeFile } from '../util/fs'
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+const logger = require('../util/logger')('model-ConfigurationShape')
 
 export default class ConfigurationProxy implements ConfigurationShape {
   private userContent: string
@@ -17,7 +18,7 @@ export default class ConfigurationProxy implements ConfigurationShape {
     Object.defineProperty(this, 'userContent', {
       get: () => {
         if (!fs.existsSync(userFile)) {
-          return {}
+          return ''
         }
         return fs.readFileSync(userFile, 'utf8')
       }
@@ -26,7 +27,7 @@ export default class ConfigurationProxy implements ConfigurationShape {
       Object.defineProperty(this, 'workspaceContent', {
         get: () => {
           if (!fs.existsSync(workspaceFile)) {
-            return {}
+            return ''
           }
           return fs.readFileSync(workspaceFile, 'utf8')
         }

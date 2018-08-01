@@ -63,7 +63,7 @@
     "@types/glob": "^5.0.35",
     "@types/jest": "^23.3.1",
     "@types/minimatch": "^3.0.3",
-    "@types/node": "^10.5.4",
+    "@types/node": "^10.5.5",
     "@types/once": "^1.4.0",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
@@ -73,7 +73,7 @@
     "rimraf": "^2.6.2",
     "ts-jest": "^23.0.1",
     "tslint": "^5.11.0",
-    "typescript": "^3.0.0-dev.20180710"
+    "typescript": "^3.0.1"
   },
   "dependencies": {
     "@chemzqm/neovim": "^4.3.2",
