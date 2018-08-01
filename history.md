@@ -1,3 +1,11 @@
+# 2018-08-02
+
+* Fix error of language client with unsupported schema.
+
+  No document event fired for unsupported schema (eg: fugitive://)
+
+* Fix update empty configuration not works.
+
 # 2018-07-31
 
 * Improve file source triggered with dirname started path.
