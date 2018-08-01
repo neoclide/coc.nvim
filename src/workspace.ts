@@ -10,7 +10,7 @@ import BufferChannel from './model/outputChannel'
 import { ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel } from './types'
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import ConfigurationShape from './model/configurationShape'
-import { echoErr, echoMessage } from './util/index'
+import { echoErr, echoMessage, isSupportedScheme } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
@@ -260,14 +260,16 @@ export class Workspace {
     let document = new Document(buffer)
     this.buffers.set(buffer.id, document)
     await document.init(this.nvim)
-    this._onDidAddDocument.fire(document.textDocument)
-    document.onDocumentChange(({ textDocument, contentChanges }) => {
-      let { version, uri } = textDocument
-      this._onDidChangeDocument.fire({
-        textDocument: { version, uri },
-        contentChanges
+    if (isSupportedScheme(document.schema)) {
+      this._onDidAddDocument.fire(document.textDocument)
+      document.onDocumentChange(({ textDocument, contentChanges }) => {
+        let { version, uri } = textDocument
+        this._onDidChangeDocument.fire({
+          textDocument: { version, uri },
+          contentChanges
+        })
       })
-    })
+    }
     logger.debug('buffer created', buffer.id)
     return document
   }
@@ -299,9 +301,11 @@ export class Workspace {
     let doc = this.buffers.get(bufnr)
     if (doc) {
       doc.detach()
-      this._onDidCloseDocument.fire(doc.textDocument)
+      this.buffers.delete(bufnr)
+      if (isSupportedScheme(doc.schema)) {
+        this._onDidCloseDocument.fire(doc.textDocument)
+      }
     }
-    this.buffers.delete(bufnr)
     logger.debug('buffer unload', bufnr)
   }
 
@@ -344,7 +348,7 @@ export class Workspace {
         }, 1000)
       }
     })
-    if (doc) {
+    if (doc && isSupportedScheme(doc.schema)) {
       this._onWillSaveDocument.fire({
         document: doc.textDocument,
         reason: TextDocumentSaveReason.Manual,
@@ -363,7 +367,7 @@ export class Workspace {
 
   public async onBufferDidSave(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
-    if (!doc) return
+    if (!doc || !isSupportedScheme(doc.schema)) return
     await doc.checkDocument()
     this._onDidSaveDocument.fire(doc.textDocument)
   }

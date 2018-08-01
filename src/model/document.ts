@@ -82,6 +82,10 @@ export default class Document {
     return this._changedtick
   }
 
+  public get schema():string {
+    return Uri.parse(this.uri).scheme
+  }
+
   public async init(nvim: Neovim): Promise<void> {
     this.nvim = nvim
     let {buffer} = this
