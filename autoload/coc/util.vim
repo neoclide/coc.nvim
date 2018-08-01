@@ -45,7 +45,7 @@ endfunction
 function! coc#util#get_fullpath(bufnr) abort
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif
-  return resolve(fnamemodify(fname, ':p'))
+  return fnamemodify(fname, ':p')
 endfunction
 
 function! coc#util#get_bufinfo(bufnr) abort
