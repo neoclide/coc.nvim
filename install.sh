@@ -8,9 +8,14 @@ GREY="$(tput setaf 0 2>/dev/null || echo '')"
 BLUE="$(tput setaf 4 2>/dev/null || echo '')"
 RED="$(tput setaf 1 2>/dev/null || echo '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || echo '')"
+YELLOW="$(tput setaf 3 2>/dev/null || echo '')"
 
 error() {
   printf "${RED} $@${NO_COLOR}\n" >&2
+}
+
+warn() {
+  printf "${YELLOW}! $@${NO_COLOR}\n"
 }
 
 info() {
@@ -61,8 +66,13 @@ download() {
   mkdir -p build
   cd build
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
-  echo "Downloading binary from ${url}"
-  fetch "${url}" | tar xzfv -
+  info "Downloading binary from ${url}"
+  if fetch "${url}" | tar xzfv -; then
+    chmod a+x ${1}
+    return
+  else
+    warn "Binary not available for now, please wait for a few minutes."
+  fi
 }
 
 try_build() {

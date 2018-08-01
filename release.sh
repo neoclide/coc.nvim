@@ -1,4 +1,4 @@
-#!/usr/local/bin/bash
+#!/bin/sh
 
 set -e
 [ "$TRACE" ] && set -x
@@ -23,7 +23,7 @@ curl -X POST -H "Authorization: token $GITHUB_API_TOKEN" \
 
 # build and upload assets
 pkg . --out-path ./build
-cd build
+cd ./build
 tar -zcf coc-macos.tar.gz coc-macos
 tar -zcf coc-linux.tar.gz coc-linux
 zip coc-win.zip coc-win.exe
