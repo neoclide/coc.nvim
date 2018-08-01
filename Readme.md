@@ -23,6 +23,58 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 * Featured language server extensions from VSCode, like tsserver, tslint etc.
 * Custom language server configuration support.
 
+## Table of contents
+
+* [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+
+  For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
+
+  ``` vim
+  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
+  ```
+
+  Or install [yarn](https://yarnpkg.com/en/docs/install) by:
+
+  ``` sh
+  curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
+  ```
+
+  And add:
+
+  ``` vim
+  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
+  ```
+
+  to your `.vimrc`, restart vim and run `:PlugInstall`.
+
+* [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
+
+  * [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
+  * [Snippet completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#snippet-completion)
+  * [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
+  * [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
+  * [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
+
+* [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
+
+  * [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
+  * [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
+  * [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
+  * [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
+
+* [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
+
+  * [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
+  * [Built in server extensions](https://github.com/neoclide/coc.nvim/wiki/Language-servers#built-in-server-extensions)
+  * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
+  * [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+
+* [ Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+
+* [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
+
+* [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+
 ## Extensions
 
 Language server are decoupled from coc.nvim to make the core smaller, and easier
@@ -97,58 +149,6 @@ for user to use their own version of language server.
         yarn global add tslint-server
 
 **Note:** use `:CocConfig` to edit configuration file, auto completion is supported
-
-## Table of contents
-
-* [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
-
-  For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
-
-  ``` vim
-  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
-  ```
-
-  Or install [yarn](https://yarnpkg.com/en/docs/install) by:
-
-  ``` sh
-  curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
-  ```
-
-  And add:
-
-  ``` vim
-  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
-  ```
-
-  to your `.vimrc`, restart vim and run `:PlugInstall`.
-
-* [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
-
-  * [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
-  * [Snippet completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#snippet-completion)
-  * [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
-  * [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
-  * [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
-
-* [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
-
-  * [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
-  * [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
-  * [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
-  * [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
-
-* [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
-
-  * [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
-  * [Built in server extensions](https://github.com/neoclide/coc.nvim/wiki/Language-servers#built-in-server-extensions)
-  * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
-  * [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
-
-* [ Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
-
-* [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
-
-* [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Example configuration
 
