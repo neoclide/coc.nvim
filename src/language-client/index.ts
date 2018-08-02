@@ -30,7 +30,7 @@ export class LanguageService implements IServiceProvider {
   constructor(
     public readonly id: string,
     public readonly name: string,
-    private config: LanguageServerConfig,
+    protected config: LanguageServerConfig,
     configSections?: string | string[]
   ) {
     this.state = ServiceStat.Initial

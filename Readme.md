@@ -33,7 +33,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   Plug 'neoclide/coc.nvim', {'do': './install.sh'}
   ```
 
-  Or install [yarn](https://yarnpkg.com/en/docs/install) by:
+  Or build from source code by install [yarn](https://yarnpkg.com/en/docs/install)
 
   ``` sh
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash

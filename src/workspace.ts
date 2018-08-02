@@ -7,7 +7,7 @@ import ModuleManager from './model/moduleManager'
 import JobManager from './model/jobManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import { ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel } from './types'
+import { ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult } from './types'
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import ConfigurationShape from './model/configurationShape'
 import { echoErr, echoMessage, isSupportedScheme } from './util/index'
@@ -515,6 +515,10 @@ export class Workspace {
 
   public async runCommand(cmd: string, cwd?: string):Promise<string> {
     return await this.jobManager.runCommand(cmd, cwd)
+  }
+
+  public async runTerminalCommand(cmd: string, cwd?: string):Promise<TerminalResult> {
+    return await this.moduleManager.runCommand(cmd, cwd)
   }
 
   private async getBuffer(bufnr: number): Promise<Buffer | null> {

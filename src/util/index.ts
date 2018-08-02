@@ -46,7 +46,7 @@ export function wait(ms: number): Promise<any> {
 
 async function echoMsg(nvim: Neovim, msg: string, hl: string): Promise<void> {
   try {
-    await nvim.call('coc#util#echo_messages', [hl, msg.split('\n')])
+    nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
   } catch (e) {
     logger.error(e.stack)
   }

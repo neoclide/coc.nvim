@@ -37,7 +37,6 @@ function! s:OpenConfig()
 endfunction
 
 function! s:Autocmd(...) abort
-  " care about normal buffer only
   if !get(g:, 'coc_enabled', 0) | return | endif
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
@@ -113,7 +112,7 @@ function! s:Enable()
   augroup end
 
   " same behaviour of ultisnips
-  if get(g:, 'coc_selectmode_mapping', 1)
+  if get(g:, 'coc_selectmode_mapping', 1) && !get(g:, 'did_plugin_ultisnips', 0)
     snoremap <silent> <BS> <c-g>c
     snoremap <silent> <DEL> <c-g>c
     snoremap <silent> <c-h> <c-g>c
@@ -141,17 +140,18 @@ function! s:CodeActionFromSelected(type)
   call CocAction('codeAction', a:type)
 endfunction
 
+function! s:OnVimEnter()
+  " it's possible that client is not ready
+  call coc#rpc#notify('VimEnter', [])
+  if s:is_vim && empty(nvim#rpc#get_script())
+    call coc#util#terminal_install() 
+  endif
+endfunction
+
 augroup coc_init
   autocmd!
-  autocmd User CocNvimInit call s:Enable()
-  " it's possible that client is not ready
-  autocmd VimEnter * call coc#rpc#notify('VimEnter', [])
-  if s:is_vim
-    autocmd User NvimRpcInit call coc#rpc#start_server()
-    if empty(nvim#rpc#get_script())
-      autocmd VimEnter * call coc#util#terminal_install()
-    endif
-  endif
+  autocmd User     CocNvimInit call s:Enable()
+  autocmd VimEnter *           call s:OnVimEnter()
 augroup end
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>

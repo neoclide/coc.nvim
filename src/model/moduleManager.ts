@@ -93,7 +93,7 @@ export default class ModuleManager extends EventEmitter {
       if (section) {
         let config = this.workspace.getConfiguration(section)
         config.update('enable', false, true)
-        echoMessage(nvim, `${section} disabled`)
+        echoMessage(nvim, `${section} disabled, to change this, use :CocConfig to edit configuration file.`)
       }
       return
     }
@@ -112,10 +112,10 @@ export default class ModuleManager extends EventEmitter {
     return id
   }
 
-  public runCommand(cmd:string, timeout?:number):Promise<TerminalResult> {
+  public runCommand(cmd:string, cwd?:string, timeout?:number):Promise<TerminalResult> {
     let id = this.taskId
     this.taskId = this.taskId + 1
-    this.nvim.call('coc#util#open_terminal', [{id, cmd}], true)
+    this.nvim.call('coc#util#open_terminal', [{id, cmd, cwd: cwd || this.workspace.root}], true)
     return new Promise((resolve, reject) => {
       let called = false
       let tid
