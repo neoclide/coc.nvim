@@ -152,6 +152,9 @@ augroup coc_init
   autocmd!
   autocmd User     CocNvimInit call s:Enable()
   autocmd VimEnter *           call s:OnVimEnter()
+  if s:is_vim
+    autocmd User NvimRpcInit call coc#rpc#start_server()
+  endif
 augroup end
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
