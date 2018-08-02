@@ -193,8 +193,9 @@ export class Completion {
         let search = await this.nvim.call('coc#util#get_search', [option.col])
         if (search.length < increment.search.length) {
           await wait(workspace.isVim ? 40 : 20)
-          let option = await nvim.call('coc#util#get_complete_option')
-          this.startCompletion(option)
+          option.input = search
+          increment.start(option)
+          await this.resumeCompletion(search)
           return
         }
       }

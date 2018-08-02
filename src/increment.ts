@@ -22,7 +22,6 @@ export default class Increment extends Emitter {
   // private lastChange: LastChange | null | undefined
   private activted = false
   private _incrementopt?: string
-  private timer?: NodeJS.Timer
 
   constructor(private nvim: Neovim) {
     super()
@@ -30,14 +29,6 @@ export default class Increment extends Emitter {
 
   public get search():string {
     return this._search
-  }
-
-  private clearTimer(): void {
-    let {timer} = this
-    if (timer) {
-      clearTimeout(timer)
-      this.timer = null
-    }
   }
 
   public get latestInsert(): LastInsert | null {
@@ -68,7 +59,6 @@ export default class Increment extends Emitter {
     if (activted) this.stop()
     this.activted = true
     this.emit('start', Object.assign({}, option))
-    this.clearTimer()
     this._search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`, true)
@@ -79,7 +69,6 @@ export default class Increment extends Emitter {
     if (!this.activted) return
     this.activted = false
     this.emit('stop')
-    this.clearTimer()
     let completeOpt = workspace.getVimSetting('completeOpt')
     this.nvim.command(`noa set completeopt=${completeOpt}`, true)
   }
