@@ -31,6 +31,8 @@ export class DiagnosticManager {
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private nvim: Neovim
+  private srcId = 1000
+  private srcIdMap:Map<string,number> = new Map()
   public showMessage: () => void
   constructor() {
     workspace.onDidWorkspaceInitialized(() => {
@@ -109,7 +111,16 @@ export class DiagnosticManager {
   public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
+    if (workspace.isNvim) {
+      let {srcId} = this
+      this.srcId = this.srcId + 1
+      this.srcIdMap.set(name, srcId)
+    }
     return collection
+  }
+
+  public getSrcId(name: string):number {
+    return this.srcIdMap.get(name)
   }
 
   public removeCollection(owner: string): void {

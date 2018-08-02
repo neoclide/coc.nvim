@@ -113,6 +113,10 @@ export class Workspace {
     return this.vimSettings.isVim
   }
 
+  public get isNvim(): boolean {
+    return !this.vimSettings.isVim
+  }
+
   public get initialized(): boolean {
     return this._initialized
   }

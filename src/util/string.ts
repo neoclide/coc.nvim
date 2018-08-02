@@ -6,7 +6,7 @@ export function byteLength(str:string):number {
 
 export function byteIndex(content:string, index:number):number {
   let s = content.slice(0, index)
-  return byteLength(s)
+  return Buffer.byteLength(s)
 }
 
 export function unicodeIndex(content:string, index:number):number {

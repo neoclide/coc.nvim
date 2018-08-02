@@ -16,9 +16,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@chemzqm/neovim@^4.3.2":
-  version "4.3.2"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.2.tgz#381f031a63c661e9d5731af8dcf583113604c65f"
+"@chemzqm/neovim@4.3.3":
+  version "4.3.3"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.3.tgz#5fa4996fb3278dbb2589d27d1929f3c15ab15384"
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
