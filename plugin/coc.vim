@@ -121,8 +121,9 @@ function! s:Enable()
 
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
-  command! -nargs=0 CocEnable :call s:Enable()
-  command! -nargs=0 CocConfig :call s:OpenConfig()
+  command! -nargs=0 CocEnable  :call s:Enable()
+  command! -nargs=0 CocConfig  :call s:OpenConfig()
+  command! -nargs=0 CocErrors  :call coc#rpc#show_error()
   let g:coc_enabled = 1
 endfunction
 

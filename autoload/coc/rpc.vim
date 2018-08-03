@@ -45,10 +45,10 @@ endfunction
 function! s:job_opts.on_stderr(chan_id, data, event) dict
   call extend(s:std_err, a:data)
   if bufexists(s:error_buf)
-    let wnr = bufwinnr(s:error_buf)
-    if wnr != -1
-      execute wnr.'wincmd w'
-      call append(line('$'), a:data)
+    if s:is_vim
+      call appendbufline(s:error_buf, '$', a:data)
+    else
+      call nvim_buf_set_lines(s:error_buf, -1, -1, v:false, a:data)
     endif
   endif
 endfunction
@@ -75,7 +75,12 @@ endfunction
 
 function! coc#rpc#show_error()
   if empty(s:std_err)
-    echohl MoreMsg | echon '[coc.nvim] No errors found.' | echohl None
+    echohl MoreMsg | echon '[coc.nvim] No error messages found.' | echohl None
+    return
+  endif
+  if bufexists(s:error_buf)
+    execute 'drop [coc error]'
+    return
   endif
   belowright vs +setl\ buftype=nofile [coc error]
   setl bufhidden=wipe
@@ -100,4 +105,12 @@ function! coc#rpc#notify(method, args)
   else
     call call('rpcnotify', [channel, a:method] + a:args)
   endif
+endfunction
+
+function! s:empty(item)
+  if empty(a:item) | return 1 | endif
+  if type(a:item) == 3 && len(a:item) == 1 && get(a:, 'item', 0) == ''
+    return 1
+  endif
+  return 0
 endfunction

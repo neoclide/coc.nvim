@@ -396,12 +396,17 @@ COMMANDS 					*coc-commands*
 
 :CocRefresh [{name}]				*coc-command-refresh*
 
-		Refresh source of {name}, or all sources without {name}.
+		Remove cache of source {name}, or all sources without {name}.
 
 :CocConfig 					*coc-command-config*
 
 		Open config file `coc-setting.json`
 
+:CocErrors 					*coc-command-errors*
+
+		Show output from stderr of coc node process.
+		Use 'let $NODE_DEBUG=nvim*' to debug commucation between
+		node-client and neovim.
 
 ------------------------------------------------------------------------------
 

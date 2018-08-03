@@ -63,9 +63,7 @@ let initialized = false
 
 nvim.channelId.then(channelId => {
   initialized = true
-  nvim.setVar('coc_node_channel_id', channelId).catch(() => {
-    // noop
-  })
+  nvim.setVar('coc_node_channel_id', channelId)
   nvim.getVvar('vim_did_enter').then(entered => {
     if (entered) plugin.onEnter()
   })
@@ -73,8 +71,8 @@ nvim.channelId.then(channelId => {
 
 process.on('uncaughtException', function (err) {
   let msg = '[coc.nvim] uncaught exception: ' + err.stack
+  console.error(msg)
   if (!initialized) {
-    console.error(msg)
     process.exit(1)
   } else {
     nvim.call('coc#util#echo_messages', ['Error', msg.split('\n')]).catch(() => {
@@ -85,5 +83,10 @@ process.on('uncaughtException', function (err) {
 })
 
 process.on('unhandledRejection', function (reason, p) {
+  if (reason instanceof Error) {
+    console.error('UnhandledRejection: ' + reason.message + '\n' + reason.stack)
+  } else {
+    console.error('UnhandledRejection: ' + reason)
+  }
   logger.error('unhandledRejection ', p, reason)
 })
