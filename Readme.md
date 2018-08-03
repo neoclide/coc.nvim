@@ -18,8 +18,10 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 ## Pros.
 
 * Easy to install and many features just work.
-* Super fast initialization and completion.
-* Full completion feature support of LSP.
+* Optimized for speed, no effect on startup time and fastest completion
+  experience.
+* Built in and custom completion source support.
+* Full completion features support of language server protocol.
 * Featured language server extensions from VSCode, like tsserver, tslint etc.
 * Custom language server configuration support.
 
@@ -74,6 +76,30 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 * [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
 * [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+
+## Completion sources
+
+Name         | Description                              | Filetypes   | Requirement
+------------ | -------------                            |------------ |------------
+`around`     | Words of current buffer.                 | all         |
+`buffer`     | Words of none current buffer.            | all         |
+`dictionary` | Words from files of `dictionary` option. | all         |
+`tag`        | Words from `taglist` of current buffer.  | all         |
+`file`       | Filename completion.                     | all         |
+`omni`       | Invoke `omnifunc` for complete items     | []          |
+`word`       | Words from google 10000 english repo.    | all         |
+`emoji`      | Eomji characters.                        | all         |
+`include`    | Full path completion.                    | all         |
+`gocode`     | Completion using gocode                  | ['go']      | Install [gocode](https://github.com/mdempsky/gocode)
+`ultisnips`  | Snippets completion                      | all         | Install [ultisnips](https://github.com/SirVer/ultisnips)
+`neco`       | VimL completion                          | vim         | Install [neco-vim](https://github.com/Shougo/neco-vim)
+`neosnippet` | Snippets completion                      | all         | Install [neosnippet.vim](https://github.com/Shougo/neosnippet.vim)
+
+* To enable `omni` source for certain files, open `coc-settings.json` by `:CocConfig`, then add configuration like:
+
+    ```
+    "coc.source.omni.filetypes": ["python"],
+    ```
 
 ## Extensions
 
