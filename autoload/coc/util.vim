@@ -11,6 +11,24 @@ function! coc#util#platform()
   return 'linux'
 endfunction
 
+function! coc#util#valid_buf(bufnr)
+  if !bufloaded(a:bufnr)
+    return 0
+  endif
+  return empty(getbufvar(a:bufnr, '&buftype'))
+endfunction
+
+function! coc#util#remote_fns(name)
+  let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
+  let res = []
+  for fn in fns
+    if exists('*coc#source#'.a:name.'#'.fn)
+      call add(res, fn)
+    endif
+  endfor
+  return res
+endfunction
+
 function! coc#util#binary()
   let platform = coc#util#platform()
   if platform == 'windows'

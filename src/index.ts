@@ -40,7 +40,7 @@ export default class CompletePlugin {
         echoErr(nvim, `Initialize failed, ${err.message}`)
       })
     })
-    clean() // tslint:disable-line
+    clean()
   }
 
   private async onInit(): Promise<void> {
@@ -52,7 +52,7 @@ export default class CompletePlugin {
     let buf = await nvim.buffer
     await workspace.bufferEnter(buf.id)
     this.initialized = true
-    await nvim.command('doautocmd User CocNvimInit')
+    nvim.command('doautocmd User CocNvimInit', false)
     logger.info('Coc initialized')
   }
 

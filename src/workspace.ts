@@ -76,17 +76,18 @@ export class Workspace {
   }
 
   public async init(): Promise<void> {
+    let cwd = await this.nvim.call('getcwd')
     let moduleManager = this.moduleManager = new ModuleManager()
     this.jobManager = new JobManager(this.nvim, this.emitter)
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
-    let config = await this.loadConfigurations()
+    let config = await this.loadConfigurations(cwd)
     let { configFiles } = this
     let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
     this._configurations = new Configurations(config, configurationShape)
-    this.root = await this.findProjectRoot()
+    this.root = await this.findProjectRoot(cwd)
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
@@ -103,6 +104,10 @@ export class Workspace {
     if (this.isVim) {
       this.initVimEvents()
     }
+  }
+
+  public get channelNames(): string[] {
+    return Array.from(this.outputChannels.keys())
   }
 
   public get pluginRoot():string {
@@ -139,7 +144,7 @@ export class Workspace {
     return this.vimSettings[name]
   }
 
-  public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher | null {
+  public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     let promise = this.watchmanPromise
     if (this.watchmanPath && !this.watchmanPromise) {
       let channel = this.createOutputChannel('watchman')
@@ -154,16 +159,19 @@ export class Workspace {
     )
   }
 
+  /**
+   * Find directory contains sub, use CWD as fallback
+   *
+   * @public
+   * @param {string} sub
+   * @returns {Promise<string>}
+   */
   public async findDirectory(sub: string): Promise<string> {
     // use filepath if possible
     let filepath = await this.nvim.call('coc#util#get_fullpath', ['%'])
     let dir = filepath ? path.dirname(filepath) : await this.nvim.call('getcwd')
     let res = resolveDirectory(dir, sub)
     return res ? path.dirname(res) : dir
-  }
-
-  public async saveAll(force = false): Promise<void> {
-    await this.nvim.command(`wa${force ? '!' : ''}`)
   }
 
   public getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration {
@@ -315,12 +323,10 @@ export class Workspace {
 
   public async bufferEnter(bufnr: number): Promise<void> {
     this.bufnr = bufnr
-    if (!this.buffers.get(bufnr)) return
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
     let documentInfo = await this.nvim.call('coc#util#get_bufinfo', [bufnr])
-    if (!documentInfo.languageId) return
-    let uri = Uri.file(documentInfo.fullpath).toString()
-    delete documentInfo.fullpath
-    documentInfo.uri = uri
+    documentInfo.uri = doc.uri
     this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
   }
 
@@ -473,7 +479,7 @@ export class Workspace {
     if (bufnr != -1) return
     let cwd = await nvim.call('getcwd')
     let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-    await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
+    nvim.command(`exe 'edit ' . fnameescape('${file}')`, false)
   }
 
   public async diffDocument(): Promise<void> {
@@ -486,10 +492,6 @@ export class Workspace {
     }
     let lines = document.content.split('\n')
     await nvim.call('coc#util#diff_content', [lines])
-  }
-
-  public get channelNames(): string[] {
-    return Array.from(this.outputChannels.keys())
   }
 
   public createOutputChannel(name: string): OutputChannel {
@@ -525,6 +527,10 @@ export class Workspace {
     return await this.moduleManager.runCommand(cmd, cwd)
   }
 
+  private async isValidBuffer(buffer: Buffer): Promise<boolean> {
+    return await this.nvim.call('coc#util#valid_buf', buffer.id)
+  }
+
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
     let buffers = await this.nvim.buffers
     return buffers.find(buf => buf.id == bufnr)
@@ -545,7 +551,8 @@ export class Workspace {
 
   private async onConfigurationChange(): Promise<void> {
     try {
-      let config = await this.loadConfigurations()
+      let cwd = await this.nvim.call('getcwd')
+      let config = await this.loadConfigurations(cwd)
       this._configurations = new Configurations(config, this.configurationShape)
       this._onDidChangeConfiguration.fire(this.getConfiguration())
     } catch (e) {
@@ -553,8 +560,7 @@ export class Workspace {
     }
   }
 
-  private async findProjectRoot(): Promise<string> {
-    let cwd = await this.nvim.call('getcwd')
+  private async findProjectRoot(cwd:string): Promise<string> {
     let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], os.homedir())
     return root ? root : cwd
   }
@@ -580,8 +586,9 @@ export class Workspace {
   private async validateChanges(changes: { [uri: string]: TextEdit[] }): Promise<boolean> {
     if (!changes) return true
     for (let uri of Object.keys(changes)) {
-      if (!uri.startsWith('file://')) {
-        echoErr(this.nvim, `Invalid schema for ${uri}`)
+      let scheme = Uri.parse(uri).scheme
+      if (!isSupportedScheme(scheme)) {
+        echoErr(this.nvim, `Schema of ${uri} not supported.`)
         return false
       }
       let filepath = Uri.parse(uri).fsPath
@@ -604,14 +611,7 @@ export class Workspace {
     return config
   }
 
-  private async isValidBuffer(buffer: Buffer): Promise<boolean> {
-    let loaded = await this.nvim.call('bufloaded', buffer.id)
-    if (loaded !== 1) return false
-    let buftype = await buffer.getOption('buftype')
-    return buftype == ''
-  }
-
-  private async loadConfigurations(): Promise<IConfigurationData> {
+  private async loadConfigurations(cwd:string): Promise<IConfigurationData> {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
     let defaultConfig = await this.parseConfigFile(file)
@@ -619,7 +619,6 @@ export class Workspace {
     file = path.join(home, CONFIG_FILE_NAME)
     this.configFiles.push(file)
     let userConfig = await this.parseConfigFile(file)
-    let cwd = await this.nvim.call('getcwd')
     let dir = resolveDirectory(cwd, '.vim')
     let projectConfig
     file = dir ? path.join(dir, CONFIG_FILE_NAME) : null

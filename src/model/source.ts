@@ -1,5 +1,5 @@
 import {Neovim} from '@chemzqm/neovim'
-import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem, DocumentInfo} from '../types'
+import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem} from '../types'
 import {fuzzyChar} from '../util/fuzzy'
 import {byteSlice} from '../util/string'
 import {toBool} from '../util/types'

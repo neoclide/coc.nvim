@@ -195,11 +195,8 @@ export default class Sources extends EventEmitter {
       echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
       return
     }
-    let valid = await this.checkRemoteSource(name)
-    if (valid) {
-      let source = await this.createRemoteSource(name, opts)
-      if (source) this.addSource(name, source)
-    }
+    let source = await this.createRemoteSource(name, opts)
+    if (source) this.addSource(name, source)
   }
 
   private async createRemoteSources(): Promise<void> {
@@ -223,51 +220,27 @@ export default class Sources extends EventEmitter {
     }))
   }
 
-  private async checkRemoteSource(name: string): Promise<boolean> {
-    let {nvim} = this
-    let fns = ['init', 'complete']
-    let valid = true
-    for (let fname of fns) {
-      let fn = `coc#source#${name}#${fname}`
-      let exists = await nvim.call('exists', [`*${fn}`])
-      if (exists != 1) {
-        valid = false
-        let msg = `Function ${fname} not found for '${name}' source`
-        echoErr(nvim, msg)
-      }
-    }
-    return valid
-  }
-
-  private async getOptionalFns(name: string): Promise<string[]> {
-    let {nvim} = this
-    let fns = ['should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
-    let res = []
-    for (let fname of fns) {
-      let fn = `coc#source#${name}#${fname}`
-      let exists = await nvim.call('exists', [`*${fn}`])
-      if (exists == 1) {
-        res.push(fname)
-      }
-    }
-    return res
-  }
-
   private async createRemoteSource(name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
     let {nvim} = this
-    let fn = `coc#source#${name}#init`
+    let fns = await nvim.call('coc#util#remote_fns', name) as string[]
+    for (let fn of ['init', 'complete']) {
+      if (fns.indexOf(fn) == -1) {
+        echoErr(nvim, `${fn} not found for source ${name}`)
+        return null
+      }
+    }
     let config: SourceConfig | null
     let source
     try {
-      config = await nvim.call(fn, [])
+      config = await nvim.call(`coc#source#${name}#init`, [])
       config = Object.assign(config, opts, {
         sourceType: SourceType.Remote,
         name,
-        optionalFns: await this.getOptionalFns(name)
+        optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
       })
       source = new VimSource(nvim, config)
     } catch (e) {
-      echoErr(nvim, `Vim error on init from source ${name}: ${e.message}`)
+      echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)
       return null
     }
     return source
