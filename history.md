@@ -1,3 +1,8 @@
+# 2018-08-03
+
+* Add command `:CocErrors` for debug.
+* Support `DocumentSymbol` for 'textDocument/documentSymbol'
+
 # 2018-08-02
 
 * Fix error of language client with unsupported schema.

@@ -1,6 +1,6 @@
 import debounce from 'debounce'
 import {Neovim} from '@chemzqm/neovim'
-import {Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument} from 'vscode-languageserver-protocol'
+import {Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument, DocumentSymbol} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -166,43 +166,48 @@ export default class Handler {
     let document = await workspace.document
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document.textDocument)
-    if (!symbols) {
-      echoErr(this.nvim, 'service does not support document symbols')
-      return []
-    }
+    if (!symbols || symbols.length == 0) return []
+    let isSymbols = DocumentSymbol.is(symbols[0])
     let level = 0
     let res: SymbolInfo[] = []
     let pre = null
-    symbols.sort((a, b) => {
-      let sa = a.location.range.start
-      let sb = b.location.range.start
-      let d = sa.line - sb.line
-      return d == 0 ? sa.character - sb.character : d
-    })
-    for (let sym of symbols) {
-      let {name, kind, location, containerName} = sym
-      if (!containerName || !pre) {
-        level = 0
-      } else {
-        if (pre.containerName == containerName) {
-          level = pre.level || 0
+    if (isSymbols) {
+      let filepath = Uri.parse(document.uri).fsPath
+      for (let sym of symbols) {
+        addDoucmentSymbol(res, sym as DocumentSymbol, filepath, level)
+      }
+    } else {
+      (symbols as SymbolInformation[]).sort((a, b) => {
+        let sa = a.location.range.start
+        let sb = b.location.range.start
+        let d = sa.line - sb.line
+        return d == 0 ? sa.character - sb.character : d
+      })
+      for (let sym of symbols) {
+        let {name, kind, location, containerName} = sym as SymbolInformation
+        if (!containerName || !pre) {
+          level = 0
         } else {
-          let container = getPreviousContainer(containerName, res)
-          level = container ? container.level + 1 : 0
+          if (pre.containerName == containerName) {
+            level = pre.level || 0
+          } else {
+            let container = getPreviousContainer(containerName, res)
+            level = container ? container.level + 1 : 0
+          }
         }
+        let {start} = location.range
+        let o: SymbolInfo = {
+          filepath: Uri.parse(location.uri).fsPath,
+          col: start.character + 1,
+          lnum: start.line + 1,
+          text: name,
+          level,
+          kind: getSymbolKind(kind),
+          containerName
+        }
+        res.push(o)
+        pre = o
       }
-      let {start} = location.range
-      let o: SymbolInfo = {
-        filepath: Uri.parse(location.uri).fsPath,
-        col: start.character + 1,
-        lnum: start.line + 1,
-        text: name,
-        level,
-        kind: getSymbolKind(kind),
-        containerName
-      }
-      res.push(o)
-      pre = o
     }
     return res
   }
@@ -472,4 +477,22 @@ function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): Sym
     i--
   }
   return null
+}
+
+function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, filepath:string, level:number):void {
+  let {name, selectionRange, kind, children} = sym
+  let {start} = selectionRange
+  res.push({
+    filepath,
+    col: start.character + 1,
+    lnum: start.line + 1,
+    text: name,
+    level,
+    kind: getSymbolKind(kind),
+  })
+  if (children && children.length) {
+    for (let sym of children) {
+      addDoucmentSymbol(res, sym, filepath, level + 1)
+    }
+  }
 }
