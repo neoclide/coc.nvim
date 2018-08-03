@@ -36,7 +36,7 @@ export default abstract class Source implements ISource {
       sourceType: SourceType.Native,
       triggerCharacters: [],
     }, option)
-    this._disabled = option.enable === false
+    this._disabled = option.enable === false // tslint:disable-line
     Object.defineProperty(this, 'enable', {
       get: () => {
         return !this._disabled

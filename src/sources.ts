@@ -27,6 +27,8 @@ export default class Sources extends EventEmitter {
       this._ready = true
       this.emit('ready')
       logger.debug(`Created sources ${this.names}`)
+    }).catch(e => {
+      logger.error(`Error on source create ${e.message}`)
     })
     languages.onDidCompletionSourceCreated(source => {
       let {name} = source
@@ -247,7 +249,7 @@ export default class Sources extends EventEmitter {
   }
 
   private onDocumentEnter(info: DocumentInfo): void {
-    this.ready.then(() => {
+    this.ready.then(() => { // tslint:disable-line
       if (info.bufnr != workspace.bufnr) return
       let {sources} = this
       for (let s of sources) {

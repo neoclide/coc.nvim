@@ -58,19 +58,19 @@ export default class Increment extends Emitter {
     let {nvim, activted} = this
     if (activted) this.stop()
     this.activted = true
-    this.emit('start', Object.assign({}, option))
     this._search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`, true)
+    this.emit('start', Object.assign({}, option))
   }
 
   public stop(): void {
     this._search = ''
     if (!this.activted) return
     this.activted = false
-    this.emit('stop')
     let completeOpt = workspace.getVimSetting('completeOpt')
     this.nvim.command(`noa set completeopt=${completeOpt}`, true)
+    this.emit('stop')
   }
 
   public get isActivted(): boolean {

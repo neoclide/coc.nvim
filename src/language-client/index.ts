@@ -125,7 +125,7 @@ export class LanguageService implements IServiceProvider {
     client.registerProposedFeatures()
     let disposable = client.start()
     this.disposables.push(disposable)
-    await new Promise(resolve => {
+    await new Promise(resolve => { // tslint:disable-line
       client.onReady().then(() => {
         this._onDidServiceReady.fire(void 0)
         resolve()

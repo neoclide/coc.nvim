@@ -9,6 +9,8 @@ export function verifyGemIsCurrent():void {
     } else {
       echoMessage(workspace.nvim, 'The Solargraph gem is up to date.')
     }
+  }, _e => {
+    // noop
   })
 }
 
@@ -26,6 +28,8 @@ export function createConfig(configuration:Configuration):void {
     if (res) {
       echoMessage(workspace.nvim, 'Created default .solargraph.yml file.')
     }
+  }, _e => {
+    // noop
   })
 }
 

@@ -16,51 +16,51 @@ export class Configuration {
     this._viewsPath = viewsPath
   }
 
-  get workspace(): string {
+  public get workspace(): string {
     return this._workspace
   }
 
-  set workspace(path: string) {
+  public set workspace(path: string) {
     this._workspace = path
   }
 
-  get useBundler(): Boolean {
+  public get useBundler(): Boolean {
     return this._useBundler
   }
 
-  set useBundler(bool: Boolean) {
+  public set useBundler(bool: Boolean) {
     this._useBundler = bool
   }
 
-  get bundlerPath(): string {
+  public get bundlerPath(): string {
     return this._bundlerPath
   }
 
-  set bundlerPath(path: string) {
+  public set bundlerPath(path: string) {
     this._bundlerPath = path
   }
 
-  get commandPath(): string {
+  public get commandPath(): string {
     return this._commandPath
   }
 
-  set commandPath(path: string) {
+  public set commandPath(path: string) {
     this._commandPath = path
   }
 
-  get withSnippets(): Boolean {
+  public get withSnippets(): Boolean {
     return this._withSnippets
   }
 
-  set withSnippets(bool: Boolean) {
+  public set withSnippets(bool: Boolean) {
     this._withSnippets = bool
   }
 
-  get viewsPath(): string {
+  public get viewsPath(): string {
     return this._viewsPath
   }
 
-  set viewsPath(path: string) {
+  public set viewsPath(path: string) {
     this._viewsPath = path
   }
 }

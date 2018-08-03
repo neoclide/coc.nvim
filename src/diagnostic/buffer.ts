@@ -127,7 +127,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  private async addHighlightNvim(owner: string, range: Range): Promise<void> {
+  private addHighlightNvim(owner: string, range: Range): void {
     let srcId = this.manager.getSrcId(owner)
     let {start, end} = range
     try {

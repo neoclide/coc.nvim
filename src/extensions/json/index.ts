@@ -33,7 +33,7 @@ export default class JsonService extends LanguageService {
       args: ['--node-ipc'],
       execArgv: config.execArgv,
       filetypes: config.filetypes || ['json', 'jsonc'],
-      enable: config.enable !== false
+      enable: config.enable !== false // tslint:disable-line
     }, ['json', 'http'])
 
     workspace.onDidModuleInstalled(mod => {
@@ -45,7 +45,7 @@ export default class JsonService extends LanguageService {
     })
   }
 
-  private async onDocumentEnter(uri:string):Promise<void> {
+  private onDocumentEnter(uri:string):void {
     if (!/\.json$/.test(uri)) return
     const {pluginRoot} = workspace
     let {miniProgrameRoot} = this

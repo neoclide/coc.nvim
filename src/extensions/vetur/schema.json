@@ -28,14 +28,6 @@
       "default": true,
       "description": "Enable/disable Vetur's built-in scaffolding snippets"
     },
-    "vetur.grammar.customBlocks": {
-      "type": "object",
-      "default": {
-        "docs": "md",
-        "i18n": "json"
-      },
-      "description": "Mapping from custom block tag name to language name. Used for generating grammar to support syntax highlighting for custom blocks."
-    },
     "vetur.validation.template": {
       "type": "boolean",
       "default": true,

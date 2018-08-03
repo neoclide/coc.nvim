@@ -76,10 +76,11 @@ export default class BufferChannel implements OutputChannel {
     if (this._showing) return
     this._showing = true
     this.isShown().then(shown => {
+      this._showing = false
       if (!shown) {
         return this.openBuffer(preserveFocus)
       }
-    }).finally(() => {
+    }).catch(() => {
       this._showing = false
     })
   }
@@ -88,7 +89,7 @@ export default class BufferChannel implements OutputChannel {
     let {buffer, nvim} = this
     if (!buffer) return
     this.buffer = null
-    nvim.command(`slient! bd! ${buffer.id}`)
+    nvim.command(`slient! bd! ${buffer.id}`, false)
   }
 
   public dispose(): void {

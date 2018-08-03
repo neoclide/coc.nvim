@@ -4,6 +4,8 @@ const logger = require('../util/logger')('model-jobManager')
 
 const default_timeout = 60*1000
 
+type ResolveCallback = (res:string|null) => void
+
 export default class JobManager {
   private jobid = 1
   private callbackMap: Map<number, (data: string) => void> = new Map()
@@ -26,12 +28,12 @@ export default class JobManager {
       cwd,
       cmd
     }])
-    let promise = new Promise(resolve => {
+    let promise = new Promise((resolve:ResolveCallback) => { // tslint:disable-line
       let fn = (data:string):void => {
         resolve(data)
       }
       setTimeout(() => {
-        resolve()
+        resolve(null)
       }, timeout*1000)
       callbackMap.set(jobid, fn)
     })

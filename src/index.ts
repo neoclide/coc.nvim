@@ -40,7 +40,7 @@ export default class CompletePlugin {
         echoErr(nvim, `Initialize failed, ${err.message}`)
       })
     })
-    clean()
+    clean() // tslint:disable-line
   }
 
   private async onInit(): Promise<void> {

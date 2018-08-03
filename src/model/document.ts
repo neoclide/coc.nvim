@@ -31,15 +31,9 @@ export default class Document {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 20)
-    let fetching = false
     this.fetchContent = debounce(() => {
-      if (fetching) {
-        this.fetchContent.clear()
-        this.fetchContent()
-      }
-      fetching = true
-      this._fetchContent().finally(() => {
-        fetching = false
+      this._fetchContent().catch(_e => {
+        // noop
       })
     }, 50)
     Object.defineProperty(this, 'words', {
@@ -214,6 +208,7 @@ export default class Document {
     if (!this.attached) return
     this.attached = false
     disposeAll(this.disposables)
+    this.fetchContent.clear()
     this._fireContentChanges.clear()
     this._onDocumentChange.dispose()
   }

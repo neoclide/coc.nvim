@@ -11,7 +11,7 @@ const file = 'dist/vueServerMain.js'
 function getConfig(config: WorkspaceConfiguration): any {
   let res = {}
   for (let section of sections) {
-    let o = config.get(section)
+    let o = config.get<any>(section)
     res[section] = o || {}
   }
   return res

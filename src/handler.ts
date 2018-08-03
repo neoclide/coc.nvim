@@ -300,12 +300,12 @@ export default class Handler {
       if (!commandManager.has(id)) {
         return echoErr(this.nvim, `Command '${id}' not found`)
       }
-      await commandManager.executeCommand(id, ...args)
+      commandManager.executeCommand(id, ...args)
     } else {
       let ids = await this.getCommands()
       let idx = await showQuickpick(this.nvim, ids)
       if (idx == -1) return
-      await commandManager.executeCommand(ids[idx])
+      commandManager.executeCommand(ids[idx])
     }
   }
 

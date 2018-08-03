@@ -44,13 +44,8 @@ export function wait(ms: number): Promise<any> {
   })
 }
 
-async function echoMsg(nvim: Neovim, msg: string, hl: string): Promise<void> {
-  try {
-    nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
-  } catch (e) {
-    logger.error(e.stack)
-  }
-  return
+function echoMsg(nvim: Neovim, msg: string, hl: string): void {
+  nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
 export function isCocItem(item: any): boolean {

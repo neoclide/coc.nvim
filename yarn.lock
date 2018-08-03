@@ -16,9 +16,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@chemzqm/neovim@4.3.4":
-  version "4.3.4"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.4.tgz#78c586919b792e75753b8b27ca4454c8c22d45b8"
+"@chemzqm/neovim@4.3.5":
+  version "4.3.5"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.5.tgz#99c9d0a51c22377dcd9e687003789fcae4b8922c"
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -3162,9 +3162,9 @@ trim-right@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/trim-right/-/trim-right-1.0.1.tgz#cb2e1203067e0c8de1f614094b9fe45704ea6003"
 
-ts-jest@^23.1.1:
-  version "23.1.1"
-  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-23.1.1.tgz#2f2236d2e0e9e796125bb0d36833da9cc58efc46"
+ts-jest@^23.1.2:
+  version "23.1.2"
+  resolved "https://registry.yarnpkg.com/ts-jest/-/ts-jest-23.1.2.tgz#34cd26f3f566924dbd385ad188ae3c3b75757f9e"
   dependencies:
     closest-file-data "^0.1.4"
     fs-extra "6.0.1"

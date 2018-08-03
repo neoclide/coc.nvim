@@ -240,8 +240,8 @@ export interface TerminalResult {
 }
 
 export interface ConfigurationShape {
-  $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): Promise<void>
-  $removeConfigurationOption(target: ConfigurationTarget, key: string): Promise<void>
+  $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void
+  $removeConfigurationOption(target: ConfigurationTarget, key: string): void
 }
 
 export interface IConfigurationModel {

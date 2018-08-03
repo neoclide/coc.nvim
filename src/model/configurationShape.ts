@@ -45,20 +45,21 @@ export default class ConfigurationProxy implements ConfigurationShape {
     this.formattingOptions = { tabSize: tabSize as number, insertSpaces }
   }
 
-  private modifyConfiguration(target: ConfigurationTarget, key: string, value?: any): Promise<void> {
+  private modifyConfiguration(target: ConfigurationTarget, key: string, value?: any): void {
     let content = target == ConfigurationTarget.Workspace ? this.workspaceContent : this.userContent
     let file = target == ConfigurationTarget.Workspace ? this.workspaceFile : this.userFile
     let { formattingOptions } = this
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
-    return writeFile(file, content)
+    fs.writeFileSync(file, content, 'utf8')
+    return
   }
 
-  public $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): Promise<void> {
-    return this.modifyConfiguration(target, key, value)
+  public $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void {
+    this.modifyConfiguration(target, key, value)
   }
 
-  public $removeConfigurationOption(target: ConfigurationTarget, key: string): Promise<void> {
-    return this.modifyConfiguration(target, key)
+  public $removeConfigurationOption(target: ConfigurationTarget, key: string): void {
+    this.modifyConfiguration(target, key)
   }
 }
