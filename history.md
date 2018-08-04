@@ -1,6 +1,8 @@
 # 2018-08-04
 
 * Fix order of document symbols.
+* Fix completion snippet with $variable.
+* Add feature: expand snippet on confirm.
 
 # 2018-08-03
 

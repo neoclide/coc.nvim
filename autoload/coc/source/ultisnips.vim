@@ -18,3 +18,7 @@ function! coc#source#ultisnips#complete(opt, cb) abort
   endif
   call a:cb(items)
 endfunction
+
+function! coc#source#ultisnips#on_complete(item) abort
+  call UltiSnips#ExpandSnippet()
+endfunction

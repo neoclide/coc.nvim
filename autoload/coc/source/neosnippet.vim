@@ -39,3 +39,7 @@ function! coc#source#neosnippet#complete(opt, cb) abort
   let items = get(s:cache, filetype, [])
   call a:cb(items)
 endfunction
+
+function! coc#source#neosnippet#on_complete(item) abort
+  call neosnippet#mappings#expand_impl()
+endfunction

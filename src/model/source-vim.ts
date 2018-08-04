@@ -8,13 +8,13 @@ const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
 
-  private async callOptinalFunc(fname: string, args: any[]): Promise<any> {
+  private async callOptinalFunc(fname: string, args: any[], isNotify = false): Promise<any> {
     let exists = this.optionalFns.indexOf(fname) !== -1
     if (!exists) return null
     let name = `coc#source#${this.name}#${fname}`
     let res
     try {
-      res = await this.nvim.call(name, args)
+      res = await this.nvim.call(name, args, isNotify)
     } catch (e) {
       echoErr(this.nvim, `Vim error from source ${this.name}: ${e.message}`)
       return null
@@ -35,14 +35,12 @@ export default class VimSource extends Source {
 
   public async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (this.optionalFns.indexOf('on_complete') === -1) return
-    await this.callOptinalFunc('on_complete', [item])
+    this.callOptinalFunc('on_complete', [item], true)
   }
 
   public onEnter(info:DocumentInfo):void {
     if (this.optionalFns.indexOf('on_enter') === -1) return
-    this.callOptinalFunc('on_enter', [info]).catch(_e => {
-      // noop
-    })
+    this.callOptinalFunc('on_enter', [info], true)
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
@@ -62,7 +60,7 @@ export default class VimSource extends Source {
         })
       }
     }
-    await this.nvim.call('coc#remote#do_complete', [this.name, opt])
+    this.nvim.call('coc#remote#do_complete', [this.name, opt], true)
     let items = await remoteStore.getResult(id, this.name)
     if (this.firstMatch && input.length) {
       let ch = input[0]
