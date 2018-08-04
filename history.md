@@ -1,3 +1,7 @@
+# 2018-08-04
+
+* Fix order of document symbols.
+
 # 2018-08-03
 
 * Add command `:CocErrors` for debug.

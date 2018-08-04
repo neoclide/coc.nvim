@@ -672,9 +672,7 @@ export class SnippetParser {
     const token = this._token
     const match =
       this._accept(TokenType.Dollar) &&
-      (value =
-        this._accept(TokenType.VariableName, true) ||
-        this._accept(TokenType.Int, true))
+      (value = this._accept(TokenType.Int, true))
 
     if (!match) {
       return this._backTo(token)

@@ -1,7 +1,6 @@
 import { ConfigurationShape, ConfigurationTarget } from '../types'
 import { FormattingOptions } from 'vscode-languageserver-protocol'
 import { modify, applyEdits } from 'jsonc-parser'
-import { writeFile } from '../util/fs'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 const logger = require('../util/logger')('model-ConfigurationShape')
