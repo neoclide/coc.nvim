@@ -171,8 +171,9 @@ export default class Handler {
     let level = 0
     let res: SymbolInfo[] = []
     let pre = null
+    let filepath = Uri.parse(document.uri).fsPath
     if (isSymbols) {
-      let filepath = Uri.parse(document.uri).fsPath
+      (symbols as DocumentSymbol[]).sort(sortSymbols)
       for (let sym of symbols) {
         addDoucmentSymbol(res, sym as DocumentSymbol, filepath, level)
       }
@@ -479,6 +480,18 @@ function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): Sym
   return null
 }
 
+function sortSymbols(a:DocumentSymbol, b:DocumentSymbol):number {
+  let ra = a.selectionRange
+  let rb = b.selectionRange
+  if (ra.start.line < rb.start.line) {
+    return -1
+  }
+  if (ra.start.line > rb.start.line) {
+    return 1
+  }
+  return ra.start.character - rb.start.character
+}
+
 function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, filepath:string, level:number):void {
   let {name, selectionRange, kind, children} = sym
   let {start} = selectionRange
@@ -491,6 +504,7 @@ function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, filepath:string
     kind: getSymbolKind(kind),
   })
   if (children && children.length) {
+    children.sort(sortSymbols)
     for (let sym of children) {
       addDoucmentSymbol(res, sym, filepath, level + 1)
     }

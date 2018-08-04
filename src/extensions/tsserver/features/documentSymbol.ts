@@ -2,12 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, SymbolInformation, SymbolKind, TextDocument} from 'vscode-languageserver-protocol'
+import {CancellationToken, DocumentSymbol, SymbolKind, TextDocument, Range} from 'vscode-languageserver-protocol'
 import {DocumentSymbolProvider} from '../../../provider'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import {ITypeScriptServiceClient} from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
+const logger = require('../../../util/logger')('tsserver-documentSymbol')
 
 const getSymbolKind = (kind: string): SymbolKind => {
   switch (kind) {
@@ -50,7 +51,7 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
   public async provideDocumentSymbols(
     resource: TextDocument,
     token: CancellationToken
-  ): Promise<SymbolInformation[]> {
+  ): Promise<DocumentSymbol[]> {
     const filepath = this.client.toPath(resource.uri)
     if (!filepath) return []
 
@@ -64,10 +65,9 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
         // The root represents the file. Ignore this when showing in the UI
         const tree = response.body
         if (tree.childItems) {
-          const result = new Array<SymbolInformation>()
+          const result = new Array<DocumentSymbol>()
           tree.childItems.forEach(item =>
             TypeScriptDocumentSymbolProvider.convertNavTree(
-              resource.uri,
               result,
               item
             )
@@ -82,35 +82,37 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
   }
 
   private static convertNavTree(
-    uri: string,
-    bucket: SymbolInformation[],
+    bucket: DocumentSymbol[],
     item: Proto.NavigationTree,
-    containerName = ''
   ): boolean {
-    const symbolInfo = SymbolInformation.create(
-      item.text,
-      getSymbolKind(item.kind),
-      typeConverters.Range.fromTextSpan(item.spans[0]),
-      uri,
-      containerName)
-
     let shouldInclude = TypeScriptDocumentSymbolProvider.shouldInclueEntry(item)
+    const children = new Set(item.childItems || [])
+    for (const span of item.spans) {
+      const range = typeConverters.Range.fromTextSpan(span)
+      const symbolInfo = DocumentSymbol.create(
+        item.text,
+        '',
+        getSymbolKind(item.kind),
+        range,
+        range)
+      symbolInfo.children = children.size > 0 ? [] : null
 
-    if (shouldInclude || (item.childItems && item.childItems.length)) {
-      bucket.push(symbolInfo)
-    }
+      for (const child of children) {
+        if (child.spans.some(span => !!containsRange(range, typeConverters.Range.fromTextSpan(span)))) {
+          const includedChild = TypeScriptDocumentSymbolProvider.convertNavTree(symbolInfo.children, child)
+          if (includedChild && !shouldInclude) {
+            logger.debug(33)
+          }
+          shouldInclude = shouldInclude || includedChild
+          children.delete(child)
+        }
+      }
 
-    if (item.childItems) {
-      for (const child of item.childItems) {
-        const includedChild = TypeScriptDocumentSymbolProvider.convertNavTree(
-          uri,
-          bucket,
-          child,
-          symbolInfo.name
-        )
-        shouldInclude = shouldInclude || includedChild
+      if (shouldInclude) {
+        bucket.push(symbolInfo)
       }
     }
+
     return shouldInclude
   }
 
@@ -127,3 +129,20 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
     )
   }
 }
+
+function containsRange(range: Range, otherRange: Range): boolean {
+  if (otherRange.start.line < range.start.line || otherRange.end.line < range.start.line) {
+    return false
+  }
+  if (otherRange.start.line > range.end.line || otherRange.end.line > range.end.line) {
+    return false
+  }
+  if (otherRange.start.line === range.start.line && otherRange.start.character < range.start.character) {
+    return false
+  }
+  if (otherRange.end.line === range.end.line && otherRange.end.character > range.end.character) {
+    return false
+  }
+  return true
+}
+
