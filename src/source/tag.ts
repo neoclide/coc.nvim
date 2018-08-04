@@ -21,7 +21,6 @@ export default class Tag extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    if (!this.checkFileType(opt.filetype)) return false
     let files = await this.nvim.call('tagfiles')
     let cwd = await this.nvim.call('getcwd')
     files = files.map(f => {

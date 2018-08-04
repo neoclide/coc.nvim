@@ -137,11 +137,6 @@ export default abstract class Source implements ISource {
     return col
   }
 
-  public checkFileType(filetype: string): boolean {
-    if (this.filetypes == null) return true
-    return this.filetypes.indexOf(filetype) !== -1
-  }
-
   public async refresh(): Promise<void> {
     // do nothing
   }

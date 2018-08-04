@@ -122,7 +122,8 @@ export interface CompleteOption {
   colnr: number
   linenr: number
   iskeyword: string
-  ;[index: string]: any
+  custom: boolean
+  [index: string]: any
 }
 
 export interface VimCompleteItem {

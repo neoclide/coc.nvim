@@ -85,6 +85,14 @@ mode.
 ------------------------------------------------------------------------------
 Keymapings 					*coc-keymapings*
 
+<Plug>(coc-complete-custom) 			*i_coc-complete-custom*
+
+			Trigger completion for custom sources.
+
+  			Default customs sources: `emoji`, `include` and `word`
+
+			Use `coc.preferences.customSources` to configure.
+
 <Plug>(coc-diagnostic-next) 			*n_coc-diagnostic-next*
 			
 			Jump to next diagnostic position.
@@ -584,6 +592,8 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 
 ==============================================================================
 CHANGELOG					*coc-changelog*
+
+Check out https://github.com/neoclide/coc.nvim/blob/master/history.md
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:

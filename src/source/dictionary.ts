@@ -23,7 +23,6 @@ export default class Dictionary extends Source {
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {input} = opt
     if (input.length === 0) return false
-    if (!this.checkFileType(opt.filetype)) return false
     let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
     dictOption = opt.dictOption = dictOption.trim()
     if (!dictOption) return false

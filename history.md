@@ -3,6 +3,11 @@
 * Fix order of document symbols.
 * Fix completion snippet with $variable.
 * Add feature: expand snippet on confirm.
+* Add feature: `<Plug>(coc-complete-custom)` for complete custom sources.
+
+  Default customs sources: `emoji`, `include` and `word`
+
+* **Break change** `emoji` `include` used for all filetypes by default.
 
 # 2018-08-03
 

@@ -1,12 +1,13 @@
 {
   /*
-  * create coc-settings.json in folder $XDG_CONFIG_HOME/nvim
+  * Use ":CocConfig" to edit coc-settings.json
   * validate and completion would be enabled automatically
   */
   "$schema": "./data/schema.json",
   "coc.preferences.autoTrigger": "always",
   // only used when autoTrigger is always
   "coc.preferences.triggerAfterInsertEnter": true,
+  "coc.preferences.customSources": ["word", "emoji", "include"],
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
   "coc.preferences.watchmanPath": "",
@@ -196,8 +197,6 @@
   "coc.source.emoji.enable": true,
   "coc.source.emoji.shortcut": "EMO",
   "coc.source.emoji.priority": 9,
-  "coc.source.emoji.filetypes": ["markdown"],
-  "coc.source.emoji.triggerCharacters": [":"],
   "coc.source.file.enable": true,
   "coc.source.file.shortcut": "F",
   "coc.source.file.priority": 10,
@@ -208,9 +207,7 @@
   "coc.source.include.enable": true,
   "coc.source.include.shortcut": "I",
   "coc.source.include.priority": 10,
-  "coc.source.include.triggerCharacters": [],
   "coc.source.include.trimSameExts": [".ts", ".js"],
-  "coc.source.include.listFileCommand": "",
   "coc.source.omni.enable": true,
   "coc.source.omni.shortcut": "O",
   "coc.source.omni.priority": 3,
@@ -220,7 +217,7 @@
   "coc.source.tag.priority": 3,
   "coc.source.word.enable": true,
   "coc.source.word.shortcut": "10k",
-  "coc.source.word.priority": 0,
+  "coc.source.word.priority": 1,
   "coc.source.ultisnips.enable": true,
   "coc.source.ultisnips.priority": 3,
   "coc.source.ultisnips.shortcut": "US",

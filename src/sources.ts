@@ -104,9 +104,18 @@ export default class Sources extends EventEmitter {
   }
 
   public getCompleteSources(opt: CompleteOption): ISource[] {
-    let {triggerCharacter, filetype} = opt
-    if (triggerCharacter) return this.getTriggerSources(triggerCharacter, filetype)
-    return this.getSourcesForFiletype(filetype, false)
+    let {triggerCharacter, filetype, custom} = opt
+    let sources:ISource[]
+    if (triggerCharacter) {
+      sources = this.getTriggerSources(triggerCharacter, filetype)
+    } else {
+      sources = this.getSourcesForFiletype(filetype, false)
+    }
+    let customs = workspace.getConfiguration('coc.preferences').get<string[]>('customSources', [])
+    return sources.filter(source => {
+      if (custom) return customs.indexOf(source.name) !== -1
+      return customs.indexOf(source.name) == -1
+    })
   }
 
   public shouldTrigger(character: string, languageId: string): boolean {

@@ -172,6 +172,7 @@ nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementatio
 nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 inoremap <silent>                        <Plug>_    <C-r>=coc#_complete()<CR>
+inoremap <expr> <Plug>(coc-complete-custom)     coc#complete_custom()
 
 let &cpo = s:save_cpo
 unlet s:save_cpo

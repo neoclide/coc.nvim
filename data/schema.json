@@ -203,6 +203,14 @@
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": ""
     },
+    "coc.preferences.customSources": {
+      "type": "array",
+      "description": "Source names used for coc-complete-custom",
+      "default": ["word", "emoji", "include"],
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.preferences.jumpCommand": {
       "type": "string",
       "description": "Command used for location jump, like goto definition, goto references etc.",

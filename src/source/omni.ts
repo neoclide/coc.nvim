@@ -14,9 +14,6 @@ export default class OmniSource extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {filetype} = opt
-    if (!this.filetypes) return false
-    if (!this.checkFileType(filetype)) return false
     let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
     opt.func = func
     if (typeof func == 'string' && func.length != 0) return true
@@ -27,7 +24,7 @@ export default class OmniSource extends Source {
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
     let {line, colnr, col, func} = opt
     let {nvim} = this
-    if (['LanguageClient#complete', 'jedi#completes'].indexOf('func') !== -1) {
+    if (['LanguageClient#complete'].indexOf('func') !== -1) {
       echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
     }
