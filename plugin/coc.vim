@@ -91,6 +91,11 @@ function! s:Enable()
 
   augroup coc_nvim
     autocmd!
+    if s:is_vim
+      autocmd DirChanged       * call s:Autocmd('DirChanged', expand('<afile>'))
+    else
+      autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
+    endif
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)

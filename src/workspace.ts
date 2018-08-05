@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
 import Document from './model/document'
@@ -18,6 +18,7 @@ import path from 'path'
 import os from 'os'
 import uuidv1 = require('uuid/v1')
 import { EventEmitter } from 'events'
+import deepEqual from 'deep-equal'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 
@@ -35,13 +36,10 @@ interface EditerState {
 
 export class Workspace {
   public nvim: Neovim
-  // project root
-  public root: string
   public bufnr: number
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
-  private watchmanPromise: Promise<Watchman>
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
@@ -65,29 +63,63 @@ export class Workspace {
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
   public emitter: EventEmitter
   private moduleManager: ModuleManager
-  private watchmanPath: string
   private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
   private jobManager: JobManager
+  private _cwd: string
 
   constructor() {
     this.configFiles = []
   }
 
+  public get cwd(): string {
+    return this._cwd
+  }
+
+  public onDirChanged(cwd: string): void {
+    this._cwd = cwd
+    this.onConfigurationChange()
+  }
+
+  public get root(): string {
+    let { cwd, bufnr } = this
+    let dir: string
+    if (bufnr) {
+      let document = this.getDocument(bufnr)
+      if (document && document.schema == 'file') dir = path.dirname(Uri.parse(document.uri).fsPath)
+    }
+    dir = dir || cwd
+    return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
+  }
+
+  public get workspaceFolder(): WorkspaceFolder | null {
+    let dir: string
+    let { bufnr } = this
+    if (bufnr) {
+      let document = this.getDocument(bufnr)
+      if (document && document.schema == 'file') dir = path.dirname(Uri.parse(document.uri).fsPath)
+    }
+    if (!dir) return null
+    let folder = resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir())
+    return folder ? {
+      uri: Uri.file(folder).toString(),
+      name: path.basename(folder)
+    } : null
+  }
+
   public async init(): Promise<void> {
-    let cwd = await this.nvim.call('getcwd')
+    this._cwd = await this.nvim.call('getcwd')
     let moduleManager = this.moduleManager = new ModuleManager()
     this.jobManager = new JobManager(this.nvim, this.emitter)
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
-    let config = await this.loadConfigurations(cwd)
+    let config = await this.loadConfigurations()
     let { configFiles } = this
     let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
     this._configurations = new Configurations(config, configurationShape)
-    this.root = await this.findProjectRoot(cwd)
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
@@ -95,9 +127,7 @@ export class Workspace {
       logger.error(`buffer create error: ${error.message}`)
     })
     const preferences = this.getConfiguration('coc.preferences')
-    const watchmanPath = preferences.get<string>('watchmanPath', '')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
-    this.watchmanPath = Watchman.getBinaryPath(watchmanPath)
     watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
@@ -110,7 +140,7 @@ export class Workspace {
     return Array.from(this.outputChannels.keys())
   }
 
-  public get pluginRoot():string {
+  public get pluginRoot(): string {
     return this.vimSettings.pluginRoot
   }
 
@@ -145,11 +175,9 @@ export class Workspace {
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    let promise = this.watchmanPromise
-    if (this.watchmanPath && !this.watchmanPromise) {
-      let channel = this.createOutputChannel('watchman')
-      promise = this.watchmanPromise = Watchman.createClient(this.watchmanPath, this.root, channel)
-    }
+    const preferences = this.getConfiguration('coc.preferences')
+    const watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', ''))
+    let promise = Watchman.createClient(watchmanPath, this.root)
     return new FileSystemWatcher(
       promise,
       globPattern,
@@ -519,11 +547,11 @@ export class Workspace {
     return null
   }
 
-  public async runCommand(cmd: string, cwd?: string):Promise<string> {
+  public async runCommand(cmd: string, cwd?: string): Promise<string> {
     return await this.jobManager.runCommand(cmd, cwd)
   }
 
-  public async runTerminalCommand(cmd: string, cwd?: string):Promise<TerminalResult> {
+  public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
     return await this.moduleManager.runCommand(cmd, cwd)
   }
 
@@ -550,19 +578,16 @@ export class Workspace {
   }
 
   private async onConfigurationChange(): Promise<void> {
+    let { _configurations } = this
     try {
-      let cwd = await this.nvim.call('getcwd')
-      let config = await this.loadConfigurations(cwd)
+      let config = await this.loadConfigurations()
       this._configurations = new Configurations(config, this.configurationShape)
-      this._onDidChangeConfiguration.fire(this.getConfiguration())
+      if (!_configurations || !deepEqual(_configurations, this._configurations)) {
+        this._onDidChangeConfiguration.fire(this.getConfiguration())
+      }
     } catch (e) {
       logger.error(`Load configuration error: ${e.message}`)
     }
-  }
-
-  private async findProjectRoot(cwd:string): Promise<string> {
-    let root = resolveRoot(cwd, ['.vim', '.git', '.hg'], os.homedir())
-    return root ? root : cwd
   }
 
   private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): Promise<boolean> {
@@ -611,7 +636,8 @@ export class Workspace {
     return config
   }
 
-  private async loadConfigurations(cwd:string): Promise<IConfigurationData> {
+  private async loadConfigurations(): Promise<IConfigurationData> {
+    let { cwd } = this
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
     let defaultConfig = await this.parseConfigFile(file)
@@ -620,18 +646,18 @@ export class Workspace {
     this.configFiles.push(file)
     let userConfig = await this.parseConfigFile(file)
     let dir = resolveDirectory(cwd, '.vim')
-    let projectConfig
+    let workspaceConfig
     file = dir ? path.join(dir, CONFIG_FILE_NAME) : null
     if (this.configFiles.indexOf(file) == -1) {
       this.configFiles.push(file)
-      projectConfig = await this.parseConfigFile(file)
+      workspaceConfig = await this.parseConfigFile(file)
     } else {
-      projectConfig = { contents: {} }
+      workspaceConfig = { contents: {} }
     }
     return {
       defaults: defaultConfig,
       user: userConfig,
-      workspace: projectConfig
+      workspace: workspaceConfig
     }
   }
 

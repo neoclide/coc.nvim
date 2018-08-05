@@ -1,3 +1,10 @@
+# 2018-08-05
+
+* Improve eslint extension to use workspaceFolder.
+* Fix watchman not works with multiple roots.
+* Add feature: dynamic root support for workspace.
+* **Break change** output channel of watchman is removed.
+
 # 2018-08-04
 
 * Fix order of document symbols.

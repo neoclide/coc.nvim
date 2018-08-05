@@ -69,6 +69,8 @@ export default class CompletePlugin {
     let {emitter} = this
     logger.debug('Autocmd:', args)
     switch (args[0] as string) {
+      case 'DirChanged':
+        workspace.onDirChanged(args[1])
       case 'TextChanged':
         emitter.emit('TextChanged', args[1])
         break
