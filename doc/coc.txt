@@ -1,6 +1,6 @@
 *coc-nvim.txt*				Completion framework for neovim
 
-Version: 0.1
+Version: 0.0.5
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -42,19 +42,27 @@ you can configure coc to work with custom language server as well.
 ==============================================================================
 INSTALL						*coc-install*
 
-Install [nodejs](http://nodejs.org/) version > 8.0.
-
-Install [yarn](https://yarnpkg.com/en/docs/install)
-
 Use plugin manager, like https://github.com/junegunn/vim-plug by add: >
 
-  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
+  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
 then restart neovim.
+
+==============================================================================
+CONFIGURATION					*coc-configuration*
+
+The same as VSCode, Coc use jsonc formated file named `coc-settings.json` for
+configuration.
+
+Use command |:CocConfig| to open user configuration file, or create
+`.vim/coc-settings.json` for workspace configuration.
+
+Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
+for detail.
 
 ==============================================================================
 COMPLETION					*coc-completion*
@@ -64,23 +72,10 @@ To make completion easier, there're some common practices.
 Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
 
 ==============================================================================
-CONFIGURATION					*coc-configuration*
-
-Coc use jsonc formated file named `coc-settings.json` for configuration.
-
-You can create user configuration and/or workspace configuration file to best fit
-your need.
-
-Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
-for detail.
-
-Check out file 'settings.json' for all available options.
-
-==============================================================================
 INTERFACE					*coc-interface*
 
-Mapping starts with 'n_' works for normal mode, and 'v_' works for visual
-mode.
+Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
+mode, 'v_' works for visual mode.
 
 ------------------------------------------------------------------------------
 Keymapings 					*coc-keymapings*
@@ -222,7 +217,7 @@ FUNCTIONS 					*coc-functions*
 Coc functions are normally used by user defined command/keymap or other
 plugins.
 
-Note: Your vim could be significantly show if you call 'CocAction' on vim
+Note: Your vim could be significantly slow if you call 'CocAction' on vim
 startup, you can avoid this issue by add guard code: 
 >
     if !get(g:, 'coc_enabled', 0)
@@ -396,21 +391,21 @@ nvim#rpc#open_log
 COMMANDS 					*coc-commands*
 
 
-:CocDisable 					*coc-command-disable*
+:CocDisable 					*:CocDisable*
 		Disable completion of coc
 
-:CocEnable 					*coc-command-enable*
+:CocEnable 					*:CocEnable*
 		Enable completion of coc
 
-:CocRefresh [{name}]				*coc-command-refresh*
+:CocRefresh [{name}]				*:CocRefresh*
 
 		Remove cache of source {name}, or all sources without {name}.
 
-:CocConfig 					*coc-command-config*
+:CocConfig 					*:CocConfig*
 
 		Open config file `coc-setting.json`
 
-:CocErrors 					*coc-command-errors*
+:CocErrors 					*:CocErrors*
 
 		Show output from stderr of coc node process.
 		Use 'let $NODE_DEBUG=nvim*' to debug commucation between
