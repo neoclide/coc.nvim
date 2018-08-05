@@ -34,6 +34,10 @@
       "default": "onType",
       "enum": ["onType", "onSave"]
     },
+    "eslint.validate": {
+      "type": "boolean",
+      "default": true
+    },
     "eslint.autoFix": {
       "type": "boolean",
       "default": true,

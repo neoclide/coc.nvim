@@ -6,14 +6,14 @@
 
 import fs from 'fs'
 import path from 'path'
-import { CodeAction, CodeActionContext, Command, Diagnostic, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, ExecuteCommandParams, ExecuteCommandRequest, NotificationType, RequestType, TextDocument, TextDocumentIdentifier, VersionedTextDocumentIdentifier } from 'vscode-languageserver-protocol'
+import { CodeAction, CodeActionContext, Command, Diagnostic, DidCloseTextDocumentNotification, DidOpenTextDocumentNotification, ExecuteCommandParams, ExecuteCommandRequest, NotificationType, RequestType, TextDocument, TextDocumentIdentifier, VersionedTextDocumentIdentifier, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../../commands'
 import { LanguageService } from '../../language-client'
 import { ErrorAction, ErrorHandler, LanguageClientOptions, WorkspaceMiddleware } from '../../language-client/main'
 import { ProviderResult } from '../../provider'
 import { ServiceStat } from '../../types'
-import { echoErr, echoWarning } from '../../util'
+import { echoErr, echoWarning, echoMessage } from '../../util'
 import workspace from '../../workspace'
 import { findEslint } from './utils'
 const logger = require('../../util/logger')('eslint')
@@ -51,13 +51,14 @@ namespace DirectoryItem {
 type RunValues = 'onType' | 'onSave'
 
 interface TextDocumentSettings {
+  validate: boolean
   packageManager: 'npm' | 'yarn'
   autoFix: boolean
   autoFixOnSave: boolean
   options: any | undefined
   run: RunValues
-  nodePath?: string
-  workingDirectory: DirectoryItem
+  workspaceFolder: WorkspaceFolder | undefined
+  workingDirectory: DirectoryItem | undefined
 }
 
 interface NoConfigParams {
@@ -133,6 +134,7 @@ export default class EslintService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('eslint-server', 'eslint').then(folder => {
+            echoMessage(workspace.nvim, `Using eslint-server from ${folder}`)
             resolve(folder ? path.join(folder, 'lib/index.js') : null)
           }, () => {
             resolve(null)
@@ -296,11 +298,13 @@ export default class EslintService extends LanguageService {
             let pm = config.get('packageManager', 'npm')
             let settings: TextDocumentSettings = {
               packageManager: pm === 'yarn' ? 'yarn' : 'npm',
+              validate: config.get('validate', true),
               autoFix: config.get('autoFix', false),
               autoFixOnSave: config.get('autoFixOnSave', false),
               options: config.get<Object>('options', {}),
               run: config.get('run', 'onType'),
-              workingDirectory: {directory: workspace.root, changeProcessCWD: false}
+              workspaceFolder: workspace.workspaceFolder,
+              workingDirectory: undefined
             }
             return [settings]
           }
