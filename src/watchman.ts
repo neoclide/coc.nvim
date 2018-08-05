@@ -4,7 +4,7 @@ import fs from 'fs'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
 import os from 'os'
-import {OutputChannel} from './types'
+const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
 export interface WatchResponse {
@@ -40,7 +40,7 @@ export default class Watchman {
   private relative_path: string | null
   private clock: string | null
 
-  constructor(binaryPath: string, private outputChannel: OutputChannel) {
+  constructor(binaryPath: string) {
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
@@ -69,11 +69,11 @@ export default class Watchman {
     }
     let resp = await this.command(['watch-project', root])
     let {watch, warning} = (resp as WatchResponse)
-    if (warning) this.appendOutput(warning, 'warning')
+    if (warning) logger.warn(warning)
     this.relative_path = watch
     resp = await this.command(['clock', watch])
     this.clock = resp.clock
-    this.appendOutput(`watchman watching project ${root}`, 'info')
+    logger.info(`watchman watching project ${root}`)
     return true
   }
 
@@ -84,10 +84,6 @@ export default class Watchman {
         resolve(resp)
       })
     })
-  }
-
-  private appendOutput(message:string, type: string):void {
-    this.outputChannel.appendLine(`[${type}] ${message}`)
   }
 
   public async subscribe(globPattern: string, cb: ChangeCallback): Promise<string> {
@@ -111,20 +107,20 @@ export default class Watchman {
 
   public unsubscribe(subscription): void {
     this.command(['unsubscribe', this.relative_path, subscription]).catch(error => {
-      this.outputChannel.appendLine(`[error] ${error.message}`)
+      logger.error(error.message)
     })
   }
 
-  public static async createClient(binaryPath: string, root: string, outputChannel: OutputChannel): Promise<Watchman | null> {
+  public static async createClient(binaryPath: string, root: string): Promise<Watchman | null> {
     if (root == os.homedir()) return null
-    let client = new Watchman(binaryPath, outputChannel)
+    let client = new Watchman(binaryPath)
     let watching
     try {
       let checked = await client.checkCapability()
       if (!checked) return null
       watching = await client.watchProject(root)
     } catch (e) {
-      outputChannel.appendLine(`[error] ${e.message}`)
+      logger.error(e.message)
       return null
     }
     return watching ? client : null
