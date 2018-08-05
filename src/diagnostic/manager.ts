@@ -4,10 +4,19 @@ import Uri from 'vscode-uri'
 import Document from '../model/document'
 import {DiagnosticItem, LocationListItem} from '../types'
 import workspace from '../workspace'
-import {DiagnosticBuffer, DiagnosticConfig} from './buffer'
+import {DiagnosticBuffer} from './buffer'
 import DiagnosticCollection from './collection'
 import debounce from 'debounce'
 const logger = require('../util/logger')('diagnostic-manager')
+
+export interface DiagnosticConfig {
+  locationlist: boolean,
+  signOffset: number
+  errorSign: string
+  warningSign: string
+  infoSign: string
+  hintSign: string
+}
 
 function severityName(severity: DiagnosticSeverity): string {
   switch (severity) {
@@ -76,6 +85,7 @@ export class DiagnosticManager {
 
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
+    this.srcId = config.get<number>('highlightOffset', 1000),
     this.config = {
       locationlist: config.get<boolean>('locationlist', true),
       signOffset: config.get<number>('signOffset', 1000),

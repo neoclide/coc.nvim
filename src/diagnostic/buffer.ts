@@ -7,15 +7,6 @@ import workspace from '../workspace'
 import {DiagnosticManager} from './manager'
 const logger = require('../util/logger')('diagnostic-buffer')
 
-export interface DiagnosticConfig {
-  locationlist: boolean,
-  signOffset: number
-  errorSign: string
-  warningSign: string
-  infoSign: string
-  hintSign: string
-}
-
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 
 function getNameFromSeverity(severity: DiagnosticSeverity): string {

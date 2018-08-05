@@ -227,6 +227,11 @@
       "description": "Create location list for error & warning",
       "default": true
     },
+    "coc.preferences.diagnostic.highlightOffset": {
+      "type": "number",
+      "description": "Offset number of buffer.addHighlight, neovim only.",
+      "default": 1000
+    },
     "coc.preferences.diagnostic.signOffset": {
       "type": "number",
       "description": "Offset number of sign",
