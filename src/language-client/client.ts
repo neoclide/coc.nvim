@@ -2981,7 +2981,6 @@ export abstract class BaseLanguageClient {
   private _fileEventDelayer: Delayer<void>
   private _stateChangeEmitter: Emitter<StateChangeEvent>
 
-  private _logger: log4js.Logger
   private _trace: Trace
   private _tracer: Tracer
 
@@ -2992,7 +2991,6 @@ export abstract class BaseLanguageClient {
   ) {
     this._id = id
     this._name = name
-    this._logger = createLogger(`lsp-${id}`)
     clientOptions = clientOptions || {}
     this._clientOptions = {
       documentSelector: clientOptions.documentSelector || [],

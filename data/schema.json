@@ -42,6 +42,11 @@
           "type": "string",
           "default": {},
           "description": "Config section of languageserver"
+        },
+        "trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"]
         }
       }
     },
@@ -102,6 +107,11 @@
           "type": "string",
           "default": {},
           "description": "Config section of languageserver"
+        },
+        "trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"]
         }
       }
     },
@@ -172,6 +182,11 @@
           "type": "string",
           "default": {},
           "description": "Config section of languageserver"
+        },
+        "trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"]
         }
       }
     }
