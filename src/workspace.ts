@@ -298,8 +298,8 @@ export class Workspace {
       return
     }
     let document = new Document(buffer)
-    this.buffers.set(buffer.id, document)
     await document.init(this.nvim)
+    this.buffers.set(buffer.id, document)
     if (isSupportedScheme(document.schema)) {
       this._onDidAddDocument.fire(document.textDocument)
       document.onDocumentChange(({ textDocument, contentChanges }) => {
@@ -414,7 +414,9 @@ export class Workspace {
   public get textDocuments(): TextDocument[] {
     let docs = []
     for (let b of this.buffers.values()) {
-      docs.push(b.textDocument)
+      if (b.textDocument != null) {
+        docs.push(b.textDocument)
+      }
     }
     return docs
   }

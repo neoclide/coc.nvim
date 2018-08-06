@@ -84,12 +84,12 @@ export default class Document {
     this.nvim = nvim
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
+    this.lines = await buffer.lines as string[]
+    this._changedtick = opts.changedtick
     let {fullpath, filetype, iskeyword} = opts
     let uri = getUri(fullpath, buffer.id)
     let chars = this.chars = new Chars(iskeyword)
     if (this.includeDash(filetype)) chars.addKeyword('-')
-    this.lines = await buffer.lines as string[]
-    this._changedtick = await buffer.changedtick
     this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.attach()
     this.attached = true
