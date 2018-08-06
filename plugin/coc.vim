@@ -123,6 +123,9 @@ function! s:Enable()
     snoremap <silent> <c-h> <c-g>c
     snoremap <c-r> <c-g>"_c<c-r>
   endif
+  if s:is_vim
+    set completeopt=menuone,noinsert,noselect
+  endif
 
   command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
