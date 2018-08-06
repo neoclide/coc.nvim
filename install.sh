@@ -68,7 +68,7 @@ download() {
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
   info "Downloading binary from ${url}"
   if fetch "${url}" | tar xzfv -; then
-    chmod a+x ${1}
+    chmod a+x ${1%.tar.gz}
     return
   else
     warn "Binary not available for now, please wait for a few minutes."
