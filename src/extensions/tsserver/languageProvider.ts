@@ -21,7 +21,6 @@ import HoverProvider from './features/hover'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
 import OrganizeImportsProvider from './features/organizeImports'
 // import TagCompletionProvider from './features/tagCompletion'
-import ProjectError from './features/projectError'
 import QuickfixProvider from './features/quickfix'
 import RefactorProvider from './features/refactor'
 import ReferenceProvider from './features/references'
@@ -62,8 +61,9 @@ export default class LanguageProvider {
 
     workspace.onDidEnterTextDocument(info => {
       let {state} = client
+      let {languageId, expandtab, tabstop} = info
+      if (description.modeIds.indexOf(languageId) == -1) return
       let cb = () => {
-        let {languageId, expandtab, tabstop} = info
         this.fileConfigurationManager.ensureConfigurationOptions(languageId, expandtab, tabstop) // tslint:disable-line
       }
       if (state == ServiceStat.Running) {

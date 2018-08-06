@@ -33,6 +33,7 @@ export default class CompletePlugin {
         return emitter
       }
     })
+    services.init(nvim)
     emitter.on('terminalResult', (res:TerminalResult) => {
       if (workspace.moduleManager) {
         workspace.moduleManager.handleTerminalResult(res)
@@ -55,15 +56,13 @@ export default class CompletePlugin {
 
   private async onInit(): Promise<void> {
     let {nvim} = this
-    // workspace configuration
-    await workspace.init()
-    completion.init(nvim, this.emitter)
-    await services.init(nvim)
     let buf = await nvim.buffer
+    await workspace.init()
     await workspace.bufferEnter(buf.id)
     this.initialized = true
     nvim.command('doautocmd User CocNvimInit', false)
     logger.info('Coc initialized')
+    completion.init(nvim, this.emitter)
   }
 
   // callback for remote sources

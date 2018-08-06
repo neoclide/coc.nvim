@@ -1,13 +1,11 @@
 import fs from 'fs'
 import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
-import pify from 'pify'
-import languageClient from './language-client'
+import {LanguageService} from './language-client'
 import workspace from './workspace'
 import {Disposable} from 'vscode-languageserver-protocol'
 import {IServiceProvider, ServiceStat} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
-import {statAsync} from './util/fs'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -40,15 +38,14 @@ export class ServiceManager implements Disposable {
   private languageIds: Set<string> = new Set()
   private readonly registed: Map<string, IServiceProvider> = new Map()
 
-  public async init(nvim: Neovim): Promise<void> {
+  public init(nvim: Neovim): void {
     this.nvim = nvim
     let root = path.join(__dirname, 'extensions')
+    let files = fs.readdirSync(root)
     try {
-      let files = await pify(fs.readdir)(root, 'utf8')
-      // TODO
       for (let file of files) {
         let fullpath = path.join(root, file)
-        let stat = await statAsync(fullpath)
+        let stat =  fs.statSync(fullpath)
         if (stat && stat.isDirectory) {
           try {
             let ServiceClass = require(fullpath).default
@@ -58,20 +55,19 @@ export class ServiceManager implements Disposable {
           }
         }
       }
-      languageClient.init()
-      for (let service of languageClient.services) {
-        this.regist(service)
-      }
+      this.createCustomServices()
       let ids = Array.from(this.registed.keys())
       logger.info(`Created services: ${ids.join(',')}`)
-      let {filetypes} = workspace
-      for (let filetype of filetypes) {
-        this.start(filetype)
-      }
     } catch (e) {
       echoErr(this.nvim, `Service init error: ${e.message}`)
       logger.error(e.message)
     }
+    workspace.onDidWorkspaceInitialized(() => {
+      let {filetypes} = workspace
+      for (let filetype of filetypes) {
+        this.start(filetype)
+      }
+    })
   }
 
   public dispose(): void {
@@ -101,17 +97,6 @@ export class ServiceManager implements Disposable {
     service.onServiceReady(() => {
        echoMessage(this.nvim, `service ${id} started`)
     })
-  }
-
-  private checkProvider(languageId: string, warning = false): boolean {
-    if (!languageId) return false
-    if (!this.languageIds.has(languageId)) {
-      if (warning) {
-        echoWarning(this.nvim, `service not found for ${languageId}`)
-      }
-      return false
-    }
-    return true
   }
 
   public getService(id: string): IServiceProvider {
@@ -182,6 +167,30 @@ export class ServiceManager implements Disposable {
     }
     return res
   }
+
+  private createCustomServices():void {
+    let base = 'languageserver'
+    let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
+    for (let key of Object.keys(lspConfig)) {
+      let config = lspConfig[key]
+      let id = `${base}.${key}`
+      this.regist(
+        new LanguageService(id, key, config)
+      )
+    }
+  }
+
+  private checkProvider(languageId: string, warning = false): boolean {
+    if (!languageId) return false
+    if (!this.languageIds.has(languageId)) {
+      if (warning) {
+        echoWarning(this.nvim, `service not found for ${languageId}`)
+      }
+      return false
+    }
+    return true
+  }
+
 }
 
 export default new ServiceManager()

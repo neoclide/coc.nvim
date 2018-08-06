@@ -70,6 +70,8 @@ export interface BufferOption {
   filetype: string
   iskeyword: string
   changedtick: number
+  expandtab: boolean
+  tabstop: number
 }
 
 export interface DiagnosticInfo {
@@ -285,7 +287,6 @@ export interface DocumentInfo {
   bufnr: number
   uri: string
   languageId: string
-  iskeyword: string
   expandtab: boolean
   tabstop: number
 }

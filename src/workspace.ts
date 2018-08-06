@@ -21,6 +21,7 @@ import { EventEmitter } from 'events'
 import deepEqual from 'deep-equal'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
+const isPkg = process.hasOwnProperty('pkg')
 
 // global neovim settings
 export interface VimSettings {
@@ -71,20 +72,20 @@ export class Workspace {
   private _cwd = process.cwd()
 
   constructor() {
-    this.configFiles = []
+    let configFiles = this.configFiles = []
+    let config = this.loadConfigurations()
+    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
+    this._configurations = new Configurations(config, configurationShape)
     let moduleManager = this.moduleManager = new ModuleManager()
     this.jobManager = new JobManager()
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
+    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
   }
 
   public async init(): Promise<void> {
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
-    let config = await this.loadConfigurations()
-    let { configFiles } = this
-    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
-    this._configurations = new Configurations(config, configurationShape)
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
@@ -93,7 +94,6 @@ export class Workspace {
     })
     const preferences = this.getConfiguration('coc.preferences')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
-    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
     if (this.isVim) {
@@ -141,7 +141,7 @@ export class Workspace {
   }
 
   public get pluginRoot(): string {
-    return this.vimSettings.pluginRoot
+    return isPkg ? path.resolve(process.execPath, '../..') : path.dirname(__dirname)
   }
 
   public get isVim(): boolean {
@@ -353,8 +353,14 @@ export class Workspace {
     this.bufnr = bufnr
     let doc = this.buffers.get(bufnr)
     if (!doc) return
-    let documentInfo = await this.nvim.call('coc#util#get_bufinfo', [bufnr])
-    documentInfo.uri = doc.uri
+    let buf = doc.buffer
+    let documentInfo:DocumentInfo = {
+      bufnr: buf.id,
+      uri: doc.uri,
+      languageId: doc.filetype,
+      expandtab: doc.expandtab,
+      tabstop: doc.tabstop
+    }
     this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
   }
 
@@ -582,7 +588,7 @@ export class Workspace {
   private async onConfigurationChange(): Promise<void> {
     let { _configurations } = this
     try {
-      let config = await this.loadConfigurations()
+      let config = this.loadConfigurations()
       this._configurations = new Configurations(config, this.configurationShape)
       if (!_configurations || !deepEqual(_configurations, this._configurations)) {
         this._onDidChangeConfiguration.fire(this.getConfiguration())
@@ -627,7 +633,7 @@ export class Workspace {
     }
   }
 
-  private async loadConfigurations(): Promise<IConfigurationData> {
+  private loadConfigurations(): IConfigurationData {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
     let defaultConfig = parseContentFromFile(file)

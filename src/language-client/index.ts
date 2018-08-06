@@ -197,30 +197,3 @@ export class LanguageService implements IServiceProvider {
     await Promise.resolve(this.client.stop())
   }
 }
-
-class LanguageClientManager {
-  private _services: IServiceProvider[] = []
-
-  public init(): void {
-    let base = 'languageserver'
-    let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
-    for (let key of Object.keys(lspConfig)) {
-      let config = lspConfig[key]
-      let filetypes = config.filetypes || []
-      if (config.command == 'vls' && filetypes.indexOf('vue') !== -1) {
-        echoWarning(workspace.nvim, `Vetur is now build in extension, config for languageserver.${key} is ignored!`)
-        continue
-      }
-      let id = `${base}.${key}`
-      this._services.push(
-        new LanguageService(id, key, config)
-      )
-    }
-  }
-
-  public get services(): IServiceProvider[] {
-    return this._services || []
-  }
-}
-
-export default new LanguageClientManager()

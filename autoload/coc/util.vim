@@ -66,17 +66,6 @@ function! coc#util#get_fullpath(bufnr) abort
   return fnamemodify(fname, ':p')
 endfunction
 
-function! coc#util#get_bufinfo(bufnr) abort
-  return {
-        \ 'bufnr': a:bufnr,
-        \ 'fullpath': coc#util#get_fullpath(a:bufnr),
-        \ 'languageId': getbufvar(a:bufnr, '&filetype'),
-        \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
-        \ 'expandtab': getbufvar(a:bufnr, '&expandtab') == 1 ? v:true : v:false,
-        \ 'tabstop': getbufvar(a:bufnr, '&tabstop'),
-        \}
-endfunction
-
 function! coc#util#get_bufoptions(bufnr) abort
   return {
         \ 'fullpath': coc#util#get_fullpath(a:bufnr),
@@ -84,6 +73,8 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
+        \ 'expandtab': getbufvar(a:bufnr, '&expandtab') == 1 ? v:true : v:false,
+        \ 'tabstop': getbufvar(a:bufnr, '&tabstop'),
         \}
 endfunction
 

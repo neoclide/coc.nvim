@@ -25,6 +25,8 @@ export default class Document {
   private lines: string[] = []
   private _changedtick: number
   private _words: string[] = []
+  public expandtab:boolean
+  public tabstop:number
   public readonly words: string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer: Buffer) {
@@ -84,6 +86,8 @@ export default class Document {
     this.nvim = nvim
     let {buffer} = this
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
+    this.expandtab = opts.expandtab
+    this.tabstop = opts.tabstop
     this.lines = await buffer.lines as string[]
     this._changedtick = opts.changedtick
     let {fullpath, filetype, iskeyword} = opts
