@@ -1,4 +1,3 @@
-import fs from 'fs'
 import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import pify from 'pify'
@@ -8,7 +7,6 @@ import {findSourceDir} from '../util/fs'
 import {toNumber} from '../util/types'
 const exec = require('child_process').exec
 const logger = require('../util/logger')('source-include')
-const baseDir = path.join(__dirname, 'include_resolve')
 
 export default class Include extends Source {
   private command: string
@@ -20,10 +18,6 @@ export default class Include extends Source {
   }
 
   public async onInit(): Promise<void> {
-    let files = await pify(fs.readdir)(baseDir)
-    files = files.filter(f => /\.js$/.test(f))
-    let filetypes = files.map(f => f.replace(/\.js$/, ''))
-    this.config.filetypes = filetypes
     let {listFileCommand} = this.config
     if (!listFileCommand) {
       this.command = await this.nvim.call('coc#util#get_listfile_command')
