@@ -1,5 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
-import { EventEmitter } from 'events'
+import workspace from '../workspace'
 const logger = require('../util/logger')('model-jobManager')
 
 const default_timeout = 60*1000
@@ -10,12 +9,10 @@ export default class JobManager {
   private jobid = 1
   private callbackMap: Map<number, (data: string) => void> = new Map()
 
-  constructor(private nvim: Neovim, emitter: EventEmitter) {
-    emitter.on('JobResult', (id: number, data: string) => {
-      let fn = this.callbackMap.get(id)
-      this.callbackMap.delete(id)
-      if (fn) fn(data)
-    })
+  public handleResult(id: number, data: string):void {
+    let fn = this.callbackMap.get(id)
+    this.callbackMap.delete(id)
+    if (fn) fn(data)
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?:number): Promise<string> {
@@ -23,7 +20,7 @@ export default class JobManager {
     let jobid = this.jobid
     this.jobid = this.jobid + 1
     let {callbackMap} = this
-    await this.nvim.call('coc#util#run_command', [{
+    await workspace.nvim.call('coc#util#run_command', [{
       id: jobid,
       cwd,
       cmd

@@ -4,6 +4,7 @@ import { TerminalResult } from '../types'
 import { showQuickpick, echoMessage, executable } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { statAsync } from '../util/fs'
+import workspace from '../workspace'
 // const logger = require('../util/logger')('model-moduleManager')
 type Callback = (res:TerminalResult)=>void
 
@@ -16,13 +17,13 @@ export default class ModuleManager extends EventEmitter {
   private taskId = 1
   private installing:Map<number, string> = new Map()
   private disables:string[] = []
-  private workspace:any
   private callbacks:Map<number, Callback> = new Map()
 
   constructor() {
     super()
-    let workspace = this.workspace = require('../workspace').default
-    workspace.emitter.on('terminalResult', (res:TerminalResult) => {
+  }
+
+  public handleTerminalResult(res:TerminalResult):void {
       if (!res.id) return
       let {id} = res
       if (this.installing.has(id)) {
@@ -37,11 +38,10 @@ export default class ModuleManager extends EventEmitter {
           cb(res)
         }
       }
-    })
   }
 
   private get nvim():Neovim {
-    return this.workspace.nvim
+    return workspace.nvim
   }
 
   public get nodeFolder(): Promise<string> {
@@ -91,7 +91,7 @@ export default class ModuleManager extends EventEmitter {
     if (idx == 2) {
       this.disables.push(mod)
       if (section) {
-        let config = this.workspace.getConfiguration(section)
+        let config = workspace.getConfiguration(section)
         config.update('enable', false, true)
         echoMessage(nvim, `${section} disabled, to change this, use :CocConfig to edit configuration file.`)
       }
@@ -115,7 +115,7 @@ export default class ModuleManager extends EventEmitter {
   public runCommand(cmd:string, cwd?:string, timeout?:number):Promise<TerminalResult> {
     let id = this.taskId
     this.taskId = this.taskId + 1
-    this.nvim.call('coc#util#open_terminal', [{id, cmd, cwd: cwd || this.workspace.root}], true)
+    this.nvim.call('coc#util#open_terminal', [{id, cmd, cwd: cwd || workspace.root}], true)
     return new Promise((resolve, reject) => {
       let called = false
       let tid

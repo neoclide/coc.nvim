@@ -1,9 +1,9 @@
-import {Configuration, ConfigurationModel} from './model/configuration'
-import {ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, ConfigurationShape, ConfigurationTarget} from './types'
-import {readFile, statAsync} from './util/fs'
-import {mixin} from './util/object'
-import {isEmptyObject, isObject} from './util/types'
-import {parse} from 'jsonc-parser'
+import { Configuration, ConfigurationModel } from './model/configuration'
+import { ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, ConfigurationShape, ConfigurationTarget } from './types'
+import { mixin } from './util/object'
+import { isEmptyObject, isObject } from './util/types'
+import { parse } from 'jsonc-parser'
+import fs from 'fs'
 const logger = require('./util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -94,16 +94,25 @@ export default class Configurations {
   }
 }
 
-export async function parseContentFromFile(filepath: string): Promise<IConfigurationModel> {
-  let stat = await statAsync(filepath)
-  if (!stat || !stat.isFile()) return {contents: {}}
-  let content = await readFile(filepath, 'utf8')
-  return {
-    contents: parseContent(content)
+export function parseContentFromFile(filepath: string): IConfigurationModel {
+  if (!fs.existsSync(filepath)) return { contents: {} }
+  let content: string
+  try {
+    content = fs.readFileSync(filepath, 'utf8')
+  } catch (_e) {
+    content = ''
   }
+  let res: any
+  try {
+    res = { contents: parseContent(content) }
+  } catch (e) {
+    res = { contents: {} }
+  }
+  return res
 }
 
 export function parseContent(content: string): any {
+  if (content.length == 0) return {}
   let data = parse(content)
   function addProperty(current: object, key: string, remains: string[], value: any): void {
     if (remains.length == 0) {

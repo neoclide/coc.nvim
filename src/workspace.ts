@@ -7,7 +7,7 @@ import ModuleManager from './model/moduleManager'
 import JobManager from './model/jobManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import { ChangeInfo, DocumentInfo, IConfigurationData, IConfigurationModel, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult } from './types'
+import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult } from './types'
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import ConfigurationShape from './model/configurationShape'
 import { echoErr, echoMessage, isSupportedScheme } from './util/index'
@@ -37,6 +37,10 @@ interface EditerState {
 export class Workspace {
   public nvim: Neovim
   public bufnr: number
+  public emitter: EventEmitter
+  public moduleManager: ModuleManager
+  public jobManager: JobManager
+
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
@@ -61,16 +65,40 @@ export class Workspace {
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
-  public emitter: EventEmitter
-  private moduleManager: ModuleManager
   private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
-  private jobManager: JobManager
-  private _cwd: string
+  private _cwd = process.cwd()
 
   constructor() {
     this.configFiles = []
+    let moduleManager = this.moduleManager = new ModuleManager()
+    this.jobManager = new JobManager()
+    moduleManager.on('installed', name => {
+      this._onDidModuleInstalled.fire(name)
+    })
+  }
+
+  public async init(): Promise<void> {
+    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
+    let config = await this.loadConfigurations()
+    let { configFiles } = this
+    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
+    this._configurations = new Configurations(config, configurationShape)
+    let buffers = await this.nvim.buffers
+    await Promise.all(buffers.map(buf => {
+      return this.onBufferCreate(buf)
+    })).catch(error => {
+      logger.error(`buffer create error: ${error.message}`)
+    })
+    const preferences = this.getConfiguration('coc.preferences')
+    this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
+    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
+    this._onDidWorkspaceInitialized.fire(void 0)
+    this._initialized = true
+    if (this.isVim) {
+      this.initVimEvents()
+    }
   }
 
   public get cwd(): string {
@@ -106,34 +134,6 @@ export class Workspace {
       uri: Uri.file(folder).toString(),
       name: path.basename(folder)
     } : null
-  }
-
-  public async init(): Promise<void> {
-    this._cwd = await this.nvim.call('getcwd')
-    let moduleManager = this.moduleManager = new ModuleManager()
-    this.jobManager = new JobManager(this.nvim, this.emitter)
-    moduleManager.on('installed', name => {
-      this._onDidModuleInstalled.fire(name)
-    })
-    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
-    let config = await this.loadConfigurations()
-    let { configFiles } = this
-    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
-    this._configurations = new Configurations(config, configurationShape)
-    let buffers = await this.nvim.buffers
-    await Promise.all(buffers.map(buf => {
-      return this.onBufferCreate(buf)
-    })).catch(error => {
-      logger.error(`buffer create error: ${error.message}`)
-    })
-    const preferences = this.getConfiguration('coc.preferences')
-    this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
-    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
-    this._onDidWorkspaceInitialized.fire(void 0)
-    this._initialized = true
-    if (this.isVim) {
-      this.initVimEvents()
-    }
   }
 
   public get channelNames(): string[] {
@@ -627,32 +627,20 @@ export class Workspace {
     }
   }
 
-  private async parseConfigFile(file): Promise<IConfigurationModel> {
-    let config
-    try {
-      config = await parseContentFromFile(file)
-    } catch (e) {
-      echoErr(this.nvim, `parseFile ${file} error: ${e.message}`)
-      config = { contents: {} }
-    }
-    return config
-  }
-
   private async loadConfigurations(): Promise<IConfigurationData> {
-    let { cwd } = this
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
-    let defaultConfig = await this.parseConfigFile(file)
-    let home = await this.nvim.call('coc#util#get_config_home')
+    let defaultConfig = parseContentFromFile(file)
+    let home = process.env.VIMCONFIG
     file = path.join(home, CONFIG_FILE_NAME)
     this.configFiles.push(file)
-    let userConfig = await this.parseConfigFile(file)
-    let dir = resolveDirectory(cwd, '.vim')
+    let userConfig = parseContentFromFile(file)
+    let dir = resolveDirectory(this.cwd, '.vim')
     let workspaceConfig
     file = dir ? path.join(dir, CONFIG_FILE_NAME) : null
     if (this.configFiles.indexOf(file) == -1) {
       this.configFiles.push(file)
-      workspaceConfig = await this.parseConfigFile(file)
+      workspaceConfig = parseContentFromFile(file)
     } else {
       workspaceConfig = { contents: {} }
     }

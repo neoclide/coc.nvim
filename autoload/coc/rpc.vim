@@ -7,6 +7,7 @@ let s:is_vim = !has('nvim')
 function! coc#rpc#start_server()
   if s:server_running | return | endif
   let cmd = coc#util#job_command()
+  let $VIMCONFIG = coc#util#get_config_home()
   if empty(cmd) | return | endif
   if s:is_vim
     let job = job_start(cmd, {
@@ -16,7 +17,8 @@ function! coc#rpc#start_server()
           \ 'out_cb': {channel, message -> s:job_opts.on_stdout(0, [message], 'stdout')},
           \ 'close_cb': { -> s:job_opts.on_exit(0, 0, 'exit')},
           \ 'env': {
-          \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
+          \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS,
+          \   'VIMCONFIG': $VIMCONFIG,
           \ }
           \})
     let status = job_status(job)

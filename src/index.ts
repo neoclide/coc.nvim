@@ -6,7 +6,7 @@ import Handler from './handler'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import {VimCompleteItem} from './types'
+import {VimCompleteItem, TerminalResult} from './types'
 import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
@@ -31,6 +31,16 @@ export default class CompletePlugin {
     Object.defineProperty(workspace, 'emitter', {
       get: () => {
         return emitter
+      }
+    })
+    emitter.on('terminalResult', (res:TerminalResult) => {
+      if (workspace.moduleManager) {
+        workspace.moduleManager.handleTerminalResult(res)
+      }
+    })
+    emitter.on('JobResult', (id: number, data: string) => {
+      if (workspace.jobManager) {
+        workspace.jobManager.handleResult(id, data)
       }
     })
     commandManager.init(nvim, this)

@@ -1,8 +1,4 @@
 require('babel-polyfill')
-const os = require('os')
-const path = require('path')
-process.env.NVIM_NODE_LOG_FILE = path.join(os.tmpdir(), 'coc-nvim-client.log')
-process.env.NVIM_NODE_LOG_LEVEL = process.env.NVIM_COC_LOG_LEVEL || 'info'
 const Plugin = require('..').default
 const attach = require('@chemzqm/neovim').attach
 const logger = require('../lib/util/logger')('server')
