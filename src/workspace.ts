@@ -373,7 +373,7 @@ export class Workspace {
         }
         called = true
         Promise.resolve(thenable).then(res => {
-          if (Array.isArray(res) && typeof res[0].newText == 'string') {
+          if (Array.isArray(res)) {
             doc.applyEdits(nvim, res as TextEdit[]).then(() => {
               resolve()
             }, reject)
