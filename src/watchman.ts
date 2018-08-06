@@ -1,6 +1,7 @@
 import {Client} from 'fb-watchman'
 import watchman = require('fb-watchman')
 import fs from 'fs'
+import path from 'path'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
 import os from 'os'
@@ -36,6 +37,7 @@ export type ChangeCallback = (FileChange) => void
  * @public
  */
 export default class Watchman {
+  private static watched:Set<string> = new Set()
   private client: Client
   private relative_path: string | null
   private clock: string | null
@@ -64,7 +66,8 @@ export default class Watchman {
   }
 
   private async watchProject(root: string): Promise<boolean> {
-    if (root === os.homedir()) {
+    let o = path.parse(root)
+    if (root === os.homedir() || o.root === o.dir) {
       return false
     }
     let resp = await this.command(['watch-project', root])
@@ -97,7 +100,7 @@ export default class Watchman {
     }
     let {subscribe} = await this.command(['subscribe', relative_path, uid, sub])
     this.client.on('subscription', resp => {
-      if (resp.subscription != uid) return
+      if (resp.subscription != uid || !resp) return
       let {files} = resp
       files.map(f => f.mtime_ms = +f.mtime_ms)
       cb(resp)
@@ -114,8 +117,10 @@ export default class Watchman {
   public static async createClient(binaryPath: string, root: string): Promise<Watchman | null> {
     if (root == os.homedir()) return null
     let client = new Watchman(binaryPath)
-    let watching
+    let watching:boolean = Watchman.watched.has(root)
+    if (watching) return client
     try {
+      Watchman.watched.add(root)
       let checked = await client.checkCapability()
       if (!checked) return null
       watching = await client.watchProject(root)
