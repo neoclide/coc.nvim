@@ -27,6 +27,9 @@ class Source(Base):
         self.vim.command(r'syntax match deniteSource_SymbolsKind /\[\w\+\]/ contained '
                          r'containedin=deniteSource_SymbolsHeader')
 
+    def on_init(self, context):
+        context['__bufname'] = self.vim.current.buffer.name
+
 
     def highlight(self):
         self.vim.command('highlight default link deniteSource_SymbolsName Normal')
@@ -41,7 +44,7 @@ class Source(Base):
             candidates.append({
                 'word': item['text'] + item['kind'],
                 'abbr': '%s%s [%s]' % ('  ' * item['level'], item['text'], item['kind']),
-                'action__path': item['filepath'],
+                'action__path': context['__bufname'],
                 'action__col': item['col'],
                 'action__line': item['lnum'],
                 })

@@ -100,9 +100,6 @@ export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolP
       for (const child of children) {
         if (child.spans.some(span => !!containsRange(range, typeConverters.Range.fromTextSpan(span)))) {
           const includedChild = TypeScriptDocumentSymbolProvider.convertNavTree(symbolInfo.children, child)
-          if (includedChild && !shouldInclude) {
-            logger.debug(33)
-          }
           shouldInclude = shouldInclude || includedChild
           children.delete(child)
         }

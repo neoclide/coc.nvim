@@ -12,8 +12,8 @@ import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
+  filepath?:string
   lnum: number
-  filepath: string
   col: number
   text: string
   kind: string
@@ -167,15 +167,14 @@ export default class Handler {
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols || symbols.length == 0) return []
-    let isSymbols = DocumentSymbol.is(symbols[0])
+    let isSymbols = !symbols[0].hasOwnProperty('location')
     let level = 0
     let res: SymbolInfo[] = []
     let pre = null
-    let filepath = Uri.parse(document.uri).fsPath
     if (isSymbols) {
       (symbols as DocumentSymbol[]).sort(sortSymbols)
       for (let sym of symbols) {
-        addDoucmentSymbol(res, sym as DocumentSymbol, filepath, level)
+        addDoucmentSymbol(res, sym as DocumentSymbol, level)
       }
     } else {
       (symbols as SymbolInformation[]).sort((a, b) => {
@@ -198,7 +197,6 @@ export default class Handler {
         }
         let {start} = location.range
         let o: SymbolInfo = {
-          filepath: Uri.parse(location.uri).fsPath,
           col: start.character + 1,
           lnum: start.line + 1,
           text: name,
@@ -492,11 +490,10 @@ function sortSymbols(a:DocumentSymbol, b:DocumentSymbol):number {
   return ra.start.character - rb.start.character
 }
 
-function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, filepath:string, level:number):void {
+function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, level:number):void {
   let {name, selectionRange, kind, children} = sym
   let {start} = selectionRange
   res.push({
-    filepath,
     col: start.character + 1,
     lnum: start.line + 1,
     text: name,
@@ -506,7 +503,7 @@ function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, filepath:string
   if (children && children.length) {
     children.sort(sortSymbols)
     for (let sym of children) {
-      addDoucmentSymbol(res, sym, filepath, level + 1)
+      addDoucmentSymbol(res, sym, level + 1)
     }
   }
 }
