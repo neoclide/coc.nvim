@@ -195,6 +195,7 @@ export default class Document {
           start: textDocument.positionAt(change.start),
           end: textDocument.positionAt(change.end)
         },
+        rangeLength: change.end - change.start,
         text: change.newText
       }]
       let { version, uri } = this
