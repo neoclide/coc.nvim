@@ -1276,7 +1276,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
   private _listener: Disposable | undefined
   private _selectors: Map<string, DocumentSelector> = new Map<string, DocumentSelector>()
 
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(public readonly _client: BaseLanguageClient) {}
 
   public get messages(): RPCMessageType {
     return WillSaveTextDocumentWaitUntilRequest.type

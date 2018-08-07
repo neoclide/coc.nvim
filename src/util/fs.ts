@@ -37,17 +37,6 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function findSourceDir(fullpath: string): string | null {
-  let obj = path.parse(fullpath)
-  if (!obj || !obj.root) return null
-  let {root, dir} = obj
-  let p = dir.slice(root.length)
-  let parts = p.split(path.sep)
-  let idx = parts.findIndex(s => s == 'src')
-  if (idx === -1) return null
-  return `${root}${parts.slice(0, idx + 1).join(path.sep)}`
-}
-
 export function getParentDirs(fullpath: string): string[] {
   let obj = path.parse(fullpath)
   if (!obj || !obj.root) return []

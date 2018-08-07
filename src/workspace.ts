@@ -389,8 +389,8 @@ export class Workspace {
           }
         }, reject)
         setTimeout(() => {
-          reject(new Error('WaitUntil timeout after 1 second'))
-        }, 1000)
+          reject(new Error('WaitUntil timeout after 0.5s'))
+        }, 500)
       }
     })
     if (doc && isSupportedScheme(doc.schema)) {

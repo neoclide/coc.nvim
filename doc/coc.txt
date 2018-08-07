@@ -407,7 +407,8 @@ COMMANDS 					*coc-commands*
 
 :CocErrors 					*:CocErrors*
 
-		Show output from stderr of coc node process.
+		Show error messages of coc.
+
 		Use 'let $NODE_DEBUG=nvim*' to debug commucation between
 		node-client and neovim.
 

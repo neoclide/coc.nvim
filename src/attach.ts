@@ -2,11 +2,12 @@ import Plugin from './plugin'
 import workspace from './workspace'
 import { TerminalResult } from './types'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
+import { NeovimClient } from '@chemzqm/neovim'
 const logger = require('./util/logger')('attach')
 const attach = require('@chemzqm/neovim').attach
 
 export default function(opts: Attach):Plugin {
-  const nvim = attach(opts)
+  const nvim:NeovimClient = attach(opts)
   const plugin = new Plugin(nvim)
   nvim.on('notification', (method, args) => {
     switch (method) {
@@ -63,6 +64,10 @@ export default function(opts: Attach):Plugin {
 
   nvim.channelId.then(channelId => {
     nvim.setVar('coc_node_channel_id', channelId)
+    if (global.hasOwnProperty('__TEST__')) {
+      plugin.onEnter()
+      return
+    }
     nvim.getVvar('vim_did_enter').then(entered => {
       if (entered) plugin.onEnter()
     })

@@ -1,17 +1,17 @@
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
+let g:did_coc_loaded = 1
 let s:save_cpo = &cpo
 set cpo&vim
-let g:did_coc_loaded = 1
 let s:is_vim = !has('nvim')
 
 if has('nvim') && !has('nvim-0.3.0')
-  echohl Error | echon '[coc.nvim] coc requires neovim >= 0.3.0 to work' | echohl None
+  call coc#rpc#append_error('coc requires neovim >= 0.3.0 to work')
   finish
 endif
 if !has('nvim') && !has('patch-8.1.001')
-  echohl Error | echon '[coc.nvim] coc requires vim >= 8.1 to work' | echohl None
+  call coc#rpc#append_error('coc requires vim >= 8.1 to work')
   finish
 endif
 
@@ -153,7 +153,7 @@ function! s:OnVimEnter()
   " it's possible that client is not ready
   call coc#rpc#notify('VimEnter', [])
   if s:is_vim && empty(nvim#rpc#get_script())
-    call coc#util#terminal_install() 
+    call coc#util#install_node_rpc()
   endif
 endfunction
 

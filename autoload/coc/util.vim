@@ -44,10 +44,15 @@ function! coc#util#job_command()
   if filereadable(binary) && !get(g:, 'coc_force_debug', 0)
     return [binary]
   endif
-  let file = s:root.'/lib/index.js'
-  if filereadable(file) && executable('node')
-    return ['node', s:root.'/bin/server.js']
+  let file = s:root.'/lib/attach.js'
+  if filereadable(file)
+    if executable('node')
+      return ['node', s:root.'/bin/server.js']
+    else
+      echohl Error | echon 'node not found in $PATH' | echohl None
+    endif
   endif
+  echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
   " TODO run download
 endfunction
 
@@ -513,7 +518,7 @@ function! coc#util#module_folder(manager) abort
   return is_yarn ? folder . '/node_modules' : folder
 endfunction
 
-function! coc#util#terminal_install() abort
+function! coc#util#install_node_rpc() abort
   let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
   if res !=? 'y' | return | endif
   let cmd = ''

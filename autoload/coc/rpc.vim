@@ -9,6 +9,7 @@ function! coc#rpc#start_server()
   let cmd = coc#util#job_command()
   let $VIMCONFIG = coc#util#get_config_home()
   if empty(cmd) | return | endif
+  if $NODE_ENV ==? 'test' | return | endif
   if s:is_vim
     let job = job_start(cmd, {
           \ 'err_mode': 'nl',
@@ -73,6 +74,10 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
       call coc#rpc#show_error()
     endif
   endif
+endfunction
+
+function! coc#rpc#append_error(msg) abort
+  call add(s:std_err, a:msg)
 endfunction
 
 function! coc#rpc#show_error()

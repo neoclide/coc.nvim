@@ -3,8 +3,8 @@ import path from 'path'
 import pify from 'pify'
 import Source from '../model/source'
 import {CompleteOption, CompleteResult, SourceConfig} from '../types'
-import {findSourceDir} from '../util/fs'
 import {toNumber} from '../util/types'
+import workspace from '../workspace'
 const exec = require('child_process').exec
 const logger = require('../util/logger')('source-include')
 
@@ -34,7 +34,7 @@ export default class Include extends Source {
     let fullpath = await nvim.call('coc#util#get_fullpath', [toNumber(bufnr)])
     let items = []
     if (fullpath && command) {
-      let dir = findSourceDir(fullpath)
+      let dir = workspace.root
       let ext = path.extname(path.basename(fullpath))
       if (dir) {
         let out = await pify(exec)(command, {

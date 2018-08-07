@@ -16,8 +16,8 @@ const logger = require('./util/logger')('index')
 
 export default class CompletePlugin {
   private initialized = false
-  private emitter: Emitter
   private handler: Handler
+  public emitter: Emitter
   public onEnter: () => void
 
   constructor(public nvim: Neovim) {
