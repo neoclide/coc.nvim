@@ -1,6 +1,6 @@
 function! s:checkEnvironment() abort
   let valid = 1
-  if !has('nvim') || !has('nvim-0.3.0')
+  if !has('nvim-0.3.0')
     let valid = 0
     call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
@@ -30,8 +30,8 @@ function! s:checkInitailize() abort
     return 1
   endif
   call health#report_error('service could not be initialized', [
-        \ 'You may not have neovim package installed correctly,',
-        \ 'check out https://github.com/neovim/node-client#debugging--troubleshooting',
+        \ 'Use command ":CocErrors" to get error messages.',
+        \ 'Open a issue at https://github.com/neoclide/coc.nvim/issues for feedback.'
         \])
   return 0
 endfunction
