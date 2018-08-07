@@ -43,7 +43,7 @@ export class Workspace {
   public jobManager: JobManager
 
   private _initialized = false
-  private buffers: Map<number, Document> = new Map()
+  private buffers: Map<number, Document>
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
@@ -85,6 +85,7 @@ export class Workspace {
   }
 
   public async init(): Promise<void> {
+    this.buffers = new Map()
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
@@ -349,7 +350,7 @@ export class Workspace {
     logger.debug('buffer unload', bufnr)
   }
 
-  public async bufferEnter(bufnr: number): Promise<void> {
+  public bufferEnter(bufnr: number): void {
     this.bufnr = bufnr
     let doc = this.buffers.get(bufnr)
     if (!doc) return

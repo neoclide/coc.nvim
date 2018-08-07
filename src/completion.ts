@@ -24,7 +24,10 @@ export class Completion {
   public init(nvim, emitter: Emitter): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
-    this.sources = new Sources(nvim)
+    let sources = this.sources = new Sources(nvim)
+    sources.on('ready', () => {
+      emitter.emit('ready')
+    })
     emitter.on('InsertCharPre', character => {
       this.onInsertCharPre(character)
     })

@@ -2,7 +2,7 @@
   "name": "coc.nvim",
   "version": "0.0.6",
   "description": "Completetion manage for neovim",
-  "main": "./lib/index.js",
+  "main": "./lib/attach.js",
   "bin": "./bin/server.js",
   "scripts": {
     "clean": "rimraf lib",
@@ -28,6 +28,10 @@
   },
   "homepage": "https://github.com/neoclide/coc.nvim#readme",
   "jest": {
+    "globals": {
+      "__TEST__": true
+    },
+    "testEnvironment": "node",
     "moduleFileExtensions": [
       "ts",
       "tsx",

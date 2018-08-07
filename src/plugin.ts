@@ -6,7 +6,7 @@ import Handler from './handler'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import {VimCompleteItem, TerminalResult} from './types'
+import {VimCompleteItem} from './types'
 import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
@@ -34,16 +34,6 @@ export default class CompletePlugin {
       }
     })
     services.init(nvim)
-    emitter.on('terminalResult', (res:TerminalResult) => {
-      if (workspace.moduleManager) {
-        workspace.moduleManager.handleTerminalResult(res)
-      }
-    })
-    emitter.on('JobResult', (id: number, data: string) => {
-      if (workspace.jobManager) {
-        workspace.jobManager.handleResult(id, data)
-      }
-    })
     commandManager.init(nvim, this)
     this.onEnter = once(() => {
       this.onInit().catch(err => {
@@ -58,9 +48,9 @@ export default class CompletePlugin {
     let {nvim} = this
     let buf = await nvim.buffer
     await workspace.init()
-    await workspace.bufferEnter(buf.id)
+    workspace.bufferEnter(buf.id)
     this.initialized = true
-    nvim.command('doautocmd User CocNvimInit', false)
+    nvim.command('doautocmd User CocNvimInit')
     logger.info('Coc initialized')
     completion.init(nvim, this.emitter)
   }
@@ -84,7 +74,7 @@ export default class CompletePlugin {
         emitter.emit('TextChanged', args[1])
         break
       case 'BufEnter':
-        await workspace.bufferEnter(args[1])
+        workspace.bufferEnter(args[1])
         break
       case 'BufCreate':
         await workspace.onBufferCreate(args[1])
