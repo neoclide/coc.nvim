@@ -20,6 +20,10 @@
           "type": "boolean",
           "default": true
         },
+        "forceFullSync": {
+          "type": "boolean",
+          "default": false
+        },
         "filetypes": {
           "type": "array",
           "default": [],
@@ -79,6 +83,10 @@
         "enable": {
           "type": "boolean",
           "default": true
+        },
+        "forceFullSync": {
+          "type": "boolean",
+          "default": false
         },
         "cwd": {
           "type": "string",
@@ -144,6 +152,10 @@
         "enable": {
           "type": "boolean",
           "default": true
+        },
+        "forceFullSync": {
+          "type": "boolean",
+          "default": false
         },
         "execArgv": {
           "type": "array",

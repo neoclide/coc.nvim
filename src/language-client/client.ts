@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import log4js from 'log4js'
 import {ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, DocumentSymbol} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Commands from '../commands'
@@ -621,6 +620,7 @@ export interface LanguageClientOptions {
   initializationFailedHandler?: InitializationFailedHandler
   errorHandler?: ErrorHandler
   middleware?: Middleware
+  forceFullSync?: boolean
 }
 
 interface ResolvedClientOptions {
@@ -1091,7 +1091,7 @@ class DidChangeTextDocumentFeature
   private _forcingDelivery: boolean = false
   private _changeDelayer: {uri: string; delayer: Delayer<void>} | undefined
 
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(private _client: BaseLanguageClient, private forceFullSync = false) {}
 
   public get messages(): typeof DidChangeTextDocumentNotification.type {
     return DidChangeTextDocumentNotification.type
@@ -1103,6 +1103,8 @@ class DidChangeTextDocumentFeature
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
     let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
+    let {forceFullSync} = this
+    let syncKind = forceFullSync ? TextDocumentSyncKind.Full : textDocumentSyncOptions.change
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -1114,7 +1116,7 @@ class DidChangeTextDocumentFeature
         registerOptions: Object.assign(
           {},
           {documentSelector: documentSelector},
-          {syncKind: textDocumentSyncOptions.change}
+          {syncKind}
         )
       })
     }
@@ -3037,7 +3039,7 @@ export abstract class BaseLanguageClient {
       }
     }
     this._syncedDocuments = new Map<string, TextDocument>()
-    this.registerBuiltinFeatures()
+    this.registerBuiltinFeatures(clientOptions.forceFullSync)
   }
 
   private get state(): ClientState {
@@ -3737,10 +3739,10 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  protected registerBuiltinFeatures() {
+  protected registerBuiltinFeatures(forceFullSync:boolean) {
     this.registerFeature(new ConfigurationFeature(this))
     this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments))
-    this.registerFeature(new DidChangeTextDocumentFeature(this))
+    this.registerFeature(new DidChangeTextDocumentFeature(this, forceFullSync))
     this.registerFeature(new WillSaveFeature(this))
     this.registerFeature(new WillSaveWaitUntilFeature(this))
     this.registerFeature(new DidSaveTextDocumentFeature(this))

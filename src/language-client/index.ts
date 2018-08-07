@@ -5,7 +5,7 @@ import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import which from 'which'
 import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
 import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
-import {disposeAll, echoErr, echoMessage, echoWarning} from '../util'
+import {disposeAll, echoErr, echoMessage} from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('language-client-index')
 
@@ -97,6 +97,7 @@ export class LanguageService implements IServiceProvider {
     }
     let documentSelector = this.languageIds
     let clientOptions: LanguageClientOptions = {
+      forceFullSync: config.forceFullSync,
       documentSelector,
       synchronize: {
         configurationSection: this.configSections

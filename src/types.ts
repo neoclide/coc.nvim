@@ -30,7 +30,8 @@ export interface LanguageServerConfig {
   shell?: boolean
   execArgv?: string[]
   initializationOptions?: any
-  configSection?: string,
+  configSection?: string
+  forceFullSync?: boolean
   [index: string]: any
 }
 

@@ -4,7 +4,7 @@ import path from 'path'
 import {LanguageService} from './language-client'
 import workspace from './workspace'
 import {Disposable} from 'vscode-languageserver-protocol'
-import {IServiceProvider, ServiceStat} from './types'
+import {IServiceProvider, ServiceStat, LanguageServerConfig} from './types'
 import {echoErr, echoMessage, echoWarning} from './util'
 const logger = require('./util/logger')('services')
 
@@ -170,7 +170,7 @@ export class ServiceManager implements Disposable {
 
   private createCustomServices():void {
     let base = 'languageserver'
-    let lspConfig = workspace.getConfiguration().get<{string, LanguageServerConfig}>(base)
+    let lspConfig = workspace.getConfiguration().get<{string: LanguageServerConfig}>(base)
     for (let key of Object.keys(lspConfig)) {
       let config = lspConfig[key]
       let id = `${base}.${key}`

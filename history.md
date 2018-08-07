@@ -1,3 +1,7 @@
+# 2018-08-07
+
+* Add `forceFullSync` to language server option.
+
 # 2018-08-05
 
 * Improve eslint extension to use workspaceFolder.
