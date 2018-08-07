@@ -5,7 +5,7 @@ import diagnosticManager from './diagnostic/manager'
 import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider} from './provider'
 import snippetManager from './snippet/manager'
 import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
-import {echoMessage, isLineEdit} from './util'
+import {echoMessage, isLineEdit, wait} from './util'
 import {byteSlice} from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
@@ -430,7 +430,6 @@ class Languages {
             resolved: true
           })
         }
-        logger.debug('Resolved complete item', JSON.stringify(resolved, null, 2))
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolving == item.word) {
           // vim have no suppport for update complete item

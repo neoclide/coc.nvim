@@ -192,7 +192,6 @@ export class Completion {
       if (lnum == option.linenr) {
         let search = await this.nvim.call('coc#util#get_search', [option.col])
         if (search.length < increment.search.length) {
-          await wait(workspace.isVim ? 40 : 20)
           option.input = search
           increment.start(option)
           await this.resumeCompletion(search)
@@ -204,11 +203,11 @@ export class Completion {
     // check trigger
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
-    // wait for content sync
-    await wait(workspace.isVim ? 40 : 20)
     let option = await nvim.call('coc#util#get_complete_option')
     Object.assign(option, {triggerCharacter: latestInsertChar})
     logger.trace('trigger completion with', option)
+    // wait for content sync
+    await wait(60)
     this.startCompletion(option)
   }
 
