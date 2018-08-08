@@ -1,3 +1,8 @@
+# 2018-08-08
+
+* **Break change** `nameSuggestions` of `javascript` and `typescript` default to
+  false, same as VSCode.
+
 # 2018-08-07
 
 * Add `forceFullSync` to language server option.
