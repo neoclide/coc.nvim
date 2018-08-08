@@ -1,7 +1,5 @@
 # 2018-08-08
 
-* **Break change** `nameSuggestions` of `javascript` and `typescript` default to
-  false, same as VSCode.
 * Add `internal` option to command.
 
   Commands registered by server are internal.
