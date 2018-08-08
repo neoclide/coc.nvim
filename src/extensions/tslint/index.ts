@@ -1,14 +1,14 @@
 import {exec} from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import {CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextEdit} from 'vscode-languageserver-protocol'
+import {CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextEdit, TextDocumentSaveReason} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../../commands'
 import {LanguageService} from '../../language-client'
 import {LanguageClientOptions, WorkspaceMiddleware} from '../../language-client/main'
 import {ProviderResult} from '../../provider'
 import {ServiceStat, TextDocumentWillSaveEvent} from '../../types'
-import {echoErr, echoMessage, echoWarning} from '../../util'
+import {echoErr, echoWarning} from '../../util'
 import workspace from '../../workspace'
 import which from 'which'
 const logger = require('../../util/logger')('tslint')
@@ -93,7 +93,7 @@ export default class TslintService extends LanguageService {
         return {}
       })
 
-      workspace.onWillSaveTextDocument(this.willSaveTextDocument.bind(this))
+      workspace.addWillSaveUntilListener(this.willSaveTextDocument, this, this.client)
       commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits)
       commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits)
       commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits)
@@ -171,11 +171,6 @@ export default class TslintService extends LanguageService {
           logger.info(`TSLint auto fix on save maximum retries exceeded.`)
         }
         if (result) {
-          // ensure that document versions on the client are in sync
-          if (lastVersion !== document.version) {
-            echoMessage(workspace.nvim, 'TSLint: Auto fix on save, fixes could not be applied (client version mismatch).')
-            break
-          }
           retry = false
           if (lastVersion !== result.documentVersion) {
             logger.info('TSLint auto fix on save, server document version different than client version')
@@ -245,10 +240,15 @@ export default class TslintService extends LanguageService {
     if (autoFix) {
       let document = e.document
       // only auto fix when the document was manually saved by the user
+      if (e.reason != TextDocumentSaveReason.Manual) {
+        return
+      }
       if (!(isTypeScriptDocument(document) || isEnabledForJavaScriptDocument(document))) {
         return
       }
-      e.waitUntil(this.autoFixOnSave(document))
+      if (e.waitUntil) {
+        e.waitUntil(this.autoFixOnSave(document))
+      }
     }
   }
 }

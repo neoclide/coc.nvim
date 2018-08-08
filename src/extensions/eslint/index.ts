@@ -113,7 +113,8 @@ async function createDefaultConfiguration(): Promise<void> {
   }
   const eslintCommand = await findEslint(root)
   await workspace.nvim.call('coc#util#open_terminal', [{
-    cmd: eslintCommand + ' --init'
+    cmd: eslintCommand + ' --init',
+    cwd: root
   }])
 }
 
@@ -190,7 +191,7 @@ export default class EslintService extends LanguageService {
           version: document.version
         }
         let params: ExecuteCommandParams = {
-          command: '_eslint.applyAutoFix',
+          command: 'eslint.applyAutoFix',
           arguments: [textDocument]
         }
         client.sendRequest(ExecuteCommandRequest.type, params)
