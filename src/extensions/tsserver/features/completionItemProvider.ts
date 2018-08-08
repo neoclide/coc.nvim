@@ -130,8 +130,12 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
 
     const completionItems: CompletionItem[] = []
     for (const element of msg) {
-      if (element.kind === PConst.Kind.warning && !completeOption.nameSuggestions) {
-        continue
+      let {kind} = element
+      if (kind === PConst.Kind.warning
+        || kind === PConst.Kind.script) {
+        if (!completeOption.nameSuggestions || triggerCharacter == '.') {
+          continue
+        }
       }
       if (!completeOption.autoImportSuggestions && element.hasAction) {
         continue
