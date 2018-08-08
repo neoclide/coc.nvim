@@ -68,7 +68,7 @@ export function asChangeTextDocumentParams(document:TextDocument):DidChangeTextD
 
 export function asWillSaveTextDocumentParams(event:TextDocumentWillSaveEvent):WillSaveTextDocumentParams {
   return {
-    textDocument: event.document,
+    textDocument: asVersionedTextDocumentIdentifier(event.document),
     reason: event.reason
   }
 }

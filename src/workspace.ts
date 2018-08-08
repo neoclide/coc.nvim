@@ -1,5 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
 import Document from './model/document'
@@ -9,6 +9,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult } from './types'
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
+import WillSaveUntilHandler from './model/willSaveHandler'
 import ConfigurationShape from './model/configurationShape'
 import { echoErr, echoMessage, isSupportedScheme } from './util/index'
 import { byteIndex } from './util/string'
@@ -19,6 +20,7 @@ import os from 'os'
 import uuidv1 = require('uuid/v1')
 import { EventEmitter } from 'events'
 import deepEqual from 'deep-equal'
+import {BaseLanguageClient } from './language-client/main'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -66,6 +68,7 @@ export class Workspace {
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
+  private willSaveUntilHandler:WillSaveUntilHandler
   private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
@@ -85,6 +88,9 @@ export class Workspace {
   }
 
   public async init(): Promise<void> {
+    this.willSaveUntilHandler = new WillSaveUntilHandler(this.nvim, uri => {
+      return this.getDocument(uri)
+    })
     this.buffers = new Map()
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
@@ -365,44 +371,23 @@ export class Workspace {
     this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
   }
 
+  public addWillSaveUntilListener(callback:(event: TextDocumentWillSaveEvent)=>void, thisArg: any, client:BaseLanguageClient):Disposable {
+    return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
+  }
+
   public async onBufferWillSave(bufnr: number): Promise<void> {
     let { nvim } = this
     let doc = this.buffers.get(bufnr)
     if (!doc) return
-    let called = false
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
-    let waitUntil
-    let promise = new Promise((resolve, reject): void => { // tslint:disable-line
-      waitUntil = (thenable: Thenable<TextEdit[] | any>): void => {
-        if (called) {
-          echoErr(nvim, 'WaitUntil could only be called once')
-          return
-        }
-        called = true
-        Promise.resolve(thenable).then(res => {
-          if (Array.isArray(res)) {
-            doc.applyEdits(nvim, res as TextEdit[]).then(() => {
-              resolve()
-            }, reject)
-          } else {
-            resolve()
-          }
-        }, reject)
-        setTimeout(() => {
-          reject(new Error('WaitUntil timeout after 0.5s'))
-        }, 500)
-      }
-    })
     if (doc && isSupportedScheme(doc.schema)) {
-      this._onWillSaveDocument.fire({
+      let event:TextDocumentWillSaveEvent = {
         document: doc.textDocument,
-        reason: TextDocumentSaveReason.Manual,
-        waitUntil
-      })
-    }
-    if (called) {
+        reason: TextDocumentSaveReason.Manual
+      }
+      this._onWillSaveDocument.fire(event)
       try {
-        await promise
+        await this.willSaveUntilHandler.handeWillSaveUntil(event)
       } catch (e) {
         logger.error(e.message)
         echoErr(nvim, e.message)
@@ -516,7 +501,8 @@ export class Workspace {
     if (bufnr != -1) return
     let cwd = await nvim.call('getcwd')
     let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-    nvim.command(`exe 'edit ' . fnameescape('${file}')`, false)
+    file = file.replace(/'/g, "''")
+    await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
   }
 
   public async diffDocument(): Promise<void> {

@@ -250,32 +250,30 @@ export default class Document {
     if (edits.length == 0) return
     let orig = this.content
     let content = TextDocument.applyEdits(this.textDocument, edits)
-    let buffer = await nvim.buffer
-    let buffers = await nvim.buffers
-    let { bufnr } = this
-    let buf = buffers.find(b => b.id == bufnr)
-    if (buf) {
-      if (buffer.id == bufnr) {
-        if (edits.length == 1 && isLineEdit(edits[0])) {
-          let lnum = edits[0].range.start.line + 1
-          let line = content.split('\n')[lnum - 1]
-          await nvim.call('coc#util#setline', [lnum, line])
-        } else {
-          let d = diffLines(orig, content)
-          await buf.setLines(d.replacement, {
-            start: d.start,
-            end: d.end,
-            strictIndexing: false
-          })
-        }
+    let cur = await nvim.buffer
+    let buf = this.buffer
+    if (cur.id == buf.id) {
+      if (edits.length == 1 && isLineEdit(edits[0])) {
+        let lnum = edits[0].range.start.line + 1
+        let line = content.split('\n')[lnum - 1]
+        await nvim.call('coc#util#setline', [lnum, line])
       } else {
-        await buf.setLines(content.split(/\r?\n/), {
-          start: 0,
-          end: -1,
+        let d = diffLines(orig, content)
+        await buf.setLines(d.replacement, {
+          start: d.start,
+          end: d.end,
           strictIndexing: false
         })
       }
+    } else {
+      await buf.setLines(content.split(/\r?\n/), {
+        start: 0,
+        end: -1,
+        strictIndexing: false
+      })
     }
+    this._fireContentChanges.clear()
+    this.fireContentChanges()
   }
 
   public getOffset(lnum: number, col: number): number {

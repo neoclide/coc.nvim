@@ -483,19 +483,9 @@ export interface TextDocumentWillSaveEvent {
    * *Note:* This function can only be called during event dispatch and not
    * in an asynchronous manner:
    *
-   * ```ts
-   * workspace.onWillSaveTextDocument(event => {
-   * 	// async, will *throw* an error
-   * 	setTimeout(() => event.waitUntil(promise))
-   *
-   * 	// sync, OK
-   * 	event.waitUntil(promise)
-   * })
-   * ```
-   *
    * @param thenable A thenable that resolves to [pre-save-edits](#TextEdit).
    */
-  waitUntil(thenable: Thenable<TextEdit[] | any>): void
+  waitUntil?(thenable: Thenable<TextEdit[] | any>): void
 }
 
 export interface Thenable<T> {

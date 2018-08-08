@@ -2,6 +2,10 @@
 
 * **Break change** `nameSuggestions` of `javascript` and `typescript` default to
   false, same as VSCode.
+* Add `internal` option to command.
+
+  Commands registered by server are internal.
+* Add support for multiple save wait until requests.
 
 # 2018-08-07
 

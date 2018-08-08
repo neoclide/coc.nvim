@@ -483,7 +483,9 @@ function! coc#util#diff_content(lines) abort
 endfunction
 
 function! coc#util#clear()
-  silent! call clearmatches()
+  if !has('nvim')
+    silent! call clearmatches()
+  endif
 endfunction
 
 function! coc#util#matchdelete(ids)
