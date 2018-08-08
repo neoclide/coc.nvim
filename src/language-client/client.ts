@@ -2918,7 +2918,7 @@ class ExecuteCommandFeature
               .then(undefined, error => {
                 client.logFailedRequest(ExecuteCommandRequest.type, error)
               })
-          })
+          }, null, true)
         )
       }
       this._commands.set(data.id, disposeables)

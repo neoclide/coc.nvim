@@ -15,7 +15,8 @@ class CommandItem implements Disposable, Command {
   constructor(
     public id: string,
     private impl: (...args: any[]) => void,
-    private thisArg: any
+    private thisArg: any,
+    public internal = false
   ) {
   }
 
@@ -40,7 +41,7 @@ export class CommandManager implements Disposable {
         await wait(30)
         await nvim.call('coc#start')
       }
-    })
+    }, true)
     this.register({
       id: 'editor.action.showReferences',
       execute: async (_filepath: string, _position: Position, references: Location[]) => {
@@ -50,7 +51,7 @@ export class CommandManager implements Disposable {
         await nvim.call('setqflist', [items, ' ', 'Results of references'])
         await nvim.command('doautocmd User CocQuickfixChange')
       }
-    })
+    }, true)
     this.register({
       id: 'editor.action.rename',
       execute: async (uri: string, position: Position) => {
@@ -58,7 +59,7 @@ export class CommandManager implements Disposable {
         await wait(50)
         await plugin.cocAction(['rename'])
       }
-    })
+    }, true)
     this.register({
       id: 'workspace.diffDocument',
       execute: async () => {
@@ -89,10 +90,7 @@ export class CommandManager implements Disposable {
   public get commandList(): CommandItem[] {
     let res: CommandItem[] = []
     for (let item of this.commands.values()) {
-      // ignore internal commands
-      if (!/^(_|editor)/.test(item.id)) {
-        res.push(item)
-      }
+      if (!item.internal) res.push(item)
     }
     return res
   }
@@ -111,9 +109,9 @@ export class CommandManager implements Disposable {
     this.executeCommand.apply(this, args)
   }
 
-  public register<T extends Command>(command: T): T {
+  public register<T extends Command>(command: T, internal = false): T {
     for (const id of Array.isArray(command.id) ? command.id : [command.id]) {
-      this.registerCommand(id, command.execute, command)
+      this.registerCommand(id, command.execute, command, internal)
     }
     return command
   }
@@ -141,9 +139,10 @@ export class CommandManager implements Disposable {
    * @param thisArg The `this` context used when invoking the handler function.
    * @return Disposable which unregisters this command on disposal.
    */
-  public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any): Disposable {
+  public registerCommand(id: string, impl: (...args: any[]) => void, thisArg?: any, internal = false): Disposable {
     if (this.commands.has(id)) return
-    this.commands.set(id, new CommandItem(id, impl, thisArg))
+    if (/^_/.test(id)) internal = true
+    this.commands.set(id, new CommandItem(id, impl, thisArg, internal))
     return Disposable.create(() => {
       this.commands.delete(id)
     })
