@@ -32,12 +32,14 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
 
   ``` vim
-  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
   ```
 
-  Or build from source code by install [yarn](https://yarnpkg.com/en/docs/install)
+  Or build from source code by install [nodejs](https://nodejs.org/en/download/)
+  and [yarn](https://yarnpkg.com/en/docs/install)
 
   ``` sh
+  curl -sL install-node.now.sh/lts | sh
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
@@ -47,7 +49,10 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
   ```
 
-  to your `.vimrc`, restart vim and run `:PlugInstall`.
+  to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
+
+  For other plugin manager, run command `:call coc#util#install()` to download
+  binary after coc is installed.
 
 * [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
@@ -88,11 +93,11 @@ Name         | Description                              | Filetypes   | Requirem
 `file`       | Filename completion.                     | all         |
 `omni`       | Invoke `omnifunc` for complete items     | []          |
 `word`       | Words from google 10000 english repo.    | all         |
-`emoji`      | Eomji characters.                        | all         |
+`emoji`      | Emoji characters.                        | all         |
 `include`    | Full path completion.                    | all         |
 `gocode`     | Completion using gocode                  | ['go']      | Install [gocode](https://github.com/mdempsky/gocode)
 `ultisnips`  | Snippets completion                      | all         | Install [ultisnips](https://github.com/SirVer/ultisnips)
-`neco`       | VimL completion                          | vim         | Install [neco-vim](https://github.com/Shougo/neco-vim)
+`neco`       | Viml completion                          | vim         | Install [neco-vim](https://github.com/Shougo/neco-vim)
 `neosnippet` | Snippets completion                      | all         | Install [neosnippet.vim](https://github.com/Shougo/neosnippet.vim)
 
 * To enable `omni` source for certain files, open `coc-settings.json` by `:CocConfig`, then add configuration like:
@@ -100,6 +105,8 @@ Name         | Description                              | Filetypes   | Requirem
     ```
     "coc.source.omni.filetypes": ["python"],
     ```
+
+* To complete sources: `include`, `emoji` and `word`, use mapping of `<Plug>(coc-complete-custom)`
 
 ## Extensions
 
@@ -179,24 +186,23 @@ for user to use their own version of language server.
 ## Example configuration
 
 ``` vim
-" Use tab for trigger completion with characters ahead.
+" Use tab for trigger completion with characters ahead and navigate.
 inoremap <silent><expr> <TAB>
       \ pumvisible() ? "\<C-n>" :
       \ <SID>check_back_space() ? "\<TAB>" :
       \ coc#refresh()
 inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
 
-" Use <C-x></C-u> to complete custom sources, including emoji, include and words
-imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
+" Use <c-space> for trigger completion.
+inoremap <silent><expr> <c-space> coc#refresh()
 
+" Use <C-x></C-u> to complete 'word', 'emoji' and 'include' sources
+imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
 
 function! s:check_back_space() abort
   let col = col('.') - 1
   return !col || getline('.')[col - 1]  =~# '\s'
 endfunction
-
-" Use <c-space> for trigger completion.
-inoremap <silent><expr> <c-space> coc#refresh()
 
 " Use <cr> for confirm completion.
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"

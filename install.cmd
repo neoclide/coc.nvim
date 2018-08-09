@@ -1,5 +1,7 @@
 @PowerShell -ExecutionPolicy Bypass -Command Invoke-Expression $('$args=@(^&{$args} %*);'+[String]::Join(';',(Get-Content '%~f0') -notmatch '^^@PowerShell.*EOF$')) & goto :EOF
 
+[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+
 $repo = "neoclide/coc.nvim"
 $file = "coc-win.zip"
 
@@ -13,18 +15,15 @@ $name = $file.Split(".")[0]
 $zip = "$name-$tag.zip"
 $dir = "build"
 
+new-item -Name $dir -ItemType directory -Force
+
 Write-Host Dowloading latest release
 Invoke-WebRequest $download -Out $zip
 
+Remove-Item $dir\* -Recurse -Force -ErrorAction SilentlyContinue
+
 Write-Host Extracting release files
-Expand-Archive $zip -Force
+Expand-Archive $zip -DestinationPath $dir -Force
 
-# Cleaning up target dir
-Remove-Item $dir -Recurse -Force -ErrorAction SilentlyContinue 
-
-# Moving from temp dir to target dir
-Move-Item $dir\$name -Destination $dir -Force
-
-# Removing temp files
 Remove-Item $zip -Force
-Remove-Item $dir -Recurse -Force
+Write-Host Coc install completed.

@@ -1,5 +1,6 @@
-let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h:h')
+let s:is_win = has('win32') || has('win64')
+let s:is_vim = !has('nvim')
 
 function! coc#util#platform()
   if s:is_win
@@ -533,11 +534,30 @@ function! coc#util#install_node_rpc() abort
   endif
   call coc#util#open_terminal({
         \ 'cmd': cmd,
-        \ 'Callback': {status -> s:on_installed(status)}
+        \ 'Callback': function('s:rpc_installed')
         \ })
 endfunction
 
-function! s:on_installed(status)
+function! coc#util#install()
+  let cmd = s:is_win ? 'install.cmd' : './install.sh'
+  call coc#util#open_terminal({
+        \ 'cmd': cmd,
+        \ 'cwd': s:root,
+        \ 'Callback': function('s:coc_installed')
+        \})
+  wincmd p
+endfunction
+
+function! s:coc_installed(status)
+  if a:status != 0 | return | endif
+  if s:is_vim
+    call coc#util#install_node_rpc()
+  else
+    call coc#rpc#start_server()
+  endif
+endfunction
+
+function! s:rpc_installed(status)
   if a:status == 0
     redraw!
     echohl MoreMsg | echon 'vim-node-rpc installed, starting rpc server.' | echohl None
