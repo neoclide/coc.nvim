@@ -56,23 +56,15 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     private readonly client: ITypeScriptServiceClient,
     private readonly typingsStatus: TypingsStatus,
     private readonly fileConfigurationManager: FileConfigurationManager,
+    languageId:string
   ) {
 
-    workspace.nvim.eval('&filetype').then(filetype => {
-      this.setCompleteOption(filetype as string)
-    }).catch(() => {})// tslint:disable-line
-
-    workspace.onDidEnterTextDocument(info => {
-      this.setCompleteOption(info.languageId)
-    })
-
+    this.setCompleteOption(languageId)
     commands.register(new ApplyCompletionCodeActionCommand(this.client))
   }
 
   private setCompleteOption(languageId: string): void {
-    if (languageIds.indexOf(languageId) !== -1) {
-      this.completeOption = this.fileConfigurationManager.getCompleteOptions(languageId)
-    }
+    this.completeOption = this.fileConfigurationManager.getCompleteOptions(languageId)
   }
 
   /**

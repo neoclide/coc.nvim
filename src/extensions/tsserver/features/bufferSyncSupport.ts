@@ -19,6 +19,8 @@ function mode2ScriptKind(
   switch (mode) {
     case languageModeIds.typescript:
       return 'TS'
+    case languageModeIds.typescripttsx:
+      return 'TSX'
     case languageModeIds.typescriptreact:
       return 'TSX'
     case languageModeIds.javascript:
@@ -79,6 +81,7 @@ export default class BufferSyncSupport {
   }
 
   public dispose(): void {
+    this.pendingDiagnostics.clear()
     disposeAll(this.disposables)
   }
 

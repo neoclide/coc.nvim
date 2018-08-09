@@ -64,14 +64,14 @@ export default class LanguageProvider {
       let {languageId, expandtab, tabstop} = info
       if (description.modeIds.indexOf(languageId) == -1) return
       let cb = () => {
-        this.fileConfigurationManager.ensureConfigurationOptions(languageId, expandtab, tabstop) // tslint:disable-line
+        this.fileConfigurationManager.ensureConfigurationOptions(description.id, expandtab, tabstop) // tslint:disable-line
       }
       if (state == ServiceStat.Running) {
         cb()
       } else {
         client.onTsServerStarted(cb)
       }
-    })
+    }, this, this.disposables)
 
     workspace.onDidChangeConfiguration(this.configurationChanged, this, this.disposables)
 
@@ -113,7 +113,8 @@ export default class LanguageProvider {
         new CompletionItemProvider(
           client,
           typingsStatus,
-          this.fileConfigurationManager
+          this.fileConfigurationManager,
+          this.description.id
         ),
         CompletionItemProvider.triggerCharacters
       )

@@ -19,6 +19,12 @@ export default class Logger {
     return this._channel
   }
 
+  public dispose():void {
+    if (this._channel) {
+      this._channel.dispose()
+    }
+  }
+
   private data2String(data: any): string {
     if (data instanceof Error) {
       if (is.string(data.stack)) {
