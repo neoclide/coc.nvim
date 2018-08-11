@@ -104,8 +104,10 @@ export default class Handler {
     let signatureHelp = await languages.getSignatureHelp(document, position)
     if (!signatureHelp) return
     let {activeParameter, activeSignature, signatures} = signatureHelp
+    await this.nvim.setOption('showcmd', false)
     await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
+    await this.nvim.setOption('showcmd', true)
   }
 
   private async handleDefinition(definition: Definition): Promise<void> {

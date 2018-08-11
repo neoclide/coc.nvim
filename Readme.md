@@ -186,6 +186,9 @@ for user to use their own version of language server.
 ## Example configuration
 
 ``` vim
+" Better display for signatures
+set cmdheight=2
+
 " Use tab for trigger completion with characters ahead and navigate.
 inoremap <silent><expr> <TAB>
       \ pumvisible() ? "\<C-n>" :
