@@ -2,7 +2,7 @@ import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import pify from 'pify'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import {toNumber} from '../util/types'
 import workspace from '../workspace'
 const exec = require('child_process').exec
@@ -60,4 +60,10 @@ export default class Include extends Source {
       items
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('include')
+  sourceMap.set('include', new Include(nvim, config))
 }

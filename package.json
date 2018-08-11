@@ -51,7 +51,6 @@
       "node8-win-x64"
     ],
     "scripts": [
-      "lib/source/**/*.js",
       "lib/extensions/**/*.js"
     ],
     "assets": "lib/**/*.json"

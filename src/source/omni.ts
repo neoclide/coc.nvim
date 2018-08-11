@@ -1,8 +1,9 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import {echoErr, echoMessage} from '../util/index'
 import {byteSlice} from '../util/string'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
@@ -52,4 +53,10 @@ export default class OmniSource extends Source {
     }
     return res
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('omni')
+  sourceMap.set('omni', new OmniSource(nvim, config))
 }

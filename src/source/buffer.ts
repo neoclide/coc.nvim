@@ -1,6 +1,6 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('source-buffer')
 
@@ -50,4 +50,10 @@ export default class Buffer extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('buffer')
+  sourceMap.set('buffer', new Buffer(nvim, config))
 }

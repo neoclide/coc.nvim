@@ -1,6 +1,7 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import workspace from '../workspace'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import {readFileByLine, statAsync} from '../util/fs'
 import path = require('path')
 const logger = require('../util/logger')('source-tag')
@@ -73,4 +74,10 @@ export default class Tag extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('tag')
+  sourceMap.set('tag', new Tag(nvim, config))
 }

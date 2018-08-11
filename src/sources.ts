@@ -163,28 +163,16 @@ export default class Sources extends EventEmitter {
   }
 
   private async createNativeSources(): Promise<void> {
-    let root = path.join(__dirname, 'source')
-    let files = await pify(fs.readdir)(root, 'utf8')
-    for (let file of files) {
-      if (/\.[tj]s$/.test(file)) {
-        let name = file.replace(/\.[tj]s$/, '')
-        try {
-          let Clz = require(`./source/${name}`).default
-          let config: Partial<SourceConfig> = this.getSourceConfig(name)
-          if (config.enable) {
-            config.name = name
-            config.filepath = path.join(workspace.pluginRoot, `src/source/${name}.ts`)
-            let instance = new Clz(this.nvim, config || {})
-            if (typeof instance.onInit === 'function') {
-              await instance.onInit()
-            }
-            this.addSource(name, instance)
-          }
-        } catch (e) {
-          logger.error(`Native source ${name} error: ${e.message}`)
-        }
-      }
-    }
+    (await import('./source/around')).regist(this.sourceMap)
+    ;(await import('./source/dictionary')).regist(this.sourceMap)
+    ;(await import('./source/buffer')).regist(this.sourceMap)
+    ;(await import('./source/emoji')).regist(this.sourceMap)
+    ;(await import('./source/file')).regist(this.sourceMap)
+    ;(await import('./source/include')).regist(this.sourceMap)
+    ;(await import('./source/tag')).regist(this.sourceMap)
+    ;(await import('./source/gocode')).regist(this.sourceMap)
+    ;(await import('./source/word')).regist(this.sourceMap)
+    ;(await import('./source/omni')).regist(this.sourceMap)
   }
 
   private getSourceConfig(name: string): Partial<SourceConfig> {

@@ -1,6 +1,6 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import workspace from '../workspace'
 import fs from 'fs'
 import path from 'path'
@@ -40,4 +40,10 @@ export default class Word extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('word')
+  sourceMap.set('word', new Word(nvim, config))
 }

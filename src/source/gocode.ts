@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import Source from '../model/source'
 import {echoWarning} from '../util'
 import workspace from '../workspace'
@@ -76,4 +76,10 @@ export default class Gocode extends Source {
       child.stdin.end()
     })
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('gocode')
+  sourceMap.set('gocode', new Gocode(nvim, config))
 }

@@ -2,8 +2,9 @@ import fs from 'fs'
 import {Neovim} from '@chemzqm/neovim'
 import pify from 'pify'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import {statAsync} from '../util/fs'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-dictionary')
 
 interface Dicts {
@@ -85,4 +86,10 @@ export default class Dictionary extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('dictionary')
+  sourceMap.set('dictionary', new Dictionary(nvim, config))
 }

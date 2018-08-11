@@ -4,10 +4,11 @@ import path from 'path'
 import pify from 'pify'
 import minimatch from 'minimatch'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem, ISource} from '../types'
 import {statAsync} from '../util/fs'
 import {byteSlice} from '../util/string'
 import os from 'os'
+import workspace from '../workspace'
 // const logger = require('../util/logger')('source-file')
 const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
@@ -111,4 +112,10 @@ export default class File extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('file')
+  sourceMap.set('file', new File(nvim, config))
 }

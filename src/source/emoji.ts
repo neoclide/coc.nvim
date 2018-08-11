@@ -1,7 +1,7 @@
 import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
 import workspace from '../workspace'
-import {CompleteOption, CompleteResult, SourceConfig} from '../types'
+import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
@@ -43,4 +43,10 @@ export default class Emoji extends Source {
       })
     }
   }
+}
+
+export function regist(sourceMap:Map<string, ISource>):void {
+  let {nvim} = workspace
+  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('emoji')
+  sourceMap.set('emoji', new Emoji(nvim, config))
 }
