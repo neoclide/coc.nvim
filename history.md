@@ -1,5 +1,6 @@
 # 2018-08-08
 
+* Improved location list for diagnostics.
 * Add `internal` option to command.
 
   Commands registered by server are internal.

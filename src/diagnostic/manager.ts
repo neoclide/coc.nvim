@@ -68,6 +68,16 @@ export class DiagnosticManager {
       }
     }, null, this.disposables)
 
+    workspace.onDidBufWinEnter(({document, winid}) => {
+      let uri = document ? document.uri : null
+      let buf = this.buffers.find(buf => buf.uri == uri)
+      if (buf) {
+        buf.setLocationlist()
+      } else {
+        workspace.nvim.call('setloclist', [winid, [], 'f'], true)
+      }
+    }, null, this.disposables)
+
     workspace.onDidCloseTextDocument(textDocument => {
       let {uri} = textDocument
       for (let collection of this.collections) {

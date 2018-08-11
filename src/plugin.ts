@@ -64,8 +64,12 @@ export default class Plugin {
     let {emitter} = this
     logger.debug('Autocmd:', args)
     switch (args[0] as string) {
+      case 'BufWinEnter':
+        workspace.onBufWinEnter(args[1], args[2])
+        break
       case 'DirChanged':
         workspace.onDirChanged(args[1])
+        break
       case 'TextChanged':
         emitter.emit('TextChanged', args[1])
         break

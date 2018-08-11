@@ -37,6 +37,11 @@ interface EditerState {
   position: Position
 }
 
+interface WinEnter {
+  document: Document
+  winid: number
+}
+
 export class Workspace {
   private _nvim: Neovim
   public bufnr: number
@@ -50,6 +55,7 @@ export class Workspace {
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
+  private _onDidBufWinEnter = new Emitter<WinEnter>()
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
   private _onDidAddDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -69,6 +75,7 @@ export class Workspace {
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
+  public readonly onDidBufWinEnter: Event<WinEnter> = this._onDidBufWinEnter.event
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
   private configFiles: string[]
@@ -120,6 +127,15 @@ export class Workspace {
   public onDirChanged(cwd: string): void {
     this._cwd = cwd
     this.onConfigurationChange()
+  }
+
+  public onBufWinEnter(filepath:string, winid:number): void {
+    let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
+    let doc = this.getDocument(uri)
+    this._onDidBufWinEnter.fire({
+      document: doc,
+      winid
+    })
   }
 
   public get root(): string {

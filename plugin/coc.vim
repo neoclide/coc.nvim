@@ -98,6 +98,7 @@ function! s:Enable()
     else
       autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
+    autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', expand('<amatch>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), expand('<afile>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)

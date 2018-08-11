@@ -399,7 +399,8 @@ COMMANDS 					*coc-commands*
 
 :CocRefresh [{name}]				*:CocRefresh*
 
-		Remove cache of source {name}, or all sources without {name}.
+		Remove cache of completion source {name}, or all sources without
+		{name}.
 
 :CocConfig 					*:CocConfig*
 
