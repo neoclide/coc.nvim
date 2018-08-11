@@ -198,7 +198,7 @@ export class Workspace {
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     const preferences = this.getConfiguration('coc.preferences')
     const watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', ''))
-    let promise = Watchman.createClient(watchmanPath, this.root)
+    let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root) : Promise.resolve(null)
     return new FileSystemWatcher(
       promise,
       globPattern,

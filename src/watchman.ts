@@ -1,7 +1,6 @@
 import { Client } from 'fb-watchman'
 import watchman = require('fb-watchman')
 import fs from 'fs'
-import path from 'path'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
 import os from 'os'
