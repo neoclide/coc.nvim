@@ -176,6 +176,18 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this.versionProvider = new TypeScriptVersionProvider(this._configuration)
     this._apiVersion = API.defaultVersion
     this.tracer = new Tracer(this.logger)
+    const onInstalled = name => {
+      if (name == 'typescript') {
+        this.restartTsServer().catch(e => {
+          logger.error(e.stack)
+        })
+        workspace.moduleManager.removeListener('installed', onInstalled)
+      }
+    }
+    workspace.moduleManager.on('installed', onInstalled)
+    this.disposables.push(Disposable.create(() => {
+      workspace.moduleManager.removeListener('installed', onInstalled)
+    }))
   }
 
   private _onDiagnosticsReceived = new Emitter<TsDiagnostics>()
@@ -311,8 +323,9 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (!currentVersion || !fs.existsSync(currentVersion.tsServerPath)) {
       currentVersion = await this.versionProvider.getDefaultVersion()
     }
-    if (!currentVersion.isValid) {
-      echoErr(workspace.nvim, 'Can not find tsserver') // tslint:disable-line
+    if (!currentVersion || !currentVersion.isValid) {
+      echoErr(workspace.nvim, 'Can not find tsserver, try installing...')
+      await workspace.moduleManager.installModule('typescript', 'tsserver')
       return
     }
     echoMessage(workspace.nvim, `Using tsserver from: ${currentVersion.path}`) // tslint:disable-line

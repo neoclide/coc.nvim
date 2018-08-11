@@ -7,6 +7,7 @@ import path from 'path'
 import {getParentDirs} from '../../../util/fs'
 import {globalResolve} from '../../../util/resolve'
 import API from './api'
+import workspace from '../../../workspace'
 import {TypeScriptServiceConfiguration} from './configuration'
 const logger = require('../../../util/logger')('tsserver-versionProvider')
 
@@ -122,9 +123,11 @@ export class TypeScriptVersionProvider {
   }
 
   public get bundledVersion(): TypeScriptVersion | null {
+    let file = path.join(workspace.pluginRoot, 'node_modules/typescript/lib/tsserver.js')
+    if (!fs.existsSync(file)) return null
     try {
       const bundledVersion = new TypeScriptVersion(
-        path.dirname(require.resolve('typescript/lib/tsserver.js')),
+        path.dirname(file),
         ''
       )
       return bundledVersion
