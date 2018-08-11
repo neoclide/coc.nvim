@@ -7,6 +7,7 @@ import { getChange, diffLines } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri, isLineEdit } from '../util/index'
 import { Chars } from './chars'
+import { byteSlice, byteLength } from '../util/string'
 const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
@@ -394,5 +395,23 @@ export default class Document {
     this._changedtick = changedtick
     lines[lnum - 1] = line
     this.fireContentChanges()
+  }
+
+  public fixStartcol(position:Position, valids:string[]):number {
+    let line = this.getline(position.line)
+    if (!line) return null
+    let {character} = position
+    let start = line.slice(0, character)
+    let col = byteLength(start)
+    let {chars} = this
+    for (let i = start.length - 1; i >= 0; i--) {
+      let c = start[i]
+      if (c == ' ') break
+      if (!chars.isKeywordChar(c) && valids.indexOf(c) === -1) {
+        break
+      }
+      col = col - byteLength(c)
+    }
+    return col
   }
 }

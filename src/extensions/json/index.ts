@@ -1,5 +1,5 @@
 import path from 'path'
-import {CancellationToken, CompletionContext, CompletionItem, CompletionList, Position, TextDocument} from 'vscode-languageserver-protocol'
+import {CancellationToken, CompletionContext, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind} from 'vscode-languageserver-protocol'
 import {ProviderResult} from '../../provider'
 import {LanguageService} from '../../language-client'
 import workspace from '../../workspace'
@@ -130,6 +130,7 @@ export default class JsonService extends LanguageService {
             let doc = workspace.getDocument(document.uri)
             if (!doc) return []
             let items: CompletionItem[] = res.hasOwnProperty('isIncomplete') ? (res as CompletionList).items : res as CompletionItem[]
+            let line = doc.getline(position.line)
             for (let item of items) {
               let {textEdit, insertText, label} = item // tslint:disable-line
               item.insertText = null // tslint:disable-line
@@ -137,13 +138,19 @@ export default class JsonService extends LanguageService {
                 let newText = insertText || textEdit.newText
                 textEdit.newText = newText.replace(/(\n|\t)/g, '')
                 let {start, end} = textEdit.range
-                let line = doc.getline(position.line)
                 if (line[start.character] && line[end.character - 1] && /^".*"$/.test(label)) {
                   item.label = item.label.slice(1, -1)
                 }
               }
             }
-            return items
+            let result:any = {
+              isIncomplete: false,
+              items
+            }
+            if (items.length && items[0].kind == CompletionItemKind.Property) {
+              result.startcol = doc.fixStartcol(position, ['.'])
+            }
+            return result
           })
         }
       }

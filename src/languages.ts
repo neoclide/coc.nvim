@@ -5,7 +5,7 @@ import diagnosticManager from './diagnostic/manager'
 import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider} from './provider'
 import snippetManager from './snippet/manager'
 import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
-import {echoMessage, isLineEdit, wait} from './util'
+import {echoMessage, isLineEdit} from './util'
 import {byteSlice} from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
@@ -483,10 +483,15 @@ class Languages {
         if (!result) return null
         let isIncomplete = (result as CompletionList).isIncomplete || false
         completeItems = Array.isArray(result) ? result : result.items
-        return {
+        let res = {
           isIncomplete,
           items: completeItems.map(o => convertVimCompleteItem(o, shortcut))
         }
+        if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
+          (res as any).startcol = (result as any).startcol
+          option.col = (result as any).startcol
+        }
+        return res
       }
     }
   }
