@@ -2,7 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import cp from 'child_process'
+import cp, {SpawnOptions} from 'child_process'
 import fs from 'fs'
 import {createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter} from 'vscode-languageserver-protocol'
 import {ServiceStat} from '../types'
@@ -22,7 +22,7 @@ export * from './client'
 
 declare var v8debug: any
 
-export interface ExecutableOptions {
+export interface SpawnOptions {
   cwd?: string
   stdio?: string | string[]
   env?: any
@@ -33,7 +33,7 @@ export interface ExecutableOptions {
 export interface Executable {
   command: string
   args?: string[]
-  options?: ExecutableOptions
+  options?: SpawnOptions
 }
 
 namespace Executable {
@@ -345,7 +345,7 @@ export class LanguageClient extends BaseLanguageClient {
           if (node.args) {
             node.args.forEach(element => args.push(element))
           }
-          let execOptions: ExecutableOptions = Object.create(null)
+          let execOptions: SpawnOptions = Object.create(null)
           execOptions.cwd = serverWorkingDir
           execOptions.env = getEnvironment(options.env)
           let pipeName: string | undefined

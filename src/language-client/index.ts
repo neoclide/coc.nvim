@@ -3,7 +3,8 @@ import net from 'net'
 import path from 'path'
 import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
 import which from 'which'
-import {ExecutableOptions, ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
+import {SpawnOptions} from 'child_process'
+import {ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
 import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
 import {disposeAll, echoErr, echoMessage} from '../util'
 import workspace from '../workspace'
@@ -162,7 +163,7 @@ export class LanguageService implements IServiceProvider {
     return clientOptions
   }
 
-  private getOptions(isModule = false): ExecutableOptions | ForkOptions {
+  private getOptions(isModule = false): SpawnOptions | ForkOptions {
     let {config} = this
     let {cwd, shell, detached, execArgv} = config
     cwd = cwd ? path.isAbsolute(cwd) ? cwd
