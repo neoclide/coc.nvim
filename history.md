@@ -1,3 +1,30 @@
+# 2018-08-11
+
+* Fix configuration content not saved on change.
+* Fix thrown error on watchman not found.
+* Fix incompatible options of `child_process`.
+* Fix location list for diagnostics.
+
+  * Reset on `BufWinEnter`.
+  * Available for all windows of single buffer.
+  * Use replace on change for coc location list.
+  * Add debounce.
+
+* Fix signature help behaviour, truncate messages to not overlap.
+* Reworks sources use async import.
+
+# 2018-08-10
+
+* Fix dispose for all modules.
+* Add support for multiple `addWillSaveUntilListener`.
+* Fix `startcol` for json server.
+* Add support filetype `javascriptreact` for tsserver.
+
+# 2018-08-09
+
+* Add `coc#util#install` for installation.
+* Add `install.cmd` for windows.
+
 # 2018-08-08
 
 * Improved location list for diagnostics.

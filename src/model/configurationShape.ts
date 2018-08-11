@@ -15,14 +15,6 @@ export default class ConfigurationProxy implements ConfigurationShape {
     this.userContent = fs.existsSync(userFile) ? fs.readFileSync(userFile, 'utf8') : ''
     this.workspaceContent = fs.existsSync(workspaceFile) ? fs.readFileSync(workspaceFile, 'utf8')  : ''
 
-    if (global.hasOwnProperty('__TEST__')) {
-      this.formattingOptions = { tabSize: 2, insertSpaces: true }
-    } else {
-      this.loadFormatOptions()
-    }
-  }
-
-  private async loadFormatOptions():Promise<void> {
     this.formattingOptions = { tabSize: 2, insertSpaces: true }
   }
 
@@ -33,6 +25,11 @@ export default class ConfigurationProxy implements ConfigurationShape {
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
     fs.writeFileSync(file, content, 'utf8')
+    if (target == ConfigurationTarget.Workspace) {
+      this.workspaceContent = content
+    } else {
+      this.userContent = content
+    }
     return
   }
 
