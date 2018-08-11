@@ -2,10 +2,11 @@ import fs from 'fs'
 import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import {LanguageService} from './language-client'
+import Emitter from 'events'
 import workspace from './workspace'
 import {Disposable} from 'vscode-languageserver-protocol'
 import {IServiceProvider, ServiceStat, LanguageServerConfig} from './types'
-import {echoErr, echoMessage, echoWarning} from './util'
+import {echoErr, echoMessage, echoWarning, disposeAll} from './util'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -33,10 +34,11 @@ function getStateName(state: ServiceStat): string {
   }
 }
 
-export class ServiceManager implements Disposable {
+export class ServiceManager extends Emitter implements Disposable {
   private nvim: Neovim
   private languageIds: Set<string> = new Set()
   private readonly registed: Map<string, IServiceProvider> = new Map()
+  private disposables:Disposable[] = []
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
@@ -67,10 +69,12 @@ export class ServiceManager implements Disposable {
       for (let filetype of filetypes) {
         this.start(filetype)
       }
-    })
+    }, null, this.disposables)
   }
 
   public dispose(): void {
+    this.removeAllListeners()
+    disposeAll(this.disposables)
     for (let service of this.registed.values()) {
       service.dispose()
     }
@@ -95,8 +99,9 @@ export class ServiceManager implements Disposable {
       this.languageIds.add(lang)
     })
     service.onServiceReady(() => {
-       echoMessage(this.nvim, `service ${id} started`)
-    })
+      echoMessage(this.nvim, `service ${id} started`)
+      this.emit('ready', id)
+    }, null, this.disposables)
   }
 
   public getService(id: string): IServiceProvider {
@@ -128,13 +133,19 @@ export class ServiceManager implements Disposable {
     }
   }
 
-  public async stop(id: string): Promise<void> {
+  public stop(id: string): Promise<void> {
     let service = this.registed.get(id)
     if (!service) {
       echoErr(this.nvim, `Service ${id} not found`)
       return
     }
-    await Promise.resolve(service.stop())
+    return Promise.resolve(service.stop())
+  }
+
+  public async stopAll():Promise<void> {
+    for (let service of this.registed.values()) {
+      await Promise.resolve(service.stop())
+    }
   }
 
   public async toggle(id: string): Promise<void> {

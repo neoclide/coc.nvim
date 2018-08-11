@@ -1,7 +1,6 @@
 import { ConfigurationShape, ConfigurationTarget } from '../types'
 import { FormattingOptions } from 'vscode-languageserver-protocol'
 import { modify, applyEdits } from 'jsonc-parser'
-import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 const logger = require('../util/logger')('model-ConfigurationShape')
 
@@ -11,37 +10,20 @@ export default class ConfigurationProxy implements ConfigurationShape {
   private formattingOptions: FormattingOptions
 
   constructor(
-    private nvim:Neovim,
     private userFile: string,
     private workspaceFile: string | null) {
-    Object.defineProperty(this, 'userContent', {
-      get: () => {
-        if (!fs.existsSync(userFile)) {
-          return ''
-        }
-        return fs.readFileSync(userFile, 'utf8')
-      }
-    })
-    if (workspaceFile) {
-      Object.defineProperty(this, 'workspaceContent', {
-        get: () => {
-          if (!fs.existsSync(workspaceFile)) {
-            return ''
-          }
-          return fs.readFileSync(workspaceFile, 'utf8')
-        }
-      })
+    this.userContent = fs.existsSync(userFile) ? fs.readFileSync(userFile, 'utf8') : ''
+    this.workspaceContent = fs.existsSync(workspaceFile) ? fs.readFileSync(workspaceFile, 'utf8')  : ''
+
+    if (global.hasOwnProperty('__TEST__')) {
+      this.formattingOptions = { tabSize: 2, insertSpaces: true }
+    } else {
+      this.loadFormatOptions()
     }
-    this.loadFormatOptions().catch(() => {
-      // noop
-    })
   }
 
   private async loadFormatOptions():Promise<void> {
-    let {nvim} = this
-    let tabSize = await nvim.getOption('tabstop')
-    let insertSpaces = (await nvim.getOption('expandtab')) == 1
-    this.formattingOptions = { tabSize: tabSize as number, insertSpaces }
+    this.formattingOptions = { tabSize: 2, insertSpaces: true }
   }
 
   private modifyConfiguration(target: ConfigurationTarget, key: string, value?: any): void {

@@ -11,7 +11,7 @@ import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumen
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import ConfigurationShape from './model/configurationShape'
-import { echoErr, echoMessage, isSupportedScheme } from './util/index'
+import { echoErr, echoMessage, isSupportedScheme, disposeAll } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
@@ -20,7 +20,7 @@ import os from 'os'
 import uuidv1 = require('uuid/v1')
 import { EventEmitter } from 'events'
 import deepEqual from 'deep-equal'
-import {BaseLanguageClient } from './language-client/main'
+import { BaseLanguageClient } from './language-client/main'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -38,13 +38,14 @@ interface EditerState {
 }
 
 export class Workspace {
-  public nvim: Neovim
+  private _nvim: Neovim
   public bufnr: number
   public emitter: EventEmitter
   public moduleManager: ModuleManager
   public jobManager: JobManager
 
   private _initialized = false
+  private disposables:Disposable[] = []
   private buffers: Map<number, Document>
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
@@ -68,7 +69,7 @@ export class Workspace {
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
-  private willSaveUntilHandler:WillSaveUntilHandler
+  private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
   private configFiles: string[]
   private jumpCommand: string
@@ -77,14 +78,20 @@ export class Workspace {
   constructor() {
     let configFiles = this.configFiles = []
     let config = this.loadConfigurations()
-    let configurationShape = this.configurationShape = new ConfigurationShape(this.nvim, configFiles[1], configFiles[2])
+    let configurationShape = this.configurationShape = new ConfigurationShape(configFiles[1], configFiles[2])
     this._configurations = new Configurations(config, configurationShape)
     let moduleManager = this.moduleManager = new ModuleManager()
     this.jobManager = new JobManager()
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
-    watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
+    if (!global.hasOwnProperty('__TEST__')) {
+      watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
+    }
+  }
+
+  public get nvim():Neovim {
+    return this._nvim
   }
 
   public async init(): Promise<void> {
@@ -96,9 +103,7 @@ export class Workspace {
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufferCreate(buf)
-    })).catch(error => {
-      logger.error(`buffer create error: ${error.message}`)
-    })
+    }))
     const preferences = this.getConfiguration('coc.preferences')
     this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
     this._onDidWorkspaceInitialized.fire(void 0)
@@ -128,19 +133,12 @@ export class Workspace {
     return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
   }
 
-  public get workspaceFolder(): WorkspaceFolder | null {
-    let dir: string
-    let { bufnr } = this
-    if (bufnr) {
-      let document = this.getDocument(bufnr)
-      if (document && document.schema == 'file') dir = path.dirname(Uri.parse(document.uri).fsPath)
+  public get workspaceFolder(): WorkspaceFolder {
+    let {root} = this
+    return {
+      uri: Uri.file(root).toString(),
+      name: path.basename(root)
     }
-    if (!dir) return null
-    let folder = resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir())
-    return folder ? {
-      uri: Uri.file(folder).toString(),
-      name: path.basename(folder)
-    } : null
   }
 
   public get channelNames(): string[] {
@@ -295,11 +293,13 @@ export class Workspace {
   }
 
   public async onBufferCreate(buf: number | Buffer): Promise<Document> {
-    const buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
+    let loaded = await this.isBufLoaded(typeof buf === 'number' ? buf : buf.id)
+    if (!loaded) return
+    let buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
     if (!buffer) return
-    const valid = await this.isValidBuffer(buffer)
-    if (!valid) return
-    const doc = this.buffers.get(buffer.id)
+    let buftype = await buffer.getOption('buftype')
+    if (buftype !== '') return
+    let doc = this.buffers.get(buffer.id)
     if (doc) {
       await doc.checkDocument()
       return
@@ -347,8 +347,8 @@ export class Workspace {
   public async onBufferUnload(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
-      doc.detach()
       this.buffers.delete(bufnr)
+      doc.detach()
       if (isSupportedScheme(doc.schema)) {
         this._onDidCloseDocument.fire(doc.textDocument)
       }
@@ -361,7 +361,7 @@ export class Workspace {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     let buf = doc.buffer
-    let documentInfo:DocumentInfo = {
+    let documentInfo: DocumentInfo = {
       bufnr: buf.id,
       uri: doc.uri,
       languageId: doc.filetype,
@@ -371,7 +371,7 @@ export class Workspace {
     this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
   }
 
-  public addWillSaveUntilListener(callback:(event: TextDocumentWillSaveEvent)=>void, thisArg: any, client:BaseLanguageClient):Disposable {
+  public addWillSaveUntilListener(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
   }
 
@@ -381,7 +381,7 @@ export class Workspace {
     if (!doc) return
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     if (doc && isSupportedScheme(doc.schema)) {
-      let event:TextDocumentWillSaveEvent = {
+      let event: TextDocumentWillSaveEvent = {
         document: doc.textDocument,
         reason: TextDocumentSaveReason.Manual
       }
@@ -485,7 +485,7 @@ export class Workspace {
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
     let bufnr = await nvim.call('bufnr', [filepath])
-    if (bufnr != -1 && cmd == 'edit') {
+    if (bufnr != -1 && jumpCommand == 'edit') {
       await nvim.command(`buffer ${cmd} ${bufnr}`)
     } else {
       let cwd = await nvim.call('getcwd')
@@ -550,8 +550,8 @@ export class Workspace {
     return await this.moduleManager.runCommand(cmd, cwd)
   }
 
-  private async isValidBuffer(buffer: Buffer): Promise<boolean> {
-    return await this.nvim.call('coc#util#valid_buf', buffer.id)
+  private async isBufLoaded(bufnr:number):Promise<boolean> {
+    return await this.nvim.call('bufloaded', bufnr)
   }
 
   private async getBuffer(bufnr: number): Promise<Buffer | null> {
@@ -625,12 +625,14 @@ export class Workspace {
     this.configFiles.push(file)
     let defaultConfig = parseContentFromFile(file)
     let home = process.env.VIMCONFIG
+    if (global.hasOwnProperty('__TEST__')) {
+      home = path.join(this.pluginRoot, 'src/__tests__')
+    }
     file = path.join(home, CONFIG_FILE_NAME)
     this.configFiles.push(file)
     let userConfig = parseContentFromFile(file)
-    let dir = resolveDirectory(this.cwd, '.vim')
+    file = path.join(this.root, '.vim/' + CONFIG_FILE_NAME)
     let workspaceConfig
-    file = dir ? path.join(dir, CONFIG_FILE_NAME) : null
     if (this.configFiles.indexOf(file) == -1) {
       this.configFiles.push(file)
       workspaceConfig = parseContentFromFile(file)
@@ -671,6 +673,18 @@ export class Workspace {
       let doc = this.getDocument(bufnr)
       if (doc) doc.fetchContent()
     })
+  }
+
+  public dispose(): void {
+    for (let ch of this.outputChannels.values()) {
+      ch.dispose()
+    }
+    for (let doc of this.buffers.values()) {
+      doc.detach()
+    }
+    Watchman.dispose()
+    this.moduleManager.removeAllListeners()
+    disposeAll(this.disposables)
   }
 }
 

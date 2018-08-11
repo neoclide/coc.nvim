@@ -131,3 +131,28 @@ export function executable(command:string):boolean {
   }
   return true
 }
+
+export function defer<T>():Promise<T> & {resolve: (res:T)=>void, reject: (err:Error)=>void} {
+  let res
+  let rej
+
+  let promise = new Promise<T>((resolve, reject) => {
+    res = resolve
+    rej = reject
+  })
+
+  Object.defineProperty(promise, 'resolve', {
+    get: () => {
+      return res
+    }
+  })
+
+  Object.defineProperty(promise, 'reject', {
+    get: () => {
+      return rej
+    }
+  })
+
+  return promise as any
+}
+

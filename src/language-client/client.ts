@@ -1453,7 +1453,7 @@ class FileSystemWatcherFeature
     if (!Array.isArray(data.registerOptions.watchers)) {
       return
     }
-    let disposeables: Disposable[] = []
+    let disposables: Disposable[] = []
     for (let watcher of data.registerOptions.watchers) {
       if (!Is.string(watcher.globPattern)) {
         continue
@@ -1476,19 +1476,21 @@ class FileSystemWatcherFeature
         fileSystemWatcher,
         watchCreate,
         watchChange,
-        watchDelete
+        watchDelete,
+        disposables
       )
-      disposeables.push(fileSystemWatcher)
+      disposables.push(fileSystemWatcher)
     }
-    this._watchers.set(data.id, disposeables)
+    this._watchers.set(data.id, disposables)
   }
 
   public registerRaw(id: string, fileSystemWatchers: FileWatcher[]) {
-    let disposeables: Disposable[] = []
+    let disposables: Disposable[] = []
     for (let fileSystemWatcher of fileSystemWatchers) {
-      this.hookListeners(fileSystemWatcher, true, true, true, disposeables)
+      disposables.push(fileSystemWatcher)
+      this.hookListeners(fileSystemWatcher, true, true, true, disposables)
     }
-    this._watchers.set(id, disposeables)
+    this._watchers.set(id, disposables)
   }
 
   private hookListeners(
@@ -1496,7 +1498,7 @@ class FileSystemWatcherFeature
     watchCreate: boolean,
     watchChange: boolean,
     watchDelete: boolean,
-    listeners?: Disposable[]
+    listeners: Disposable[]
   ): void {
     if (watchCreate) {
       fileSystemWatcher.onDidCreate(
@@ -1534,17 +1536,17 @@ class FileSystemWatcherFeature
   }
 
   public unregister(id: string): void {
-    let disposeables = this._watchers.get(id)
-    if (disposeables) {
-      for (let disposable of disposeables) {
+    let disposables = this._watchers.get(id)
+    if (disposables) {
+      for (let disposable of disposables) {
         disposable.dispose()
       }
     }
   }
 
   public dispose(): void {
-    this._watchers.forEach(disposeables => {
-      for (let disposable of disposeables) {
+    this._watchers.forEach(disposables => {
+      for (let disposable of disposables) {
         disposable.dispose()
       }
     })
@@ -2905,9 +2907,9 @@ class ExecuteCommandFeature
   ): void {
     let client = this._client
     if (data.registerOptions.commands) {
-      let disposeables: Disposable[] = []
+      let disposables: Disposable[] = []
       for (const command of data.registerOptions.commands) {
-        disposeables.push(
+        disposables.push(
           Commands.registerCommand(command, (...args: any[]) => {
             let params: ExecuteCommandParams = {
               command,
@@ -2921,14 +2923,14 @@ class ExecuteCommandFeature
           }, null, true)
         )
       }
-      this._commands.set(data.id, disposeables)
+      this._commands.set(data.id, disposables)
     }
   }
 
   public unregister(id: string): void {
-    let disposeables = this._commands.get(id)
-    if (disposeables) {
-      disposeables.forEach(disposable => disposable.dispose())
+    let disposables = this._commands.get(id)
+    if (disposables) {
+      disposables.forEach(disposable => disposable.dispose())
     }
   }
 
@@ -3688,9 +3690,7 @@ export abstract class BaseLanguageClient {
 
   private hookFileEvents(_connection: IConnection): void {
     let fileEvents = this._clientOptions.synchronize.fileEvents
-    if (!fileEvents) {
-      return
-    }
+    if (!fileEvents) return
     let watchers: FileWatcher[]
     if (Is.array(fileEvents)) {
       watchers = <FileWatcher[]>fileEvents

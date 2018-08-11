@@ -26,12 +26,13 @@ export default class JobManager {
       cmd
     }])
     let promise = new Promise((resolve:ResolveCallback) => { // tslint:disable-line
-      let fn = (data:string):void => {
-        resolve(data)
-      }
-      setTimeout(() => {
+      let timer = setTimeout(() => {
         resolve(null)
       }, timeout*1000)
+      let fn = (data:string):void => {
+        clearTimeout(timer)
+        resolve(data)
+      }
       callbackMap.set(jobid, fn)
     })
     let res = await promise

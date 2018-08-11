@@ -19,10 +19,6 @@ export default class ModuleManager extends EventEmitter {
   private disables:string[] = []
   private callbacks:Map<number, Callback> = new Map()
 
-  constructor() {
-    super()
-  }
-
   public handleTerminalResult(res:TerminalResult):void {
       if (!res.id) return
       let {id} = res

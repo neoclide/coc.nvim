@@ -1,20 +1,22 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import languages from './languages'
 import VimSource from './model/source-vim'
-import {CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration, DocumentInfo} from './types'
-import {echoErr, echoMessage} from './util'
-import {statAsync} from './util/fs'
-import {isWord} from './util/string'
+import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration, DocumentInfo } from './types'
+import { echoErr, echoMessage, disposeAll } from './util'
+import { statAsync } from './util/fs'
+import { isWord } from './util/string'
 import workspace from './workspace'
 import path from 'path'
 import fs from 'fs'
 import pify from 'pify'
-import {EventEmitter} from 'events'
+import { EventEmitter } from 'events'
+import { Disposable } from 'vscode-jsonrpc'
 const logger = require('./util/logger')('sources')
 
 export default class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
   private sourceConfig: WorkspaceConfiguration
+  private disposables:Disposable[] = []
   private _ready = false
 
   constructor(private nvim: Neovim) {
@@ -31,13 +33,13 @@ export default class Sources extends EventEmitter {
       logger.error(`Error on source create ${e.message}`)
     })
     languages.onDidCompletionSourceCreated(source => {
-      let {name} = source
+      let { name } = source
       if (source.enable) {
         this.addSource(name, source)
         logger.debug('created service source', name)
       }
-    })
-    workspace.onDidEnterTextDocument(this.onDocumentEnter.bind(this))
+    }, this, this.disposables)
+    workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
   }
 
   public get ready(): Promise<void> {
@@ -83,7 +85,7 @@ export default class Sources extends EventEmitter {
   }
 
   public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
-    let {user_data} = item
+    let { user_data } = item
     if (!user_data) return
     try {
       let data = JSON.parse(user_data)
@@ -104,8 +106,8 @@ export default class Sources extends EventEmitter {
   }
 
   public getCompleteSources(opt: CompleteOption): ISource[] {
-    let {triggerCharacter, filetype, custom} = opt
-    let sources:ISource[]
+    let { triggerCharacter, filetype, custom } = opt
+    let sources: ISource[]
     if (triggerCharacter) {
       sources = this.getTriggerSources(triggerCharacter, filetype)
     } else {
@@ -126,7 +128,7 @@ export default class Sources extends EventEmitter {
     let special = !isWord(character)
     let sources = this.sources.filter(s => {
       if (!s.enable) return false
-      let {filetypes} = s
+      let { filetypes } = s
       if (filetypes && filetypes[0] == '-') return true
       if (filetypes && filetypes.indexOf(languageId) == -1) {
         return false
@@ -143,7 +145,7 @@ export default class Sources extends EventEmitter {
 
   public getSourcesForFiletype(filetype: string, includeDisabled = true): ISource[] {
     return this.sources.filter(source => {
-      let {filetypes} = source
+      let { filetypes } = source
       if (!includeDisabled && !source.enable) return false
       if (!filetypes || filetypes[0] == '-') return true
       if (filetype && filetypes.indexOf(filetype) !== -1) {
@@ -164,14 +166,14 @@ export default class Sources extends EventEmitter {
     let root = path.join(__dirname, 'source')
     let files = await pify(fs.readdir)(root, 'utf8')
     for (let file of files) {
-      if (/\.js$/.test(file)) {
-        let name = file.replace(/\.js$/, '')
+      if (/\.[tj]s$/.test(file)) {
+        let name = file.replace(/\.[tj]s$/, '')
         try {
-          let Clz = await require(`./source/${name}`).default
+          let Clz = require(`./source/${name}`).default
           let config: Partial<SourceConfig> = this.getSourceConfig(name)
           if (config.enable) {
             config.name = name
-            config.filepath = path.join(__dirname, `source/${name}.ts`)
+            config.filepath = path.join(workspace.pluginRoot, `src/source/${name}.ts`)
             let instance = new Clz(this.nvim, config || {})
             if (typeof instance.onInit === 'function') {
               await instance.onInit()
@@ -195,7 +197,7 @@ export default class Sources extends EventEmitter {
   }
 
   private async createVimSourceFromPath(p: string): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let name = path.basename(p, '.vim')
     let opts = this.getSourceConfig(name)
     if (opts.disabled) return
@@ -211,7 +213,7 @@ export default class Sources extends EventEmitter {
   }
 
   private async createRemoteSources(): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
     paths = paths.map(p => {
@@ -232,7 +234,7 @@ export default class Sources extends EventEmitter {
   }
 
   private async createRemoteSource(name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
-    let {nvim} = this
+    let { nvim } = this
     let fns = await nvim.call('coc#util#remote_fns', name) as string[]
     for (let fn of ['init', 'complete']) {
       if (fns.indexOf(fn) == -1) {
@@ -260,7 +262,7 @@ export default class Sources extends EventEmitter {
   private onDocumentEnter(info: DocumentInfo): void {
     this.ready.then(() => { // tslint:disable-line
       if (info.bufnr != workspace.bufnr) return
-      let {sources} = this
+      let { sources } = this
       for (let s of sources) {
         if (!s.enable) continue
         if (typeof s.onEnter == 'function') {
@@ -268,5 +270,10 @@ export default class Sources extends EventEmitter {
         }
       }
     })
+  }
+
+  public dispose():void {
+    this.removeAllListeners()
+    disposeAll(this.disposables)
   }
 }

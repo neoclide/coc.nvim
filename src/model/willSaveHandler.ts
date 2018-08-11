@@ -1,6 +1,6 @@
 import { TextDocumentWillSaveEvent } from '../types'
 import Document from './document'
-import { Disposable, TextEdit, TextDocument } from 'vscode-languageserver-protocol'
+import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { BaseLanguageClient } from '../language-client/main'
 import { Neovim } from '@chemzqm/neovim'
 const logger = require('../util/logger')('willSaveHandler')
@@ -21,13 +21,17 @@ export default class WillSaveUntilHandler {
     let fn = (event: TextDocumentWillSaveEvent): Promise<void> => {
       let ev: TextDocumentWillSaveEvent = Object.assign({}, event)
       return new Promise(resolve => {
-        let resolved = false
         let called = false
+        let timer = setTimeout(() => {
+          // tslint:disable-next-line:no-console
+          console.error(`${client.id} timeout after 500ms`)
+          resolve(null)
+        }, 500)
         ev.waitUntil = (thenable): void => {
           called = true
           let { document } = ev
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
-            resolved = true
+            clearTimeout(timer)
             if (edits && edits.length && TextEdit.is(edits[0])) {
               let doc = this.getDocument(document.uri)
               if (doc) {
@@ -43,21 +47,15 @@ export default class WillSaveUntilHandler {
               resolve(null)
             }
           }, e => {
-            resolved = true
+            clearTimeout(timer)
             // tslint:disable-next-line:no-console
             console.error(`${client.id} error on willSaveUntil ${e.message}`)
             resolve(null)
           })
         }
-        setTimeout(() => {
-          if (resolved) return
-          // tslint:disable-next-line:no-console
-          console.error(`${client.id} timeout after 500ms`)
-          resolve(null)
-        }, 500)
         callback.call(thisArg, ev)
         if (!called) {
-          resolved = true
+          clearTimeout(timer)
           resolve(null)
         }
       })

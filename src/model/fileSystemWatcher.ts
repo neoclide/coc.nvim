@@ -76,7 +76,9 @@ export default class FileSystemWatcher implements Disposable {
 
   public dispose(): void {
     if (this.watchmanClient && this.subscription) {
-      this.watchmanClient.unsubscribe(this.subscription)
+      this.watchmanClient.unsubscribe(this.subscription).catch(e => {
+        logger.error(e.message)
+      })
     }
   }
 }

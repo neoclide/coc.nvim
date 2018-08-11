@@ -18,7 +18,9 @@ endif
 if s:is_vim
   call nvim#rpc#start_server()
 else
-  call coc#rpc#start_server()
+  if $NODE_ENV !=# 'test'
+    call coc#rpc#start_server()
+  endif
 endif
 
 function! CocAction(...) abort
@@ -96,7 +98,7 @@ function! s:Enable()
     else
       autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
-    autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'))
+    autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), expand('<afile>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
     autocmd TextChangedP        * call s:Autocmd('TextChangedP')

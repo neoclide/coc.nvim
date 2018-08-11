@@ -1,18 +1,18 @@
 import debounce from 'debounce'
-import {Neovim} from '@chemzqm/neovim'
-import {Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument, DocumentSymbol} from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import { Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument, DocumentSymbol, Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
 import languages from './languages'
-import {ServiceStat} from './types'
-import {echoErr, echoMessage, echoWarning, showQuickpick} from './util'
+import { ServiceStat } from './types'
+import { echoErr, echoMessage, echoWarning, showQuickpick, disposeAll } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
-  filepath?:string
+  filepath?: string
   lnum: number
   col: number
   text: string
@@ -22,9 +22,10 @@ interface SymbolInfo {
 }
 
 export default class Handler {
-  public showSignatureHelp: () => void
+  public showSignatureHelp: Function & { clear: () => void }
   private currentSymbols: SymbolInformation[]
   private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
+  private disposables: Disposable[] = []
   // codeLens instances
 
   constructor(private nvim: Neovim, emitter, private services: import('./services').ServiceManager) {
@@ -40,10 +41,13 @@ export default class Handler {
         this.codeLensBuffers.delete(bufnr)
       }
     })
+    this.disposables.push(Disposable.create(() => {
+      this.showSignatureHelp.clear()
+    }))
   }
 
   private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
-    let {nvim} = this
+    let { nvim } = this
     if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
       echoErr(nvim, `Mode '${mode}' is not supported`)
       return
@@ -66,7 +70,7 @@ export default class Handler {
   }
 
   private async previewHover(hover: Hover): Promise<void> {
-    let {contents} = hover
+    let { contents } = hover
     let lines: string[] = []
     if (Array.isArray(contents)) {
       for (let item of contents) {
@@ -91,7 +95,7 @@ export default class Handler {
   }
 
   public async onHover(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
+    let { document, position } = await workspace.getCurrentState()
     if (!document) return
     let hover = await languages.getHover(document, position)
     if (!hover) return
@@ -99,12 +103,11 @@ export default class Handler {
   }
 
   private async _showSignatureHelp(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
+    let { document, position } = await workspace.getCurrentState()
     if (!document) return
     let signatureHelp = await languages.getSignatureHelp(document, position)
     if (!signatureHelp) return
-    let {activeParameter, activeSignature, signatures} = signatureHelp
-    await this.nvim.setOption('showcmd', false)
+    let { activeParameter, activeSignature, signatures } = signatureHelp
     await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
     await this.nvim.setOption('showcmd', true)
@@ -116,13 +119,13 @@ export default class Handler {
       let len = definition.length
       if (len == 0) return
       if (len == 1) {
-        let {uri, range} = definition[0] as Location
+        let { uri, range } = definition[0] as Location
         await workspace.jumpTo(uri, range.start)
       } else {
         await this.addQuickfix(definition as Location[])
       }
     } else {
-      let {uri, range} = definition as Location
+      let { uri, range } = definition as Location
       await workspace.jumpTo(uri, range.start)
     }
   }
@@ -131,32 +134,32 @@ export default class Handler {
     let items = await Promise.all(locations.map(loc => {
       return workspace.getQuickfixItem(loc)
     }))
-    let {nvim} = this
+    let { nvim } = this
     await nvim.call('setqflist', [items, ' ', 'Results of coc'])
     await nvim.command('doautocmd User CocQuickfixChange')
   }
 
   public async gotoDefinition(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
+    let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDeifinition(document, position)
     await this.handleDefinition(definition)
   }
 
   public async gotoTypeDefinition(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
+    let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getTypeDefinition(document, position)
     await this.handleDefinition(definition)
   }
 
   public async gotoImplementaion(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
+    let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getImplementation(document, position)
     await this.handleDefinition(definition)
   }
 
   public async gotoReferences(): Promise<void> {
-    let {document, position} = await workspace.getCurrentState()
-    let locs = await languages.getReferences(document, {includeDeclaration: false}, position)
+    let { document, position } = await workspace.getCurrentState()
+    let locs = await languages.getReferences(document, { includeDeclaration: false }, position)
     if (locs && locs.length) {
       await this.handleDefinition(locs)
     } else {
@@ -186,7 +189,7 @@ export default class Handler {
         return d == 0 ? sa.character - sb.character : d
       })
       for (let sym of symbols) {
-        let {name, kind, location, containerName} = sym as SymbolInformation
+        let { name, kind, location, containerName } = sym as SymbolInformation
         if (!containerName || !pre) {
           level = 0
         } else {
@@ -197,7 +200,7 @@ export default class Handler {
             level = container ? container.level + 1 : 0
           }
         }
-        let {start} = location.range
+        let { start } = location.range
         let o: SymbolInfo = {
           col: start.character + 1,
           lnum: start.line + 1,
@@ -227,8 +230,8 @@ export default class Handler {
     let res: SymbolInfo[] = []
     for (let s of symbols) {
       if (!this.validWorkspaceSymbol(s)) continue
-      let {name, kind, location} = s
-      let {start} = location.range
+      let { name, kind, location } = s
+      let { start } = location.range
       res.push({
         filepath: Uri.parse(location.uri).fsPath,
         col: start.character + 1,
@@ -250,8 +253,8 @@ export default class Handler {
   }
 
   public async rename(): Promise<void> {
-    let {nvim} = this
-    let {document, position} = await workspace.getCurrentState()
+    let { nvim } = this
+    let { document, position } = await workspace.getCurrentState()
     if (!document) return
     let curname = await nvim.call('expand', '<cword>')
     let doc = workspace.getDocument(document.uri)
@@ -296,7 +299,7 @@ export default class Handler {
     await document.applyEdits(this.nvim, textEdits)
   }
 
-  public async runCommand(id?: string, ...args:any[]): Promise<void> {
+  public async runCommand(id?: string, ...args: any[]): Promise<void> {
     if (id) {
       if (!commandManager.has(id)) {
         return echoErr(this.nvim, `Command '${id}' not found`)
@@ -319,12 +322,12 @@ export default class Handler {
     } else {
       let lnum = await this.nvim.call('line', ['.'])
       range = {
-        start: {line: lnum - 1, character: 0},
-        end: {line: lnum, character: 0}
+        start: { line: lnum - 1, character: 0 },
+        end: { line: lnum, character: 0 }
       }
     }
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
-    let context = {diagnostics}
+    let context = { diagnostics }
     let codeActions = await languages.getCodeActions(document.textDocument, range, context)
     if (codeActions.length == 0) {
       return echoMessage(this.nvim, 'No action available')
@@ -333,7 +336,7 @@ export default class Handler {
     if (idx == -1) return
     let action = codeActions[idx]
     if (action) {
-      let {command, edit} = action
+      let { command, edit } = action
       if (edit) await workspace.applyEdit(edit)
       if (command) commandManager.execute(command)
     } else {
@@ -342,7 +345,7 @@ export default class Handler {
   }
 
   public async doCodeLens(): Promise<void> {
-    let {document} = await workspace.getCurrentState()
+    let { document } = await workspace.getCurrentState()
     if (!document) return
     let codeLens = await languages.getCodeLens(document)
     let buffer = await this.nvim.buffer
@@ -351,7 +354,7 @@ export default class Handler {
   }
 
   public async doCodeLensAction(): Promise<void> {
-    let {nvim} = this
+    let { nvim } = this
     let buffer = await nvim.buffer
     let bufnr = await buffer.getVar('bufnr')
     if (!bufnr) return
@@ -381,7 +384,7 @@ export default class Handler {
 
   public async getCommands(): Promise<string[]> {
     let list = commandManager.commandList
-    let res:string[] = []
+    let res: string[] = []
     let document = await workspace.document
     if (!document) return []
     for (let o of list) {
@@ -401,6 +404,10 @@ export default class Handler {
       }
     }
     return res
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
 
@@ -480,7 +487,7 @@ function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): Sym
   return null
 }
 
-function sortSymbols(a:DocumentSymbol, b:DocumentSymbol):number {
+function sortSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
   if (ra.start.line < rb.start.line) {
@@ -492,9 +499,9 @@ function sortSymbols(a:DocumentSymbol, b:DocumentSymbol):number {
   return ra.start.character - rb.start.character
 }
 
-function addDoucmentSymbol(res:SymbolInfo[], sym:DocumentSymbol, level:number):void {
-  let {name, selectionRange, kind, children} = sym
-  let {start} = selectionRange
+function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
+  let { name, selectionRange, kind, children } = sym
+  let { start } = selectionRange
   res.push({
     col: start.character + 1,
     lnum: start.line + 1,

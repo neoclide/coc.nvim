@@ -2,12 +2,12 @@
 
 [![Join the chat at https://gitter.im/coc-nvim/Lobby](https://badges.gitter.im/coc-nvim/Lobby.svg)](https://gitter.im/coc-nvim/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
-[![](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
+[![doc](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
 
-Coc is an intellisense engine for vim & neovim.
+Coc is an intellisense engine for vim8 & neovim.
 
-It's a completion framework, language server client while comes with bundled
-extensions from [VSCode](https://github.com/Microsoft/vscode) that just works.
+It's a completion framework, language server client with bundled extensions
+from [VSCode](https://github.com/Microsoft/vscode) that just works.
 
 ![example.gif](https://user-images.githubusercontent.com/251450/42722527-028898ea-8780-11e8-959f-09db0d39ba05.gif)
 

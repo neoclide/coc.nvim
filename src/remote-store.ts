@@ -20,11 +20,14 @@ export default {
     }
     // wait for received data
     return new Promise((resolve, reject): void => {
+      let timer:NodeJS.Timer
       let remove: any = addWatcher(key, obj => {
+        clearTimeout(timer)
+        remove()
         delete cached[key]
         resolve(obj)
       })
-      setTimeout(() => {
+      timer = setTimeout(() => {
         remove()
         reject(new Error(`Source ${name} timeout in ${timeout / 1000}s`))
       }, timeout)
@@ -33,5 +36,10 @@ export default {
   setResult(id: number, name: string, res: VimCompleteItem[]): void {
     let key = `${id}-${name}`
     watched[key] = res
+  },
+  dispose():void {
+    for (let key of Object.keys(watched)) {
+      watched[key] = []
+    }
   }
 }

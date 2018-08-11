@@ -117,7 +117,7 @@ export class LanguageService implements IServiceProvider {
       let oldStr = oldState == State.Running ? 'running' : 'stopped'
       let newStr = newState == State.Running ? 'running' : 'stopped'
       logger.info(`${name} state change: ${oldStr} => ${newStr}`)
-    })
+    }, null, this.disposables)
     Object.defineProperty(this, 'state', {
       get: () => {
         return client.serviceState

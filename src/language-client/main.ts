@@ -246,15 +246,17 @@ export class LanguageClient extends BaseLanguageClient {
     if (!childProcess) {
       return
     }
-    setTimeout(() => {
-      // Test if the process is still alive. Throws an exception if not
-      try {
-        process.kill(childProcess.pid, 0)
-        terminate(childProcess)
-      } catch (error) {
-        // All is fine.
-      }
-    }, 2000)
+    if (!global.hasOwnProperty('__TEST__')) {
+      setTimeout(() => {
+        // Test if the process is still alive. Throws an exception if not
+        try {
+          process.kill(childProcess.pid, 0)
+          terminate(childProcess)
+        } catch (error) {
+          // All is fine.
+        }
+      }, 2000)
+    }
   }
 
   protected handleConnectionClosed(): void {

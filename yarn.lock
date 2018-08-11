@@ -16,9 +16,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@chemzqm/neovim@4.3.5":
-  version "4.3.5"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.5.tgz#99c9d0a51c22377dcd9e687003789fcae4b8922c"
+"@chemzqm/neovim@4.3.6":
+  version "4.3.6"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.6.tgz#fc8a33c41eac97e4324168dc234ee738ac4cacd6"
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -84,9 +84,9 @@
   version "10.5.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.3.tgz#5bcfaf088ad17894232012877669634c06b20cc5"
 
-"@types/node@^10.5.5":
-  version "10.5.5"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.5.tgz#8e84d24e896cd77b0d4f73df274027e3149ec2ba"
+"@types/node@^10.5.7":
+  version "10.5.7"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.7.tgz#960d9feb3ade2233bcc9843c918d740b4f78a7cf"
 
 "@types/once@^1.4.0":
   version "1.4.0"
@@ -2521,9 +2521,9 @@ pify@^2.0.0:
   version "2.3.0"
   resolved "https://registry.yarnpkg.com/pify/-/pify-2.3.0.tgz#ed141a6ac043a849ea588498e7dca8b15330e90c"
 
-pify@^3.0.0:
-  version "3.0.0"
-  resolved "https://registry.yarnpkg.com/pify/-/pify-3.0.0.tgz#e5a4acd2c101fdf3d9a4d07f0dbc4db49dd28176"
+pify@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/pify/-/pify-4.0.0.tgz#db04c982b632fd0df9090d14aaf1c8413cadb695"
 
 pinkie-promise@^2.0.0:
   version "2.0.1"

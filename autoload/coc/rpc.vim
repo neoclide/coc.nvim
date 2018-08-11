@@ -9,7 +9,6 @@ function! coc#rpc#start_server()
   let cmd = coc#util#job_command()
   let $VIMCONFIG = coc#util#get_config_home()
   if empty(cmd) | return | endif
-  if $NODE_ENV ==? 'test' | return | endif
   if s:is_vim
     let job = job_start(cmd, {
           \ 'err_mode': 'nl',

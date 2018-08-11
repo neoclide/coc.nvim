@@ -1,12 +1,12 @@
-import {Neovim} from '@chemzqm/neovim'
-import {CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, DocumentSymbol} from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, DocumentSymbol } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import {CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider} from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import snippetManager from './snippet/manager'
-import {CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem} from './types'
-import {echoMessage, isLineEdit} from './util'
-import {byteSlice} from './util/string'
+import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
+import { echoMessage, isLineEdit } from './util'
+import { byteSlice } from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
 const logger = require('./util/logger')('languages')
@@ -24,17 +24,21 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _k
   }
 
   descriptor.value = function(...args): Promise<R> {
-    let {cancelTokenSource} = this
+    let { cancelTokenSource } = this
     this.cancelTokenSource = new CancellationTokenSource()
     return new Promise((resolve, reject): void => { // tslint:disable-line
       let resolved = false
-      setTimeout(() => {
+      let timer = setTimeout(() => {
         cancelTokenSource.cancel()
         if (!resolved) reject(new Error('timeout after 3s'))
       }, 3000)
       Promise.resolve(fn.apply(this, args)).then(res => {
+        clearTimeout(timer)
         resolve(res)
-      }, reject)
+      }, e => {
+        clearTimeout(timer)
+        reject(e)
+      })
     })
   }
 }
@@ -355,7 +359,7 @@ class Languages {
   public async resolveCodeLens(document: TextDocument, codeLens: CodeLens): Promise<CodeLens> {
     let providers = this.getProvider(document, this.codeLensProviderMap)
     if (!providers || providers.length == 0) return null
-    let {data} = codeLens
+    let { data } = codeLens
     let provider = providers[data.index]
     if (!provider) return null
     let cancelTokenSource = new CancellationTokenSource()
@@ -372,7 +376,7 @@ class Languages {
   }
 
   public getCompleteSource(languageId: string): ISource | null {
-    let {completionProviders} = this
+    let { completionProviders } = this
     // only one for each filetype
     let item = completionProviders.find(o => o.languageIds.indexOf(languageId) !== -1)
     return item ? item.source : null
@@ -393,7 +397,7 @@ class Languages {
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
-      let {word} = item
+      let { word } = item
       return completeItems.find(o => {
         return word == o.insertText || word == o.label // tslint:disable-line
       })
@@ -453,11 +457,11 @@ class Languages {
             let isConfirm = await this.checkConfirm(completeItem, option)
             if (!isConfirm) return
             let hasSnippet = await this.applyTextEdit(completeItem, option)
-            let {additionalTextEdits} = completeItem
+            let { additionalTextEdits } = completeItem
             await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
             // start snippet listener after additionalTextEdits
             if (hasSnippet) await snippetManager.attach()
-            let {command} = completeItem
+            let { command } = completeItem
             if (command) commands.execute(command)
           } catch (e) {
             logger.error(e.stack)
@@ -470,7 +474,7 @@ class Languages {
       },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         option = opt
-        let {triggerCharacter, bufnr} = opt
+        let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         let document = doc.textDocument
         let position = getPosition(opt)
@@ -508,7 +512,7 @@ class Languages {
     })
     languageIds = languageIds.filter(s => s != null)
     if (languageIds.length == 0) return false
-    let {languageId} = document
+    let { languageId } = document
     return languageIds.indexOf(languageId) != -1
   }
 
@@ -529,8 +533,8 @@ class Languages {
   }
 
   private async checkConfirm(item: CompletionItem, option: CompleteOption): Promise<boolean> {
-    let {col} = option
-    let {nvim} = this
+    let { col } = option
+    let { nvim } = this
     let mode = await nvim.call('mode')
     if (mode !== 'i') return false
     let curcol = await nvim.call('col', ['.'])
@@ -540,10 +544,10 @@ class Languages {
   }
 
   private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<boolean> {
-    let {nvim} = this
-    let {textEdit} = item
+    let { nvim } = this
+    let { textEdit } = item
     if (!textEdit) return false
-    let {range, newText} = textEdit
+    let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     let valid = isLineEdit(textEdit, option.linenr - 1)
     if (!valid) return false
@@ -614,14 +618,14 @@ function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimComp
 }
 
 function getDocumentation(item: CompletionItem): string | null {
-  let {documentation} = item
+  let { documentation } = item
   if (!documentation) return null
   if (typeof documentation === 'string') return documentation
   return documentation.value
 }
 
 function getPosition(opt: CompleteOption): Position {
-  let {line, linenr, col, colnr} = opt
+  let { line, linenr, col, colnr } = opt
   let part = byteSlice(line, 0, col - 1)
   return {
     line: linenr - 1,

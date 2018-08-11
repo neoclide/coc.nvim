@@ -1,11 +1,11 @@
-import {Neovim} from '@chemzqm/neovim'
-import {DidChangeTextDocumentParams, TextEdit} from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import { DidChangeTextDocumentParams, TextEdit, Disposable } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import {getChangeItem} from '../util/diff'
+import { getChangeItem } from '../util/diff'
 import workspace from '../workspace'
-import {Placeholder} from './parser'
+import { Placeholder } from './parser'
 import Snippet from './snippet'
-import {wait, isLineEdit} from '../util'
+import { wait, isLineEdit, disposeAll } from '../util'
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err): void {
@@ -21,6 +21,7 @@ export class SnippetManager {
   private nvim: Neovim
   private currIndex = -1
   private changedtick: number
+  private disposables: Disposable[] = []
 
   constructor() {
     Object.defineProperty(this, 'nvim', {
@@ -28,12 +29,16 @@ export class SnippetManager {
         return workspace.nvim
       }
     })
-    workspace.onDidChangeTextDocument(this.onDocumentChange, this)
-    workspace.onDidCloseTextDocument(textDocument => {
-      if (textDocument.uri == this.uri) {
-        this.detach().catch(onError)
-      }
-    })
+    this.disposables.push(
+      workspace.onDidChangeTextDocument(this.onDocumentChange, this)
+    )
+    this.disposables.push(
+      workspace.onDidCloseTextDocument(textDocument => {
+        if (textDocument.uri == this.uri) {
+          this.detach().catch(onError)
+        }
+      })
+    )
   }
 
   public get isActivted(): boolean {
@@ -41,7 +46,7 @@ export class SnippetManager {
   }
 
   public async attach(): Promise<void> {
-    let {snippet, document} = this
+    let { snippet, document } = this
     if (!snippet || !document) return
     let linenr = await workspace.nvim.call('line', ['.']) as number
     this.startLnum = linenr - 1
@@ -71,7 +76,7 @@ export class SnippetManager {
   }
 
   private async onLineChange(content: string): Promise<void> {
-    let {snippet, document} = this
+    let { snippet, document } = this
     if (!document) return
     let text = snippet.toString()
     let change = getChangeItem(text, content)
@@ -83,7 +88,7 @@ export class SnippetManager {
     }
     let newText = snippet.getNewText(change, placeholder, start)
     snippet.replaceWith(placeholder, newText)
-    let {buffer} = document
+    let { buffer } = document
     let line = snippet.toString()
     this.changedtick = document.changedtick
     if (line == content) return
@@ -93,10 +98,10 @@ export class SnippetManager {
     })
   }
 
-  public async insertSnippet(document: Document, line: number, newLine: string, prepend:string, append:string): Promise<void> {
+  public async insertSnippet(document: Document, line: number, newLine: string, prepend: string, append: string): Promise<void> {
     if (this.activted) await this.detach()
     try {
-      let {buffer} = document
+      let { buffer } = document
       this.uri = document.uri
       this.snippet = new Snippet(newLine, prepend, append)
       let str = this.snippet.toString()
@@ -113,7 +118,7 @@ export class SnippetManager {
   public async jumpTo(marker: Placeholder): Promise<void> {
     // need this since TextChangedP doesn't fire contentChange
     await this.ensureCurrentLine()
-    let {snippet, nvim, startLnum} = this
+    let { snippet, nvim, startLnum } = this
     let offset = snippet.offset(marker)
     let col = offset + 1
     let len = marker.toString().length
@@ -128,8 +133,8 @@ export class SnippetManager {
   }
 
   public async jumpNext(): Promise<void> {
-    let {currIndex, snippet} = this
-    let {maxIndex} = snippet
+    let { currIndex, snippet } = this
+    let { maxIndex } = snippet
     let valid = await this.checkPosition()
     if (!valid) return
     let idx: number
@@ -138,15 +143,15 @@ export class SnippetManager {
     } else {
       idx = currIndex + 1
     }
-    let {placeholders} = snippet.textmateSnippet
+    let { placeholders } = snippet.textmateSnippet
     let placeholder = placeholders.find(p => p.index == idx)
     this.currIndex = idx
     if (placeholder) await this.jumpTo(placeholder)
   }
 
   public async jumpPrev(): Promise<void> {
-    let {currIndex, snippet} = this
-    let {maxIndex} = snippet
+    let { currIndex, snippet } = this
+    let { maxIndex } = snippet
     let valid = await this.checkPosition()
     if (!valid) return
     let idx: number
@@ -155,7 +160,7 @@ export class SnippetManager {
     } else {
       idx = currIndex - 1
     }
-    let {placeholders} = snippet.textmateSnippet
+    let { placeholders } = snippet.textmateSnippet
     let placeholder = placeholders.find(p => p.index == idx)
     this.currIndex = idx
     if (placeholder) await this.jumpTo(placeholder)
@@ -176,7 +181,7 @@ export class SnippetManager {
    * @private
    */
   private async ensureCurrentLine(): Promise<void> {
-    let {document, startLnum} = this
+    let { document, startLnum } = this
     if (!document) return
     // need this to make sure we have current line
     await wait(20)
@@ -187,8 +192,8 @@ export class SnippetManager {
   }
 
   private onDocumentChange(e: DidChangeTextDocumentParams): void {
-    let {startLnum, document, uri, activted} = this
-    let {textDocument, contentChanges} = e
+    let { startLnum, document, uri, activted } = this
+    let { textDocument, contentChanges } = e
     if (!activted || !document || uri !== textDocument.uri) return
     // fired by snippet manager
     if (document.changedtick - this.changedtick == 1) return
@@ -196,7 +201,7 @@ export class SnippetManager {
     if (contentChanges.length > 1) {
       valid = false
     } else {
-      let edit:TextEdit = {
+      let edit: TextEdit = {
         range: contentChanges[0].range,
         newText: contentChanges[0].text
       }
@@ -210,6 +215,10 @@ export class SnippetManager {
     }
     let newLine = document.getline(startLnum)
     this.onLineChange(newLine).catch(onError)
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
 

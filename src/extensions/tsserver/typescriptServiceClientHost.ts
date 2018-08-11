@@ -44,6 +44,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
     }
 
     const configFileWatcher = workspace.createFileSystemWatcher('**/[tj]sconfig.json')
+    this.disposables.push(configFileWatcher)
     configFileWatcher.onDidCreate(
       this.reloadProjects,
       this,
@@ -55,7 +56,6 @@ export default class TypeScriptServiceClientHost implements Disposable {
       this.disposables
     )
     configFileWatcher.onDidChange(handleProjectChange, this, this.disposables)
-    this.disposables.push(configFileWatcher)
 
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)

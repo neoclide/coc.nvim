@@ -14,20 +14,16 @@ import Emitter from 'events'
 import once from 'once'
 const logger = require('./util/logger')('index')
 
-export default class CompletePlugin {
+export default class Plugin {
   private initialized = false
   private handler: Handler
   public emitter: Emitter
   public onEnter: () => void
 
   constructor(public nvim: Neovim) {
+    (workspace as any)._nvim = nvim
     let emitter = this.emitter = new Emitter()
     this.handler = new Handler(nvim, this.emitter, services)
-    Object.defineProperty(workspace, 'nvim', {
-      get: () => {
-        return nvim
-      }
-    })
     Object.defineProperty(workspace, 'emitter', {
       get: () => {
         return emitter
@@ -231,5 +227,18 @@ export default class CompletePlugin {
     } catch (e) {
       logger.error(e.stack)
     }
+  }
+
+  public async dispose():Promise<void> {
+    workspace.dispose()
+    await services.stopAll()
+    services.dispose()
+    this.emitter.removeAllListeners()
+    this.handler.dispose()
+    remoteStore.dispose()
+    snippetManager.dispose()
+    commandManager.dispose()
+    completion.dispose()
+    diagnosticManager.dispose()
   }
 }

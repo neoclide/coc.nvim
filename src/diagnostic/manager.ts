@@ -1,5 +1,5 @@
 import {Neovim} from '@chemzqm/neovim'
-import {Diagnostic, DiagnosticSeverity, Range, TextDocument} from 'vscode-languageserver-protocol'
+import {Diagnostic, DiagnosticSeverity, Range, TextDocument, Disposable} from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Document from '../model/document'
 import {DiagnosticItem, LocationListItem} from '../types'
@@ -7,6 +7,7 @@ import workspace from '../workspace'
 import {DiagnosticBuffer} from './buffer'
 import DiagnosticCollection from './collection'
 import debounce from 'debounce'
+import { disposeAll } from '../util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -33,16 +34,16 @@ function severityName(severity: DiagnosticSeverity): string {
   }
 }
 
-// maintain buffers
 export class DiagnosticManager {
   private enabled = true
   public config: DiagnosticConfig
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
+  private disposables: Disposable[] = []
   private nvim: Neovim
   private srcId = 1000
   private srcIdMap:Map<string,number> = new Map()
-  public showMessage: () => void
+  public showMessage: Function & { clear(): void }
   constructor() {
     workspace.onDidWorkspaceInitialized(() => {
       this.nvim = workspace.nvim
@@ -52,11 +53,11 @@ export class DiagnosticManager {
           logger.error(err.stack)
         })
       }
-    })
+    }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {
       this.setConfiguration()
-    })
+    }, null, this.disposables)
 
     workspace.onDidSaveTextDocument(document => {
       let buf = this.buffers.find(buf => buf.uri == document.uri)
@@ -65,7 +66,7 @@ export class DiagnosticManager {
           logger.error(e.stack)
         })
       }
-    })
+    }, null, this.disposables)
 
     workspace.onDidCloseTextDocument(textDocument => {
       let {uri} = textDocument
@@ -74,13 +75,16 @@ export class DiagnosticManager {
       }
       let idx = this.buffers.findIndex(buf => buf.uri == uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
-    })
+    }, null, this.disposables)
 
     this.showMessage = debounce(() => {
       this.echoMessage().catch(e => {
         logger.error(e.stack)
       })
     }, 200)
+    this.disposables.push(Disposable.create(() => {
+      this.showMessage.clear()
+    }))
   }
 
   private setConfiguration(): void {
@@ -111,11 +115,11 @@ export class DiagnosticManager {
     }
     workspace.onDidOpenTextDocument(textDocument => {
       this.buffers.push(new DiagnosticBuffer(textDocument.uri, this))
-    })
+    }, null, this.disposables)
     workspace.onDidCloseTextDocument(textDocument => {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
-    })
+    }, null, this.disposables)
   }
 
   public create(name: string): DiagnosticCollection {
@@ -363,6 +367,7 @@ export class DiagnosticManager {
     this.clearAll()
     this.buffers = []
     this.collections = []
+    disposeAll(this.disposables)
   }
 
   private getBuffer(uri: string): DiagnosticBuffer {

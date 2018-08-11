@@ -68,7 +68,7 @@
     "@types/glob": "^5.0.35",
     "@types/jest": "^23.3.1",
     "@types/minimatch": "^3.0.3",
-    "@types/node": "^10.5.5",
+    "@types/node": "^10.5.7",
     "@types/once": "^1.4.0",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
@@ -81,7 +81,7 @@
     "typescript": "^3.0.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.5",
+    "@chemzqm/neovim": "4.3.6",
     "babel-polyfill": "^6.26.0",
     "debounce": "^1.1.0",
     "deep-equal": "^1.0.1",
@@ -95,7 +95,7 @@
     "minimatch": "^3.0.4",
     "node-serial": "^0.1.1",
     "once": "^1.4.0",
-    "pify": "^3.0.0",
+    "pify": "^4.0.0",
     "semver": "^5.5.0",
     "touch": "^3.1.0",
     "tslib": "^1.9.3",

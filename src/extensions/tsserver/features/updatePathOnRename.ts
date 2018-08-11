@@ -22,12 +22,12 @@ export default class UpdateImportsOnFileRenameHandler {
   ) {
     let glob = languageId == 'typescript' ? '**/*.ts' : '**/*.js'
     const watcher = workspace.createFileSystemWatcher(glob)
+    this.disposables.push(watcher)
     watcher.onDidRename(e => {
       this.doRename(e.oldUri, e.newUri).catch(e => {
         logger.error(e.message)
       })
-    })
-    this.disposables.push(watcher)
+    }, null, this.disposables)
   }
 
   public dispose(): void {
@@ -42,7 +42,7 @@ export default class UpdateImportsOnFileRenameHandler {
     const oldFile = oldResource.fsPath
     await workspace.openResource(newResource.toString())
     // Make sure TS knows about file
-    await wait(30)
+    await wait(100)
 
     let document = workspace.getDocument(newResource.toString())
     if (!document) return

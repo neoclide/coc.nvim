@@ -22,6 +22,7 @@ import Logger from './utils/logger'
 import {inferredProjectConfig} from './utils/tsconfig'
 import {TypeScriptVersion, TypeScriptVersionProvider} from './utils/versionProvider'
 import {ICallback, Reader} from './utils/wireProtocol'
+const logger = require('../../util/logger')('tsserver-client')
 
 interface CallbackItem {
   c: (value: any) => void
@@ -197,11 +198,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public dispose(): void {
-    this._onTsServerStarted.dispose()
-    this._onDidBeginInstallTypings.dispose()
-    this._onDidEndInstallTypings.dispose()
-    this._onTypesInstallerInitializationFailed.dispose()
-
     if (this.servicePromise) {
       this.servicePromise
         .then(childProcess => {
@@ -211,8 +207,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
 
     disposeAll(this.disposables)
-    this._onDiagnosticsReceived.dispose()
-    this._onConfigDiagnosticsReceived.dispose()
+    this.logger.dispose()
+    this._onTsServerStarted.dispose()
     this._onResendModelsRequested.dispose()
   }
 
@@ -247,13 +243,10 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return new Promise((resolve, reject) => {
       this.servicePromise.then(childProcess => {
         if (this.state == ServiceStat.Running) {
-          this.info('Killing TS Server')
+         this.info('Killing TS Server')
           childProcess.onExit(() => {
             resolve()
           })
-          setTimeout(() => {
-            reject(new Error('timeout after 1s'))
-          }, 1000)
           childProcess.kill()
           this.servicePromise = null
         } else {
@@ -535,6 +528,9 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     args: any,
     expectsResultOrToken?: boolean | CancellationToken
   ): Promise<any> {
+    if (this.servicePromise == null) {
+      return Promise.resolve()
+    }
     let token: CancellationToken | undefined
     let expectsResult = true
     if (typeof expectsResultOrToken === 'boolean') {

@@ -42,7 +42,7 @@ export default class JsonService extends LanguageService {
           logger.error(e)
         })
       }
-    })
+    }, this, this.disposables)
   }
 
   private onDocumentEnter(uri:string):void {
@@ -92,12 +92,10 @@ export default class JsonService extends LanguageService {
     associations['coc-settings.json'] = files.map(f => Uri.file(f).toString())
     associations['app.json'] = [Uri.file(path.join(workspace.pluginRoot, 'data/app.json')).toString()]
     this.client.sendNotification('json/schemaAssociations', associations)
-    this.disposables.push(
-      workspace.onDidEnterTextDocument(documentInfo => {
-        let {uri} = documentInfo
-        this.onDocumentEnter(uri)
-      })
-    )
+    workspace.onDidEnterTextDocument(documentInfo => {
+      let {uri} = documentInfo
+      this.onDocumentEnter(uri)
+    }, this, this.disposables)
     for (let document of workspace.documents) {
       this.onDocumentEnter(document.uri)
     }

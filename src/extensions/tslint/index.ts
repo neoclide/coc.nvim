@@ -86,22 +86,22 @@ export default class TslintService extends LanguageService {
           logger.error(e)
         })
       }
-    })
+    }, this, this.disposables)
 
     this.onServiceReady(() => {
       this.client.onRequest(NoTSLintLibraryRequest.type, () => {
         return {}
       })
 
-      workspace.addWillSaveUntilListener(this.willSaveTextDocument, this, this.client)
-      commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits)
-      commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits)
-      commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits)
-      commandManager.registerCommand('_tslint.applyDisableRule', applyDisableRuleEdit)
-      commandManager.registerCommand('_tslint.showRuleDocumentation', showRuleDocumentation)
+      this.disposables.push(workspace.addWillSaveUntilListener(this.willSaveTextDocument, this, this.client))
+      this.disposables.push(commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits))
+      this.disposables.push(commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits))
+      this.disposables.push(commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits))
+      this.disposables.push(commandManager.registerCommand('_tslint.applyDisableRule', applyDisableRuleEdit))
+      this.disposables.push(commandManager.registerCommand('_tslint.showRuleDocumentation', showRuleDocumentation))
       // user commandManager
-      commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems.bind(this))
-      commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration)
+      this.disposables.push(commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems.bind(this)))
+      this.disposables.push(commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration))
     })
   }
 
@@ -112,11 +112,6 @@ export default class TslintService extends LanguageService {
         fileEvents: workspace.createFileSystemWatcher('**/tslint.{json,yml,yaml}')
       },
       diagnosticCollectionName: 'tslint',
-      initializationFailedHandler: error => {
-        logger.error('Server initialization failed.', error)
-        echoErr(workspace.nvim, 'Server initialization failed.')
-        return false
-      },
       middleware: {
         provideCodeActions: (document, range, context, token, next): ProviderResult<(Command | CodeAction)[]> => {
           // do not ask server for code action when the diagnostic isn't from tslint

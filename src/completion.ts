@@ -210,7 +210,7 @@ export class Completion {
     Object.assign(option, {triggerCharacter: latestInsertChar})
     logger.trace('trigger completion with', option)
     // wait for content sync
-    await wait(60)
+    await wait(40)
     this.startCompletion(option)
   }
 
@@ -235,7 +235,7 @@ export class Completion {
   private async onInsertEnter(): Promise<void> {
     let autoTrigger = this.getPreference('autoTrigger', 'always')
     if (autoTrigger !== 'always') return
-    let trigger = this.getPreference('triggerAfterInsertEnter', false)
+    let trigger = this.getPreference('triggerAfterInsertEnter', true)
     if (trigger) {
       let option = await this.nvim.call('coc#util#get_complete_option')
       logger.debug('trigger completion on InsertEnter')
@@ -265,6 +265,16 @@ export class Completion {
       return sources.shouldTrigger(character, languageId)
     }
     return false
+  }
+
+  public dispose():void {
+    if (this.increment) {
+      this.increment.removeAllListeners()
+      this.increment.stop()
+    }
+    if (this.sources) {
+      this.sources.dispose()
+    }
   }
 }
 

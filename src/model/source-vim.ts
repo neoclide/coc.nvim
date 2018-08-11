@@ -61,6 +61,7 @@ export default class VimSource extends Source {
     }
     this.nvim.call('coc#remote#do_complete', [this.name, opt], true)
     let items = await remoteStore.getResult(id, this.name)
+    if (!items) return null
     if (this.firstMatch && input.length) {
       let ch = input[0]
       items = items.filter(item => {

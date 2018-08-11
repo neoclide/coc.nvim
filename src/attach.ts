@@ -62,15 +62,10 @@ export default function(opts: Attach):Plugin {
     }
   })
 
-  nvim.channelId.then(channelId => {
-    nvim.setVar('coc_node_channel_id', channelId)
-    if (global.hasOwnProperty('__TEST__')) {
-      plugin.onEnter()
-      return
-    }
-    nvim.getVvar('vim_did_enter').then(entered => {
-      if (entered) plugin.onEnter()
-    })
+  nvim.channelId.then(async channelId => {
+    await nvim.setVar('coc_node_channel_id', channelId)
+    let entered = await nvim.getVvar('vim_did_enter')
+    if (entered) plugin.onEnter()
   })
   return plugin
 }

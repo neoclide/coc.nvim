@@ -58,6 +58,7 @@ export default class LanguageProvider {
       this._validate
     )
     this.diagnosticsManager = new DiagnosticsManager()
+    this.disposables.push(this.diagnosticsManager)
 
     workspace.onDidEnterTextDocument(info => {
       let {state} = client
@@ -77,10 +78,10 @@ export default class LanguageProvider {
 
     let initialized = false
 
-    client.onTsServerStarted(async () => { // tslint:disable-line
+    client.onTsServerStarted(() => { // tslint:disable-line
       if (!initialized) {
         initialized = true
-        await this.registerProviders(client, typingsStatus)
+        this.registerProviders(client, typingsStatus)
         this.bufferSyncSupport.listen()
       } else {
         this.reInitialize()
@@ -99,10 +100,10 @@ export default class LanguageProvider {
     this.updateSuggestionDiagnostics(config.get(suggestionSetting, true))
   }
 
-  private async registerProviders(
+  private registerProviders(
     client: TypeScriptServiceClient,
     typingsStatus: TypingsStatus
-  ): Promise<void> {
+  ): void {
     let languageIds = this.description.modeIds
 
     this.disposables.push(

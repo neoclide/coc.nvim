@@ -13,10 +13,8 @@ function! coc#util#platform()
 endfunction
 
 function! coc#util#valid_buf(bufnr)
-  if !bufloaded(a:bufnr)
-    return 0
-  endif
-  return empty(getbufvar(a:bufnr, '&buftype'))
+  if !bufloaded(a:bufnr) | return 0 | endif
+  return getbufvar(a:bufnr, '&buftype') ==# ''
 endfunction
 
 function! coc#util#remote_fns(name)
@@ -121,10 +119,12 @@ function! coc#util#preview_info(info, ...) abort
   setl nobuflisted
   setl nospell
   setl filetype=markdown
+  setl conceallevel=2
+  setl nofoldenable
   let lines = split(a:info, "\n")
   call append(0, lines)
-  exe "normal z" . len(lines) . "\<cr>"
-  exe "normal gg"
+  exe "normal! z" . len(lines) . "\<cr>"
+  exe "normal! gg"
   wincmd p
 endfunction
 
