@@ -161,6 +161,8 @@ augroup coc_init
   endif
 augroup end
 
+command! -nargs=0 CocRestart  :call coc#rpc#restart()
+
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>
 nnoremap <Plug>(coc-codeaction)          :<C-u>call CocAction('codeAction',     '')<CR>

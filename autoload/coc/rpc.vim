@@ -4,13 +4,16 @@ let s:job_opts = {}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
 
+let s:job = v:null
+let s:channel_id = 0
+
 function! coc#rpc#start_server()
   if s:server_running | return | endif
   let cmd = coc#util#job_command()
   let $VIMCONFIG = coc#util#get_config_home()
   if empty(cmd) | return | endif
   if s:is_vim
-    let job = job_start(cmd, {
+    let s:job = job_start(cmd, {
           \ 'err_mode': 'nl',
           \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
@@ -21,14 +24,14 @@ function! coc#rpc#start_server()
           \   'VIMCONFIG': $VIMCONFIG,
           \ }
           \})
-    let status = job_status(job)
+    let status = job_status(s:job)
     if status !=# 'run'
       echoerr '[coc.nvim] Failed to start coc service'
       return
     endif
   else
-    let channel_id = jobstart(cmd, s:job_opts)
-    if channel_id <= 0
+    let s:channel_id = jobstart(cmd, s:job_opts)
+    if s:channel_id <= 0
       echoerr '[coc.nvim] Failed to start coc service'
       return
     endif
@@ -64,6 +67,8 @@ function! s:job_opts.on_stdout(chan_id, data, event) dict
 endfunction
 
 function! s:job_opts.on_exit(chan_id, code, event) dict
+  let s:job = v:null
+  let s:channel_id = 0
   let s:server_running = 0
   let g:coc_node_channel_id = 0
   if v:dying != 0 | return | endif
@@ -111,6 +116,27 @@ function! coc#rpc#notify(method, args)
   else
     call call('rpcnotify', [channel, a:method] + a:args)
   endif
+endfunction
+
+function! coc#rpc#restart()
+  if has('nvim')
+    let [code] = jobwait([s:channel_id], 100)
+    " running
+    if code == -1
+      call jobstop(s:channel_id)
+    endif
+  elseif s:server_running
+    let status = job_status(s:job)
+    if status ==# 'run'
+      call job_stop(s:job)
+    endif
+  endif
+  sleep 200m
+  if s:server_running
+    echohl Error | echon '[coc.nvim] kill process failed' | echohl None
+    return
+  endif
+  call coc#rpc#start_server()
 endfunction
 
 function! s:empty(item)

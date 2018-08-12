@@ -1,3 +1,12 @@
+# 2018-08-12
+
+* Add support filetype change of buffer.
+* Add basic test for completion.
+* Improve loading speed, use child process to initialize vim sources.
+* Improve install.sh, install node when not exists.
+* Improve interface of workspace.
+* Fix loading of configuration content.
+
 # 2018-08-11
 
 * Fix configuration content not saved on change.

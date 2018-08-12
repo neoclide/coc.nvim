@@ -402,6 +402,13 @@ COMMANDS 					*coc-commands*
 		Remove cache of completion source {name}, or all sources without
 		{name}.
 
+:CocRestart 					*:CocRestart*
+
+		Restart coc service.
+
+		Use this command when you want to change workspace or
+		something go wrong.
+
 :CocConfig 					*:CocConfig*
 
 		Open config file `coc-setting.json`
