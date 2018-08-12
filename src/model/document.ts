@@ -7,17 +7,19 @@ import { getChange, diffLines } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { disposeAll, getUri, isLineEdit } from '../util/index'
 import { Chars } from './chars'
-import { byteSlice, byteLength } from '../util/string'
+import { byteLength } from '../util/string'
 const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
 export default class Document {
-  private nvim: Neovim
   public isIgnored = false
   public chars: Chars
   public paused: boolean
   public textDocument: TextDocument
   public fetchContent: Function & { clear(): void; }
+  public expandtab: boolean
+  public tabstop: number
+  private nvim: Neovim
   private _fireContentChanges: Function & { clear(): void; }
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
@@ -26,8 +28,6 @@ export default class Document {
   private lines: string[] = []
   private _changedtick: number
   private _words: string[] = []
-  public expandtab: boolean
-  public tabstop: number
   public readonly words: string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer: Buffer) {
@@ -67,6 +67,12 @@ export default class Document {
     if (this.isIgnored) return
     let { content } = this
     this._words = this.chars.matchKeywords(content)
+  }
+
+  public setFiletype(filetype:string):void {
+    let {uri, version} = this
+    let textDocument = TextDocument.create(uri, filetype, version || 0, this.content)
+    this.textDocument = textDocument
   }
 
   /**

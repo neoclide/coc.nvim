@@ -97,6 +97,7 @@ export class Workspace implements IWorkspace {
     this.emitter.on('BufWritePost', this.onBufWritePost.bind(this))
     this.emitter.on('BufWritePre', this.onBufWritePre.bind(this))
     this.emitter.on('OptionSet', this.onOptionSet.bind(this))
+    this.emitter.on('FileType', this.onFileTypeChange.bind(this))
     this.emitter.on('notification', (method, args) => {
       switch (method) {
         case 'TerminalResult':
@@ -700,6 +701,16 @@ export class Workspace implements IWorkspace {
       document: doc ? doc.textDocument : null,
       winid
     })
+  }
+
+  private onFileTypeChange(filetype:string, filepath:string):void {
+    let uri = Uri.file(filepath).toString()
+    let doc = this.getDocument(uri)
+    if (!doc) return
+    let supported = isSupportedScheme(doc.schema)
+    if (supported) this._onDidCloseDocument.fire(doc.textDocument)
+    doc.setFiletype(filetype)
+    if (supported) this._onDidAddDocument.fire(doc.textDocument)
   }
 }
 
