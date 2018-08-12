@@ -562,6 +562,7 @@ export interface OutputChannel {
 export interface IWorkspace {
   nvim: Neovim
   bufnr: number
+  configFiles: string[]
   // root of current file or cwd
   root: string
   isVim: boolean
@@ -595,6 +596,7 @@ export interface IWorkspace {
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   getQuickfixItem(loc: Location): Promise<QuickfixItem>
   getLine(uri:string, line:number): Promise<string>
+  readFile(uri:string): Promise<string>
   echoLines(lines: string[]): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>

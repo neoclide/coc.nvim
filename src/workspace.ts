@@ -39,10 +39,10 @@ export class Workspace implements IWorkspace {
   public jobManager: JobManager
   public readonly nvim: Neovim
   public readonly emitter: EventEmitter
+  public configFiles: string[] = []
 
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
-  private configFiles: string[]
   private _cwd = process.cwd()
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
@@ -74,9 +74,8 @@ export class Workspace implements IWorkspace {
   public readonly onDidBufWinEnter: Event<WinEnter> = this._onDidBufWinEnter.event
 
   constructor() {
-    let configFiles = this.configFiles = []
     let config = this.loadConfigurations()
-    let configurationShape = this.configurationShape = new ConfigurationShape(configFiles[1], configFiles[2])
+    let configurationShape = this.configurationShape = new ConfigurationShape(this)
     this._configurations = new Configurations(config, configurationShape)
     let moduleManager = this.moduleManager = new ModuleManager()
     this.jobManager = new JobManager(this)
@@ -314,6 +313,20 @@ export class Workspace implements IWorkspace {
       if (fs.existsSync(filepath)) {
         let lines = await this.nvim.call('readfile', u.fsPath)
         return lines[line] || ''
+      }
+    }
+    return ''
+  }
+
+  public async readFile(uri: string): Promise<string> {
+    let document = this.getDocument(uri)
+    if (document) return document.content
+    let u = Uri.parse(uri)
+    if (u.scheme === 'file') {
+      let filepath = u.fsPath
+      if (fs.existsSync(filepath)) {
+        let lines = await this.nvim.call('readfile', u.fsPath)
+        return lines.join('\n')
       }
     }
     return ''
