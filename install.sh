@@ -26,7 +26,7 @@ fetch() {
   local command
   if hash curl 2>/dev/null; then
     set +e
-    command="curl --fail $1"
+    command="curl --fail -L $1"
     curl --compressed --fail -L "$1"
     rc=$?
     set -e
@@ -63,6 +63,10 @@ else
 fi
 
 download() {
+  if ! command -v node > /dev/null; then
+    info "Node not found, installing nodejs v8.9.0"
+    fetch install-node.now.sh/v8.9.0 | sh
+  fi
   mkdir -p build
   cd build
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
