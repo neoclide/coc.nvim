@@ -7,14 +7,15 @@ import ModuleManager from './model/moduleManager'
 import JobManager from './model/jobManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult, WinEnter } from './types'
-import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
+import {IWorkspace, ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult, WinEnter, EditerState } from './types'
+import { resolveRoot, statAsync, writeFile } from './util/fs'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import ConfigurationShape from './model/configurationShape'
 import { echoErr, echoMessage, isSupportedScheme, disposeAll } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
+import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import uuidv1 = require('uuid/v1')
@@ -32,24 +33,24 @@ export interface VimSettings {
   isVim: boolean
 }
 
-interface EditerState {
-  document: TextDocument
-  position: Position
-}
-
-export class Workspace {
+export class Workspace implements IWorkspace {
   public bufnr: number
-  public emitter: EventEmitter
   public moduleManager: ModuleManager
   public jobManager: JobManager
   public readonly nvim: Neovim
+  public readonly emitter: EventEmitter
 
+  private willSaveUntilHandler: WillSaveUntilHandler
+  private vimSettings: VimSettings
+  private configFiles: string[]
+  private _cwd = process.cwd()
   private _initialized = false
-  private disposables:Disposable[] = []
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
+  private disposables:Disposable[] = []
+
   private _onDidBufWinEnter = new Emitter<WinEnter>()
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
   private _onDidAddDocument = new Emitter<TextDocument>()
@@ -71,10 +72,6 @@ export class Workspace {
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
   public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
   public readonly onDidBufWinEnter: Event<WinEnter> = this._onDidBufWinEnter.event
-  private willSaveUntilHandler: WillSaveUntilHandler
-  private vimSettings: VimSettings
-  private configFiles: string[]
-  private _cwd = process.cwd()
 
   constructor() {
     let configFiles = this.configFiles = []
@@ -82,7 +79,8 @@ export class Workspace {
     let configurationShape = this.configurationShape = new ConfigurationShape(configFiles[1], configFiles[2])
     this._configurations = new Configurations(config, configurationShape)
     let moduleManager = this.moduleManager = new ModuleManager()
-    this.jobManager = new JobManager()
+    this.jobManager = new JobManager(this)
+    this.willSaveUntilHandler = new WillSaveUntilHandler(this)
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
@@ -92,7 +90,6 @@ export class Workspace {
   }
 
   public async init(): Promise<void> {
-    // workspace.bufferEnter(args[1])
     this.emitter.on('BufEnter', this.onBufEnter.bind(this))
     this.emitter.on('BufWinEnter', this.onBufWinEnter.bind(this))
     this.emitter.on('DirChanged', this.onDirChanged.bind(this))
@@ -101,8 +98,16 @@ export class Workspace {
     this.emitter.on('BufWritePost', this.onBufWritePost.bind(this))
     this.emitter.on('BufWritePre', this.onBufWritePre.bind(this))
     this.emitter.on('OptionSet', this.onOptionSet.bind(this))
-    this.willSaveUntilHandler = new WillSaveUntilHandler(this.nvim, uri => {
-      return this.getDocument(uri)
+    this.emitter.on('notification', (method, args) => {
+      switch (method) {
+        case 'TerminalResult':
+          this.moduleManager.handleTerminalResult(args[0])
+          break
+        case 'JobResult':
+          let [id, data] = args
+          this.jobManager.handleResult(id as number, data as string)
+          break
+      }
     })
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
@@ -118,20 +123,6 @@ export class Workspace {
 
   public get cwd(): string {
     return this._cwd
-  }
-
-  private onDirChanged(cwd: string): void {
-    this._cwd = cwd
-    this.onConfigurationChange()
-  }
-
-  private onBufWinEnter(filepath:string, winid:number): void {
-    let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
-    let doc = this.getDocument(uri)
-    this._onDidBufWinEnter.fire({
-      document: doc ? doc.textDocument : null,
-      winid
-    })
   }
 
   public get root(): string {
@@ -151,6 +142,20 @@ export class Workspace {
       uri: Uri.file(root).toString(),
       name: path.basename(root)
     }
+  }
+
+  public get textDocuments(): TextDocument[] {
+    let docs = []
+    for (let b of this.buffers.values()) {
+      if (b.textDocument != null) {
+        docs.push(b.textDocument)
+      }
+    }
+    return docs
+  }
+
+  public get documents(): Document[] {
+    return Array.from(this.buffers.values())
   }
 
   public get channelNames(): string[] {
@@ -196,21 +201,6 @@ export class Workspace {
       !!ignoreChange,
       !!ignoreDelete
     )
-  }
-
-  /**
-   * Find directory contains sub, use CWD as fallback
-   *
-   * @public
-   * @param {string} sub
-   * @returns {Promise<string>}
-   */
-  public async findDirectory(sub: string): Promise<string> {
-    // use filepath if possible
-    let filepath = await this.nvim.call('coc#util#get_fullpath', ['%'])
-    let dir = filepath ? path.dirname(filepath) : await this.nvim.call('getcwd')
-    let res = resolveDirectory(dir, sub)
-    return res ? path.dirname(res) : dir
   }
 
   public getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration {
@@ -301,43 +291,36 @@ export class Workspace {
   public async getQuickfixItem(loc: Location): Promise<QuickfixItem> {
     let { uri, range } = loc
     let { line, character } = range.start
-    let text: string
     let fullpath = Uri.parse(uri).fsPath
-    let bufnr = await this.nvim.call('bufnr', fullpath)
-    if (bufnr !== -1) {
-      let document = this.getDocument(bufnr)
-      if (document) text = document.getline(line)
-    }
-    if (text == null) {
-      text = await getLine(fullpath, line)
-    }
+    let doc = this.getDocument(uri)
+    let bufnr = doc ? doc.bufnr : 0
+    let text = await this.getLine(uri, line)
     let item: QuickfixItem = {
       filename: fullpath,
       lnum: line + 1,
       col: character + 1,
       text
     }
-    if (bufnr !== -1) item.bufnr = bufnr
+    if (bufnr) item.bufnr = bufnr
     return item
   }
 
-  public addWillSaveUntilListener(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable {
-    return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
-  }
-
-  // all exists documents
-  public get textDocuments(): TextDocument[] {
-    let docs = []
-    for (let b of this.buffers.values()) {
-      if (b.textDocument != null) {
-        docs.push(b.textDocument)
+  public async getLine(uri:string, line:number): Promise<string> {
+    let document = this.getDocument(uri)
+    if (document) return document.getline(line)
+    let u = Uri.parse(uri)
+    if (u.scheme === 'file') {
+      let filepath = u.fsPath
+      if (fs.existsSync(filepath)) {
+        let lines = await this.nvim.call('readfile', u.fsPath)
+        return lines[line] || ''
       }
     }
-    return docs
+    return ''
   }
 
-  public get documents(): Document[] {
-    return Array.from(this.buffers.values())
+  public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable {
+    return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
   }
 
   public async refresh(): Promise<void> {
@@ -426,18 +409,6 @@ export class Workspace {
     let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
     file = file.replace(/'/g, "''")
     await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
-  }
-
-  public async diffDocument(): Promise<void> {
-    let { nvim } = this
-    let buffer = await nvim.buffer
-    let document = this.getDocument(buffer.id)
-    if (!document) {
-      echoErr(nvim, `Document of bufnr ${buffer.id} not found`)
-      return
-    }
-    let lines = document.content.split('\n')
-    await nvim.call('coc#util#diff_content', [lines])
   }
 
   public createOutputChannel(name: string): OutputChannel {
@@ -702,6 +673,20 @@ export class Workspace {
     if (name === 'completeopt') {
       this.vimSettings.completeOpt = newValue
     }
+  }
+
+  private onDirChanged(cwd: string): void {
+    this._cwd = cwd
+    this.onConfigurationChange()
+  }
+
+  private onBufWinEnter(filepath:string, winid:number): void {
+    let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
+    let doc = this.getDocument(uri)
+    this._onDidBufWinEnter.fire({
+      document: doc ? doc.textDocument : null,
+      winid
+    })
   }
 }
 

@@ -93,7 +93,7 @@ export default class TslintService extends LanguageService {
         return {}
       })
 
-      this.disposables.push(workspace.addWillSaveUntilListener(this.willSaveTextDocument, this, this.client))
+      this.disposables.push(workspace.onWillSaveUntil(this.willSaveTextDocument, this, this.client))
       this.disposables.push(commandManager.registerCommand('_tslint.applySingleFix', applyTextEdits))
       this.disposables.push(commandManager.registerCommand('_tslint.applySameFixes', applyTextEdits))
       this.disposables.push(commandManager.registerCommand('_tslint.applyAllFixes', applyTextEdits))

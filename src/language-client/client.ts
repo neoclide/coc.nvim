@@ -1313,7 +1313,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
       return
     }
     if (!this._listener) {
-      this._listener = workspace.addWillSaveUntilListener(this.callback, this, this._client)
+      this._listener = workspace.onWillSaveUntil(this.callback, this, this._client)
     }
     this._selectors.set(data.id, data.registerOptions.documentSelector)
   }

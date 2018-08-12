@@ -45,6 +45,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _k
 
 class Languages {
   public nvim: Neovim
+  public sources: ISource[] = []
   private _onDidCompletionSourceCreated = new Emitter<ISource>()
   private completionProviders: CompletionSource[] = []
   private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
@@ -89,6 +90,7 @@ class Languages {
       languageIds: typeof languageIds == 'string' ? [languageIds] : languageIds,
     })
     this._onDidCompletionSourceCreated.fire(source)
+    this.sources.push(source)
     return {
       dispose: () => {
         this.unregisterCompletionItemProvider(id)

@@ -1,5 +1,4 @@
-import { TextDocumentWillSaveEvent } from '../types'
-import Document from './document'
+import {IWorkspace, TextDocumentWillSaveEvent } from '../types'
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { BaseLanguageClient } from '../language-client/main'
 import { Neovim } from '@chemzqm/neovim'
@@ -12,9 +11,11 @@ export type PromiseCallback = (event: TextDocumentWillSaveEvent) => Promise<void
 export default class WillSaveUntilHandler {
   private callbacks: PromiseCallback[] = []
 
-  constructor(
-    private nvim:Neovim,
-    private getDocument:(uri:string) => Document) {
+  constructor(private workspace:IWorkspace) {
+  }
+
+  private get nvim():Neovim {
+    return this.workspace.nvim
   }
 
   public addCallback(callback: Callback, thisArg: any, client: BaseLanguageClient): Disposable {
@@ -32,7 +33,7 @@ export default class WillSaveUntilHandler {
           let { document } = ev
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
             clearTimeout(timer)
-            let doc = this.getDocument(document.uri)
+            let doc = this.workspace.getDocument(document.uri)
             if (doc && edits && TextEdit.is(edits[0])) {
               doc.applyEdits(nvim, edits).then(() => {
                 // make sure server received ChangedText
@@ -67,10 +68,10 @@ export default class WillSaveUntilHandler {
   }
 
   public async handeWillSaveUntil(event: TextDocumentWillSaveEvent): Promise<void> {
-    let { callbacks } = this
+    let { callbacks, workspace } = this
     let {document} = event
     for (let fn of callbacks) {
-      let doc = this.getDocument(document.uri)
+      let doc = workspace.getDocument(document.uri)
       event.document = doc.textDocument
       await fn(event)
     }

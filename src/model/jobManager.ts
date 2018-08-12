@@ -1,4 +1,6 @@
-import workspace from '../workspace'
+import { IWorkspace } from '../types'
+import { Neovim } from '@chemzqm/neovim'
+
 const logger = require('../util/logger')('model-jobManager')
 
 const default_timeout = 60*1000
@@ -8,6 +10,13 @@ type ResolveCallback = (res:string|null) => void
 export default class JobManager {
   private jobid = 1
   private callbackMap: Map<number, (data: string) => void> = new Map()
+
+  constructor(private workspace:IWorkspace) {
+  }
+
+  private get nvim():Neovim {
+    return this.workspace.nvim
+  }
 
   public handleResult(id: number, data: string):void {
     let fn = this.callbackMap.get(id)
@@ -20,7 +29,7 @@ export default class JobManager {
     let jobid = this.jobid
     this.jobid = this.jobid + 1
     let {callbackMap} = this
-    await workspace.nvim.call('coc#util#run_command', [{
+    await this.nvim.call('coc#util#run_command', [{
       id: jobid,
       cwd,
       cmd

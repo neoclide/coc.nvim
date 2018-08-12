@@ -107,7 +107,7 @@ function! s:Enable()
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved')
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
-    autocmd OptionSet           * call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
+    autocmd OptionSet  completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd BufWritePre         * call s:BufWritePre(+expand('<abuf>'))
   augroup end
 

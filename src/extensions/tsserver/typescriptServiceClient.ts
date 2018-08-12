@@ -318,8 +318,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   private async startService(resendModels = false): Promise<ForkedTsServerProcess> {
-    let root = await workspace.findDirectory('node_modules')
-    let currentVersion = this.versionProvider.getLocalVersion(root)
+    let currentVersion = this.versionProvider.getLocalVersion(workspace.root)
     if (!currentVersion || !fs.existsSync(currentVersion.tsServerPath)) {
       currentVersion = await this.versionProvider.getDefaultVersion()
     }
@@ -337,7 +336,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     const debugPort = this._configuration.debugPort
     const options = {
       execArgv: debugPort ? [`--inspect=${debugPort}`] : [], // [`--debug-brk=5859`]
-      cwd: root
+      cwd: workspace.root
     }
     this.servicePromise = this.startProcess(currentVersion, tsServerForkArgs, options, resendModels)
     return this.servicePromise

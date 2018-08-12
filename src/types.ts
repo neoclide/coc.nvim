@@ -1,5 +1,14 @@
-import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder} from 'vscode-languageserver-protocol'
+import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder, WorkspaceEdit, Disposable, Position, Location} from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
+import FileSystemWatcher from './model/fileSystemWatcher'
+import Document from './model/document'
+import { BaseLanguageClient } from './language-client/main'
+import { FormattingOptions } from './provider'
+
+export interface EditerState {
+  document: TextDocument
+  position: Position
+}
 
 export type Filter = 'word' | 'fuzzy'
 
@@ -555,9 +564,15 @@ export interface IWorkspace {
   bufnr: number
   // root of current file or cwd
   root: string
-  channelNames: string[]
   isVim: boolean
-  isNative: boolean
+  isNvim: boolean
+  filetypes: Set<string>
+  pluginRoot: string
+  initialized: boolean
+  channelNames: string[]
+  documents: Document[]
+  document: Promise<Document | null>
+  textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder
   onDidEnterTextDocument: Event<DocumentInfo>
   onDidOpenTextDocument: Event<TextDocument>
@@ -569,4 +584,26 @@ export interface IWorkspace {
   onDidWorkspaceInitialized: Event<void>
   onDidModuleInstalled: Event<string>
   onDidBufWinEnter: Event<WinEnter>
+  onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable
+  getDocument(uri: string | number): Document
+  getDocument(bufnr: number): Document | null
+  getOffset(): Promise<number>
+  refresh(): Promise<void>
+  getFormatOptions(): Promise<FormattingOptions>
+  applyEdit(edit: WorkspaceEdit): Promise<boolean>
+  createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
+  getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
+  getQuickfixItem(loc: Location): Promise<QuickfixItem>
+  getLine(uri:string, line:number): Promise<string>
+  echoLines(lines: string[]): Promise<void>
+  getCurrentState(): Promise<EditerState>
+  jumpTo(uri: string, position: Position): Promise<void>
+  openResource(uri: string): Promise<void>
+  createOutputChannel(name: string): OutputChannel
+  showOutputChannel(name: string): void
+  resolveModule(name: string, section: string, silent?): Promise<string>
+  runCommand(cmd: string, cwd?: string): Promise<string>
+  runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
+  dispose(): void
 }
+

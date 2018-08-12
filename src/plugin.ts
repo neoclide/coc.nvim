@@ -12,7 +12,7 @@ import clean from './util/clean'
 import workspace from './workspace'
 import Emitter from 'events'
 import once from 'once'
-const logger = require('./util/logger')('index')
+const logger = require('./util/logger')('plugin')
 
 export default class Plugin {
   private initialized = false

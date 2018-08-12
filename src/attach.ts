@@ -1,10 +1,7 @@
 import Plugin from './plugin'
-import workspace from './workspace'
-import { TerminalResult } from './types'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
-import { NeovimClient } from '@chemzqm/neovim'
+import { NeovimClient, attach } from '@chemzqm/neovim'
 const logger = require('./util/logger')('attach')
-const attach = require('@chemzqm/neovim').attach
 
 export default function(opts: Attach):Plugin {
   const nvim:NeovimClient = attach(opts)
@@ -22,32 +19,13 @@ export default function(opts: Attach):Plugin {
           logger.error('Autocmd error: ' + e.stack)
         })
         return
-      case 'TerminalResult':
-        if (workspace.moduleManager) {
-          workspace.moduleManager.handleTerminalResult(args[0] as TerminalResult)
-        }
-        return
-      case 'JobResult':
-        if (workspace.jobManager) {
-          let [id, data] = args
-          workspace.jobManager.handleResult(id as number, data as string)
-        }
-        return
       default:
-        logger.debug('notification', method)
+        plugin.emitter.emit('notification', method, args)
     }
   })
 
-  nvim.on('request', (method, args, resp) => {
+  nvim.on('request', (method:string, args, resp) => {
     switch (method) {
-      case 'CocAction':
-        plugin.cocAction.call(plugin, args).then(res => {
-          resp.send(res)
-        }, e => {
-          logger.error('Action error: ' + e.stack)
-          resp.send(null)
-        })
-        return
       case 'BufWritePre':
         plugin.cocAutocmd.call(plugin, ['BufWritePre', args[0]]).then(() => {
           resp.send(null)
@@ -57,8 +35,19 @@ export default function(opts: Attach):Plugin {
         })
         return
       default:
-        logger.error('Unknown request' + method)
-        resp.send(null)
+        let m = method[0].toLowerCase() + method.slice(1)
+        if (typeof plugin[m] !== 'function') {
+          // tslint:disable-next-line:no-console
+          console.error(`Action ${m} not found`)
+          logger.error(`Action ${m} not found`)
+          return resp.send(null)
+        }
+        plugin[m](args).then(res => {
+          resp.send(res)
+        }, e => {
+          logger.error('Action error: ' + e.stack)
+          resp.send(null)
+        })
     }
   })
 

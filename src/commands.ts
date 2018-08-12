@@ -63,7 +63,10 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.diffDocument',
       execute: async () => {
-        await workspace.diffDocument()
+        let document = await workspace.document
+        if (!document) return
+        let lines = document.content.split('\n')
+        await nvim.call('coc#util#diff_content', [lines])
       }
     })
     this.register({

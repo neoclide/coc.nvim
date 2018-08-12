@@ -117,8 +117,7 @@ export default class Document {
    * @returns {string}
    */
   public getline(line: number): string {
-    if (line < 0) return null
-    return this.lines[line]
+    return this.lines[line] || ''
   }
 
   public attach(): void {
