@@ -35,16 +35,17 @@ function severityName(severity: DiagnosticSeverity): string {
 }
 
 export class DiagnosticManager {
-  private enabled = true
   public config: DiagnosticConfig
+  private enabled = true
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private nvim: Neovim
   private srcId = 1000
   private srcIdMap:Map<string,number> = new Map()
-  public showMessage: Function & { clear(): void }
+  private showMessage: Function & { clear(): void }
   constructor() {
+
     workspace.onDidWorkspaceInitialized(() => {
       this.nvim = workspace.nvim
       this.setConfiguration()
@@ -53,6 +54,9 @@ export class DiagnosticManager {
           logger.error(err.stack)
         })
       }
+      workspace.emitter.on('CursorMoved', () => {
+        this.showMessage()
+      })
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {
@@ -108,7 +112,7 @@ export class DiagnosticManager {
       infoSign: config.get<string>('infoSign', '>>'),
       hintSign: config.get<string>('hintSign', '>>'),
     }
-    this.enabled = config.get<boolean>('enable')
+    this.enabled = config.get<boolean>('enable', true)
   }
 
   private async init(): Promise<void> {

@@ -70,6 +70,9 @@ export class ServiceManager extends Emitter implements Disposable {
         this.start(filetype)
       }
     }, null, this.disposables)
+    workspace.emitter.on('FileType', filetype => {
+      this.start(filetype)
+    })
   }
 
   public dispose(): void {

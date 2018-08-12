@@ -2,18 +2,10 @@ if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
 let g:did_coc_loaded = 1
-let s:save_cpo = &cpo
-set cpo&vim
 let s:is_vim = !has('nvim')
 
-if has('nvim') && !has('nvim-0.3.0')
-  call coc#rpc#append_error('coc requires neovim >= 0.3.0 to work')
-  finish
-endif
-if !has('nvim') && !has('patch-8.1.001')
-  call coc#rpc#append_error('coc requires vim >= 8.1 to work')
-  finish
-endif
+if has('nvim') && !has('nvim-0.3.0') | finish | endif
+if s:is_vim && !has('patch-8.1.001') | finish | endif
 
 if s:is_vim
   call nvim#rpc#start_server()
@@ -115,8 +107,8 @@ function! s:Enable()
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved')
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
+    autocmd OptionSet           * call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd BufWritePre         * call s:BufWritePre(+expand('<abuf>'))
-    autocmd OptionSet completeopt call CocAction('setOption', 'completeopt', v:option_new)
   augroup end
 
   " same behaviour of ultisnips
@@ -182,8 +174,5 @@ nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<
 nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
 nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
-inoremap <silent>                        <Plug>_    <C-r>=coc#_complete()<CR>
+inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
 inoremap <expr> <Plug>(coc-complete-custom)     coc#complete_custom()
-
-let &cpo = s:save_cpo
-unlet s:save_cpo

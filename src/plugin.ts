@@ -21,14 +21,14 @@ export default class Plugin {
   public onEnter: () => void
 
   constructor(public nvim: Neovim) {
-    (workspace as any)._nvim = nvim
-    let emitter = this.emitter = new Emitter()
-    this.handler = new Handler(nvim, this.emitter, services)
-    Object.defineProperty(workspace, 'emitter', {
-      get: () => {
-        return emitter
-      }
+    Object.defineProperty(workspace, 'nvim', {
+      get: () => nvim
     })
+    let emitter = this.emitter = new Emitter()
+    Object.defineProperty(workspace, 'emitter', {
+      get: () => emitter
+    })
+    this.handler = new Handler(nvim, this.emitter, services)
     services.init(nvim)
     commandManager.init(nvim, this)
     this.onEnter = once(() => {
@@ -42,9 +42,7 @@ export default class Plugin {
 
   private async onInit(): Promise<void> {
     let {nvim} = this
-    let buf = await nvim.buffer
     await workspace.init()
-    workspace.bufferEnter(buf.id)
     this.initialized = true
     nvim.command('doautocmd User CocNvimInit')
     logger.info('Coc initialized')
@@ -64,71 +62,33 @@ export default class Plugin {
     let {emitter} = this
     logger.debug('Autocmd:', args)
     switch (args[0] as string) {
-      case 'BufWinEnter':
-        workspace.onBufWinEnter(args[1], args[2])
-        break
-      case 'DirChanged':
-        workspace.onDirChanged(args[1])
-        break
-      case 'TextChanged':
-        emitter.emit('TextChanged', args[1])
-        break
       case 'BufEnter':
-        workspace.bufferEnter(args[1])
-        break
+      case 'BufWinEnter':
       case 'BufCreate':
-        await workspace.onBufferCreate(args[1])
-        break
-      case 'BufWritePre':
-        await workspace.onBufferWillSave(args[1])
-        break
       case 'BufWritePost':
-        await workspace.onBufferDidSave(args[1])
-        break
-      case 'BufCreate':
-        await workspace.onBufferCreate(args[1])
-        break
-      case 'FileType':
-        services.start(args[1])
-        break
-      case 'BufUnload': {
-        await workspace.onBufferUnload(args[1])
-        emitter.emit('BufUnload', args[1])
-        break
-      }
-      case 'BufHidden': {
-        emitter.emit('BufHidden', args[1])
-        break
-      }
-      case 'BufLeave': {
-        emitter.emit('BufLeave', args[1])
-        break
-      }
+      case 'BufUnload':
+      case 'BufHidden':
+      case 'BufLeave':
+      case 'DirChanged':
+      case 'TextChanged':
       case 'InsertCharPre':
-        emitter.emit('InsertCharPre', args[1])
-        break
       case 'InsertLeave':
-        emitter.emit('InsertLeave')
-        break
       case 'InsertEnter':
-        emitter.emit('InsertEnter')
-        break
       case 'CompleteDone':
-        await completion.onCompleteDone(args[1] as VimCompleteItem)
-        break
       case 'TextChangedP':
-        emitter.emit('TextChangedP')
-        break
       case 'TextChangedI':
-        emitter.emit('TextChangedI', args[1])
+      case 'CursorMovedI':
+      case 'CursorMoved':
+      case 'FileType':
+      case 'BufWritePre':
+      case 'OptionSet':
+        let fns = emitter.listeners(args[0])
+        for (let fn of fns) {
+          await Promise.resolve(fn.apply(null, args.slice(1)))
+        }
         break
-      case 'CursorMoved': {
-        diagnosticManager.showMessage()
-        break
-      }
-      case 'CursorMovedI': {
-        break
-      }
+      default:
+        logger.error(`Unknown event ${args[0]}`)
     }
   }
 
@@ -186,9 +146,6 @@ export default class Plugin {
           break
         case 'jumpReferences':
           await handler.gotoReferences()
-          break
-        case 'setOption':
-          workspace.onOptionChange(args[1], args[2])
           break
         case 'doHover':
           handler.onHover().catch(e => {

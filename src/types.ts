@@ -1,8 +1,14 @@
-import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit} from 'vscode-languageserver-protocol'
+import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder} from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
 
 export type Filter = 'word' | 'fuzzy'
 
 export type ModuleResolve = () => Promise<string>
+
+export interface WinEnter {
+  document: TextDocument | null
+  winid: number
+}
 
 export enum SourceType {
   Native,
@@ -542,4 +548,25 @@ export interface OutputChannel {
    * Dispose and free associated resources.
    */
   dispose(): void
+}
+
+export interface IWorkspace {
+  nvim: Neovim
+  bufnr: number
+  // root of current file or cwd
+  root: string
+  channelNames: string[]
+  isVim: boolean
+  isNative: boolean
+  workspaceFolder: WorkspaceFolder
+  onDidEnterTextDocument: Event<DocumentInfo>
+  onDidOpenTextDocument: Event<TextDocument>
+  onDidCloseTextDocument: Event<TextDocument>
+  onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
+  onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
+  onDidSaveTextDocument: Event<TextDocument>
+  onDidChangeConfiguration: Event<WorkspaceConfiguration>
+  onDidWorkspaceInitialized: Event<void>
+  onDidModuleInstalled: Event<string>
+  onDidBufWinEnter: Event<WinEnter>
 }

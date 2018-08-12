@@ -43,6 +43,9 @@ export class Completion {
     emitter.on('TextChangedI', () => {
       this.onTextChangedI().catch(onError)
     })
+    emitter.on('CompleteDone', item => {
+      this.onCompleteDone(item).catch(onError)
+    })
     // stop change emit on completion
     let document: Document = null
     increment.on('start', option => {
@@ -214,7 +217,7 @@ export class Completion {
     this.startCompletion(option)
   }
 
-  public async onCompleteDone(item: VimCompleteItem): Promise<void> {
+  private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (!isCocItem(item)) return
     let {increment} = this
     try {

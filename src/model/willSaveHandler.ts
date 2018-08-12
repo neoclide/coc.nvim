@@ -3,6 +3,7 @@ import Document from './document'
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { BaseLanguageClient } from '../language-client/main'
 import { Neovim } from '@chemzqm/neovim'
+import { echoErr } from '../util'
 const logger = require('../util/logger')('willSaveHandler')
 
 export type Callback = (event: TextDocumentWillSaveEvent) => void
@@ -23,8 +24,7 @@ export default class WillSaveUntilHandler {
       return new Promise(resolve => {
         let called = false
         let timer = setTimeout(() => {
-          // tslint:disable-next-line:no-console
-          console.error(`${client.id} timeout after 500ms`)
+          echoErr(nvim, `${client.id} timeout after 500ms`)
           resolve(null)
         }, 500)
         ev.waitUntil = (thenable): void => {
@@ -32,31 +32,28 @@ export default class WillSaveUntilHandler {
           let { document } = ev
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
             clearTimeout(timer)
-            if (edits && edits.length && TextEdit.is(edits[0])) {
-              let doc = this.getDocument(document.uri)
-              if (doc) {
-                doc.applyEdits(nvim, edits).then(() => {
-                  resolve(null)
-                }, e => {
-                  // tslint:disable-next-line:no-console
-                  console.error(`${client.id} error on applyEdits ${e.message}`)
-                  resolve(null)
-                })
-              }
+            let doc = this.getDocument(document.uri)
+            if (doc && edits && TextEdit.is(edits[0])) {
+              doc.applyEdits(nvim, edits).then(() => {
+                // make sure server received ChangedText
+                setTimeout(resolve, 30)
+              }, e => {
+                echoErr(nvim, `${client.id} error on applyEdits ${e.message}`)
+                resolve()
+              })
             } else {
-              resolve(null)
+              resolve()
             }
           }, e => {
             clearTimeout(timer)
-            // tslint:disable-next-line:no-console
-            console.error(`${client.id} error on willSaveUntil ${e.message}`)
-            resolve(null)
+            echoErr(nvim, `${client.id} error on willSaveUntil ${e.message}`)
+            resolve()
           })
         }
         callback.call(thisArg, ev)
         if (!called) {
           clearTimeout(timer)
-          resolve(null)
+          resolve()
         }
       })
     }

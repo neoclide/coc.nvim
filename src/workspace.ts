@@ -7,7 +7,7 @@ import ModuleManager from './model/moduleManager'
 import JobManager from './model/jobManager'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult } from './types'
+import { ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult, WinEnter } from './types'
 import { getLine, resolveDirectory, resolveRoot, statAsync, writeFile } from './util/fs'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import ConfigurationShape from './model/configurationShape'
@@ -37,21 +37,16 @@ interface EditerState {
   position: Position
 }
 
-interface WinEnter {
-  document: Document
-  winid: number
-}
-
 export class Workspace {
-  private _nvim: Neovim
   public bufnr: number
   public emitter: EventEmitter
   public moduleManager: ModuleManager
   public jobManager: JobManager
+  public readonly nvim: Neovim
 
   private _initialized = false
   private disposables:Disposable[] = []
-  private buffers: Map<number, Document>
+  private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
@@ -79,7 +74,6 @@ export class Workspace {
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
   private configFiles: string[]
-  private jumpCommand: string
   private _cwd = process.cwd()
 
   constructor() {
@@ -97,43 +91,45 @@ export class Workspace {
     }
   }
 
-  public get nvim():Neovim {
-    return this._nvim
-  }
-
   public async init(): Promise<void> {
+    // workspace.bufferEnter(args[1])
+    this.emitter.on('BufEnter', this.onBufEnter.bind(this))
+    this.emitter.on('BufWinEnter', this.onBufWinEnter.bind(this))
+    this.emitter.on('DirChanged', this.onDirChanged.bind(this))
+    this.emitter.on('BufCreate', this.onBufCreate.bind(this))
+    this.emitter.on('BufUnload', this.onBufUnload.bind(this))
+    this.emitter.on('BufWritePost', this.onBufWritePost.bind(this))
+    this.emitter.on('BufWritePre', this.onBufWritePre.bind(this))
+    this.emitter.on('OptionSet', this.onOptionSet.bind(this))
     this.willSaveUntilHandler = new WillSaveUntilHandler(this.nvim, uri => {
       return this.getDocument(uri)
     })
-    this.buffers = new Map()
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
-      return this.onBufferCreate(buf)
+      return this.onBufCreate(buf)
     }))
-    const preferences = this.getConfiguration('coc.preferences')
-    this.jumpCommand = preferences.get<string>('jumpCommand', 'edit')
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
-    if (this.isVim) {
-      this.initVimEvents()
-    }
+    if (this.isVim) this.initVimEvents()
+    let buffer = await this.nvim.buffer
+    this.onBufEnter(buffer.id)
   }
 
   public get cwd(): string {
     return this._cwd
   }
 
-  public onDirChanged(cwd: string): void {
+  private onDirChanged(cwd: string): void {
     this._cwd = cwd
     this.onConfigurationChange()
   }
 
-  public onBufWinEnter(filepath:string, winid:number): void {
+  private onBufWinEnter(filepath:string, winid:number): void {
     let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
     let doc = this.getDocument(uri)
     this._onDidBufWinEnter.fire({
-      document: doc,
+      document: doc ? doc.textDocument : null,
       winid
     })
   }
@@ -175,12 +171,6 @@ export class Workspace {
 
   public get initialized(): boolean {
     return this._initialized
-  }
-
-  public onOptionChange(name, newValue): void {
-    if (name === 'completeopt') {
-      this.vimSettings.completeOpt = newValue
-    }
   }
 
   public get filetypes(): Set<string> {
@@ -308,35 +298,6 @@ export class Workspace {
     return true
   }
 
-  public async onBufferCreate(buf: number | Buffer): Promise<Document> {
-    let loaded = await this.isBufLoaded(typeof buf === 'number' ? buf : buf.id)
-    if (!loaded) return
-    let buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
-    if (!buffer) return
-    let buftype = await buffer.getOption('buftype')
-    if (buftype !== '') return
-    let doc = this.buffers.get(buffer.id)
-    if (doc) {
-      await doc.checkDocument()
-      return
-    }
-    let document = new Document(buffer)
-    await document.init(this.nvim)
-    this.buffers.set(buffer.id, document)
-    if (isSupportedScheme(document.schema)) {
-      this._onDidAddDocument.fire(document.textDocument)
-      document.onDocumentChange(({ textDocument, contentChanges }) => {
-        let { version, uri } = textDocument
-        this._onDidChangeDocument.fire({
-          textDocument: { version, uri },
-          contentChanges
-        })
-      })
-    }
-    logger.debug('buffer created', buffer.id)
-    return document
-  }
-
   public async getQuickfixItem(loc: Location): Promise<QuickfixItem> {
     let { uri, range } = loc
     let { line, character } = range.start
@@ -360,62 +321,8 @@ export class Workspace {
     return item
   }
 
-  public async onBufferUnload(bufnr: number): Promise<void> {
-    let doc = this.buffers.get(bufnr)
-    if (doc) {
-      this.buffers.delete(bufnr)
-      doc.detach()
-      if (isSupportedScheme(doc.schema)) {
-        this._onDidCloseDocument.fire(doc.textDocument)
-      }
-    }
-    logger.debug('buffer unload', bufnr)
-  }
-
-  public bufferEnter(bufnr: number): void {
-    this.bufnr = bufnr
-    let doc = this.buffers.get(bufnr)
-    if (!doc) return
-    let buf = doc.buffer
-    let documentInfo: DocumentInfo = {
-      bufnr: buf.id,
-      uri: doc.uri,
-      languageId: doc.filetype,
-      expandtab: doc.expandtab,
-      tabstop: doc.tabstop
-    }
-    this._onDidEnterDocument.fire(documentInfo as DocumentInfo)
-  }
-
   public addWillSaveUntilListener(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
-  }
-
-  public async onBufferWillSave(bufnr: number): Promise<void> {
-    let { nvim } = this
-    let doc = this.buffers.get(bufnr)
-    if (!doc) return
-    if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
-    if (doc && isSupportedScheme(doc.schema)) {
-      let event: TextDocumentWillSaveEvent = {
-        document: doc.textDocument,
-        reason: TextDocumentSaveReason.Manual
-      }
-      this._onWillSaveDocument.fire(event)
-      try {
-        await this.willSaveUntilHandler.handeWillSaveUntil(event)
-      } catch (e) {
-        logger.error(e.message)
-        echoErr(nvim, e.message)
-      }
-    }
-  }
-
-  public async onBufferDidSave(bufnr: number): Promise<void> {
-    let doc = this.buffers.get(bufnr)
-    if (!doc || !isSupportedScheme(doc.schema)) return
-    await doc.checkDocument()
-    this._onDidSaveDocument.fire(doc.textDocument)
   }
 
   // all exists documents
@@ -436,7 +343,7 @@ export class Workspace {
   public async refresh(): Promise<void> {
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
-      return this.onBufferCreate(buf)
+      return this.onBufCreate(buf)
     }))
     logger.info('Buffers refreshed')
   }
@@ -463,7 +370,7 @@ export class Workspace {
     if (document) return Promise.resolve(document)
     return this.nvim.buffer.then(buffer => {
       let document = this.getDocument(buffer.id)
-      if (!document) return this.onBufferCreate(buffer)
+      if (!document) return this.onBufCreate(buffer)
       return document
     })
   }
@@ -564,6 +471,18 @@ export class Workspace {
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
     return await this.moduleManager.runCommand(cmd, cwd)
+  }
+
+  public dispose(): void {
+    for (let ch of this.outputChannels.values()) {
+      ch.dispose()
+    }
+    for (let doc of this.buffers.values()) {
+      doc.detach()
+    }
+    Watchman.dispose()
+    this.moduleManager.removeAllListeners()
+    disposeAll(this.disposables)
   }
 
   private async isBufLoaded(bufnr:number):Promise<boolean> {
@@ -691,16 +610,98 @@ export class Workspace {
     })
   }
 
-  public dispose(): void {
-    for (let ch of this.outputChannels.values()) {
-      ch.dispose()
+  private get jumpCommand(): string {
+    const preferences = this.getConfiguration('coc.preferences')
+    return preferences.get<string>('jumpCommand', 'edit')
+  }
+
+  private onBufEnter(bufnr: number): void {
+    this.bufnr = bufnr
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
+    let buf = doc.buffer
+    let documentInfo: DocumentInfo = {
+      bufnr: buf.id,
+      uri: doc.uri,
+      languageId: doc.filetype,
+      expandtab: doc.expandtab,
+      tabstop: doc.tabstop
     }
-    for (let doc of this.buffers.values()) {
+    this._onDidEnterDocument.fire(documentInfo)
+  }
+
+  private async onBufCreate(buf: number | Buffer): Promise<Document> {
+    let loaded = await this.isBufLoaded(typeof buf === 'number' ? buf : buf.id)
+    if (!loaded) return
+    let buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
+    if (!buffer) return
+    let buftype = await buffer.getOption('buftype')
+    if (buftype !== '') return
+    let doc = this.buffers.get(buffer.id)
+    if (doc) {
+      await doc.checkDocument()
+      return
+    }
+    let document = new Document(buffer)
+    await document.init(this.nvim)
+    this.buffers.set(buffer.id, document)
+    if (isSupportedScheme(document.schema)) {
+      this._onDidAddDocument.fire(document.textDocument)
+      document.onDocumentChange(({ textDocument, contentChanges }) => {
+        let { version, uri } = textDocument
+        this._onDidChangeDocument.fire({
+          textDocument: { version, uri },
+          contentChanges
+        })
+      })
+    }
+    logger.debug('buffer created', buffer.id)
+    return document
+  }
+
+  private async onBufWritePost(bufnr: number): Promise<void> {
+    let doc = this.buffers.get(bufnr)
+    if (!doc || !isSupportedScheme(doc.schema)) return
+    await doc.checkDocument()
+    this._onDidSaveDocument.fire(doc.textDocument)
+  }
+
+  private async onBufUnload(bufnr: number): Promise<void> {
+    let doc = this.buffers.get(bufnr)
+    if (doc) {
+      this.buffers.delete(bufnr)
       doc.detach()
+      if (isSupportedScheme(doc.schema)) {
+        this._onDidCloseDocument.fire(doc.textDocument)
+      }
     }
-    Watchman.dispose()
-    this.moduleManager.removeAllListeners()
-    disposeAll(this.disposables)
+    logger.debug('buffer unload', bufnr)
+  }
+
+  private async onBufWritePre(bufnr: number): Promise<void> {
+    let { nvim } = this
+    let doc = this.buffers.get(bufnr)
+    if (!doc) return
+    if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
+    if (doc && isSupportedScheme(doc.schema)) {
+      let event: TextDocumentWillSaveEvent = {
+        document: doc.textDocument,
+        reason: TextDocumentSaveReason.Manual
+      }
+      this._onWillSaveDocument.fire(event)
+      try {
+        await this.willSaveUntilHandler.handeWillSaveUntil(event)
+      } catch (e) {
+        logger.error(e.message)
+        echoErr(nvim, e.message)
+      }
+    }
+  }
+
+  private onOptionSet(name:string, _oldValue:any, newValue:any): void {
+    if (name === 'completeopt') {
+      this.vimSettings.completeOpt = newValue
+    }
   }
 }
 
