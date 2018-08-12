@@ -1,5 +1,6 @@
 # 2018-08-12
 
+* **Break change** `:CocRefresh` replaced with `call CocAction('refreshSource')`.
 * Add support filetype change of buffer.
 * Add basic test for completion.
 * Improve loading speed, use child process to initialize vim sources.

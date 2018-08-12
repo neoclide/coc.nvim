@@ -12,6 +12,7 @@ import clean from './util/clean'
 import workspace from './workspace'
 import Emitter from 'events'
 import once from 'once'
+import Sources from './sources'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin {
@@ -47,6 +48,10 @@ export default class Plugin {
     nvim.command('doautocmd User CocNvimInit')
     logger.info('Coc initialized')
     completion.init(nvim, this.emitter)
+    let sources = new Sources(nvim)
+    Object.defineProperty(workspace, 'sources', {
+      get: () => sources
+    })
   }
 
   // callback for remote sources
@@ -118,7 +123,7 @@ export default class Plugin {
         case 'sourceStat':
           return await completion.sourceStat()
         case 'refreshSource':
-          await completion.refreshSource(args[1])
+          await workspace.sources.refresh(args[1])
           break
         case 'toggleSource':
           completion.toggleSource(args[1])

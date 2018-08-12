@@ -17,17 +17,12 @@ function onError(e): void {
 
 export class Completion {
   private increment: Increment
-  private sources: Sources
   private lastChangedI: number
   private nvim: Neovim
 
   public init(nvim, emitter: Emitter): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
-    let sources = this.sources = new Sources(nvim)
-    sources.on('ready', () => {
-      emitter.emit('ready')
-    })
     emitter.on('InsertCharPre', character => {
       this.onInsertCharPre(character)
     })
@@ -57,6 +52,10 @@ export class Completion {
       if (!document) return
       document.paused = false
     })
+  }
+
+  private get sources():Sources {
+    return workspace.sources
   }
 
   private getPreference(name:string, defaultValue: any):any {
@@ -113,14 +112,6 @@ export class Completion {
 
   public async onlySource(name: string): Promise<void> {
     return this.sources.onlySource(name)
-  }
-
-  public async refreshSource(name: string): Promise<void> {
-    let source = this.sources.getSource(name)
-    if (!source) return
-    if (typeof source.refresh === 'function') {
-      await source.refresh()
-    }
   }
 
   public async sourceStat(): Promise<SourceStat[]> {

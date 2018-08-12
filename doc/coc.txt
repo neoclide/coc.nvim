@@ -369,7 +369,7 @@ Available Actions ~
 coc#refresh()
 
 	Start or refresh completion at current cursor position, bind this to
-	'imap' for trigger completion, like: >
+	'imap' for trigger completion, ex: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
@@ -397,17 +397,12 @@ COMMANDS 					*coc-commands*
 :CocEnable 					*:CocEnable*
 		Enable completion of coc
 
-:CocRefresh [{name}]				*:CocRefresh*
-
-		Remove cache of completion source {name}, or all sources without
-		{name}.
-
 :CocRestart 					*:CocRestart*
 
 		Restart coc service.
 
 		Use this command when you want to change workspace or
-		something go wrong.
+		something goes wrong.
 
 :CocConfig 					*:CocConfig*
 

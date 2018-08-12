@@ -285,6 +285,20 @@ export default class Sources extends EventEmitter {
     })
   }
 
+  public async refresh(name?:string):Promise<void> {
+    for (let source of this.sources) {
+      if (!name || source.name == name) {
+        if (typeof source.refresh === 'function') {
+          try {
+            await Promise.resolve(source.refresh())
+          } catch (e) {
+            echoErr(this.nvim, `Refresh ${name} error: ${e.message}`)
+          }
+        }
+      }
+    }
+  }
+
   public dispose():void {
     this.removeAllListeners()
     disposeAll(this.disposables)

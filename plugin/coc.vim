@@ -55,15 +55,6 @@ function! s:Disable() abort
   let g:coc_enabled = 0
 endfunction
 
-function! s:RefreshSource(...) abort
-  if !s:CheckState() | return | endif
-  let name = get(a:, 1, '')
-  call CocAction('refreshSource', name)
-  echohl MoreMsg
-  echom '[coc.nvim] Source '.name. ' refreshed'
-  echohl None
-endfunction
-
 function! s:CocSourceNames(A, L, P) abort
   if !s:CheckState() | return | endif
   let items = CocAction('sourceStat')
@@ -122,7 +113,6 @@ function! s:Enable()
     set completeopt=menuone,noinsert,noselect
   endif
 
-  command! -nargs=? -complete=customlist,s:CocSourceNames CocRefresh :call s:RefreshSource(<f-args>)
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable  :call s:Enable()
   command! -nargs=0 CocConfig  :call s:OpenConfig()

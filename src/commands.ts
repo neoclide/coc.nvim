@@ -61,6 +61,14 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
+      id: 'workspace.refreshSources',
+      execute: async () => {
+        let { sources } = await workspace
+        if (!sources) return
+        await sources.refresh()
+      }
+    })
+    this.register({
       id: 'workspace.diffDocument',
       execute: async () => {
         let document = await workspace.document

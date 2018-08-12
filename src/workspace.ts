@@ -1,27 +1,28 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import { DidChangeTextDocumentParams, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Disposable } from 'vscode-languageserver-protocol'
+import deepEqual from 'deep-equal'
+import { EventEmitter } from 'events'
+import fs from 'fs'
+import os from 'os'
+import path from 'path'
+import Sources from './sources'
+import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
-import Document from './model/document'
-import ModuleManager from './model/moduleManager'
-import JobManager from './model/jobManager'
-import FileSystemWatcher from './model/fileSystemWatcher'
-import BufferChannel from './model/outputChannel'
-import {IWorkspace, ChangeInfo, DocumentInfo, IConfigurationData, QuickfixItem, TextDocumentWillSaveEvent, WorkspaceConfiguration, OutputChannel, TerminalResult, WinEnter, EditerState } from './types'
-import { resolveRoot, statAsync, writeFile } from './util/fs'
-import WillSaveUntilHandler from './model/willSaveHandler'
+import { BaseLanguageClient } from './language-client/main'
 import ConfigurationShape from './model/configurationShape'
-import { echoErr, echoMessage, isSupportedScheme, disposeAll } from './util/index'
+import Document from './model/document'
+import FileSystemWatcher from './model/fileSystemWatcher'
+import JobManager from './model/jobManager'
+import ModuleManager from './model/moduleManager'
+import BufferChannel from './model/outputChannel'
+import WillSaveUntilHandler from './model/willSaveHandler'
+import { ChangeInfo, DocumentInfo, EditerState, IConfigurationData, IWorkspace, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
+import { resolveRoot, statAsync, writeFile } from './util/fs'
+import { disposeAll, echoErr, echoMessage, isSupportedScheme } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
-import fs from 'fs'
-import path from 'path'
-import os from 'os'
 import uuidv1 = require('uuid/v1')
-import { EventEmitter } from 'events'
-import deepEqual from 'deep-equal'
-import { BaseLanguageClient } from './language-client/main'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -37,6 +38,7 @@ export class Workspace implements IWorkspace {
   public bufnr: number
   public moduleManager: ModuleManager
   public jobManager: JobManager
+  public sources: Sources
   public readonly nvim: Neovim
   public readonly emitter: EventEmitter
   public configFiles: string[] = []
