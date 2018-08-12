@@ -1,16 +1,18 @@
-import { Neovim } from '@chemzqm/neovim'
+import { Neovim, attach } from '@chemzqm/neovim'
 import languages from './languages'
 import VimSource from './model/source-vim'
 import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration, DocumentInfo } from './types'
 import { echoErr, echoMessage, disposeAll } from './util'
 import { statAsync } from './util/fs'
 import { isWord } from './util/string'
+import cp from 'child_process'
 import workspace from './workspace'
+import { EventEmitter } from 'events'
+import { Disposable } from 'vscode-jsonrpc'
+import which from 'which'
 import path from 'path'
 import fs from 'fs'
 import pify from 'pify'
-import { EventEmitter } from 'events'
-import { Disposable } from 'vscode-jsonrpc'
 const logger = require('./util/logger')('sources')
 
 export default class Sources extends EventEmitter {
@@ -30,16 +32,24 @@ export default class Sources extends EventEmitter {
       this.emit('ready')
       logger.debug(`Created sources ${this.names}`)
     }).catch(e => {
+      echoErr(nvim, `Error on source create ${e.message}`)
       logger.error(`Error on source create ${e.message}`)
     })
+    this.initLanguageSources()
+    workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
+  }
+
+  private initLanguageSources():void {
+    let {sources} = languages
+    for (let source of sources) {
+      let { name } = source
+      this.addSource(name, source)
+    }
     languages.onDidCompletionSourceCreated(source => {
       let { name } = source
-      if (source.enable) {
-        this.addSource(name, source)
-        logger.debug('created service source', name)
-      }
+      this.addSource(name, source)
+      logger.debug('created service source', name)
     }, this, this.disposables)
-    workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
   }
 
   public get ready(): Promise<void> {
@@ -184,45 +194,28 @@ export default class Sources extends EventEmitter {
     return res
   }
 
-  private async createVimSourceFromPath(p: string): Promise<void> {
-    let { nvim } = this
+  private async createVimSourceFromPath(nvim:Neovim, p: string): Promise<void> {
     let name = path.basename(p, '.vim')
     let opts = this.getSourceConfig(name)
-    if (opts.disabled) return
     opts.filepath = p
-    try {
-      await nvim.command(`source ${p}`)
-    } catch (e) {
-      echoErr(nvim, `Vim error from ${name} source: ${e.message}`)
-      return
-    }
-    let source = await this.createRemoteSource(name, opts)
+    let source = await this.createRemoteSource(nvim, name, opts)
     if (source) this.addSource(name, source)
   }
 
-  private async createRemoteSources(): Promise<void> {
-    let { nvim } = this
-    let runtimepath = await nvim.eval('&runtimepath')
-    let paths = (runtimepath as string).split(',')
-    paths = paths.map(p => {
-      return path.join(p, 'autoload/coc/source')
-    })
-    let files = []
-    for (let p of paths) {
-      let stat = await statAsync(p)
-      if (stat && stat.isDirectory()) {
-        let arr = await pify(fs.readdir)(p)
-        arr = arr.filter(s => s.slice(-4) == '.vim')
-        files = files.concat(arr.map(s => path.join(p, s)))
-      }
+  private createNvimProcess():cp.ChildProcess {
+    try {
+      let p = which.sync('nvim')
+      let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
+        shell: false
+      })
+      return proc
+    } catch (e) {
+      return null
     }
-    await Promise.all(files.map(p => {
-      return this.createVimSourceFromPath(p)
-    }))
   }
 
-  private async createRemoteSource(name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
-    let { nvim } = this
+  private async createRemoteSource(nvim:Neovim, name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
+    await nvim.command(`source ${opts.filepath}`)
     let fns = await nvim.call('coc#util#remote_fns', name) as string[]
     for (let fn of ['init', 'complete']) {
       if (fns.indexOf(fn) == -1) {
@@ -245,6 +238,38 @@ export default class Sources extends EventEmitter {
       return null
     }
     return source
+  }
+
+  private async createRemoteSources(): Promise<void> {
+    let { nvim } = this
+    let runtimepath = await nvim.eval('&runtimepath')
+    let paths = (runtimepath as string).split(',')
+    paths = paths.map(p => {
+      return path.join(p, 'autoload/coc/source')
+    })
+    let files = []
+    for (let p of paths) {
+      let stat = await statAsync(p)
+      if (stat && stat.isDirectory()) {
+        let arr = await pify(fs.readdir)(p)
+        arr = arr.filter(s => s.slice(-4) == '.vim')
+        files = files.concat(arr.map(s => path.join(p, s)))
+      }
+    }
+    let proc = this.createNvimProcess()
+    if (proc) {
+      try {
+        nvim = attach({proc})
+        let utilPath = path.join(workspace.pluginRoot, 'autoload/coc/util.vim')
+        await nvim.command(`source ${utilPath}`)
+      } catch (e) {
+        nvim = this.nvim
+      }
+    }
+    await Promise.all(files.map(p => {
+      return this.createVimSourceFromPath(nvim, p)
+    }))
+    if (proc) proc.kill('SIGKILL')
   }
 
   private onDocumentEnter(info: DocumentInfo): void {
