@@ -76,6 +76,9 @@ function! s:Enable()
 
   augroup coc_nvim
     autocmd!
+    if get(g:, 'coc_auto_copen', 1)
+      autocmd User CocQuickfixChange :copen
+    endif
     if s:is_vim
       autocmd DirChanged       * call s:Autocmd('DirChanged', expand('<afile>'))
     else

@@ -234,9 +234,6 @@ endfunction
 " Show signature help while editing
 autocmd CursorHoldI,CursorMovedI * silent! call CocAction('showSignatureHelp')
 
-" Open quickfix list on quickfix change triggered by coc
-autocmd User CocQuickfixChange :copen
-
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
 

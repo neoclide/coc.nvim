@@ -154,6 +154,10 @@ Keymapings 					*coc-keymapings*
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+g:coc_auto_copen  				*g:coc_force_debug*
+
+			Open quickfix window after quickfix changed by coc.
+
 g:coc_force_debug  				*g:coc_force_debug*
 
 			Coc would use precompiled binary when the binary file
