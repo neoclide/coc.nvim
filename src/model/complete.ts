@@ -6,8 +6,6 @@ import workspace from '../workspace'
 import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
-const MAX_ITEM_COUNT = 50
-
 export type Callback = () => void
 
 export default class Complete {
@@ -15,6 +13,7 @@ export default class Complete {
   public results: CompleteResult[] | null
   public option: CompleteOption
   public readonly recentScores: RecentScore
+  private maxItemCount:number
   constructor(opts: CompleteOption, recentScores: RecentScore | null) {
     this.option = opts
     Object.defineProperty(this, 'recentScores', {
@@ -22,6 +21,8 @@ export default class Complete {
         return recentScores || {}
       }
     })
+    const preferences = workspace.getConfiguration('coc.preferences')
+    this.maxItemCount = preferences.get('maxCompleteItemCount', 50)
   }
 
   public get startcol(): number {
@@ -134,7 +135,7 @@ export default class Complete {
         return b.score - a.score
       }
     })
-    return arr.slice(0, MAX_ITEM_COUNT)
+    return arr.slice(0, this.maxItemCount)
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
