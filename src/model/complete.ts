@@ -8,6 +8,8 @@ const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
 
+const WORD_SOURCES = new Set(['word', 'around', 'buffer', 'dictionary', 'tag', 'emoji', 'include'])
+
 export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
@@ -101,6 +103,9 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
+      if (input.length == 0 && WORD_SOURCES.has(source)) {
+        continue
+      }
       for (let item of items) {
         let { user_data, filterText, word } = item
         if (words.has(word)) continue

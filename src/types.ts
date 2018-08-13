@@ -255,7 +255,7 @@ export interface ConfigurationInspect<T> {
 export interface TerminalResult {
   id: number
   success: boolean
-  message?: string
+  content: string
 }
 
 export interface ConfigurationShape {

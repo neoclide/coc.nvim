@@ -90,7 +90,7 @@
     "fuzzaldrin": "^2.1.0",
     "glob": "^7.1.2",
     "jsonc-parser": "^2.0.1",
-    "log4js": "^3.0.4",
+    "log4js": "^3.0.5",
     "minimatch": "^3.0.4",
     "node-serial": "^0.1.1",
     "once": "^1.4.0",

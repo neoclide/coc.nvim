@@ -375,9 +375,11 @@ function! coc#util#open_terminal(opts)
           \ 'curwin': 1,
           \})
   endif
+  return bufnr
 endfunction
 
 function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
+  let content = join(getbufline(a:bufnr, 1, '$'), "\n")
   if a:status == 0
     execute 'silent! bd! '.a:bufnr
   endif
@@ -387,6 +389,7 @@ function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
   if a:id == 0 | return | endif
   call coc#rpc#notify('TerminalResult', [{
         \ 'id': a:id,
+        \ 'content': content,
         \ 'success': a:status == 0 ? v:true : v:false
         \}])
 endfunction

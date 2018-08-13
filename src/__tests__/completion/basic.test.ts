@@ -18,7 +18,7 @@ afterEach(async () => {
 describe('completion',() => {
   it('should create channel',  async () => {
     let id = await nvim.getVar('coc_node_channel_id')
-    expect(id).toBe(1)
+    expect(id).toBeGreaterThan(0)
   })
 
   it('should trigger on first letter insert', async () => {
@@ -113,5 +113,19 @@ describe('completion',() => {
     let items = await helper.getItems()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('bar')
+  })
+
+  it('should not show word of word source on empty input', async () => {
+    await helper.edit('insert')
+    await helper.wait(100)
+    await nvim.setLine('foo bar')
+    await nvim.input('of')
+    await helper.wait(200)
+    let mode = await nvim.mode
+    expect(mode.mode).toBe('ic')
+    await nvim.input('<backspace>')
+    await helper.wait(100)
+    let res = await helper.pumvisible()
+    expect(res).toBe(false)
   })
 })

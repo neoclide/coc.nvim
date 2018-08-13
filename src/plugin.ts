@@ -44,10 +44,9 @@ export default class Plugin {
     let {nvim} = this
     await workspace.init()
     this.initialized = true
-    nvim.command('doautocmd User CocNvimInit', true)
+    await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
-    // let res = await workspace.runTerminalCommand('ls')
-    // logger.debug(JSON.stringify(res))
+    this.emitter.emit('ready')
   }
 
   // callback for remote sources

@@ -202,6 +202,7 @@ export default class Sources extends EventEmitter {
   }
 
   private createNvimProcess():cp.ChildProcess {
+    if (global.hasOwnProperty('__TEST__')) return null
     try {
       let p = which.sync('nvim')
       let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
