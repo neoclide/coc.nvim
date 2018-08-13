@@ -9,10 +9,14 @@ export default function(opts: Attach):Plugin {
   nvim.on('notification', (method, args) => {
     switch (method) {
       case 'CocResult':
-        plugin.cocResult(args)
+        plugin.cocResult(args).catch(e => {
+          logger.error(e.stack)
+        })
         return
       case 'VimEnter':
-        plugin.onEnter()
+        plugin.init().catch(e => {
+          logger.error(e.message)
+        })
         return
       case 'CocAutocmd':
         plugin.cocAutocmd(args).catch(e => {
@@ -54,7 +58,11 @@ export default function(opts: Attach):Plugin {
   nvim.channelId.then(async channelId => {
     await nvim.setVar('coc_node_channel_id', channelId)
     let entered = await nvim.getVvar('vim_did_enter')
-    if (entered) plugin.onEnter()
+    if (entered) plugin.init().catch(e => {
+      logger.error(e.message)
+    })
+  }).catch(e => {
+    logger.error(e)
   })
   return plugin
 }

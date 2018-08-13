@@ -298,7 +298,7 @@ export class Workspace implements IWorkspace {
     let bufnr = doc ? doc.bufnr : 0
     let text = await this.getLine(uri, line)
     let item: QuickfixItem = {
-      filename: fullpath,
+      filename: path.relative(this.cwd, fullpath),
       lnum: line + 1,
       col: character + 1,
       text
@@ -457,6 +457,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
+    cwd = cwd || this.root
     return await this.moduleManager.runCommand(cmd, cwd)
   }
 
@@ -494,7 +495,7 @@ export class Workspace implements IWorkspace {
     return n
   }
 
-  private async onConfigurationChange(): Promise<void> {
+  private onConfigurationChange(): void {
     let { _configurations } = this
     try {
       let config = this.loadConfigurations()

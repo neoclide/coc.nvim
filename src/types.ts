@@ -64,6 +64,7 @@ export interface QuickfixItem {
   lnum: number
   col: number
   text: string
+  type?: string,
   valid?: boolean
   nr?: number
 }
@@ -254,6 +255,7 @@ export interface ConfigurationInspect<T> {
 
 export interface TerminalResult {
   id: number
+  bufnr: number
   success: boolean
   content: string
 }
@@ -608,4 +610,3 @@ export interface IWorkspace {
   runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
   dispose(): void
 }
-

@@ -124,11 +124,7 @@ export default class ModuleManager extends EventEmitter {
       this.callbacks.set(id, res => {
         if (called) return
         if (tid) clearTimeout(tid)
-        if (res.success) {
-          resolve(res)
-        } else {
-          reject(new Error('command failed!'))
-        }
+        resolve(res)
       })
     })
   }

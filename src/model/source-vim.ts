@@ -8,13 +8,13 @@ const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
 
-  private async callOptinalFunc(fname: string, args: any[], isNotify = false): Promise<any> {
+  private async callOptinalFunc(fname: string, args: any[]): Promise<any> {
     let exists = this.optionalFns.indexOf(fname) !== -1
     if (!exists) return null
     let name = `coc#source#${this.name}#${fname}`
     let res
     try {
-      res = await this.nvim.call(name, args, isNotify)
+      res = await this.nvim.call(name, args)
     } catch (e) {
       echoErr(this.nvim, `Vim error from source ${this.name}: ${e.message}`)
       return null
@@ -34,12 +34,12 @@ export default class VimSource extends Source {
 
   public async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (this.optionalFns.indexOf('on_complete') === -1) return
-    this.callOptinalFunc('on_complete', [item], true)
+    this.callOptinalFunc('on_complete', [item]) // tslint:disable-line
   }
 
   public onEnter(info:DocumentInfo):void {
     if (this.optionalFns.indexOf('on_enter') === -1) return
-    this.callOptinalFunc('on_enter', [info], true)
+    this.callOptinalFunc('on_enter', [info]) // tslint:disable-line
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {

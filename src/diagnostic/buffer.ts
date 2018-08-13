@@ -147,25 +147,23 @@ export class DiagnosticBuffer {
   private addHighlightNvim(owner: string, range: Range): void {
     let srcId = this.manager.getSrcId(owner)
     let { start, end } = range
-    try {
-      let { document } = this
-      if (!document || !srcId) return
-      let { buffer } = document
-      for (let i = start.line; i <= end.line; i++) {
-        let line = document.getline(i)
-        if (!line || !line.length) continue
-        let s = i == start.line ? start.character : 0
-        let e = i == end.line ? end.character : -1
-        buffer.addHighlight({
-          srcId,
-          hlGroup: 'CocUnderline',
-          line: i,
-          colStart: s == 0 ? 0 : byteIndex(line, s),
-          colEnd: e == -1 ? -1 : byteIndex(line, e),
-        })
-      }
-    } catch (e) {
-      logger.error(e.stack)
+    let { document } = this
+    if (!document || !srcId) return
+    let { buffer } = document
+    for (let i = start.line; i <= end.line; i++) {
+      let line = document.getline(i)
+      if (!line || !line.length) continue
+      let s = i == start.line ? start.character : 0
+      let e = i == end.line ? end.character : -1
+      buffer.addHighlight({
+        srcId,
+        hlGroup: 'CocUnderline',
+        line: i,
+        colStart: s == 0 ? 0 : byteIndex(line, s),
+        colEnd: e == -1 ? -1 : byteIndex(line, e),
+      }).catch(e => {
+        logger.error(e.message)
+      })
     }
   }
 

@@ -142,4 +142,3 @@ function containsRange(range: Range, otherRange: Range): boolean {
   }
   return true
 }
-

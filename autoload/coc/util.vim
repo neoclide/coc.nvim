@@ -389,6 +389,7 @@ function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
   if a:id == 0 | return | endif
   call coc#rpc#notify('TerminalResult', [{
         \ 'id': a:id,
+        \ 'bufnr': a:bufnr,
         \ 'content': content,
         \ 'success': a:status == 0 ? v:true : v:false
         \}])

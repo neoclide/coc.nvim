@@ -7,11 +7,12 @@ import commandManager from '../../commands'
 import {LanguageService} from '../../language-client'
 import {LanguageClientOptions, WorkspaceMiddleware} from '../../language-client/main'
 import {ProviderResult} from '../../provider'
-import {ServiceStat, TextDocumentWillSaveEvent} from '../../types'
+import {ServiceStat, TextDocumentWillSaveEvent, QuickfixItem} from '../../types'
 import {echoErr, echoWarning} from '../../util'
 import workspace from '../../workspace'
 import which from 'which'
 const logger = require('../../util/logger')('tslint')
+const errorRegex = /^(\w+):\s+([^\[]+)\[(\d+),\s*(\d+)\]:\s+(.*)$/
 
 interface AllFixesParams {
   readonly textDocument: TextDocumentIdentifier
@@ -102,6 +103,7 @@ export default class TslintService extends LanguageService {
       // user commandManager
       this.disposables.push(commandManager.registerCommand('tslint.fixAllProblems', this.fixAllProblems.bind(this)))
       this.disposables.push(commandManager.registerCommand('tslint.createConfig', createDefaultConfiguration))
+      this.disposables.push(commandManager.registerCommand('tslint.lintProject', lintProject))
     })
   }
 
@@ -310,6 +312,40 @@ async function createDefaultConfiguration(): Promise<void> {
       }
     })
   }
+}
+
+async function lintProject():Promise<void> {
+  const folderPath = workspace.root
+  const tslintCmd = await findTslint(folderPath)
+  const tslintConfigFile = path.join(folderPath, 'tslint.json')
+  if (!tslintCmd) return
+  let cmd = `${tslintCmd} -c ${tslintConfigFile} -p .`
+  let res = await workspace.runTerminalCommand(cmd)
+  if (res.success) return
+  let {bufnr} = res
+  await workspace.nvim.command(`silent! bd! ${bufnr}`)
+  let lines = res.content.split('\n')
+  let items:QuickfixItem[] = []
+  for (let line of lines) {
+    let ms = line.match(errorRegex)
+    if (!ms) continue
+    let [, type, file, lnum, col, message] = ms
+    let uri = Uri.file(file).toString()
+    let doc = workspace.getDocument(uri)
+    let bufnr = doc ? doc.bufnr : 0
+    let item: QuickfixItem = {
+      filename: path.relative(workspace.cwd, file),
+      lnum: Number(lnum),
+      col: Number(col),
+      type: type.slice(0, 1).toUpperCase(),
+      text: message
+    }
+    if (bufnr) item.bufnr = bufnr
+    items.push(item)
+  }
+  let { nvim } = workspace
+  await nvim.call('setqflist', [items, ' ', 'Results of tslint'])
+  await nvim.command('doautocmd User CocQuickfixChange')
 }
 
 async function applyTextEdits(uri: string, _documentVersion: number, edits: TextEdit[]): Promise<boolean> {

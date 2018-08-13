@@ -7,11 +7,9 @@ import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
 import {VimCompleteItem} from './types'
-import {echoErr} from './util'
 import clean from './util/clean'
 import workspace from './workspace'
 import Emitter from 'events'
-import once from 'once'
 import Sources from './sources'
 const logger = require('./util/logger')('plugin')
 
@@ -19,7 +17,6 @@ export default class Plugin {
   private initialized = false
   private handler: Handler
   public emitter: Emitter
-  public onEnter: () => void
 
   constructor(public nvim: Neovim) {
     let emitter = this.emitter = new Emitter()
@@ -31,19 +28,14 @@ export default class Plugin {
     services.init(nvim)
     commandManager.init(nvim, this)
     completion.init(nvim, this.emitter)
-    this.onEnter = once(() => {
-      this.onInit().catch(err => {
-        logger.error(err.stack)
-        echoErr(nvim, `Initialize failed, ${err.message}`)
-      })
-    })
     clean() // tslint:disable-line
   }
 
-  private async onInit(): Promise<void> {
+  public async init(): Promise<void> {
+    if (this.initialized) return
+    this.initialized = true
     let {nvim} = this
     await workspace.init()
-    this.initialized = true
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emitter.emit('ready')
