@@ -1,5 +1,6 @@
 import { IWorkspace } from '../types'
 import { Neovim } from '@chemzqm/neovim'
+import { echoErr } from '../util'
 
 const logger = require('../util/logger')('model-jobManager')
 
@@ -31,11 +32,13 @@ export default class JobManager {
     let {callbackMap} = this
     await this.nvim.call('coc#util#run_command', [{
       id: jobid,
+      timeout,
       cwd,
       cmd
     }])
     let promise = new Promise((resolve:ResolveCallback) => { // tslint:disable-line
       let timer = setTimeout(() => {
+        echoErr(this.nvim, `Command "${cmd}" timeout after ${timeout}s`)
         resolve(null)
       }, timeout*1000)
       let fn = (data:string):void => {
