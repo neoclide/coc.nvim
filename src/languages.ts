@@ -396,6 +396,8 @@ class Languages {
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
     let resolving: string
     let option: CompleteOption
+    let preferences = workspace.getConfiguration('coc.preferences')
+    let priority = preferences.get('languageSourcePriority', 9)
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
@@ -407,7 +409,7 @@ class Languages {
     return {
       name,
       enable: true,
-      priority: 99,
+      priority,
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
