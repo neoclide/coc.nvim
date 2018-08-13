@@ -22,16 +22,15 @@ export default class Plugin {
   public onEnter: () => void
 
   constructor(public nvim: Neovim) {
-    Object.defineProperty(workspace, 'nvim', {
-      get: () => nvim
-    })
     let emitter = this.emitter = new Emitter()
-    Object.defineProperty(workspace, 'emitter', {
-      get: () => emitter
-    })
+    ;(workspace as any).nvim = nvim
+    ;(workspace as any).emitter = emitter
+    let sources = new Sources(nvim)
+    ;(workspace as any).sources = sources
     this.handler = new Handler(nvim, this.emitter, services)
     services.init(nvim)
     commandManager.init(nvim, this)
+    completion.init(nvim, this.emitter)
     this.onEnter = once(() => {
       this.onInit().catch(err => {
         logger.error(err.stack)
@@ -45,13 +44,10 @@ export default class Plugin {
     let {nvim} = this
     await workspace.init()
     this.initialized = true
-    nvim.command('doautocmd User CocNvimInit')
-    logger.info('Coc initialized')
-    completion.init(nvim, this.emitter)
-    let sources = new Sources(nvim)
-    Object.defineProperty(workspace, 'sources', {
-      get: () => sources
-    })
+    nvim.command('doautocmd User CocNvimInit', true)
+    logger.info('coc initialized')
+    // let res = await workspace.runTerminalCommand('ls')
+    // logger.debug(JSON.stringify(res))
   }
 
   // callback for remote sources
@@ -88,8 +84,10 @@ export default class Plugin {
       case 'BufWritePre':
       case 'OptionSet':
         let fns = emitter.listeners(args[0])
-        for (let fn of fns) {
-          await Promise.resolve(fn.apply(null, args.slice(1)))
+        if (fns && fns.length) {
+          for (let fn of fns) {
+            await Promise.resolve(fn.apply(null, args.slice(1)))
+          }
         }
         break
       default:

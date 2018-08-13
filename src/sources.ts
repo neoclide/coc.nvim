@@ -198,8 +198,7 @@ export default class Sources extends EventEmitter {
     let name = path.basename(p, '.vim')
     let opts = this.getSourceConfig(name)
     opts.filepath = p
-    let source = await this.createRemoteSource(nvim, name, opts)
-    if (source) this.addSource(name, source)
+    await this.createRemoteSource(nvim, name, opts)
   }
 
   private createNvimProcess():cp.ChildProcess {
@@ -214,7 +213,7 @@ export default class Sources extends EventEmitter {
     }
   }
 
-  private async createRemoteSource(nvim:Neovim, name: string, opts: Partial<SourceConfig>): Promise<ISource | null> {
+  private async createRemoteSource(nvim:Neovim, name: string, opts: Partial<SourceConfig>): Promise<void> {
     await nvim.command(`source ${opts.filepath}`)
     let fns = await nvim.call('coc#util#remote_fns', name) as string[]
     for (let fn of ['init', 'complete']) {
@@ -233,11 +232,10 @@ export default class Sources extends EventEmitter {
         optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
       })
       source = new VimSource(nvim, config)
+      this.addSource(name, source)
     } catch (e) {
       echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)
-      return null
     }
-    return source
   }
 
   private async createRemoteSources(): Promise<void> {
@@ -269,7 +267,7 @@ export default class Sources extends EventEmitter {
     await Promise.all(files.map(p => {
       return this.createVimSourceFromPath(nvim, p)
     }))
-    if (proc) proc.kill('SIGKILL')
+    if (proc) proc.kill()
   }
 
   private onDocumentEnter(info: DocumentInfo): void {

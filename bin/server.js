@@ -21,5 +21,8 @@ process.on('unhandledRejection', function (reason, p) {
   } else {
     console.error('UnhandledRejection: ' + reason)
   }
+  if (plugin.nvim) {
+    plugin.nvim.call('coc#util#echo_messages', ['Error', 'UnhandledRejection run :CocErrors to checkout'], true)
+  }
   logger.error('unhandledRejection ', p, reason)
 })
