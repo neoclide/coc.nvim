@@ -24,6 +24,7 @@ describe('completion',() => {
   it('should trigger on first letter insert', async () => {
     await helper.edit('foo')
     await nvim.setLine('foo bar')
+    await helper.wait(30)
     await nvim.input('of')
     await helper.wait(100)
     let res = await helper.visible('foo', 'around')
@@ -35,13 +36,14 @@ describe('completion',() => {
     // trigger file source
     await nvim.input('i./')
     await helper.wait(100)
-    let res = await helper.visible('src', 'file')
+    let res = await helper.visible('coc-settings.json', 'file')
     expect(res).toBe(true)
   })
 
   it('should filter and sort on increment search', async () => {
     await helper.edit('search')
     await nvim.setLine('forceDocumentSync format  fallback')
+    await helper.wait(30)
     await nvim.input('of')
     await helper.wait(100)
     let items = await helper.getItems()
@@ -56,6 +58,7 @@ describe('completion',() => {
   it('should filter on character remove by backspace', async () => {
     await helper.edit('remove')
     await nvim.setLine('forceDocumentSync format  fallback')
+    await helper.wait(30)
     await nvim.input('ofa')
     await helper.wait(100)
     let items = await helper.getItems()
@@ -92,8 +95,10 @@ describe('completion',() => {
   it('should trigger on insert enter', async () => {
     await helper.edit('insert')
     await nvim.setLine('foo bar')
+    await helper.wait(30)
     await nvim.input('of')
-    await nvim.command('stopinsert')
+    await helper.wait(30)
+    await nvim.input('<esc>')
     await helper.wait(30)
     await nvim.input('A')
     await helper.wait(100)
@@ -104,14 +109,16 @@ describe('completion',() => {
   it('should filter on fast input', async () => {
     await helper.edit('insert')
     await nvim.setLine('foo bar')
+    await helper.wait(30)
     await nvim.input('ob')
-    await helper.wait(40)
-    await nvim.input('r')
-    await helper.wait(100)
+    await helper.wait(30)
+    await nvim.input('a')
+    await helper.wait(600)
     let mode = await nvim.mode
     expect(mode.mode).toBe('ic')
     let items = await helper.getItems()
-    expect(items.length).toBe(1)
+    let item = items.find(o => o.word == 'foo')
+    expect(item).toBeFalsy()
     expect(items[0].word).toBe('bar')
   })
 
@@ -119,6 +126,7 @@ describe('completion',() => {
     await helper.edit('insert')
     await helper.wait(100)
     await nvim.setLine('foo bar')
+    await helper.wait(40)
     await nvim.input('of')
     await helper.wait(200)
     let mode = await nvim.mode

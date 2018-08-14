@@ -5,7 +5,20 @@ set noswapfile
 set nobackup
 set completeopt=menuone,noinsert,noselect
 
+let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')
+let s:plugin = s:dir.'/plugins'
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
+
+imap <silent> <C-u> <Plug>(coc-complete-custom)
+
 execute 'set runtimepath+='.s:root
+execute 'set runtimepath+='.s:plugin
+
+function! SetDictionary()
+  exe 'setl dictionary+='.s:dir.'/test.dict'
+endfunction
+
+autocmd Filetype * setlocal omnifunc=syntaxcomplete#Complete
+

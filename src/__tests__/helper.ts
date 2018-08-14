@@ -4,18 +4,13 @@ import attach from '../attach'
 import Plugin from '../plugin'
 import { Neovim, Buffer } from '@chemzqm/neovim'
 import services from '../services'
-import { ServiceStat, VimCompleteItem } from '../types'
+import { ServiceStat, VimCompleteItem, IWorkspace } from '../types'
 
 export interface CursorPosition {
   bufnum: number
   lnum: number
   col: number
 }
-
-process.on('uncaughtException', err => {
-  // tslint:disable-next-line:no-console
-  console.error(err.stack)
-})
 
 export class Helper {
   public nvim: Neovim
@@ -24,7 +19,9 @@ export class Helper {
 
   public setup(): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
-    let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {})
+    let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
+      cwd: __dirname
+    })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
     return new Promise(resolve => {
@@ -133,6 +130,10 @@ export class Helper {
       }
       services.on('ready', cb)
     })
+  }
+
+  public get workspace(): IWorkspace {
+    return require('../workspace').default
   }
 }
 

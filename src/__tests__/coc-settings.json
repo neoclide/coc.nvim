@@ -1,3 +1,4 @@
 {
-  "coc.preferences.timeout": 3000
+  "coc.preferences.timeout": 3000,
+  "coc.source.omni.filetypes": ["vim"]
 }
