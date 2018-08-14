@@ -4,7 +4,6 @@ import { EventEmitter } from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import Sources from './sources'
 import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
@@ -16,9 +15,10 @@ import JobManager from './model/jobManager'
 import ModuleManager from './model/moduleManager'
 import BufferChannel from './model/outputChannel'
 import WillSaveUntilHandler from './model/willSaveHandler'
+import Sources from './sources'
 import { ChangeInfo, DocumentInfo, EditerState, IConfigurationData, IWorkspace, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, isSupportedScheme } from './util/index'
+import { disposeAll, echoErr, echoMessage, isSupportedScheme, wait } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
@@ -48,6 +48,7 @@ export class Workspace implements IWorkspace {
   private _cwd = process.cwd()
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
+  private checking: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
@@ -100,6 +101,8 @@ export class Workspace implements IWorkspace {
     this.emitter.on('BufWritePre', this.onBufWritePre.bind(this))
     this.emitter.on('OptionSet', this.onOptionSet.bind(this))
     this.emitter.on('FileType', this.onFileTypeChange.bind(this))
+    this.emitter.on('CursorHold', this.checkBuffer.bind(this))
+    this.emitter.on('TextChanged', this.checkBuffer.bind(this))
     this.emitter.on('notification', (method, args) => {
       switch (method) {
         case 'TerminalResult':
@@ -714,6 +717,26 @@ export class Workspace implements IWorkspace {
     if (supported) this._onDidCloseDocument.fire(doc.textDocument)
     doc.setFiletype(filetype)
     if (supported) this._onDidAddDocument.fire(doc.textDocument)
+  }
+
+  private async checkBuffer(bufnr: number):Promise<void> {
+    let doc = this.getDocument(bufnr)
+    if (!doc) {
+      if (this.checking.has(bufnr)) return
+      this.checking.add(bufnr)
+      this.emitter.emit('BufCreate', bufnr)
+      let buf = await this.nvim.buffer
+      if (buf.id == bufnr && bufnr != this.bufnr) {
+        this.emitter.emit('BufEnter')
+      }
+      if (buf.id == bufnr) {
+        let name = await buf.name
+        let winid = await this.nvim.call('bufwinid', '%')
+        this.emitter.emit('BufWinEnter', name, winid)
+      }
+      await wait(50)
+      this.checking.delete(bufnr)
+    }
   }
 }
 
