@@ -57,7 +57,8 @@ export default class Tag extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {tagfiles} = opt
+    let {tagfiles, input} = opt
+    if (input.length == 0) return null
     let list = await Promise.all(tagfiles.map(o => this.loadTags(o.file, o.mtime)))
     let allWords: Set<string> = new Set()
     for (let words of list as any) {
@@ -65,8 +66,10 @@ export default class Tag extends Source {
         allWords.add(word)
       }
     }
+    let words = Array.from(allWords.values())
+    words = words.filter(s => input[0] == s[0])
     return {
-      items: Array.from(allWords.values()).map(word => {
+      items: words.map(word => {
         return {
           word,
           menu: this.menu
