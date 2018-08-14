@@ -7,6 +7,7 @@ License: MIT license
 CONTENTS					*coc-contents*
 
 Introduction		|coc-introduction|
+Requirement		|coc-requirement|
 Install			|coc-install|
 Configuration 		|coc-configuration|
 Completion   		|coc-completion|
@@ -38,6 +39,13 @@ Coc tries to make best experience of LSP features, especially for completion.
 
 It has intergration with some best language server extensions from VSCode, and
 you can configure coc to work with custom language server as well.
+
+==============================================================================
+REQUIREMENT					*coc-requirement*
+
+This plugin works for neovim > 0.3, and vim > 8.1.
+
+If version not match, this plugin would not loaded at all.
 
 ==============================================================================
 INSTALL						*coc-install*
@@ -74,11 +82,11 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
 ==============================================================================
 INTERFACE					*coc-interface*
 
-Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
-mode, 'v_' works for visual mode.
-
 ------------------------------------------------------------------------------
 Keymapings 					*coc-keymapings*
+
+Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
+mode, 'v_' works for visual mode.
 
 <Plug>(coc-complete-custom) 			*i_coc-complete-custom*
 

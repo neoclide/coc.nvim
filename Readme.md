@@ -199,8 +199,8 @@ inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
 " Use <c-space> for trigger completion.
 inoremap <silent><expr> <c-space> coc#refresh()
 
-" Use <C-x></C-u> to complete 'word', 'emoji' and 'include' sources
-imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
+" Use <C-p> to complete 'word', 'emoji' and 'include' sources
+imap <silent> <C-p> <Plug>(coc-complete-custom)
 
 function! s:check_back_space() abort
   let col = col('.') - 1
