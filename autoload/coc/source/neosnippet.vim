@@ -9,7 +9,7 @@ function! coc#source#neosnippet#should_complete(opt) abort
   return 1
 endfunction
 
-function! s:get_snippets()
+function! s:get_snippets() abort
   let items = values(neosnippet#helpers#get_completion_snippets())
   let res = []
   for item in items
@@ -31,6 +31,12 @@ endfunction
 
 function! coc#source#neosnippet#complete(opt, cb) abort
   let filetype = a:opt['filetype']
+  let g:o = a:opt
+  if empty(filetype)
+    let items = s:get_snippets()
+    call a:cb(items)
+    return
+  endif
   if !has_key(s:cache, filetype)
     call coc#source#neosnippet#on_enter({
           \ 'languageId': filetype
