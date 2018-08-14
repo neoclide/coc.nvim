@@ -1,8 +1,7 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../model/source'
-import workspace from '../workspace'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
-import {readFileByLine, statAsync} from '../util/fs'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import { readFileByLine, statAsync } from '../util/fs'
 import path = require('path')
 const logger = require('../util/logger')('source-tag')
 
@@ -14,10 +13,10 @@ export interface CacheItem {
 let TAG_CACHE: {[index: string]: CacheItem} = {}
 
 export default class Tag extends Source {
-  constructor(nvim: Neovim, opts: SourceConfig) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'tag',
-      ...opts,
+      filepath: __filename
     })
   }
 
@@ -79,8 +78,9 @@ export default class Tag extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('tag')
-  sourceMap.set('tag', new Tag(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('tag', new Tag())
+  return Disposable.create(() => {
+    sourceMap.delete('tag')
+  })
 }

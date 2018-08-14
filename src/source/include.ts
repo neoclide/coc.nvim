@@ -1,22 +1,22 @@
-import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import pify from 'pify'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
+import { CompleteOption, CompleteResult, ISource } from '../types'
 import workspace from '../workspace'
 const exec = require('child_process').exec
 const logger = require('../util/logger')('source-include')
 
 export default class Include extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'include',
-      ...opts
+      filepath: __filename
     })
   }
 
   private get command():Promise<string> {
-    let {listFileCommand} = this.config
+    let listFileCommand = this.getConfig('listFileCommand', null)
     if (listFileCommand) return Promise.resolve(listFileCommand)
     return this.nvim.call('coc#util#get_listfile_command')
   }
@@ -26,7 +26,7 @@ export default class Include extends Source {
     let {input, bufnr} = opt
     let command = await this.command
     if (input.length == 0) return null
-    let {trimSameExts} = this.config
+    let trimSameExts = this.getConfig('trimSameExts', [])
     let fullpath = await nvim.call('coc#util#get_fullpath', bufnr)
     let items = []
     if (command) {
@@ -59,8 +59,9 @@ export default class Include extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('include')
-  sourceMap.set('include', new Include(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('include', new Include())
+  return Disposable.create(() => {
+    sourceMap.delete('include')
+  })
 }

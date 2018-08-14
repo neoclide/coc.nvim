@@ -1,16 +1,15 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
-import {echoErr, echoMessage} from '../util/index'
-import {byteSlice} from '../util/string'
-import workspace from '../workspace'
+import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
+import { echoErr, echoMessage } from '../util/index'
+import { byteSlice } from '../util/string'
 const logger = require('../util/logger')('source-omni')
 
 export default class OmniSource extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'omni',
-      ...opts
+      filepath: __filename
     })
   }
 
@@ -20,6 +19,21 @@ export default class OmniSource extends Source {
     if (typeof func == 'string' && func.length != 0) return true
     echoMessage(this.nvim, 'omnifunc option is empty, omni source skipped')
     return false
+  }
+
+  private convertToItems(list: any[], extra: any = {}): VimCompleteItem[] {
+    let { menu } = this
+    let res = []
+    for (let item of list) {
+      if (typeof item == 'string') {
+        res.push(Object.assign({ word: item, menu }, extra))
+      }
+      if (item.hasOwnProperty('word')) {
+        if (item.menu) extra.info = item.menu
+        res.push(Object.assign(item, { menu }, extra))
+      }
+    }
+    return res
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
@@ -55,8 +69,9 @@ export default class OmniSource extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('omni')
-  sourceMap.set('omni', new OmniSource(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('omni', new OmniSource())
+  return Disposable.create(() => {
+    sourceMap.delete('omni')
+  })
 }

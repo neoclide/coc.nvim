@@ -1,21 +1,28 @@
-import { Neovim } from '@chemzqm/neovim'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
-import Source from '../model/source'
-import {echoWarning} from '../util'
-import workspace from '../workspace'
 import cp from 'child_process'
+import { Disposable } from 'vscode-languageserver-protocol'
 import which from 'which'
+import Source from '../model/source'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import { echoWarning } from '../util'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-gocode')
 
 export default class Gocode extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, { name: 'gocode', ...opts })
+  constructor() {
+    super({
+      name: 'gocode',
+      filepath: __filename
+    })
+  }
+
+  public get gocodeBinary():string {
+    return this.getConfig('gocodeBinary', null)
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let {filetype} = opt
     if (filetype != 'go') return false
-    if (!this.config.gocode_binary) {
+    if (!this.gocodeBinary) {
       try {
         which.sync('gocode')
         return true
@@ -78,8 +85,9 @@ export default class Gocode extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('gocode')
-  sourceMap.set('gocode', new Gocode(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('gocode', new Gocode())
+  return Disposable.create(() => {
+    sourceMap.delete('gocode')
+  })
 }

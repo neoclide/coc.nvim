@@ -1,103 +1,68 @@
-import {Neovim} from '@chemzqm/neovim'
-import {CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem} from '../types'
-import {fuzzyChar} from '../util/fuzzy'
-import {byteSlice} from '../util/string'
-import {toBool} from '../util/types'
+import { Neovim } from '@chemzqm/neovim'
+import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
+import { fuzzyChar } from '../util/fuzzy'
+import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
-const boolOptions = ['firstMatch']
 
 export default abstract class Source implements ISource {
-  public enable: boolean
   public readonly name: string
-  public readonly config: SourceConfig
+  public readonly filepath: string
+  public readonly sourceType: SourceType
+  public readonly triggerCharacters: string[]
   // exists opitonnal function names for remote source
   protected readonly optionalFns: string[]
   protected readonly nvim: Neovim
-  private _disabled: boolean
-  constructor(nvim: Neovim, option: Partial<SourceConfig>) {
-    let {name, optionalFns} = option
-    delete option.name
-    delete option.optionalFns
-    this.nvim = nvim
-    this.optionalFns = optionalFns || []
+  private _disabled = false
+  constructor(option: SourceConfig) {
+    let { name, optionalFns } = option
     this.name = name
-    for (let key of boolOptions) {
-      if (option.hasOwnProperty(key)) {
-        option[key] = toBool(option[key])
-      }
-    }
-    this.config = Object.assign({
-      name: '',
-      shortcut: name.slice(0, 3),
-      priority: 1,
-      filetypes: null,
-      firstMatch: false,
-      sourceType: SourceType.Native,
-      triggerCharacters: [],
-    }, option)
-    this._disabled = option.enable === false // tslint:disable-line
-    Object.defineProperty(this, 'enable', {
-      get: () => {
-        return !this._disabled
-      },
-      set: (val: boolean) => {
-        this._disabled = !val
-      }
-    })
+    this.nvim = workspace.nvim
+    this.optionalFns = optionalFns || []
+    this.filepath = option.filepath || ''
+    this.sourceType = option.sourceType || SourceType.Native
+    this.triggerCharacters = option.triggerCharacters || []
+  }
+
+  public get priority(): number {
+    return this.getConfig('priority', 1)
+  }
+
+  public get shortcut(): string {
+    let shortcut = this.getConfig('shortcut', null)
+    return shortcut ? shortcut : this.name.slice(0, 3)
+  }
+
+  public get enable(): boolean {
+    if (this._disabled) return false
+    return this.getConfig('enable', true)
+  }
+
+  public get filetypes(): string[] | null {
+    return this.getConfig('filetypes', null)
+  }
+
+  public getConfig<T>(key: string, defaultValue?: T): T | null {
+    let config = workspace.getConfiguration(`coc.source.${this.name}`)
+    return config.get(key, defaultValue)
   }
 
   public toggle(): void {
     this._disabled = !this._disabled
   }
 
-  public get filepath(): string {
-    return this.config.filepath || ''
-  }
-
-  public get sourceType(): SourceType {
-    return this.config.sourceType
-  }
-
-  public get triggerCharacters(): string[] {
-    return this.config.triggerCharacters
-  }
-
-  public get priority(): number {
-    return Number(this.config.priority)
-  }
-
   public get firstMatch(): boolean {
-    return !!this.config.firstMatch
-  }
-
-  public get filetypes(): string[] | null {
-    return this.config.filetypes
+    return this.getConfig('firstMatch', false)
   }
 
   public get menu(): string {
-    let {shortcut} = this.config
-    return `[${shortcut.slice(0, 3).toUpperCase()}]`
-  }
-
-  protected convertToItems(list: any[], extra: any = {}): VimCompleteItem[] {
-    let {menu} = this
-    let res = []
-    for (let item of list) {
-      if (typeof item == 'string') {
-        res.push(Object.assign({word: item, menu}, extra))
-      }
-      if (item.hasOwnProperty('word')) {
-        if (item.menu) extra.info = item.menu
-        res.push(Object.assign(item, {menu}, extra))
-      }
-    }
-    return res
+    let { shortcut } = this
+    return `[${shortcut.toUpperCase()}]`
   }
 
   protected filterWords(words: string[], opt: CompleteOption): string[] {
     let res = []
-    let {input} = opt
+    let { input } = opt
     let cword = opt.word
     let cFirst = input.length ? input[0] : null
     for (let word of words) {
@@ -119,11 +84,11 @@ export default abstract class Source implements ISource {
    * @returns {number}
    */
   protected fixStartcol(opt: CompleteOption, valids: string[]): number {
-    let {col, input, line, bufnr} = opt
+    let { col, input, line, bufnr } = opt
     let start = byteSlice(line, 0, col)
     let document = workspace.getDocument(bufnr)
     if (!document) return col
-    let {chars} = document
+    let { chars } = document
     for (let i = start.length - 1; i >= 0; i--) {
       let c = start[i]
       if (!chars.isKeywordChar(c) && valids.indexOf(c) === -1) {

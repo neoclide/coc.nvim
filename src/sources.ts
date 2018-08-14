@@ -1,7 +1,7 @@
 import { Neovim, attach } from '@chemzqm/neovim'
 import languages from './languages'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, WorkspaceConfiguration, DocumentInfo } from './types'
+import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, DocumentInfo } from './types'
 import { echoErr, echoMessage, disposeAll } from './util'
 import { statAsync } from './util/fs'
 import { isWord } from './util/string'
@@ -17,13 +17,11 @@ const logger = require('./util/logger')('sources')
 
 export default class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
-  private sourceConfig: WorkspaceConfiguration
   private disposables:Disposable[] = []
   private _ready = false
 
   constructor(private nvim: Neovim) {
     super()
-    this.sourceConfig = workspace.getConfiguration('coc.source')
     Promise.all([
       this.createNativeSources(),
       this.createRemoteSources(),
@@ -173,32 +171,43 @@ export default class Sources extends EventEmitter {
   }
 
   private async createNativeSources(): Promise<void> {
-    (await import('./source/around')).regist(this.sourceMap)
-    ;(await import('./source/dictionary')).regist(this.sourceMap)
-    ;(await import('./source/buffer')).regist(this.sourceMap)
-    ;(await import('./source/emoji')).regist(this.sourceMap)
-    ;(await import('./source/file')).regist(this.sourceMap)
-    ;(await import('./source/include')).regist(this.sourceMap)
-    ;(await import('./source/tag')).regist(this.sourceMap)
-    ;(await import('./source/gocode')).regist(this.sourceMap)
-    ;(await import('./source/word')).regist(this.sourceMap)
-    ;(await import('./source/omni')).regist(this.sourceMap)
+    this.disposables.push((await import('./source/around')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/dictionary')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/emoji')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/file')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/include')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/tag')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/gocode')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/word')).regist(this.sourceMap))
+    this.disposables.push((await import('./source/omni')).regist(this.sourceMap))
   }
 
-  private getSourceConfig(name: string): Partial<SourceConfig> {
-    let opt = this.sourceConfig.get(name, {} as any) as any
-    let res = {}
-    for (let key of Object.keys(opt)) {
-      res[key] = opt[key]
+  private async createVimSourceFromPath(nvim:Neovim, filepath: string): Promise<void> {
+    let name = path.basename(filepath, '.vim')
+    await nvim.command(`source ${filepath}`)
+    let fns = await nvim.call('coc#util#remote_fns', name) as string[]
+    for (let fn of ['init', 'complete']) {
+      if (fns.indexOf(fn) == -1) {
+        echoErr(nvim, `${fn} not found for source ${name}`)
+        return null
+      }
     }
-    return res
-  }
-
-  private async createVimSourceFromPath(nvim:Neovim, p: string): Promise<void> {
-    let name = path.basename(p, '.vim')
-    let opts = this.getSourceConfig(name)
-    opts.filepath = p
-    await this.createRemoteSource(nvim, name, opts)
+    let config: SourceConfig | null
+    let source
+    try {
+      config = await nvim.call(`coc#source#${name}#init`, [])
+      config = Object.assign(config, {
+        name,
+        filepath,
+        sourceType: SourceType.Remote,
+        optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
+      })
+      source = new VimSource(config)
+      this.addSource(name, source)
+    } catch (e) {
+      echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)
+    }
   }
 
   private createNvimProcess():cp.ChildProcess {
@@ -211,31 +220,6 @@ export default class Sources extends EventEmitter {
       return proc
     } catch (e) {
       return null
-    }
-  }
-
-  private async createRemoteSource(nvim:Neovim, name: string, opts: Partial<SourceConfig>): Promise<void> {
-    await nvim.command(`source ${opts.filepath}`)
-    let fns = await nvim.call('coc#util#remote_fns', name) as string[]
-    for (let fn of ['init', 'complete']) {
-      if (fns.indexOf(fn) == -1) {
-        echoErr(nvim, `${fn} not found for source ${name}`)
-        return null
-      }
-    }
-    let config: SourceConfig | null
-    let source
-    try {
-      config = await nvim.call(`coc#source#${name}#init`, [])
-      config = Object.assign(config, opts, {
-        sourceType: SourceType.Remote,
-        name,
-        optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
-      })
-      source = new VimSource(this.nvim, config)
-      this.addSource(name, source)
-    } catch (e) {
-      echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)
     }
   }
 

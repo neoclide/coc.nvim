@@ -54,6 +54,9 @@ export default class Configurations {
       update: (key: string, value: any, isGlobal = true) => {
         let s = section ? `${section}.${key}` : key
         this._configuration.updateValue(s, value)
+        if (global.hasOwnProperty('__TEST__')) {
+          return
+        }
         let target = isGlobal ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         if (value === undefined) {
           this._proxy.$removeConfigurationOption(target, s)

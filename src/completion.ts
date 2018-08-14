@@ -181,7 +181,6 @@ export class Completion {
     this.lastChangedI = Date.now()
     let {nvim, increment} = this
     let {latestInsertChar} = increment
-    logger.debug('changedI', this.completing, increment.isActivted)
     if (increment.isActivted) {
       if (this.completing) return
       let search = await increment.getResumeInput()

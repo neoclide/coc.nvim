@@ -1,19 +1,19 @@
-import {Neovim} from '@chemzqm/neovim'
-import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
-import workspace from '../workspace'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
+import { Disposable } from 'vscode-languageserver-protocol'
+import Source from '../model/source'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import workspace from '../workspace'
 // const logger = require('../util/logger')('source-word')
 
 let words = null
 
 export default class Word extends Source {
-  constructor(nvim: Neovim, opts: SourceConfig) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'word',
-      ...opts,
+      filepath: __filename
     })
   }
 
@@ -42,8 +42,9 @@ export default class Word extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('word')
-  sourceMap.set('word', new Word(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('word', new Word())
+  return Disposable.create(() => {
+    sourceMap.delete('word')
+  })
 }

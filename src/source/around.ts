@@ -1,14 +1,14 @@
-import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
+import {CompleteOption, CompleteResult, ISource} from '../types'
 import workspace from '../workspace'
+import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('source-around')
 
 export default class Around extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'around',
-      ...opts
+      filepath: __filename
     })
   }
 
@@ -37,8 +37,9 @@ export default class Around extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('around')
-  sourceMap.set('around', new Around(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('around', new Around())
+  return Disposable.create(() => {
+    sourceMap.delete('around')
+  })
 }

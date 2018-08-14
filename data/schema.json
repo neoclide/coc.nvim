@@ -542,6 +542,11 @@
       "type": "string",
       "default": "GOC"
     },
+    "coc.source.gocode.gocodeBinary": {
+      "type": "string",
+      "default": "",
+      "description": "Binary full path of gocode executable"
+    },
     "coc.source.gocode.filetypes": {
       "type": "array",
       "default": ["go"],

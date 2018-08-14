@@ -1,7 +1,7 @@
-import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
 import workspace from '../workspace'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
+import { Disposable } from 'vscode-languageserver-protocol'
+import {CompleteOption, CompleteResult, ISource} from '../types'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
@@ -14,10 +14,10 @@ export interface Item {
 let items: Item[] | null = null
 
 export default class Emoji extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'emoji',
-      ...opts,
+      filepath: __filename
     })
   }
 
@@ -45,8 +45,9 @@ export default class Emoji extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('emoji')
-  sourceMap.set('emoji', new Emoji(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('emoji', new Emoji())
+  return Disposable.create(() => {
+    sourceMap.delete('emoji')
+  })
 }

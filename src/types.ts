@@ -1,4 +1,4 @@
-import {Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder, WorkspaceEdit, Disposable, Position, Location} from 'vscode-languageserver-protocol'
+import { Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder, WorkspaceEdit, Disposable, Position, Location } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Document from './model/document'
@@ -109,15 +109,11 @@ export interface DiagnosticItem {
 // Config property of source
 export interface SourceConfig {
   name: string
-  priority: number
-  filetypes: string[] | null
-  sourceType: SourceType
-  triggerCharacters: string[]
+  sourceType?: SourceType
+  triggerCharacters?: string[]
+  optionalFns?: string[]
   shortcut?: string
-  firstMatch?: boolean
   filepath?: string
-  enable?: boolean
-  [index: string]: any
 }
 
 export interface RecentScore {
@@ -597,8 +593,8 @@ export interface IWorkspace {
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   getQuickfixItem(loc: Location): Promise<QuickfixItem>
-  getLine(uri:string, line:number): Promise<string>
-  readFile(uri:string): Promise<string>
+  getLine(uri: string, line: number): Promise<string>
+  readFile(uri: string): Promise<string>
   echoLines(lines: string[]): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>

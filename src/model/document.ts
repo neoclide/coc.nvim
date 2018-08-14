@@ -52,6 +52,9 @@ export default class Document {
       set: (val: boolean) => {
         if (val == paused) return
         if (val) {
+          // fire immediatelly
+          this._fireContentChanges.clear()
+          this.fireContentChanges()
           paused = true
         } else {
           paused = false

@@ -1,22 +1,21 @@
 import fs from 'fs'
-import {Neovim} from '@chemzqm/neovim'
+import minimatch from 'minimatch'
+import os from 'os'
 import path from 'path'
 import pify from 'pify'
-import minimatch from 'minimatch'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, VimCompleteItem, ISource} from '../types'
-import {statAsync} from '../util/fs'
-import {byteSlice} from '../util/string'
-import os from 'os'
-import workspace from '../workspace'
+import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
+import { statAsync } from '../util/fs'
+import { byteSlice } from '../util/string'
 // const logger = require('../util/logger')('source-file')
 const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 export default class File extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super({
       name: 'file',
-      ...opts
+      filepath: __filename
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
@@ -51,7 +50,8 @@ export default class File extends Source {
   }
 
   public filterFiles(files: string[]): string[] {
-    let {ignoreHidden, ignorePatterns} = this.config
+    let ignoreHidden = this.getConfig('ignoreHidden', true)
+    let ignorePatterns = this.getConfig('ignorePatterns', [])
     return files.filter(f => {
       if (f == null) return false
       if (ignoreHidden && /^\./.test(f)) return false
@@ -79,6 +79,10 @@ export default class File extends Source {
     return res
   }
 
+  public get trimSameExts():string[] {
+    return this.getConfig('trimSameExts', [])
+  }
+
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
     let {input, pathstr, col, cwd, ext, fullpath, dirname, part} = opt
     let root
@@ -96,7 +100,7 @@ export default class File extends Source {
       root = cwd
     }
     let items = await this.getItemsFromRoot(pathstr, root)
-    let trimExt = this.config.trimSameExts.indexOf(ext) != -1
+    let trimExt = this.trimSameExts.indexOf(ext) != -1
     let startcol = this.fixStartcol(opt, ['-', '@'])
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
@@ -114,8 +118,9 @@ export default class File extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('file')
-  sourceMap.set('file', new File(nvim, config))
+export function regist(sourceMap:Map<string, ISource>):Disposable {
+  sourceMap.set('file', new File())
+  return Disposable.create(() => {
+    sourceMap.delete('file')
+  })
 }

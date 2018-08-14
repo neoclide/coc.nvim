@@ -1,14 +1,14 @@
-import {Neovim} from '@chemzqm/neovim'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, SourceConfig, ISource} from '../types'
+import {CompleteOption, CompleteResult, ISource} from '../types'
 import workspace from '../workspace'
+import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('source-buffer')
 
 export default class Buffer extends Source {
-  constructor(nvim: Neovim, opts: Partial<SourceConfig>) {
-    super(nvim, {
+  constructor() {
+    super( {
       name: 'buffer',
-      ...opts
+      filepath: __filename
     })
   }
 
@@ -22,8 +22,12 @@ export default class Buffer extends Source {
     await workspace.refresh()
   }
 
+  public get ignoreGitignore():boolean {
+    return this.getConfig('ignoreGitignore', true)
+  }
+
   private getWords(bufnr: number): string[] {
-    let {ignoreGitignore} = this.config
+    let {ignoreGitignore} = this
     let words: string[] = []
     workspace.documents.forEach(document => {
       if (!document || (ignoreGitignore && document.isIgnored)) return
@@ -52,8 +56,9 @@ export default class Buffer extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):void {
-  let {nvim} = workspace
-  let config = workspace.getConfiguration('coc.source').get<SourceConfig>('buffer')
-  sourceMap.set('buffer', new Buffer(nvim, config))
+export function regist(sourceMap:Map<string, ISource>): Disposable {
+  sourceMap.set('buffer', new Buffer())
+  return Disposable.create(() => {
+    sourceMap.delete('buffer')
+  })
 }

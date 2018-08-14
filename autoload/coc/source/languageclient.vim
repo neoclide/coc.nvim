@@ -8,8 +8,12 @@ function! coc#source#languageclient#init() abort
         \}
 endfunction
 
+function! coc#source#languageclient#should_complete(opt) abort
+  if empty(get(g:, 'LanguageClient_serverCommands', {}))| return 0 | endif
+  return 1
+endfunction
+
 function! coc#source#languageclient#complete(opt, cb) abort
-  " TODO maybe we need to change the character according to specified LanguageServer
   let l:Callback = {res -> a:cb(s:FilterResult(res))}
   call LanguageClient#omniComplete({
         \ 'character': a:opt['col'],
