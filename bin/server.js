@@ -1,9 +1,10 @@
 require('babel-polyfill')
 const logger = require('../lib/util/logger')('server')
 const attach = require('..').default
+const address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
 let plugin = attach({
-  socket: process.env.NVIM_LISTEN_ADDRESS
+  socket: address
 })
 
 process.on('uncaughtException', function (err) {

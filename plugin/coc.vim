@@ -1,16 +1,16 @@
 if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
+if has('nvim') && !has('nvim-0.3.0') | finish | endif
+if !has('nvim') && !has('patch-8.1.001') | finish | endif
+
 let g:did_coc_loaded = 1
 let s:is_vim = !has('nvim')
-
-if has('nvim') && !has('nvim-0.3.0') | finish | endif
-if s:is_vim && !has('patch-8.1.001') | finish | endif
 
 if s:is_vim
   call nvim#rpc#start_server()
 else
-  if $NODE_ENV !=# 'test'
+  if $NODE_ENV !=# 'test' && $NVIM_LISTEN_ADDRESS !=# '/tmp/nvim'
     call coc#rpc#start_server()
   endif
 endif
