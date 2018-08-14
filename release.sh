@@ -8,6 +8,7 @@ git add package.json
 tag=v$(json -f package.json version)
 git commit -a -m "Release $tag" &> /dev/null
 git tag -a "$tag" -m "Release $tag"
+git push
 git push --tags
 
 GH_API="https://api.github.com"

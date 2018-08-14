@@ -1,3 +1,12 @@
+# 2018-08-14
+
+* Fix remote source not working.
+* Fix sort of completion items.
+* Fix EPIPE error from net module.
+* Add `tslint.lintProject` command.
+* Add config `coc.preferences.maxCompleteItemCount`.
+* Add `g:coc_auto_copen`, default to `1`.
+
 # 2018-08-12
 
 * **Break change** `:CocRefresh` replaced with `call CocAction('refreshSource')`.
