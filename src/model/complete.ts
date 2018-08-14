@@ -15,7 +15,6 @@ export default class Complete {
   public results: CompleteResult[] | null
   public option: CompleteOption
   public readonly recentScores: RecentScore
-  private maxItemCount:number
   constructor(opts: CompleteOption, recentScores: RecentScore | null) {
     this.option = opts
     Object.defineProperty(this, 'recentScores', {
@@ -23,12 +22,15 @@ export default class Complete {
         return recentScores || {}
       }
     })
-    const preferences = workspace.getConfiguration('coc.preferences')
-    this.maxItemCount = preferences.get('maxCompleteItemCount', 50)
   }
 
   public get startcol(): number {
     return this.option.col || 0
+  }
+
+  private get maxItemCount():number {
+    const preferences = workspace.getConfiguration('coc.preferences')
+    return preferences.get('maxCompleteItemCount', 50)
   }
 
   private completeSource(source: ISource): Promise<any> {
@@ -68,6 +70,8 @@ export default class Complete {
     return new Promise(resolve => {
       s.done((err, ctx) => {
         if (err) {
+          // tslint:disable-next-line:no-console
+          console.error(`${source.name} complete error: ${err.message}`)
           logger.error('Complete error', source.name, err.message)
           resolve(false)
           return
@@ -109,16 +113,16 @@ export default class Complete {
       for (let item of items) {
         let { user_data, filterText, word } = item
         if (words.has(word)) continue
-        filterText = filterText || item.word
-        if (filterText.length < input.length) continue
-        if (isIncrement && item.sortText) delete item.sortText
         let data = {} as any
+        filterText = filterText || item.word
         if (user_data) {
           try {
             data = JSON.parse(user_data)
             filterText = data.filter ? data.filter : filterText
           } catch (e) { } // tslint:disable-line
         }
+        if (filterText.length < input.length) continue
+        if (isIncrement && item.sortText) delete item.sortText
         if (input.length && !fuzzyMatch(codes, filterText)) continue
         if (!isIncrement) {
           data = Object.assign(data, { cid: id, source })
