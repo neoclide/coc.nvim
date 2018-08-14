@@ -338,8 +338,8 @@ export class Workspace implements IWorkspace {
     return ''
   }
 
-  public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable {
-    return this.willSaveUntilHandler.addCallback(callback, thisArg, client)
+  public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable {
+    return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId)
   }
 
   public async refresh(): Promise<void> {
@@ -392,8 +392,9 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async getFormatOptions(): Promise<FormattingOptions> {
-    let doc = await this.document
+  public async getFormatOptions(uri?:string): Promise<FormattingOptions> {
+    let doc = uri ? this.getDocument(uri) : await this.document
+    if (!doc) return {tabSize: 2, insertSpaces: true}
     let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1

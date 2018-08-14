@@ -16,6 +16,16 @@
       "default": "",
       "description": "Folder path for cache typings"
     },
+    "tsserver.formatOnSave": {
+      "type": "boolean",
+      "default": false,
+      "description": "Format document on buffer will save"
+    },
+    "tsserver.orgnizeImportOnSave": {
+      "type": "boolean",
+      "default": false,
+      "description": "Orgnize import on buffer will save"
+    },
     "tsserver.enableJavascript": {
       "type": "boolean",
       "default": true,

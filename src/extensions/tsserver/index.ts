@@ -1,7 +1,8 @@
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import { IServiceProvider, ServiceStat } from '../../types'
+import { Disposable, Emitter, Event, TextEdit } from 'vscode-languageserver-protocol'
+import { IServiceProvider, ServiceStat, WorkspaceConfiguration, TextDocumentWillSaveEvent } from '../../types'
 import { disposeAll } from '../../util/index'
 import workspace from '../../workspace'
+import languages from '../../languages'
 import TypeScriptServiceClientHost from './typescriptServiceClientHost'
 import { standardLanguageDescriptions, LanguageDescription } from './utils/languageDescription'
 import { languageIds } from './utils/languageModeIds'
@@ -32,6 +33,10 @@ export default class TsserverService implements IServiceProvider {
     }, [])
   }
 
+  public get config(): WorkspaceConfiguration {
+    return workspace.getConfiguration('tsserver')
+  }
+
   public init(): Promise<void> {
     this.clientHost = new TypeScriptServiceClientHost(this.descriptions)
     this.disposables.push(this.clientHost)
@@ -45,12 +50,27 @@ export default class TsserverService implements IServiceProvider {
       let started = false
       client.onTsServerStarted(() => {
         this._onDidServiceReady.fire(void 0)
+        workspace.onWillSaveUntil(this.onWillSave, this, 'tsserver')
         if (!started) {
           started = true
           resolve()
         }
       })
     })
+  }
+
+  private onWillSave(event: TextDocumentWillSaveEvent): void {
+    let formatOnSave = this.config.get('formatOnSave')
+    if (!formatOnSave) return
+    let { languageId } = event.document
+    if (languageIds.indexOf(languageId) == -1) return
+    if (this.state != ServiceStat.Running) return
+    let willSaveWaitUntil = async (event: TextDocumentWillSaveEvent): Promise<TextEdit[]> => {
+      let options = await workspace.getFormatOptions(event.document.uri)
+      let textEdits = await languages.provideDocumentFormattingEdits(event.document, options)
+      return textEdits
+    }
+    event.waitUntil(willSaveWaitUntil(event))
   }
 
   public dispose(): void {

@@ -1,8 +1,7 @@
-import { Diagnostic, Event, TextDocument, TextDocumentSaveReason, TextEdit, DidChangeTextDocumentParams, WorkspaceFolder, WorkspaceEdit, Disposable, Position, Location } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import FileSystemWatcher from './model/fileSystemWatcher'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
-import { BaseLanguageClient } from './language-client/main'
+import FileSystemWatcher from './model/fileSystemWatcher'
 import { FormattingOptions } from './provider'
 
 export interface EditerState {
@@ -583,7 +582,7 @@ export interface IWorkspace {
   onDidWorkspaceInitialized: Event<void>
   onDidModuleInstalled: Event<string>
   onDidBufWinEnter: Event<WinEnter>
-  onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, client: BaseLanguageClient): Disposable
+  onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   getDocument(uri: string | number): Document
   getDocument(bufnr: number): Document | null
   getOffset(): Promise<number>

@@ -1,7 +1,6 @@
-import {IWorkspace, TextDocumentWillSaveEvent } from '../types'
-import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
-import { BaseLanguageClient } from '../language-client/main'
 import { Neovim } from '@chemzqm/neovim'
+import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
+import { IWorkspace, TextDocumentWillSaveEvent } from '../types'
 import { echoErr } from '../util'
 const logger = require('../util/logger')('willSaveHandler')
 
@@ -18,14 +17,14 @@ export default class WillSaveUntilHandler {
     return this.workspace.nvim
   }
 
-  public addCallback(callback: Callback, thisArg: any, client: BaseLanguageClient): Disposable {
+  public addCallback(callback: Callback, thisArg: any, clientId: string): Disposable {
     let {nvim} = this
     let fn = (event: TextDocumentWillSaveEvent): Promise<void> => {
       let ev: TextDocumentWillSaveEvent = Object.assign({}, event)
       return new Promise(resolve => {
         let called = false
         let timer = setTimeout(() => {
-          echoErr(nvim, `${client.id} timeout after 500ms`)
+          echoErr(nvim, `${clientId} timeout after 500ms`)
           resolve(null)
         }, 500)
         ev.waitUntil = (thenable): void => {
@@ -39,7 +38,7 @@ export default class WillSaveUntilHandler {
                 // make sure server received ChangedText
                 setTimeout(resolve, 30)
               }, e => {
-                echoErr(nvim, `${client.id} error on applyEdits ${e.message}`)
+                echoErr(nvim, `${clientId} error on applyEdits ${e.message}`)
                 resolve()
               })
             } else {
@@ -47,7 +46,7 @@ export default class WillSaveUntilHandler {
             }
           }, e => {
             clearTimeout(timer)
-            echoErr(nvim, `${client.id} error on willSaveUntil ${e.message}`)
+            echoErr(nvim, `${clientId} error on willSaveUntil ${e.message}`)
             resolve()
           })
         }
