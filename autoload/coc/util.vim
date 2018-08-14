@@ -532,8 +532,12 @@ endfunction
 function! coc#util#module_folder(manager) abort
   let is_yarn = a:manager ==# 'yarn'
   let cmd = is_yarn ? 'yarn global dir' : 'npm --loglevel silent root -g'
-  let folder = get(split(system(cmd), "\n"), 0, '')
-  if v:shell_error || !isdirectory(folder)
+  let lines = filter(systemlist(cmd), "v:val !=# ''")
+  if v:shell_error || empty(lines)
+    return ''
+  endif
+  let folder = lines[-1]
+  if !isdirectory(folder)
     return ''
   endif
   return is_yarn ? folder . '/node_modules' : folder
