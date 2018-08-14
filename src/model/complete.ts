@@ -1,5 +1,5 @@
 import { score } from 'fuzzaldrin'
-import { CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
+import { CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem, SourceType } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
@@ -36,11 +36,19 @@ export default class Complete {
   private completeSource(source: ISource): Promise<any> {
     let start = Date.now()
     let s = new Serial()
-    let { col } = this.option
+    let { col, triggerCharacter } = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
     let timeout = workspace.getConfiguration('coc.preferences').get('timeout', 300)
     s.timeout(Math.min(Number(timeout), 3000))
+    // wait for content sync
+    if (triggerCharacter) {
+      s.add(done => {
+        setTimeout(() => {
+          done()
+        }, 40)
+      })
+    }
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
         source.shouldComplete(option).then(res => {
@@ -128,7 +136,7 @@ export default class Complete {
           data = Object.assign(data, { cid: id, source })
           item.user_data = JSON.stringify(data)
         }
-        let factor = isIncrement && input.length > 2 ? 0 : priority / 100 + this.getBonusScore(input, item)
+        let factor = isIncrement && input.length > 4 ? 0 : priority / 100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)

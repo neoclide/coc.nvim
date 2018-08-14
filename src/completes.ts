@@ -7,15 +7,10 @@ export class Completes {
   public complete: Complete | null
   public recentScores: RecentScore
   private completeItems: VimCompleteItem[] | null
-  private _completing = false
 
   constructor() {
     this.complete = null
     this.recentScores = {}
-  }
-
-  public get completing(): boolean {
-    return this._completing
   }
 
   public addRecent(word: string): void {
@@ -34,13 +29,10 @@ export class Completes {
   public async doComplete(
     sources: ISource[],
     option: CompleteOption): Promise<VimCompleteItem[]> {
-    this._completing = true
     let complete = new Complete(option, this.recentScores)
     this.complete = complete
     let items = await complete.doComplete(sources)
     this.completeItems = items || []
-    // wait for popmenu show
-    setTimeout(() => {this._completing = false}, 20)
     return items
   }
 
@@ -68,6 +60,11 @@ export class Completes {
     let {complete} = this
     if (!complete) return null
     return complete.option
+  }
+
+  public get input(): string | null {
+    let {option} = this
+    return option ? option.input : null
   }
 
   public hasMatch(search: string): boolean {

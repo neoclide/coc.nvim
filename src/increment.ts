@@ -56,7 +56,10 @@ export default class Increment extends Emitter {
    */
   public start(option: CompleteOption): void {
     let {nvim, activted} = this
-    if (activted) this.stop()
+    if (activted) {
+      this._search = option.input
+      return
+    }
     this.activted = true
     this._search = option.input
     let opt = this._incrementopt = Increment.getStartOption()
@@ -90,7 +93,6 @@ export default class Increment extends Emitter {
     let {option} = completes
     let search = await nvim.call('coc#util#get_search', [option.col])
     this._search = search
-    if (completes.completing) return null
     if (search == null || !completes.hasMatch(search)) {
       await this.nvim.call('coc#_hide')
       this.stop()
