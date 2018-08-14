@@ -232,7 +232,7 @@ export default class Sources extends EventEmitter {
         name,
         optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
       })
-      source = new VimSource(nvim, config)
+      source = new VimSource(this.nvim, config)
       this.addSource(name, source)
     } catch (e) {
       echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)

@@ -1,11 +1,10 @@
-
 function! coc#source#ultisnips#init() abort
   return {}
 endfunction
 
 function! coc#source#ultisnips#should_complete(opt) abort
-  if !get(g:, 'did_plugin_ultisnips', 0) | return 0 | endif
-  return 1
+  if get(g:, 'did_plugin_ultisnips', 0) | return 1 | endif
+  return 0
 endfunction
 
 function! coc#source#ultisnips#complete(opt, cb) abort
