@@ -16,7 +16,7 @@ function! s:get_snippets()
     call add(res, {
           \ 'word': item['word'],
           \ 'menu': item['menu_abbr'],
-          \ 'user_data': item['user_data']
+          \ 'user_data': get(item, 'user_data', ''),
           \})
   endfor
   return res
