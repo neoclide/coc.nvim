@@ -1,11 +1,11 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import net from 'net'
-import {Disposable, TextEdit} from 'vscode-languageserver-protocol'
+import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import * as platform from './platform'
 import which from 'which'
+import * as platform from './platform'
 
-export {platform}
+export { platform }
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
 
@@ -50,7 +50,7 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
 
 export function isCocItem(item: any): boolean {
   if (!item || !item.hasOwnProperty('user_data')) return false
-  let {user_data} = item
+  let { user_data } = item
   try {
     let res = JSON.parse(user_data)
     return res.cid != null
@@ -111,10 +111,10 @@ export function disposeAll(disposables: Disposable[]): void {
 }
 
 export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
-  let {newText, range} = edit
-  let {start, end} = range
+  let { newText, range } = edit
+  let { start, end } = range
   if (start.line == end.line) {
-    if (newText.endsWith('\n')) return false
+    if (newText.indexOf('\n') !== -1) return false
     return lnum == null ? true : start.line == lnum
   }
   if (end.line == start.line + 1 && newText.endsWith('\n')) {
@@ -123,7 +123,7 @@ export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
   return false
 }
 
-export function executable(command:string):boolean {
+export function executable(command: string): boolean {
   try {
     which.sync(command)
   } catch (e) {
@@ -132,7 +132,7 @@ export function executable(command:string):boolean {
   return true
 }
 
-export function defer<T>():Promise<T> & {resolve: (res:T)=>void, reject: (err:Error)=>void} {
+export function defer<T>(): Promise<T> & { resolve: (res: T) => void, reject: (err: Error) => void } {
   let res
   let rej
 

@@ -1,10 +1,10 @@
 import { Disposable, Emitter, Event, TextEdit } from 'vscode-languageserver-protocol'
-import { IServiceProvider, ServiceStat, WorkspaceConfiguration, TextDocumentWillSaveEvent } from '../../types'
+import languages from '../../languages'
+import { IServiceProvider, ServiceStat, TextDocumentWillSaveEvent, WorkspaceConfiguration } from '../../types'
 import { disposeAll } from '../../util/index'
 import workspace from '../../workspace'
-import languages from '../../languages'
 import TypeScriptServiceClientHost from './typescriptServiceClientHost'
-import { standardLanguageDescriptions, LanguageDescription } from './utils/languageDescription'
+import { LanguageDescription, standardLanguageDescriptions } from './utils/languageDescription'
 import { languageIds } from './utils/languageModeIds'
 const logger = require('../../util/logger')('tsserver-index')
 
@@ -60,17 +60,17 @@ export default class TsserverService implements IServiceProvider {
   }
 
   private onWillSave(event: TextDocumentWillSaveEvent): void {
-    let formatOnSave = this.config.get('formatOnSave')
+    let formatOnSave = this.config.get<boolean>('formatOnSave')
     if (!formatOnSave) return
     let { languageId } = event.document
     if (languageIds.indexOf(languageId) == -1) return
     if (this.state != ServiceStat.Running) return
-    let willSaveWaitUntil = async (event: TextDocumentWillSaveEvent): Promise<TextEdit[]> => {
+    let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
       let options = await workspace.getFormatOptions(event.document.uri)
       let textEdits = await languages.provideDocumentFormattingEdits(event.document, options)
       return textEdits
     }
-    event.waitUntil(willSaveWaitUntil(event))
+    event.waitUntil(willSaveWaitUntil())
   }
 
   public dispose(): void {

@@ -1,13 +1,13 @@
-import debounce from 'debounce'
 import { Buffer, Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo } from '../types'
-import { getChange, diffLines } from '../util/diff'
+import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { disposeAll, getUri, isLineEdit } from '../util/index'
-import { Chars } from './chars'
+import { disposeAll, getUri } from '../util/index'
 import { byteLength } from '../util/string'
+import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
@@ -72,8 +72,8 @@ export default class Document {
     this._words = this.chars.matchKeywords(content)
   }
 
-  public setFiletype(filetype:string):void {
-    let {uri, version} = this
+  public setFiletype(filetype: string): void {
+    let { uri, version } = this
     let textDocument = TextDocument.create(uri, filetype, version || 0, this.content)
     this.textDocument = textDocument
   }
@@ -259,15 +259,15 @@ export default class Document {
     if (edits.length == 0) return
     let orig = this.content
     let content = TextDocument.applyEdits(this.textDocument, edits)
+    // could be equal
+    if (orig === content) return
     let cur = await nvim.buffer
     let buf = this.buffer
     if (cur.id == buf.id) {
-      if (edits.length == 1 && isLineEdit(edits[0])) {
-        let lnum = edits[0].range.start.line + 1
-        let line = content.split('\n')[lnum - 1]
-        await nvim.call('coc#util#setline', [lnum, line])
+      let d = diffLines(orig, content)
+      if (d.end - d.start == 1 && d.replacement.length == 1) {
+        await nvim.call('coc#util#setline', [d.start + 1, d.replacement[0]])
       } else {
-        let d = diffLines(orig, content)
         await buf.setLines(d.replacement, {
           start: d.start,
           end: d.end,
@@ -405,13 +405,13 @@ export default class Document {
     this.fireContentChanges()
   }
 
-  public fixStartcol(position:Position, valids:string[]):number {
+  public fixStartcol(position: Position, valids: string[]): number {
     let line = this.getline(position.line)
     if (!line) return null
-    let {character} = position
+    let { character } = position
     let start = line.slice(0, character)
     let col = byteLength(start)
-    let {chars} = this
+    let { chars } = this
     for (let i = start.length - 1; i >= 0; i--) {
       let c = start[i]
       if (c == ' ') break

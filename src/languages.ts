@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, DocumentSymbol } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import snippetManager from './snippet/manager'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
-import { echoMessage, isLineEdit } from './util'
+import { echoMessage } from './util'
 import { byteSlice } from './util/string'
 import workspace from './workspace'
 import uuid = require('uuid/v4')
@@ -553,8 +553,6 @@ class Languages {
     if (!textEdit) return false
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    let valid = isLineEdit(textEdit, option.linenr - 1)
-    if (!valid) return false
     let document = workspace.getDocument(option.bufnr)
     if (!document) return false
     let line = document.getline(option.linenr - 1)
