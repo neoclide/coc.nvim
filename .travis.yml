@@ -36,6 +36,8 @@ install:
 script:
   - export NVIM_COC_LOG_LEVEL=debug
   - yarn global add codecov
+  - yarn global add typescript
+  - yarn global add tslint-server
   - yarn $TEST_SUITE
 
 after_success:
