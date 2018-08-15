@@ -2,14 +2,13 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {DidChangeTextDocumentParams, Disposable, TextDocument} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
-import {disposeAll} from '../../../util'
+import { DidChangeTextDocumentParams, Disposable, TextDocument } from 'vscode-languageserver-protocol'
+import { disposeAll } from '../../../util'
 import workspace from '../../../workspace'
-import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import Proto from '../protocol'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
-import {Delayer} from '../utils/async'
+import { Delayer } from '../utils/async'
 import * as languageModeIds from '../utils/languageModeIds'
 const logger = require('../../../util/logger')('tsserver-bufferSyncSupport')
 
@@ -87,8 +86,8 @@ export default class BufferSyncSupport {
 
   private onDidOpenTextDocument(document: TextDocument): void {
     if (!this.modeIds.has(document.languageId)) return
-    let {uri} = document
-    let filepath = Uri.parse(uri).fsPath
+    let { uri } = document
+    let filepath = this.client.toPath(uri)
     this.uris.add(uri)
     const args: Proto.OpenRequestArgs = {
       file: filepath,
@@ -106,9 +105,9 @@ export default class BufferSyncSupport {
   }
 
   private onDidCloseTextDocument(document: TextDocument): void {
-    let {uri} = document
+    let { uri } = document
     if (!this.uris.has(uri)) return
-    let filepath = Uri.parse(uri).fsPath
+    let filepath = this.client.toPath(uri)
     const args: Proto.FileRequestArgs = {
       file: filepath
     }
@@ -116,11 +115,11 @@ export default class BufferSyncSupport {
   }
 
   private onDidChangeTextDocument(e: DidChangeTextDocumentParams): void {
-    let {textDocument, contentChanges} = e
-    let {uri} = textDocument
+    let { textDocument, contentChanges } = e
+    let { uri } = textDocument
     if (!this.uris.has(uri)) return
-    let filepath = Uri.parse(uri).fsPath
-    for (const {range, text} of contentChanges) {
+    let filepath = this.client.toPath(uri)
+    for (const { range, text } of contentChanges) {
       const args: Proto.ChangeRequestArgs = {
         file: filepath,
         line: range ? range.start.line + 1 : 1,
@@ -171,12 +170,12 @@ export default class BufferSyncSupport {
     }
     const files = Array.from(this.pendingDiagnostics.entries())
       .sort((a, b) => a[1] - b[1])
-      .map(entry => Uri.parse(entry[0]).fsPath)
+      .map(entry => this.client.toPath(entry[0]))
 
     // Add all open TS buffers to the geterr request. They might be visible
     for (const uri of this.uris) {
       if (!this.pendingDiagnostics.get(uri)) {
-        let file = Uri.parse(uri).fsPath
+        let file = this.client.toPath(uri)
         files.push(file)
       }
     }

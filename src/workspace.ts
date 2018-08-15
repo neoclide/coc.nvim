@@ -123,6 +123,9 @@ export class Workspace implements IWorkspace {
     if (this.isVim) this.initVimEvents()
     let buffer = await this.nvim.buffer
     this.onBufEnter(buffer.id)
+    let winid = await this.nvim.call('win_getid')
+    let name = await buffer.name
+    this.onBufWinEnter(name, winid)
   }
 
   public get cwd(): string {
@@ -620,15 +623,15 @@ export class Workspace implements IWorkspace {
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
-    let buftype = await buffer.getOption('buftype')
-    if (buftype !== '') return
+    let buftype = await buffer.getOption('buftype') as string
+    if (buftype != 'terminal' && buftype != '') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
       this.onBufUnload(buffer.id)
       await wait(20)
     }
     let document = new Document(buffer)
-    await document.init(this.nvim)
+    await document.init(this.nvim, buftype)
     this.buffers.set(buffer.id, document)
     if (isSupportedScheme(document.schema)) {
       this._onDidAddDocument.fire(document.textDocument)
@@ -649,7 +652,7 @@ export class Workspace implements IWorkspace {
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private async onBufUnload(bufnr: number): Promise<void> {
+  private onBufUnload(bufnr: number): void {
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this.buffers.delete(bufnr)
@@ -703,9 +706,8 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  private onFileTypeChange(filetype: string, filepath: string): void {
-    let uri = Uri.file(filepath).toString()
-    let doc = this.getDocument(uri)
+  private onFileTypeChange(filetype: string, bufnr: number): void {
+    let doc = this.getDocument(bufnr)
     if (!doc) return
     let supported = isSupportedScheme(doc.schema)
     if (supported) this._onDidCloseDocument.fire(doc.textDocument)

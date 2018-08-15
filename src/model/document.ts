@@ -15,6 +15,7 @@ export default class Document {
   public tabstop: number
   public expandtab: boolean
   public paused: boolean
+  public buftype: string
   public isIgnored = false
   public chars: Chars
   public textDocument: TextDocument
@@ -28,7 +29,6 @@ export default class Document {
   private lines: string[] = []
   private _changedtick: number
   private _words: string[] = []
-  public readonly words: string[]
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
@@ -39,11 +39,6 @@ export default class Document {
         // noop
       })
     }, 50)
-    Object.defineProperty(this, 'words', {
-      get: () => {
-        return this._words
-      }
-    })
     let paused = false
     Object.defineProperty(this, 'paused', {
       get: () => {
@@ -64,6 +59,10 @@ export default class Document {
         }
       }
     })
+  }
+
+  public get words(): string[] {
+    return this._words
   }
 
   private generateWords(): void {
@@ -93,9 +92,10 @@ export default class Document {
     return Uri.parse(this.uri).scheme
   }
 
-  public async init(nvim: Neovim): Promise<void> {
+  public async init(nvim: Neovim, buftype: string): Promise<void> {
     this.nvim = nvim
     let { buffer } = this
+    this.buftype = buftype
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
     this.expandtab = opts.expandtab
     this.tabstop = opts.tabstop

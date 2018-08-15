@@ -2,24 +2,22 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, Command, CompletionItem, InsertTextFormat, MarkupContent, MarkupKind, Position, TextDocument, TextEdit} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
-import commands, {Command as CommandItem} from '../../../commands'
-import {CompletionContext, CompletionItemProvider} from '../../../provider'
-import {showQuickpick} from '../../../util/index'
+import { CancellationToken, Command, CompletionItem, InsertTextFormat, MarkupContent, MarkupKind, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import commands, { Command as CommandItem } from '../../../commands'
+import { CompletionContext, CompletionItemProvider } from '../../../provider'
+import { showQuickpick } from '../../../util/index'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
-import {applyCodeAction} from '../utils/codeAction'
-import {convertCompletionEntry, resolveItem} from '../utils/completionItem'
-import {languageIds} from '../utils/languageModeIds'
-import {warningMsg} from '../utils/nvimBinding'
+import { applyCodeAction } from '../utils/codeAction'
+import { convertCompletionEntry, resolveItem } from '../utils/completionItem'
+import { warningMsg } from '../utils/nvimBinding'
 import * as Previewer from '../utils/previewer'
 import * as typeConverters from '../utils/typeConverters'
 import TypingsStatus from '../utils/typingsStatus'
-import FileConfigurationManager, {CompletionOptions} from './fileConfigurationManager'
+import FileConfigurationManager, { CompletionOptions } from './fileConfigurationManager'
 const logger = require('../../../util/logger')('typescript-completionItemProvider')
 
 class ApplyCompletionCodeActionCommand implements CommandItem {
@@ -56,7 +54,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     private readonly client: ITypeScriptServiceClient,
     private readonly typingsStatus: TypingsStatus,
     private readonly fileConfigurationManager: FileConfigurationManager,
-    languageId:string
+    languageId: string
   ) {
 
     this.setCompleteOption(languageId)
@@ -87,20 +85,20 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       warningMsg('Acquiring typings...')
       return []
     }
-    let {uri} = document
-    const file = this.client.normalizePath(Uri.parse(document.uri))
+    let { uri } = document
+    const file = this.client.toPath(document.uri)
     if (!file) return []
     let preText = document.getText({
-      start: {line: position.line, character: 0},
+      start: { line: position.line, character: 0 },
       end: position
     })
-    let {triggerCharacter} = context
+    let { triggerCharacter } = context
 
     if (!this.shouldTrigger(triggerCharacter, preText)) {
       return []
     }
 
-    const {completeOption} = this
+    const { completeOption } = this
 
     const args: Proto.CompletionsRequestArgs = {
       ...typeConverters.Position.toFileLocationRequestArgs(file, position),
@@ -122,7 +120,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
 
     const completionItems: CompletionItem[] = []
     for (const element of msg) {
-      let {kind} = element
+      let { kind } = element
       if (kind === PConst.Kind.warning
         || kind === PConst.Kind.script) {
         if (!completeOption.nameSuggestions || triggerCharacter == '.') {
@@ -158,8 +156,8 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
   ): Promise<CompletionItem> {
     if (item == null) return undefined
 
-    let {uri, position, source} = item.data
-    const filepath = this.client.normalizePath(Uri.parse(uri))
+    let { uri, position, source } = item.data
+    const filepath = this.client.toPath(uri)
     if (!filepath) return undefined
     let document = workspace.getDocument(uri)
     if (!document) return undefined
@@ -171,7 +169,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       ),
       entryNames: [
         source
-          ? {name: item.label, source}
+          ? { name: item.label, source }
           : item.label
       ]
     }
@@ -197,7 +195,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       : undefined
 
     item.documentation = this.getDocumentation(detail)
-    const {command, additionalTextEdits} = this.getCodeActions(detail, filepath)
+    const { command, additionalTextEdits } = this.getCodeActions(detail, filepath)
     if (command) item.command = command
     item.additionalTextEdits = additionalTextEdits
     if (detail && item.insertTextFormat == InsertTextFormat.Snippet) {
@@ -210,11 +208,11 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
   private getCodeActions(
     detail: Proto.CompletionEntryDetails,
     filepath: string
-  ): {command?: Command; additionalTextEdits?: TextEdit[]} {
+  ): { command?: Command; additionalTextEdits?: TextEdit[] } {
     if (!detail.codeActions || !detail.codeActions.length) {
       return {}
     }
-    let {commaAfterImport} = this.completeOption
+    let { commaAfterImport } = this.completeOption
     // logger.debug('detail:', JSON.stringify(detail.codeActions, null, 2))
     // Try to extract out the additionalTextEdits for the current file.
     // Also check if we still have to apply other workspace edits
@@ -322,8 +320,8 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
     const methodName = detail.displayParts.find(
       part => part.kind === 'methodName'
     )
-    let {textEdit, data} = item
-    let {position, uri} = data
+    let { textEdit, data } = item
+    let { position, uri } = data
 
     if (textEdit) {
       snippet += item.insertText || textEdit.newText // tslint:disable-line
@@ -331,7 +329,7 @@ export default class TypeScriptCompletionItemProvider implements CompletionItemP
       let document = workspace.getDocument(uri)
       if (!document) return
       let range = document.getWordRangeAtPosition(position)
-      textEdit = {range, newText: ''}
+      textEdit = { range, newText: '' }
       snippet += item.insertText || (methodName && methodName.text) || item.label // tslint:disable-line
     }
     snippet += '('

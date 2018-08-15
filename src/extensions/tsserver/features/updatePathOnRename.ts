@@ -2,18 +2,18 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Disposable, TextDocument, WorkspaceEdit} from 'vscode-languageserver-protocol'
+import { Disposable, TextDocument, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {wait, disposeAll} from '../../../util'
+import { disposeAll, wait } from '../../../util'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 import FileConfigurationManager from './fileConfigurationManager'
 const logger = require('../../../util/logger')('tsserver-updatePathOnRename')
 
 export default class UpdateImportsOnFileRenameHandler {
-  private disposables:Disposable[] = []
+  private disposables: Disposable[] = []
 
   public constructor(
     private readonly client: ITypeScriptServiceClient,
@@ -38,6 +38,9 @@ export default class UpdateImportsOnFileRenameHandler {
     oldResource: Uri,
     newResource: Uri
   ): Promise<void> {
+    if (oldResource.scheme !== 'file' || newResource.scheme !== 'file') {
+      return
+    }
     const targetFile = newResource.fsPath
     const oldFile = oldResource.fsPath
     await workspace.openResource(newResource.toString())

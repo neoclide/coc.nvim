@@ -2,18 +2,18 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Diagnostic, Disposable} from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../../commands'
 import languages from '../../languages'
-import {DiagnosticKind, ServiceStat} from '../../types'
-import {disposeAll} from '../../util'
+import { DiagnosticKind, ServiceStat } from '../../types'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
-import {CachedNavTreeResponse} from './features/baseCodeLensProvider'
+import { CachedNavTreeResponse } from './features/baseCodeLensProvider'
 import BufferSyncSupport from './features/bufferSyncSupport'
 import CompletionItemProvider from './features/completionItemProvider'
 import DefinitionProvider from './features/definitionProvider'
-import {DiagnosticsManager} from './features/diagnostics'
+import { DiagnosticsManager } from './features/diagnostics'
 import DocumentSymbolProvider from './features/documentSymbol'
 import FileConfigurationManager from './features/fileConfigurationManager'
 import FormattingProvider from './features/formatting'
@@ -31,7 +31,7 @@ import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
 import WorkspaceSymbolProvider from './features/workspaceSymbols'
 import TypeScriptServiceClient from './typescriptServiceClient'
 import API from './utils/api'
-import {LanguageDescription} from './utils/languageDescription'
+import { LanguageDescription } from './utils/languageDescription'
 import TypingsStatus from './utils/typingsStatus'
 const logger = require('../../util/logger')('tsserver-provider')
 
@@ -61,8 +61,8 @@ export default class LanguageProvider {
     this.disposables.push(this.diagnosticsManager)
 
     workspace.onDidEnterTextDocument(info => {
-      let {state} = client
-      let {languageId, expandtab, tabstop} = info
+      let { state } = client
+      let { languageId, expandtab, tabstop } = info
       if (description.modeIds.indexOf(languageId) == -1) return
       let cb = () => {
         this.fileConfigurationManager.ensureConfigurationOptions(description.id, expandtab, tabstop) // tslint:disable-line
@@ -197,7 +197,7 @@ export default class LanguageProvider {
       )
     }
 
-    let {fileConfigurationManager} = this
+    let { fileConfigurationManager } = this
     let conf = fileConfigurationManager.getLanguageConfiguration(this.id)
 
     if (this.client.apiVersion.gte(API.v290)
@@ -249,11 +249,16 @@ export default class LanguageProvider {
   }
 
   public handles(resource: Uri): boolean {
-    let fsPath = resource.fsPath
-    if (this.id === 'typescript' && /ts(x)?$/.test(fsPath)) {
+    let doc = workspace.getDocument(resource.toString())
+    let { modeIds } = this.description
+    if (doc && modeIds.indexOf(doc.filetype) !== -1) {
       return true
     }
-    if (this.id === 'javascript' && /js(x)?$/.test(fsPath)) {
+    let str = resource.toString()
+    if (this.id === 'typescript' && /\.ts(x)?$/.test(str)) {
+      return true
+    }
+    if (this.id === 'javascript' && /\.js(x)?$/.test(str)) {
       return true
     }
     return false
@@ -304,11 +309,9 @@ export default class LanguageProvider {
     file: Uri,
     diagnostics: Diagnostic[]
   ): void {
-    let uri = file.fsPath
-    if (!uri) return
     this.diagnosticsManager.diagnosticsReceived(
       diagnosticsKind,
-      uri,
+      file.toString(),
       diagnostics
     )
   }

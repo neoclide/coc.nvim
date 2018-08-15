@@ -6,22 +6,22 @@ import cp from 'child_process'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import {CancellationToken, Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
-import {DiagnosticKind, ServiceStat} from '../../types'
-import {disposeAll, echoErr, echoMessage, FileSchemes} from '../../util'
+import { DiagnosticKind, ServiceStat } from '../../types'
+import { disposeAll, echoErr, echoMessage, FileSchemes } from '../../util'
 import workspace from '../../workspace'
 import * as Proto from './protocol'
-import {ITypeScriptServiceClient} from './typescriptService'
+import { ITypeScriptServiceClient } from './typescriptService'
 import API from './utils/api'
-import {TsServerLogLevel, TypeScriptServiceConfiguration} from './utils/configuration'
-import {fork, getTempFile, IForkOptions, makeRandomHexString} from './utils/process'
-import Tracer from './utils/tracer'
+import { TsServerLogLevel, TypeScriptServiceConfiguration } from './utils/configuration'
 import Logger from './utils/logger'
-import {inferredProjectConfig} from './utils/tsconfig'
-import {TypeScriptVersion, TypeScriptVersionProvider} from './utils/versionProvider'
-import {ICallback, Reader} from './utils/wireProtocol'
+import { fork, getTempFile, IForkOptions, makeRandomHexString } from './utils/process'
+import Tracer from './utils/tracer'
+import { inferredProjectConfig } from './utils/tsconfig'
+import { TypeScriptVersion, TypeScriptVersionProvider } from './utils/versionProvider'
+import { ICallback, Reader } from './utils/wireProtocol'
 const logger = require('../../util/logger')('tsserver-client')
 
 interface CallbackItem {
@@ -102,7 +102,7 @@ class RequestQueue {
 }
 
 class ForkedTsServerProcess {
-  constructor(private childProcess: cp.ChildProcess) {}
+  constructor(private childProcess: cp.ChildProcess) { }
 
   public onError(cb: (err: Error) => void): void {
     this.childProcess.on('error', cb)
@@ -255,7 +255,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     return new Promise((resolve, reject) => {
       this.servicePromise.then(childProcess => {
         if (this.state == ServiceStat.Running) {
-         this.info('Killing TS Server')
+          this.info('Killing TS Server')
           childProcess.onExit(() => {
             resolve()
           })
@@ -483,11 +483,24 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public toPath(uri: string): string {
-    return Uri.parse(uri).fsPath
+    return this.normalizePath(Uri.parse(uri))
   }
 
-  public toResource(path: string): string {
-    return Uri.file(path).toString()
+  public toResource(filepath: string): string {
+    if (this._apiVersion.gte(API.v213)) {
+      if (filepath.startsWith('untitled:')) {
+        let resource = Uri.parse(filepath)
+        if (this.inMemoryResourcePrefix) {
+          const dirName = path.dirname(resource.path)
+          const fileName = path.basename(resource.path)
+          if (fileName.startsWith(this.inMemoryResourcePrefix)) {
+            resource = resource.with({ path: path.posix.join(dirName, fileName.slice(this.inMemoryResourcePrefix.length)) })
+          }
+        }
+        return resource.toString()
+      }
+    }
+    return Uri.file(filepath).toString()
   }
 
   public normalizePath(resource: Uri): string | null {
@@ -496,7 +509,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         const dirName = path.dirname(resource.path)
         const fileName = this.inMemoryResourcePrefix + path.basename(resource.path)
         return resource
-          .with({path: path.posix.join(dirName, fileName)})
+          .with({ path: path.posix.join(dirName, fileName) })
           .toString(true)
       }
     }
@@ -513,9 +526,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public asUrl(filepath: string): Uri {
-    filepath = filepath.replace(/^\/file:/, '')
     if (this._apiVersion.gte(API.v213)) {
-      if (!filepath.startsWith('file:')) {
+      if (filepath.startsWith('untitled:')) {
         let resource = Uri.parse(filepath)
         if (this.inMemoryResourcePrefix) {
           const dirName = path.dirname(resource.path)
@@ -560,7 +572,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     if (expectsResult) {
       let wasCancelled = false
       result = new Promise<any>((resolve, reject) => {
-        requestInfo.callbacks = {c: resolve, e: reject, start: Date.now()}
+        requestInfo.callbacks = { c: resolve, e: reject, start: Date.now() }
         if (token) {
           token.onCancellationRequested(() => {
             wasCancelled = true
@@ -784,7 +796,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       } else {
         try {
           args.push('--npmLocation', `"${which.sync('npm')}"`)
-        } catch (e) {} // tslint:disable-line
+        } catch (e) { } // tslint:disable-line
       }
     }
     return args

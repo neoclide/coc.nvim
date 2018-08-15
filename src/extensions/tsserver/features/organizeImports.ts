@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { Disposable, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
 import { Command, CommandManager } from '../../../commands'
 import { TextDocumentWillSaveEvent } from '../../../types'
 import { disposeAll } from '../../../util'
@@ -41,7 +40,7 @@ class OrganizeImportsCommand implements Command {
   }
 
   private async getTextEdits(document: TextDocument): Promise<WorkspaceEdit | null> {
-    let file = Uri.parse(document.uri).fsPath
+    let file = this.client.toPath(document.uri)
     const args: Proto.OrganizeImportsRequestArgs = {
       scope: {
         type: 'file',

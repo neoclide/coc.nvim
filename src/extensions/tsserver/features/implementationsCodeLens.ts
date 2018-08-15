@@ -2,20 +2,19 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, CodeLens, Command, Location, Range, TextDocument} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { CancellationToken, CodeLens, Command, Location, Range, TextDocument } from 'vscode-languageserver-protocol'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import * as typeConverters from '../utils/typeConverters'
-import {TypeScriptBaseCodeLensProvider} from './baseCodeLensProvider'
+import { TypeScriptBaseCodeLensProvider } from './baseCodeLensProvider'
 
 export default class TypeScriptImplementationsCodeLensProvider extends TypeScriptBaseCodeLensProvider {
   public async resolveCodeLens(
     codeLens: CodeLens,
     token: CancellationToken
   ): Promise<CodeLens> {
-    let {uri} = codeLens.data
-    let filepath = Uri.parse(uri).fsPath
+    let { uri } = codeLens.data
+    let filepath = this.client.toPath(uri)
 
     const args = typeConverters.Position.toFileLocationRequestArgs(
       filepath,
@@ -65,7 +64,7 @@ export default class TypeScriptImplementationsCodeLensProvider extends TypeScrip
     locations: Location[],
     codeLens: CodeLens,
   ): Command | undefined {
-    let {uri} = codeLens.data
+    let { uri } = codeLens.data
     return {
       title: this.getTitle(locations),
       command: locations.length ? 'editor.action.showReferences' : '',

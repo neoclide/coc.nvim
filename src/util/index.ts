@@ -82,7 +82,10 @@ export function getPort(port = 44877): Promise<number> {
 }
 
 export function getUri(fullpath: string, id: number): string {
-  if (!fullpath) return `untitled:///${id}`
+  if (!fullpath) {
+    let w = require('../workspace').default
+    return `untitled:${w.cwd}/${id}`
+  }
   if (/^\w+:\/\//.test(fullpath)) return fullpath
   return Uri.file(fullpath).toString()
 }

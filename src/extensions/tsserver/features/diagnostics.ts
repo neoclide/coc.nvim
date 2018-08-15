@@ -2,11 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Diagnostic} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { Diagnostic } from 'vscode-languageserver-protocol'
 import languages from '../../../languages'
-import {DiagnosticCollection} from '../../../types'
-import {ResourceMap} from './resourceMap'
+import { DiagnosticCollection } from '../../../types'
+import { ResourceMap } from './resourceMap'
 const logger = require('../../../util/logger')('tsserver-diagnostics')
 
 export class DiagnosticSet {
@@ -50,7 +49,6 @@ export class DiagnosticsManager {
     for (const kind of allDiagnosticKinds) {
       this._diagnostics.set(kind, new DiagnosticSet())
     }
-
     this._currentDiagnostics = languages.createDiagnosticCollection('tsserver')
   }
 
@@ -93,14 +91,13 @@ export class DiagnosticsManager {
 
   public diagnosticsReceived(
     kind: DiagnosticKind,
-    filepath: string,
+    uri: string,
     diagnostics: Diagnostic[]
   ): void {
     const collection = this._diagnostics.get(kind)
     if (!collection) {
       return
     }
-    const uri = Uri.file(filepath).toString()
 
     if (diagnostics.length === 0) {
       const existing = collection.get(uri)
