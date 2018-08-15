@@ -1,4 +1,4 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import deepEqual from 'deep-equal'
 import { EventEmitter } from 'events'
 import fs from 'fs'
@@ -343,6 +343,10 @@ export class Workspace implements IWorkspace {
 
   public async refresh(): Promise<void> {
     let buffers = await this.nvim.buffers
+    for (let doc of this.buffers.values()) {
+      doc.detach()
+    }
+    this.buffers.clear()
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
     }))
@@ -363,16 +367,16 @@ export class Workspace implements IWorkspace {
     await nvim.command(cmd)
   }
 
-  public get document(): Promise<Document> {
+  public get document(): Promise<Document | null> {
     if (!this._initialized) {
       return Promise.resolve(null)
     }
     let document = this.getDocument(this.bufnr)
     if (document) return Promise.resolve(document)
     return this.nvim.buffer.then(buffer => {
-      let document = this.getDocument(buffer.id)
-      if (!document) return this.onBufCreate(buffer)
-      return document
+      return this.onBufCreate(buffer).then(() => {
+        return this.getDocument(this.bufnr)
+      })
     })
   }
 
@@ -474,15 +478,6 @@ export class Workspace implements IWorkspace {
     Watchman.dispose()
     this.moduleManager.removeAllListeners()
     disposeAll(this.disposables)
-  }
-
-  private async isBufLoaded(bufnr: number): Promise<boolean> {
-    return await this.nvim.call('bufloaded', bufnr)
-  }
-
-  private async getBuffer(bufnr: number): Promise<Buffer | null> {
-    let buffers = await this.nvim.buffers
-    return buffers.find(buf => buf.id == bufnr)
   }
 
   private fileCount(edit: WorkspaceEdit): number {
@@ -621,17 +616,16 @@ export class Workspace implements IWorkspace {
     this._onDidEnterDocument.fire(documentInfo)
   }
 
-  private async onBufCreate(buf: number | Buffer): Promise<Document> {
-    let loaded = await this.isBufLoaded(typeof buf === 'number' ? buf : buf.id)
+  private async onBufCreate(buf: number | Buffer): Promise<void> {
+    let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
+    let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
-    let buffer = typeof buf === 'number' ? await this.getBuffer(buf) : buf
-    if (!buffer) return
     let buftype = await buffer.getOption('buftype')
     if (buftype !== '') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
-      await doc.checkDocument()
-      return
+      this.onBufUnload(buffer.id)
+      await wait(20)
     }
     let document = new Document(buffer)
     await document.init(this.nvim)
@@ -647,13 +641,11 @@ export class Workspace implements IWorkspace {
       })
     }
     logger.debug('buffer created', buffer.id)
-    return document
   }
 
   private async onBufWritePost(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc || !isSupportedScheme(doc.schema)) return
-    await doc.checkDocument()
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
@@ -673,6 +665,7 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     let doc = this.buffers.get(bufnr)
     if (!doc) return
+    await doc.checkDocument()
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     if (doc && isSupportedScheme(doc.schema)) {
       let event: TextDocumentWillSaveEvent = {
@@ -680,11 +673,12 @@ export class Workspace implements IWorkspace {
         reason: TextDocumentSaveReason.Manual
       }
       this._onWillSaveDocument.fire(event)
+      await wait(20)
       try {
         await this.willSaveUntilHandler.handeWillSaveUntil(event)
       } catch (e) {
-        logger.error(e.message)
         echoErr(nvim, e.message)
+        logger.error(e.message)
       }
     }
   }

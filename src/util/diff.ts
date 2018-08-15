@@ -1,8 +1,8 @@
+import { diffLines as DiffLines } from 'diff'
 import fastDiff from 'fast-diff'
-import {ChangedLines, ChangeItem} from '../types'
-import {diffLines as DiffLines} from 'diff'
-import {lastIndex} from './array'
-import {trimLast} from './string'
+import { ChangedLines, ChangeItem } from '../types'
+import { lastIndex } from './array'
+import { trimLast } from './string'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -11,7 +11,7 @@ interface Change {
   newText: string
 }
 
-function getlines(str: string):string[] {
+function getlines(str: string): string[] {
   let s = trimLast(str, '\n')
   return s.split('\n')
 }
@@ -46,13 +46,13 @@ export function diffLines(from: string, to: string): ChangedLines {
     }
     idx = idx + 1
   }
-  return {start, end, replacement: lines}
+  return { start, end, replacement: lines }
 }
 
 export function getChangeItem(oldStr: string, newStr: string): ChangeItem {
   let change = getChange(oldStr, newStr)
   if (!change) return
-  let {start, end} = change
+  let { start, end } = change
   return {
     offset: change.start,
     added: change.newText,
@@ -61,7 +61,6 @@ export function getChangeItem(oldStr: string, newStr: string): ChangeItem {
 }
 
 export function getChange(oldStr: string, newStr: string): Change {
-  if (oldStr == newStr) return null
   let result = fastDiff(oldStr, newStr, 1)
   let curr = 0
   let start = -1
@@ -87,5 +86,5 @@ export function getChange(oldStr: string, newStr: string): Change {
       if (t == -1) curr = curr + str.length
     }
   }
-  return {start, end, newText}
+  return { start, end, newText }
 }

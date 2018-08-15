@@ -12,13 +12,13 @@ const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
 export default class Document {
+  public tabstop: number
+  public expandtab: boolean
+  public paused: boolean
   public isIgnored = false
   public chars: Chars
-  public paused: boolean
   public textDocument: TextDocument
   public fetchContent: Function & { clear(): void; }
-  public expandtab: boolean
-  public tabstop: number
   private nvim: Neovim
   private _fireContentChanges: Function & { clear(): void; }
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -74,7 +74,8 @@ export default class Document {
 
   public setFiletype(filetype: string): void {
     let { uri, version } = this
-    let textDocument = TextDocument.create(uri, filetype, version || 0, this.content)
+    version = version ? version + 1 : 1
+    let textDocument = TextDocument.create(uri, filetype, version, this.content)
     this.textDocument = textDocument
   }
 
@@ -175,30 +176,22 @@ export default class Document {
    */
   public async checkDocument(): Promise<void> {
     this.paused = false
-    let { buffer, content } = this
-    let lines = await buffer.lines as string[]
-    if (content == lines.join('\n')) {
-      return
-    }
-    this.lines = lines
-    this._changedtick = await buffer.changedtick
-    this.createDocument()
-    let { version, uri } = this
+    let { buffer } = this
     this._fireContentChanges.clear()
-    this._onDocumentChange.fire({
-      textDocument: { version, uri },
-      contentChanges: [{ text: this.lines.join('\n') }]
-    })
-    this.generateWords()
+    this._changedtick = await buffer.changedtick
+    this.lines = await buffer.lines
+    this.fireContentChanges()
   }
 
   private fireContentChanges(): void {
     let { paused, textDocument } = this
     if (paused) return
     try {
+      let content = this.lines.join('\n')
+      if (content == this.content) return
+      let change = getChange(this.content, content)
       this.createDocument()
-      let change = getChange(textDocument.getText(), this.content)
-      if (!change) return
+      let { version, uri } = this
       let changes = [{
         range: {
           start: textDocument.positionAt(change.start),
@@ -207,7 +200,6 @@ export default class Document {
         rangeLength: change.end - change.start,
         text: change.newText
       }]
-      let { version, uri } = this
       this._onDocumentChange.fire({
         textDocument: { version, uri },
         contentChanges: changes
