@@ -1,9 +1,8 @@
 # [C](#)onqure [o](#)f  [C](#)ompletion
 
-[![Build Status](https://travis-ci.org/neoclide/coc.nvim.svg?branch=master)](https://travis-ci.org/neoclide/coc.nvim)
-[![Join the chat at https://gitter.im/coc-nvim/Lobby](https://badges.gitter.im/coc-nvim/Lobby.svg)](https://gitter.im/coc-nvim/Lobby?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_shield)
-[![doc](https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg)](doc/coc.txt)
+| CI (Linux, macOS) | Coverage | Gitter | Doc    |
+|-------------------|----------|--------|--------|
+| [![Build Status Badge][]][Build Status] | [![Coverage Badge][]][Coverage Report] |  [![Gitter Badge][]][Gitter] | [![Doc Badge][]][Doc Link]
 
 Coc is an intellisense engine for vim8 & neovim.
 
@@ -285,3 +284,13 @@ Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues
 ## LICENSE
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
+
+[Build Status Badge]: https://travis-ci.org/neovim/node-client.svg?branch=master
+[Build Status]: https://travis-ci.org/neoclide/coc.nvim
+[Coverage Badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
+[Coverage Report]: https://codecov.io/gh/neoclide/coc.nvim
+[Gitter Badge]: https://badges.gitter.im/coc-nvim/Lobby.svg
+[Gitter]: https://gitter.im/coc-nvim/Lobby
+[Doc Badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
+[Doc Link]: doc/coc.txt
+
