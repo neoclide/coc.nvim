@@ -7,7 +7,6 @@ import path from 'path'
 import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations, { parseContentFromFile } from './configurations'
-import { BaseLanguageClient } from './language-client/main'
 import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
@@ -52,7 +51,7 @@ export class Workspace implements IWorkspace {
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
-  private disposables:Disposable[] = []
+  private disposables: Disposable[] = []
 
   private _onDidBufWinEnter = new Emitter<WinEnter>()
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
@@ -142,7 +141,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get workspaceFolder(): WorkspaceFolder {
-    let {root} = this
+    let { root } = this
     return {
       uri: Uri.file(root).toString(),
       name: path.basename(root)
@@ -310,7 +309,7 @@ export class Workspace implements IWorkspace {
     return item
   }
 
-  public async getLine(uri:string, line:number): Promise<string> {
+  public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
     if (document) return document.getline(line)
     let u = Uri.parse(uri)
@@ -392,9 +391,9 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async getFormatOptions(uri?:string): Promise<FormattingOptions> {
+  public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
     let doc = uri ? this.getDocument(uri) : await this.document
-    if (!doc) return {tabSize: 2, insertSpaces: true}
+    if (!doc) return { tabSize: 2, insertSpaces: true }
     let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1
@@ -477,7 +476,7 @@ export class Workspace implements IWorkspace {
     disposeAll(this.disposables)
   }
 
-  private async isBufLoaded(bufnr:number):Promise<boolean> {
+  private async isBufLoaded(bufnr: number): Promise<boolean> {
     return await this.nvim.call('bufloaded', bufnr)
   }
 
@@ -690,7 +689,7 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  private onOptionSet(name:string, _oldValue:any, newValue:any): void {
+  private onOptionSet(name: string, _oldValue: any, newValue: any): void {
     if (name === 'completeopt') {
       this.vimSettings.completeOpt = newValue
     }
@@ -701,7 +700,7 @@ export class Workspace implements IWorkspace {
     this.onConfigurationChange()
   }
 
-  private onBufWinEnter(filepath:string, winid:number): void {
+  private onBufWinEnter(filepath: string, winid: number): void {
     let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
     let doc = this.getDocument(uri)
     this._onDidBufWinEnter.fire({
@@ -710,7 +709,7 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  private onFileTypeChange(filetype:string, filepath:string):void {
+  private onFileTypeChange(filetype: string, filepath: string): void {
     let uri = Uri.file(filepath).toString()
     let doc = this.getDocument(uri)
     if (!doc) return
@@ -720,7 +719,7 @@ export class Workspace implements IWorkspace {
     if (supported) this._onDidAddDocument.fire(doc.textDocument)
   }
 
-  private async checkBuffer(bufnr: number):Promise<void> {
+  private async checkBuffer(bufnr: number): Promise<void> {
     let doc = this.getDocument(bufnr)
     if (!doc) {
       if (this.checking.has(bufnr)) return

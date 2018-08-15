@@ -9,7 +9,8 @@
     "lint": "tslint -c tslint.json -p .",
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
-    "test": "jest --runInBand",
+    "test": "jest",
+    "test-build": "jest --runInBand  --coverage",
     "prepublish": "yarn clean && yarn build",
     "release": "pkg . --out-path ./build"
   },
@@ -67,7 +68,7 @@
     "@types/glob": "^5.0.35",
     "@types/jest": "^23.3.1",
     "@types/minimatch": "^3.0.3",
-    "@types/node": "^10.5.8",
+    "@types/node": "^10.7.0",
     "@types/once": "^1.4.0",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
@@ -80,9 +81,9 @@
     "typescript": "^3.0.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.11",
+    "@chemzqm/neovim": "4.3.12",
     "babel-polyfill": "^6.26.0",
-    "debounce": "^1.1.0",
+    "debounce": "^1.2.0",
     "deep-equal": "^1.0.1",
     "diff": "^3.5.0",
     "fast-diff": "^1.1.2",
@@ -95,12 +96,13 @@
     "node-serial": "^0.1.1",
     "once": "^1.4.0",
     "pify": "^4.0.0",
+    "promise.prototype.finally": "^3.1.0",
     "semver": "^5.5.0",
     "touch": "^3.1.0",
     "tslib": "^1.9.3",
     "uuid": "^3.3.2",
-    "vscode-languageserver-protocol": "^3.10.0",
-    "vscode-languageserver-types": "^3.10.0",
+    "vscode-languageserver-protocol": "^3.10.3",
+    "vscode-languageserver-types": "^3.10.1",
     "vscode-uri": "^1.0.5",
     "which": "^1.3.1"
   }

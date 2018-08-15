@@ -21,4 +21,5 @@ function! SetDictionary()
 endfunction
 
 autocmd FileType vim setlocal omnifunc=syntaxcomplete#Complete
+exe 'setl tags+='.s:dir.'/tags'
 

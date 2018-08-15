@@ -1,5 +1,5 @@
 import { score } from 'fuzzaldrin'
-import { CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem, SourceType } from '../types'
+import { CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'

@@ -1,10 +1,11 @@
-import path from 'path'
+import { Buffer, Neovim } from '@chemzqm/neovim'
 import * as cp from 'child_process'
+import Emitter from 'events'
+import path from 'path'
 import attach from '../attach'
 import Plugin from '../plugin'
-import { Neovim, Buffer } from '@chemzqm/neovim'
 import services from '../services'
-import { ServiceStat, VimCompleteItem, IWorkspace } from '../types'
+import { IWorkspace, ServiceStat, VimCompleteItem } from '../types'
 
 export interface CursorPosition {
   bufnum: number
@@ -12,7 +13,7 @@ export interface CursorPosition {
   col: number
 }
 
-export class Helper {
+export class Helper extends Emitter {
   public nvim: Neovim
   public proc: cp.ChildProcess
   public plugin: Plugin
@@ -24,20 +25,64 @@ export class Helper {
     })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
+    this.nvim.uiAttach(80, 80, { // tslint:disable-line
+      ext_popupmenu: true,
+      ext_newgrid: true
+    })
+    proc.on('exit', () => {
+      this.proc = null
+    })
+    this.nvim.on('notification', (method, args) => {
+      if (method == 'redraw') {
+        try {
+          let event = args[0][0]
+          if (event == 'popupmenu_show') {
+            this.emit('popupmenu_show')
+          }
+        } catch (e) {
+          console.error(e.message) // tslint:disable-line
+        }
+      }
+    })
     return new Promise(resolve => {
       plugin.emitter.once('ready', resolve)
     })
   }
 
-  public async shutdown():Promise<void> {
+  public async shutdown(): Promise<void> {
     await this.plugin.dispose()
     this.nvim.quit()
-    this.proc.kill()
+    await this.wait(300)
+    if (this.proc) {
+      this.proc.kill('SIGKILL')
+    }
   }
 
-  public async reset():Promise<void> {
+  public waitPopup(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      let timer = setTimeout(() => {
+        reject(new Error('timeout after 5s'))
+      }, 5000)
+      this.nvim.call('pumvisible').then(visible => {
+        if (visible) {
+          clearTimeout(timer)
+          resolve()
+        } else {
+          this.once('popupmenu_show', () => {
+            clearTimeout(timer)
+            resolve()
+          })
+        }
+      }, e => {
+        console.error(e) // tslint:disable-line
+      })
+    })
+  }
+
+  public async reset(): Promise<void> {
     await this.nvim.input('<esc>')
-    await this.nvim.command('%bdelete!')
+    await this.wait(30)
+    await this.nvim.command('silent! %bdelete!')
     await this.wait(100)
   }
 
@@ -55,8 +100,7 @@ export class Helper {
   }
 
   public async visible(word: string, source?: string): Promise<boolean> {
-    let visible = await this.pumvisible()
-    if (!visible) return false
+    await this.waitPopup()
     let context = await this.nvim.getVar('coc#_context') as any
     let items = context.candidates
     if (!items) return false
@@ -73,7 +117,12 @@ export class Helper {
     return true
   }
 
-  public async getItems():Promise<VimCompleteItem[]> {
+  public async notVisible(word: string): Promise<boolean> {
+    let items = await this.getItems()
+    return items.findIndex(o => o.word == word) == -1
+  }
+
+  public async getItems(): Promise<VimCompleteItem[]> {
     let visible = await this.pumvisible()
     if (!visible) return []
     let context = await this.nvim.getVar('coc#_context') as any
@@ -136,5 +185,4 @@ export class Helper {
     return require('../workspace').default
   }
 }
-
 export default new Helper()

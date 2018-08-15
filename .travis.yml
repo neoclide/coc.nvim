@@ -9,15 +9,24 @@ matrix:
   include:
     - os: osx
       osx_image: xcode9.1
-      env: TEST_SUITE=test
+      env: TEST_SUITE=test-build
     - os: linux
       dist: trusty
       env: TEST_SUITE=lint
     - os: linux
       dist: trusty
-      env: TEST_SUITE=test
+      env: TEST_SUITE=test-build
 
-install:
+before_install:
+  - |
+    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+      brew update
+      brew install ripgrep
+    else
+      curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb   
+      sudo dpkg -i ripgrep_0.9.0_amd64.deb
+    fi
+  - rg --version
   - curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   - |
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then
@@ -31,10 +40,13 @@ install:
     fi
   - echo $PATH
   - nvim --version
+
+install:
   - yarn install
 
 script:
   - export NVIM_COC_LOG_LEVEL=debug
+  - export NODE_ENV=test
   - yarn global add codecov
   - yarn global add typescript
   - yarn $TEST_SUITE

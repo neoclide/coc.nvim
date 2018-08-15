@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
 
-let nvim:Neovim
+let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -15,10 +15,24 @@ afterEach(async () => {
   await helper.reset()
 })
 
-describe('completion',() => {
-  it('should create channel',  async () => {
+describe('completion', () => {
+  it('should create channel', async () => {
     let id = await nvim.getVar('coc_node_channel_id')
     expect(id).toBeGreaterThan(0)
+  })
+
+  it('should not show word of word source on empty input', async () => {
+    await helper.edit('insert')
+    await nvim.setLine('foo bar')
+    await helper.wait(30)
+    await nvim.input('of')
+    await helper.waitPopup()
+    let res = await helper.visible('foo', 'around')
+    expect(res).toBe(true)
+    await nvim.input('<backspace>')
+    await helper.wait(1000)
+    res = await helper.notVisible('foo')
+    expect(res).toBe(true)
   })
 
   it('should trigger on first letter insert', async () => {
@@ -26,7 +40,6 @@ describe('completion',() => {
     await nvim.setLine('foo bar')
     await helper.wait(30)
     await nvim.input('of')
-    await helper.wait(100)
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
@@ -35,7 +48,6 @@ describe('completion',() => {
     await helper.edit('file')
     // trigger file source
     await nvim.input('i./')
-    await helper.wait(100)
     let res = await helper.visible('coc-settings.json', 'file')
     expect(res).toBe(true)
   })
@@ -45,7 +57,7 @@ describe('completion',() => {
     await nvim.setLine('forceDocumentSync format  fallback')
     await helper.wait(30)
     await nvim.input('of')
-    await helper.wait(100)
+    await helper.waitPopup()
     let items = await helper.getItems()
     let l = items.length
     await nvim.input('o')
@@ -60,7 +72,7 @@ describe('completion',() => {
     await nvim.setLine('forceDocumentSync format  fallback')
     await helper.wait(30)
     await nvim.input('ofa')
-    await helper.wait(100)
+    await helper.waitPopup()
     let items = await helper.getItems()
     let words = items.map(o => o.word)
     expect(words).toEqual(['fallback', 'format'])
@@ -76,16 +88,11 @@ describe('completion',() => {
     await nvim.setLine('backspace')
     await helper.wait(20)
     await nvim.input('obackspac')
-    await helper.wait(30)
+    await helper.waitPopup()
     await nvim.input('e')
-    await helper.wait(100)
-    let visible = await nvim.call('pumvisible')
-    expect(visible).toBe(1)
     await helper.wait(100)
     await nvim.input('q')
     await helper.wait(100)
-    visible = await nvim.call('pumvisible')
-    expect(visible).toBe(0)
     await nvim.input('<backspace>')
     await helper.wait(100)
     let res = await helper.visible('backspace', 'around')
@@ -101,7 +108,6 @@ describe('completion',() => {
     await nvim.input('<esc>')
     await helper.wait(30)
     await nvim.input('A')
-    await helper.wait(100)
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
@@ -113,27 +119,10 @@ describe('completion',() => {
     await nvim.input('ob')
     await helper.wait(30)
     await nvim.input('a')
-    await helper.wait(600)
-    let mode = await nvim.mode
-    expect(mode.mode).toBe('ic')
+    await helper.waitPopup()
     let items = await helper.getItems()
     let item = items.find(o => o.word == 'foo')
     expect(item).toBeFalsy()
     expect(items[0].word).toBe('bar')
-  })
-
-  it('should not show word of word source on empty input', async () => {
-    await helper.edit('insert')
-    await helper.wait(100)
-    await nvim.setLine('foo bar')
-    await helper.wait(40)
-    await nvim.input('of')
-    await helper.wait(200)
-    let mode = await nvim.mode
-    expect(mode.mode).toBe('ic')
-    await nvim.input('<backspace>')
-    await helper.wait(100)
-    let res = await helper.pumvisible()
-    expect(res).toBe(false)
   })
 })

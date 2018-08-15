@@ -1,13 +1,12 @@
-require('babel-polyfill')
+const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
-const attach = require('..').default
 const address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
 let plugin = attach({
   socket: address
 })
 
-process.on('uncaughtException', function (err) {
+process.on('uncaughtException', function(err) {
   let msg = '[coc.nvim] uncaught exception: ' + err.stack
   console.error(msg)
   if (plugin.nvim) {
@@ -16,7 +15,7 @@ process.on('uncaughtException', function (err) {
   logger.error('uncaughtException', err.stack)
 })
 
-process.on('unhandledRejection', function (reason, p) {
+process.on('unhandledRejection', function(reason, p) {
   if (reason instanceof Error) {
     console.error('UnhandledRejection: ' + reason.message + '\n' + reason.stack)
   } else {

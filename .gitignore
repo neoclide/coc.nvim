@@ -5,3 +5,6 @@ __pycache__
 .pyc
 .log
 build
+doc/tags
+node_modules
+!src/__tests__/tags

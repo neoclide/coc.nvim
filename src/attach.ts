@@ -1,10 +1,12 @@
-import Plugin from './plugin'
+require('babel-polyfill')
+require('promise.prototype.finally')
+import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
-import { NeovimClient, attach } from '@chemzqm/neovim'
+import Plugin from './plugin'
 const logger = require('./util/logger')('attach')
 
-export default function(opts: Attach):Plugin {
-  const nvim:NeovimClient = attach(opts)
+export default function(opts: Attach): Plugin {
+  const nvim: NeovimClient = attach(opts)
   const plugin = new Plugin(nvim)
   nvim.on('notification', (method, args) => {
     switch (method) {
@@ -28,7 +30,7 @@ export default function(opts: Attach):Plugin {
     }
   })
 
-  nvim.on('request', (method:string, args, resp) => {
+  nvim.on('request', (method: string, args, resp) => {
     switch (method) {
       case 'BufWritePre':
         plugin.cocAutocmd.call(plugin, ['BufWritePre', args[0]]).then(() => {

@@ -16,9 +16,9 @@
     esutils "^2.0.2"
     js-tokens "^3.0.0"
 
-"@chemzqm/neovim@4.3.11":
-  version "4.3.11"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.11.tgz#323b7f27da62e64efb921b9591f4877bbd1b88fb"
+"@chemzqm/neovim@4.3.12":
+  version "4.3.12"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.12.tgz#85393b8f2c5399c6610304d66dca483b41272fbe"
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -84,9 +84,9 @@
   version "10.5.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.3.tgz#5bcfaf088ad17894232012877669634c06b20cc5"
 
-"@types/node@^10.5.8":
-  version "10.5.8"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.8.tgz#6f14ccecad1d19332f063a6a764f8907801fece0"
+"@types/node@^10.7.0":
+  version "10.7.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.7.0.tgz#d384b2c8625414ab2aa18fdf989c288d6a7a8202"
 
 "@types/once@^1.4.0":
   version "1.4.0"
@@ -715,9 +715,9 @@ date-format@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/date-format/-/date-format-1.2.0.tgz#615e828e233dd1ab9bb9ae0950e0ceccfa6ecad8"
 
-debounce@^1.1.0:
-  version "1.1.0"
-  resolved "https://registry.yarnpkg.com/debounce/-/debounce-1.1.0.tgz#6a1a4ee2a9dc4b7c24bb012558dbcdb05b37f408"
+debounce@^1.2.0:
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/debounce/-/debounce-1.2.0.tgz#44a540abc0ea9943018dc0eaa95cce87f65cd131"
 
 debug@^2.1.2, debug@^2.2.0, debug@^2.3.3, debug@^2.6.8, debug@^2.6.9:
   version "2.6.9"
@@ -827,7 +827,7 @@ error-ex@^1.2.0:
   dependencies:
     is-arrayish "^0.2.1"
 
-es-abstract@^1.5.1:
+es-abstract@^1.5.1, es-abstract@^1.9.0:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/es-abstract/-/es-abstract-1.12.0.tgz#9dbbdd27c6856f0001421ca18782d786bf8a6165"
   dependencies:
@@ -2575,6 +2575,14 @@ process-nextick-args@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.0.tgz#a37d732f4271b4ab1ad070d35508e8290788ffaa"
 
+promise.prototype.finally@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/promise.prototype.finally/-/promise.prototype.finally-3.1.0.tgz#66f161b1643636e50e7cf201dc1b84a857f3864e"
+  dependencies:
+    define-properties "^1.1.2"
+    es-abstract "^1.9.0"
+    function-bind "^1.1.1"
+
 prompts@^0.1.9:
   version "0.1.12"
   resolved "https://registry.yarnpkg.com/prompts/-/prompts-0.1.12.tgz#39dc42de7d2f0ec3e2af76bf40713fcb8726090d"
@@ -3317,16 +3325,16 @@ vscode-jsonrpc@^3.6.2:
   version "3.6.2"
   resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-3.6.2.tgz#3b5eef691159a15556ecc500e9a8a0dd143470c8"
 
-vscode-languageserver-protocol@^3.10.0:
-  version "3.10.0"
-  resolved "https://registry.yarnpkg.com/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.10.0.tgz#f8dcdf987687f64a26e7c32d498fc781a0e886dc"
+vscode-languageserver-protocol@^3.10.3:
+  version "3.10.3"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.10.3.tgz#59841c9602a6a6baab68613c2a47760994657196"
   dependencies:
     vscode-jsonrpc "^3.6.2"
-    vscode-languageserver-types "^3.10.0"
+    vscode-languageserver-types "^3.10.1"
 
-vscode-languageserver-types@^3.10.0:
-  version "3.10.0"
-  resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.10.0.tgz#944e5308f3b36a3f372c766f1a344e903ec9c389"
+vscode-languageserver-types@^3.10.1:
+  version "3.10.1"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.10.1.tgz#d5d5f44f688a3b2aa9857dc53cb9cacca73fe35a"
 
 vscode-uri@^1.0.5:
   version "1.0.5"
