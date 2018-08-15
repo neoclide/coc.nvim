@@ -1,3 +1,29 @@
+# 2018-08-15
+
+* Fix filter of completion items on fast input.
+* Fix sometimes fails of include & neosnippet source.
+* Fix sometimes fails to find global modules.
+* Improve complete source initialization.
+
+  * Always respect change of configuration.
+
+* Add ability to start standalone coc service for debugging.
+
+  * Use `NVIM_LISTEN_ADDRESS=/tmp/nvim nvim` to start
+    neovim.
+  * Start coc server by command like `node bin/server.js`
+
+* Add ability to recover from unload buffer.
+
+  Sometimes `bufReadPost` `BufEnter` could be not be fired on buffer create,
+  check buffer on `CursorHold` and `TextChanged` to fix this issue.
+
+* Add tsserver features: `tsserver.formatOnSave` and `tsserver.orgnizeImportOnSave`
+
+  Both default to false.
+
+* Add tests for completion sources.
+
 # 2018-08-14
 
 * Fix remote source not working.

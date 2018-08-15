@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "Completetion manage for neovim",
   "main": "./lib/attach.js",
   "bin": "./bin/server.js",
