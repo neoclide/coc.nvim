@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import helper from '../helper'
 
-let nvim:Neovim
+let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -54,6 +54,7 @@ describe('native sources', () => {
 
   it('should works for omni source', async () => {
     let buf = await helper.edit('omni.vim')
+    await nvim.command('setf vim')
     await nvim.input('icom')
     await helper.wait(600)
     let opt = await buf.getOption('omnifunc') as string
@@ -65,7 +66,7 @@ describe('native sources', () => {
   it('should works for tag source', async () => {
     await helper.edit('tag')
     await nvim.input('iunb')
-    await helper.wait(100)
+    await helper.wait(600)
     let res = await helper.visible('unbind', 'tag')
     expect(res).toBe(true)
   })
@@ -111,9 +112,9 @@ describe('native sources', () => {
   it('should works for include source', async () => {
     await helper.edit('word')
     await nvim.input('icombas')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('<C-u>')
-    await helper.wait(200)
+    await helper.wait(600)
     let res = await helper.visible('./completion/basic.test.ts', 'include')
     expect(res).toBe(true)
   })
@@ -153,12 +154,12 @@ describe('service source', () => {
 
   it('should works for tsserver source', async () => {
     await helper.edit('tmp.ts')
-    await helper.onServiceReady('tslint')
     await helper.onServiceReady('tsserver')
-    await helper.wait(3000)
+    // need sometime for initialize completion
+    await helper.wait(4000)
     await nvim.setLine('notDeepEqu')
     await nvim.input('Aa')
-    await helper.wait(300)
+    await helper.wait(500)
     let res = await helper.visible('notDeepEqual', 'tsserver-typescript')
     expect(res).toBe(true)
   })

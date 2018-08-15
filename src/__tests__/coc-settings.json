@@ -1,4 +1,5 @@
 {
   "coc.preferences.timeout": 3000,
-  "coc.source.omni.filetypes": ["vim"]
+  "coc.source.omni.filetypes": ["vim"],
+  "tslint.enable": false
 }

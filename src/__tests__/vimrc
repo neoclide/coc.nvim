@@ -20,5 +20,5 @@ function! SetDictionary()
   exe 'setl dictionary+='.s:dir.'/test.dict'
 endfunction
 
-autocmd Filetype * setlocal omnifunc=syntaxcomplete#Complete
+autocmd FileType vim setlocal omnifunc=syntaxcomplete#Complete
 
