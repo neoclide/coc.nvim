@@ -119,6 +119,7 @@ function! coc#rpc#notify(method, args)
 endfunction
 
 function! coc#rpc#restart()
+  call coc#util#clear_signs()
   if has('nvim')
     let [code] = jobwait([s:channel_id], 100)
     " running

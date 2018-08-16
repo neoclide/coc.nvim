@@ -184,6 +184,11 @@ function! coc#util#get_complete_option(...)
         \}, opt)
 endfunction
 
+function! coc#util#edit_file(filepath, ...)
+  let cmd = get(a:, 1, 'edit')
+  execute 'keepalt '.cmd.' '.fnameescape(a:filepath)
+endfunction
+
 function! coc#util#prompt_change(count)
   echohl MoreMsg
   echom a:count.' files will be changed. Confirm? (y/n)'
@@ -505,6 +510,28 @@ function! coc#util#clear()
   if !has('nvim')
     silent! call clearmatches()
   endif
+endfunction
+
+function! coc#util#clear_signs()
+  let buflist = []
+  for i in range(tabpagenr('$'))
+    for n in tabpagebuflist(i + 1)
+      if index(buflist, n) == -1
+        call add(buflist, n)
+      endif
+    endfor
+  endfor
+  for b in buflist
+    let signIds = []
+    let lines = split(execute('sign place buffer='.b), "\n")
+    for line in lines
+      let ms = matchlist(line, 'id=\(\d\+\)\s\+name=Coc')
+      if len(ms) > 0
+        call add(signIds, ms[1])
+      endif
+    endfor
+    call coc#util#unplace_signs(b, signIds)
+  endfor
 endfunction
 
 function! coc#util#matchdelete(ids)
