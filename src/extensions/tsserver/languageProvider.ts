@@ -28,6 +28,7 @@ import ReferencesCodeLensProvider from './features/referencesCodeLens'
 import RenameProvider from './features/rename'
 import SignatureHelpProvider from './features/signatureHelp'
 import UpdateImportsOnFileRenameHandler from './features/updatePathOnRename'
+import WatchBuild from './features/watchBuild'
 import WorkspaceSymbolProvider from './features/workspaceSymbols'
 import TypeScriptServiceClient from './typescriptServiceClient'
 import API from './utils/api'
@@ -62,10 +63,11 @@ export default class LanguageProvider {
 
     workspace.onDidEnterTextDocument(info => {
       let { state } = client
-      let { languageId, expandtab, tabstop } = info
+      let { languageId, uri } = info
       if (description.modeIds.indexOf(languageId) == -1) return
       let cb = () => {
-        this.fileConfigurationManager.ensureConfigurationOptions(description.id, expandtab, tabstop) // tslint:disable-line
+        let doc = workspace.getDocument(uri)
+        if (doc) this.fileConfigurationManager.ensureConfigurationForDocument(doc.textDocument) // tslint:disable-line
       }
       if (state == ServiceStat.Running) {
         cb()
@@ -233,6 +235,12 @@ export default class LanguageProvider {
         languages.registerCodeLensProvider(
           languageIds,
           new ImplementationsCodeLensProvider(client, cachedResponse)))
+    }
+
+    if (this.description.id == 'typescript') {
+      this.disposables.push(
+        new WatchBuild(commandManager)
+      )
     }
 
     // if (this.client.apiVersion.gte(API.v300)) {

@@ -20,14 +20,16 @@ export default class Document {
   public fetchContent: Function & { clear(): void; }
   private nvim: Neovim
   private _fireContentChanges: Function & { clear(): void; }
-  private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private attached = false
   private disposables: Disposable[] = []
   // real current lines
   private lines: string[] = []
   private _changedtick: number
   private _words: string[] = []
+  private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
+  private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
+  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
   constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
@@ -138,7 +140,7 @@ export default class Document {
       }
     })
     let unbindDetach = this.buffer.listen('detach', () => {
-      logger.debug('buffer detach')
+      this._onDocumentDetach.fire(this.textDocument)
     })
     let unbindChange = this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick

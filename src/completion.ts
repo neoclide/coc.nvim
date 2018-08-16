@@ -1,11 +1,11 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import completes from './completes'
 import Increment from './increment'
 import Document from './model/document'
 import Sources from './sources'
-import {CompleteOption, SourceStat, SourceType, VimCompleteItem} from './types'
-import {echoErr, isCocItem} from './util'
-import {isWord} from './util/string'
+import { CompleteOption, SourceStat, SourceType, VimCompleteItem } from './types'
+import { echoErr, isCocItem } from './util'
+import { isWord } from './util/string'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('completion')
@@ -44,7 +44,7 @@ export class Completion {
     // stop change emit on completion
     let document: Document = null
     increment.on('start', option => {
-      let {bufnr} = option
+      let { bufnr } = option
       document = workspace.getDocument(bufnr)
       if (document) document.paused = true
     })
@@ -54,16 +54,16 @@ export class Completion {
     })
   }
 
-  private get sources():Sources {
+  private get sources(): Sources {
     return workspace.sources
   }
 
-  private getPreference(name:string, defaultValue: any):any {
-    return workspace.getConfiguration('coc.preferences').get(name,defaultValue)
+  private getPreference(name: string, defaultValue: any): any {
+    return workspace.getConfiguration('coc.preferences').get(name, defaultValue)
   }
 
   public get hasLatestChangedI(): boolean {
-    let {lastChangedI} = this
+    let { lastChangedI } = this
     return lastChangedI && Date.now() - lastChangedI < 30
   }
 
@@ -77,10 +77,10 @@ export class Completion {
   }
 
   public async resumeCompletion(resumeInput: string): Promise<void> {
-    let {nvim, increment} = this
+    let { nvim, increment } = this
     let oldComplete = completes.complete
     try {
-      let {colnr, input} = oldComplete.option
+      let { colnr, input } = oldComplete.option
       let opt = Object.assign({}, oldComplete.option, {
         input: resumeInput,
         colnr: colnr + resumeInput.length - input.length
@@ -136,10 +136,10 @@ export class Completion {
   private async _doComplete(option: CompleteOption): Promise<void> {
     if (this.completing) return
     this.completing = true
-    let {nvim, increment} = this
+    let { nvim, increment } = this
     // could happen for auto trigger
     increment.start(option)
-    let {input} = option
+    let { input } = option
     logger.trace(`options: ${JSON.stringify(option)}`)
     let sources = this.sources.getCompleteSources(option)
     logger.trace(`Activted sources: ${sources.map(o => o.name).join(',')}`)
@@ -148,7 +148,7 @@ export class Completion {
       increment.stop()
       return
     }
-    let {search} = increment
+    let { search } = increment
     if (search === input) {
       nvim.call('coc#_set_context', [option.col, items], true)
       await nvim.call('coc#_do_complete', [])
@@ -162,7 +162,7 @@ export class Completion {
   }
 
   private async onTextChangedP(): Promise<void> {
-    let {increment} = this
+    let { increment } = this
     if (increment.latestInsert) {
       if (!increment.isActivted || this.completing) return
       let search = await increment.getResumeInput()
@@ -170,7 +170,7 @@ export class Completion {
       return
     }
     if (this.completing || this.hasLatestChangedI) return
-    let {option} = completes
+    let { option } = completes
     let search = await this.nvim.call('coc#util#get_search', [option.col])
     if (search == null) return
     let item = completes.getCompleteItem(search)
@@ -179,8 +179,8 @@ export class Completion {
 
   private async onTextChangedI(): Promise<void> {
     this.lastChangedI = Date.now()
-    let {nvim, increment} = this
-    let {latestInsertChar} = increment
+    let { nvim, increment } = this
+    let { latestInsertChar } = increment
     if (increment.isActivted) {
       if (this.completing) return
       let search = await increment.getResumeInput()
@@ -189,7 +189,7 @@ export class Completion {
     } else if (increment.search && !latestInsertChar) {
       // restart when user correct search
       let [, lnum] = await nvim.call('getcurpos')
-      let {option} = completes
+      let { option } = completes
       if (lnum == option.linenr) {
         let search = await this.nvim.call('coc#util#get_search', [option.col])
         if (search.length < increment.search.length) {
@@ -205,14 +205,14 @@ export class Completion {
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
     let option = await nvim.call('coc#util#get_complete_option')
-    Object.assign(option, {triggerCharacter: latestInsertChar})
+    Object.assign(option, { triggerCharacter: latestInsertChar })
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     if (!isCocItem(item)) return
-    let {increment} = this
+    let { increment } = this
     try {
       increment.stop()
       completes.addRecent(item.word)
@@ -239,7 +239,7 @@ export class Completion {
   }
 
   private onInsertCharPre(character: string): void {
-    let {increment} = this
+    let { increment } = this
     increment.lastInsert = {
       character,
       timestamp: Date.now(),
@@ -248,7 +248,7 @@ export class Completion {
 
   private async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
-    let {nvim, sources} = this
+    let { nvim, sources } = this
     let autoTrigger = this.getPreference('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     if (isWord(character)) {
@@ -262,7 +262,7 @@ export class Completion {
     return false
   }
 
-  public dispose():void {
+  public dispose(): void {
     if (this.increment) {
       this.increment.removeAllListeners()
       this.increment.stop()

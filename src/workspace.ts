@@ -623,7 +623,7 @@ export class Workspace implements IWorkspace {
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
     let buftype = await buffer.getOption('buftype') as string
-    if (buftype == 'help' || buftype == 'quickfix') return
+    if (buftype == 'help' || buftype == 'quickfix' || buftype == 'nofile') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
       this.onBufUnload(buffer.id)
