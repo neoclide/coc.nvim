@@ -21,7 +21,7 @@ export default abstract class Source implements ISource {
     this.optionalFns = optionalFns || []
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native
-    this.triggerCharacters = option.triggerCharacters || []
+    this.triggerCharacters = option.triggerCharacters || this.getConfig<string[]>('triggerCharacters', [])
   }
 
   public get priority(): number {
