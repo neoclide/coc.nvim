@@ -1,5 +1,5 @@
-import {Diagnostic} from 'vscode-languageserver-protocol'
-import {DiagnosticCollection} from '../types'
+import { Diagnostic } from 'vscode-languageserver-protocol'
+import { DiagnosticCollection } from '../types'
 import diagnosticManager from './manager'
 const logger = require('../util/logger')('diagnostic-collection')
 
@@ -12,15 +12,18 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public set(uri: string, diagnostics: Diagnostic[] | null): void
+  public set(entries: [string, Diagnostic[] | null][]): void
   public set(entries: [string, Diagnostic[] | null][] | string, diagnostics?: Diagnostic[]): void {
     if (Array.isArray(entries)) {
       let map: Map<string, Diagnostic[]> = new Map()
       for (let item of entries) {
         let [file, diagnostics] = item
         let exists = map.get(file) || []
-        for (let diagnostic of diagnostics) {
-          diagnostic.source = diagnostic.source || this.name
-          exists.push(diagnostic)
+        if (diagnostics) {
+          for (let diagnostic of diagnostics) {
+            diagnostic.source = diagnostic.source || this.name
+            exists.push(diagnostic)
+          }
         }
         map.set(file, exists)
       }
