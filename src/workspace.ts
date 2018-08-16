@@ -426,15 +426,16 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async openResource(uri: string): Promise<void> {
+  public async openResource(uri: string, cmd = 'drop'): Promise<void> {
+    let u = Uri.parse(uri)
+    // not supported
+    if (u.scheme !== 'file') return
     let { nvim } = this
-    let filepath = Uri.parse(uri).fsPath
-    let bufnr = await nvim.call('bufnr', [filepath])
-    if (bufnr != -1) return
+    let filepath = u.fsPath
     let cwd = await nvim.call('getcwd')
     let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-    file = file.replace(/'/g, "''")
-    await nvim.command(`exe 'edit ' . fnameescape('${file}')`)
+    // edit it even exists
+    await nvim.call('coc#util#edit_file', [file, cmd])
   }
 
   public createOutputChannel(name: string): OutputChannel {
@@ -669,6 +670,8 @@ export class Workspace implements IWorkspace {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     await doc.checkDocument()
+    let buf = require('./diagnostic/manager').default.getBuffer(doc.uri)
+    if (buf) buf.clearSigns()
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     if (doc && isSupportedScheme(doc.schema)) {
       let event: TextDocumentWillSaveEvent = {
