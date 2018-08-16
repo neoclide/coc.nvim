@@ -1,11 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { DiagnosticInfo } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticManager } from './manager'
-import debounce from 'debounce'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
@@ -73,7 +73,7 @@ export class DiagnosticBuffer {
     }, 200)
   }
 
-  private enableLoclist():boolean {
+  private enableLoclist(): boolean {
     return this.manager.config.locationlist
   }
 
@@ -167,36 +167,26 @@ export class DiagnosticBuffer {
     }
   }
 
-  private async _check(): Promise<void> {
-    let { signs, document } = this
+  public async clearSigns(): Promise<void> {
+    let { document } = this
     if (!document) return
     let { buffer } = document
-    let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
-    let lines: string[] = content.split('\n')
-    let ids = []
-    for (let line of lines) {
-      let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
-      if (!ms) continue
-      let [, id, name] = ms
-      if (severityNames.indexOf(name) == -1) continue
-      if (signs.indexOf(Number(id)) !== -1) continue
-      ids.push(id)
+    try {
+      let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
+      let lines: string[] = content.split('\n')
+      let ids = []
+      for (let line of lines) {
+        let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
+        if (!ms) continue
+        let [, id, name] = ms
+        if (severityNames.indexOf(name) != -1) {
+          ids.push(id)
+        }
+      }
+      await this.nvim.call('coc#util#unplace_signs', [buffer.id, ids])
+    } catch (e) {
+      logger.log(e.message)
     }
-    await this.nvim.call('coc#util#unplace_signs', [buffer.id, ids])
-  }
-
-  public async checkSigns(): Promise<void> {
-    this.promise = this.promise.then(() => {
-      return this._check()
-    })
-  }
-
-  private get signs(): number[] {
-    let res: number[] = []
-    for (let [, signs] of this.signMap) {
-      res.push(...signs)
-    }
-    return res
   }
 
   private async _clear(owner: string): Promise<void> {

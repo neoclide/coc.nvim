@@ -1,13 +1,13 @@
-import {Neovim} from '@chemzqm/neovim'
-import {Diagnostic, DiagnosticSeverity, Range, TextDocument, Disposable} from 'vscode-languageserver-protocol'
+import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
+import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Document from '../model/document'
-import {DiagnosticItem, LocationListItem} from '../types'
-import workspace from '../workspace'
-import {DiagnosticBuffer} from './buffer'
-import DiagnosticCollection from './collection'
-import debounce from 'debounce'
+import { DiagnosticItem, LocationListItem } from '../types'
 import { disposeAll } from '../util'
+import workspace from '../workspace'
+import { DiagnosticBuffer } from './buffer'
+import DiagnosticCollection from './collection'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -42,7 +42,7 @@ export class DiagnosticManager {
   private disposables: Disposable[] = []
   private nvim: Neovim
   private srcId = 1000
-  private srcIdMap:Map<string,number> = new Map()
+  private srcIdMap: Map<string, number> = new Map()
   private showMessage: Function & { clear(): void }
   constructor() {
 
@@ -63,16 +63,7 @@ export class DiagnosticManager {
       this.setConfiguration()
     }, null, this.disposables)
 
-    workspace.onDidSaveTextDocument(document => {
-      let buf = this.buffers.find(buf => buf.uri == document.uri)
-      if (buf) {
-        buf.checkSigns().catch(e => {
-          logger.error(e.stack)
-        })
-      }
-    }, null, this.disposables)
-
-    workspace.onDidBufWinEnter(({document, winid}) => {
+    workspace.onDidBufWinEnter(({ document, winid }) => {
       let uri = document ? document.uri : null
       let buf = this.buffers.find(buf => buf.uri == uri)
       if (buf) {
@@ -83,7 +74,7 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     workspace.onDidCloseTextDocument(textDocument => {
-      let {uri} = textDocument
+      let { uri } = textDocument
       for (let collection of this.collections) {
         collection.delete(uri)
       }
@@ -104,21 +95,21 @@ export class DiagnosticManager {
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.srcId = config.get<number>('highlightOffset', 1000),
-    this.config = {
-      locationlist: config.get<boolean>('locationlist', true),
-      signOffset: config.get<number>('signOffset', 1000),
-      errorSign: config.get<string>('errorSign', '>>'),
-      warningSign: config.get<string>('warningSign', '>>'),
-      infoSign: config.get<string>('infoSign', '>>'),
-      hintSign: config.get<string>('hintSign', '>>'),
-    }
+      this.config = {
+        locationlist: config.get<boolean>('locationlist', true),
+        signOffset: config.get<number>('signOffset', 1000),
+        errorSign: config.get<string>('errorSign', '>>'),
+        warningSign: config.get<string>('warningSign', '>>'),
+        infoSign: config.get<string>('infoSign', '>>'),
+        hintSign: config.get<string>('hintSign', '>>'),
+      }
     this.enabled = config.get<boolean>('enable', true)
   }
 
   private async init(): Promise<void> {
-    let {nvim} = workspace
-    let {documents} = workspace
-    let {errorSign, warningSign, infoSign, hintSign} = this.config
+    let { nvim } = workspace
+    let { documents } = workspace
+    let { errorSign, warningSign, infoSign, hintSign } = this.config
     await nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`)
     await nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`)
     await nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`)
@@ -140,14 +131,14 @@ export class DiagnosticManager {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
     if (workspace.isNvim) {
-      let {srcId} = this
+      let { srcId } = this
       this.srcId = this.srcId + 1
       this.srcIdMap.set(name, srcId)
     }
     return collection
   }
 
-  public getSrcId(name: string):number {
+  public getSrcId(name: string): number {
     return this.srcIdMap.get(name)
   }
 
@@ -199,7 +190,7 @@ export class DiagnosticManager {
     for (let collection of collections) {
       let items = collection.get(document.uri)
       for (let item of items) {
-        let {range} = item
+        let { range } = item
         if (document.offsetAt(range.start) >= si
           && document.offsetAt(range.end) <= ei) {
           res.push(item)
@@ -223,10 +214,10 @@ export class DiagnosticManager {
     let offset = await workspace.getOffset()
     if (offset == null) return
     let ranges = this.getSortedRanges(document)
-    let {textDocument} = document
+    let { textDocument } = document
     for (let i = ranges.length - 1; i >= 0; i--) {
       if (textDocument.offsetAt(ranges[i].end) < offset) {
-        let {start} = ranges[i]
+        let { start } = ranges[i]
         await this.nvim.call('cursor', [start.line + 1, start.character + 1])
         break
       }
@@ -245,10 +236,10 @@ export class DiagnosticManager {
     let document = workspace.getDocument(buffer.id)
     let offset = await workspace.getOffset()
     let ranges = this.getSortedRanges(document)
-    let {textDocument} = document
+    let { textDocument } = document
     for (let i = 0; i <= ranges.length - 1; i++) {
       if (textDocument.offsetAt(ranges[i].start) > offset) {
-        let {start} = ranges[i]
+        let { start } = ranges[i]
         await this.nvim.call('cursor', [start.line + 1, start.character + 1])
         break
       }
@@ -261,7 +252,7 @@ export class DiagnosticManager {
       collection.forEach((u, diagnostics) => {
         if (u != uri) return
         for (let diagnostic of diagnostics) {
-          let {start} = diagnostic.range
+          let { start } = diagnostic.range
           let o: LocationListItem = {
             bufnr,
             lnum: start.line + 1,
@@ -294,7 +285,7 @@ export class DiagnosticManager {
       collection.forEach((uri, diagnostics) => {
         let file = Uri.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
-          let {start} = diagnostic.range
+          let { start } = diagnostic.range
           let o: DiagnosticItem = {
             file,
             lnum: start.line + 1,
@@ -331,13 +322,13 @@ export class DiagnosticManager {
     let document = workspace.getDocument(buffer.id)
     if (!document) return
     let offset = await workspace.getOffset()
-    let {textDocument} = document
+    let { textDocument } = document
     let collections = this.getCollections(document.uri)
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let diagnostics = collection.get(document.uri)
       for (let diagnostic of diagnostics) {
-        let {range} = diagnostic
+        let { range } = diagnostic
         diagnostic.source = diagnostic.source || collection.name
         let start = textDocument.offsetAt(range.start)
         let end = textDocument.offsetAt(range.end)
@@ -349,7 +340,7 @@ export class DiagnosticManager {
     if (res.length == 0) return
     res = res.slice(0, 2)
     let lines: string[] = res.map(diagnostic => {
-      let {source, code, severity, message} = diagnostic
+      let { source, code, severity, message } = diagnostic
       let s = severityName(severity)[0]
       let msg = message.replace(/\n/g, ' ')
       return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
@@ -358,7 +349,7 @@ export class DiagnosticManager {
   }
 
   public clear(owner: string, uri?: string): void {
-    let {buffers} = this
+    let { buffers } = this
     for (let buffer of buffers) {
       if (!uri || buffer.uri == uri) {
         buffer.clear(owner).catch(e => {
@@ -369,7 +360,7 @@ export class DiagnosticManager {
   }
 
   public clearAll(): void {
-    let {buffers} = this
+    let { buffers } = this
     for (let buf of buffers) {
       buf.clear().catch(e => {
         logger.error(e.message)
@@ -384,7 +375,7 @@ export class DiagnosticManager {
     disposeAll(this.disposables)
   }
 
-  private getBuffer(uri: string): DiagnosticBuffer {
+  public getBuffer(uri: string): DiagnosticBuffer {
     return this.buffers.find(buf => buf.uri == uri)
   }
 
