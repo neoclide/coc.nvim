@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {TextDocument} from 'vscode-languageserver-protocol'
-import {WorkspaceConfiguration} from '../../../types'
+import { TextDocument } from 'vscode-languageserver-protocol'
+import { WorkspaceConfiguration } from '../../../types'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
 import * as languageIds from '../utils/languageModeIds'
 const logger = require('../../../util/logger')('tsserver-fileConfigurationManager')
@@ -46,14 +46,13 @@ export default class FileConfigurationManager {
   public constructor(private readonly client: ITypeScriptServiceClient) {
   }
 
-  public async ensureConfigurationOptions(languageId: string, expandtab: boolean, tabstop: number): Promise<void> {
-    let {requesting} = this
+  public async ensureConfigurationOptions(languageId: string, insertSpaces: boolean, tabSize: number): Promise<void> {
+    let { requesting } = this
     let options: FormatOptions = {
-      tabSize: tabstop,
-      insertSpaces: expandtab
+      tabSize,
+      insertSpaces
     }
-    if (requesting
-      || (this.cachedOption && objAreEqual(this.cachedOption, options))) return
+    if (requesting || (this.cachedOption && objAreEqual(this.cachedOption, options))) return
     const currentOptions = this.getFileOptions(options, languageId)
     this.requesting = true
     const args = {
@@ -66,9 +65,8 @@ export default class FileConfigurationManager {
   }
 
   public async ensureConfigurationForDocument(document: TextDocument): Promise<void> {
-    const formattingOptions = await workspace.getFormatOptions()
-    let {tabSize, insertSpaces} = formattingOptions
-    return this.ensureConfigurationOptions(document.languageId, insertSpaces, tabSize)
+    let opts = await workspace.getFormatOptions(document.uri)
+    return this.ensureConfigurationOptions(document.languageId, opts.insertSpaces, opts.tabSize)
   }
 
   public reset(): void {

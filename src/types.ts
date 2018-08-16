@@ -300,8 +300,6 @@ export interface DocumentInfo {
   bufnr: number
   uri: string
   languageId: string
-  expandtab: boolean
-  tabstop: number
 }
 
 export interface IServiceProvider {

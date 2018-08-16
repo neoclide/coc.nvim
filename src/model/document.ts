@@ -12,8 +12,6 @@ const logger = require('../util/logger')('model-document')
 
 // wrapper class of TextDocument
 export default class Document {
-  public tabstop: number
-  public expandtab: boolean
   public paused: boolean
   public buftype: string
   public isIgnored = false
@@ -92,31 +90,32 @@ export default class Document {
     return Uri.parse(this.uri).scheme
   }
 
-  public async init(nvim: Neovim, buftype: string): Promise<void> {
+  public get lineCount(): number {
+    return this.lines.length
+  }
+
+  public async init(nvim: Neovim, buftype: string, isNvim: boolean): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
     this.buftype = buftype
+    let res = await buffer.attach()
+    if (isNvim && !res) return false
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
-    this.expandtab = opts.expandtab
-    this.tabstop = opts.tabstop
-    this.lines = await buffer.lines as string[]
     this._changedtick = opts.changedtick
-    let { fullpath, filetype, iskeyword } = opts
-    let uri = getUri(fullpath, buffer.id)
-    let chars = this.chars = new Chars(iskeyword)
-    if (this.includeDash(filetype)) chars.addKeyword('-')
-    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
+    this.lines = await buffer.lines as string[]
     this.attach()
     this.attached = true
+    let { fullpath, filetype, iskeyword } = opts
+    let uri = getUri(fullpath, buffer.id)
+    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
+    let chars = this.chars = new Chars(iskeyword)
+    if (this.includeDash(filetype)) chars.addKeyword('-')
     this.gitCheck().then(() => {
       this.generateWords()
     }, e => {
       logger.error('git error', e.stack)
     })
-  }
-
-  public get lineCount(): number {
-    return this.lines.length
+    return true
   }
 
   /**
@@ -217,6 +216,9 @@ export default class Document {
     this.fetchContent.clear()
     this._fireContentChanges.clear()
     this._onDocumentChange.dispose()
+    this.buffer.detach().catch(e => {
+      logger.error(e)
+    })
   }
 
   public get bufnr(): number {

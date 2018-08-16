@@ -77,8 +77,6 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
-        \ 'expandtab': getbufvar(a:bufnr, '&expandtab') == 1 ? v:true : v:false,
-        \ 'tabstop': getbufvar(a:bufnr, '&tabstop'),
         \}
 endfunction
 

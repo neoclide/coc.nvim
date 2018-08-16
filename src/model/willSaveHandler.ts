@@ -36,7 +36,7 @@ export default class WillSaveUntilHandler {
             if (doc && edits && TextEdit.is(edits[0])) {
               doc.applyEdits(nvim, edits).then(() => {
                 // make sure server received ChangedText
-                setTimeout(resolve, 100)
+                setTimeout(resolve, 50)
               }, e => {
                 echoErr(nvim, `${clientId} error on applyEdits ${e.message}`)
                 resolve()

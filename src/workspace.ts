@@ -614,8 +614,6 @@ export class Workspace implements IWorkspace {
       bufnr: buf.id,
       uri: doc.uri,
       languageId: doc.filetype,
-      expandtab: doc.expandtab,
-      tabstop: doc.tabstop
     }
     this._onDidEnterDocument.fire(documentInfo)
   }
@@ -625,14 +623,15 @@ export class Workspace implements IWorkspace {
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
     let buftype = await buffer.getOption('buftype') as string
-    if (buftype == 'help' || buftype != 'quickfix') return
+    if (buftype == 'help' || buftype == 'quickfix') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
       this.onBufUnload(buffer.id)
       await wait(40)
     }
     let document = new Document(buffer)
-    await document.init(this.nvim, buftype)
+    let attached = await document.init(this.nvim, buftype, this.isNvim)
+    if (!attached) return
     this.buffers.set(buffer.id, document)
     if (isSupportedScheme(document.schema)) {
       this._onDidAddDocument.fire(document.textDocument)
