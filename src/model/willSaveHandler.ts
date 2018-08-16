@@ -10,33 +10,33 @@ export type PromiseCallback = (event: TextDocumentWillSaveEvent) => Promise<void
 export default class WillSaveUntilHandler {
   private callbacks: PromiseCallback[] = []
 
-  constructor(private workspace:IWorkspace) {
+  constructor(private workspace: IWorkspace) {
   }
 
-  private get nvim():Neovim {
+  private get nvim(): Neovim {
     return this.workspace.nvim
   }
 
   public addCallback(callback: Callback, thisArg: any, clientId: string): Disposable {
-    let {nvim} = this
+    let { nvim } = this
     let fn = (event: TextDocumentWillSaveEvent): Promise<void> => {
       let ev: TextDocumentWillSaveEvent = Object.assign({}, event)
       return new Promise(resolve => {
         let called = false
-        let timer = setTimeout(() => {
-          echoErr(nvim, `${clientId} timeout after 500ms`)
-          resolve(null)
-        }, 500)
         ev.waitUntil = (thenable): void => {
           called = true
           let { document } = ev
+          let timer = setTimeout(() => {
+            echoErr(nvim, `${clientId} will save operation timeout after 0.5s`)
+            resolve(null)
+          }, 500)
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
             clearTimeout(timer)
             let doc = this.workspace.getDocument(document.uri)
             if (doc && edits && TextEdit.is(edits[0])) {
               doc.applyEdits(nvim, edits).then(() => {
                 // make sure server received ChangedText
-                setTimeout(resolve, 30)
+                setTimeout(resolve, 100)
               }, e => {
                 echoErr(nvim, `${clientId} error on applyEdits ${e.message}`)
                 resolve()
@@ -52,7 +52,6 @@ export default class WillSaveUntilHandler {
         }
         callback.call(thisArg, ev)
         if (!called) {
-          clearTimeout(timer)
           resolve()
         }
       })
@@ -68,11 +67,15 @@ export default class WillSaveUntilHandler {
 
   public async handeWillSaveUntil(event: TextDocumentWillSaveEvent): Promise<void> {
     let { callbacks, workspace } = this
-    let {document} = event
+    let { document } = event
     for (let fn of callbacks) {
       let doc = workspace.getDocument(document.uri)
       event.document = doc.textDocument
-      await fn(event)
+      try {
+        await fn(event)
+      } catch (e) {
+        logger.error(e)
+      }
     }
   }
 }

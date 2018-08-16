@@ -670,8 +670,6 @@ export class Workspace implements IWorkspace {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     await doc.checkDocument()
-    let buf = require('./diagnostic/manager').default.getBuffer(doc.uri)
-    if (buf) buf.clearSigns()
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
     if (doc && isSupportedScheme(doc.schema)) {
       let event: TextDocumentWillSaveEvent = {

@@ -82,6 +82,16 @@ export class DiagnosticManager {
       if (idx !== -1) this.buffers.splice(idx, 1)
     }, null, this.disposables)
 
+    workspace.onWillSaveTextDocument(e => {
+      let { uri } = e.document
+      let buf = this.buffers.find(buf => buf.uri == uri)
+      if (buf) {
+        buf.clearSigns().catch(e => {
+          logger.error(e)
+        })
+      }
+    })
+
     this.showMessage = debounce(() => {
       this.echoMessage().catch(e => {
         logger.error(e.stack)
