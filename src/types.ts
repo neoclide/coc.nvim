@@ -595,6 +595,7 @@ export interface IWorkspace {
   echoLines(lines: string[]): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
+  createFile(filepath: string, opts: { ignoreIfExists?: boolean }): Promise<void>
   openResource(uri: string): Promise<void>
   createOutputChannel(name: string): OutputChannel
   showOutputChannel(name: string): void

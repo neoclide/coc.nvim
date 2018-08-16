@@ -1,7 +1,7 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import {Disposable, Location, Position} from 'vscode-languageserver-protocol'
-import {echoErr, wait, showQuickpick} from './util'
+import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
+import { echoErr, showQuickpick, wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
@@ -21,7 +21,7 @@ class CommandItem implements Disposable, Command {
   }
 
   public execute(...args: any[]): void | Promise<any> {
-    let {impl, thisArg} = this
+    let { impl, thisArg } = this
     return impl.apply(thisArg, args || [])
   }
 
@@ -56,7 +56,6 @@ export class CommandManager implements Disposable {
       id: 'editor.action.rename',
       execute: async (uri: string, position: Position) => {
         await workspace.jumpTo(uri, position)
-        await wait(50)
         await plugin.cocAction(['rename'])
       }
     }, true)
@@ -79,7 +78,7 @@ export class CommandManager implements Disposable {
     })
     this.register({
       id: 'workspace.showOutput',
-      execute: async (name?:string) => {
+      execute: async (name?: string) => {
         if (name) {
           workspace.showOutputChannel(name)
         } else {

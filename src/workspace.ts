@@ -426,6 +426,16 @@ export class Workspace implements IWorkspace {
     }
   }
 
+  public async createFile(filepath: string, opts: { ignoreIfExists?: boolean } = {}): Promise<void> {
+    if (fs.existsSync(filepath) && opts.ignoreIfExists) return
+    let uri = Uri.file(filepath).toString()
+    let doc = this.getDocument(uri)
+    if (doc) return
+    let encoding = await this.nvim.getOption('fileencoding') as string
+    fs.writeFileSync(filepath, '', encoding || '')
+    if (!doc) await this.openResource(uri)
+  }
+
   public async openResource(uri: string, cmd = 'drop'): Promise<void> {
     let u = Uri.parse(uri)
     // not supported

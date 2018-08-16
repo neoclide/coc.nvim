@@ -2,17 +2,17 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Diagnostic, Range, TextDocument} from 'vscode-languageserver-protocol'
-import commandManager, {Command} from '../../../commands'
-import {CodeActionProvider} from '../../../provider'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Diagnostic, Range, TextDocument } from 'vscode-languageserver-protocol'
+import commandManager, { Command } from '../../../commands'
+import { CodeActionProvider } from '../../../provider'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
-import {applyCodeActionCommands, getEditForCodeAction} from '../utils/codeAction'
+import { applyCodeActionCommands, getEditForCodeAction } from '../utils/codeAction'
 import * as typeConverters from '../utils/typeConverters'
 import BufferSyncSupport from './bufferSyncSupport'
-import {DiagnosticsManager} from './diagnostics'
+import { DiagnosticsManager } from './diagnostics'
 
 class ApplyCodeActionCommand implements Command {
   public static readonly ID = '_typescript.applyCodeActionCommand'
@@ -20,7 +20,7 @@ class ApplyCodeActionCommand implements Command {
 
   constructor(
     private readonly client: ITypeScriptServiceClient,
-  ) {}
+  ) { }
 
   public async execute(action: Proto.CodeFixAction): Promise<boolean> {
     return applyCodeActionCommands(this.client, action)
@@ -33,7 +33,7 @@ class ApplyFixAllCodeAction implements Command {
 
   constructor(
     private readonly client: ITypeScriptServiceClient,
-  ) {}
+  ) { }
 
   public async execute(
     file: string,
@@ -46,28 +46,29 @@ class ApplyFixAllCodeAction implements Command {
     const args: Proto.GetCombinedCodeFixRequestArgs = {
       scope: {
         type: 'file',
-        args: {file}
+        args: { file }
       },
       fixId: tsAction.fixId
     }
 
     try {
-      const combinedCodeFixesResponse = await this.client.execute('getCombinedCodeFix', args)
-      if (!combinedCodeFixesResponse.body) {
+      const { body } = await this.client.execute('getCombinedCodeFix', args)
+      if (!body) {
         return
       }
 
       const edit = typeConverters.WorkspaceEdit.fromFileCodeEdits(
         this.client,
-        combinedCodeFixesResponse.body.changes
+        body.changes
       )
       await workspace.applyEdit(edit)
+      const token = CancellationToken.None
 
-      if (combinedCodeFixesResponse.command) {
-        commandManager.executeCommand(
-          ApplyCodeActionCommand.ID,
-          combinedCodeFixesResponse.command
-        )
+      const { commands } = body
+      if (commands && commands.length) {
+        for (const command of commands) {
+          await this.client.execute('applyCodeActionCommand', { command }, token)
+        }
       }
     } catch {
       // noop
@@ -88,13 +89,13 @@ class DiagnosticsSet {
   }
 
   private static key(diagnostic: Diagnostic): string {
-    const {start, end} = diagnostic.range
+    const { start, end } = diagnostic.range
     return `${diagnostic.code}-${start.line},${start.character}-${end.line},${end.character}`
   }
 
   private constructor(
     private readonly _values: Map<string, Diagnostic>
-  ) {}
+  ) { }
 
   public get values(): Iterable<Diagnostic> {
     return this._values.values()
@@ -104,7 +105,7 @@ class DiagnosticsSet {
 class SupportedCodeActionProvider {
   private _supportedCodeActions?: Thenable<Set<number>>
 
-  public constructor(private readonly client: ITypeScriptServiceClient) {}
+  public constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async getFixableDiagnosticsForContext(
     context: CodeActionContext

@@ -2,23 +2,22 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Range, TextDocument, WorkspaceEdit} from 'vscode-languageserver-protocol'
-import commandManager, {Command} from '../../../commands'
-import {CodeActionProvider, CodeActionProviderMetadata} from '../../../provider'
-import {showQuickpick} from '../../../util'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Range, TextDocument, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import commandManager, { Command } from '../../../commands'
+import { CodeActionProvider, CodeActionProviderMetadata } from '../../../provider'
+import { showQuickpick } from '../../../util'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 import FormattingOptionsManager from './fileConfigurationManager'
-import touch = require('touch')
 const logger = require('../../../util/logger')('tsserver-refactor')
 
 class ApplyRefactoringCommand implements Command {
   public static readonly ID = '_typescript.applyRefactoring'
   public readonly id = ApplyRefactoringCommand.ID
 
-  constructor(private readonly client: ITypeScriptServiceClient) {}
+  constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async execute(
     document: TextDocument,
@@ -38,24 +37,23 @@ class ApplyRefactoringCommand implements Command {
       return false
     }
 
-    const workspaceEdit = this.toWorkspaceEdit(body)
+    const workspaceEdit = await this.toWorkspaceEdit(body)
     if (!(await workspace.applyEdit(workspaceEdit))) {
       return false
     }
-
     const renameLocation = body.renameLocation
     if (renameLocation) {
-      commandManager.executeCommand('editor.action.rename', [
+      commandManager.executeCommand('editor.action.rename',
         document.uri,
         typeConverters.Position.fromLocation(renameLocation)
-      ])
+      )
     }
     return true
   }
 
-  private toWorkspaceEdit(body: Proto.RefactorEditInfo): WorkspaceEdit {
+  private async toWorkspaceEdit(body: Proto.RefactorEditInfo): Promise<WorkspaceEdit> {
     for (const edit of body.edits) {
-      touch.sync(edit.fileName)
+      await workspace.createFile(edit.fileName, { ignoreIfExists: true })
     }
     let workspaceEdit = typeConverters.WorkspaceEdit.fromFileCodeEdits(
       this.client,
@@ -69,7 +67,7 @@ class SelectRefactorCommand implements Command {
   public static readonly ID = '_typescript.selectRefactoring'
   public readonly id = SelectRefactorCommand.ID
 
-  constructor(private readonly doRefactoring: ApplyRefactoringCommand) {}
+  constructor(private readonly doRefactoring: ApplyRefactoringCommand) { }
 
   public async execute(
     document: TextDocument,
@@ -77,9 +75,9 @@ class SelectRefactorCommand implements Command {
     info: Proto.ApplicableRefactorInfo,
     range: Range
   ): Promise<boolean> {
-    let {actions} = info
+    let { actions } = info
     const idx = actions.length == 1 ? 0 : await showQuickpick(workspace.nvim,
-      actions.map(action => action.name)
+      actions.map(action => action.description || action.name)
     )
     if (idx == -1) return false
     let label = info.actions[idx].name

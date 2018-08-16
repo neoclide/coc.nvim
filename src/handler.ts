@@ -1,13 +1,13 @@
-import debounce from 'debounce'
 import { Neovim } from '@chemzqm/neovim'
-import { Definition, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument, DocumentSymbol, Disposable } from 'vscode-languageserver-protocol'
+import debounce from 'debounce'
+import { Definition, Disposable, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
 import languages from './languages'
 import { ServiceStat } from './types'
-import { echoErr, echoMessage, echoWarning, showQuickpick, disposeAll } from './util'
+import { disposeAll, echoErr, echoMessage, echoWarning, showQuickpick } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
@@ -263,7 +263,7 @@ export default class Handler {
       return
     }
     let newName = await nvim.call('input', ['new name:', curname])
-    await nvim.command('normal! :<C-u>')
+    nvim.command('normal! :<C-u>', true)
     if (!newName) {
       echoWarning(nvim, 'Empty word, canceled')
       return
