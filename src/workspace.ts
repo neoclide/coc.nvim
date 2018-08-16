@@ -625,11 +625,11 @@ export class Workspace implements IWorkspace {
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
     let buftype = await buffer.getOption('buftype') as string
-    if (buftype != 'terminal' && buftype != '') return
+    if (buftype == 'help' || buftype != 'quickfix') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
       this.onBufUnload(buffer.id)
-      await wait(20)
+      await wait(40)
     }
     let document = new Document(buffer)
     await document.init(this.nvim, buftype)
