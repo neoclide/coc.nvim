@@ -1,4 +1,5 @@
-import {NeovimClient as Neovim} from '@chemzqm/neovim'
+import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import Emitter from 'events'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -6,11 +7,10 @@ import Handler from './handler'
 import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
-import {VimCompleteItem} from './types'
+import Sources from './sources'
+import { VimCompleteItem } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
-import Emitter from 'events'
-import Sources from './sources'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin {
@@ -20,10 +20,10 @@ export default class Plugin {
 
   constructor(public nvim: Neovim) {
     let emitter = this.emitter = new Emitter()
-    ;(workspace as any).nvim = nvim
-    ;(workspace as any).emitter = emitter
+      ; (workspace as any).nvim = nvim
+      ; (workspace as any).emitter = emitter
     let sources = new Sources(nvim)
-    ;(workspace as any).sources = sources
+      ; (workspace as any).sources = sources
     this.handler = new Handler(nvim, this.emitter, services)
     services.init(nvim)
     commandManager.init(nvim, this)
@@ -34,7 +34,7 @@ export default class Plugin {
   public async init(): Promise<void> {
     if (this.initialized) return
     this.initialized = true
-    let {nvim} = this
+    let { nvim } = this
     await workspace.init()
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
@@ -51,7 +51,7 @@ export default class Plugin {
   }
 
   public async cocAutocmd(args: any): Promise<void> {
-    let {emitter} = this
+    let { emitter } = this
     logger.debug('Autocmd:', args)
     switch (args[0] as string) {
       case 'BufEnter':
@@ -60,7 +60,6 @@ export default class Plugin {
       case 'BufWritePost':
       case 'BufUnload':
       case 'BufHidden':
-      case 'BufLeave':
       case 'DirChanged':
       case 'TextChanged':
       case 'InsertCharPre':
@@ -73,6 +72,7 @@ export default class Plugin {
       case 'CursorMoved':
       case 'FileType':
       case 'BufWritePre':
+      case 'CursorHold':
       case 'OptionSet':
         let fns = emitter.listeners(args[0])
         if (fns && fns.length) {
@@ -88,7 +88,7 @@ export default class Plugin {
 
   public async cocAction(args: any): Promise<any> {
     if (!this.initialized) return
-    let {handler} = this
+    let { handler } = this
     try {
       switch (args[0] as string) {
         case 'onlySource':
@@ -184,7 +184,7 @@ export default class Plugin {
     }
   }
 
-  public async dispose():Promise<void> {
+  public async dispose(): Promise<void> {
     workspace.dispose()
     await services.stopAll()
     services.dispose()
