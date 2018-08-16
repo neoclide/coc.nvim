@@ -37,8 +37,8 @@ class Source(Base):
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'documentSymbols')
-        if items is None:
-            return
+        if items is None or items is 0:
+            return []
         candidates = []
         for item in items:
             candidates.append({

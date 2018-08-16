@@ -39,6 +39,8 @@ class Source(Base):
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'sourceStat')
+        if items is None or items is 0:
+            return []
         candidates = []
         for item in items:
             name = item['name']

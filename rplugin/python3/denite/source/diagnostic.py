@@ -43,6 +43,8 @@ class Source(Base):
     def gather_candidates(self, context):
         cwd = self.vim.call('getcwd')
         items = self.vim.call('CocAction', 'diagnosticList')
+        if items is None or items is 0:
+            return []
         candidates = []
         for item in items:
             filepath = relpath(item['file'], start=cwd)

@@ -38,8 +38,8 @@ class Source(Base):
     def gather_candidates(self, context):
         cwd = self.vim.call('getcwd')
         items = self.vim.call('CocAction', 'workspaceSymbols')
-        if items is None:
-            return
+        if items is None or items is 0:
+            return []
         candidates = []
         for item in items:
             filepath = relpath(item['filepath'], start=cwd)
