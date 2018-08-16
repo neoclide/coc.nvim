@@ -745,7 +745,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     args.push('--allowLocalPluginLoads')
 
     if (this.apiVersion.gte(API.v206)) {
-      args.push('--useSingleInferredProject')
+      args.push('--useInferredProjectPerProjectRoot')
 
       if (this._configuration.disableAutomaticTypeAcquisition) {
         args.push('--disableAutomaticTypingAcquisition')

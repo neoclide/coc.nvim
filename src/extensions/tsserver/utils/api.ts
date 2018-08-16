@@ -3,6 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as semver from 'semver'
+const logger = require('../../../util/logger')('tsserver-api')
 
 export default class API {
   private static fromSimpleString(value: string): API {
@@ -45,7 +46,7 @@ export default class API {
   private constructor(
     public readonly versionString: string,
     private readonly version: string
-  ) {}
+  ) { }
 
   public gte(other: API): boolean {
     return semver.gte(this.version, other.version)
