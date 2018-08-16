@@ -441,6 +441,9 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     const args: Proto.SetCompilerOptionsForInferredProjectsArgs = {
       options: this.getCompilerOptionsForInferredProjects(configuration)
     }
+    if (this.apiVersion.gte(API.v300)) {
+      args.projectRootPath = workspace.root
+    }
     this.execute('compilerOptionsForInferredProjects', args, true) // tslint:disable-line
   }
 

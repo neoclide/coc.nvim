@@ -100,6 +100,9 @@ export default class BufferSyncSupport {
         args.scriptKindName = scriptKind
       }
     }
+    if (this.client.apiVersion.gte(API.v300)) {
+      args.projectRootPath = workspace.root
+    }
     this.client.execute('open', args, false) // tslint:disable-line
     this.requestDiagnostic(uri)
   }
