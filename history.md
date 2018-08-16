@@ -1,3 +1,21 @@
+# 2018-08-16
+
+* Improved for tsserver:
+
+  * Add `watchBuild` command for build current project with watch in terminal.
+  * Support of untitled buffer
+  * Support `projectRootPath`
+
+* Fix detach error of document.
+* Fix trigger characters not works for some source.
+* Fix document possible not sync before save.
+* Fix denite errors with 0 as result.
+* Fix wrong arguments of tsserver refactor command.
+* Use `drop` for workspace `openResource`.
+* Add clear coc signs on `:CocRestart`.
+* **Break change** all buffer types except `nofile` `help` and `quickfix` are
+  watched for changes.
+
 # 2018-08-15
 
 * Fix filter of completion items on fast input.

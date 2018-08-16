@@ -92,9 +92,9 @@
     lodash "^4.2.0"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@4.3.15":
-  version "4.3.15"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.15.tgz#b20dcb38c89b0854c42133b10b83cd8fb5453004"
+"@chemzqm/neovim@4.3.16":
+  version "4.3.16"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.16.tgz#6e0cd83ef1f6ec3800132556d21a8d5f63e6f172"
   dependencies:
     babel-eslint "^8.2.6"
     msgpack-lite "^0.1.26"
