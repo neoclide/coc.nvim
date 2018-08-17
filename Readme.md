@@ -183,9 +183,12 @@ for user to use their own version of language server.
 
 **Note:** use `:CocConfig` to edit configuration file, auto completion is supported
 
-## Example configuration
+## Example vim configuration
 
 ``` vim
+" if hidden not set, apply TextEdit might fail.
+set hidden
+
 " Better display for signatures
 set cmdheight=2
 
@@ -284,6 +287,7 @@ Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues
 ## LICENSE
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
+
 [Build Status Badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [Build Status]: https://travis-ci.org/neoclide/coc.nvim
 [Coverage Badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
