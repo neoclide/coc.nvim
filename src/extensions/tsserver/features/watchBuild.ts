@@ -88,6 +88,7 @@ class WatchCommand implements Command {
     let entries: Map<string, Diagnostic[]> = new Map()
     let cwd = this.getcwd(doc.uri)
     if (!cwd) return
+    let uris = new Set()
     this.setStatus(TscStatus.RUNNING)
     let parseLine = (line: string): void => {
       if (startRegex.test(line)) {
@@ -109,12 +110,19 @@ class WatchCommand implements Command {
           entries = new Map()
           this.setStatus(TscStatus.RUNNING)
           this.collection.clear()
+          uris = new Set()
           return
         }
         this.setStatus(TscStatus.ERROR)
         for (let [key, value] of entries.entries()) {
           this.collection.set(key, value)
         }
+        for (let uri of uris) {
+          if (!entries.has(uri)) {
+            this.collection.set(uri, [])
+          }
+        }
+        uris = new Set(entries.keys())
       }
     }
     for (let line of doc.content.split('\n')) {
