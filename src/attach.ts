@@ -32,8 +32,8 @@ export default function(opts: Attach): Plugin {
 
   nvim.on('request', (method: string, args, resp) => {
     switch (method) {
-      case 'BufWritePre':
-        plugin.cocAutocmd.call(plugin, ['BufWritePre', args[0]]).then(() => {
+      case 'CocAutocmd':
+        plugin.cocAutocmd.call(plugin, args).then(() => {
           resp.send(null)
         }, e => {
           logger.error('Action error: ' + e.stack)

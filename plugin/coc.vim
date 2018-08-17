@@ -35,11 +35,9 @@ function! s:Autocmd(...) abort
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
-" This should be sync
-function! s:BufWritePre(bufnr)
+function! s:SyncAutoCmd(...)
   if !get(g:, 'coc_enabled', 0) | return | endif
-  if getbufvar(a:bufnr, '&buftype') !=# '' | return | endif
-  call coc#rpc#request('BufWritePre', [a:bufnr])
+  call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
 function! s:Disable() abort
@@ -96,13 +94,13 @@ function! s:Enable()
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd BufUnload           * call s:Autocmd('BufUnload', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
-    autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'))
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd OptionSet  completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
-    autocmd BufWritePre         * call s:BufWritePre(+expand('<abuf>'))
+    autocmd BufNewFile,BufReadPost, * call s:SyncAutoCmd('BufCreate', +expand('<abuf>'))
+    autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
   augroup end
 
   " same behaviour of ultisnips
