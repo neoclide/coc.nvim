@@ -1,28 +1,25 @@
 import debounce from 'debounce'
 import fs from 'fs'
-import {statAsync} from './fs'
+import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('./logger')('util-watch')
 
-export function watchFiles(uris: string[], onChange: () => void): void {
+export function watchFiles(uris: string[], onChange: () => void): Disposable {
   let callback = debounce(onChange, 200)
-  Promise.all(uris.map(uri => {
-    return statAsync(uri)
-  })).then(stats => {
-    for (let i = 0; i < stats.length; i++) {
-      if (stats[i] == null) continue
-      if (stats[i].isFile()) {
-        fs.watch(uris[i], {
-          persistent: false,
-          recursive: false,
-          encoding: 'utf8'
-        }, eventType => {
-          if (eventType == 'change') {
-            callback()
-          }
-        })
-      }
+  let watchers = []
+  for (let uri of uris) {
+    if (!fs.existsSync(uri)) continue
+    let watcher = fs.watch(uri, {
+      persistent: false,
+      recursive: false,
+      encoding: 'utf8'
+    }, () => {
+      callback()
+    })
+    watchers.push(watcher)
+  }
+  return Disposable.create(() => {
+    for (let watcher of watchers) {
+      watcher.close()
     }
-  }, err => {
-    logger.error(err.message)
   })
 }
