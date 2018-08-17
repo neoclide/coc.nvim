@@ -1,33 +1,36 @@
-import Source from '../model/source'
-import {CompleteOption, CompleteResult, ISource} from '../types'
-import workspace from '../workspace'
 import { Disposable } from 'vscode-languageserver-protocol'
+import Source from '../model/source'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-buffer')
 
 export default class Buffer extends Source {
   constructor() {
-    super( {
+    super({
       name: 'buffer',
       filepath: __filename
     })
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {input} = opt
+    let { input } = opt
     if (input.length === 0) return false
     return true
   }
 
   public async refresh(): Promise<void> {
-    await workspace.refresh()
+    let docs = workspace.documents
+    for (let doc of docs) {
+      await doc.checkDocument()
+    }
   }
 
-  public get ignoreGitignore():boolean {
+  public get ignoreGitignore(): boolean {
     return this.getConfig('ignoreGitignore', true)
   }
 
   private getWords(bufnr: number): string[] {
-    let {ignoreGitignore} = this
+    let { ignoreGitignore } = this
     let words: string[] = []
     workspace.documents.forEach(document => {
       if (!document || (ignoreGitignore && document.isIgnored)) return
@@ -42,7 +45,7 @@ export default class Buffer extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {bufnr} = opt
+    let { bufnr } = opt
     let words = this.getWords(bufnr)
     words = this.filterWords(words, opt)
     return {
@@ -56,7 +59,7 @@ export default class Buffer extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>): Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('buffer', new Buffer())
   return Disposable.create(() => {
     sourceMap.delete('buffer')
