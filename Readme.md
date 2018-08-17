@@ -284,8 +284,7 @@ Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues
 ## LICENSE
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
-
-[Build Status Badge]: https://travis-ci.org/neovim/node-client.svg?branch=master
+[Build Status Badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [Build Status]: https://travis-ci.org/neoclide/coc.nvim
 [Coverage Badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
 [Coverage Report]: https://codecov.io/gh/neoclide/coc.nvim
