@@ -100,12 +100,20 @@ export default class Document {
     this.nvim = nvim
     let { buffer } = this
     this.buftype = buftype
-    let res = await buffer.attach()
-    if (isNvim && !res) return false
+    if (isNvim) {
+      try {
+        let res = await buffer.attach()
+        if (!res) return false
+      } catch (e) {
+        return false
+      }
+    }
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
     this._changedtick = opts.changedtick
     this.lines = await buffer.lines as string[]
-    this.attach()
+    if (isNvim) {
+      this.attach()
+    }
     this.attached = true
     let { fullpath, filetype, iskeyword } = opts
     let uri = getUri(fullpath, buffer.id)
@@ -172,7 +180,6 @@ export default class Document {
     if (buf.id !== this.buffer.id) return
     this._changedtick = tick
     this.lines.splice(firstline, lastline - firstline, ...linedata)
-    logger.debug(this.lines)
     this._fireContentChanges()
   }
 
