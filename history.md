@@ -1,3 +1,26 @@
+# 2018-08-17
+
+* Fix exists terminal buffer not watched.
+* Fix buffer not attached after `edit!`.
+* Fix clean diagnostics of tsc command.
+* Fix refresh of buffer.
+* Fix document not found on `BufEnter`.
+
+  Use `rpcrequest` for `BufCreate`
+
+* Fix no permission of log file.
+
+  Disable create log file for root user.
+
+* Add more command for tsserver:
+
+  * `tsserver.reloadProjects`
+  * `tsserver.openTsServerLog`
+  * `tsserver.goToProjectConfig`
+  * `tsserver.restart`
+
+* Add test for workspace.
+
 # 2018-08-16
 
 * Improved for tsserver:
