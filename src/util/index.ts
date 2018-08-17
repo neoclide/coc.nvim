@@ -11,12 +11,13 @@ const prefix = '[coc.nvim] '
 
 export enum FileSchemes {
   File = 'file',
-  Untitled = 'untitled'
+  Untitled = 'untitled',
+  Term = 'term'
 }
 
 export function isSupportedScheme(scheme: string): boolean {
   return (
-    [FileSchemes.File, FileSchemes.Untitled].indexOf(scheme as FileSchemes) >= 0
+    [FileSchemes.File, FileSchemes.Untitled, FileSchemes.Term].indexOf(scheme as FileSchemes) >= 0
   )
 }
 

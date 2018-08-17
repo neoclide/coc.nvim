@@ -87,6 +87,8 @@ class WatchCommand implements Command {
   public onTerminalCreated(doc: Document): void {
     let entries: Map<string, Diagnostic[]> = new Map()
     let cwd = this.getcwd(doc.uri)
+    if (!cwd) return
+    this.setStatus(TscStatus.RUNNING)
     let parseLine = (line: string): void => {
       if (startRegex.test(line)) {
         this.setStatus(TscStatus.COMPILING)
