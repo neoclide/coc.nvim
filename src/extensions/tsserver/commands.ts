@@ -26,7 +26,7 @@ export class OpenTsServerLogCommand implements Command {
   ) { }
 
   public execute(): void {
-    this.client.serviceClient.openTsServerLogFile()
+    this.client.serviceClient.openTsServerLogFile() // tslint:disable-line
   }
 }
 

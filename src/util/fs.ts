@@ -1,4 +1,4 @@
-import {exec} from 'child_process'
+import { exec } from 'child_process'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
@@ -7,15 +7,13 @@ import pify from 'pify'
 import readline from 'readline'
 const logger = require('./logger')('util-fs')
 
-let tmpFolder: string | null = null
-
 export type OnReadLine = (line: string) => void
 
 export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   let stat = null
   try {
     stat = await pify(fs.stat)(filepath)
-  } catch (e) {} // tslint:disable-line
+  } catch (e) { } // tslint:disable-line
   return stat
 }
 
@@ -25,15 +23,15 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   if (!stat || !stat.isFile()) return false
   let root = null
   try {
-    let out = await pify(exec)('git rev-parse --show-toplevel', {cwd: path.dirname(fullpath)})
+    let out = await pify(exec)('git rev-parse --show-toplevel', { cwd: path.dirname(fullpath) })
     root = out.trim()
-  } catch (e) {} // tslint:disable-line
+  } catch (e) { } // tslint:disable-line
   if (!root) return false
   let file = path.relative(root, fullpath)
   try {
-    let out = await pify(exec)(`git check-ignore ${file}`, {cwd: root})
+    let out = await pify(exec)(`git check-ignore ${file}`, { cwd: root })
     return out.trim() == file
-  } catch (e) {} // tslint:disable-line
+  } catch (e) { } // tslint:disable-line
   return false
 }
 
@@ -68,7 +66,7 @@ export function resolveDirectory(root: string, sub: string): string | null {
 
 export function resolveRoot(cwd: string, subs: string[], home?: string): string | null {
   home = home || os.homedir()
-  let {root} = path.parse(cwd)
+  let { root } = path.parse(cwd)
   let paths = getParentDirs(cwd)
   paths.unshift(cwd)
   for (let p of paths) {
@@ -119,9 +117,9 @@ export async function writeFile(fullpath, content: string): Promise<void> {
 }
 
 export async function createTmpFile(content: string): Promise<string> {
-  if (!tmpFolder) {
-    tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
-    await pify(fs.mkdir)(tmpFolder)
+  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
+  if (!fs.existsSync(tmpFolder)) {
+    fs.mkdirSync(tmpFolder)
   }
   let filename = path.join(tmpFolder, Date.now().toString(26).slice(4))
   await pify(fs.writeFile)(filename, content, 'utf8')
@@ -134,7 +132,7 @@ export function validSocket(path: string): Promise<boolean> {
     clientSocket.on('error', () => {
       resolve(false)
     })
-    clientSocket.connect({path}, () => {
+    clientSocket.connect({ path }, () => {
       clientSocket.unref()
       resolve(true)
     })

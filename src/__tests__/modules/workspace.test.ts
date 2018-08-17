@@ -152,16 +152,16 @@ describe('workspace methods', () => {
   })
 
   it('should get config files', async () => {
-    let file = await workspace.getConfigFile(ConfigurationTarget.Global)
+    let file = workspace.getConfigFile(ConfigurationTarget.Global)
     expect(file).toBeTruthy()
-    file = await workspace.getConfigFile(ConfigurationTarget.User)
+    file = workspace.getConfigFile(ConfigurationTarget.User)
     expect(file).toBeTruthy()
-    file = await workspace.getConfigFile(ConfigurationTarget.Workspace)
+    file = workspace.getConfigFile(ConfigurationTarget.Workspace)
     expect(file).toBeTruthy()
   })
 
   it('should create file watcher', async () => {
-    let watcher = await workspace.createFileSystemWatcher('**/*.ts')
+    let watcher = workspace.createFileSystemWatcher('**/*.ts')
     expect(watcher).toBeTruthy()
   })
 
@@ -230,25 +230,27 @@ describe('workspace methods', () => {
   })
 
   it('should run command', async () => {
-    let res = await workspace.runCommand('ls', __dirname)
-    expect(res.indexOf('workspace.test.ts') !== -1).toBe(true)
+    let res = await workspace.runCommand('echo "abc"')
+    expect(res).toMatch('abc')
   })
 
   it('should run terminal command', async () => {
-    let res = await workspace.runTerminalCommand('ls', __dirname)
+    let res = await workspace.runTerminalCommand('ls')
     expect(res.success).toBe(true)
-    expect(res.content).toMatch('workspace.test.ts')
   })
 
   it('should show mesages', async () => {
     await helper.edit('tmp')
-    await workspace.showMessage('error', 'error')
+    workspace.showMessage('error', 'error')
+    await helper.wait(30)
     let str = await helper.getCmdline()
     expect(str).toMatch('error')
-    await workspace.showMessage('warning', 'warning')
+    workspace.showMessage('warning', 'warning')
+    await helper.wait(30)
     str = await helper.getCmdline()
     expect(str).toMatch('warning')
-    await workspace.showMessage('moremsg')
+    workspace.showMessage('moremsg')
+    await helper.wait(30)
     str = await helper.getCmdline()
     expect(str).toMatch('moremsg')
   })
@@ -382,7 +384,7 @@ describe('workspace events', () => {
   it('should fire onWillSaveUntil', async () => {
     let fn = jest.fn()
     workspace.onWillSaveUntil(event => {
-      let promise = new Promise(resolve => {
+      let promise = new Promise<void>(resolve => {
         fn()
         nvim.command('normal! dd').then(resolve, resolve)
       })
@@ -397,7 +399,7 @@ describe('workspace events', () => {
 
   it('should fire moduleInstalled', async () => {
     let fn = jest.fn()
-    let install = new Promise(resolve => {
+    let install = new Promise<void>(resolve => {
       workspace.onDidModuleInstalled(name => {
         expect(name).toBe('et-improve')
         fn()

@@ -431,7 +431,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   private serviceStarted(resendModels: boolean): void {
     let document = workspace.getDocument(workspace.bufnr)
     if (document) {
-      this.fileConfigurationManager.ensureConfigurationForDocument(document.textDocument)
+      this.fileConfigurationManager.ensureConfigurationForDocument(document.textDocument) // tslint:disable-line
     } else {
       const configureOptions: Proto.ConfigureRequestArguments = {
         hostInfo: 'nvim-coc'
