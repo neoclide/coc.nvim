@@ -1,17 +1,17 @@
-import {OutputChannel} from '../types'
-import {Neovim, Buffer} from '@chemzqm/neovim'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Disposable } from 'vscode-languageserver-protocol'
+import { OutputChannel } from '../types'
+import { disposeAll } from '../util'
 import workspace from '../workspace'
-import {Disposable} from 'vscode-languageserver-protocol'
-import {disposeAll} from '../util'
 const logger = require('../util/logger')("outpubChannel")
 
 export default class BufferChannel implements OutputChannel {
-  private buffer:Buffer = null
+  private buffer: Buffer = null
   private content = ''
-  private disposables:Disposable[] = []
+  private disposables: Disposable[] = []
   private _showing = false
-  constructor(public name:string, private nvim:Neovim) {
-    let {emitter} = workspace
+  constructor(public name: string, private nvim: Neovim) {
+    let { emitter } = workspace
     let onUnload = this.onUnload.bind(this)
     emitter.on('BufUnload', onUnload)
     this.disposables.push(Disposable.create(() => {
@@ -19,8 +19,8 @@ export default class BufferChannel implements OutputChannel {
     }))
   }
 
-  private async isShown():Promise<boolean> {
-    let {nvim, name} = this
+  public async isShown(): Promise<boolean> {
+    let { nvim, name } = this
     let exists = await nvim.call('bufexists', [`[coc ${name}]`])
     if (!exists && this.buffer) {
       this.buffer = null
@@ -28,8 +28,8 @@ export default class BufferChannel implements OutputChannel {
     return exists == 1
   }
 
-  private onUnload(bufnr:number):void {
-    let {buffer} = this
+  private onUnload(bufnr: number): void {
+    let { buffer } = this
     if (buffer && buffer.id == bufnr) {
       this.buffer = null
     }
@@ -37,7 +37,7 @@ export default class BufferChannel implements OutputChannel {
 
   public append(value: string): void {
     this.content += value
-    let {buffer} = this
+    let { buffer } = this
     if (!buffer) return
     let lines = this.content.split('\n')
     buffer.setLines(lines.slice(-1), {
@@ -52,7 +52,7 @@ export default class BufferChannel implements OutputChannel {
   public appendLine(value: string): void {
     let newLines = value.split('\n')
     this.content += `${value}\n`
-    let {buffer} = this
+    let { buffer } = this
     if (!buffer) return
     buffer.append(newLines).catch(e => {
       logger.error(e.message)
@@ -72,7 +72,7 @@ export default class BufferChannel implements OutputChannel {
     }
   }
 
-  public show(preserveFocus?:boolean): void {
+  public show(preserveFocus?: boolean): void {
     if (this._showing) return
     this._showing = true
     this.isShown().then(shown => {
@@ -86,7 +86,7 @@ export default class BufferChannel implements OutputChannel {
   }
 
   public hide(): void {
-    let {buffer, nvim} = this
+    let { buffer, nvim } = this
     if (!buffer) return
     this.buffer = null
     nvim.command(`slient! bd! ${buffer.id}`, true)
@@ -98,8 +98,8 @@ export default class BufferChannel implements OutputChannel {
     disposeAll(this.disposables)
   }
 
-  private async openBuffer(preserveFocus?:boolean):Promise<void> {
-    let {buffer, nvim, content} = this
+  private async openBuffer(preserveFocus?: boolean): Promise<void> {
+    let { buffer, nvim, content } = this
     if (!buffer) {
       await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
       await nvim.command('setl bufhidden=hide')

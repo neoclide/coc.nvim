@@ -3,6 +3,7 @@ import * as cp from 'child_process'
 import Emitter from 'events'
 import path from 'path'
 import attach from '../attach'
+import Document from '../model/document'
 import Plugin from '../plugin'
 import services from '../services'
 import { IWorkspace, ServiceStat, VimCompleteItem } from '../types'
@@ -18,17 +19,19 @@ export class Helper extends Emitter {
   public proc: cp.ChildProcess
   public plugin: Plugin
 
-  public setup(): Promise<void> {
+  public setup(uiAttach = true): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
-    this.nvim.uiAttach(80, 80, { // tslint:disable-line
-      ext_popupmenu: true,
-      ext_newgrid: true
-    })
+    if (uiAttach) {
+      this.nvim.uiAttach(80, 80, { // tslint:disable-line
+        ext_popupmenu: true,
+        ext_newgrid: true,
+      })
+    }
     proc.on('exit', () => {
       this.proc = null
     })
@@ -36,8 +39,8 @@ export class Helper extends Emitter {
       if (method == 'redraw') {
         try {
           let event = args[0][0]
-          if (event == 'popupmenu_show') {
-            this.emit('popupmenu_show')
+          if (event) {
+            this.emit(event, args[0])
           }
         } catch (e) {
           console.error(e.message) // tslint:disable-line
@@ -183,6 +186,22 @@ export class Helper extends Emitter {
 
   public get workspace(): IWorkspace {
     return require('../workspace').default
+  }
+
+  public async createDocument(name: string): Promise<Document> {
+    let buf = await this.edit(name)
+    await this.wait(100)
+    return this.workspace.getDocument(buf.id)
+  }
+
+  public async getCmdline(): Promise<string> {
+    let str = ''
+    for (let i = 1, l = 70; i < l; i++) {
+      let ch = await this.nvim.call('screenchar', [79, i])
+      if (ch == -1) break
+      str += String.fromCharCode(ch)
+    }
+    return str.trim()
   }
 }
 export default new Helper()

@@ -1,9 +1,14 @@
 let $NODE_ENV='test'
 set nocompatible
 
+set hidden
 set noswapfile
 set nobackup
 set completeopt=menuone,noinsert,noselect
+set tabstop=2
+set cmdheight=2
+set et
+set noshowmode
 
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')

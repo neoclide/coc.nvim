@@ -1,12 +1,12 @@
-import path from 'path'
-import {EventEmitter} from 'events'
-import { TerminalResult } from '../types'
-import { showQuickpick, echoMessage, executable } from '../util'
 import { Neovim } from '@chemzqm/neovim'
+import { EventEmitter } from 'events'
+import path from 'path'
+import { TerminalResult } from '../types'
+import { echoMessage, executable, showQuickpick } from '../util'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
 // const logger = require('../util/logger')('model-moduleManager')
-type Callback = (res:TerminalResult)=>void
+type Callback = (res: TerminalResult) => void
 
 const isLinux = process.platform === 'linux'
 
@@ -15,28 +15,28 @@ export default class ModuleManager extends EventEmitter {
   private _npmFolder: string | undefined
   private _yarnFolder: string | undefined
   private taskId = 1
-  private installing:Map<number, string> = new Map()
-  private disables:string[] = []
-  private callbacks:Map<number, Callback> = new Map()
+  private installing: Map<number, string> = new Map()
+  private disables: string[] = []
+  private callbacks: Map<number, Callback> = new Map()
 
-  public handleTerminalResult(res:TerminalResult):void {
-      if (!res.id) return
-      let {id} = res
-      if (this.installing.has(id)) {
-        if (res.success) {
-          this.emit('installed', this.installing.get(id))
-        }
-        this.installing.delete(id)
-      } else {
-        let cb = this.callbacks.get(id)
-        if (cb) {
-          this.callbacks.delete(id)
-          cb(res)
-        }
+  public handleTerminalResult(res: TerminalResult): void {
+    if (!res.id) return
+    let { id } = res
+    if (this.installing.has(id)) {
+      if (res.success) {
+        this.emit('installed', this.installing.get(id))
       }
+      this.installing.delete(id)
+    } else {
+      let cb = this.callbacks.get(id)
+      if (cb) {
+        this.callbacks.delete(id)
+        cb(res)
+      }
+    }
   }
 
-  private get nvim():Neovim {
+  private get nvim(): Neovim {
     return workspace.nvim
   }
 
@@ -70,11 +70,11 @@ export default class ModuleManager extends EventEmitter {
     return null
   }
 
-  public async installModule(mod: string, section?:string):Promise<number> {
+  public async installModule(mod: string, section?: string): Promise<number> {
     let mods = Array.from(this.installing.values())
     if (mods.indexOf(mod) !== -1) return
     if (this.disables.indexOf(mod) !== -1) return
-    let {nvim} = this
+    let { nvim } = this
     let id = this.taskId
     let items = [
       'Use npm to install',
@@ -104,14 +104,14 @@ export default class ModuleManager extends EventEmitter {
         return
       }
     }
-    nvim.call('coc#util#open_terminal', [{id, cmd}], true)
+    nvim.call('coc#util#open_terminal', [{ id, cmd }], true)
     return id
   }
 
-  public runCommand(cmd:string, cwd?:string, timeout?:number):Promise<TerminalResult> {
+  public runCommand(cmd: string, cwd?: string, timeout?: number): Promise<TerminalResult> {
     let id = this.taskId
     this.taskId = this.taskId + 1
-    this.nvim.call('coc#util#open_terminal', [{id, cmd, cwd: cwd || workspace.root}], true)
+    this.nvim.call('coc#util#open_terminal', [{ id, cmd, cwd: cwd || workspace.root }], true)
     return new Promise((resolve, reject) => {
       let called = false
       let tid
@@ -119,7 +119,7 @@ export default class ModuleManager extends EventEmitter {
         tid = setTimeout(() => {
           called = true
           reject(new Error(`command ${cmd} timeout after ${timeout}s`))
-        }, timeout*1000)
+        }, timeout * 1000)
       }
       this.callbacks.set(id, res => {
         if (called) return

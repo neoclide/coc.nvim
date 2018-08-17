@@ -1,9 +1,9 @@
 /* tslint:disable:no-console */
-import {TextDocument, TextEdit} from 'vscode-languageserver-protocol'
-import {getChange} from '../../util/diff'
-import {createTmpFile, isGitIgnored, readFileByLine, statAsync} from '../../util/fs'
-import {fuzzyChar, fuzzyMatch, getCharCodes} from '../../util/fuzzy'
-import {isCocItem} from '../../util/index'
+import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { getChange } from '../../util/diff'
+import { createTmpFile, isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
+import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { isCocItem } from '../../util/index'
 import watchObj from '../../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
@@ -20,8 +20,8 @@ describe('isCocItem test', () => {
   test('shoud not be coc item', () => {
     expect(isCocItem(null)).toBeFalsy
     expect(isCocItem({})).toBeFalsy
-    expect(isCocItem({word: ''})).toBeFalsy
-    expect(isCocItem({word: '', user_data: 'abc'})).toBeFalsy
+    expect(isCocItem({ word: '' })).toBeFalsy
+    expect(isCocItem({ word: '', user_data: 'abc' })).toBeFalsy
   })
 })
 
@@ -89,8 +89,8 @@ describe('fs test', () => {
 
 describe('watchObj test', () => {
   test('should trigger watch', () => {
-    const cached: {[index: string]: string} = {}
-    let {watched, addWatcher} = watchObj(cached)
+    const cached: { [index: string]: string } = {}
+    let { watched, addWatcher } = watchObj(cached)
     let result: string | null = null
     addWatcher('foo', res => {
       result = res
@@ -100,8 +100,8 @@ describe('watchObj test', () => {
   })
 
   test('should not trigger watch', () => {
-    const cached: {[index: string]: string} = {}
-    let {watched, addWatcher} = watchObj(cached)
+    const cached: { [index: string]: string } = {}
+    let { watched, addWatcher } = watchObj(cached)
     let result: string | null = null
     addWatcher('foo', res => {
       result = res
@@ -117,11 +117,11 @@ describe('diff test', () => {
   function expectChange(from: string, to: string): void {
     let doc = TextDocument.create('/coc', 'text', 0, from)
     let change = getChange(from, to)
-    let {newText} = change
+    let { newText } = change
     let start = doc.positionAt(change.start)
     let end = doc.positionAt(change.end)
     let edit: TextEdit = {
-      range: {start, end},
+      range: { start, end },
       newText
     }
     let newContent = TextDocument.applyEdits(doc, [edit])

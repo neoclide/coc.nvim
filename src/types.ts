@@ -4,6 +4,8 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { FormattingOptions } from './provider'
 
+export type MsgTypes = 'error' | 'warning' | 'more'
+
 export interface EditerState {
   document: TextDocument
   position: Position
@@ -564,6 +566,7 @@ export interface IWorkspace {
   filetypes: Set<string>
   pluginRoot: string
   initialized: boolean
+  completeOpt: string
   channelNames: string[]
   documents: Document[]
   document: Promise<Document | null>
@@ -571,6 +574,7 @@ export interface IWorkspace {
   workspaceFolder: WorkspaceFolder
   onDidEnterTextDocument: Event<DocumentInfo>
   onDidOpenTextDocument: Event<TextDocument>
+  onDidBufWinEnter: Event<WinEnter>
   onDidCloseTextDocument: Event<TextDocument>
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
@@ -578,12 +582,12 @@ export interface IWorkspace {
   onDidChangeConfiguration: Event<WorkspaceConfiguration>
   onDidWorkspaceInitialized: Event<void>
   onDidModuleInstalled: Event<string>
-  onDidBufWinEnter: Event<WinEnter>
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
+  showMessage(msg: string, identify?: MsgTypes): void
   getDocument(uri: string | number): Document
   getDocument(bufnr: number): Document | null
   getOffset(): Promise<number>
-  getFormatOptions(): Promise<FormattingOptions>
+  getFormatOptions(uri?: string): Promise<FormattingOptions>
   getConfigFile(target: ConfigurationTarget): string
   applyEdit(edit: WorkspaceEdit): Promise<boolean>
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
@@ -592,7 +596,6 @@ export interface IWorkspace {
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
   echoLines(lines: string[]): Promise<void>
-  refresh(): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts: { ignoreIfExists?: boolean }): Promise<void>

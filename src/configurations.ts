@@ -1,9 +1,9 @@
+import fs from 'fs'
+import { parse } from 'jsonc-parser'
 import { Configuration, ConfigurationModel } from './model/configuration'
-import { ConfigurationInspect, IConfigurationData, IConfigurationModel, WorkspaceConfiguration, ConfigurationShape, ConfigurationTarget } from './types'
+import { ConfigurationInspect, ConfigurationShape, ConfigurationTarget, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from './types'
 import { mixin } from './util/object'
 import { isEmptyObject, isObject } from './util/types'
-import { parse } from 'jsonc-parser'
-import fs from 'fs'
 const logger = require('./util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -51,13 +51,10 @@ export default class Configurations {
         if (result == null || (typeof result == 'string' && result.length == 0)) return undefined
         return result
       },
-      update: (key: string, value: any, isGlobal = true) => {
+      update: (key: string, value: any, isUser = true) => {
         let s = section ? `${section}.${key}` : key
         this._configuration.updateValue(s, value)
-        if (global.hasOwnProperty('__TEST__')) {
-          return
-        }
-        let target = isGlobal ? ConfigurationTarget.User : ConfigurationTarget.Workspace
+        let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         if (value === undefined) {
           this._proxy.$removeConfigurationOption(target, s)
         } else {

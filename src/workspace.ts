@@ -15,9 +15,9 @@ import ModuleManager from './model/moduleManager'
 import BufferChannel from './model/outputChannel'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import Sources from './sources'
-import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IWorkspace, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
-import { resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, isSupportedScheme, wait } from './util/index'
+import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
+import { resolveRoot, writeFile } from './util/fs'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, wait } from './util/index'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
@@ -85,9 +85,9 @@ export class Workspace implements IWorkspace {
     moduleManager.on('installed', name => {
       this._onDidModuleInstalled.fire(name)
     })
-    if (!global.hasOwnProperty('__TEST__')) {
+    this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
-    }
+    )
   }
 
   public async init(): Promise<void> {
@@ -122,10 +122,10 @@ export class Workspace implements IWorkspace {
     this._initialized = true
     if (this.isVim) this.initVimEvents()
     let buffer = await this.nvim.buffer
-    this.onBufEnter(buffer.id)
+    this.onBufEnter(buffer.id) // tslint:disable-line
     let winid = await this.nvim.call('win_getid')
     let name = await buffer.name
-    this.onBufWinEnter(name, winid)
+    this.onBufWinEnter(name, winid) // tslint:disable-line
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -191,6 +191,10 @@ export class Workspace implements IWorkspace {
     return !this.vimSettings.isVim
   }
 
+  public get completeOpt(): string {
+    return this.vimSettings.completeOpt
+  }
+
   public get initialized(): boolean {
     return this._initialized
   }
@@ -252,33 +256,28 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
+    let curpos = await nvim.call('getcurpos')
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
-    let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
       let n = 0
       for (let change of documentChanges) {
         let { textDocument, edits } = change
-        let { uri } = textDocument
-        let doc = this.getDocument(uri)
-        if (textDocument.version == doc.version) {
-          await doc.applyEdits(nvim, edits)
-          n = n + 1
-        } else {
-          echoErr(nvim, `version mismatch of ${uri}`)
-        }
+        let doc = this.getDocument(textDocument.uri)
+        await doc.applyEdits(nvim, edits)
       }
       echoMessage(nvim, `${n} buffers changed!`)
     }
     if (changes) {
       let keys = Object.keys(changes)
       if (!keys.length) return false
-      let n = this.fileCount(edit)
+      let n = this.fileCount(changes)
       if (n > 0) {
         let c = await nvim.call('coc#util#prompt_change', [keys.length])
         if (c != 1) return false
       }
       let filetype = await nvim.buffer.getOption('filetype') as string
+      let encoding = await this.getFileEncoding()
       for (let uri of Object.keys(changes)) {
         let edits = changes[uri]
         let filepath = Uri.parse(uri).fsPath
@@ -288,13 +287,7 @@ export class Workspace implements IWorkspace {
           doc = document.textDocument
           await document.applyEdits(nvim, edits)
         } else {
-          let stat = await statAsync(filepath)
-          if (!stat || !stat.isFile()) {
-            echoErr(nvim, `file ${filepath} not exists!`)
-            continue
-          }
-          // we don't know the encoding, let vim do that
-          let content = (await nvim.call('readfile', filepath)).join('\n')
+          let content = fs.readFileSync(filepath, encoding)
           doc = TextDocument.create(uri, filetype, 0, content)
           let res = TextDocument.applyEdits(doc, edits)
           await writeFile(filepath, res)
@@ -313,7 +306,7 @@ export class Workspace implements IWorkspace {
     let bufnr = doc ? doc.bufnr : 0
     let text = await this.getLine(uri, line)
     let item: QuickfixItem = {
-      filename: path.relative(this.cwd, fullpath),
+      filename: fullpath.startsWith(this.cwd) ? path.relative(this.cwd, fullpath) : fullpath,
       lnum: line + 1,
       col: character + 1,
       text
@@ -354,18 +347,6 @@ export class Workspace implements IWorkspace {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId)
   }
 
-  public async refresh(): Promise<void> {
-    let buffers = await this.nvim.buffers
-    for (let doc of this.buffers.values()) {
-      doc.detach()
-    }
-    this.buffers.clear()
-    await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf)
-    }))
-    logger.info('Buffers refreshed')
-  }
-
   public async echoLines(lines: string[]): Promise<void> {
     let { nvim } = this
     let cmdHeight = (await nvim.getOption('cmdheight') as number)
@@ -378,6 +359,16 @@ export class Workspace implements IWorkspace {
       return `echo '${line.replace(/'/g, "''")}'`
     }).join('|')
     await nvim.command(cmd)
+  }
+
+  public showMessage(msg: string, identify: MsgTypes = 'more'): void {
+    if (identify == 'error') {
+      return echoErr(this.nvim, msg)
+    }
+    if (identify == 'warning') {
+      return echoWarning(this.nvim, msg)
+    }
+    return echoMessage(this.nvim, msg)
   }
 
   public get document(): Promise<Document | null> {
@@ -441,7 +432,7 @@ export class Workspace implements IWorkspace {
     let uri = Uri.file(filepath).toString()
     let doc = this.getDocument(uri)
     if (doc) return
-    let encoding = await this.nvim.getOption('fileencoding') as string
+    let encoding = await this.getFileEncoding()
     fs.writeFileSync(filepath, '', encoding || '')
     if (!doc) await this.openResource(uri)
   }
@@ -504,13 +495,10 @@ export class Workspace implements IWorkspace {
     disposeAll(this.disposables)
   }
 
-  private fileCount(edit: WorkspaceEdit): number {
-    let { changes } = edit
-    if (!changes) return 0
+  private fileCount(changes: { [uri: string]: TextEdit[] }): number {
     let n = 0
     for (let uri of Object.keys(changes)) {
-      let filepath = Uri.parse(uri).fsPath
-      if (this.getDocument(filepath) != null) {
+      if (!this.getDocument(uri)) {
         n = n + 1
       }
     }
@@ -530,7 +518,7 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  private async validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): Promise<boolean> {
+  private validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): boolean {
     if (!documentChanges) return true
     for (let change of documentChanges) {
       let { textDocument } = change
@@ -548,7 +536,7 @@ export class Workspace implements IWorkspace {
     return true
   }
 
-  private async validateChanges(changes: { [uri: string]: TextEdit[] }): Promise<boolean> {
+  private validateChanges(changes: { [uri: string]: TextEdit[] }): boolean {
     if (!changes) return true
     for (let uri of Object.keys(changes)) {
       let scheme = Uri.parse(uri).scheme
@@ -557,12 +545,12 @@ export class Workspace implements IWorkspace {
         return false
       }
       let filepath = Uri.parse(uri).fsPath
-      let stat = await statAsync(filepath)
-      if (!stat || !stat.isFile()) {
+      if (!this.getDocument(uri) && !fs.existsSync(filepath)) {
         echoErr(this.nvim, `File ${filepath} not exists`)
         return false
       }
     }
+    return true
   }
 
   private loadConfigurations(): IConfigurationData {
@@ -753,6 +741,11 @@ export class Workspace implements IWorkspace {
       await wait(50)
       this.checking.delete(bufnr)
     }
+  }
+
+  private async getFileEncoding(): Promise<string> {
+    let encoding = await this.nvim.getOption('fileencoding') as string
+    return encoding ? encoding : 'utf-8'
   }
 }
 

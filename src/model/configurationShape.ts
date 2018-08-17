@@ -24,7 +24,7 @@ export default class ConfigurationProxy implements ConfigurationShape {
     let content = ''
     if (file) content = await this.workspace.readFile(Uri.file(file).toString())
     let { formattingOptions } = this
-
+    value = value == null ? undefined : value
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
     fs.writeFileSync(file, content, 'utf8')
