@@ -1,10 +1,10 @@
-import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
-import { FormattingOptions } from 'vscode-languageserver-protocol'
-import { modify, applyEdits } from 'jsonc-parser'
-import fs from 'fs'
-import { echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+import { applyEdits, modify } from 'jsonc-parser'
+import { FormattingOptions } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
+import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
+import { echoErr } from '../util'
 const logger = require('../util/logger')('model-ConfigurationShape')
 
 export default class ConfigurationProxy implements ConfigurationShape {
@@ -14,21 +14,13 @@ export default class ConfigurationProxy implements ConfigurationShape {
     this.formattingOptions = { tabSize: 2, insertSpaces: true }
   }
 
-  private get nvim():Neovim {
+  private get nvim(): Neovim {
     return this.workspace.nvim
   }
 
-  private getConfigFile(target: ConfigurationTarget):string | null {
-    let {configFiles} = this.workspace
-    if (target == ConfigurationTarget.Workspace) {
-      return configFiles[1]
-    }
-    return configFiles[2]
-  }
-
   private async modifyConfiguration(target: ConfigurationTarget, key: string, value?: any): Promise<void> {
-    let {nvim} = this
-    let file = this.getConfigFile(target)
+    let { nvim } = this
+    let file = this.workspace.getConfigFile(target)
     let content = ''
     if (file) content = await this.workspace.readFile(Uri.file(file).toString())
     let { formattingOptions } = this

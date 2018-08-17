@@ -15,7 +15,7 @@ import ModuleManager from './model/moduleManager'
 import BufferChannel from './model/outputChannel'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import Sources from './sources'
-import { ChangeInfo, DocumentInfo, EditerState, IConfigurationData, IWorkspace, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
+import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IWorkspace, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, isSupportedScheme, wait } from './util/index'
 import { byteIndex } from './util/string'
@@ -40,7 +40,6 @@ export class Workspace implements IWorkspace {
   public sources: Sources
   public readonly nvim: Neovim
   public readonly emitter: EventEmitter
-  public configFiles: string[] = []
 
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
@@ -52,6 +51,7 @@ export class Workspace implements IWorkspace {
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
   private disposables: Disposable[] = []
+  private configFiles: string[] = []
 
   private _onDidBufWinEnter = new Emitter<WinEnter>()
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
@@ -126,6 +126,16 @@ export class Workspace implements IWorkspace {
     let winid = await this.nvim.call('win_getid')
     let name = await buffer.name
     this.onBufWinEnter(name, winid)
+  }
+
+  public getConfigFile(target: ConfigurationTarget): string {
+    if (target == ConfigurationTarget.Global) {
+      return this.configFiles[0]
+    }
+    if (target == ConfigurationTarget.User) {
+      return this.configFiles[1]
+    }
+    return this.configFiles[2]
   }
 
   public get cwd(): string {

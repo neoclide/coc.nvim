@@ -557,7 +557,6 @@ export interface OutputChannel {
 export interface IWorkspace {
   nvim: Neovim
   bufnr: number
-  configFiles: string[]
   // root of current file or cwd
   root: string
   isVim: boolean
@@ -584,8 +583,8 @@ export interface IWorkspace {
   getDocument(uri: string | number): Document
   getDocument(bufnr: number): Document | null
   getOffset(): Promise<number>
-  refresh(): Promise<void>
   getFormatOptions(): Promise<FormattingOptions>
+  getConfigFile(target: ConfigurationTarget): string
   applyEdit(edit: WorkspaceEdit): Promise<boolean>
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
@@ -593,6 +592,7 @@ export interface IWorkspace {
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
   echoLines(lines: string[]): Promise<void>
+  refresh(): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts: { ignoreIfExists?: boolean }): Promise<void>
