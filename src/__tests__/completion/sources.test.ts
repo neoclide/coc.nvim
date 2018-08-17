@@ -94,8 +94,8 @@ describe('native sources', () => {
   it('should works for word source', async () => {
     let s = 'strengthening'
     await helper.edit('word')
-    await nvim.input('i' + s.slice(0, -1))
-    await helper.wait(30)
+    await nvim.input('i' + s.slice(0, -2))
+    await helper.wait(60)
     await nvim.input('<C-u>')
     let res = await helper.visible(s, 'word')
     expect(res).toBe(true)
