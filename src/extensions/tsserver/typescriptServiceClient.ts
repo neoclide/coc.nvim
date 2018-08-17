@@ -441,9 +441,6 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     const args: Proto.SetCompilerOptionsForInferredProjectsArgs = {
       options: this.getCompilerOptionsForInferredProjects(configuration)
     }
-    if (this.apiVersion.gte(API.v300)) {
-      args.projectRootPath = workspace.root
-    }
     this.execute('compilerOptionsForInferredProjects', args, true) // tslint:disable-line
   }
 
@@ -744,12 +741,14 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     const args: string[] = []
     args.push('--allowLocalPluginLoads')
 
-    if (this.apiVersion.gte(API.v206)) {
+    if (this.apiVersion.gte(API.v250)) {
       args.push('--useInferredProjectPerProjectRoot')
+    } else {
+      args.push('--useSingleInferredProject')
+    }
 
-      if (this._configuration.disableAutomaticTypeAcquisition) {
-        args.push('--disableAutomaticTypingAcquisition')
-      }
+    if (this.apiVersion.gte(API.v206) && this._configuration.disableAutomaticTypeAcquisition) {
+      args.push('--disableAutomaticTypingAcquisition')
     }
 
     if (this.apiVersion.gte(API.v222)) {
@@ -802,6 +801,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
         } catch (e) { } // tslint:disable-line
       }
     }
+
+    if (this.apiVersion.gte(API.v291)) {
+      args.push('--noGetErrOnBackgroundUpdate')
+    }
+
     return args
   }
 }
