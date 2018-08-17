@@ -81,7 +81,7 @@
     "typescript": "^3.0.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.16",
+    "@chemzqm/neovim": "4.3.17",
     "babel-polyfill": "^6.26.0",
     "debounce": "^1.2.0",
     "deep-equal": "^1.0.1",

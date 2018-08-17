@@ -139,8 +139,14 @@ export default class Document {
         logger.error(e.stack)
       }
     })
-    let unbindDetach = this.buffer.listen('detach', () => {
+    let unbindDetach = this.buffer.listen('detach', async () => {
       this._onDocumentDetach.fire(this.textDocument)
+      if (!this.attached) return
+      disposeAll(this.disposables)
+      let res = await this.buffer.attach(true)
+      if (!res) return false
+      // it should be detached by rename
+      this.attach()
     })
     let unbindChange = this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
@@ -166,6 +172,7 @@ export default class Document {
     if (buf.id !== this.buffer.id) return
     this._changedtick = tick
     this.lines.splice(firstline, lastline - firstline, ...linedata)
+    logger.debug(this.lines)
     this._fireContentChanges()
   }
 

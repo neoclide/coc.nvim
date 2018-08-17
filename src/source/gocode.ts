@@ -15,12 +15,12 @@ export default class Gocode extends Source {
     })
   }
 
-  public get gocodeBinary():string {
+  public get gocodeBinary(): string {
     return this.getConfig('gocodeBinary', null)
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {filetype} = opt
+    let { filetype } = opt
     if (filetype != 'go') return false
     if (!this.gocodeBinary) {
       try {
@@ -34,18 +34,18 @@ export default class Gocode extends Source {
     }
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult|null> {
-    let {filepath, linenr, col, input, bufnr} = opt
+  public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
+    let { filepath, linenr, col, input, bufnr } = opt
     let document = workspace.getDocument(bufnr)
 
-    let {menu} = this
+    let { menu } = this
     if (input.length) {
       // limit result
       col = col + 1
     }
     let offset = document.getOffset(linenr, col)
     const child = cp.spawn('gocode', ['-f=vim', 'autocomplete', filepath, `c${offset}`])
-    return new Promise((resolve:(CompleteResult)=>void, reject):void => {
+    return new Promise((resolve: (CompleteResult) => void, reject): void => {
       let output = ''
       let exited = false
       child.stdout.on('data', data => {
@@ -85,7 +85,7 @@ export default class Gocode extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('gocode', new Gocode())
   return Disposable.create(() => {
     sourceMap.delete('gocode')
