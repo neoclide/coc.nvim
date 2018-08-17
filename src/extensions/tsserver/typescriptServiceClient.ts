@@ -405,7 +405,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
       return false
     }
     if (this._configuration.tsServerLogLevel === TsServerLogLevel.Off) {
-      echoErr(workspace.nvim, `TS Server logging is off. Change 'tsserver.log' to enable`)
+      echoErr(workspace.nvim, `TS Server logging is off. Change 'tsserver.log' in 'coc-settings.json' to enable`)
       return false
     }
     if (!this.tsServerLogFile) {
@@ -757,7 +757,8 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     }
 
     if (this.apiVersion.gte(API.v222)) {
-      if (this._configuration.tsServerLogLevel !== TsServerLogLevel.Off) {
+      const isRoot = process.getuid && process.getuid() == 0
+      if (this._configuration.tsServerLogLevel !== TsServerLogLevel.Off && !isRoot) {
         const logDir = os.tmpdir()
         if (logDir) {
           this.tsServerLogFile = path.join(logDir, `coc-nvim-tsc.log`)
