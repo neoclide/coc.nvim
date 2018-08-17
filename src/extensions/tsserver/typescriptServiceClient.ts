@@ -12,6 +12,7 @@ import which from 'which'
 import { DiagnosticKind, ServiceStat } from '../../types'
 import { disposeAll, echoErr, echoMessage, FileSchemes } from '../../util'
 import workspace from '../../workspace'
+import FileConfigurationManager from './features/fileConfigurationManager'
 import * as Proto from './protocol'
 import { ITypeScriptServiceClient } from './typescriptService'
 import API from './utils/api'
@@ -141,6 +142,7 @@ export interface TsDiagnostics {
 export default class TypeScriptServiceClient implements ITypeScriptServiceClient {
   public state = ServiceStat.Initial
   public readonly logger: Logger = new Logger()
+  private fileConfigurationManager: FileConfigurationManager
   private pathSeparator: string
   private tracer: Tracer
   private _configuration: TypeScriptServiceConfiguration
@@ -169,7 +171,7 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
     this.servicePromise = null
     this.lastError = null
     this.numberRestarts = 0
-
+    this.fileConfigurationManager = new FileConfigurationManager(this)
     this.requestQueue = new RequestQueue()
     this.callbacks = new CallbackMap()
     this._configuration = TypeScriptServiceConfiguration.loadFromWorkspace()
@@ -400,6 +402,11 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   public async openTsServerLogFile(): Promise<boolean> {
+    const isRoot = process.getuid && process.getuid() == 0
+    if (isRoot) {
+      echoErr(workspace.nvim, 'Log disabled for root user.')
+      return false
+    }
     if (!this.apiVersion.gte(API.v222)) {
       echoErr(workspace.nvim, 'TS Server logging requires TS 2.2.2+')
       return false
@@ -422,12 +429,15 @@ export default class TypeScriptServiceClient implements ITypeScriptServiceClient
   }
 
   private serviceStarted(resendModels: boolean): void {
-    const configureOptions: Proto.ConfigureRequestArguments = {
-      hostInfo: 'nvim-coc',
+    let document = workspace.getDocument(workspace.bufnr)
+    if (document) {
+      this.fileConfigurationManager.ensureConfigurationForDocument(document.textDocument)
+    } else {
+      const configureOptions: Proto.ConfigureRequestArguments = {
+        hostInfo: 'nvim-coc'
+      }
+      this.execute('configure', configureOptions) // tslint:disable-line
     }
-    this.execute('configure', configureOptions).catch(err => {
-      this.error(err)
-    })
     this.setCompilerOptionsForInferredProjects(this._configuration)
     if (resendModels) {
       this._onResendModelsRequested.fire(void 0)

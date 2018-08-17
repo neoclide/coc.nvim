@@ -2,19 +2,19 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Diagnostic, DiagnosticSeverity, Disposable} from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import {DiagnosticKind} from '../../types'
-import {disposeAll} from '../../util'
+import { DiagnosticKind } from '../../types'
+import { disposeAll } from '../../util'
 import workspace from '../../workspace'
 import LanguageProvider from './languageProvider'
 import * as Proto from './protocol'
 import * as PConst from './protocol.const'
 import TypeScriptServiceClient from './typescriptServiceClient'
-import {LanguageDescription} from './utils/languageDescription'
-import {errorMsg} from './utils/nvimBinding'
+import { LanguageDescription } from './utils/languageDescription'
+import { errorMsg } from './utils/nvimBinding'
 import * as typeConverters from './utils/typeConverters'
-import TypingsStatus, {AtaProgressReporter} from './utils/typingsStatus'
+import TypingsStatus, { AtaProgressReporter } from './utils/typingsStatus'
 const logger = require('../../util/logger')('tsserver-clienthost')
 
 // Style check diagnostics that can be reported as warnings
@@ -59,14 +59,14 @@ export default class TypeScriptServiceClientHost implements Disposable {
 
     this.client = new TypeScriptServiceClient()
     this.disposables.push(this.client)
-    this.client.onDiagnosticsReceived(({kind, resource, diagnostics}) => {
+    this.client.onDiagnosticsReceived(({ kind, resource, diagnostics }) => {
       this.diagnosticsReceived(kind, resource, diagnostics)
     }, null, this.disposables)
 
     this.client.onConfigDiagnosticsReceived(diag => {
-      let {body} = diag
+      let { body } = diag
       if (body) {
-        let {configFile, diagnostics} = body
+        let { configFile, diagnostics } = body
         if (diagnostics.length) {
           errorMsg(`Invalid config file: ${configFile}`)
         }
@@ -99,6 +99,12 @@ export default class TypeScriptServiceClientHost implements Disposable {
     this.ataProgressReporter.dispose()
   }
 
+  public reset(): void {
+    for (let lang of this.languages) {
+      lang.fileConfigurationManager.reset()
+    }
+  }
+
   public get serviceClient(): TypeScriptServiceClient {
     return this.client
   }
@@ -118,12 +124,16 @@ export default class TypeScriptServiceClientHost implements Disposable {
     this.reportStyleCheckAsWarnings = config.get('reportStyleChecksAsWarnings', true)
   }
 
-  private findLanguage(resource: Uri): LanguageProvider | null {
+  public findLanguage(resource: Uri): LanguageProvider | null {
     try {
       return this.languages.find(language => language.handles(resource))
     } catch {
       return null
     }
+  }
+
+  public handles(uri: string): boolean {
+    return this.findLanguage(Uri.parse(uri)) != null
   }
 
   private triggerAllDiagnostics(): void {
@@ -151,7 +161,7 @@ export default class TypeScriptServiceClientHost implements Disposable {
   }
 
   private tsDiagnosticToLspDiagnostic(diagnostic: Proto.Diagnostic): Diagnostic {
-    const {start, end, text} = diagnostic
+    const { start, end, text } = diagnostic
     const range = {
       start: typeConverters.Position.fromLocation(start),
       end: typeConverters.Position.fromLocation(end)

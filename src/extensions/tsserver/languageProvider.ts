@@ -42,7 +42,7 @@ const suggestionSetting = 'suggestionActions.enabled'
 export default class LanguageProvider {
   private readonly diagnosticsManager: DiagnosticsManager
   private readonly bufferSyncSupport: BufferSyncSupport
-  private readonly fileConfigurationManager: FileConfigurationManager // tslint:disable-line
+  public readonly fileConfigurationManager: FileConfigurationManager // tslint:disable-line
   private _validate = true
   private _enableSuggestionDiagnostics = true
   private readonly disposables: Disposable[] = []

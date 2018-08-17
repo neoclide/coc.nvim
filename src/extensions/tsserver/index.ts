@@ -1,8 +1,11 @@
 import { Disposable, Emitter, Event, TextEdit } from 'vscode-languageserver-protocol'
+import URI from 'vscode-uri'
+import commandManager from '../../commands'
 import languages from '../../languages'
 import { IServiceProvider, ServiceStat, TextDocumentWillSaveEvent, WorkspaceConfiguration } from '../../types'
-import { disposeAll } from '../../util/index'
+import { disposeAll, wait } from '../../util'
 import workspace from '../../workspace'
+import { OpenTsServerLogCommand, ReloadProjectsCommand, TypeScriptGoToProjectConfigCommand } from './commands'
 import TypeScriptServiceClientHost from './typescriptServiceClientHost'
 import { LanguageDescription, standardLanguageDescriptions } from './utils/languageDescription'
 import { languageIds } from './utils/languageModeIds'
@@ -46,11 +49,13 @@ export default class TsserverService implements IServiceProvider {
       }
     })
     let client = this.clientHost.serviceClient
+    this.registerCommands()
+    workspace.onWillSaveUntil(this.onWillSave, this, 'tsserver')
     return new Promise(resolve => {
       let started = false
       client.onTsServerStarted(() => {
         this._onDidServiceReady.fire(void 0)
-        workspace.onWillSaveUntil(this.onWillSave, this, 'tsserver')
+        this.ensureConfiguration() // tslint:disable-line
         if (!started) {
           started = true
           resolve()
@@ -59,12 +64,37 @@ export default class TsserverService implements IServiceProvider {
     })
   }
 
+  private async ensureConfiguration(): Promise<void> {
+    if (!this.clientHost) return
+    let document = await workspace.document
+    await wait(200)
+
+    let uri = URI.parse(document.uri)
+    let language = this.clientHost.findLanguage(uri)
+    if (!language) return
+    await language.fileConfigurationManager.ensureConfigurationForDocument(document.textDocument)
+  }
+
+  private registerCommands(): void {
+    commandManager.register(new ReloadProjectsCommand(this.clientHost))
+    commandManager.register(new OpenTsServerLogCommand(this.clientHost))
+    commandManager.register(new TypeScriptGoToProjectConfigCommand(this.clientHost))
+    commandManager.register({
+      id: 'tsserver.restart',
+      execute: async (): Promise<void> => {
+        await this.stop()
+        await wait(100)
+        await this.restart()
+      }
+    })
+  }
+
   private onWillSave(event: TextDocumentWillSaveEvent): void {
+    if (this.state != ServiceStat.Running) return
     let formatOnSave = this.config.get<boolean>('formatOnSave')
     if (!formatOnSave) return
     let { languageId } = event.document
     if (languageIds.indexOf(languageId) == -1) return
-    if (this.state != ServiceStat.Running) return
     let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
       let options = await workspace.getFormatOptions(event.document.uri)
       let textEdits = await languages.provideDocumentFormattingEdits(event.document, options)
@@ -85,6 +115,7 @@ export default class TsserverService implements IServiceProvider {
 
   public async stop(): Promise<void> {
     if (!this.clientHost) return
+    this.clientHost.reset()
     let client = this.clientHost.serviceClient
     await client.stop()
     return
