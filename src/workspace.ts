@@ -35,25 +35,6 @@ export interface VimSettings {
   isVim: boolean
 }
 
-export declare const enum ParseErrorCode {
-  InvalidSymbol = 1,
-  InvalidNumberFormat = 2,
-  PropertyNameExpected = 3,
-  ValueExpected = 4,
-  ColonExpected = 5,
-  CommaExpected = 6,
-  CloseBraceExpected = 7,
-  CloseBracketExpected = 8,
-  EndOfFileExpected = 9,
-  InvalidCommentToken = 10,
-  UnexpectedEndOfComment = 11,
-  UnexpectedEndOfString = 12,
-  UnexpectedEndOfNumber = 13,
-  InvalidUnicode = 14,
-  InvalidEscapeCharacter = 15,
-  InvalidCharacter = 16,
-}
-
 export class Workspace implements IWorkspace {
   public bufnr: number
   public moduleManager: ModuleManager
@@ -817,9 +798,6 @@ export class Workspace implements IWorkspace {
         case 15:
           msg = 'invalid escape character'
           break
-        case 8:
-          msg = 'close brace expected'
-          break
         case 1:
           msg = 'invalid symbol'
           break
@@ -861,9 +839,7 @@ export class Workspace implements IWorkspace {
     let errors: ParseError[] = []
     let data = parse(content, errors, { allowTrailingComma: true })
     if (errors.length) {
-      this.showErrors(uri, content, errors).catch(e => {
-        logger.error(e.message)
-      })
+      this.showErrors(uri, content, errors) // tslint:disable-line
     }
     function addProperty(current: object, key: string, remains: string[], value: any): void {
       if (remains.length == 0) {

@@ -105,9 +105,13 @@ export class DiagnosticBuffer {
     let res: number[] = []
     let wins = await nvim.windows
     for (let win of wins) {
-      let buf = await win.buffer
-      if (buf.id == bufnr) {
-        res.push(win.id)
+      try {
+        let buf = await win.buffer
+        if (buf.id == bufnr) {
+          res.push(win.id)
+        }
+      } catch (e) {
+        // noop
       }
     }
     return res

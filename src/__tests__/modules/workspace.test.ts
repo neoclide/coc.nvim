@@ -176,7 +176,7 @@ describe('workspace methods', () => {
     let buf = await helper.edit('foo')
     await buf.setOption('tabstop', 8)
     await buf.setOption('expandtab', false)
-    let doc = await workspace.getDocument(buf.id)
+    let doc = workspace.getDocument(buf.id)
     let opts = await workspace.getFormatOptions(doc.uri)
     expect(opts.insertSpaces).toBe(false)
     expect(opts.tabSize).toBe(8)
@@ -391,11 +391,11 @@ describe('workspace utility', () => {
   it('should show errors', async () => {
     let uri = URI.file('/tmp/foo').toString()
     let content = 'bar'
-    await workspace.showErrors(uri, content, [{
-      error: 1,
-      offset: 0,
-      length: 1
-    }])
+    let errors = []
+    for (let i = 1; i < 17; i++) {
+      errors.push({ error: i, offset: 0, length: 1 })
+    }
+    await workspace.showErrors(uri, content, errors)
     let list = await nvim.call('getqflist', { title: 1 })
     expect(list.title).toMatch('Errors of coc config')
   })
@@ -523,4 +523,40 @@ describe('workspace events', () => {
     expect(fn).toHaveBeenCalledTimes(1)
     await workspace.runCommand('yarn global remove et-improve')
   }, 30000)
+})
+
+describe('workspace private', () => {
+
+  it('should init vim events', async () => {
+    let buf = await helper.edit('foo')
+    await buf.detach()
+    let attached = buf.isAttached
+    expect(attached).toBe(false)
+      ; (workspace as any).initVimEvents()
+    await nvim.setLine('abc')
+    await helper.wait(100)
+    let doc = workspace.getDocument(buf.id)
+    expect(doc.content).toMatch('abc')
+    await nvim.input('Adef')
+    await helper.wait(100)
+    expect(doc.content).toMatch('abcdef')
+  })
+
+  it('should parse config with errors', async () => {
+    let uri = URI.file('/tmp/foo').toString()
+    await (workspace as any).parseConfig(uri, 'abc')
+    await helper.wait(100)
+    let list = await nvim.call('getqflist', { title: 1 })
+    expect(list.title).toMatch('Errors of coc config')
+  })
+
+  it('should detach buffers', async () => {
+    let buf = await helper.edit('foo')
+    expect(buf.isAttached).toBe(true)
+    workspace.dispose()
+    await helper.wait(100)
+    expect(buf.isAttached).toBe(false)
+    await (workspace as any).init()
+  })
+
 })
