@@ -282,6 +282,7 @@ describe('workspace methods', () => {
   it('should run terminal command', async () => {
     let res = await workspace.runTerminalCommand('ls', __dirname)
     expect(res.success).toBe(true)
+    await helper.wait(100)
   })
 
   it('should show mesages', async () => {
