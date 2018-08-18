@@ -275,8 +275,8 @@ describe('workspace methods', () => {
   })
 
   it('should run command', async () => {
-    let res = await workspace.runCommand('echo "abc"', __dirname, 1000)
-    expect(res).toMatch('abc')
+    let res = await workspace.runCommand('ls', __dirname, 1)
+    expect(res).toMatch('workspace')
   })
 
   it('should run terminal command', async () => {
