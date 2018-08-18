@@ -1,4 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import { exec } from 'child_process'
 import deepEqual from 'deep-equal'
 import { EventEmitter } from 'events'
 import fs from 'fs'
@@ -484,7 +485,23 @@ export class Workspace implements IWorkspace {
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
-    return await this.jobManager.runCommand(cmd, cwd, timeout)
+    cwd = cwd || this.cwd
+    return new Promise<string>((resolve, reject) => {
+      let timer: NodeJS.Timer
+      if (timeout) {
+        timer = setTimeout(() => {
+          reject(new Error(`timeout after ${timeout}s`))
+        }, timeout * 1000)
+      }
+      exec(cmd, { cwd }, (err, stdout) => {
+        if (timer) clearTimeout(timer)
+        if (err) {
+          reject(new Error(`exited with ${err.code}`))
+          return
+        }
+        resolve(stdout)
+      })
+    })
   }
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
