@@ -1,23 +1,23 @@
-import { Neovim, attach } from '@chemzqm/neovim'
-import languages from './languages'
-import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, DocumentInfo } from './types'
-import { echoErr, echoMessage, disposeAll } from './util'
-import { statAsync } from './util/fs'
-import { isWord } from './util/string'
+import { attach, Neovim } from '@chemzqm/neovim'
 import cp from 'child_process'
-import workspace from './workspace'
 import { EventEmitter } from 'events'
+import fs from 'fs'
+import path from 'path'
+import pify from 'pify'
 import { Disposable } from 'vscode-jsonrpc'
 import which from 'which'
-import path from 'path'
-import fs from 'fs'
-import pify from 'pify'
+import languages from './languages'
+import VimSource from './model/source-vim'
+import { CompleteOption, DocumentInfo, ISource, SourceConfig, SourceType, VimCompleteItem } from './types'
+import { disposeAll, echoErr, echoMessage } from './util'
+import { statAsync } from './util/fs'
+import { isWord } from './util/string'
+import workspace from './workspace'
 const logger = require('./util/logger')('sources')
 
 export default class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
-  private disposables:Disposable[] = []
+  private disposables: Disposable[] = []
   private _ready = false
 
   constructor(private nvim: Neovim) {
@@ -25,20 +25,21 @@ export default class Sources extends EventEmitter {
     Promise.all([
       this.createNativeSources(),
       this.createRemoteSources(),
-    ]).finally(() => {
+    ]).then(() => {
       this._ready = true
       this.emit('ready')
       logger.debug(`Created sources ${this.names}`)
-    }).catch(e => {
+    }, e => {
+      this._ready = true
+      this.emit('ready')
       echoErr(nvim, `Error on source create ${e.message}`)
-      logger.error(`Error on source create ${e.message}`)
     })
     this.initLanguageSources()
     workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
   }
 
-  private initLanguageSources():void {
-    let {sources} = languages
+  private initLanguageSources(): void {
+    let { sources } = languages
     for (let source of sources) {
       let { name } = source
       this.addSource(name, source)
@@ -73,23 +74,6 @@ export default class Sources extends EventEmitter {
 
   public getSource(name: string): ISource | null {
     return this.sourceMap.get(name) || null
-  }
-
-  /**
-   * Make only one source available
-   *
-   * @public
-   * @param {string} name - source name
-   * @returns {Promise<void>}
-   */
-  public async onlySource(name: string): Promise<void> {
-    for (let n of this.names) {
-      let source = this.sourceMap.get(n)
-      source.enable = name == n
-    }
-    if (this.names.indexOf(name) == -1) {
-      require(`./__tests__/test-sources/${name}`)
-    }
   }
 
   public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
@@ -183,7 +167,7 @@ export default class Sources extends EventEmitter {
     this.disposables.push((await import('./source/omni')).regist(this.sourceMap))
   }
 
-  private async createVimSourceFromPath(nvim:Neovim, filepath: string): Promise<void> {
+  private async createVimSourceFromPath(nvim: Neovim, filepath: string): Promise<void> {
     let name = path.basename(filepath, '.vim')
     await nvim.command(`source ${filepath}`)
     let fns = await nvim.call('coc#util#remote_fns', name) as string[]
@@ -210,7 +194,7 @@ export default class Sources extends EventEmitter {
     }
   }
 
-  private createNvimProcess():cp.ChildProcess {
+  private createNvimProcess(): cp.ChildProcess {
     if (global.hasOwnProperty('__TEST__')) return null
     try {
       let p = which.sync('nvim')
@@ -242,7 +226,7 @@ export default class Sources extends EventEmitter {
     let proc = this.createNvimProcess()
     if (proc) {
       try {
-        nvim = attach({proc})
+        nvim = attach({ proc })
         let utilPath = path.join(workspace.pluginRoot, 'autoload/coc/util.vim')
         await nvim.command(`source ${utilPath}`)
       } catch (e) {
@@ -268,7 +252,7 @@ export default class Sources extends EventEmitter {
     })
   }
 
-  public async refresh(name?:string):Promise<void> {
+  public async refresh(name?: string): Promise<void> {
     for (let source of this.sources) {
       if (!name || source.name == name) {
         if (typeof source.refresh === 'function') {
@@ -282,7 +266,7 @@ export default class Sources extends EventEmitter {
     }
   }
 
-  public dispose():void {
+  public dispose(): void {
     this.removeAllListeners()
     disposeAll(this.disposables)
   }

@@ -82,7 +82,6 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "4.3.22",
-    "babel-polyfill": "^6.26.0",
     "debounce": "^1.2.0",
     "deep-equal": "^1.0.1",
     "diff": "^3.5.0",
@@ -96,7 +95,6 @@
     "node-serial": "^0.1.1",
     "once": "^1.4.0",
     "pify": "^4.0.0",
-    "promise.prototype.finally": "^3.1.0",
     "semver": "^5.5.1",
     "tslib": "^1.9.3",
     "uuid": "^3.3.2",

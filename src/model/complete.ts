@@ -136,7 +136,7 @@ export default class Complete {
           data = Object.assign(data, { cid: id, source })
           item.user_data = JSON.stringify(data)
         }
-        let factor = isIncrement && input.length > 2 ? 0 : priority / 100 + this.getBonusScore(input, item)
+        let factor = isIncrement && input.length > 4 ? 0 : priority / 100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)

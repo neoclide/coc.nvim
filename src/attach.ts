@@ -1,5 +1,3 @@
-require('babel-polyfill')
-require('promise.prototype.finally')
 import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import Plugin from './plugin'

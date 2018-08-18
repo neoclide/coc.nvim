@@ -68,7 +68,7 @@ export class Completion {
   }
 
   public startCompletion(option: CompleteOption): void {
-    this._doComplete(option).finally(() => {
+    this._doComplete(option).then(() => {
       this.completing = false
     }).catch(e => {
       echoErr(this.nvim, e.message)
@@ -110,10 +110,6 @@ export class Completion {
     if (typeof source.toggle === 'function') {
       source.toggle()
     }
-  }
-
-  public async onlySource(name: string): Promise<void> {
-    return this.sources.onlySource(name)
   }
 
   public async sourceStat(): Promise<SourceStat[]> {

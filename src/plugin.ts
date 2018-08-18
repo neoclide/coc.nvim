@@ -95,9 +95,6 @@ export default class Plugin {
     let { handler } = this
     try {
       switch (args[0] as string) {
-        case 'onlySource':
-          await completion.onlySource(args[1])
-          break
         case 'snippetPrev': {
           await snippetManager.jumpPrev()
           break

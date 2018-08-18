@@ -1,6 +1,6 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import completes from './completes'
-import {CompleteOption} from './types'
+import { CompleteOption } from './types'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('increment')
@@ -27,12 +27,12 @@ export default class Increment extends Emitter {
     super()
   }
 
-  public get search():string {
+  public get search(): string {
     return this._search
   }
 
   public get latestInsert(): LastInsert | null {
-    let {lastInsert} = this
+    let { lastInsert } = this
     let d = workspace.isVim ? 100 : 50
     if (!lastInsert || Date.now() - lastInsert.timestamp > d) {
       return null
@@ -41,7 +41,7 @@ export default class Increment extends Emitter {
   }
 
   public get latestInsertChar(): string {
-    let {latestInsert} = this
+    let { latestInsert } = this
     if (!latestInsert) return ''
     return latestInsert.character
   }
@@ -55,7 +55,7 @@ export default class Increment extends Emitter {
    * @returns {Promise<void>}
    */
   public start(option: CompleteOption): void {
-    let {nvim, activted} = this
+    let { nvim, activted } = this
     if (activted) {
       this._search = option.input
       return
@@ -80,17 +80,10 @@ export default class Increment extends Emitter {
     return this.activted
   }
 
-  public onCharInsert(ch: string): void {
-    this.lastInsert = {
-      character: ch,
-      timestamp: Date.now(),
-    }
-  }
-
   public async getResumeInput(): Promise<string> {
-    let {activted, nvim} = this
+    let { activted, nvim } = this
     if (!activted) return null
-    let {option} = completes
+    let { option } = completes
     let search = await nvim.call('coc#util#get_search', [option.col])
     this._search = search
     if (search == null || !completes.hasMatch(search)) {

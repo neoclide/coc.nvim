@@ -339,7 +339,6 @@ export class Workspace implements IWorkspace {
       col: character + 1,
       text
     }
-    logger.debug('item:', item)
     if (bufnr) item.bufnr = bufnr
     return item
   }
