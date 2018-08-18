@@ -364,6 +364,7 @@ function! coc#util#open_terminal(opts)
   if empty(cmd) | return | endif
   let cwd = get(a:opts, 'cwd', getcwd())
   let id = get(a:opts, 'id', 0)
+  let keepfocus = get(a:opts, 'keepfocus', 0)
   let bufnr = bufnr('%')
   let Callback = get(a:opts, 'Callback', v:null)
   if has('nvim')
@@ -377,6 +378,9 @@ function! coc#util#open_terminal(opts)
           \ 'exit_cb': function('s:OnExit', [id, bufnr, Callback]),
           \ 'curwin': 1,
           \})
+  endif
+  if keepfocus
+    wincmd p
   endif
   return bufnr
 endfunction

@@ -72,6 +72,7 @@ class WatchCommand implements Command {
     let configPath = path.relative(dir, path.join(configRoot, 'tsconfig.json'))
     let cmd = `${TSC} -p ${configPath} --watch true`
     await workspace.nvim.call('coc#util#open_terminal', {
+      keepfocus: 1,
       cwd: dir,
       cmd
     })
