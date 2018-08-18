@@ -1,11 +1,11 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { DidChangeTextDocumentParams, Disposable, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { disposeAll, getUri } from '../util/index'
+import { getUri, wait } from '../util/index'
 import { byteLength } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
@@ -21,7 +21,6 @@ export default class Document {
   private nvim: Neovim
   private _fireContentChanges: Function & { clear(): void; }
   private attached = false
-  private disposables: Disposable[] = []
   // real current lines
   private lines: string[] = []
   private _changedtick: number
@@ -101,20 +100,13 @@ export default class Document {
     let { buffer } = this
     this.buftype = buftype
     if (isNvim) {
-      try {
-        let res = await buffer.attach()
-        if (!res) return false
-      } catch (e) {
-        return false
-      }
+      let res = await this.attach()
+      if (!res) return false
     }
+    this.attached = true
     let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
     this._changedtick = opts.changedtick
     this.lines = await buffer.lines as string[]
-    if (isNvim) {
-      this.attach()
-    }
-    this.attached = true
     let { fullpath, filetype, iskeyword } = opts
     let uri = getUri(fullpath, buffer.id)
     this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
@@ -139,33 +131,24 @@ export default class Document {
     return this.lines[line] || ''
   }
 
-  public attach(): void {
-    let unbindLines = this.buffer.listen('lines', (...args) => {
-      try {
-        this.onChange.apply(this, args)
-      } catch (e) {
-        logger.error(e.stack)
-      }
+  public async attach(): Promise<boolean> {
+    if (this.buffer.isAttached) return true
+    let attached = await this.buffer.attach()
+    if (!attached) return false
+    this.buffer.listen('lines', (...args) => {
+      this.onChange.apply(this, args)
     })
-    let unbindDetach = this.buffer.listen('detach', async () => {
+    this.buffer.listen('detach', async () => {
       this._onDocumentDetach.fire(this.textDocument)
+      await wait(30)
       if (!this.attached) return
-      disposeAll(this.disposables)
-      let res = await this.buffer.attach(true)
-      if (!res) return false
-      // it should be detached by rename
-      this.attach()
+      // it could be detached by `edit!`
+      await this.attach()
     })
-    let unbindChange = this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
+    this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
     })
-    this.disposables.push(
-      Disposable.create(() => {
-        unbindDetach()
-        unbindLines()
-        unbindChange()
-      })
-    )
+    return true
   }
 
   private onChange(
@@ -225,16 +208,14 @@ export default class Document {
     }
   }
 
-  public detach(): void {
+  public async detach(): Promise<void> {
     if (!this.attached) return
+    // neovim not detach on `:checktime`
     this.attached = false
-    disposeAll(this.disposables)
+    await this.buffer.detach()
     this.fetchContent.clear()
     this._fireContentChanges.clear()
     this._onDocumentChange.dispose()
-    this.buffer.detach().catch(e => {
-      logger.error(e)
-    })
   }
 
   public get bufnr(): number {

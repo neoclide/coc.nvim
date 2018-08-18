@@ -118,10 +118,11 @@ export class Workspace implements IWorkspace {
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
     }))
+    let buffer = await this.nvim.buffer
+    this.bufnr = buffer.id
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
     if (this.isVim) this.initVimEvents()
-    let buffer = await this.nvim.buffer
     this.onBufEnter(buffer.id) // tslint:disable-line
     let winid = await this.nvim.call('win_getid')
     let name = await buffer.name
@@ -372,12 +373,12 @@ export class Workspace implements IWorkspace {
   }
 
   public get document(): Promise<Document | null> {
-    if (!this._initialized) {
-      return Promise.resolve(null)
+    let { bufnr } = this
+    if (bufnr && this.buffers.has(bufnr)) {
+      return Promise.resolve(this.buffers.get(bufnr))
     }
-    let document = this.getDocument(this.bufnr)
-    if (document) return Promise.resolve(document)
     return this.nvim.buffer.then(buffer => {
+      this.bufnr = buffer.id
       return this.onBufCreate(buffer).then(() => {
         return this.getDocument(this.bufnr)
       })
@@ -488,7 +489,9 @@ export class Workspace implements IWorkspace {
       ch.dispose()
     }
     for (let doc of this.buffers.values()) {
-      doc.detach()
+      doc.detach().catch(e => {
+        logger.error(e)
+      })
     }
     Watchman.dispose()
     this.moduleManager.removeAllListeners()
@@ -634,22 +637,28 @@ export class Workspace implements IWorkspace {
     if (buftype == 'help' || buftype == 'quickfix' || buftype == 'nofile') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
-      this.onBufUnload(buffer.id)
-      await wait(40)
+      // it could be buffer name changed
+      await this.onBufUnload(buffer.id)
     }
     let document = new Document(buffer)
-    let attached = await document.init(this.nvim, buftype, this.isNvim)
-    if (!attached) return
-    this.buffers.set(buffer.id, document)
-    if (isSupportedScheme(document.schema)) {
-      this._onDidAddDocument.fire(document.textDocument)
-      document.onDocumentChange(({ textDocument, contentChanges }) => {
-        let { version, uri } = textDocument
-        this._onDidChangeDocument.fire({
-          textDocument: { version, uri },
-          contentChanges
+    let attached: boolean
+    try {
+      attached = await document.init(this.nvim, buftype, this.isNvim)
+    } catch (e) {
+      return
+    }
+    if (attached) {
+      this.buffers.set(buffer.id, document)
+      if (isSupportedScheme(document.schema)) {
+        this._onDidAddDocument.fire(document.textDocument)
+        document.onDocumentChange(({ textDocument, contentChanges }) => {
+          let { version, uri } = textDocument
+          this._onDidChangeDocument.fire({
+            textDocument: { version, uri },
+            contentChanges
+          })
         })
-      })
+      }
     }
     logger.debug('buffer created', buffer.id)
   }
@@ -660,11 +669,11 @@ export class Workspace implements IWorkspace {
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private onBufUnload(bufnr: number): void {
+  private async onBufUnload(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this.buffers.delete(bufnr)
-      doc.detach()
+      await doc.detach()
       if (isSupportedScheme(doc.schema)) {
         this._onDidCloseDocument.fire(doc.textDocument)
       }
