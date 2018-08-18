@@ -2,7 +2,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import OnTypeFormatManager from './provider/onTypeFormatManager'
 import snippetManager from './snippet/manager'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage } from './util'
@@ -46,6 +47,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _k
 class Languages {
   public nvim: Neovim
   public sources: ISource[] = []
+  private onTypeFormatManager = new OnTypeFormatManager()
   private _onDidCompletionSourceCreated = new Emitter<ISource>()
   private completionProviders: CompletionSource[] = []
   private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
@@ -72,6 +74,14 @@ class Languages {
         return workspace.nvim
       }
     })
+  }
+
+  public registerOnTypeFormattingEditProvider(
+    languageIds: string[],
+    provider: OnTypeFormattingEditProvider,
+    triggerCharacters: string[]
+  ): Disposable {
+    return this.onTypeFormatManager.register(languageIds, provider, triggerCharacters)
   }
 
   public registerCompletionItemProvider(
@@ -367,6 +377,11 @@ class Languages {
     let cancelTokenSource = new CancellationTokenSource()
     let token = cancelTokenSource.token
     return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
+  }
+
+  @check
+  public async provideDocumentTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
+    return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
   }
 
   public dispose(): void {

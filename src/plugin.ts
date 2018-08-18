@@ -24,7 +24,6 @@ export default class Plugin {
       ; (workspace as any).emitter = emitter
     let sources = new Sources(nvim)
       ; (workspace as any).sources = sources
-    this.handler = new Handler(nvim, this.emitter, services)
     services.init(nvim)
     commandManager.init(nvim, this)
     completion.init(nvim, this.emitter)
@@ -36,6 +35,7 @@ export default class Plugin {
     this.initialized = true
     let { nvim } = this
     await workspace.init()
+    this.handler = new Handler(nvim, this.emitter, services)
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emitter.emit('ready')

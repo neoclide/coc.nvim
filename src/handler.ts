@@ -7,7 +7,7 @@ import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
 import languages from './languages'
 import { ServiceStat } from './types'
-import { disposeAll, echoErr, echoMessage, echoWarning, showQuickpick } from './util'
+import { disposeAll, echoErr, echoMessage, echoWarning, showQuickpick, wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
@@ -34,6 +34,21 @@ export default class Handler {
         logger.error(e.stack)
       })
     }, 100)
+
+    let lastChar = ''
+    let lastTs = null
+    emitter.on('InsertCharPre', ch => {
+      lastChar = ch
+      lastTs = Date.now()
+    })
+    emitter.on('TextChangedI', async bufnr => {
+      let doc = workspace.getDocument(bufnr)
+      if (Date.now() - lastTs < 40 && lastChar || doc.insertEnter) {
+        let character = doc.insertEnter ? '\n' : lastChar
+        lastChar = null
+        await this.onCharacterType(character, bufnr)
+      }
+    })
     emitter.on('BufUnload', bufnr => {
       let codeLensBuffer = this.codeLensBuffers.get(bufnr)
       if (codeLensBuffer) {
@@ -44,6 +59,21 @@ export default class Handler {
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
+  }
+
+  private async onCharacterType(ch: string, bufnr: number): Promise<void> {
+    let doc = workspace.getDocument(bufnr)
+    let { changedtick } = doc
+    if (!doc) return
+    if (doc.isWord(ch)) return
+    let { document, position } = await workspace.getCurrentState()
+    doc.forceSync()
+    await wait(20)
+    let edits = await languages.provideDocumentTypeEdits(ch, document, position)
+    if (doc.changedtick != changedtick) return
+    if (edits && edits.length) {
+      await doc.applyEdits(this.nvim, edits)
+    }
   }
 
   private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {

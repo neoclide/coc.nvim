@@ -188,6 +188,9 @@ export default class LanguageProvider {
     this.disposables.push(
       languages.registerDocumentRangeFormatProvider(languageIds, formatProvider)
     )
+    this.disposables.push(
+      languages.registerOnTypeFormattingEditProvider(languageIds, formatProvider, [';', '}', '\n'])
+    )
 
     // this.disposables.push(
     //   new ProjectError(client, commandManager)

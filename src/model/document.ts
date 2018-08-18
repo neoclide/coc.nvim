@@ -20,6 +20,7 @@ export default class Document {
   public fetchContent: Function & { clear(): void; }
   private nvim: Neovim
   private _fireContentChanges: Function & { clear(): void; }
+  private _insertEnter: boolean
   private attached = false
   // real current lines
   private lines: string[] = []
@@ -161,9 +162,19 @@ export default class Document {
   ): void {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
+    this._insertEnter = false
+    if (lastline - firstline == 1 && linedata.length == 2) {
+      if (linedata[1].trim() == '' && this.lines[firstline] == linedata[0]) {
+        this._insertEnter = true
+      }
+    }
     this._changedtick = tick
     this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
+  }
+
+  public get insertEnter(): boolean {
+    return this._insertEnter
   }
 
   /**
@@ -272,6 +283,11 @@ export default class Document {
         strictIndexing: false
       })
     }
+    this._fireContentChanges.clear()
+    this.fireContentChanges()
+  }
+
+  public forceSync(): void {
     this._fireContentChanges.clear()
     this.fireContentChanges()
   }
