@@ -1,4 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
+import { ParseError } from 'jsonc-parser'
 import { Diagnostic, DidChangeTextDocumentParams, Disposable, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
@@ -598,6 +599,7 @@ export interface IWorkspace {
   echoLines(lines: string[]): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
+  showErrors(uri: string, content: string, errors: ParseError[]): Promise<void>
   createFile(filepath: string, opts: { ignoreIfExists?: boolean }): Promise<void>
   openResource(uri: string): Promise<void>
   createOutputChannel(name: string): OutputChannel

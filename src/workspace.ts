@@ -2,11 +2,12 @@ import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import deepEqual from 'deep-equal'
 import { EventEmitter } from 'events'
 import fs from 'fs'
+import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import Configurations, { parseContentFromFile } from './configurations'
+import Configurations from './configurations'
 import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
@@ -15,10 +16,11 @@ import ModuleManager from './model/moduleManager'
 import BufferChannel from './model/outputChannel'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import Sources from './sources'
-import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
+import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, wait } from './util/index'
 import { byteIndex } from './util/string'
+import { isEmptyObject, isObject } from './util/types'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
@@ -31,6 +33,25 @@ export interface VimSettings {
   completeOpt: string
   pluginRoot: string
   isVim: boolean
+}
+
+export declare const enum ParseErrorCode {
+  InvalidSymbol = 1,
+  InvalidNumberFormat = 2,
+  PropertyNameExpected = 3,
+  ValueExpected = 4,
+  ColonExpected = 5,
+  CommaExpected = 6,
+  CloseBraceExpected = 7,
+  CloseBracketExpected = 8,
+  EndOfFileExpected = 9,
+  InvalidCommentToken = 10,
+  UnexpectedEndOfComment = 11,
+  UnexpectedEndOfString = 12,
+  UnexpectedEndOfNumber = 13,
+  InvalidUnicode = 14,
+  InvalidEscapeCharacter = 15,
+  InvalidCharacter = 16,
 }
 
 export class Workspace implements IWorkspace {
@@ -165,9 +186,7 @@ export class Workspace implements IWorkspace {
   public get textDocuments(): TextDocument[] {
     let docs = []
     for (let b of this.buffers.values()) {
-      if (b.textDocument != null) {
-        docs.push(b.textDocument)
-      }
+      docs.push(b.textDocument)
     }
     return docs
   }
@@ -198,6 +217,16 @@ export class Workspace implements IWorkspace {
 
   public get initialized(): boolean {
     return this._initialized
+  }
+
+  public get ready(): Promise<void> {
+    if (this._initialized) return Promise.resolve()
+    return new Promise<void>(resolve => {
+      let disposable = this.onDidWorkspaceInitialized(() => {
+        disposable.dispose()
+        resolve()
+      })
+    })
   }
 
   public get filetypes(): Set<string> {
@@ -241,12 +270,10 @@ export class Workspace implements IWorkspace {
   }
 
   public async getOffset(): Promise<number> {
-    let buffer = await this.nvim.buffer
-    let document = this.getDocument(buffer.id)
-    if (!document) return null
+    let document = await this.document
     let [, lnum, col] = await this.nvim.call('getcurpos')
     let line = document.getline(lnum - 1)
-    if (line == null) return null
+    if (line == null) return -1
     let character = col == 1 ? 0 : byteIndex(line, col - 1)
     return document.textDocument.offsetAt({
       line: lnum - 1,
@@ -257,9 +284,9 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
-    let curpos = await nvim.call('getcurpos')
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
+    let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
       let n = 0
       for (let change of documentChanges) {
@@ -271,7 +298,6 @@ export class Workspace implements IWorkspace {
     }
     if (changes) {
       let keys = Object.keys(changes)
-      if (!keys.length) return false
       let n = this.fileCount(changes)
       if (n > 0) {
         let c = await nvim.call('coc#util#prompt_change', [keys.length])
@@ -299,19 +325,21 @@ export class Workspace implements IWorkspace {
     return true
   }
 
-  public async getQuickfixItem(loc: Location): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: Location, text?: string): Promise<QuickfixItem> {
+    let { cwd } = this
     let { uri, range } = loc
     let { line, character } = range.start
     let fullpath = Uri.parse(uri).fsPath
     let doc = this.getDocument(uri)
     let bufnr = doc ? doc.bufnr : 0
-    let text = await this.getLine(uri, line)
+    text = text ? text : await this.getLine(uri, line)
     let item: QuickfixItem = {
-      filename: fullpath.startsWith(this.cwd) ? path.relative(this.cwd, fullpath) : fullpath,
+      filename: fullpath.startsWith(cwd) ? path.relative(cwd, fullpath) : fullpath,
       lnum: line + 1,
       col: character + 1,
       text
     }
+    logger.debug('item:', item)
     if (bufnr) item.bufnr = bufnr
     return item
   }
@@ -372,7 +400,7 @@ export class Workspace implements IWorkspace {
     return echoMessage(this.nvim, msg)
   }
 
-  public get document(): Promise<Document | null> {
+  public get document(): Promise<Document> {
     let { bufnr } = this
     if (bufnr && this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
@@ -387,10 +415,8 @@ export class Workspace implements IWorkspace {
 
   public async getCurrentState(): Promise<EditerState> {
     let document = await this.document
-    if (!document) return { document: null, position: null }
     let [, lnum, col] = await this.nvim.call('getcurpos')
-    let line = document.getline(lnum - 1)
-    if (!line) return { document: null, position: null }
+    let line = await this.nvim.call('getline', '.')
     return {
       document: document.textDocument,
       position: {
@@ -401,8 +427,9 @@ export class Workspace implements IWorkspace {
   }
 
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
-    let doc = uri ? this.getDocument(uri) : await this.document
-    if (!doc) return { tabSize: 2, insertSpaces: true }
+    let doc: Document
+    if (uri) doc = this.getDocument(uri)
+    if (!doc) doc = await this.document
     let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1
@@ -414,7 +441,9 @@ export class Workspace implements IWorkspace {
   }
 
   public async jumpTo(uri: string, position: Position): Promise<void> {
-    let { nvim, jumpCommand } = this
+    const preferences = this.getConfiguration('coc.preferences')
+    let jumpCommand = preferences.get<string>('jumpCommand', 'edit')
+    let { nvim, cwd } = this
     let { line, character } = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
@@ -422,7 +451,6 @@ export class Workspace implements IWorkspace {
     if (bufnr != -1 && jumpCommand == 'edit') {
       await nvim.command(`buffer ${cmd} ${bufnr}`)
     } else {
-      let cwd = await nvim.call('getcwd')
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
       await nvim.command(`exe '${jumpCommand} ${cmd} ' . fnameescape('${file}')`)
     }
@@ -510,14 +538,10 @@ export class Workspace implements IWorkspace {
 
   private onConfigurationChange(): void {
     let { _configurations } = this
-    try {
-      let config = this.loadConfigurations()
-      this._configurations = new Configurations(config, this.configurationShape)
-      if (!_configurations || !deepEqual(_configurations, this._configurations)) {
-        this._onDidChangeConfiguration.fire(this.getConfiguration())
-      }
-    } catch (e) {
-      logger.error(`Load configuration error: ${e.message}`)
+    let config = this.loadConfigurations()
+    this._configurations = new Configurations(config, this.configurationShape)
+    if (!_configurations || !deepEqual(_configurations, this._configurations)) {
+      this._onDidChangeConfiguration.fire(this.getConfiguration())
     }
   }
 
@@ -559,19 +583,19 @@ export class Workspace implements IWorkspace {
   private loadConfigurations(): IConfigurationData {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
-    let defaultConfig = parseContentFromFile(file)
+    let defaultConfig = this.parseContentFromFile(file)
     let home = process.env.VIMCONFIG
     if (global.hasOwnProperty('__TEST__')) {
       home = path.join(this.pluginRoot, 'src/__tests__')
     }
     file = path.join(home, CONFIG_FILE_NAME)
     this.configFiles.push(file)
-    let userConfig = parseContentFromFile(file)
+    let userConfig = this.parseContentFromFile(file)
     file = path.join(this.root, '.vim/' + CONFIG_FILE_NAME)
     let workspaceConfig
     if (this.configFiles.indexOf(file) == -1) {
       this.configFiles.push(file)
-      workspaceConfig = parseContentFromFile(file)
+      workspaceConfig = this.parseContentFromFile(file)
     } else {
       workspaceConfig = { contents: {} }
     }
@@ -609,11 +633,6 @@ export class Workspace implements IWorkspace {
       let doc = this.getDocument(bufnr)
       if (doc) doc.fetchContent()
     })
-  }
-
-  private get jumpCommand(): string {
-    const preferences = this.getConfiguration('coc.preferences')
-    return preferences.get<string>('jumpCommand', 'edit')
   }
 
   private onBufEnter(bufnr: number): void {
@@ -693,13 +712,7 @@ export class Workspace implements IWorkspace {
         reason: TextDocumentSaveReason.Manual
       }
       this._onWillSaveDocument.fire(event)
-      await wait(20)
-      try {
-        await this.willSaveUntilHandler.handeWillSaveUntil(event)
-      } catch (e) {
-        echoErr(nvim, e.message)
-        logger.error(e.message)
-      }
+      await this.willSaveUntilHandler.handeWillSaveUntil(event)
     }
   }
 
@@ -755,6 +768,131 @@ export class Workspace implements IWorkspace {
   private async getFileEncoding(): Promise<string> {
     let encoding = await this.nvim.getOption('fileencoding') as string
     return encoding ? encoding : 'utf-8'
+  }
+
+  private parseContentFromFile(filepath: string): IConfigurationModel {
+    if (!fs.existsSync(filepath)) return { contents: {} }
+    let content: string
+    let uri = Uri.file(filepath).toString()
+    try {
+      content = fs.readFileSync(filepath, 'utf8')
+    } catch (_e) {
+      content = ''
+    }
+    let res: any
+    try {
+      res = { contents: this.parseConfig(uri, content) }
+    } catch (e) {
+      res = { contents: {} }
+    }
+    return res
+  }
+
+  public async showErrors(uri: string, content: string, errors: any[]): Promise<void> {
+    let items: QuickfixItem[] = []
+    let document = TextDocument.create(uri, 'json', 0, content)
+    for (let err of errors) {
+      let msg = 'parse error'
+      switch (err.error) {
+        case 2:
+          msg = 'invalid number'
+          break
+        case 8:
+          msg = 'close brace expected'
+          break
+        case 5:
+          msg = 'colon expeted'
+          break
+        case 6:
+          msg = 'comma expected'
+          break
+        case 9:
+          msg = 'end of file expected'
+          break
+        case 16:
+          msg = 'invaliad character'
+          break
+        case 10:
+          msg = 'invalid commment token'
+          break
+        case 15:
+          msg = 'invalid escape character'
+          break
+        case 8:
+          msg = 'close brace expected'
+          break
+        case 1:
+          msg = 'invalid symbol'
+          break
+        case 14:
+          msg = 'invalid unicode'
+          break
+        case 3:
+          msg = 'property name expected'
+          break
+        case 13:
+          msg = 'unexpected end of number'
+          break
+        case 12:
+          msg = 'unexpected end of string'
+          break
+        case 11:
+          msg = 'unexpected end of comment'
+          break
+        case 4:
+          msg = 'value expected'
+          break
+      }
+      let range: Range = {
+        start: document.positionAt(err.offset),
+        end: document.positionAt(err.offset + err.length),
+      }
+      let loc = Location.create(uri, range)
+      let item = await this.getQuickfixItem(loc, msg)
+      items.push(item)
+    }
+    await this.ready
+    let { nvim } = this
+    await nvim.call('setqflist', [items, ' ', 'Errors of coc config'])
+    await nvim.command('doautocmd User CocQuickfixChange')
+  }
+
+  private parseConfig(uri: string, content: string): any {
+    if (content.length == 0) return {}
+    let errors: ParseError[] = []
+    let data = parse(content, errors, { allowTrailingComma: true })
+    if (errors.length) {
+      this.showErrors(uri, content, errors).catch(e => {
+        logger.error(e.message)
+      })
+    }
+    function addProperty(current: object, key: string, remains: string[], value: any): void {
+      if (remains.length == 0) {
+        current[key] = convert(value)
+      } else {
+        if (!current[key]) current[key] = {}
+        let o = current[key]
+        let first = remains.shift()
+        addProperty(o, first, remains, value)
+      }
+    }
+
+    function convert(obj: any): any {
+      if (!isObject(obj)) return obj
+      if (isEmptyObject(obj)) return {}
+      let dest = {}
+      for (let key of Object.keys(obj)) {
+        if (key.indexOf('.') !== -1) {
+          let parts = key.split('.')
+          let first = parts.shift()
+          addProperty(dest, first, parts, obj[key])
+        } else {
+          dest[key] = convert(obj[key])
+        }
+      }
+      return dest
+    }
+    return convert(data)
   }
 }
 

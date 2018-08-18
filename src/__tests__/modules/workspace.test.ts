@@ -124,6 +124,27 @@ describe('workspace applyEdits', () => {
     let res = await workspace.applyEdit({ changes })
     expect(res).toBe(false)
   })
+
+  it('should return false for invalid documentChanges', async () => {
+    let uri = URI.file('/tmp/not_exists').toString()
+    let versioned = VersionedTextDocumentIdentifier.create(uri, 10)
+    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
+    let change = TextDocumentEdit.create(versioned, [edit])
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [change]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(false)
+  })
+
+  it('should return false for invalid changes schemas', async () => {
+    let uri = URI.parse('http://foo').toString()
+    let changes = {
+      [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
+    }
+    let res = await workspace.applyEdit({ changes })
+    expect(res).toBe(false)
+  })
 })
 
 describe('workspace methods', () => {
@@ -147,6 +168,23 @@ describe('workspace methods', () => {
 
   it('should get format options', async () => {
     let opts = await workspace.getFormatOptions()
+    expect(opts.insertSpaces).toBe(true)
+    expect(opts.tabSize).toBe(2)
+  })
+
+  it('should get format options of current buffer', async () => {
+    let buf = await helper.edit('foo')
+    await buf.setOption('tabstop', 8)
+    await buf.setOption('expandtab', false)
+    let doc = await workspace.getDocument(buf.id)
+    let opts = await workspace.getFormatOptions(doc.uri)
+    expect(opts.insertSpaces).toBe(false)
+    expect(opts.tabSize).toBe(8)
+  })
+
+  it('should get format options when uri not exists', async () => {
+    let uri = URI.file('/tmp/foo').toString()
+    let opts = await workspace.getFormatOptions(uri)
     expect(opts.insertSpaces).toBe(true)
     expect(opts.tabSize).toBe(2)
   })
@@ -191,6 +229,13 @@ describe('workspace methods', () => {
 
   it('should echo lines', async () => {
     await workspace.echoLines(['a', 'b'])
+    let ch = await nvim.call('screenchar', [79, 1])
+    let s = String.fromCharCode(ch)
+    expect(s).toBe('b')
+  })
+
+  it('should echo multiple lines', async () => {
+    await workspace.echoLines(['a', 'b', 'd', 'e'])
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
     expect(s).toBe('b')
@@ -266,6 +311,13 @@ describe('workspace utility', () => {
     expect(exists).toBe(false)
   })
 
+  it('should not create file if file exists with ignoreIfExists', async () => {
+    let file = await createTmpFile('foo')
+    await workspace.createFile(file, { ignoreIfExists: true })
+    let content = fs.readFileSync(file, 'utf8')
+    expect(content).toBe('foo')
+  })
+
   it('should create file if not exists', async () => {
     let filepath = path.join(__dirname, 'foo')
     await workspace.createFile(filepath, { ignoreIfExists: true })
@@ -303,9 +355,61 @@ describe('workspace utility', () => {
     let name = await buf.name
     expect(name).toMatch('[coc channel]')
   })
+
+  it('should not show none exists channel', async () => {
+    let buf = await nvim.buffer
+    let bufnr = buf.id
+    workspace.showOutputChannel('NONE')
+    await helper.wait(100)
+    buf = await nvim.buffer
+    expect(buf.id).toBe(bufnr)
+  })
+
+  it('should get current state', async () => {
+    let buf = await helper.edit('bar')
+    await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
+    await nvim.call('cursor', [2, 2])
+    let doc = workspace.getDocument(buf.id)
+    let state = await workspace.getCurrentState()
+    expect(doc.uri).toBe(state.document.uri)
+    expect(state.position).toEqual({ line: 1, character: 1 })
+  })
+
+  it('should jumpTo position', async () => {
+    let uri = URI.file('/tmp/foo').toString()
+    await workspace.jumpTo(uri, { line: 1, character: 1 })
+    let buf = await nvim.buffer
+    let name = await buf.name
+    expect(name).toMatch('/foo')
+    await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
+    await workspace.jumpTo(uri, { line: 1, character: 1 })
+    let pos = await nvim.call('getcurpos')
+    expect(pos[1]).toBe(2)
+    expect(pos[2]).toBe(2)
+  })
+
+  it('should show errors', async () => {
+    let uri = URI.file('/tmp/foo').toString()
+    let content = 'bar'
+    await workspace.showErrors(uri, content, [{
+      error: 1,
+      offset: 0,
+      length: 1
+    }])
+    let list = await nvim.call('getqflist', { title: 1 })
+    expect(list.title).toMatch('Errors of coc config')
+  })
 })
 
 describe('workspace events', () => {
+
+  it('should listen to fileType change', async () => {
+    let buf = await helper.edit('foo')
+    await nvim.command('setf xml')
+    await helper.wait(40)
+    let doc = workspace.getDocument(buf.id)
+    expect(doc.filetype).toBe('xml')
+  })
 
   it('should listen optionSet', async () => {
     let opt = workspace.completeOpt

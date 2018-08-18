@@ -113,7 +113,9 @@ export function parseContentFromFile(filepath: string): IConfigurationModel {
 
 export function parseContent(content: string): any {
   if (content.length == 0) return {}
-  let data = parse(content)
+  let errors = []
+  let data = parse(content, errors, { allowTrailingComma: true, disallowComments: false })
+  logger.debug('errors:', errors)
   function addProperty(current: object, key: string, remains: string[], value: any): void {
     if (remains.length == 0) {
       current[key] = convert(value)

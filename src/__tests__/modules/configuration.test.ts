@@ -1,6 +1,5 @@
 // test code of vscode folder
 import Uri from 'vscode-uri'
-import {parseContent} from '../../configurations'
 
 describe('vscode uri', () => {
 
@@ -18,35 +17,4 @@ describe('vscode uri', () => {
     expect(uri.toString()).toBe(`file://${f}`)
   })
 
-})
-
-describe('configurations', () => {
-
-  test('with dot', () => {
-    let obj = `{
-      "a": {
-        "b.c": 1,
-        "e": {
-          "f": 1
-        }
-      },
-      "x.y.z": true
-    }`
-    let res = parseContent(obj)
-    expect(res).toEqual({
-      a: {
-        b: {
-          c: 1
-        },
-        e: {
-          f: 1
-        }
-      },
-      x: {
-        y: {
-          z: true
-        }
-      }
-    })
-  })
 })
