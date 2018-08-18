@@ -605,7 +605,7 @@ export interface IWorkspace {
   createOutputChannel(name: string): OutputChannel
   showOutputChannel(name: string): void
   resolveModule(name: string, section: string, silent?): Promise<string>
-  runCommand(cmd: string, cwd?: string): Promise<string>
+  runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
   runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
   dispose(): void
 }

@@ -270,17 +270,17 @@ describe('workspace methods', () => {
   })
 
   it('should not resolve module if not exists', async () => {
-    let res = await workspace.resolveModule('wxml-xyz', 'tsserver', true)
+    let res = await workspace.resolveModule('foo', 'tsserver', true)
     expect(res).toBeFalsy()
   })
 
   it('should run command', async () => {
-    let res = await workspace.runCommand('echo "abc"')
+    let res = await workspace.runCommand('echo "abc"', __dirname, 1000)
     expect(res).toMatch('abc')
   })
 
   it('should run terminal command', async () => {
-    let res = await workspace.runTerminalCommand('ls')
+    let res = await workspace.runTerminalCommand('ls', __dirname)
     expect(res.success).toBe(true)
   })
 

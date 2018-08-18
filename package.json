@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "jest",
-    "test-build": "jest --runInBand  --coverage",
+    "test-build": "jest --runInBand  --coverage --forceExit",
     "prepublish": "yarn clean && yarn build",
     "release": "pkg . --out-path ./build"
   },

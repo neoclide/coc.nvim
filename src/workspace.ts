@@ -483,8 +483,8 @@ export class Workspace implements IWorkspace {
     return null
   }
 
-  public async runCommand(cmd: string, cwd?: string): Promise<string> {
-    return await this.jobManager.runCommand(cmd, cwd)
+  public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
+    return await this.jobManager.runCommand(cmd, cwd, timeout)
   }
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
