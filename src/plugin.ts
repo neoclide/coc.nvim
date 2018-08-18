@@ -77,7 +77,11 @@ export default class Plugin {
         let fns = emitter.listeners(args[0])
         if (fns && fns.length) {
           for (let fn of fns) {
-            await Promise.resolve(fn.apply(null, args.slice(1)))
+            try {
+              await Promise.resolve(fn.apply(null, args.slice(1)))
+            } catch (e) {
+              workspace.showMessage(`Error on ${args[0]}: ${e.message}`, 'error')
+            }
           }
         }
         break
