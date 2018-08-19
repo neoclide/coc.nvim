@@ -2,12 +2,12 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, ImplementationRequest, Position, ServerCapabilities, TextDocument, TextDocumentRegistrationOptions} from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Definition, Disposable, DocumentSelector, ImplementationRequest, Position, ServerCapabilities, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
 import languages from '../languages'
-import {ProviderResult} from '../provider'
-import {BaseLanguageClient, TextDocumentFeature} from './client'
-import {documentSelectorToLanguageIds} from './utils/converter'
-import * as Is from './utils/is'
+import { ProviderResult } from '../provider'
+import * as Is from '../util/is'
+import { BaseLanguageClient, TextDocumentFeature } from './client'
+import { documentSelectorToLanguageIds } from './utils/converter'
 import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
@@ -45,7 +45,7 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
       }
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, {documentSelector})
+        registerOptions: Object.assign({}, { documentSelector })
       })
     } else {
       const implCapabilities = capabilities.implementationProvider
@@ -54,7 +54,7 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
       if (selector) {
         this.register(this.messages, {
           id,
-          registerOptions: Object.assign({}, {documentSelector: selector})
+          registerOptions: Object.assign({}, { documentSelector: selector })
         })
       }
     }
@@ -63,7 +63,7 @@ export class ImplementationFeature extends TextDocumentFeature<TextDocumentRegis
   protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
     let client = this._client
     let provideImplementation: ProvideImplementationSignature = (document, position, token) => {
-      return client.sendRequest(ImplementationRequest.type, {textDocument: document, position}, token)
+      return client.sendRequest(ImplementationRequest.type, { textDocument: document, position }, token)
         .then(res => res, error => {
           client.logFailedRequest(ImplementationRequest.type, error)
           return Promise.resolve(null)

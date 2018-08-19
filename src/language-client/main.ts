@@ -2,18 +2,18 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import cp, {SpawnOptions} from 'child_process'
+import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
-import {createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter} from 'vscode-languageserver-protocol'
-import {ServiceStat} from '../types'
+import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
+import { ServiceStat } from '../types'
+import * as Is from '../util/is'
 import workspace from '../workspace'
-import {BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature} from './client'
-import {ConfigurationFeature as PullConfigurationFeature} from './configuration'
-import {ImplementationFeature} from './implementation'
-import {TypeDefinitionFeature} from './typeDefinition'
+import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
+import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
+import { ImplementationFeature } from './implementation'
+import { TypeDefinitionFeature } from './typeDefinition'
 import * as electron from './utils/electron'
-import * as Is from './utils/is'
-import {terminate} from './utils/processes'
+import { terminate } from './utils/processes'
 import ChildProcess = cp.ChildProcess
 
 const logger = require('../util/logger')('language-client-main')
@@ -132,8 +132,8 @@ namespace ChildProcessInfo {
 
 export type ServerOptions =
   | Executable
-  | {run: Executable; debug: Executable}
-  | {run: NodeModule; debug: NodeModule}
+  | { run: Executable; debug: Executable }
+  | { run: NodeModule; debug: NodeModule }
   | NodeModule
   | (() => Thenable<ChildProcess | StreamInfo | MessageTransports | ChildProcessInfo>)
 
@@ -320,7 +320,7 @@ export class LanguageClient extends BaseLanguageClient {
       })
     }
     let json: NodeModule | Executable
-    let runDebug = server as {run: any; debug: any}
+    let runDebug = server as { run: any; debug: any }
     if (runDebug.run || runDebug.debug) {
       // We are under debugging. So use debug as well.
       if (typeof v8debug === 'object' || this._forceDebug || startedInDebugMode()) {
@@ -394,7 +394,7 @@ export class LanguageClient extends BaseLanguageClient {
               process.stderr.on('data', data => this.appendOutput(data, encoding))
               process.stdout.on('data', data => this.appendOutput(data, encoding))
               return transport.onConnected().then(protocol => {
-                return {reader: protocol[0], writer: protocol[1]}
+                return { reader: protocol[0], writer: protocol[1] }
               })
             })
           } else if (Transport.isSocket(transport)) {
@@ -410,7 +410,7 @@ export class LanguageClient extends BaseLanguageClient {
                 process.stderr.on('data', data => this.appendOutput(data, encoding))
                 process.stdout.on('data', data => this.appendOutput(data, encoding))
                 return transport.onConnected().then(protocol => {
-                  return {reader: protocol[0], writer: protocol[1]}
+                  return { reader: protocol[0], writer: protocol[1] }
                 })
               }
             )
@@ -472,7 +472,7 @@ export class LanguageClient extends BaseLanguageClient {
                     cp.stderr.on('data', data => this.appendOutput(data, encoding))
                     cp.stdout.on('data', data => this.appendOutput(data, encoding))
                     transport.onConnected().then(protocol => {
-                      resolve({reader: protocol[0], writer: protocol[1]})
+                      resolve({ reader: protocol[0], writer: protocol[1] })
                     })
                   }
                 })
@@ -487,7 +487,7 @@ export class LanguageClient extends BaseLanguageClient {
                     cp.stderr.on('data', data => this.appendOutput(data, encoding))
                     cp.stdout.on('data', data => this.appendOutput(data, encoding))
                     transport.onConnected().then(protocol => {
-                      resolve({reader: protocol[0], writer: protocol[1]})
+                      resolve({ reader: protocol[0], writer: protocol[1] })
                     })
                   }
                 })
@@ -533,14 +533,14 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeatures(ProposedFeatures.createAll(this))
   }
 
-  protected registerBuiltinFeatures(forceFullSync:boolean): void {
+  protected registerBuiltinFeatures(forceFullSync: boolean): void {
     super.registerBuiltinFeatures(forceFullSync)
     this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))
   }
 
-  private _getServerWorkingDir(options?: {cwd?: string}): Thenable<string | undefined> {
+  private _getServerWorkingDir(options?: { cwd?: string }): Thenable<string | undefined> {
     let cwd = options && options.cwd
     if (!cwd) cwd = workspace.root
     if (cwd) {
@@ -554,7 +554,7 @@ export class LanguageClient extends BaseLanguageClient {
     return Promise.resolve(undefined)
   }
 
-  private appendOutput(data:string|Buffer, encoding:string):void {
+  private appendOutput(data: string | Buffer, encoding: string): void {
     this.outputChannel.append(Is.string(data) ? data : data.toString(encoding))
   }
 }

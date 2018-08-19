@@ -1,9 +1,6 @@
-import fs from 'fs'
-import { parse } from 'jsonc-parser'
 import { Configuration, ConfigurationModel } from './model/configuration'
 import { ConfigurationInspect, ConfigurationShape, ConfigurationTarget, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from './types'
 import { mixin } from './util/object'
-import { isEmptyObject, isObject } from './util/types'
 const logger = require('./util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -92,55 +89,4 @@ export default class Configurations {
     const workspaceConfiguration = Configurations.parseConfigurationModel(data.workspace)
     return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
   }
-}
-
-export function parseContentFromFile(filepath: string): IConfigurationModel {
-  if (!fs.existsSync(filepath)) return { contents: {} }
-  let content: string
-  try {
-    content = fs.readFileSync(filepath, 'utf8')
-  } catch (_e) {
-    content = ''
-  }
-  let res: any
-  try {
-    res = { contents: parseContent(content) }
-  } catch (e) {
-    res = { contents: {} }
-  }
-  return res
-}
-
-export function parseContent(content: string): any {
-  if (content.length == 0) return {}
-  let errors = []
-  let data = parse(content, errors, { allowTrailingComma: true, disallowComments: false })
-  logger.debug('errors:', errors)
-  function addProperty(current: object, key: string, remains: string[], value: any): void {
-    if (remains.length == 0) {
-      current[key] = convert(value)
-    } else {
-      if (!current[key]) current[key] = {}
-      let o = current[key]
-      let first = remains.shift()
-      addProperty(o, first, remains, value)
-    }
-  }
-
-  function convert(obj: any): any {
-    if (!isObject(obj)) return obj
-    if (isEmptyObject(obj)) return {}
-    let dest = {}
-    for (let key of Object.keys(obj)) {
-      if (key.indexOf('.') !== -1) {
-        let parts = key.split('.')
-        let first = parts.shift()
-        addProperty(dest, first, parts, obj[key])
-      } else {
-        dest[key] = convert(obj[key])
-      }
-    }
-    return dest
-  }
-  return convert(data)
 }

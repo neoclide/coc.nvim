@@ -1,4 +1,4 @@
-import {isArray, isObject, isUndefinedOrNull} from './types'
+import * as Is from './is'
 
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
@@ -50,7 +50,7 @@ function _cloneAndChange(
   changer: (orig: any) => any,
   encounteredObjects: any[]
 ): any {
-  if (isUndefinedOrNull(obj)) {
+  if (obj == null) {
     return obj
   }
 
@@ -59,7 +59,7 @@ function _cloneAndChange(
     return changed
   }
 
-  if (isArray(obj)) {
+  if (Is.array(obj)) {
     const r1: any[] = []
     for (let i1 = 0; i1 < obj.length; i1++) { // tslint:disable-line
       r1.push(_cloneAndChange(obj[i1], changer, encounteredObjects))
@@ -67,7 +67,7 @@ function _cloneAndChange(
     return r1
   }
 
-  if (isObject(obj)) {
+  if (Is.objectLiteral(obj)) {
     if (encounteredObjects.indexOf(obj) >= 0) {
       throw new Error('Cannot clone recursive data-structure')
     }
@@ -94,15 +94,15 @@ export function mixin(
   source: any,
   overwrite = true
 ): any {
-  if (!isObject(destination)) {
+  if (!Is.objectLiteral(destination)) {
     return source
   }
 
-  if (isObject(source)) {
+  if (Is.objectLiteral(source)) {
     Object.keys(source).forEach(key => {
       if (key in destination) {
         if (overwrite) {
-          if (isObject(destination[key]) && isObject(source[key])) {
+          if (Is.objectLiteral(destination[key]) && Is.objectLiteral(source[key])) {
             mixin(destination[key], source[key], overwrite)
           } else {
             destination[key] = source[key]
@@ -166,8 +166,8 @@ export function createKeywordMatcher(
  */
 export function safeStringify(obj: any): string {
   const seen: any[] = []
-  return JSON.stringify(obj, (key, value) => {
-    if (isObject(value) || Array.isArray(value)) {
+  return JSON.stringify(obj, (_key, value) => {
+    if (Is.objectLiteral(value) || Array.isArray(value)) {
       if (seen.indexOf(value) !== -1) {
         return '[Circular]'
       } else {
@@ -255,7 +255,7 @@ export function equals(one: any, other: any): boolean {
  * @param base the object to diff against
  * @param obj the object to use for diffing
  */
-export function distinct(base: {[key: string]: any}, target: {[key: string]: any}): {[key: string]: any} {
+export function distinct(base: { [key: string]: any }, target: { [key: string]: any }): { [key: string]: any } {
   const result = Object.create(null)
 
   if (!base || !target) {

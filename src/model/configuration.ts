@@ -1,14 +1,13 @@
-import {IConfigurationData, IConfigurationModel} from '../types'
-import {deepClone, deepFreeze} from '../util/object'
-import {isObject} from '../util/types'
+import { IConfigurationData, IConfigurationModel } from '../types'
+import { objectLiteral } from '../util/is'
+import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-configuration')
 
 export class ConfigurationModel implements IConfigurationModel {
-  private isFrozen = false
 
   constructor(
     private _contents: any = {},
-  ) {}
+  ) { }
 
   public get contents(): any {
     return this._contents
@@ -30,14 +29,13 @@ export class ConfigurationModel implements IConfigurationModel {
   }
 
   public freeze(): ConfigurationModel {
-    this.isFrozen = true
     return this
   }
 
   private mergeContents(source: any, target: any): void {
     for (const key of Object.keys(target)) {
       if (key in source) {
-        if (isObject(source[key]) && isObject(target[key])) {
+        if (objectLiteral(source[key]) && objectLiteral(target[key])) {
           this.mergeContents(source[key], target[key])
           continue
         }
@@ -192,7 +190,7 @@ export class Configuration {
     value: C
   } {
     const consolidateConfigurationModel = this.getConsolidateConfiguration()
-    const {_workspaceConfiguration, _memoryConfiguration} = this
+    const { _workspaceConfiguration, _memoryConfiguration } = this
     return {
       default: this._defaultConfiguration.freeze().getValue(key),
       user: this._userConfiguration.freeze().getValue(key),

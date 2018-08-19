@@ -20,8 +20,8 @@ import Sources from './sources'
 import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, wait } from './util/index'
+import { emptyObject, objectLiteral } from './util/is'
 import { byteIndex } from './util/string'
-import { isEmptyObject, isObject } from './util/types'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
@@ -870,8 +870,8 @@ export class Workspace implements IWorkspace {
     }
 
     function convert(obj: any): any {
-      if (!isObject(obj)) return obj
-      if (isEmptyObject(obj)) return {}
+      if (!objectLiteral(obj)) return obj
+      if (emptyObject(obj)) return {}
       let dest = {}
       for (let key of Object.keys(obj)) {
         if (key.indexOf('.') !== -1) {

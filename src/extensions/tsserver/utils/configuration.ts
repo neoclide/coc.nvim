@@ -2,8 +2,7 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {WorkspaceConfiguration} from '../../../types'
-import {toNumber} from '../../../util/types'
+import { WorkspaceConfiguration } from '../../../types'
 import workspace from '../../../workspace'
 import which = require('which')
 
@@ -65,7 +64,7 @@ export class TypeScriptServiceConfiguration {
     this.localTsdk = TypeScriptServiceConfiguration.extractLocalTsdk(configuration)
     try {
       this.npmLocation = configuration.get<string>('npm', which.sync('npm'))
-    } catch (e) {} // tslint:disable-line
+    } catch (e) { } // tslint:disable-line
     this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('log', 'off'))
     this.tsServerPluginNames = configuration.get<string[]>('pluginNames', [])
     this.typingsCacheLocation = configuration.get<string>('typingsCacheLocation', null)
@@ -73,7 +72,7 @@ export class TypeScriptServiceConfiguration {
     this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
     this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
     this.disableAutomaticTypeAcquisition = configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
-    this.debugPort = configuration.get<number | null>('debugPort', toNumber(process.env['TSS_DEBUG'])) // tslint:disable-line
+    this.debugPort = configuration.get<number | null>('debugPort', parseInt(process.env['TSS_DEBUG'], 10)) // tslint:disable-line
   }
 
   private static extractGlobalTsdk(configuration: WorkspaceConfiguration): string | null {

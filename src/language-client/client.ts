@@ -3,20 +3,20 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import {ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, DocumentSymbol} from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
-import {ProviderResult} from '../provider'
-import {OutputChannel, DiagnosticCollection, TextDocumentWillSaveEvent, Thenable} from '../types'
+import { ProviderResult } from '../provider'
+import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
+import * as Is from '../util/is'
 import workspace from '../workspace'
-import {ConfigurationWorkspaceMiddleware} from './configuration'
-import {ImplementationMiddleware} from './implementation'
-import {TypeDefinitionMiddleware} from './typeDefinition'
-import {Delayer} from './utils/async'
+import { ConfigurationWorkspaceMiddleware } from './configuration'
+import { ImplementationMiddleware } from './implementation'
+import { TypeDefinitionMiddleware } from './typeDefinition'
+import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
-import * as Is from './utils/is'
 import * as UUID from './utils/uuid'
 import * as Window from './utils/window'
 const createLogger = require('../util/logger')
@@ -350,7 +350,7 @@ export interface ProvideReferencesSignature {
   (
     document: TextDocument,
     position: Position,
-    options: {includeDeclaration: boolean},
+    options: { includeDeclaration: boolean },
     token: CancellationToken
   ): ProviderResult<Location[]>
 }
@@ -510,7 +510,7 @@ export interface _Middleware {
     this: void,
     document: TextDocument,
     position: Position,
-    options: {includeDeclaration: boolean},
+    options: { includeDeclaration: boolean },
     token: CancellationToken,
     next: ProvideReferencesSignature
   ) => ProviderResult<Location[]>
@@ -847,7 +847,7 @@ abstract class DocumentNotifiactions<P, E>
     textDocument: TextDocument
   ): boolean {
     for (const selector of selectors) {
-      let {languageId} = textDocument
+      let { languageId } = textDocument
       let languageIds = cv.documentSelectorToLanguageIds(selector)
       if (languageIds.indexOf(languageId) != -1) {
         return true
@@ -866,7 +866,7 @@ abstract class DocumentNotifiactions<P, E>
       selectors: IterableIterator<DocumentSelector>,
       data: E
     ) => boolean
-  ) {}
+  ) { }
 
   public abstract messages: RPCMessageType | RPCMessageType[]
 
@@ -906,7 +906,7 @@ abstract class DocumentNotifiactions<P, E>
     }
   }
 
-  protected notificationSent(_data: E): void {}
+  protected notificationSent(_data: E): void { }
 
   public unregister(id: string): void {
     this._selectors.delete(id)
@@ -932,7 +932,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
       DidOpenTextDocumentNotification.type,
       client.clientOptions.middleware!.didOpen,
       (textDocument) => {
-        return {textDocument: cv.convertToTextDocumentItem(textDocument)}
+        return { textDocument: cv.convertToTextDocumentItem(textDocument) }
       },
       DocumentNotifiactions.textDocumentFilter
     )
@@ -959,7 +959,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
     ) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: {documentSelector: documentSelector}
+        registerOptions: { documentSelector: documentSelector }
       })
     }
   }
@@ -1040,7 +1040,7 @@ class DidCloseTextDocumentFeature extends DocumentNotifiactions<
     ) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: {documentSelector: documentSelector}
+        registerOptions: { documentSelector: documentSelector }
       })
     }
   }
@@ -1089,9 +1089,9 @@ class DidChangeTextDocumentFeature
   private _listener: Disposable | undefined
   private _changeData: Map<string, DidChangeTextDocumentData> = new Map<string, DidChangeTextDocumentData>()
   private _forcingDelivery: boolean = false
-  private _changeDelayer: {uri: string; delayer: Delayer<void>} | undefined
+  private _changeDelayer: { uri: string; delayer: Delayer<void> } | undefined
 
-  constructor(private _client: BaseLanguageClient, private forceFullSync = false) {}
+  constructor(private _client: BaseLanguageClient, private forceFullSync = false) { }
 
   public get messages(): typeof DidChangeTextDocumentNotification.type {
     return DidChangeTextDocumentNotification.type
@@ -1103,7 +1103,7 @@ class DidChangeTextDocumentFeature
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
     let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
-    let {forceFullSync} = this
+    let { forceFullSync } = this
     let syncKind = forceFullSync ? TextDocumentSyncKind.Full : textDocumentSyncOptions.change
     if (
       documentSelector &&
@@ -1115,8 +1115,8 @@ class DidChangeTextDocumentFeature
         id: UUID.generateUuid(),
         registerOptions: Object.assign(
           {},
-          {documentSelector: documentSelector},
-          {syncKind}
+          { documentSelector: documentSelector },
+          { syncKind }
         )
       })
     }
@@ -1145,7 +1145,7 @@ class DidChangeTextDocumentFeature
     if (event.contentChanges.length === 0) {
       return
     }
-    let {textDocument} = workspace.getDocument(event.textDocument.uri)
+    let { textDocument } = workspace.getDocument(event.textDocument.uri)
     for (const changeData of this._changeData.values()) {
       if (languages.match(changeData.documentSelector, textDocument)) {
         let middleware = this._client.clientOptions.middleware!
@@ -1165,7 +1165,7 @@ class DidChangeTextDocumentFeature
           }
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           let didChange: (event: DidChangeTextDocumentParams) => void = event => {
-            let {textDocument} = workspace.getDocument(event.textDocument.uri)
+            let { textDocument } = workspace.getDocument(event.textDocument.uri)
             if (this._changeDelayer) {
               if (this._changeDelayer.uri !== textDocument.uri.toString()) {
                 // Use this force delivery to track boolean state. Otherwise we might call two times.
@@ -1266,7 +1266,7 @@ class WillSaveFeature extends DocumentNotifiactions<WillSaveTextDocumentParams, 
     ) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: {documentSelector: documentSelector}
+        registerOptions: { documentSelector: documentSelector }
       })
     }
   }
@@ -1276,7 +1276,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
   private _listener: Disposable | undefined
   private _selectors: Map<string, DocumentSelector> = new Map<string, DocumentSelector>()
 
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(private _client: BaseLanguageClient) { }
 
   public get messages(): RPCMessageType {
     return WillSaveTextDocumentWaitUntilRequest.type
@@ -1300,7 +1300,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
     ) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: {documentSelector: documentSelector}
+        registerOptions: { documentSelector: documentSelector }
       })
     }
   }
@@ -1405,8 +1405,8 @@ class DidSaveTextDocumentFeature extends DocumentNotifiactions<
         id: UUID.generateUuid(),
         registerOptions: Object.assign(
           {},
-          {documentSelector: documentSelector},
-          {includeText: !!textDocumentSyncOptions.save.includeText}
+          { documentSelector: documentSelector },
+          { includeText: !!textDocumentSyncOptions.save.includeText }
         )
       })
     }
@@ -1426,9 +1426,9 @@ class FileSystemWatcherFeature
   private _watchers: Map<string, Disposable[]> = new Map<string, Disposable[]>()
 
   constructor(
-     _client: BaseLanguageClient,
+    _client: BaseLanguageClient,
     private _notifyFileEvent: (event: FileEvent) => void
-  ) {}
+  ) { }
 
   public get messages(): RPCMessageType {
     return DidChangeWatchedFilesNotification.type
@@ -1444,7 +1444,7 @@ class FileSystemWatcherFeature
   public initialize(
     _capabilities: ServerCapabilities,
     _documentSelector: DocumentSelector
-  ): void {}
+  ): void { }
 
   public register(
     _method: RPCMessageType,
@@ -1562,7 +1562,7 @@ export abstract class TextDocumentFeature<
   constructor(
     protected _client: BaseLanguageClient,
     private _message: RPCMessageType
-  ) {}
+  ) { }
 
   public get messages(): RPCMessageType {
     return this._message
@@ -1615,7 +1615,7 @@ abstract class WorkspaceFeature<T> implements DynamicFeature<T> {
   constructor(
     protected _client: BaseLanguageClient,
     private _message: RPCMessageType
-  ) {}
+  ) { }
 
   public get messages(): RPCMessageType {
     return this._message
@@ -1675,7 +1675,7 @@ class CompletionItemFeature extends TextDocumentFeature<
       deprecatedSupport: true,
       preselectSupport: true
     }
-    completion.completionItemKind = {valueSet: SupportedCompletionItemKinds}
+    completion.completionItemKind = { valueSet: SupportedCompletionItemKinds }
   }
 
   public initialize(
@@ -1689,7 +1689,7 @@ class CompletionItemFeature extends TextDocumentFeature<
       id: UUID.generateUuid(),
       registerOptions: Object.assign(
         {},
-        {documentSelector: documentSelector},
+        { documentSelector: documentSelector },
         capabilities.completionProvider
       )
     })
@@ -1808,7 +1808,7 @@ class HoverFeature extends TextDocumentFeature<
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -1873,7 +1873,7 @@ class SignatureHelpFeature extends TextDocumentFeature<
       id: UUID.generateUuid(),
       registerOptions: Object.assign(
         {},
-        {documentSelector: documentSelector},
+        { documentSelector: documentSelector },
         capabilities.signatureHelpProvider
       )
     })
@@ -1951,7 +1951,7 @@ class DefinitionFeature extends TextDocumentFeature<
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2022,7 +2022,7 @@ class ReferencesFeature extends TextDocumentFeature<
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2057,7 +2057,7 @@ class ReferencesFeature extends TextDocumentFeature<
       provideReferences: (
         document: TextDocument,
         position: Position,
-        options: {includeDeclaration: boolean},
+        options: { includeDeclaration: boolean },
         token: CancellationToken
       ): ProviderResult<Location[]> => {
         return middleware.provideReferences
@@ -2097,7 +2097,7 @@ class DocumentHighlightFeature extends TextDocumentFeature<
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2175,7 +2175,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2204,7 +2204,7 @@ class DocumentSymbolFeature extends TextDocumentFeature<
       provideDocumentSymbols: (
         document: TextDocument,
         token: CancellationToken
-      ): ProviderResult<SymbolInformation[]|DocumentSymbol[]> => {
+      ): ProviderResult<SymbolInformation[] | DocumentSymbol[]> => {
         return middleware.provideDocumentSymbols
           ? middleware.provideDocumentSymbols(
             document,
@@ -2242,7 +2242,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<TextDocumentRegistrationOp
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2253,7 +2253,7 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<TextDocumentRegistrationOp
       token
     ) => {
       return client
-        .sendRequest(WorkspaceSymbolRequest.type, {query}, token)
+        .sendRequest(WorkspaceSymbolRequest.type, { query }, token)
         .then(res => res, error => {
           client.logFailedRequest(WorkspaceSymbolRequest.type, error)
           return Promise.resolve([])
@@ -2312,7 +2312,7 @@ class CodeActionFeature extends TextDocumentFeature<TextDocumentRegistrationOpti
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2392,7 +2392,7 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensRegistrationOptions> {
       id: UUID.generateUuid(),
       registerOptions: Object.assign(
         {},
-        {documentSelector: documentSelector},
+        { documentSelector: documentSelector },
         capabilities.codeLensProvider
       )
     })
@@ -2473,7 +2473,7 @@ class DocumentFormattingFeature extends TextDocumentFeature<TextDocumentRegistra
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2544,7 +2544,7 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<TextDocumentReg
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2624,7 +2624,7 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, {documentSelector: documentSelector})
+      registerOptions: Object.assign({}, { documentSelector: documentSelector })
     })
   }
 
@@ -2700,7 +2700,7 @@ class DocumentLinkFeature extends TextDocumentFeature<
       id: UUID.generateUuid(),
       registerOptions: Object.assign(
         {},
-        {documentSelector: documentSelector},
+        { documentSelector: documentSelector },
         capabilities.documentLinkProvider
       )
     })
@@ -2777,7 +2777,7 @@ class ConfigurationFeature
   implements DynamicFeature<DidChangeConfigurationRegistrationOptions> {
   private _listeners: Map<string, Disposable> = new Map<string, Disposable>()
 
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(private _client: BaseLanguageClient) { }
 
   public get messages(): RPCMessageType {
     return DidChangeConfigurationNotification.type
@@ -2878,7 +2878,7 @@ class ConfigurationFeature
 class ExecuteCommandFeature
   implements DynamicFeature<ExecuteCommandRegistrationOptions> {
   private _commands: Map<string, Disposable[]> = new Map<string, Disposable[]>()
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(private _client: BaseLanguageClient) { }
 
   public get messages(): RPCMessageType {
     return ExecuteCommandRequest.type
@@ -2966,7 +2966,7 @@ export abstract class BaseLanguageClient {
 
   protected _state: ClientState
   private _onReady: Promise<void>
-  private _onReadyCallbacks: {resolve: () => void; reject: (error: any) => void}
+  private _onReadyCallbacks: { resolve: () => void; reject: (error: any) => void }
   private _onStop: Thenable<void> | undefined
   private _connectionPromise: Thenable<IConnection> | undefined
   private _resolvedConnection: IConnection | undefined
@@ -3031,7 +3031,7 @@ export abstract class BaseLanguageClient {
     this._fileEvents = []
     this._fileEventDelayer = new Delayer<void>(250)
     this._onReady = new Promise<void>((resolve, reject) => {
-      this._onReadyCallbacks = {resolve, reject}
+      this._onReadyCallbacks = { resolve, reject }
     })
     this._onStop = undefined
     this._stateChangeEmitter = new Emitter<StateChangeEvent>()
@@ -3057,7 +3057,7 @@ export abstract class BaseLanguageClient {
     this._state = value
     let newState = this.getPublicState()
     if (newState !== oldState) {
-      this._stateChangeEmitter.fire({oldState, newState})
+      this._stateChangeEmitter.fire({ oldState, newState })
     }
   }
 
@@ -3201,7 +3201,7 @@ export abstract class BaseLanguageClient {
 
   public get outputChannel(): OutputChannel {
     if (!this._outputChannel) {
-      let {outputChannelName} = this._clientOptions
+      let { outputChannelName } = this._clientOptions
       this._outputChannel = workspace.createOutputChannel(outputChannelName ? outputChannelName : this._name)
     }
     return this._outputChannel
@@ -3223,7 +3223,7 @@ export abstract class BaseLanguageClient {
           connection.trace(value, this._tracer)
         })
       },
-      () => {}
+      () => { }
     )
   }
 
@@ -3552,7 +3552,7 @@ export abstract class BaseLanguageClient {
         () => {
           this.resolveConnection().then(connection => {
             if (this.isConnectionActive()) {
-              connection.didChangeWatchedFiles({changes: this._fileEvents})
+              connection.didChangeWatchedFiles({ changes: this._fileEvents })
             }
             this._fileEvents = []
           })
@@ -3574,7 +3574,7 @@ export abstract class BaseLanguageClient {
     if (!this._diagnostics) {
       return
     }
-    let {uri, diagnostics} = params
+    let { uri, diagnostics } = params
     let middleware = this.clientOptions.middleware!.handleDiagnostics
     if (middleware) {
       middleware(uri, diagnostics, (uri, diagnostics) =>
@@ -3739,7 +3739,7 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  protected registerBuiltinFeatures(forceFullSync:boolean) {
+  protected registerBuiltinFeatures(forceFullSync: boolean) {
     this.registerFeature(new ConfigurationFeature(this))
     this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new DidChangeTextDocumentFeature(this, forceFullSync))
@@ -3864,11 +3864,11 @@ export abstract class BaseLanguageClient {
       }
     }
     if (versionMismatch) {
-      return Promise.resolve({applied: false})
+      return Promise.resolve({ applied: false })
     }
     return workspace.applyEdit(params.edit).then(
       value => {
-        return {applied: value}
+        return { applied: value }
       }
     )
   }
