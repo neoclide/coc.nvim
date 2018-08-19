@@ -422,6 +422,14 @@ describe('workspace utility', () => {
     expect(res).toBe(-1)
     await nvim.input('<enter>')
   })
+
+  it('should show prompt', async () => {
+    let p = workspace.showPrompt('prompt')
+    await helper.wait(100)
+    await nvim.input('y')
+    let res = await p
+    expect(res).toBe(true)
+  })
 })
 
 describe('workspace events', () => {

@@ -604,6 +604,7 @@ export interface IWorkspace {
   showOutputChannel(name: string): void
   resolveModule(name: string, section: string, silent?): Promise<string>
   showQuickpick(items: string[], placeholder?: string): Promise<number>
+  showPrompt(title: string): Promise<boolean>
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
   runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
   dispose(): void

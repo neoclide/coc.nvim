@@ -63,7 +63,7 @@ export default class UpdateImportsOnFileRenameHandler {
   }
 
   private async promptUser(newResource: Uri): Promise<boolean> {
-    const res = await workspace.nvim.call('coc#util#prompt_confirm', [`Update imports for moved file: ${newResource.fsPath}`])
+    const res = await workspace.nvim.call('coc#util#prompt_confirm', [`Update imports for moved file: ${newResource.fsPath} ?`])
     return res == 1
   }
 

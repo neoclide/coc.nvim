@@ -640,4 +640,3 @@ export interface OnTypeFormattingEditProvider {
    */
   provideOnTypeFormattingEdits(document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
 }
-

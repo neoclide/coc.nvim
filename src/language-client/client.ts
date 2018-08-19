@@ -18,7 +18,6 @@ import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
-import * as Window from './utils/window'
 const logger = require('../util/logger')('language-client-client')
 
 interface IConnection {
@@ -3518,7 +3517,7 @@ export abstract class BaseLanguageClient {
           error.data &&
           error.data.retry
         ) {
-          Window.promptAction(error.message + ' Retry?').then(confirmed => {
+          workspace.showPrompt(error.message + ' Retry?').then(confirmed => {
             if (confirmed) {
               this.initialize(connection)
             } else {
@@ -3528,7 +3527,7 @@ export abstract class BaseLanguageClient {
           })
         } else {
           if (error && error.message) {
-            Window.showErrorMessage(error.message)
+            workspace.showMessage(error.message, 'error')
           }
           this.error('Server initialization failed.', error)
           this.stop()

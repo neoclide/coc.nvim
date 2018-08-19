@@ -509,6 +509,24 @@ export class Workspace implements IWorkspace {
     return await this.moduleManager.runCommand(cmd, cwd)
   }
 
+  public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
+    let msgs = [placeholder + ':']
+    msgs = msgs.concat(
+      items.map((str, index) => {
+        return `${index + 1}. ${str}`
+      })
+    )
+    let res = await this.nvim.call('inputlist', [msgs])
+    let n = parseInt(res, 10)
+    if (isNaN(n) || n <= 0 || n > msgs.length) return -1
+    return n - 1
+  }
+
+  public async showPrompt(title: string): Promise<boolean> {
+    let res = await this.nvim.call('coc#util#prompt_confirm', title)
+    return res == 1
+  }
+
   public dispose(): void {
     for (let ch of this.outputChannels.values()) {
       ch.dispose()
@@ -783,19 +801,6 @@ export class Workspace implements IWorkspace {
       res = { contents: {} }
     }
     return res
-  }
-
-  public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
-    let msgs = [placeholder + ':']
-    msgs = msgs.concat(
-      items.map((str, index) => {
-        return `${index + 1}. ${str}`
-      })
-    )
-    let res = await this.nvim.call('inputlist', [msgs])
-    let n = parseInt(res, 10)
-    if (isNaN(n) || n <= 0 || n > msgs.length) return -1
-    return n - 1
   }
 
   private async showErrors(uri: string, content: string, errors: any[]): Promise<void> {
