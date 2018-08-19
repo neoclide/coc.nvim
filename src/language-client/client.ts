@@ -3383,34 +3383,28 @@ export abstract class BaseLanguageClient {
         connection.onShowMessage(message => {
           switch (message.type) {
             case MessageType.Error:
-              Window.showErrorMessage(message.message)
+              workspace.showMessage(message.message, 'error')
               break
             case MessageType.Warning:
-              Window.showWarningMessage(message.message)
+              workspace.showMessage(message.message, 'warning')
               break
             case MessageType.Info:
-              Window.showInformationMessage(message.message)
+              workspace.showMessage(message.message)
               break
             default:
-              Window.showInformationMessage(message.message)
+              workspace.showMessage(message.message)
           }
         })
         connection.onRequest(ShowMessageRequest.type, params => {
-          let messageFunc: Function
-          switch (params.type) {
-            case MessageType.Error:
-              messageFunc = Window.showErrorMessage
-              break
-            case MessageType.Warning:
-              messageFunc = Window.showWarningMessage
-              break
-            case MessageType.Info:
-              messageFunc = Window.showInformationMessage
-              break
-            default:
-              messageFunc = Window.showInformationMessage
+          if (!params.actions) {
+            let msgType = params.type == MessageType.Error ? 'error' : params.type == MessageType.Warning ? 'warning' : 'more'
+            workspace.showMessage(params.message, msgType as any)
+            return Promise.resolve(null)
           }
-          return messageFunc(params.message)
+          let items = params.actions.map(o => o.title)
+          return workspace.showQuickpick(items, params.message).then(idx => {
+            return items[idx]
+          })
         })
         connection.onTelemetry(_data => {
           logger.error('telemetry not supported')
@@ -3423,7 +3417,7 @@ export abstract class BaseLanguageClient {
         this.state = ClientState.StartFailed
         this._onReadyCallbacks.reject(error)
         this.error('Starting client failed', error)
-        Window.showErrorMessage(`Couldn't start client ${this._id}`)
+        workspace.showMessage(`Couldn't start client ${this._id}`, 'error')
       })
     return Disposable.create(() => {
       if (this.needsStop()) {
