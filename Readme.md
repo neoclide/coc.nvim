@@ -186,10 +186,10 @@ for user to use their own version of language server.
 ## Example vim configuration
 
 ``` vim
-" if hidden not set, apply TextEdit might fail.
+" if hidden not set, TextEdit might fail.
 set hidden
 
-" Better display for signatures
+" Better display for messages
 set cmdheight=2
 
 " Use tab for trigger completion with characters ahead and navigate.

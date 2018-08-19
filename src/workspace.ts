@@ -237,6 +237,7 @@ export class Workspace implements IWorkspace {
   }
 
   public getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration {
+    // TODO support resource
     return this._configurations.getConfiguration(section)
   }
 
