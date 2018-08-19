@@ -2,17 +2,16 @@
  * Copyright (c) Microsoft Corporation. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  * ------------------------------------------------------------------------------------------ */
-import {ClientCapabilities, ConfigurationRequest} from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { ClientCapabilities, ConfigurationRequest } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
-import {BaseLanguageClient, StaticFeature} from './client'
+import { BaseLanguageClient, StaticFeature } from './client'
 
 export interface ConfigurationWorkspaceMiddleware {
   configuration?: ConfigurationRequest.MiddlewareSignature
 }
 
 export class ConfigurationFeature implements StaticFeature {
-  constructor(private _client: BaseLanguageClient) {}
+  constructor(private _client: BaseLanguageClient) { }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
     capabilities.workspace = capabilities.workspace || {}
@@ -25,13 +24,7 @@ export class ConfigurationFeature implements StaticFeature {
       let configuration: ConfigurationRequest.HandlerSignature = params => {
         let result: any[] = []
         for (let item of params.items) {
-          let resource =
-            item.scopeUri !== void 0 && item.scopeUri !== null
-              ? item.scopeUri
-              : undefined
-          result.push(
-            this.getConfiguration(Uri.parse(resource), item.section !== null ? item.section : undefined)
-          )
+          result.push(this.getConfiguration(item.scopeUri, item.section))
         }
         return result
       }
@@ -43,14 +36,14 @@ export class ConfigurationFeature implements StaticFeature {
   }
 
   private getConfiguration(
-    resource: Uri | undefined,
+    resource: string | undefined,
     section: string | undefined
   ): any {
     let result: any = null
     if (section) {
       let index = section.lastIndexOf('.')
       if (index === -1) {
-        result = workspace.getConfiguration(undefined, resource.toString()).get(section)
+        result = workspace.getConfiguration(undefined, resource).get(section)
       } else {
         let config = workspace.getConfiguration(section.substr(0, index))
         if (config) {
@@ -58,7 +51,7 @@ export class ConfigurationFeature implements StaticFeature {
         }
       }
     } else {
-      let config = workspace.getConfiguration(undefined, resource.toString())
+      let config = workspace.getConfiguration(undefined, resource)
       result = {}
       for (let key of Object.keys(config)) {
         if (config.has(key)) {
