@@ -1,10 +1,6 @@
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
+import which from 'which'
 import { WorkspaceConfiguration } from '../../../types'
 import workspace from '../../../workspace'
-import which = require('which')
 
 export enum TsServerLogLevel {
   Off,
@@ -44,55 +40,68 @@ export namespace TsServerLogLevel {
 }
 
 export class TypeScriptServiceConfiguration {
-  public readonly locale: string | null
-  public readonly globalTsdk: string | null
-  public readonly localTsdk: string | null
-  public readonly npmLocation: string | null
-  public readonly tsServerLogLevel: TsServerLogLevel
-  public readonly checkJs: boolean
-  public readonly experimentalDecorators: boolean
-  public readonly disableAutomaticTypeAcquisition: boolean
-  public readonly tsServerPluginNames: string[]
-  public readonly tsServerPluginRoot: string | null
-  public readonly debugPort: number | null
-  public readonly typingsCacheLocation: string | null
+  private _configuration: WorkspaceConfiguration
   private constructor() {
-    const configuration = workspace.getConfiguration('tsserver')
+    this._configuration = workspace.getConfiguration('tsserver')
 
-    this.locale = configuration.get<string | null>('locale', null)
-    this.globalTsdk = TypeScriptServiceConfiguration.extractGlobalTsdk(configuration)
-    this.localTsdk = TypeScriptServiceConfiguration.extractLocalTsdk(configuration)
+    workspace.onDidChangeConfiguration(() => {
+      this._configuration = workspace.getConfiguration('tsserver')
+    })
+  }
+
+  public get locale(): string | null {
+    return this._configuration.get<string | null>('locale', null)
+  }
+
+  public get globalTsdk(): string | null {
+    return this._configuration.get<string | null>('tsdk', null)
+  }
+
+  public get tsServerLogLevel(): TsServerLogLevel {
+    return TsServerLogLevel.fromString(this._configuration.get<string | null>('log', null))
+  }
+
+  public get typingsCacheLocation(): string {
+    return this._configuration.get<string>('typingsCacheLocation', '')
+  }
+
+  public get tsServerPluginNames(): string[] {
+    return this._configuration.get<string[]>('pluginNames', [])
+  }
+
+  public get tsServerPluginRoot(): string | null {
+    return this._configuration.get<string | null>('tsServerPluginRoot', null)
+  }
+
+  public get checkJs(): boolean {
+    return this._configuration.get<boolean>('implicitProjectConfig.checkJs', false)
+  }
+
+  public get experimentalDecorators(): boolean {
+    return this._configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
+  }
+
+  public get disableAutomaticTypeAcquisition(): boolean {
+    return this._configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
+  }
+
+  public get formatOnType(): boolean {
+    return this._configuration.get<boolean>('formatOnType', false)
+  }
+
+  public get debugPort(): number | null {
+    return this._configuration.get<number>('debugPort', parseInt(process.env['TSS_DEBUG'], 10))
+  }
+
+  public get npmLocation(): string | null {
+    let path = this._configuration.get<string>('npm', '')
+    if (path) return path
     try {
-      this.npmLocation = configuration.get<string>('npm', which.sync('npm'))
-    } catch (e) { } // tslint:disable-line
-    this.tsServerLogLevel = TsServerLogLevel.fromString(configuration.get<string>('log', 'off'))
-    this.tsServerPluginNames = configuration.get<string[]>('pluginNames', [])
-    this.typingsCacheLocation = configuration.get<string>('typingsCacheLocation', null)
-    this.tsServerPluginRoot = configuration.get<string>('pluginRoot', null)
-    this.checkJs = configuration.get<boolean>('implicitProjectConfig.checkJs', false)
-    this.experimentalDecorators = configuration.get<boolean>('implicitProjectConfig.experimentalDecorators', false)
-    this.disableAutomaticTypeAcquisition = configuration.get<boolean>('disableAutomaticTypeAcquisition', false)
-    this.debugPort = configuration.get<number | null>('debugPort', parseInt(process.env['TSS_DEBUG'], 10)) // tslint:disable-line
-  }
-
-  private static extractGlobalTsdk(configuration: WorkspaceConfiguration): string | null {
-    const inspect = configuration.inspect('tsdk')
-    if (inspect
-      && inspect.globalValue
-      && 'string' === typeof inspect.globalValue) {
-      return inspect.globalValue.length ? inspect.globalValue : null
+      path = which.sync('npm')
+    } catch (e) {
+      return null
     }
-    return null
-  }
-
-  private static extractLocalTsdk(configuration: WorkspaceConfiguration): string | null {
-    const inspect = configuration.inspect('tsdk')
-    if (inspect
-      && inspect.workspaceValue
-      && 'string' === typeof inspect.workspaceValue) {
-      return inspect.workspaceValue.length ? inspect.workspaceValue : null
-    }
-    return null
+    return path
   }
 
   public static loadFromWorkspace(): TypeScriptServiceConfiguration {

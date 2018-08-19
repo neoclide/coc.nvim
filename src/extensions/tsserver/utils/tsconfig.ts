@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as Proto from '../protocol'
-import {TypeScriptServiceConfiguration} from './configuration'
+import { TypeScriptServiceConfiguration } from './configuration'
 const logger = require('../../../util/logger')('tsserver-tsconfig')
 
 export function inferredProjectConfig(

@@ -103,6 +103,9 @@ export default class TypeScriptFormattingProvider
     options: FormattingOptions,
     token: CancellationToken
   ): Promise<TextEdit[]> {
+    if (!this.client.configuration.formatOnType) {
+      return
+    }
     const file = this.client.toPath(document.uri)
     if (!file) {
       return []

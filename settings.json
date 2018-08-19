@@ -184,6 +184,7 @@
   "tsserver.npm": "",
   "tsserver.log": "off",
   "tsserver.trace.server": "off",
+  "tsserver.formatOnType": true,
   "tserver.pluginNames": [],
   "tsserver.pluginRoot": "",
   "tsserver.reportStyleChecksAsWarnings": true,

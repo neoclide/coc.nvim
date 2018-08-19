@@ -26,6 +26,11 @@
       "default": false,
       "description": "Orgnize import on buffer will save"
     },
+    "tsserver.formatOnType": {
+      "type": "boolean",
+      "default": true,
+      "description": "Run format on type special characters."
+    },
     "tsserver.enableJavascript": {
       "type": "boolean",
       "default": true,
