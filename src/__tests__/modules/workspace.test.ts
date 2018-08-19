@@ -396,9 +396,31 @@ describe('workspace utility', () => {
     for (let i = 1; i < 17; i++) {
       errors.push({ error: i, offset: 0, length: 1 })
     }
-    await workspace.showErrors(uri, content, errors)
+    await (workspace as any).showErrors(uri, content, errors)
     let list = await nvim.call('getqflist', { title: 1 })
     expect(list.title).toMatch('Errors of coc config')
+  })
+
+  it('should choose quickpick', async () => {
+    let p = workspace.showQuickpick(['a', 'b'])
+    await helper.wait(100)
+    let m = await nvim.mode
+    expect(m.blocking).toBe(true)
+    await nvim.input('1<enter>')
+    let res = await p
+    expect(res).toBe(0)
+    await nvim.input('<enter>')
+  })
+
+  it('should cancel quickpick', async () => {
+    let p = workspace.showQuickpick(['a', 'b'])
+    await helper.wait(100)
+    let m = await nvim.mode
+    expect(m.blocking).toBe(true)
+    await nvim.input('8<enter>')
+    let res = await p
+    expect(res).toBe(-1)
+    await nvim.input('<enter>')
   })
 })
 

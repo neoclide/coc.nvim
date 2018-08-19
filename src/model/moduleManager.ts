@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import path from 'path'
 import { TerminalResult } from '../types'
-import { echoMessage, executable, showQuickpick } from '../util'
+import { executable } from '../util'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
 // const logger = require('../util/logger')('model-moduleManager')
@@ -81,7 +81,7 @@ export default class ModuleManager extends EventEmitter {
       'Use yarn to install',
       `Disable "${section}"`
     ]
-    let idx = await showQuickpick(nvim, items, `${mod} not found, choose action by number`)
+    let idx = await workspace.showQuickpick(items, `${mod} not found, choose action by number`)
     // cancel
     if (idx == -1) return
     if (idx == 2) {
@@ -89,7 +89,7 @@ export default class ModuleManager extends EventEmitter {
       if (section) {
         let config = workspace.getConfiguration(section)
         config.update('enable', false, true)
-        echoMessage(nvim, `${section} disabled, to change this, use :CocConfig to edit configuration file.`)
+        workspace.showMessage(`${section} disabled, to change this, use :CocConfig to edit configuration file.`)
       }
       return
     }

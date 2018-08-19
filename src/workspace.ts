@@ -785,7 +785,20 @@ export class Workspace implements IWorkspace {
     return res
   }
 
-  public async showErrors(uri: string, content: string, errors: any[]): Promise<void> {
+  public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
+    let msgs = [placeholder + ':']
+    msgs = msgs.concat(
+      items.map((str, index) => {
+        return `${index + 1}. ${str}`
+      })
+    )
+    let res = await this.nvim.call('inputlist', [msgs])
+    let n = parseInt(res, 10)
+    if (isNaN(n) || n <= 0 || n > msgs.length) return -1
+    return n - 1
+  }
+
+  private async showErrors(uri: string, content: string, errors: any[]): Promise<void> {
     let items: QuickfixItem[] = []
     let document = TextDocument.create(uri, 'json', 0, content)
     for (let err of errors) {

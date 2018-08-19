@@ -5,9 +5,8 @@
 import { CancellationToken, Command, CompletionItem, InsertTextFormat, MarkupContent, MarkupKind, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import commands, { Command as CommandItem } from '../../../commands'
 import { CompletionContext, CompletionItemProvider } from '../../../provider'
-import { showQuickpick } from '../../../util/index'
 import workspace from '../../../workspace'
-import * as Proto from '../protocol'
+import Proto from '../protocol'
 import * as PConst from '../protocol.const'
 import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
@@ -37,7 +36,7 @@ class ApplyCompletionCodeActionCommand implements CommandItem {
       await applyCodeAction(this.client, codeActions[0])
       return
     }
-    const idx = await showQuickpick(workspace.nvim, codeActions.map(o => o.description), 'Select code action to apply')
+    const idx = await workspace.showQuickpick(codeActions.map(o => o.description), 'Select code action to apply')
     if (idx < 0) return
     const action = codeActions[idx]
     await applyCodeAction(this.client, action)

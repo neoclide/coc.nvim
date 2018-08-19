@@ -19,9 +19,7 @@ import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import * as Window from './utils/window'
-const createLogger = require('../util/logger')
 const logger = require('../util/logger')('language-client-client')
-
 
 interface IConnection {
   listen(): void

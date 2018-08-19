@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
 import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
-import { echoErr, showQuickpick, wait } from './util'
+import { wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('commands')
 
@@ -87,7 +87,7 @@ export class CommandManager implements Disposable {
           if (names.length == 1) {
             workspace.showOutputChannel(names[0])
           } else {
-            let idx = await showQuickpick(nvim, names)
+            let idx = await workspace.showQuickpick(names)
             if (idx == -1) return
             let name = names[idx]
             workspace.showOutputChannel(name)
@@ -175,11 +175,11 @@ export class CommandManager implements Disposable {
   public executeCommand(command: string, ...rest: any[]): void {
     let cmd = this.commands.get(command)
     if (!cmd) {
-      echoErr(workspace.nvim, `Command: ${command} not found`)
+      workspace.showMessage(`Command: ${command} not found`, 'error')
       return
     }
     Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
-      echoErr(workspace.nvim, `Command error: ${e.message}`)
+      workspace.showMessage(`Command error: ${e.message}`, 'error')
       logger.error(e.stack)
     })
     return

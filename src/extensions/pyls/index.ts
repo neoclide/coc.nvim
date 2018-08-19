@@ -1,7 +1,6 @@
 import which from 'which'
-import {LanguageService} from '../../language-client'
+import { LanguageService } from '../../language-client'
 import workspace from '../../workspace'
-import { showQuickpick, echoMessage } from '../../util'
 const logger = require('../../util/logger')('extension-pyls')
 
 const ID = 'pyls'
@@ -19,7 +18,7 @@ export default class PythonService extends LanguageService {
   }
 
   public async init(): Promise<void> {
-    let {command} = this.config
+    let { command } = this.config
     try {
       which.sync(command)
       this.enable = true
@@ -31,7 +30,7 @@ export default class PythonService extends LanguageService {
         'Checkout documentation of python-language-server',
         'Disable pyls extension'
       ]
-      let idx = await showQuickpick(workspace.nvim, items, `${command} not found in $PATH`)
+      let idx = await workspace.showQuickpick(items, `${command} not found in $PATH`)
       if (idx == -1) return
       if (idx == 2) {
         workspace.nvim.call('coc#util#open', ['https://github.com/palantir/python-language-server#installation'], true) // tslint:disable-line
@@ -40,7 +39,7 @@ export default class PythonService extends LanguageService {
       if (idx == 3) {
         let config = workspace.getConfiguration('pyls')
         config.update('enable', false, true)
-        echoMessage(workspace.nvim, `pyls disabled`)
+        workspace.showMessage('pyls disabled')
         return
       }
       let cmd = `${idx == 1 ? 'pip' : 'pip3'} install python-language-server`

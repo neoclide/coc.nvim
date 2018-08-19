@@ -91,20 +91,6 @@ export function getUri(fullpath: string, id: number): string {
   return Uri.file(fullpath).toString()
 }
 
-// -1 is cancel
-export async function showQuickpick(nvim: Neovim, items: string[], placeholder = 'Choose by number'): Promise<number> {
-  let msgs = [placeholder + ':']
-  msgs = msgs.concat(
-    items.map((str, index) => {
-      return `${index + 1}. ${str}`
-    })
-  )
-  let res = await nvim.call('inputlist', [msgs])
-  let n = parseInt(res, 10)
-  if (isNaN(n) || n <= 0 || n > res.length) return -1
-  return n - 1
-}
-
 export function disposeAll(disposables: Disposable[]): void {
   while (disposables.length) {
     const item = disposables.pop()

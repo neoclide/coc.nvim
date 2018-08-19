@@ -5,9 +5,8 @@
 import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Range, TextDocument, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commandManager, { Command } from '../../../commands'
 import { CodeActionProvider, CodeActionProviderMetadata } from '../../../provider'
-import { showQuickpick } from '../../../util'
 import workspace from '../../../workspace'
-import * as Proto from '../protocol'
+import Proto from '../protocol'
 import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 import FormattingOptionsManager from './fileConfigurationManager'
@@ -76,7 +75,7 @@ class SelectRefactorCommand implements Command {
     range: Range
   ): Promise<boolean> {
     let { actions } = info
-    const idx = actions.length == 1 ? 0 : await showQuickpick(workspace.nvim,
+    const idx = actions.length == 1 ? 0 : await workspace.showQuickpick(
       actions.map(action => action.description || action.name)
     )
     if (idx == -1) return false
