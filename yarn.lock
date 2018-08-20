@@ -92,9 +92,9 @@
     lodash "^4.2.0"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@4.3.21":
-  version "4.3.21"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.21.tgz#9c504a9a8e76eb18d362521c49d2a571d082c248"
+"@chemzqm/neovim@4.3.23":
+  version "4.3.23"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.23.tgz#85385db1bedde01593be5f5ea7cbf7db10a868aa"
   dependencies:
     babel-eslint "^8.2.6"
     msgpack-lite "^0.1.26"
@@ -450,14 +450,6 @@ babel-plugin-jest-hoist@^23.2.0:
 babel-plugin-syntax-object-rest-spread@^6.13.0:
   version "6.13.0"
   resolved "https://registry.yarnpkg.com/babel-plugin-syntax-object-rest-spread/-/babel-plugin-syntax-object-rest-spread-6.13.0.tgz#fd6536f2bce13836ffa3a5458c4903a597bb3bf5"
-
-babel-polyfill@^6.26.0:
-  version "6.26.0"
-  resolved "https://registry.yarnpkg.com/babel-polyfill/-/babel-polyfill-6.26.0.tgz#379937abc67d7895970adc621f284cd966cf2153"
-  dependencies:
-    babel-runtime "^6.26.0"
-    core-js "^2.5.0"
-    regenerator-runtime "^0.10.5"
 
 babel-preset-jest@^23.2.0:
   version "23.2.0"
@@ -919,7 +911,7 @@ error-ex@^1.2.0:
   dependencies:
     is-arrayish "^0.2.1"
 
-es-abstract@^1.5.1, es-abstract@^1.9.0:
+es-abstract@^1.5.1:
   version "1.12.0"
   resolved "https://registry.yarnpkg.com/es-abstract/-/es-abstract-1.12.0.tgz#9dbbdd27c6856f0001421ca18782d786bf8a6165"
   dependencies:
@@ -2686,14 +2678,6 @@ process-nextick-args@~2.0.0:
   version "2.0.0"
   resolved "https://registry.yarnpkg.com/process-nextick-args/-/process-nextick-args-2.0.0.tgz#a37d732f4271b4ab1ad070d35508e8290788ffaa"
 
-promise.prototype.finally@^3.1.0:
-  version "3.1.0"
-  resolved "https://registry.yarnpkg.com/promise.prototype.finally/-/promise.prototype.finally-3.1.0.tgz#66f161b1643636e50e7cf201dc1b84a857f3864e"
-  dependencies:
-    define-properties "^1.1.2"
-    es-abstract "^1.9.0"
-    function-bind "^1.1.1"
-
 prompts@^0.1.9:
   version "0.1.12"
   resolved "https://registry.yarnpkg.com/prompts/-/prompts-0.1.12.tgz#39dc42de7d2f0ec3e2af76bf40713fcb8726090d"
@@ -2770,10 +2754,6 @@ realpath-native@^1.0.0:
   resolved "https://registry.yarnpkg.com/realpath-native/-/realpath-native-1.0.1.tgz#07f40a0cce8f8261e2e8b7ebebf5c95965d7b633"
   dependencies:
     util.promisify "^1.0.0"
-
-regenerator-runtime@^0.10.5:
-  version "0.10.5"
-  resolved "https://registry.yarnpkg.com/regenerator-runtime/-/regenerator-runtime-0.10.5.tgz#336c3efc1220adcedda2c9fab67b5a7955a33658"
 
 regenerator-runtime@^0.11.0:
   version "0.11.1"

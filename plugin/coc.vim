@@ -16,13 +16,18 @@ else
 endif
 
 function! CocAction(...) abort
-  if get(g:, 'coc_enabled', 0) == 0
-    echohl Error
-    echon "[coc.nvim] Can't run '".a:1."', service not avaiable!"
-    echohl None
-    return
-  endif
+  if get(g:, 'coc_enabled', 0) == 0 | return | endif
   return coc#rpc#request('CocAction', a:000)
+endfunction
+
+function! CocActionAsync(...) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return | endif
+  let cb = a:000[a:1 - 1]
+  if type(cb) != 2
+    throw 'last argument must be callback'
+  endif
+  let args = copy(a:000)[0:-2]
+  call coc#rpc#request_async('CocAction', args, cb)
 endfunction
 
 function! s:OpenConfig()
@@ -71,6 +76,7 @@ function! s:Enable()
   if get(g:, 'coc_enabled', 0) == 1
     return
   endif
+  let g:coc_enabled = 1
 
   augroup coc_nvim
     autocmd!
@@ -118,7 +124,6 @@ function! s:Enable()
   command! -nargs=0 CocEnable  :call s:Enable()
   command! -nargs=0 CocConfig  :call s:OpenConfig()
   command! -nargs=0 CocErrors  :call coc#rpc#show_error()
-  let g:coc_enabled = 1
 endfunction
 
 highlight default CocErrorSign   guifg=#ff0000
@@ -169,7 +174,3 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinitio
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
 inoremap <expr> <Plug>(coc-complete-custom)     coc#complete_custom()
-
-function! AsyncTest(count, cb)
-  call timer_start(1000, { -> a:cb(v:null, a:count)})
-endfunction

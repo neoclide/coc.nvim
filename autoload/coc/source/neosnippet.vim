@@ -31,7 +31,6 @@ endfunction
 
 function! coc#source#neosnippet#complete(opt, cb) abort
   let filetype = a:opt['filetype']
-  let g:o = a:opt
   if empty(filetype)
     let items = s:get_snippets()
     call a:cb(items)

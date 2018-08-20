@@ -392,7 +392,6 @@ function! coc#util#run_terminal(opts, cb)
   if empty(cmd)
     return a:cb('command required for terminal')
   endif
-  let g:x = 33
   let opts = {
         \ 'cmd': cmd,
         \ 'cwd': get(a:opts, 'cwd', ''),
@@ -415,7 +414,6 @@ function! coc#util#vim_info()
   return {
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
-        \ 'pluginRoot': s:root,
         \}
 endfunction
 

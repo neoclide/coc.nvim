@@ -231,19 +231,25 @@ FUNCTIONS 					*coc-functions*
 Coc functions are normally used by user defined command/keymap or other
 plugins.
 
-Note: Your vim could be significantly slow if you call 'CocAction' on vim
-startup, you can avoid this issue by add guard code: 
->
-    if !get(g:, 'coc_enabled', 0)
-      return ''
-    endif
-<
-before the call of ''CocAction'
+Note: coc functions only works after coc service initailized, it will silent
+fail if the service is not enabled.  To the function on startup, use autocmd
+like: >
 
-						*coc-action*
+ 	autocmd User CocNvimInit call s:CocAction('runCommand',
+						\ 'tsserver.watchBuild')
+
+<
+						*CocAction()*
 CocAction({action}, [...{args}])
 
 	Run {action} of coc with optional extra {args}.
+
+						*CocActionAsync()*
+
+CocActionAsync({action, [...{args}], {callback}})
+
+	Call CocAction in none block way, callback is called with `error` and
+	`response`.
 	
 Available Actions ~
 

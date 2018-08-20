@@ -31,7 +31,6 @@ const isPkg = process.hasOwnProperty('pkg')
 // global neovim settings
 export interface VimSettings {
   completeOpt: string
-  pluginRoot: string
   isVim: boolean
 }
 
@@ -107,10 +106,10 @@ export class Workspace implements IWorkspace {
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
     if (this.isVim) this.initVimEvents()
-    this.onBufEnter(buffer.id) // tslint:disable-line
+    this.onBufEnter(buffer.id)
     let winid = await this.nvim.call('win_getid')
     let name = await buffer.name
-    this.onBufWinEnter(name, winid) // tslint:disable-line
+    this.onBufWinEnter(name, winid)
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -391,8 +390,12 @@ export class Workspace implements IWorkspace {
 
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
     let doc: Document
-    if (uri) doc = this.getDocument(uri)
-    if (!doc) doc = await this.document
+    if (uri) {
+      doc = this.getDocument(uri)
+    } else {
+      doc = await this.document
+    }
+    if (!doc) return { tabSize: 2, insertSpaces: true }
     let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1

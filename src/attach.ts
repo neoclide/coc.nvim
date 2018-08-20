@@ -27,10 +27,10 @@ export default function(opts: Attach): Plugin {
     switch (method) {
       case 'CocAutocmd':
         plugin.cocAutocmd.call(plugin, args).then(() => {
-          resp.send(null)
+          resp.send()
         }, e => {
           logger.error('Action error: ' + e.stack)
-          resp.send(null)
+          resp.send()
         })
         return
       default:
@@ -45,7 +45,7 @@ export default function(opts: Attach): Plugin {
           resp.send(res)
         }, e => {
           logger.error('Action error: ' + e.stack)
-          resp.send(null)
+          resp.send()
         })
     }
   })

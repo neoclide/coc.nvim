@@ -3,6 +3,8 @@ let s:std_err = []
 let s:job_opts = {}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
+let s:async_req_id = 1
+let s:async_callbacks = {}
 
 let s:job = v:null
 let s:channel_id = 0
@@ -115,6 +117,34 @@ function! coc#rpc#notify(method, args)
     call nvim#rpc#notify(channel, a:method, a:args)
   else
     call call('rpcnotify', [channel, a:method] + a:args)
+  endif
+endfunction
+
+function! coc#rpc#request_async(method, args, cb) abort
+  let channel = s:GetChannel()
+  if !channel | return | endif
+  let id = s:async_req_id
+  let s:async_req_id = id + 1
+  let s:async_callbacks[id] = a:cb
+  let args = [id, a:method, a:args]
+  if s:is_vim
+    call nvim#rpc#notify(channel, 'nvim_async_request_event', args)
+  else
+    call call('rpcnotify', [channel, 'nvim_async_request_event'] + args)
+  endif
+endfunction
+
+function! coc#rpc#async_response(id, resp, isErr) abort
+  let Callback = get(s:async_callbacks, a:id, v:null)
+  call remove(s:async_callbacks, a:id)
+  if empty(Callback)
+    echohl Error | echon 'callback not found' | echohl None
+    return
+  endif
+  if a:isErr
+    call call(Callback, [a:resp, v:null])
+  else
+    call call(Callback, [v:null, a:resp])
   endif
 endfunction
 
