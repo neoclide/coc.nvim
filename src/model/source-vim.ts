@@ -1,8 +1,8 @@
 import remoteStore from '../remote-store'
-import {CompleteOption, CompleteResult, VimCompleteItem, DocumentInfo} from '../types'
-import {fuzzyChar} from '../util/fuzzy'
-import {echoErr} from '../util/index'
-import {byteSlice} from '../util/string'
+import { CompleteOption, CompleteResult, VimCompleteItem, DocumentInfo } from '../types'
+import { fuzzyChar } from '../util/fuzzy'
+import { echoErr } from '../util/index'
+import { byteSlice } from '../util/string'
 import Source from './source'
 const logger = require('../util/logger')('model-source-vim')
 
@@ -37,13 +37,13 @@ export default class VimSource extends Source {
     this.callOptinalFunc('on_complete', [item]) // tslint:disable-line
   }
 
-  public onEnter(info:DocumentInfo):void {
+  public onEnter(info: DocumentInfo): void {
     if (this.optionalFns.indexOf('on_enter') === -1) return
     this.callOptinalFunc('on_enter', [info]) // tslint:disable-line
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let {col, id, input, line, colnr} = opt
+    let { col, id, input, line, colnr } = opt
     let startcol: number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       if (startcol < 0) return null
@@ -73,7 +73,7 @@ export default class VimSource extends Source {
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
     }
-    let res: CompleteResult = {items}
+    let res: CompleteResult = { items }
     res.startcol = startcol
     return res
   }

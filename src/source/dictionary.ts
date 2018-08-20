@@ -1,8 +1,8 @@
 import fs from 'fs'
 import pify from 'pify'
 import Source from '../model/source'
-import {CompleteOption, CompleteResult, ISource} from '../types'
-import {statAsync} from '../util/fs'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import { statAsync } from '../util/fs'
 import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('source-dictionary')
 
@@ -21,7 +21,7 @@ export default class Dictionary extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {input} = opt
+    let { input } = opt
     if (input.length === 0) return false
     let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
     dictOption = opt.dictOption = dictOption.trim()
@@ -69,7 +69,7 @@ export default class Dictionary extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {dictOption} = opt
+    let { dictOption } = opt
     let words = []
     if (dictOption) {
       let files = dictOption.split(',')
@@ -87,7 +87,7 @@ export default class Dictionary extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('dictionary', new Dictionary())
   return Disposable.create(() => {
     sourceMap.delete('dictionary')

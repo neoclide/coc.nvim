@@ -1,6 +1,6 @@
-import {IConfigurationData, IConfigurationModel} from '../types'
-import {deepClone, deepFreeze} from '../util/object'
-import {isObject} from '../util/types'
+import { IConfigurationData, IConfigurationModel } from '../types'
+import { deepClone, deepFreeze } from '../util/object'
+import { isObject } from '../util/types'
 const logger = require('../util/logger')('model-configuration')
 
 export class ConfigurationModel implements IConfigurationModel {
@@ -8,7 +8,7 @@ export class ConfigurationModel implements IConfigurationModel {
 
   constructor(
     private _contents: any = {},
-  ) {}
+  ) { }
 
   public get contents(): any {
     return this._contents
@@ -192,7 +192,7 @@ export class Configuration {
     value: C
   } {
     const consolidateConfigurationModel = this.getConsolidateConfiguration()
-    const {_workspaceConfiguration, _memoryConfiguration} = this
+    const { _workspaceConfiguration, _memoryConfiguration } = this
     return {
       default: this._defaultConfiguration.freeze().getValue(key),
       user: this._userConfiguration.freeze().getValue(key),

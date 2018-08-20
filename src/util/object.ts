@@ -1,4 +1,4 @@
-import {isArray, isObject, isUndefinedOrNull} from './types'
+import { isArray, isObject, isUndefinedOrNull } from './types'
 
 export function deepClone<T>(obj: T): T {
   if (!obj || typeof obj !== 'object') {
@@ -255,7 +255,7 @@ export function equals(one: any, other: any): boolean {
  * @param base the object to diff against
  * @param obj the object to use for diffing
  */
-export function distinct(base: {[key: string]: any}, target: {[key: string]: any}): {[key: string]: any} {
+export function distinct(base: { [key: string]: any }, target: { [key: string]: any }): { [key: string]: any } {
   const result = Object.create(null)
 
   if (!base || !target) {

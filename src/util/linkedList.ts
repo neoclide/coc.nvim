@@ -1,4 +1,4 @@
-import {IIterator} from './iterator'
+import { IIterator } from './iterator'
 
 class Node<E> {
   public element: E
@@ -91,7 +91,7 @@ export class LinkedList<E> {
     }
     let node = this._first
     return {
-      next(): {done: boolean; value: E} {
+      next(): { done: boolean; value: E } {
         if (!node) {
           element.done = true
           element.value = undefined
