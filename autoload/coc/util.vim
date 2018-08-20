@@ -616,3 +616,10 @@ function! s:rpc_installed(status)
     call nvim#rpc#start_server()
   endif
 endfunction
+
+function! coc#util#do_complete(name, opt, cb)
+  let handler = 'coc#source#'.a:name.'#complete'
+  let l:Cb = {res -> a:cb(v:null, res)}
+  let args = [a:opt, l:Cb]
+  call call(handler, args)
+endfunction

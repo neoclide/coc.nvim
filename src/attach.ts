@@ -8,11 +8,6 @@ export default function(opts: Attach): Plugin {
   const plugin = new Plugin(nvim)
   nvim.on('notification', (method, args) => {
     switch (method) {
-      case 'CocResult':
-        plugin.cocResult(args).catch(e => {
-          logger.error(e.stack)
-        })
-        return
       case 'VimEnter':
         plugin.init().catch(e => {
           logger.error(e.message)

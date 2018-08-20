@@ -4,7 +4,6 @@ import { getChange } from '../../util/diff'
 import { createTmpFile, isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { isCocItem } from '../../util/index'
-import watchObj from '../../util/watch-obj'
 import path = require('path')
 import fs = require('fs')
 
@@ -84,31 +83,6 @@ describe('fs test', () => {
     expect(typeof filename).toBe('string')
     let stat = fs.statSync(filename)
     expect(stat.isFile()).toBeTruthy
-  })
-})
-
-describe('watchObj test', () => {
-  test('should trigger watch', () => {
-    const cached: { [index: string]: string } = {}
-    let { watched, addWatcher } = watchObj(cached)
-    let result: string | null = null
-    addWatcher('foo', res => {
-      result = res
-    })
-    watched.foo = 'bar'
-    expect(result).toBe('bar')
-  })
-
-  test('should not trigger watch', () => {
-    const cached: { [index: string]: string } = {}
-    let { watched, addWatcher } = watchObj(cached)
-    let result: string | null = null
-    addWatcher('foo', res => {
-      result = res
-    })
-    watched.bar = 'bar'
-    delete watched.bar
-    expect(result).toBeNull
   })
 })
 

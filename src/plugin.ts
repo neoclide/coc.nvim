@@ -1,14 +1,12 @@
-import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import Emitter from 'events'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import Handler from './handler'
-import remoteStore from './remote-store'
 import services from './services'
 import snippetManager from './snippet/manager'
 import Sources from './sources'
-import { VimCompleteItem } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -39,15 +37,6 @@ export default class Plugin {
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emitter.emit('ready')
-  }
-
-  // callback for remote sources
-  public async cocResult(args: [number, string, VimCompleteItem[]]): Promise<void> {
-    let [id, name, items] = args
-    id = Number(id)
-    items = items || []
-    logger.trace(`Remote ${name} result count: ${items.length}`)
-    remoteStore.setResult(id, name, items)
   }
 
   public async cocAutocmd(args: any): Promise<void> {
@@ -191,7 +180,6 @@ export default class Plugin {
     services.dispose()
     this.emitter.removeAllListeners()
     this.handler.dispose()
-    remoteStore.dispose()
     snippetManager.dispose()
     commandManager.dispose()
     completion.dispose()

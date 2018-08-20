@@ -147,3 +147,13 @@ function! s:empty(item)
   endif
   return 0
 endfunction
+
+function! coc#rpc#async_request(id, method, args)
+  let l:Cb = {err, res -> coc#rpc#notify('nvim_async_response_event', [a:id, err, res])}
+  let args = a:args + [l:Cb]
+  try
+    call call(a:method, args)
+  catch /.*/
+    call coc#rpc#notify('nvim_async_response_event', [a:id, v:exception])
+  endtry
+endfunction

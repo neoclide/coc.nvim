@@ -169,3 +169,7 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinitio
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
 inoremap <expr> <Plug>(coc-complete-custom)     coc#complete_custom()
+
+function! AsyncTest(count, cb)
+  call timer_start(1000, { -> a:cb(v:null, a:count)})
+endfunction
