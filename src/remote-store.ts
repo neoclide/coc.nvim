@@ -1,4 +1,4 @@
-import {VimCompleteItem} from './types'
+import { VimCompleteItem } from './types'
 import watchObj from './util/watch-obj'
 // const logger = require('./util/logger')('remote-store')
 
@@ -8,7 +8,7 @@ export interface Cached {
 
 const timeout = 2000
 const cached: Cached = {}
-let {watched, addWatcher} = watchObj(cached)
+let { watched, addWatcher } = watchObj(cached)
 
 export default {
   getResult(id: number, name: string): Promise<VimCompleteItem[]> {
@@ -20,7 +20,7 @@ export default {
     }
     // wait for received data
     return new Promise((resolve, reject): void => {
-      let timer:NodeJS.Timer
+      let timer: NodeJS.Timer
       let remove: any = addWatcher(key, obj => {
         clearTimeout(timer)
         remove()
@@ -37,7 +37,7 @@ export default {
     let key = `${id}-${name}`
     watched[key] = res
   },
-  dispose():void {
+  dispose(): void {
     for (let key of Object.keys(watched)) {
       watched[key] = []
     }

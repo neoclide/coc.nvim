@@ -1,8 +1,8 @@
-import {Buffer, Neovim} from '@chemzqm/neovim'
-import {CodeLens} from 'vscode-languageserver-protocol'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { CodeLens } from 'vscode-languageserver-protocol'
 import commandManager from './commands'
 import languages from './languages'
-import {showQuickpick} from './util'
+import { showQuickpick } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('codelens')
 
@@ -26,7 +26,7 @@ export default class CodeLensBuffer {
   }
 
   private async init(): Promise<void> {
-    let {nvim, lineItems} = this
+    let { nvim, lineItems } = this
     let buffer = await nvim.buffer
     this.startLnum = await nvim.call('line', ['.'])
     this.bufnr = buffer.id
@@ -34,8 +34,8 @@ export default class CodeLensBuffer {
     await nvim.call('coc#util#open_codelens')
     this.buffer = await nvim.buffer
     for (let codeLens of this.codeLens) {
-      let {range} = codeLens
-      let {line} = range.start
+      let { range } = codeLens
+      let { line } = range.start
       let item = lineItems.get(line)
       if (!item) {
         item = {
@@ -68,7 +68,7 @@ export default class CodeLensBuffer {
   }
 
   private async insertLines(items: LineItem[]): Promise<void> {
-    let {buffer} = this
+    let { buffer } = this
     items = items.filter(o => o.resolved)
     let lines = items.map(item => {
       let commands = item.codeLenses.map(codeLens => codeLens.command)
@@ -91,7 +91,7 @@ export default class CodeLensBuffer {
   }
 
   private async jump(): Promise<void> {
-    let {startLnum, nvim, lineItems, buffer} = this
+    let { startLnum, nvim, lineItems, buffer } = this
     let start = startLnum - 1
     let lnums = Array.from(lineItems.keys())
     lnums.sort((a, b) => b - a)
@@ -110,13 +110,13 @@ export default class CodeLensBuffer {
   }
 
   private async resolveItem(item: LineItem): Promise<LineItem> {
-    let {codeLenses} = item
+    let { codeLenses } = item
     let document = workspace.getDocument(this.bufnr)
     if (!document) return
     codeLenses = await Promise.all(codeLenses.map(codeLens => {
       return languages.resolveCodeLens(document.textDocument, codeLens)
     }))
-    Object.assign(item, {resolved: true, codeLenses})
+    Object.assign(item, { resolved: true, codeLenses })
     return item
   }
 
@@ -137,7 +137,7 @@ export default class CodeLensBuffer {
   }
 
   public dispose(): void {
-    let {nvim, buffer} = this
+    let { nvim, buffer } = this
     nvim.command(`silent! bd! ${buffer.id}`).catch(e => {
       logger.error(e.message)
     })

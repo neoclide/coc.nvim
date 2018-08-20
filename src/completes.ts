@@ -1,6 +1,6 @@
 import Complete from './model/complete'
-import {CompleteOption, ISource, RecentScore, VimCompleteItem} from './types'
-import {fuzzyMatch, getCharCodes} from './util/fuzzy'
+import { CompleteOption, ISource, RecentScore, VimCompleteItem } from './types'
+import { fuzzyMatch, getCharCodes } from './util/fuzzy'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
@@ -15,7 +15,7 @@ export class Completes {
 
   public addRecent(word: string): void {
     if (!word.length || !this.complete) return
-    let {input} = this.complete.option
+    let { input } = this.complete.option
     if (!input.length) return
     let key = `${input.slice(0, 1)}|${word}`
     let val = this.recentScores[key]
@@ -47,7 +47,7 @@ export class Completes {
 
   // TODO this is incorrect sometimes
   public getCompleteItem(word: string): VimCompleteItem | null {
-    let {completeItems} = this
+    let { completeItems } = this
     if (!completeItems) return null
     return completeItems.find(o => o.word == word)
   }
@@ -57,23 +57,23 @@ export class Completes {
   }
 
   public get option(): CompleteOption | null {
-    let {complete} = this
+    let { complete } = this
     if (!complete) return null
     return complete.option
   }
 
   public get input(): string | null {
-    let {option} = this
+    let { option } = this
     return option ? option.input : null
   }
 
   public hasMatch(search: string): boolean {
-    let {complete} = this
+    let { complete } = this
     if (!complete) return false
-    let {results} = complete
+    let { results } = complete
     let codes = getCharCodes(search)
     for (let res of results) {
-      let {items} = res
+      let { items } = res
       for (let o of items) {
         let s = o.filterText || o.word
         if (fuzzyMatch(codes, s)) {

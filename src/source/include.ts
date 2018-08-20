@@ -15,15 +15,15 @@ export default class Include extends Source {
     })
   }
 
-  private get command():Promise<string> {
+  private get command(): Promise<string> {
     let listFileCommand = this.getConfig('listFileCommand', null)
     if (listFileCommand) return Promise.resolve(listFileCommand)
     return this.nvim.call('coc#util#get_listfile_command')
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {nvim} = this
-    let {input, bufnr} = opt
+    let { nvim } = this
+    let { input, bufnr } = opt
     let command = await this.command
     if (input.length == 0) return null
     let trimSameExts = this.getConfig('trimSameExts', [])
@@ -59,7 +59,7 @@ export default class Include extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('include', new Include())
   return Disposable.create(() => {
     sourceMap.delete('include')

@@ -1,5 +1,5 @@
-import {ChangeItem} from '../types'
-import {Marker, Placeholder, SnippetParser, Text, TextmateSnippet} from './parser'
+import { ChangeItem } from '../types'
+import { Marker, Placeholder, SnippetParser, Text, TextmateSnippet } from './parser'
 const logger = require('../util/logger')('snippet-snippet')
 
 export type FindResult = [Placeholder, number]
@@ -11,7 +11,7 @@ export default class Snippet {
   constructor(content: string, private prepend = '', private append = '') {
     this.textmateSnippet = new SnippetParser().parse(content, true, true)
     let max = 0
-    let {placeholders} = this.textmateSnippet
+    let { placeholders } = this.textmateSnippet
     for (let o of placeholders) {
       max = Math.max(max, o.index)
     }
@@ -31,7 +31,7 @@ export default class Snippet {
   }
 
   public get firstPlaceholder(): Placeholder | null {
-    let {textmateSnippet} = this
+    let { textmateSnippet } = this
     let items = textmateSnippet.placeholders
     if (items.length == 0) return null
     let item = items.find(o => o.index == 1)
@@ -39,7 +39,7 @@ export default class Snippet {
   }
 
   public replaceWith(mark: Marker, str: string): void {
-    let {placeholders} = this.textmateSnippet
+    let { placeholders } = this.textmateSnippet
     if (mark instanceof Placeholder) {
       let index = mark.index
       for (let p of placeholders) {
@@ -117,7 +117,7 @@ export default class Snippet {
   public getNewText(change: ChangeItem, placeholder: Placeholder, start: number): string {
     let text = placeholder.toString()
     let pre = text.slice(0, start)
-    let {added, removed} = change
+    let { added, removed } = change
     let newText = text.slice(start)
     if (removed) newText = newText.slice(removed.length)
     if (added) newText = added + newText

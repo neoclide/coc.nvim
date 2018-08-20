@@ -10,7 +10,7 @@ export interface CacheItem {
   words: Set<string>
 }
 
-let TAG_CACHE: {[index: string]: CacheItem} = {}
+let TAG_CACHE: { [index: string]: CacheItem } = {}
 
 export default class Tag extends Source {
   constructor() {
@@ -30,7 +30,7 @@ export default class Tag extends Source {
     for (let file of files) {
       let stat = await statAsync(file)
       if (!stat || !stat.isFile()) continue
-      tagfiles.push({file, mtime: stat.mtime})
+      tagfiles.push({ file, mtime: stat.mtime })
     }
     if (tagfiles.length === 0) return false
     opt.tagfiles = tagfiles
@@ -51,12 +51,12 @@ export default class Tag extends Source {
       let w = ms ? ms[0] : null
       if (w && w.length > 2) words.add(w)
     })
-    TAG_CACHE[fullpath] = {words, mtime}
+    TAG_CACHE[fullpath] = { words, mtime }
     return words
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {tagfiles, input} = opt
+    let { tagfiles, input } = opt
     if (input.length == 0) return null
     let list = await Promise.all(tagfiles.map(o => this.loadTags(o.file, o.mtime)))
     let allWords: Set<string> = new Set()
@@ -78,7 +78,7 @@ export default class Tag extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('tag', new Tag())
   return Disposable.create(() => {
     sourceMap.delete('tag')
