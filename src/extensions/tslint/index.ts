@@ -1,16 +1,16 @@
-import {exec} from 'child_process'
+import { exec } from 'child_process'
 import fs from 'fs'
 import path from 'path'
-import {CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextEdit, TextDocumentSaveReason} from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, Command, ConfigurationParams, Diagnostic, RequestType, TextDocument, TextDocumentIdentifier, TextDocumentSaveReason, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import commandManager from '../../commands'
-import {LanguageService} from '../../language-client'
-import {LanguageClientOptions, WorkspaceMiddleware} from '../../language-client/main'
-import {ProviderResult} from '../../provider'
-import {ServiceStat, TextDocumentWillSaveEvent, QuickfixItem} from '../../types'
-import {echoErr, echoWarning} from '../../util'
-import workspace from '../../workspace'
 import which from 'which'
+import commandManager from '../../commands'
+import { LanguageService } from '../../language-client'
+import { LanguageClientOptions, WorkspaceMiddleware } from '../../language-client/main'
+import { ProviderResult } from '../../provider'
+import { QuickfixItem, ServiceStat, TextDocumentWillSaveEvent } from '../../types'
+import { echoErr, echoWarning } from '../../util'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('tslint')
 const errorRegex = /^(\w+):\s+([^\[]+)\[(\d+),\s*(\d+)\]:\s+(.*)$/
 
@@ -69,6 +69,7 @@ export default class TslintService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('tslint-server', 'tslint').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, 'lib/tslintServer.js') : null)
           }, () => {
             resolve(null)
@@ -80,14 +81,6 @@ export default class TslintService extends LanguageService {
       filetypes: config.filetypes || ['typescript', 'javascript'],
       enable: config.enable !== false
     }, 'tslint')
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'tslint-server') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    }, this, this.disposables)
 
     this.onServiceReady(() => {
       this.client.onRequest(NoTSLintLibraryRequest.type, () => {
@@ -135,9 +128,9 @@ export default class TslintService extends LanguageService {
         workspace: {
           configuration: (params: ConfigurationParams, token: CancellationToken, next: Function): any[] => {
             if (!params.items) return []
-            let result:Settings[] = next(params, token, next)
+            let result: Settings[] = next(params, token, next)
             if (!result || !result.length) return []
-            let config:Settings = Object.assign({}, result[0])
+            let config: Settings = Object.assign({}, result[0])
             let configFile = result[0].configFile || 'tslint.json'
             config.configFile = convertAbsolute(configFile)
             config.workspaceFolderPath = workspace.root
@@ -156,7 +149,7 @@ export default class TslintService extends LanguageService {
     let retry = false
     let lastVersion = document.version
     let promise = this.client.sendRequest(AllFixesRequest.type, {
-      textDocument: {uri: document.uri.toString()},
+      textDocument: { uri: document.uri.toString() },
       isOnSave: true
     }).then(async result => {
       while (true) {
@@ -193,7 +186,7 @@ export default class TslintService extends LanguageService {
               retryCount++
             }
             result = await this.client.sendRequest(AllFixesRequest.type, { // tslint:disable-line
-              textDocument: {uri: document.uri.toString()},
+              textDocument: { uri: document.uri.toString() },
               isOnSave: true
             })
           } else {
@@ -214,7 +207,7 @@ export default class TslintService extends LanguageService {
     let document = await workspace.document
     let uri: string = document.uri
     try {
-      let result = await this.client.sendRequest(AllFixesRequest.type, {textDocument: {uri}}) // tslint:disable-line
+      let result = await this.client.sendRequest(AllFixesRequest.type, { textDocument: { uri } }) // tslint:disable-line
       if (result) {
         let success = await applyTextEdits(
           uri,
@@ -303,7 +296,7 @@ async function createDefaultConfiguration(): Promise<void> {
     const tslintCmd = await findTslint(folderPath)
     if (!tslintCmd) return
     const cmd = `${tslintCmd} --init`
-    const p = exec(cmd, {cwd: folderPath, env: process.env})
+    const p = exec(cmd, { cwd: folderPath, env: process.env })
     p.on('exit', async (code: number, _signal: string) => {
       if (code === 0) {
         await workspace.openResource(Uri.file(tslintConfigFile).toString())
@@ -314,7 +307,7 @@ async function createDefaultConfiguration(): Promise<void> {
   }
 }
 
-async function lintProject():Promise<void> {
+async function lintProject(): Promise<void> {
   const folderPath = workspace.root
   const tslintCmd = await findTslint(folderPath)
   const tslintConfigFile = path.join(folderPath, 'tslint.json')
@@ -322,10 +315,10 @@ async function lintProject():Promise<void> {
   let cmd = `${tslintCmd} -c ${tslintConfigFile} -p .`
   let res = await workspace.runTerminalCommand(cmd)
   if (res.success) return
-  let {bufnr} = res
+  let { bufnr } = res
   await workspace.nvim.command(`silent! bd! ${bufnr}`)
   let lines = res.content.split('\n')
-  let items:QuickfixItem[] = []
+  let items: QuickfixItem[] = []
   for (let line of lines) {
     let ms = line.match(errorRegex)
     if (!ms) continue

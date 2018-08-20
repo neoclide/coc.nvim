@@ -1,13 +1,13 @@
 import path from 'path'
-import {CancellationToken, CompletionContext, CompletionItem, CompletionList, Position, TextDocument, CompletionItemKind} from 'vscode-languageserver-protocol'
-import {ProviderResult} from '../../provider'
-import {LanguageService} from '../../language-client'
+import { CancellationToken, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, Position, TextDocument } from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import { LanguageService } from '../../language-client'
+import { LanguageClientOptions, ProvideCompletionItemsSignature } from '../../language-client/main'
+import { ProviderResult } from '../../provider'
+import { LanguageServerConfig } from '../../types'
+import { readdirAsync, resolveRoot } from '../../util/fs'
 import workspace from '../../workspace'
 import catalog from './catalog.json'
-import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
-import Uri from 'vscode-uri'
-import {readdirAsync, resolveRoot} from '../../util/fs'
-import { LanguageServerConfig } from '../../types'
 const logger = require('../../util/logger')('extension-json')
 
 interface ISchemaAssociations {
@@ -16,7 +16,7 @@ interface ISchemaAssociations {
 
 const ID = 'json'
 export default class JsonService extends LanguageService {
-  private miniProgrameRoot:string
+  private miniProgrameRoot: string
 
   constructor() {
     const config = workspace.getConfiguration().get(ID) as LanguageServerConfig
@@ -24,6 +24,7 @@ export default class JsonService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('vscode-json-languageserver', 'json').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, 'out/jsonServerMain.js') : null)
           }, () => {
             resolve(null)
@@ -35,25 +36,17 @@ export default class JsonService extends LanguageService {
       filetypes: config.filetypes || ['json', 'jsonc'],
       enable: config.enable !== false // tslint:disable-line
     }, ['json', 'http'])
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'vscode-json-languageserver') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    }, this, this.disposables)
   }
 
-  private onDocumentEnter(uri:string):void {
+  private onDocumentEnter(uri: string): void {
     if (!/\.json$/.test(uri)) return
-    const {pluginRoot} = workspace
-    let {miniProgrameRoot} = this
+    const { pluginRoot } = workspace
+    let { miniProgrameRoot } = this
     let doc = workspace.getDocument(uri)
     if (!doc) return
     let file = Uri.parse(uri).fsPath
-    let associations:ISchemaAssociations = {}
-    let {content} = doc
+    let associations: ISchemaAssociations = {}
+    let { content } = doc
     if (content.indexOf('$schema') !== -1) return
     if (miniProgrameRoot) {
       if (path.dirname(file) == miniProgrameRoot) {
@@ -69,8 +62,8 @@ export default class JsonService extends LanguageService {
     }
   }
 
-  public checkMiniProgram():void {
-    let {root} = workspace
+  public checkMiniProgram(): void {
+    let { root } = workspace
     this.miniProgrameRoot = resolveRoot(root, ['project.config.json'])
   }
 
@@ -79,7 +72,7 @@ export default class JsonService extends LanguageService {
     this.checkMiniProgram()
     let associations: ISchemaAssociations = {}
     for (let item of catalog.schemas) {
-      let {fileMatch, url} = item
+      let { fileMatch, url } = item
       if (Array.isArray(fileMatch)) {
         for (let key of fileMatch) {
           associations[key] = [url]
@@ -93,7 +86,7 @@ export default class JsonService extends LanguageService {
     associations['app.json'] = [Uri.file(path.join(workspace.pluginRoot, 'data/app.json')).toString()]
     this.client.sendNotification('json/schemaAssociations', associations)
     workspace.onDidEnterTextDocument(documentInfo => {
-      let {uri} = documentInfo
+      let { uri } = documentInfo
       this.onDocumentEnter(uri)
     }, this, this.disposables)
     for (let document of workspace.documents) {
@@ -130,18 +123,18 @@ export default class JsonService extends LanguageService {
             let items: CompletionItem[] = res.hasOwnProperty('isIncomplete') ? (res as CompletionList).items : res as CompletionItem[]
             let line = doc.getline(position.line)
             for (let item of items) {
-              let {textEdit, insertText, label} = item // tslint:disable-line
+              let { textEdit, insertText, label } = item // tslint:disable-line
               item.insertText = null // tslint:disable-line
               if (textEdit && textEdit.newText) {
                 let newText = insertText || textEdit.newText
                 textEdit.newText = newText.replace(/(\n|\t)/g, '')
-                let {start, end} = textEdit.range
+                let { start, end } = textEdit.range
                 if (line[start.character] && line[end.character - 1] && /^".*"$/.test(label)) {
                   item.label = item.label.slice(1, -1)
                 }
               }
             }
-            let result:any = {
+            let result: any = {
               isIncomplete: false,
               items
             }

@@ -353,8 +353,8 @@ function! coc#util#setline(lnum, line)
   keepjumps call setline(a:lnum, a:line)
 endfunction
 
-" id, cmd, cwd
-function! coc#util#open_terminal(opts)
+" cmd, cwd
+function! coc#util#open_terminal(opts) abort
   execute 'belowright 5new +setl\ buftype=nofile '
   setl buftype=nofile
   setl winfixheight
@@ -362,21 +362,21 @@ function! coc#util#open_terminal(opts)
   setl nonumber
   setl bufhidden=wipe
   let cmd = get(a:opts, 'cmd', '')
-  if empty(cmd) | return | endif
-  let cwd = get(a:opts, 'cwd', getcwd())
-  let id = get(a:opts, 'id', 0)
+  if empty(cmd)
+    throw 'command required!'
+  endif
+  let cwd = get(a:opts, 'cwd', '')
+  if !empty(cwd) | execute 'lcd '.cwd | endif
   let keepfocus = get(a:opts, 'keepfocus', 0)
   let bufnr = bufnr('%')
   let Callback = get(a:opts, 'Callback', v:null)
   if has('nvim')
     call termopen(cmd, {
-          \ 'cwd': cwd,
-          \ 'on_exit': function('s:OnExit', [id, bufnr, Callback]),
+          \ 'on_exit': function('s:OnExit', [bufnr, Callback]),
           \})
   else
-    execute 'lcd '.cwd
     call term_start(cmd, {
-          \ 'exit_cb': function('s:OnExit', [id, bufnr, Callback]),
+          \ 'exit_cb': function('s:OnExit', [bufnr, Callback]),
           \ 'curwin': 1,
           \})
   endif
@@ -386,21 +386,29 @@ function! coc#util#open_terminal(opts)
   return bufnr
 endfunction
 
-function! s:OnExit(id, bufnr, Callback, job_id, status, ...)
+" run command in terminal
+function! coc#util#run_terminal(opts, cb)
+  let cmd = get(a:opts, 'cmd', '')
+  if empty(cmd)
+    return a:cb('command required for terminal')
+  endif
+  let g:x = 33
+  let opts = {
+        \ 'cmd': cmd,
+        \ 'cwd': get(a:opts, 'cwd', ''),
+        \ 'Callback': {status, bufnr, content -> a:cb(v:null, {'success': status == 0 ? v:true : v:false, 'bufnr': bufnr, 'content': content})}
+        \}
+  call coc#util#open_terminal(opts)
+endfunction
+
+function! s:OnExit(bufnr, Callback, job_id, status, ...)
   let content = join(getbufline(a:bufnr, 1, '$'), "\n")
   if a:status == 0
     execute 'silent! bd! '.a:bufnr
   endif
-  if a:status == 0 && !empty(a:Callback)
-    call call(a:Callback, [a:status])
+  if !empty(a:Callback)
+    call call(a:Callback, [a:status, a:bufnr, content])
   endif
-  if a:id == 0 | return | endif
-  call coc#rpc#notify('TerminalResult', [{
-        \ 'id': a:id,
-        \ 'bufnr': a:bufnr,
-        \ 'content': content,
-        \ 'success': a:status == 0 ? v:true : v:false
-        \}])
 endfunction
 
 function! coc#util#vim_info()

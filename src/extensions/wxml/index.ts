@@ -1,5 +1,5 @@
 import path from 'path'
-import {LanguageService} from '../../language-client'
+import { LanguageService } from '../../language-client'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-wxml')
 const file = 'lib/wxmlServerMain.js'
@@ -11,6 +11,7 @@ export default class WxmlService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('wxml-langserver', 'wxml').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, file) : null)
           }, () => {
             resolve(null)
@@ -22,13 +23,5 @@ export default class WxmlService extends LanguageService {
       filetypes: config.filetypes || ['wxml'],
       enable: config.enable !== false
     }, 'wxml')
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'wxml-langserver') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
   }
 }

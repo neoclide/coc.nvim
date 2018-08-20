@@ -1,5 +1,5 @@
 import path from 'path'
-import {LanguageService} from '../../language-client'
+import { LanguageService } from '../../language-client'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-html')
 
@@ -10,6 +10,7 @@ export default class HtmlService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('vscode-html-languageserver-bin', 'html').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, 'htmlServerMain.js') : null)
           }, () => {
             resolve(null)
@@ -27,13 +28,5 @@ export default class HtmlService extends LanguageService {
       },
       enable: config.enable !== false
     }, ['html', 'javascript', 'css'])
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'vscode-html-languageserver-bin') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
   }
 }

@@ -12,6 +12,8 @@ import helper from '../helper'
 let nvim: Neovim
 let workspace: IWorkspace
 let disposables: Disposable[] = []
+jest.setTimeout(30000)
+
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
@@ -264,16 +266,6 @@ describe('workspace methods', () => {
     expect(doc.bufnr).toBe(buf.id)
   })
 
-  it('should resolve module path if exists', async () => {
-    let res = await workspace.resolveModule('typescript', 'tsserver', true)
-    expect(res).toBeTruthy()
-  })
-
-  it('should not resolve module if not exists', async () => {
-    let res = await workspace.resolveModule('foo', 'tsserver', true)
-    expect(res).toBeFalsy()
-  })
-
   it('should run command', async () => {
     let res = await workspace.runCommand('ls', __dirname, 1)
     expect(res).toMatch('workspace')
@@ -282,7 +274,7 @@ describe('workspace methods', () => {
   it('should run terminal command', async () => {
     let res = await workspace.runTerminalCommand('ls', __dirname)
     expect(res.success).toBe(true)
-    await helper.wait(100)
+    await helper.wait(30)
   })
 
   it('should show mesages', async () => {
@@ -300,6 +292,25 @@ describe('workspace methods', () => {
     str = await helper.getCmdline()
     expect(str).toMatch('moremsg')
   })
+
+  it('should resolve module path if exists', async () => {
+    let res = await workspace.resolveModule('typescript', 'tsserver', true)
+    expect(res).toBeTruthy()
+  })
+
+  it('should not resolve module if not exists', async () => {
+    let res = await workspace.resolveModule('foo', 'tsserver', true)
+    expect(res).toBeFalsy()
+  })
+
+  it('should install module if not exists', async () => {
+    let p = workspace.resolveModule('uid', '')
+    await helper.wait(2000)
+    await nvim.input('2<enter>')
+    let res = await p
+    expect(res).toBeTruthy()
+    await workspace.runCommand('yarn global remove uid')
+  }, 30000)
 })
 
 describe('workspace utility', () => {
@@ -531,29 +542,6 @@ describe('workspace events', () => {
     expect(fn).toHaveBeenCalledTimes(1)
     fs.unlinkSync(file)
   })
-
-  it('should fire moduleInstalled', async () => {
-    let fn = jest.fn()
-    let install = new Promise<void>(resolve => {
-      workspace.onDidModuleInstalled(name => {
-        expect(name).toBe('et-improve')
-        fn()
-        resolve()
-      }, null, disposables)
-    })
-    let p = workspace.resolveModule('et-improve', null)
-    await helper.wait(1000)
-    await nvim.input('2<enter>')
-    let m = await nvim.mode
-    expect(m.blocking).toBe(false)
-    let res = await p
-    expect(res).toBe(null)
-    await install
-    res = await workspace.resolveModule('et-improve', null)
-    expect(res).toMatch('et-improve')
-    expect(fn).toHaveBeenCalledTimes(1)
-    await workspace.runCommand('yarn global remove et-improve')
-  }, 30000)
 })
 
 describe('workspace private', () => {

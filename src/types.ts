@@ -251,10 +251,9 @@ export interface ConfigurationInspect<T> {
 }
 
 export interface TerminalResult {
-  id: number
   bufnr: number
   success: boolean
-  content: string
+  content?: string
 }
 
 export interface ConfigurationShape {
@@ -581,7 +580,6 @@ export interface IWorkspace {
   onDidSaveTextDocument: Event<TextDocument>
   onDidChangeConfiguration: Event<WorkspaceConfiguration>
   onDidWorkspaceInitialized: Event<void>
-  onDidModuleInstalled: Event<string>
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   showMessage(msg: string, identify?: MsgTypes): void
   getDocument(uri: string | number): Document

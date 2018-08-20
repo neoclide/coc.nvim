@@ -1,8 +1,8 @@
 import path from 'path'
 import { LanguageService } from '../../language-client'
-import workspace from '../../workspace'
-import { WorkspaceConfiguration } from '../../types'
 import { LanguageClientOptions } from '../../language-client/main'
+import { WorkspaceConfiguration } from '../../types'
+import workspace from '../../workspace'
 
 const logger = require('../../util/logger')('extension-vetur')
 const sections = ['vetur', 'emmet', 'html', 'javascript', 'typescript', 'prettier', 'stylusSupremacy']
@@ -25,6 +25,7 @@ export default class VeturService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('vue-language-server', 'vetur').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, file) : null)
           }, err => {
             logger.error(err)
@@ -38,13 +39,6 @@ export default class VeturService extends LanguageService {
         config: getConfig(c)
       },
       enable: config.enable !== false
-    })
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'vue-language-server') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
     })
   }
 

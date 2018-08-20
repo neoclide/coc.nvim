@@ -12,9 +12,8 @@ import Configurations from './configurations'
 import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import JobManager from './model/jobManager'
-import ModuleManager from './model/moduleManager'
 import BufferChannel from './model/outputChannel'
+import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import Sources from './sources'
 import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
@@ -38,8 +37,7 @@ export interface VimSettings {
 
 export class Workspace implements IWorkspace {
   public bufnr: number
-  public moduleManager: ModuleManager
-  public jobManager: JobManager
+  public terminal: Terminal
   public sources: Sources
   public readonly nvim: Neovim
   public readonly emitter: EventEmitter
@@ -65,7 +63,6 @@ export class Workspace implements IWorkspace {
   private _onDidSaveDocument = new Emitter<TextDocument>()
   private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
-  private _onDidModuleInstalled = new Emitter<string>()
 
   public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
@@ -75,19 +72,14 @@ export class Workspace implements IWorkspace {
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
-  public readonly onDidModuleInstalled: Event<string> = this._onDidModuleInstalled.event
   public readonly onDidBufWinEnter: Event<WinEnter> = this._onDidBufWinEnter.event
 
   constructor() {
     let config = this.loadConfigurations()
     let configurationShape = this.configurationShape = new ConfigurationShape(this)
     this._configurations = new Configurations(config, configurationShape)
-    let moduleManager = this.moduleManager = new ModuleManager()
-    this.jobManager = new JobManager(this)
+    this.terminal = new Terminal()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
-    moduleManager.on('installed', name => {
-      this._onDidModuleInstalled.fire(name)
-    })
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
@@ -105,17 +97,6 @@ export class Workspace implements IWorkspace {
     this.emitter.on('FileType', this.onFileTypeChange.bind(this))
     this.emitter.on('CursorHold', this.checkBuffer.bind(this))
     this.emitter.on('TextChanged', this.checkBuffer.bind(this))
-    this.emitter.on('notification', (method, args) => {
-      switch (method) {
-        case 'TerminalResult':
-          this.moduleManager.handleTerminalResult(args[0])
-          break
-        case 'JobResult':
-          let [id, data] = args
-          this.jobManager.handleResult(id as number, data as string)
-          break
-      }
-    })
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
@@ -479,10 +460,12 @@ export class Workspace implements IWorkspace {
   }
 
   public async resolveModule(name: string, section: string, silent = false): Promise<string> {
-    let res = await this.moduleManager.resolveModule(name)
+    let res = await this.terminal.resolveModule(name)
     if (res) return res
-    if (!silent) await this.moduleManager.installModule(name, section)
-    return null
+    if (!silent) {
+      res = await this.terminal.installModule(name, section)
+    }
+    return res
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
@@ -507,7 +490,7 @@ export class Workspace implements IWorkspace {
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
     cwd = cwd || this.root
-    return await this.moduleManager.runCommand(cmd, cwd)
+    return await this.terminal.runCommand(cmd, cwd)
   }
 
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
@@ -538,7 +521,7 @@ export class Workspace implements IWorkspace {
       })
     }
     Watchman.dispose()
-    this.moduleManager.removeAllListeners()
+    this.terminal.removeAllListeners()
     disposeAll(this.disposables)
   }
 

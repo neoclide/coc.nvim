@@ -1,6 +1,6 @@
 import path from 'path'
-import {LanguageService} from '../../language-client'
-import {LanguageClientOptions} from '../../language-client/main'
+import { LanguageService } from '../../language-client'
+import { LanguageClientOptions } from '../../language-client/main'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('extension-stylelint')
 const file = 'lib/server.js'
@@ -13,6 +13,7 @@ export default class JsonService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('stylelint-langserver', 'stylelint').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, file) : null)
           }, () => {
             resolve(null)
@@ -24,14 +25,6 @@ export default class JsonService extends LanguageService {
       filetypes: config.filetypes || ['css', 'wxss', 'less', 'scss'],
       enable: config.enable !== false
     }, ID)
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'stylelint-langserver') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {

@@ -13,7 +13,7 @@ import { LanguageService } from '../../language-client'
 import { ErrorAction, ErrorHandler, LanguageClientOptions, WorkspaceMiddleware } from '../../language-client/main'
 import { ProviderResult } from '../../provider'
 import { ServiceStat } from '../../types'
-import { echoErr, echoWarning, echoMessage } from '../../util'
+import { echoErr, echoMessage, echoWarning } from '../../util'
 import workspace from '../../workspace'
 import { findEslint } from './utils'
 const logger = require('../../util/logger')('eslint')
@@ -135,6 +135,7 @@ export default class EslintService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('eslint-server', 'eslint').then(folder => {
+            if (!folder) return
             echoMessage(workspace.nvim, `Using eslint-server from ${folder}`)
             resolve(folder ? path.join(folder, 'lib/index.js') : null)
           }, () => {
@@ -148,17 +149,9 @@ export default class EslintService extends LanguageService {
       enable: config.enable !== false
     }, 'tslint')
 
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'eslint-server') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
-
     this.syncedDocuments = new Map()
     this.onServiceReady(() => {
-      let {client} = this
+      let { client } = this
       client.onNotification(exitCalled, params => {
         this.client.error(
           `Server process exited with code ${params[0]}. This usually indicates a misconfigured ESLint setup.`,
@@ -174,7 +167,7 @@ export default class EslintService extends LanguageService {
       })
       client.onRequest(NoESLintLibraryRequest.type, params => {
         let uri: Uri = Uri.parse(params.source.uri)
-        echoWarning(workspace.nvim, `Failed to load the ESLint library for the document ${ uri.fsPath }`)
+        echoWarning(workspace.nvim, `Failed to load the ESLint library for the document ${uri.fsPath}`)
         return {}
       })
 
@@ -202,8 +195,8 @@ export default class EslintService extends LanguageService {
     })
   }
 
-  private onDidChangeConfiguration() :void{
-    let {syncedDocuments, state} = this
+  private onDidChangeConfiguration(): void {
+    let { syncedDocuments, state } = this
     if (state != ServiceStat.Running) return
     for (let textDocument of syncedDocuments.values()) {
       if (!shouldBeValidated(textDocument)) {
@@ -232,7 +225,7 @@ export default class EslintService extends LanguageService {
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
-    let {syncedDocuments} = this
+    let { syncedDocuments } = this
     Object.assign(clientOptions, {
       synchronize: {
         configurationSection: 'eslint',

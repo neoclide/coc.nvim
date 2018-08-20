@@ -5,36 +5,16 @@ import { TerminalResult } from '../types'
 import { executable } from '../util'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
-// const logger = require('../util/logger')('model-moduleManager')
-type Callback = (res: TerminalResult) => void
+const logger = require('../util/logger')('model-terminal')
 
 const isLinux = process.platform === 'linux'
 
 // manage global modules
-export default class ModuleManager extends EventEmitter {
+export default class Terminal extends EventEmitter {
   private _npmFolder: string | undefined
   private _yarnFolder: string | undefined
-  private taskId = 1
-  private installing: Map<number, string> = new Map()
+  private installing: Set<string> = new Set()
   private disables: string[] = []
-  private callbacks: Map<number, Callback> = new Map()
-
-  public handleTerminalResult(res: TerminalResult): void {
-    if (!res.id) return
-    let { id } = res
-    if (this.installing.has(id)) {
-      if (res.success) {
-        this.emit('installed', this.installing.get(id))
-      }
-      this.installing.delete(id)
-    } else {
-      let cb = this.callbacks.get(id)
-      if (cb) {
-        this.callbacks.delete(id)
-        cb(res)
-      }
-    }
-  }
 
   private get nvim(): Neovim {
     return workspace.nvim
@@ -70,12 +50,9 @@ export default class ModuleManager extends EventEmitter {
     return null
   }
 
-  public async installModule(mod: string, section?: string): Promise<number> {
-    let mods = Array.from(this.installing.values())
-    if (mods.indexOf(mod) !== -1) return
+  public async installModule(mod: string, section?: string): Promise<string> {
+    if (this.installing.has(mod)) return
     if (this.disables.indexOf(mod) !== -1) return
-    let { nvim } = this
-    let id = this.taskId
     let items = [
       'Use npm to install',
       'Use yarn to install',
@@ -93,39 +70,23 @@ export default class ModuleManager extends EventEmitter {
       }
       return
     }
-    this.installing.set(id, mod)
-    this.taskId = this.taskId + 1
+    this.installing.add(mod)
     let pre = isLinux ? 'sudo ' : ''
     let cmd = idx == 0 ? `${pre} npm install -g ${mod}` : `yarn global add ${mod}`
     if (idx == 1 && !executable('yarn')) {
       try {
-        await this.runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash')
+        let res = await this.runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash')
+        if (!res.success) return
       } catch (e) {
         return
       }
     }
-    nvim.call('coc#util#open_terminal', [{ id, cmd }], true)
-    return id
+    let res = await this.runCommand(cmd)
+    if (!res.success) return
+    return await this.resolveModule(mod)
   }
 
-  public runCommand(cmd: string, cwd?: string, timeout?: number): Promise<TerminalResult> {
-    let id = this.taskId
-    this.taskId = this.taskId + 1
-    this.nvim.call('coc#util#open_terminal', [{ id, cmd, cwd: cwd || workspace.root }], true)
-    return new Promise((resolve, reject) => {
-      let called = false
-      let tid
-      if (timeout) {
-        tid = setTimeout(() => {
-          called = true
-          reject(new Error(`command ${cmd} timeout after ${timeout}s`))
-        }, timeout * 1000)
-      }
-      this.callbacks.set(id, res => {
-        if (called) return
-        if (tid) clearTimeout(tid)
-        resolve(res)
-      })
-    })
+  public async runCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
+    return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd }) as TerminalResult
   }
 }

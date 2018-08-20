@@ -1,8 +1,8 @@
 import path from 'path'
-import {CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument} from 'vscode-languageserver-protocol'
-import {LanguageService} from '../../language-client'
-import {LanguageClientOptions, ProvideCompletionItemsSignature} from '../../language-client/main'
-import {ProviderResult} from '../../provider'
+import { CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { LanguageService } from '../../language-client'
+import { LanguageClientOptions, ProvideCompletionItemsSignature } from '../../language-client/main'
+import { ProviderResult } from '../../provider'
 import workspace from '../../workspace'
 const logger = require('../../util/logger')('cssserver')
 
@@ -16,6 +16,7 @@ export default class CssService extends LanguageService {
       module: () => {
         return new Promise(resolve => {
           workspace.resolveModule('css-langserver', 'cssserver').then(folder => {
+            if (!folder) return
             resolve(folder ? path.join(folder, 'lib/server.js') : null)
           }, () => {
             resolve(null)
@@ -27,14 +28,6 @@ export default class CssService extends LanguageService {
       filetypes: config.filetypes,
       enable: config.enable !== false
     }, ['cssserver', 'css', 'less', 'scss', 'wxss'])
-
-    workspace.onDidModuleInstalled(mod => {
-      if (mod == 'css-langserver') {
-        this.init().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
   }
 
   protected resolveClientOptions(clientOptions: LanguageClientOptions): LanguageClientOptions {
