@@ -7,7 +7,7 @@ import fs from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentParams, Disposable, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configurations'
 import ConfigurationShape from './model/configurationShape'
@@ -21,6 +21,7 @@ import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurat
 import { resolveRoot, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
+import { score } from './util/match'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
@@ -203,6 +204,10 @@ export class Workspace implements IWorkspace {
       res.add(doc.filetype)
     }
     return res
+  }
+
+  public match(selector: DocumentSelector, document: TextDocument): number {
+    return score(selector, document.uri, document.languageId)
   }
 
   public getVimSetting<K extends keyof VimSettings>(name: K): VimSettings[K] {

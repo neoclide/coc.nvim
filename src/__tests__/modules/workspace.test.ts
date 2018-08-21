@@ -303,6 +303,19 @@ describe('workspace methods', () => {
     expect(res).toBeFalsy()
   })
 
+  it('should return match score for document', async () => {
+    let doc = await helper.createDocument('tmp.xml')
+    expect(workspace.match(['xml'], doc.textDocument)).toBe(10)
+    expect(workspace.match(['wxml'], doc.textDocument)).toBe(0)
+    expect(workspace.match([{ language: 'xml' }], doc.textDocument)).toBe(10)
+    expect(workspace.match([{ language: 'wxml' }], doc.textDocument)).toBe(0)
+    expect(workspace.match([{ pattern: '**/*.xml' }], doc.textDocument)).toBe(10)
+    expect(workspace.match([{ pattern: '**/*.html' }], doc.textDocument)).toBe(0)
+    expect(workspace.match([{ scheme: 'file' }], doc.textDocument)).toBe(10)
+    expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
+    expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
+  })
+
   it('should install module if not exists', async () => {
     let p = workspace.resolveModule('uid', '')
     await helper.wait(2000)
