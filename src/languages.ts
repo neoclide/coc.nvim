@@ -1,8 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, Emitter, Event, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionContext, CompletionItemProvider, CompletionTriggerKind, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentHighlightProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import DocumentColorManager from './provider/documentColorManager'
+import DocumentLinkManager from './provider/documentLinkManager'
+import FoldingRangeManager from './provider/foldingRangeManager'
 import OnTypeFormatManager from './provider/onTypeFormatManager'
 import snippetManager from './snippet/manager'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
@@ -48,6 +51,9 @@ class Languages {
   public nvim: Neovim
   public sources: ISource[] = []
   private onTypeFormatManager = new OnTypeFormatManager()
+  private documentLinkManager = new DocumentLinkManager()
+  private documentColorManager = new DocumentColorManager()
+  private foldingRangeManager = new FoldingRangeManager()
   private _onDidCompletionSourceCreated = new Emitter<ISource>()
   private completionProviders: CompletionSource[] = []
   private workspaceSymbolMap: Map<string, WorkspaceSymbolProvider> = new Map()
@@ -63,7 +69,6 @@ class Languages {
   private signatureHelpProviderMap: Map<string, SignatureHelpProvider> = new Map()
   private codeActionProviderMap: Map<string, CodeActionProvider[]> = new Map()
   private documentHighlightMap: Map<string, DocumentHighlightProvider> = new Map()
-  private documentLinkMap: Map<string, DocumentLinkProvider> = new Map()
   private codeLensProviderMap: Map<string, CodeLensProvider[]> = new Map()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   public readonly onDidCompletionSourceCreated: Event<ISource> = this._onDidCompletionSourceCreated.event
@@ -159,16 +164,24 @@ class Languages {
     return this.registerProvider(languageIds, provider, this.signatureHelpProviderMap)
   }
 
+  public registerFoldingRangeProvider(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
+    return this.foldingRangeManager.register(selector, provider)
+  }
+
   public registerDocumentHighlightProvider(languageIds: string | string[], provider: any): Disposable {
     return this.registerProvider(languageIds, provider, this.documentHighlightMap)
   }
 
-  public registerCodeLensProvider(languageIds: string | string[], provider: any): Disposable {
+  public registerCodeLensProvider(languageIds: string | string[], provider: CodeLensProvider): Disposable {
     return this.registerProviderList(languageIds, provider, this.codeLensProviderMap)
   }
 
-  public registerDocumentLinkProvider(languageIds: string | string[], provider: any): Disposable {
-    return this.registerProvider(languageIds, provider, this.documentLinkMap)
+  public registerDocumentLinkProvider(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
+    return this.documentLinkManager.register(selector, provider)
+  }
+
+  public registerDocumentColorProvider(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
+    return this.documentColorManager.register(selector, provider)
   }
 
   public registerDefinitionProvider(languageIds: string | string[], provider: DefinitionProvider): Disposable {
@@ -338,16 +351,27 @@ class Languages {
 
   @check
   public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
-    let provider = this.getProvider(document, this.documentLinkMap)
-    if (!provider) return null
-    return await Promise.resolve(provider.provideDocumentLinks(document, this.token))
+    return await this.documentLinkManager.provideDocumentLinks(document, this.token)
   }
 
   @check
-  public async resolveDocumentLink(document: TextDocument, link: DocumentLink): Promise<DocumentLink> {
-    let provider = this.getProvider(document, this.documentLinkMap)
-    if (!provider) return null
-    return await Promise.resolve(provider.resolveDocumentLink(link, this.token))
+  public async resolveDocumentLink(link: DocumentLink): Promise<DocumentLink> {
+    return await this.documentLinkManager.resolveDocumentLink(link, this.token)
+  }
+
+  @check
+  public async provideDocumentColors(document: TextDocument): Promise<ColorInformation[] | null> {
+    return await this.documentColorManager.provideDocumentColors(document, this.token)
+  }
+
+  @check
+  public async provideFoldingRanges(document: TextDocument, context: FoldingContext): Promise<FoldingRange[] | null> {
+    return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token)
+  }
+
+  @check
+  public async provideColorPresentations(color: ColorInformation, document: TextDocument, ): Promise<ColorPresentation[]> {
+    return await this.documentColorManager.provideColorPresentations(color, document, this.token)
   }
 
   @check

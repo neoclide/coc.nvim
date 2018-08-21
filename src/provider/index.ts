@@ -1,4 +1,4 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Command, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
@@ -242,50 +242,6 @@ export interface ReferenceProvider {
 }
 
 /**
- * A line based folding range. To be valid, start and end line must a zero or larger and smaller than the number of lines in the document.
- * Invalid ranges will be ignored.
- */
-export interface FoldingRange {
-  /**
-   * The zero-based start line of the range to fold. The folded area starts after the line's last character.
-   * To be valid, the end must be zero or larger and smaller than the number of lines in the document.
-   */
-  start: number
-
-  /**
-   * The zero-based end line of the range to fold. The folded area ends with the line's last character.
-   * To be valid, the end must be zero or larger and smaller than the number of lines in the document.
-   */
-  end: number
-
-  /**
-   * Describes the [Kind](#FoldingRangeKind) of the folding range such as [Comment](#FoldingRangeKind.Comment) or
-   * [Region](#FoldingRangeKind.Region). The kind is used to categorize folding ranges and used by commands
-   * like 'Fold all comments'. See
-   * [FoldingRangeKind](#FoldingRangeKind) for an enumeration of all kinds.
-   */
-  kind?: FoldingRangeKind
-}
-
-/**
- * An enumeration of all folding range kinds. The kind is used to categorize folding ranges.
- */
-export enum FoldingRangeKind {
-  /**
-   * Kind for folding range representing a comment.
-   */
-  Comment = 1,
-  /**
-   * Kind for folding range representing a import.
-   */
-  Imports = 2,
-  /**
-   * Kind for folding range representing regions (for example a folding range marked by `#region` and `#endregion`).
-   */
-  Region = 3
-}
-
-/**
  * Folding context (for future use)
  */
 export interface FoldingContext { }
@@ -306,7 +262,7 @@ export interface FoldingRangeProvider {
     document: TextDocument,
     context: FoldingContext,
     token: CancellationToken
-  ): Promise<FoldingRange[]>
+  ): ProviderResult<FoldingRange[]>
 }
 
 /**
@@ -639,4 +595,76 @@ export interface OnTypeFormattingEditProvider {
    * signaled by returning `undefined`, `null`, or an empty array.
    */
   provideOnTypeFormattingEdits(document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]>
+}
+
+/**
+ * The document link provider defines the contract between extensions and feature of showing
+ * links in the editor.
+ */
+export interface DocumentLinkProvider {
+
+  /**
+   * Provide links for the given document. Note that the editor ships with a default provider that detects
+   * `http(s)` and `file` links.
+   *
+   * @param document The document in which the command was invoked.
+   * @param token A cancellation token.
+   * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
+   * can be signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
+
+  /**
+   * Given a link fill in its [target](#DocumentLink.target). This method is called when an incomplete
+   * link is selected in the UI. Providers can implement this method and return incomplete links
+   * (without target) from the [`provideDocumentLinks`](#DocumentLinkProvider.provideDocumentLinks) method which
+   * often helps to improve performance.
+   *
+   * @param link The link that is to be resolved.
+   * @param token A cancellation token.
+   */
+  resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>
+}
+
+/**
+ * The document color provider defines the contract between extensions and feature of
+ * picking and modifying colors in the editor.
+ */
+export interface DocumentColorProvider {
+
+  /**
+   * Provide colors for the given document.
+   *
+   * @param document The document in which the command was invoked.
+   * @param token A cancellation token.
+   * @return An array of [color information](#ColorInformation) or a thenable that resolves to such. The lack of a result
+   * can be signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideDocumentColors(document: TextDocument, token: CancellationToken): ProviderResult<ColorInformation[]>
+
+  /**
+   * Provide [representations](#ColorPresentation) for a color.
+   *
+   * @param color The color to show and insert.
+   * @param context A context object with additional information
+   * @param token A cancellation token.
+   * @return An array of color presentations or a thenable that resolves to such. The lack of a result
+   * can be signaled by returning `undefined`, `null`, or an empty array.
+   */
+  provideColorPresentations(color: Color, context: { document: TextDocument, range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
+}
+
+/**
+ * The folding range provider interface defines the contract between extensions and
+ * [Folding](https://code.visualstudio.com/docs/editor/codebasics#_folding) in the editor.
+ */
+export interface FoldingRangeProvider {
+  /**
+   * Returns a list of folding ranges or null and undefined if the provider
+   * does not want to participate or was cancelled.
+   * @param document The document in which the command was invoked.
+   * @param context Additional context information (for future use)
+   * @param token A cancellation token.
+   */
+  provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): ProviderResult<FoldingRange[]>
 }

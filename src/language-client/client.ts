@@ -12,12 +12,15 @@ import { ProviderResult } from '../provider'
 import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
+import { ColorProviderMiddleware } from './colorProvider'
 import { ConfigurationWorkspaceMiddleware } from './configuration'
+import { FoldingRangeProviderMiddleware } from './foldingRange'
 import { ImplementationMiddleware } from './implementation'
 import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
+
 const logger = require('../util/logger')('language-client-client')
 
 interface IConnection {
@@ -599,7 +602,9 @@ export interface _Middleware {
 
 export type Middleware = _Middleware &
   TypeDefinitionMiddleware &
-  ImplementationMiddleware
+  ImplementationMiddleware &
+  ColorProviderMiddleware &
+  FoldingRangeProviderMiddleware
 
 export interface LanguageClientOptions {
   documentSelector?: DocumentSelector | string[]
@@ -2807,9 +2812,8 @@ class DocumentLinkFeature extends TextDocumentFeature<
         )
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerDocumentLinkProvider(
-      languageIds,
+      options.documentSelector!,
       {
         provideDocumentLinks: (
           document: TextDocument,

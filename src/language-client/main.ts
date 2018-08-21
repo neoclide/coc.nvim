@@ -9,11 +9,14 @@ import { ServiceStat } from '../types'
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
+import { ColorProviderFeature } from './colorProvider'
 import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
+import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
 import * as electron from './utils/electron'
 import { terminate } from './utils/processes'
+
 import ChildProcess = cp.ChildProcess
 
 const logger = require('../util/logger')('language-client-main')
@@ -538,6 +541,8 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))
+    this.registerFeature(new ColorProviderFeature(this))
+    this.registerFeature(new FoldingRangeFeature(this))
   }
 
   private _getServerWorkingDir(options?: { cwd?: string }): Thenable<string | undefined> {
