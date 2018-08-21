@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { FormattingOptions } from './provider'
@@ -603,6 +603,7 @@ export interface IWorkspace {
   resolveModule(name: string, section: string, silent?): Promise<string>
   showQuickpick(items: string[], placeholder?: string): Promise<number>
   showPrompt(title: string): Promise<boolean>
+  match(selector: DocumentSelector, document: TextDocument): number
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
   runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
   dispose(): void

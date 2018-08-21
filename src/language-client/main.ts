@@ -533,8 +533,8 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeatures(ProposedFeatures.createAll(this))
   }
 
-  protected registerBuiltinFeatures(forceFullSync: boolean): void {
-    super.registerBuiltinFeatures(forceFullSync)
+  protected registerBuiltinFeatures(): void {
+    super.registerBuiltinFeatures()
     this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))

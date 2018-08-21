@@ -1108,7 +1108,7 @@ class DidChangeTextDocumentFeature
   private _forcingDelivery: boolean = false
   private _changeDelayer: { uri: string; delayer: Delayer<void> } | undefined
 
-  constructor(private _client: BaseLanguageClient, private forceFullSync = false) { }
+  constructor(private _client: BaseLanguageClient) { }
 
   public get messages(): typeof DidChangeTextDocumentNotification.type {
     return DidChangeTextDocumentNotification.type
@@ -1120,8 +1120,6 @@ class DidChangeTextDocumentFeature
 
   public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
     let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
-    let { forceFullSync } = this
-    let syncKind = forceFullSync ? TextDocumentSyncKind.Full : textDocumentSyncOptions.change
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -1133,7 +1131,7 @@ class DidChangeTextDocumentFeature
         registerOptions: Object.assign(
           {},
           { documentSelector: documentSelector },
-          { syncKind }
+          { syncKind: textDocumentSyncOptions.change }
         )
       })
     }
@@ -3107,7 +3105,7 @@ export abstract class BaseLanguageClient {
       }
     }
     this._syncedDocuments = new Map<string, TextDocument>()
-    this.registerBuiltinFeatures(clientOptions.forceFullSync)
+    this.registerBuiltinFeatures()
   }
 
   private get state(): ClientState {
@@ -3314,7 +3312,7 @@ export abstract class BaseLanguageClient {
     return data.toString()
   }
 
-  private appendOutput(type: string, message: string, data?: any): void {
+  private _appendOutput(type: string, message: string, data?: any): void {
     let level = RevealOutputChannelOn.Error
     switch (type) {
       case 'Info':
@@ -3334,15 +3332,15 @@ export abstract class BaseLanguageClient {
   }
 
   public info(message: string, data?: any): void {
-    this.appendOutput('Info', message, data)
+    this._appendOutput('Info', message, data)
   }
 
   public warn(message: string, data?: any): void {
-    this.appendOutput('Warn', message, data)
+    this._appendOutput('Warn', message, data)
   }
 
   public error(message: string, data?: any): void {
-    this.appendOutput('Error', message, data)
+    this._appendOutput('Error', message, data)
   }
 
   private logTrace(message: string, data?: any): void {
@@ -3809,10 +3807,10 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  protected registerBuiltinFeatures(forceFullSync: boolean) {
+  protected registerBuiltinFeatures() {
     this.registerFeature(new ConfigurationFeature(this))
     this.registerFeature(new DidOpenTextDocumentFeature(this, this._syncedDocuments))
-    this.registerFeature(new DidChangeTextDocumentFeature(this, forceFullSync))
+    this.registerFeature(new DidChangeTextDocumentFeature(this))
     this.registerFeature(new WillSaveFeature(this))
     this.registerFeature(new WillSaveWaitUntilFeature(this))
     this.registerFeature(new DidSaveTextDocumentFeature(this))
