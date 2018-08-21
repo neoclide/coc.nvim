@@ -1,5 +1,6 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import { exec } from 'child_process'
+import debounce from 'debounce'
 import deepEqual from 'deep-equal'
 import { EventEmitter } from 'events'
 import fs from 'fs'
@@ -18,7 +19,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import Sources from './sources'
 import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, wait } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { byteIndex } from './util/string'
 import { watchFiles } from './util/watch'
@@ -46,12 +47,12 @@ export class Workspace implements IWorkspace {
   private _cwd = process.cwd()
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
-  private checking: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
   private disposables: Disposable[] = []
   private configFiles: string[] = []
+  private checkBuffer: Function & { clear(): void; }
 
   private _onDidBufWinEnter = new Emitter<WinEnter>()
   private _onDidEnterDocument = new Emitter<DocumentInfo>()
@@ -79,6 +80,11 @@ export class Workspace implements IWorkspace {
     this._configurations = new Configurations(config, configurationShape)
     this.terminal = new Terminal()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
+    this.checkBuffer = debounce(() => {
+      this._checkBuffer().catch(e => {
+        logger.error(e.message)
+      })
+    }, 50)
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
@@ -651,6 +657,7 @@ export class Workspace implements IWorkspace {
   }
 
   private async onBufCreate(buf: number | Buffer): Promise<void> {
+    this.checkBuffer.clear()
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
@@ -732,10 +739,12 @@ export class Workspace implements IWorkspace {
   private onBufWinEnter(filepath: string, winid: number): void {
     let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
     let doc = this.getDocument(uri)
-    this._onDidBufWinEnter.fire({
-      document: doc ? doc.textDocument : null,
-      winid
-    })
+    if (doc) {
+      this._onDidBufWinEnter.fire({
+        document: doc.textDocument,
+        winid
+      })
+    }
   }
 
   private onFileTypeChange(filetype: string, bufnr: number): void {
@@ -747,23 +756,18 @@ export class Workspace implements IWorkspace {
     if (supported) this._onDidAddDocument.fire(doc.textDocument)
   }
 
-  private async checkBuffer(bufnr: number): Promise<void> {
+  private async _checkBuffer(): Promise<void> {
+    let bufnr = await this.nvim.call('bufnr', '%')
     let doc = this.getDocument(bufnr)
     if (!doc) {
-      if (this.checking.has(bufnr)) return
-      this.checking.add(bufnr)
-      this.emitter.emit('BufCreate', bufnr)
-      let buf = await this.nvim.buffer
-      if (buf.id == bufnr && bufnr != this.bufnr) {
-        this.emitter.emit('BufEnter')
+      await this.onBufCreate(bufnr)
+      doc = this.getDocument(bufnr)
+      if (!doc) return
+      if (bufnr != this.bufnr) {
+        this.onBufEnter(bufnr)
       }
-      if (buf.id == bufnr) {
-        let name = await buf.name
-        let winid = await this.nvim.call('bufwinid', '%')
-        this.emitter.emit('BufWinEnter', name, winid)
-      }
-      await wait(50)
-      this.checking.delete(bufnr)
+      let winid = await this.nvim.call('bufwinid', '%')
+      this.onBufWinEnter(doc.uri, winid)
     }
   }
 
