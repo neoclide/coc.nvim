@@ -530,6 +530,21 @@ Available Actions ~
 
 	command! -nargs=0 OrganizeImport :call CocAction('runCommand', 'typescript.organizeImports')
 
+"fold" {{kind}} 				*coc-action-fold*
+
+	Fold current buffer, optional use {kind} for filter folds, {kind}
+	could be 'comment', 'imports' and 'region'
+
+"highlight" 					*coc-action-highlight*
+
+	Highlight symbols under cursor.  To use different colors, overwrite
+	highlight groups: `CocHighlightText`, `CocHighlightRead` and
+	`CocHighlightWrite`
+
+	To enable highlight on CursorHold, create autocmd like: >
+
+	autocmd CursorHold * silent call CocAction('highlight')
+<
 ------------------------------------------------------------------------------
 
 						*coc#refresh()*

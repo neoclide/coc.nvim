@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentHighlightKind, DocumentSelector, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { FormattingOptions } from './provider'
@@ -10,6 +10,8 @@ export interface EditerState {
   document: TextDocument
   position: Position
 }
+
+export type ColorMap = Map<DocumentHighlightKind, string>
 
 export type Filter = 'word' | 'fuzzy'
 

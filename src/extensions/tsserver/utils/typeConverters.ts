@@ -6,8 +6,8 @@
  * Helpers for converting FROM LanguageServer types language-server ts types
  */
 import * as language from 'vscode-languageserver-protocol'
-import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import Proto from '../protocol'
+import { ITypeScriptServiceClient } from '../typescriptService'
 
 export namespace Range {
   export const fromTextSpan = (span: Proto.TextSpan): language.Range => {
@@ -86,6 +86,6 @@ export namespace WorkspaceEdit {
         return TextEdit.fromCodeEdit(change)
       })
     }
-    return {changes}
+    return { changes }
   }
 }

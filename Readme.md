@@ -237,6 +237,9 @@ endfunction
 " Show signature help while editing
 autocmd CursorHoldI,CursorMovedI * silent! call CocAction('showSignatureHelp')
 
+* Highlight symbol under cursor on CursorHold
+autocmd CursorHold * silent call CocAction('highlight')
+
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
 
@@ -251,8 +254,12 @@ nmap <leader>a  <Plug>(coc-codeaction-selected)
 " Remap for do codeAction of current line
 nmap <leader>ac  <Plug>(coc-codeaction)
 
-" Use `:Format` for format current file
+" Use `:Format` for format current buffer
 command! -nargs=0 Format :call CocAction('format')
+
+* Use `:Fold` for fold current buffer
+command! -nargs=? Fold :call     CocAction('fold', <f-args>)
+
 
 " Add diagnostic info for https://github.com/itchyny/lightline.vim
 let g:lightline = {
@@ -265,6 +272,7 @@ let g:lightline = {
       \   'cocstatus': 'coc#status'
       \ },
       \ }
+
 
 
 " Shortcuts for denite interface

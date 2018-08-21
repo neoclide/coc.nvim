@@ -16,7 +16,6 @@ import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
 import * as electron from './utils/electron'
 import { terminate } from './utils/processes'
-
 import ChildProcess = cp.ChildProcess
 
 const logger = require('../util/logger')('language-client-main')

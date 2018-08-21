@@ -84,6 +84,14 @@ export default class Plugin {
     let { handler } = this
     try {
       switch (args[0] as string) {
+        case 'highlight': {
+          await handler.highlight()
+          break
+        }
+        case 'fold': {
+          await handler.fold(args[1])
+          break
+        }
         case 'snippetPrev': {
           await snippetManager.jumpPrev()
           break

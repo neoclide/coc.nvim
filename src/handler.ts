@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentHighlight, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -61,112 +61,11 @@ export default class Handler {
     }))
   }
 
-  private async onCharacterType(ch: string, bufnr: number): Promise<void> {
-    let doc = workspace.getDocument(bufnr)
-    let { changedtick } = doc
-    if (!doc) return
-    if (doc.isWord(ch)) return
-    let { document, position } = await workspace.getCurrentState()
-    doc.forceSync()
-    await wait(20)
-    let edits = await languages.provideDocumentTypeEdits(ch, document, position)
-    if (doc.changedtick != changedtick) return
-    if (edits && edits.length) {
-      await doc.applyEdits(this.nvim, edits)
-    }
-  }
-
-  private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
-    let { nvim } = this
-    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
-      workspace.showMessage(`Mode '${mode}' is not supported`, 'error')
-      return
-    }
-    let isVisual = ['v', 'V'].indexOf(mode) != -1
-    let c = isVisual ? '<' : '['
-    await nvim.command('normal! `' + c)
-    let start = await workspace.getOffset()
-    c = isVisual ? '>' : ']'
-    await nvim.command('normal! `' + c)
-    let end = await workspace.getOffset() + 1
-    if (start == null || end == null || start == end) {
-      workspace.showMessage(`Failed to get selected range`, 'error')
-      return
-    }
-    return {
-      start: document.positionAt(start),
-      end: document.positionAt(end)
-    }
-  }
-
-  private async previewHover(hover: Hover): Promise<void> {
-    let { contents } = hover
-    let lines: string[] = []
-    if (Array.isArray(contents)) {
-      for (let item of contents) {
-        if (typeof item === 'string') {
-          lines.push(item)
-        } else {
-          lines.push('``` ' + item.language)
-          lines.push(item.value)
-          lines.push('```')
-        }
-      }
-    } else if (typeof contents == 'string') {
-      lines.push(contents)
-    } else if (MarkedString.is(contents)) { // tslint:disable-line
-      lines.push('``` ' + contents.language)
-      lines.push(contents.value)
-      lines.push('```')
-    } else if (MarkupContent.is(contents)) {
-      lines.push(contents.value)
-    }
-    await this.nvim.call('coc#util#preview_info', [lines.join('\n')])
-  }
-
   public async onHover(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
-    if (!document) return
     let hover = await languages.getHover(document, position)
     if (!hover) return
     await this.previewHover(hover)
-  }
-
-  private async _showSignatureHelp(): Promise<void> {
-    let { document, position } = await workspace.getCurrentState()
-    if (!document) return
-    let signatureHelp = await languages.getSignatureHelp(document, position)
-    if (!signatureHelp) return
-    let { activeParameter, activeSignature, signatures } = signatureHelp
-    await this.nvim.command('echo ""')
-    await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
-    await this.nvim.setOption('showcmd', true)
-  }
-
-  private async handleDefinition(definition: Definition): Promise<void> {
-    if (!definition) return
-    if (Array.isArray(definition)) {
-      let len = definition.length
-      if (len == 0) return
-      if (len == 1) {
-        let { uri, range } = definition[0] as Location
-        await workspace.jumpTo(uri, range.start)
-      } else {
-        await this.addQuickfix(definition as Location[])
-      }
-    } else {
-      let { uri, range } = definition as Location
-      await workspace.jumpTo(uri, range.start)
-    }
-  }
-
-  private async addQuickfix(locations: Location[]): Promise<void> {
-    let items = await Promise.all(locations.map(loc => {
-      return workspace.getQuickfixItem(loc)
-    }))
-    let { nvim } = this
-    await nvim.call('setqflist', [items, ' ', 'Results of coc'])
-    await nvim.command('doautocmd User CocQuickfixChange')
   }
 
   public async gotoDefinition(): Promise<void> {
@@ -394,6 +293,40 @@ export default class Handler {
     }
   }
 
+  public async fold(kind?: string): Promise<void> {
+    let document = await workspace.document
+    let win = await this.nvim.window
+    let foldmethod = await win.getOption('foldmethod')
+    if (foldmethod != 'manual') {
+      workspace.showMessage('foldmethod option should be manual!', 'error')
+      return
+    }
+    let ranges = await languages.provideFoldingRanges(document.textDocument, {})
+    if (!ranges) {
+      workspace.showMessage('no range found', 'warning')
+      return
+    }
+    if (kind) {
+      ranges = ranges.filter(o => o.kind == kind)
+    }
+    if (ranges && ranges.length) {
+      await win.setOption('foldenable', true)
+      for (let range of ranges.reverse()) {
+        let { startLine, endLine } = range
+        let cmd = `${startLine + 1}, ${endLine + 1}fold`
+        this.nvim.command(cmd, true)
+      }
+    }
+  }
+
+  public async highlight(): Promise<void> {
+    let { document, position } = await workspace.getCurrentState()
+    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document, position)
+    if (!highlights) return
+    let doc = workspace.getDocument(document.uri)
+    await doc.setHighlights(highlights)
+  }
+
   private validWorkspaceSymbol(symbol: SymbolInformation): boolean {
     switch (symbol.kind) {
       case SymbolKind.Namespace:
@@ -437,6 +370,106 @@ export default class Handler {
   public dispose(): void {
     disposeAll(this.disposables)
   }
+
+  private async onCharacterType(ch: string, bufnr: number): Promise<void> {
+    let doc = workspace.getDocument(bufnr)
+    let { changedtick } = doc
+    if (!doc) return
+    if (doc.isWord(ch)) return
+    let { document, position } = await workspace.getCurrentState()
+    doc.forceSync()
+    await wait(20)
+    let edits = await languages.provideDocumentTypeEdits(ch, document, position)
+    if (doc.changedtick != changedtick) return
+    if (edits && edits.length) {
+      await doc.applyEdits(this.nvim, edits)
+    }
+  }
+
+  private async _showSignatureHelp(): Promise<void> {
+    let { document, position } = await workspace.getCurrentState()
+    let signatureHelp = await languages.getSignatureHelp(document, position)
+    if (!signatureHelp) return
+    let { activeParameter, activeSignature, signatures } = signatureHelp
+    await this.nvim.command('echo ""')
+    await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
+    await this.nvim.setOption('showcmd', true)
+  }
+
+  private async handleDefinition(definition: Definition): Promise<void> {
+    if (!definition) return
+    if (Array.isArray(definition)) {
+      let len = definition.length
+      if (len == 0) return
+      if (len == 1) {
+        let { uri, range } = definition[0] as Location
+        await workspace.jumpTo(uri, range.start)
+      } else {
+        await this.addQuickfix(definition as Location[])
+      }
+    } else {
+      let { uri, range } = definition as Location
+      await workspace.jumpTo(uri, range.start)
+    }
+  }
+
+  private async addQuickfix(locations: Location[]): Promise<void> {
+    let items = await Promise.all(locations.map(loc => {
+      return workspace.getQuickfixItem(loc)
+    }))
+    let { nvim } = this
+    await nvim.call('setqflist', [items, ' ', 'Results of coc'])
+    await nvim.command('doautocmd User CocQuickfixChange')
+  }
+
+  private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
+    let { nvim } = this
+    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
+      workspace.showMessage(`Mode '${mode}' is not supported`, 'error')
+      return
+    }
+    let isVisual = ['v', 'V'].indexOf(mode) != -1
+    let c = isVisual ? '<' : '['
+    await nvim.command('normal! `' + c)
+    let start = await workspace.getOffset()
+    c = isVisual ? '>' : ']'
+    await nvim.command('normal! `' + c)
+    let end = await workspace.getOffset() + 1
+    if (start == null || end == null || start == end) {
+      workspace.showMessage(`Failed to get selected range`, 'error')
+      return
+    }
+    return {
+      start: document.positionAt(start),
+      end: document.positionAt(end)
+    }
+  }
+
+  private async previewHover(hover: Hover): Promise<void> {
+    let { contents } = hover
+    let lines: string[] = []
+    if (Array.isArray(contents)) {
+      for (let item of contents) {
+        if (typeof item === 'string') {
+          lines.push(item)
+        } else {
+          lines.push('``` ' + item.language)
+          lines.push(item.value)
+          lines.push('```')
+        }
+      }
+    } else if (typeof contents == 'string') {
+      lines.push(contents)
+    } else if (MarkedString.is(contents)) { // tslint:disable-line
+      lines.push('``` ' + contents.language)
+      lines.push(contents.value)
+      lines.push('```')
+    } else if (MarkupContent.is(contents)) {
+      lines.push(contents.value)
+    }
+    await this.nvim.call('coc#util#preview_info', [lines.join('\n')])
+  }
+
 }
 
 function getSymbolKind(kind: SymbolKind): string {

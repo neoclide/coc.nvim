@@ -2,14 +2,14 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, DocumentHighlight, DocumentHighlightKind, Position, TextDocument} from 'vscode-languageserver-protocol'
-import {DocumentHighlightProvider} from '../../../provider'
-import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { CancellationToken, DocumentHighlight, DocumentHighlightKind, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { DocumentHighlightProvider } from '../../../provider'
+import Proto from '../protocol'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 
 export default class TypeScriptDocumentHighlightProvider implements DocumentHighlightProvider {
-  public constructor(private readonly client: ITypeScriptServiceClient) {}
+  public constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async provideDocumentHighlights(
     resource: TextDocument,

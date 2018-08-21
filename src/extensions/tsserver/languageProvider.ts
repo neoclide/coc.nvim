@@ -14,8 +14,10 @@ import BufferSyncSupport from './features/bufferSyncSupport'
 import CompletionItemProvider from './features/completionItemProvider'
 import DefinitionProvider from './features/definitionProvider'
 import { DiagnosticsManager } from './features/diagnostics'
+import DocumentHighlight from './features/documentHighlight'
 import DocumentSymbolProvider from './features/documentSymbol'
 import FileConfigurationManager from './features/fileConfigurationManager'
+import Folding from './features/folding'
 import FormattingProvider from './features/formatting'
 import HoverProvider from './features/hover'
 import ImplementationsCodeLensProvider from './features/implementationsCodeLens'
@@ -159,6 +161,10 @@ export default class LanguageProvider {
     )
 
     this.disposables.push(
+      languages.registerDocumentHighlightProvider(languageIds, new DocumentHighlight(this.client))
+    )
+
+    this.disposables.push(
       languages.registerSignatureHelpProvider(
         languageIds,
         new SignatureHelpProvider(client))
@@ -199,6 +205,10 @@ export default class LanguageProvider {
     if (this.client.apiVersion.gte(API.v280)) {
       this.disposables.push(
         new OrganizeImportsProvider(client, commandManager, this.fileConfigurationManager, this.description.id)
+      )
+
+      this.disposables.push(
+        languages.registerFoldingRangeProvider(languageIds, new Folding(this.client))
       )
     }
 

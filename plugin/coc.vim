@@ -126,11 +126,15 @@ function! s:Enable()
   command! -nargs=0 CocErrors  :call coc#rpc#show_error()
 endfunction
 
-highlight default CocErrorSign   guifg=#ff0000
-highlight default CocWarningSign guifg=#ff922b
-highlight default CocInfoSign    guifg=#fab005
-highlight default CocHintSign    guifg=#15aabf
-highlight default CocUnderline   term=underline gui=undercurl
+hi default CocErrorSign   guifg=#ff0000
+hi default CocWarningSign guifg=#ff922b
+hi default CocInfoSign    guifg=#fab005
+hi default CocHintSign    guifg=#15aabf
+hi default CocUnderline   term=underline gui=undercurl
+
+hi default CocHighlightText  guibg=#212529
+hi default CocHighlightRead  guibg=#212529
+hi default CocHighlightWrite guibg=#212529
 
 function! s:FormatFromSelected(type)
   call CocAction('formatSelected', a:type)

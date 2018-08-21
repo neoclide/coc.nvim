@@ -1,12 +1,12 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, DocumentHighlight, DocumentHighlightKind, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
-import { byteLength } from '../util/string'
+import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
@@ -17,9 +17,10 @@ export default class Document {
   public isIgnored = false
   public chars: Chars
   public textDocument: TextDocument
-  public fetchContent: Function & { clear(): void; }
+  public fetchContent: Function & { clear(): void }
   private nvim: Neovim
-  private _fireContentChanges: Function & { clear(): void; }
+  private srcId = 0
+  private _fireContentChanges: Function & { clear(): void }
   private _insertEnter: boolean
   private attached = false
   // real current lines
@@ -28,8 +29,10 @@ export default class Document {
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private _onDocumentDetach = new Emitter<TextDocument>()
-  public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
-  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
+  public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this
+    ._onDocumentChange.event
+  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach
+    .event
   constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
@@ -96,7 +99,11 @@ export default class Document {
     return this.lines.length
   }
 
-  public async init(nvim: Neovim, buftype: string, isNvim: boolean): Promise<boolean> {
+  public async init(
+    nvim: Neovim,
+    buftype: string,
+    isNvim: boolean
+  ): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
     this.buftype = buftype
@@ -105,19 +112,29 @@ export default class Document {
       if (!res) return false
     }
     this.attached = true
-    let opts = await nvim.call('coc#util#get_bufoptions', [buffer.id]) as BufferOption
+    let opts = (await nvim.call('coc#util#get_bufoptions', [
+      buffer.id
+    ])) as BufferOption
     this._changedtick = opts.changedtick
-    this.lines = await buffer.lines as string[]
+    this.lines = (await buffer.lines) as string[]
     let { fullpath, filetype, iskeyword } = opts
     let uri = getUri(fullpath, buffer.id)
-    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
-    let chars = this.chars = new Chars(iskeyword)
+    this.textDocument = TextDocument.create(
+      uri,
+      filetype,
+      0,
+      this.lines.join('\n')
+    )
+    let chars = (this.chars = new Chars(iskeyword))
     if (this.includeDash(filetype)) chars.addKeyword('-')
-    this.gitCheck().then(() => {
-      this.generateWords()
-    }, e => {
-      logger.error('git error', e.stack)
-    })
+    this.gitCheck().then(
+      () => {
+        this.generateWords()
+      },
+      e => {
+        logger.error('git error', e.stack)
+      }
+    )
     return true
   }
 
@@ -157,7 +174,7 @@ export default class Document {
     tick: number,
     firstline: number,
     lastline: number,
-    linedata: string[],
+    linedata: string[]
     // more:boolean
   ): void {
     if (tick == null) return
@@ -201,14 +218,16 @@ export default class Document {
       let change = getChange(this.content, content)
       this.createDocument()
       let { version, uri } = this
-      let changes = [{
-        range: {
-          start: textDocument.positionAt(change.start),
-          end: textDocument.positionAt(change.end)
-        },
-        rangeLength: change.end - change.start,
-        text: change.newText
-      }]
+      let changes = [
+        {
+          range: {
+            start: textDocument.positionAt(change.start),
+            end: textDocument.positionAt(change.end)
+          },
+          rangeLength: change.end - change.start,
+          text: change.newText
+        }
+      ]
       this._onDocumentChange.fire({
         textDocument: { version, uri },
         contentChanges: changes
@@ -316,9 +335,11 @@ export default class Document {
       if (word.indexOf('-') !== -1) {
         let parts = word.split('-')
         for (let part of parts) {
-          if (part.length > 2
-            && res.indexOf(part) === -1
-            && words.indexOf(part) === -1) {
+          if (
+            part.length > 2 &&
+            res.indexOf(part) === -1 &&
+            words.indexOf(part) === -1
+          ) {
             res.push(part)
           }
         }
@@ -336,7 +357,10 @@ export default class Document {
    * @param {string} extraChars?
    * @returns {Range}
    */
-  public getWordRangeAtPosition(position: Position, extraChars?: string): Range {
+  public getWordRangeAtPosition(
+    position: Position,
+    extraChars?: string
+  ): Range {
     let { chars, textDocument } = this
     let content = textDocument.getText()
     if (extraChars && extraChars.length) {
@@ -373,15 +397,11 @@ export default class Document {
   }
 
   private includeDash(filetype): boolean {
-    return [
-      'json',
-      'html',
-      'wxml',
-      'css',
-      'less',
-      'scss',
-      'wxss'
-    ].indexOf(filetype) != -1
+    return (
+      ['json', 'html', 'wxml', 'css', 'less', 'scss', 'wxss'].indexOf(
+        filetype
+      ) != -1
+    )
   }
 
   private async gitCheck(): Promise<void> {
@@ -394,13 +414,18 @@ export default class Document {
   private createDocument(changeCount = 1): void {
     let { version, uri, filetype } = this
     version = version + changeCount
-    this.textDocument = TextDocument.create(uri, filetype, version, this.lines.join('\n'))
+    this.textDocument = TextDocument.create(
+      uri,
+      filetype,
+      version,
+      this.lines.join('\n')
+    )
   }
 
   private async _fetchContent(): Promise<void> {
     let { nvim, buffer } = this
     let { id } = buffer
-    let o = await nvim.call('coc#util#get_content', [id]) as any
+    let o = (await nvim.call('coc#util#get_content', [id])) as any
     if (!o) return
     let { content, changedtick } = o
     this._changedtick = changedtick
@@ -432,5 +457,37 @@ export default class Document {
       col = col - byteLength(c)
     }
     return col
+  }
+
+  public async setHighlights(highlights: DocumentHighlight[]): Promise<void> {
+    let { srcId, buffer } = this
+    if (srcId == 0) {
+      srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
+      this.srcId = srcId
+    } else {
+      await buffer.clearHighlight({ srcId })
+    }
+    for (let hl of highlights) {
+      let hlGroup = hl.kind == DocumentHighlightKind.Text
+        ? 'CocHighlightText'
+        : hl.kind == DocumentHighlightKind.Read
+          ? 'CocHighlightRead'
+          : 'CocHighlightWrite'
+      let { range } = hl
+      let { start, end } = range
+      for (let i = start.line; i <= end.line; i++) {
+        let line = this.getline(i)
+        if (!line || !line.length) continue
+        let s = i == start.line ? start.character : 0
+        let e = i == end.line ? end.character : -1
+        await buffer.addHighlight({
+          srcId,
+          hlGroup,
+          line: i,
+          colStart: s == 0 ? 0 : byteIndex(line, s),
+          colEnd: e == -1 ? -1 : byteIndex(line, e),
+        })
+      }
+    }
   }
 }
