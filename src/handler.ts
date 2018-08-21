@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentHighlight, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -325,6 +325,22 @@ export default class Handler {
     if (!highlights) return
     let doc = workspace.getDocument(document.uri)
     await doc.setHighlights(highlights)
+  }
+
+  public async links(): Promise<DocumentLink[]> {
+    let doc = await workspace.document
+    let links = await languages.getDocumentLinks(doc.textDocument)
+    links = links || []
+    let res: DocumentLink[] = []
+    for (let link of links) {
+      if (link.target) {
+        res.push(link)
+      } else {
+        link = await languages.resolveDocumentLink(link)
+        res.push()
+      }
+    }
+    return links
   }
 
   private validWorkspaceSymbol(symbol: SymbolInformation): boolean {

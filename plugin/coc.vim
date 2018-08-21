@@ -22,12 +22,14 @@ endfunction
 
 function! CocActionAsync(...) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
-  let cb = a:000[a:1 - 1]
-  if type(cb) != 2
-    throw 'last argument must be callback'
+  let Cb = a:000[a:1 - 1]
+  if type(Cb) != 2
+    let Cb = {-> {}}
+    let args = copy(a:000)
+  else
+    let args = copy(a:000)[0:-2]
   endif
-  let args = copy(a:000)[0:-2]
-  call coc#rpc#request_async('CocAction', args, cb)
+  call coc#rpc#request_async('CocAction', args, Cb)
 endfunction
 
 function! s:OpenConfig()
@@ -130,7 +132,7 @@ hi default CocErrorSign   guifg=#ff0000
 hi default CocWarningSign guifg=#ff922b
 hi default CocInfoSign    guifg=#fab005
 hi default CocHintSign    guifg=#15aabf
-hi default CocUnderline   term=underline gui=undercurl
+hi default CocUnderline   term=undercurl gui=undercurl
 
 hi default CocHighlightText  guibg=#212529
 hi default CocHighlightRead  guibg=#212529

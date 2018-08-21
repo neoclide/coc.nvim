@@ -473,21 +473,25 @@ export default class Document {
         : hl.kind == DocumentHighlightKind.Read
           ? 'CocHighlightRead'
           : 'CocHighlightWrite'
-      let { range } = hl
-      let { start, end } = range
-      for (let i = start.line; i <= end.line; i++) {
-        let line = this.getline(i)
-        if (!line || !line.length) continue
-        let s = i == start.line ? start.character : 0
-        let e = i == end.line ? end.character : -1
-        await buffer.addHighlight({
-          srcId,
-          hlGroup,
-          line: i,
-          colStart: s == 0 ? 0 : byteIndex(line, s),
-          colEnd: e == -1 ? -1 : byteIndex(line, e),
-        })
-      }
+      await this.highlightRange(hl.range, srcId, hlGroup)
+    }
+  }
+
+  private async highlightRange(range: Range, srcId: number, hlGroup: string): Promise<void> {
+    let { buffer } = this
+    let { start, end } = range
+    for (let i = start.line; i <= end.line; i++) {
+      let line = this.getline(i)
+      if (!line || !line.length) continue
+      let s = i == start.line ? start.character : 0
+      let e = i == end.line ? end.character : -1
+      await buffer.addHighlight({
+        srcId,
+        hlGroup,
+        line: i,
+        colStart: s == 0 ? 0 : byteIndex(line, s),
+        colEnd: e == -1 ? -1 : byteIndex(line, e),
+      })
     }
   }
 }

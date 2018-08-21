@@ -84,6 +84,9 @@ export default class Plugin {
     let { handler } = this
     try {
       switch (args[0] as string) {
+        case 'links': {
+          return await handler.links()
+        }
         case 'highlight': {
           await handler.highlight()
           break

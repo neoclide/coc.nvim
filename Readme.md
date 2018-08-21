@@ -238,7 +238,7 @@ endfunction
 autocmd CursorHoldI,CursorMovedI * silent! call CocAction('showSignatureHelp')
 
 * Highlight symbol under cursor on CursorHold
-autocmd CursorHold * silent call CocAction('highlight')
+autocmd CursorHold * silent call CocActionAsync('highlight')
 
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
@@ -286,6 +286,8 @@ nnoremap <silent> <space>a  :<C-u>Denite coc-diagnostic<cr>
 nnoremap <silent> <space>c  :<C-u>Denite coc-command<cr>
 " Show available services
 nnoremap <silent> <space>s  :<C-u>Denite coc-service<cr>
+" Show links of current buffer
+nnoremap <silent> <space>l  :<C-u>Denite coc-link<cr>
 ```
 
 ## Trouble shooting
