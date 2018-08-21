@@ -1,8 +1,20 @@
+# 2018-08-21
+
+* Fix diagnostic and arguments of tsserver.
+* Add `keepfocus` option for `open_terminal`.
+* Improve error catch of autocmds.
+* Add `onTypeFormat` feature for language server
+* Add `onTypeFormat` support for tsserver.
+* Refactor and more tests of workspace.
+* Fix `window/showMessageRequest` request.
+* Use `callAsync` for async request to vim.
+* Add `CocActionAsync` function send async request to server.
+
 # 2018-08-17
 
 * Fix exists terminal buffer not watched.
 * Fix buffer not attached after `edit!`.
-* Fix clean diagnostics of tsc command.
+* Fix clean diagnostics of `tsserver.watchBuild` command.
 * Fix refresh of buffer.
 * Fix document not found on `BufEnter`.
 
@@ -259,7 +271,7 @@ after completion item select.
 
 # 2018-07-15
 
-* Support location list for diagnoctic.
+* Support location list for diagnostic.
 * Add tsserver project errors command.
 
 # 2018-07-14
@@ -273,7 +285,7 @@ after completion item select.
 
 # 2018-07-13
 
-* **Break change:** `diagnoctic` in setting.json changed to `diagnostic`.
+* **Break change:** `diagnostic` in setting.json changed to `diagnostic`.
 * Fix clearHighlight arguments.
 * Add eslint extension https://github.com/Microsoft/vscode-eslint.
 * Fix snippet break with line have $variable.

@@ -1,6 +1,6 @@
 *coc-nvim.txt*				Completion framework for neovim
 
-Version: 0.0.5
+Version: 0.0.12
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -11,6 +11,7 @@ Requirement		|coc-requirement|
 Install			|coc-install|
 Configuration 		|coc-configuration|
 Completion   		|coc-completion|
+LanguageServer 		|coc-languageserver|
 Interface		|coc-interface|
   Keymapings 		|coc-keymapings|
   Variables		  |coc-variables|
@@ -37,28 +38,31 @@ INTRODUCTION					*coc-introduction*
 
 Coc tries to make best experience of LSP features, especially for completion.
 
-It has intergration with some best language server extensions from VSCode, and
+It has intergration with some language server extensions from VSCode, and
 you can configure coc to work with custom language server as well.
 
 ==============================================================================
 REQUIREMENT					*coc-requirement*
 
-This plugin works for neovim > 0.3, and vim > 8.1.
+Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
-If version not match, this plugin would not loaded at all.
+If version not match, this plugin would not be loaded at all.
 
 ==============================================================================
 INSTALL						*coc-install*
 
 Use plugin manager, like https://github.com/junegunn/vim-plug by add: >
 
-  Plug 'neoclide/coc.nvim', {'do': './install.sh'}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
 then restart neovim.
+
+For other plugin manager, run `:coc#util#install()` after plugin is loaded,
+this command would download latest coc binary from github release page.
 
 ==============================================================================
 CONFIGURATION					*coc-configuration*
@@ -67,7 +71,8 @@ The same as VSCode, Coc use jsonc formated file named `coc-settings.json` for
 configuration.
 
 Use command |:CocConfig| to open user configuration file, or create
-`.vim/coc-settings.json` for workspace configuration.
+`.vim/coc-settings.json` for workspace configuration.  Autocompletion would be
+enabled after json-Language-server installed.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for detail.
@@ -75,9 +80,151 @@ for detail.
 ==============================================================================
 COMPLETION					*coc-completion*
 
-To make completion easier, there're some common practices.
+The completion of coc is triggered automatically, you can change some of
+completion behavior be using configuration file.
+
+To disable automatic trigger, use: >
+
+	"coc.preferences.autoTrigger": "none",
+<
+To disable trigger after insert enter, use: >
+
+	"coc.preferences.triggerAfterInsertEnter": true,
+<
+
+To change the timeout of completion, use: >
+
+	"coc.preferences.timeout": 500,
+<
+To make the first complete item selected automatically, use: >
+
+	"coc.preferences.noselect": false,
+<
+Coc also provide some vim interface to make it easier to work with vim.
+
+Setup kepmap for trigger completion, use: >
+
+	inoremap <silent><expr> <c-space> coc#refresh()
+<
+Use `<cr>` for confirm completion, use: >
+
+	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+<
+Note: snippet and `additionalTextEdit` feature requires confirm completion
+to work.
+
+Use <C-x><C-u> to complete custom sources, including `word`, `emoji` and
+`include` >
+
+	imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
+<
+Use <C-j> and <C-k> to jump forward and backward of snippet placeholders: >
+
+	let g:coc_snippet_next = '<c-j>'
+	let g:coc_snippet_prev = '<c-k>'
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
+for more tips.
+
+==============================================================================
+LANGUAGESERVER					*coc-languageserver*
+
+Coc have support for most language server features, checkout
+
+https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features
+
+for a complete list.
+
+==============================================================================
+
+Build in extensions:
+
+------------------------------------------------------------------------------
+tsserver
+
+Full features support as VSCode's typescript extension, support javascript and
+typescript.
+
+Install global typescript module to make this extension works for all of your
+javascript/typescript files. >
+
+	yarn global add typescript
+>
+------------------------------------------------------------------------------
+html
+
+Install global language server by: >
+
+	yarn global add vscode-html-languageserver-bin
+>
+
+checkout: https://www.npmjs.com/package/vscode-html-languageserver-bin for
+available features.
+
+------------------------------------------------------------------------------
+css
+
+Install global language server by: >
+
+	yarn global add css-langserver
+>
+
+checkout: https://www.npmjs.com/package/vscode-css-languageservice for
+available features.
+
+------------------------------------------------------------------------------
+json
+
+Install global language server by: >
+
+	yarn global add vscode-json-languageserver
+
+checkout: https://www.npmjs.org/package/vscode-json-languageserver for
+available features.
+
+------------------------------------------------------------------------------
+wxml
+
+Install global language server by: >
+
+	yarn global add wxml-langserver
+
+checkout: https://www.npmjs.org/package/wxml-langserver for
+available features.
+
+------------------------------------------------------------------------------
+vetur
+
+Used for vue files.
+
+Install global language server by: >
+
+	yarn global add vue-language-server
+
+checkout: https://www.npmjs.org/package/vue-language-server for
+available features.
+
+------------------------------------------------------------------------------
+solargraph
+
+Used for ruby files.
+
+Install global language server by: >
+
+	gem install solargraph
+
+checkout: https://github.com/castwide/solargraph for available features.
+
+------------------------------------------------------------------------------
+pyls
+
+Used for python files.
+
+Install global language server by: >
+
+	pip install 'python-language-server[all]'
+
+checkout: https://github.com/palantir/python-language-server for available features.
 
 ==============================================================================
 INTERFACE					*coc-interface*
@@ -339,7 +486,7 @@ Available Actions ~
 
 	Get all services infomation list.
 
-	used for |coc-denite-service|
+	Used for |coc-denite-service|
 
 "toggleService" {serviceId} 			*coc-action-toggleService*
 
@@ -612,7 +759,7 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 ==============================================================================
 CHANGELOG					*coc-changelog*
 
-Check out https://github.com/neoclide/coc.nvim/blob/master/history.md
+Check out *../history.md*
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:
