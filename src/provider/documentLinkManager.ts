@@ -1,19 +1,12 @@
 import { CancellationToken, Disposable, DocumentLink, DocumentSelector, TextDocument } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
 import { DocumentLinkProvider } from './index'
+import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
 
-export interface ProviderItem {
-  id: string
-  selector: DocumentSelector
-  provider: DocumentLinkProvider
-}
-
-export default class DocumentLinkManager implements Disposable {
-  private providers: Set<ProviderItem> = new Set()
+export default class DocumentLinkManager extends Manager<DocumentLinkProvider> implements Disposable {
 
   public register(selector: DocumentSelector, provider: DocumentLinkProvider): Disposable {
-    let item: ProviderItem = {
+    let item = {
       id: uuid(),
       selector,
       provider
@@ -24,14 +17,7 @@ export default class DocumentLinkManager implements Disposable {
     })
   }
 
-  private getProviders(document: TextDocument): ProviderItem[] | null {
-    let items = Array.from(this.providers)
-    return items.filter(item => {
-      return workspace.match(item.selector, document) > 0
-    })
-  }
-
-  private async _provideDocumentLinks(item: ProviderItem, document: TextDocument, token: CancellationToken): Promise<DocumentLink[]> {
+  private async _provideDocumentLinks(item: ProviderItem<DocumentLinkProvider>, document: TextDocument, token: CancellationToken): Promise<DocumentLink[]> {
     let { provider, id } = item
     let items = await Promise.resolve(provider.provideDocumentLinks(document, token))
     if (!items || !items.length) return []

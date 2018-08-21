@@ -134,9 +134,9 @@ hi default CocInfoSign    guifg=#fab005
 hi default CocHintSign    guifg=#15aabf
 hi default CocUnderline   term=undercurl gui=undercurl
 
-hi default CocHighlightText  guibg=#212529
-hi default CocHighlightRead  guibg=#212529
-hi default CocHighlightWrite guibg=#212529
+hi default CocHighlightText  guibg=#111111
+hi default CocHighlightRead  guibg=#111111
+hi default CocHighlightWrite guibg=#111111
 
 function! s:FormatFromSelected(type)
   call CocAction('formatSelected', a:type)

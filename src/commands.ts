@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
 import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
+import sources from './sources'
 import { wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('commands')
@@ -62,8 +63,6 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'workspace.refreshSources',
       execute: async () => {
-        let { sources } = workspace
-        if (!sources) return
         await sources.refresh()
       }
     })

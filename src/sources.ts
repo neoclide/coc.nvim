@@ -6,22 +6,24 @@ import path from 'path'
 import pify from 'pify'
 import { Disposable } from 'vscode-jsonrpc'
 import which from 'which'
-import languages from './languages'
 import VimSource from './model/source-vim'
 import { CompleteOption, DocumentInfo, ISource, SourceConfig, SourceType, VimCompleteItem } from './types'
-import { disposeAll, echoErr, echoMessage } from './util'
+import { disposeAll, echoErr } from './util'
 import { statAsync } from './util/fs'
 import { isWord } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('sources')
 
-export default class Sources extends EventEmitter {
+export class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private _ready = false
 
-  constructor(private nvim: Neovim) {
-    super()
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
+  public init(): void {
     Promise.all([
       this.createNativeSources(),
       this.createRemoteSources(),
@@ -32,23 +34,9 @@ export default class Sources extends EventEmitter {
     }, e => {
       this._ready = true
       this.emit('ready')
-      echoErr(nvim, `Error on source create ${e.message}`)
+      workspace.showMessage(`Error on source create ${e.message}`, 'error')
     })
-    this.initLanguageSources()
     workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
-  }
-
-  private initLanguageSources(): void {
-    let { sources } = languages
-    for (let source of sources) {
-      let { name } = source
-      this.addSource(name, source)
-    }
-    languages.onDidCompletionSourceCreated(source => {
-      let { name } = source
-      this.addSource(name, source)
-      logger.debug('created service source', name)
-    }, this, this.disposables)
   }
 
   public get ready(): Promise<void> {
@@ -147,11 +135,18 @@ export default class Sources extends EventEmitter {
     })
   }
 
-  private addSource(name: string, source: ISource): void {
+  public addSource(name: string, source: ISource): void {
     if (this.names.indexOf(name) !== -1) {
-      echoMessage(this.nvim, `Source "${name}" recreated`)
+      workspace.showMessage(`Source "${name}" recreated`, 'warning')
     }
     this.sourceMap.set(name, source)
+  }
+
+  public removeSource(source: ISource): void {
+    let { name } = source
+    if (source == this.sourceMap.get(name)) {
+      this.sourceMap.delete(name)
+    }
   }
 
   private async createNativeSources(): Promise<void> {
@@ -271,3 +266,5 @@ export default class Sources extends EventEmitter {
     disposeAll(this.disposables)
   }
 }
+
+export default new Sources()

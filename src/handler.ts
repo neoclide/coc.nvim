@@ -70,7 +70,7 @@ export default class Handler {
 
   public async gotoDefinition(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
-    let definition = await languages.getDeifinition(document, position)
+    let definition = await languages.getDefinition(document, position)
     await this.handleDefinition(definition)
   }
 
@@ -176,9 +176,7 @@ export default class Handler {
     if (!this.currentSymbols) return null
     let symbol = this.currentSymbols[symbolIndex]
     if (!symbol) return null
-    let document = await workspace.document
-    if (!document) return null
-    return await languages.resolveWorkspaceSymbol(document.textDocument, symbol)
+    return await languages.resolveWorkspaceSymbol(symbol)
   }
 
   public async rename(): Promise<void> {

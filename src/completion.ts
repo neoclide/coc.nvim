@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
+import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import completes from './completes'
 import Increment from './increment'
 import Document from './model/document'
-import Sources from './sources'
+import sources from './sources'
 import { CompleteOption, SourceStat, SourceType, VimCompleteItem } from './types'
 import { echoErr, isCocItem } from './util'
-import { isWord } from './util/string'
+import { byteSlice, isWord } from './util/string'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('completion')
@@ -52,10 +53,6 @@ export class Completion {
       if (!document) return
       document.paused = false
     })
-  }
-
-  private get sources(): Sources {
-    return workspace.sources
   }
 
   private getPreference(name: string, defaultValue: any): any {
@@ -105,7 +102,7 @@ export class Completion {
 
   public toggleSource(name: string): void {
     if (!name) return
-    let source = this.sources.getSource(name)
+    let source = sources.getSource(name)
     if (!source) return
     if (typeof source.toggle === 'function') {
       source.toggle()
@@ -115,7 +112,7 @@ export class Completion {
   public async sourceStat(): Promise<SourceStat[]> {
     let res: SourceStat[] = []
     let filetype = await this.nvim.eval('&filetype') as string
-    let items = this.sources.getSourcesForFiletype(filetype)
+    let items = sources.getSourcesForFiletype(filetype)
     for (let item of items) {
       res.push({
         name: item.name,
@@ -137,9 +134,9 @@ export class Completion {
     increment.start(option)
     let { input } = option
     logger.trace(`options: ${JSON.stringify(option)}`)
-    let sources = this.sources.getCompleteSources(option)
-    logger.trace(`Activted sources: ${sources.map(o => o.name).join(',')}`)
-    let items = await completes.doComplete(sources, option)
+    let arr = sources.getCompleteSources(option)
+    logger.trace(`Activted sources: ${arr.map(o => o.name).join(',')}`)
+    let items = await completes.doComplete(arr, option)
     if (items.length == 0) {
       increment.stop()
       return
@@ -170,7 +167,7 @@ export class Completion {
     let search = await this.nvim.call('coc#util#get_search', [option.col])
     if (search == null) return
     let item = completes.getCompleteItem(search)
-    if (item) await this.sources.doCompleteResolve(item)
+    if (item) await sources.doCompleteResolve(item)
   }
 
   private async onTextChangedI(): Promise<void> {
@@ -212,7 +209,7 @@ export class Completion {
     try {
       increment.stop()
       completes.addRecent(item.word)
-      await this.sources.doCompleteDone(item)
+      await sources.doCompleteDone(item)
       completes.reset()
     } catch (e) {
       logger.error(`error on complete done`, e.message)
@@ -244,7 +241,7 @@ export class Completion {
 
   private async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
-    let { nvim, sources } = this
+    let { nvim } = this
     let autoTrigger = this.getPreference('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     if (isWord(character)) {
@@ -263,10 +260,114 @@ export class Completion {
       this.increment.removeAllListeners()
       this.increment.stop()
     }
-    if (this.sources) {
-      this.sources.dispose()
+  }
+
+  public completionKindString(kind: CompletionItemKind): string {
+    switch (kind) {
+      case CompletionItemKind.Text:
+        return 'Text'
+      case CompletionItemKind.Method:
+        return 'Method'
+      case CompletionItemKind.Function:
+        return 'Function'
+      case CompletionItemKind.Constructor:
+        return 'Constructor'
+      case CompletionItemKind.Field:
+        return 'Field'
+      case CompletionItemKind.Variable:
+        return 'Variable'
+      case CompletionItemKind.Class:
+        return 'Class'
+      case CompletionItemKind.Interface:
+        return 'Interface'
+      case CompletionItemKind.Module:
+        return 'Module'
+      case CompletionItemKind.Property:
+        return 'Property'
+      case CompletionItemKind.Unit:
+        return 'Unit'
+      case CompletionItemKind.Value:
+        return 'Value'
+      case CompletionItemKind.Enum:
+        return 'Enum'
+      case CompletionItemKind.Keyword:
+        return 'Keyword'
+      case CompletionItemKind.Snippet:
+        return 'Snippet'
+      case CompletionItemKind.Color:
+        return 'Color'
+      case CompletionItemKind.File:
+        return 'File'
+      case CompletionItemKind.Reference:
+        return 'Reference'
+      case CompletionItemKind.Folder:
+        return 'Folder'
+      case CompletionItemKind.EnumMember:
+        return 'EnumMember'
+      case CompletionItemKind.Constant:
+        return 'Constant'
+      case CompletionItemKind.Struct:
+        return 'Struct'
+      case CompletionItemKind.Event:
+        return 'Event'
+      case CompletionItemKind.Operator:
+        return 'Operator'
+      case CompletionItemKind.TypeParameter:
+        return 'TypeParameter'
+      default:
+        return ''
     }
   }
+
+  public convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
+    let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+    let obj: VimCompleteItem = {
+      word: item.insertText || item.label, // tslint:disable-line
+      menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
+      kind: this.completionKindString(item.kind),
+      sortText: validString(item.sortText) ? item.sortText : item.label,
+      filterText: validString(item.filterText) ? item.filterText : item.label,
+      isSnippet
+    }
+    if (item.preselect) {
+      obj.sortText = '\0' + obj.sortText
+    }
+    if (!isSnippet && !item.insertText && item.textEdit) { // tslint:disable-line
+      obj.word = item.textEdit.newText
+      // make sure we can find it on CompleteDone
+      item.insertText = obj.word // tslint:disable-line
+    }
+    obj.abbr = item.data && item.data.abbr ? item.data.abbr : obj.filterText
+    if (item.data && item.data.optional) {
+      obj.abbr = obj.abbr + '?'
+    }
+    if (isSnippet) obj.abbr = obj.abbr + '~'
+    let document = this.getDocumentation(item)
+    if (document) obj.info = document
+    // item.commitCharacters not necessary for vim
+    return obj
+  }
+
+  public getDocumentation(item: CompletionItem): string | null {
+    let { documentation } = item
+    if (!documentation) return null
+    if (typeof documentation === 'string') return documentation
+    return documentation.value
+  }
+
+  public getPosition(opt: CompleteOption): Position {
+    let { line, linenr, col, colnr } = opt
+    let part = byteSlice(line, 0, col - 1)
+    return {
+      line: linenr - 1,
+      character: part.length + 1 + (colnr - col > 1 ? 1 : 0)
+    }
+  }
+}
+
+function validString(str: any): boolean {
+  if (typeof str !== 'string') return false
+  return str.length > 0
 }
 
 export default new Completion()

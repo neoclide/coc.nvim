@@ -1,20 +1,12 @@
 import { CancellationToken, ColorInformation, ColorPresentation, Disposable, DocumentSelector, TextDocument } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
 import { DocumentColorProvider } from './index'
+import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
 
-export interface ProviderItem {
-  id: string
-  selector: DocumentSelector
-  provider: DocumentColorProvider
-  score?: number
-}
-
-export default class DocumentColorManager implements Disposable {
-  private providers: Set<ProviderItem> = new Set()
+export default class DocumentColorManager extends Manager<DocumentColorProvider> implements Disposable {
 
   public register(selector: DocumentSelector, provider: DocumentColorProvider): Disposable {
-    let item: ProviderItem = {
+    let item: ProviderItem<DocumentColorProvider> = {
       id: uuid(),
       selector,
       provider
@@ -23,21 +15,6 @@ export default class DocumentColorManager implements Disposable {
     return Disposable.create(() => {
       this.providers.delete(item)
     })
-  }
-
-  private getProvider(document: TextDocument): ProviderItem | null {
-    let items = Array.from(this.providers)
-    let provider: ProviderItem
-    for (let item of items) {
-      let { selector } = item
-      let score = workspace.match(selector, document)
-      if (score == 10) return item
-      item.score = score
-      if (!provider || score > provider.score) {
-        provider = item
-      }
-    }
-    return provider
   }
 
   public async provideDocumentColors(document: TextDocument, token: CancellationToken): Promise<ColorInformation[] | null> {

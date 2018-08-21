@@ -6,7 +6,7 @@ import diagnosticManager from './diagnostic/manager'
 import Handler from './handler'
 import services from './services'
 import snippetManager from './snippet/manager'
-import Sources from './sources'
+import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -20,8 +20,7 @@ export default class Plugin {
     let emitter = this.emitter = new Emitter()
       ; (workspace as any).nvim = nvim
       ; (workspace as any).emitter = emitter
-    let sources = new Sources(nvim)
-      ; (workspace as any).sources = sources
+    sources.init()
     services.init(nvim)
     commandManager.init(nvim, this)
     completion.init(nvim, this.emitter)
@@ -113,7 +112,7 @@ export default class Plugin {
         case 'sourceStat':
           return await completion.sourceStat()
         case 'refreshSource':
-          await workspace.sources.refresh(args[1])
+          await sources.refresh(args[1])
           break
         case 'toggleSource':
           completion.toggleSource(args[1])
@@ -187,6 +186,7 @@ export default class Plugin {
 
   public async dispose(): Promise<void> {
     workspace.dispose()
+    sources.dispose()
     await services.stopAll()
     services.dispose()
     this.emitter.removeAllListeners()

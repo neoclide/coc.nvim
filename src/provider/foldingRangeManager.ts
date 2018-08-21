@@ -1,20 +1,12 @@
 import { CancellationToken, Disposable, DocumentSelector, FoldingRange, TextDocument } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
 import { FoldingContext, FoldingRangeProvider } from './index'
+import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
 
-export interface ProviderItem {
-  id: string
-  selector: DocumentSelector
-  provider: FoldingRangeProvider
-  score?: number
-}
-
-export default class FoldingRangeManager implements Disposable {
-  private providers: Set<ProviderItem> = new Set()
+export default class FoldingRangeManager extends Manager<FoldingRangeProvider> implements Disposable {
 
   public register(selector: DocumentSelector, provider: FoldingRangeProvider): Disposable {
-    let item: ProviderItem = {
+    let item: ProviderItem<FoldingRangeProvider> = {
       id: uuid(),
       selector,
       provider
@@ -23,21 +15,6 @@ export default class FoldingRangeManager implements Disposable {
     return Disposable.create(() => {
       this.providers.delete(item)
     })
-  }
-
-  private getProvider(document: TextDocument): ProviderItem | null {
-    let items = Array.from(this.providers)
-    let provider: ProviderItem
-    for (let item of items) {
-      let { selector } = item
-      let score = workspace.match(selector, document)
-      if (score == 10) return item
-      item.score = score
-      if (!provider || score > provider.score) {
-        provider = item
-      }
-    }
-    return provider
   }
 
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): Promise<FoldingRange[] | null> {

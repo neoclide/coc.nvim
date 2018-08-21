@@ -1,51 +1,48 @@
-import { CancellationToken, Disposable, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Disposable, DocumentSelector, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { isWord } from '../util/string'
 import workspace from '../workspace'
 import { OnTypeFormattingEditProvider } from './index'
 
 export interface ProviderItem {
   triggerCharacters: string[]
+  selector: DocumentSelector
   provider: OnTypeFormattingEditProvider
 }
 
 export default class OnTypeFormatManager implements Disposable {
-  private providers: Map<string, ProviderItem> = new Map()
+  private providers: Set<ProviderItem> = new Set()
 
-  public register(languageIds: string[], provider: OnTypeFormattingEditProvider, triggerCharacters: string[]): Disposable {
-    for (let languageId of languageIds) {
-      this.providers.set(languageId, {
-        triggerCharacters,
-        provider
-      })
+  public register(selector: DocumentSelector, provider: OnTypeFormattingEditProvider, triggerCharacters: string[]): Disposable {
+    let item: ProviderItem = {
+      triggerCharacters,
+      selector,
+      provider
     }
+    this.providers.add(item)
     return Disposable.create(() => {
-      for (let languageId of languageIds) {
-        let item = this.providers.get(languageId)
-        if (item.provider == provider) {
-          this.providers.delete(languageId)
-        }
-      }
+      this.providers.delete(item)
     })
   }
 
-  private getProvider(languageId: string, triggerCharacter: string): OnTypeFormattingEditProvider | null {
-    let item = this.providers.get(languageId)
-    if (!item) return null
-    let { triggerCharacters, provider } = item
-    if (triggerCharacters.indexOf(triggerCharacter) == -1) return null
-    return provider
+  private getProvider(document: TextDocument, triggerCharacter: string): OnTypeFormattingEditProvider | null {
+    for (let o of this.providers) {
+      let { triggerCharacters, selector } = o
+      if (workspace.match(selector, document) > 0 && triggerCharacters.indexOf(triggerCharacter) > -1) {
+        return o.provider
+      }
+    }
+    return null
   }
 
   public async onCharacterType(character: string, document: TextDocument, position: Position, token: CancellationToken): Promise<TextEdit[] | null> {
     if (isWord(character)) return
-    let { languageId } = document
-    let provider = this.getProvider(languageId, character)
+    let provider = this.getProvider(document, character)
     if (!provider) return
     let formatOpts = await workspace.getFormatOptions()
     return await Promise.resolve(provider.provideOnTypeFormattingEdits(document, position, character, formatOpts, token))
   }
 
   public dispose(): void {
-    this.providers = new Map()
+    this.providers = new Set()
   }
 }

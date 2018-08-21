@@ -494,4 +494,11 @@ export default class Document {
       })
     }
   }
+
+  public async clearHighlight(): Promise<void> {
+    let { srcId, buffer } = this
+    if (srcId) {
+      await buffer.clearHighlight({ srcId })
+    }
+  }
 }

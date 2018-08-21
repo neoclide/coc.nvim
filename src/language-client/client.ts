@@ -1852,18 +1852,18 @@ class HoverFeature extends TextDocumentFeature<
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
-    return languages.registerHoverProvider(languageIds, {
-      provideHover: (
-        document: TextDocument,
-        position: Position,
-        token: CancellationToken
-      ): ProviderResult<Hover> => {
-        return middleware.provideHover
-          ? middleware.provideHover(document, position, token, provideHover)
-          : provideHover(document, position, token)
-      }
-    })
+    return languages.registerHoverProvider(
+      options.documentSelector!, {
+        provideHover: (
+          document: TextDocument,
+          position: Position,
+          token: CancellationToken
+        ): ProviderResult<Hover> => {
+          return middleware.provideHover
+            ? middleware.provideHover(document, position, token, provideHover)
+            : provideHover(document, position, token)
+        }
+      })
   }
 }
 
@@ -1924,9 +1924,8 @@ class SignatureHelpFeature extends TextDocumentFeature<
     }
     let middleware = client.clientOptions.middleware!
     let triggerCharacters = options.triggerCharacters || []
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerSignatureHelpProvider(
-      languageIds,
+      options.documentSelector!,
       {
         provideSignatureHelp: (
           document: TextDocument,
@@ -1999,23 +1998,23 @@ class DefinitionFeature extends TextDocumentFeature<
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
-    return languages.registerDefinitionProvider(languageIds, {
-      provideDefinition: (
-        document: TextDocument,
-        position: Position,
-        token: CancellationToken
-      ): ProviderResult<Definition> => {
-        return middleware.provideDefinition
-          ? middleware.provideDefinition(
-            document,
-            position,
-            token,
-            provideDefinition
-          )
-          : provideDefinition(document, position, token)
-      }
-    })
+    return languages.registerDefinitionProvider(
+      options.documentSelector!, {
+        provideDefinition: (
+          document: TextDocument,
+          position: Position,
+          token: CancellationToken
+        ): ProviderResult<Definition> => {
+          return middleware.provideDefinition
+            ? middleware.provideDefinition(
+              document,
+              position,
+              token,
+              provideDefinition
+            )
+            : provideDefinition(document, position, token)
+        }
+      })
   }
 }
 
@@ -2072,25 +2071,25 @@ class ReferencesFeature extends TextDocumentFeature<
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
-    return languages.registerReferencesProvider(languageIds, {
-      provideReferences: (
-        document: TextDocument,
-        position: Position,
-        options: { includeDeclaration: boolean },
-        token: CancellationToken
-      ): ProviderResult<Location[]> => {
-        return middleware.provideReferences
-          ? middleware.provideReferences(
-            document,
-            position,
-            options,
-            token,
-            providerReferences
-          )
-          : providerReferences(document, position, options, token)
-      }
-    })
+    return languages.registerReferencesProvider(
+      options.documentSelector!, {
+        provideReferences: (
+          document: TextDocument,
+          position: Position,
+          options: { includeDeclaration: boolean },
+          token: CancellationToken
+        ): ProviderResult<Location[]> => {
+          return middleware.provideReferences
+            ? middleware.provideReferences(
+              document,
+              position,
+              options,
+              token,
+              providerReferences
+            )
+            : providerReferences(document, position, options, token)
+        }
+      })
   }
 }
 
@@ -2145,9 +2144,8 @@ class DocumentHighlightFeature extends TextDocumentFeature<
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerDocumentHighlightProvider(
-      languageIds,
+      options.documentSelector!,
       {
         provideDocumentHighlights: (
           document: TextDocument,
@@ -2219,21 +2217,21 @@ class DocumentSymbolFeature extends TextDocumentFeature<
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
-    return languages.registerDocumentSymbolProvider(languageIds, {
-      provideDocumentSymbols: (
-        document: TextDocument,
-        token: CancellationToken
-      ): ProviderResult<SymbolInformation[] | DocumentSymbol[]> => {
-        return middleware.provideDocumentSymbols
-          ? middleware.provideDocumentSymbols(
-            document,
-            token,
-            provideDocumentSymbols
-          )
-          : provideDocumentSymbols(document, token)
-      }
-    })
+    return languages.registerDocumentSymbolProvider(
+      options.documentSelector!, {
+        provideDocumentSymbols: (
+          document: TextDocument,
+          token: CancellationToken
+        ): ProviderResult<SymbolInformation[] | DocumentSymbol[]> => {
+          return middleware.provideDocumentSymbols
+            ? middleware.provideDocumentSymbols(
+              document,
+              token,
+              provideDocumentSymbols
+            )
+            : provideDocumentSymbols(document, token)
+        }
+      })
   }
 }
 
@@ -2280,9 +2278,8 @@ class WorkspaceSymbolFeature extends WorkspaceFeature<TextDocumentRegistrationOp
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerWorkspaceSymbolProvider(
-      languageIds, {
+      options.documentSelector!, {
         provideWorkspaceSymbols: (
           query: string,
           token: CancellationToken
@@ -2365,9 +2362,8 @@ class CodeActionFeature extends TextDocumentFeature<TextDocumentRegistrationOpti
       )
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerCodeActionProvider(
-      languageIds,
+      options.documentSelector,
       {
         provideCodeActions: (
           document: TextDocument,
@@ -2446,9 +2442,8 @@ class CodeLensFeature extends TextDocumentFeature<CodeLensRegistrationOptions> {
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerCodeLensProvider(
-      languageIds, {
+      options.documentSelector, {
         provideCodeLenses: (
           document: TextDocument,
           token: CancellationToken
@@ -2520,9 +2515,8 @@ class DocumentFormattingFeature extends TextDocumentFeature<TextDocumentRegistra
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerDocumentFormatProvider(
-      languageIds,
+      options.documentSelector!,
       {
         provideDocumentFormattingEdits: (
           document: TextDocument,
@@ -2593,9 +2587,8 @@ class DocumentRangeFormattingFeature extends TextDocumentFeature<TextDocumentReg
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerDocumentRangeFormatProvider(
-      languageIds,
+      options.documentSelector!,
       {
         provideDocumentRangeFormattingEdits: (
           document: TextDocument,
@@ -2660,15 +2653,15 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<DocumentOnType
     }
 
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     let characters = [options.firstTriggerCharacter, ...moreTriggerCharacter]
-    return languages.registerOnTypeFormattingEditProvider(languageIds, {
-      provideOnTypeFormattingEdits: (document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]> => {
-        return middleware.provideOnTypeFormattingEdits
-          ? middleware.provideOnTypeFormattingEdits(document, position, ch, options, token, provideOnTypeFormattingEdits)
-          : provideOnTypeFormattingEdits(document, position, ch, options, token)
-      }
-    }, characters)
+    return languages.registerOnTypeFormattingEditProvider(
+      options.documentSelector!, {
+        provideOnTypeFormattingEdits: (document: TextDocument, position: Position, ch: string, options: FormattingOptions, token: CancellationToken): ProviderResult<TextEdit[]> => {
+          return middleware.provideOnTypeFormattingEdits
+            ? middleware.provideOnTypeFormattingEdits(document, position, ch, options, token, provideOnTypeFormattingEdits)
+            : provideOnTypeFormattingEdits(document, position, ch, options, token)
+        }
+      }, characters)
   }
 }
 

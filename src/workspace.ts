@@ -16,7 +16,6 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import Sources from './sources'
 import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
@@ -39,7 +38,6 @@ export interface VimSettings {
 export class Workspace implements IWorkspace {
   public bufnr: number
   public terminal: Terminal
-  public sources: Sources
   public readonly nvim: Neovim
   public readonly emitter: EventEmitter
 
@@ -92,6 +90,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async init(): Promise<void> {
+    this.emitter.on('InsertEnter', this.onInsertEnter.bind(this))
     this.emitter.on('BufEnter', this.onBufEnter.bind(this))
     this.emitter.on('BufWinEnter', this.onBufWinEnter.bind(this))
     this.emitter.on('DirChanged', this.onDirChanged.bind(this))
@@ -899,6 +898,11 @@ export class Workspace implements IWorkspace {
       return dest
     }
     return convert(data)
+  }
+
+  private async onInsertEnter(): Promise<void> {
+    let document = await this.document
+    await document.clearHighlight()
   }
 }
 

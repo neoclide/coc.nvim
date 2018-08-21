@@ -7,7 +7,6 @@ import languages from '../languages'
 import { ProviderResult } from '../provider'
 import * as Is from '../util/is'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
-import { documentSelectorToLanguageIds } from './utils/converter'
 import * as UUID from './utils/uuid'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
@@ -82,22 +81,22 @@ export class TypeDefinitionFeature extends TextDocumentFeature<TextDocumentRegis
         })
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = documentSelectorToLanguageIds(options.documentSelector)
-    return languages.registerTypeDefinitionProvider(languageIds, {
-      provideTypeDefinition: (
-        document: TextDocument,
-        position: Position,
-        token: CancellationToken
-      ): ProviderResult<Definition> => {
-        return middleware.provideTypeDefinition
-          ? middleware.provideTypeDefinition(
-            document,
-            position,
-            token,
-            provideTypeDefinition
-          )
-          : provideTypeDefinition(document, position, token)
-      }
-    })
+    return languages.registerTypeDefinitionProvider(
+      options.documentSelector, {
+        provideTypeDefinition: (
+          document: TextDocument,
+          position: Position,
+          token: CancellationToken
+        ): ProviderResult<Definition> => {
+          return middleware.provideTypeDefinition
+            ? middleware.provideTypeDefinition(
+              document,
+              position,
+              token,
+              provideTypeDefinition
+            )
+            : provideTypeDefinition(document, position, token)
+        }
+      })
   }
 }

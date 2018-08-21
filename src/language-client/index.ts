@@ -1,16 +1,16 @@
+import { SpawnOptions } from 'child_process'
 import fs from 'fs'
 import net from 'net'
 import path from 'path'
-import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import which from 'which'
-import {SpawnOptions} from 'child_process'
-import {ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, TransportKind, Transport} from '../language-client/main'
-import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../types'
-import {disposeAll, echoErr, echoMessage} from '../util'
+import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, Transport, TransportKind } from '../language-client/main'
+import { IServiceProvider, LanguageServerConfig, ServiceStat } from '../types'
+import { disposeAll, echoErr, echoMessage } from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('language-client-index')
 
-function isInteger(o:any):boolean {
+function isInteger(o: any): boolean {
   if (typeof o === 'number') return true
   if (typeof o === 'string') {
     return /^\d+$/.test(o)
@@ -46,8 +46,8 @@ export class LanguageService implements IServiceProvider {
   }
 
   public async init(): Promise<void> {
-    let {config, name} = this
-    let {args, module, command, port, host} = config
+    let { config, name } = this
+    let { args, module, command, port, host } = config
     args = args || []
     if (command) {
       try {
@@ -114,9 +114,9 @@ export class LanguageService implements IServiceProvider {
       clientOptions)
 
     client.onDidChangeState(changeEvent => {
-      let {oldState, newState} = changeEvent
-      let oldStr = oldState == State.Running ? 'running' : 'stopped'
-      let newStr = newState == State.Running ? 'running' : 'stopped'
+      let { oldState, newState } = changeEvent
+      let oldStr = this.stateString(oldState)
+      let newStr = this.stateString(newState)
       logger.info(`${name} state change: ${oldStr} => ${newStr}`)
     }, null, this.disposables)
     Object.defineProperty(this, 'state', {
@@ -139,9 +139,9 @@ export class LanguageService implements IServiceProvider {
     return
   }
 
-  private getTransportKind():Transport {
-    let {config} = this
-    let {args} = config
+  private getTransportKind(): Transport {
+    let { config } = this
+    let { args } = config
     if (!args || args.indexOf('--node-ipc') !== -1) {
       return TransportKind.ipc
     }
@@ -164,8 +164,8 @@ export class LanguageService implements IServiceProvider {
   }
 
   private getOptions(isModule = false): SpawnOptions | ForkOptions {
-    let {config} = this
-    let {cwd, shell, detached, execArgv} = config
+    let { config } = this
+    let { cwd, shell, detached, execArgv } = config
     cwd = cwd ? path.isAbsolute(cwd) ? cwd
       : path.resolve(workspace.root, cwd)
       : workspace.root
@@ -174,7 +174,7 @@ export class LanguageService implements IServiceProvider {
     } catch (e) {
       cwd = workspace.root
     }
-    if (isModule) return {cwd, execArgv: execArgv || []}
+    if (isModule) return { cwd, execArgv: execArgv || [] }
     return {
       cwd,
       detached: !!detached,
@@ -192,6 +192,18 @@ export class LanguageService implements IServiceProvider {
       await this.stop()
     }
     this.client.restart()
+  }
+
+  private stateString(state: State): string {
+    switch (state) {
+      case State.Running:
+        return 'running'
+      case State.Starting:
+        return 'starting'
+      case State.Stopped:
+        return 'stopped'
+    }
+    return 'unknown'
   }
 
   public async stop(): Promise<void> {
