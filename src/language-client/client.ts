@@ -3314,34 +3314,35 @@ export abstract class BaseLanguageClient {
     return data.toString()
   }
 
-  public info(message: string, data?: any): void {
-    this.outputChannel.appendLine(`[Info  - ${(new Date().toLocaleTimeString())}] ${message}`)
+  private appendOutput(type: string, message: string, data?: any): void {
+    let level = RevealOutputChannelOn.Error
+    switch (type) {
+      case 'Info':
+        level = RevealOutputChannelOn.Info
+        break
+      case 'Warn':
+        level = RevealOutputChannelOn.Warn
+        break
+    }
+    this.outputChannel.appendLine(`[${level}  - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
       this.outputChannel.appendLine(this.data2String(data))
     }
-    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Info) {
+    if (this._clientOptions.revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
     }
+  }
+
+  public info(message: string, data?: any): void {
+    this.appendOutput('Info', message, data)
   }
 
   public warn(message: string, data?: any): void {
-    this.outputChannel.appendLine(`[Warn  - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
-    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Warn) {
-      this.outputChannel.show(true)
-    }
+    this.appendOutput('Warn', message, data)
   }
 
   public error(message: string, data?: any): void {
-    this.outputChannel.appendLine(`[Error - ${(new Date().toLocaleTimeString())}] ${message}`)
-    if (data) {
-      this.outputChannel.appendLine(this.data2String(data))
-    }
-    if (this._clientOptions.revealOutputChannelOn <= RevealOutputChannelOn.Error) {
-      this.outputChannel.show(true)
-    }
+    this.appendOutput('Error', message, data)
   }
 
   private logTrace(message: string, data?: any): void {
@@ -3433,7 +3434,7 @@ export abstract class BaseLanguageClient {
           })
         })
         connection.onTelemetry(_data => {
-          logger.error('telemetry not supported')
+          logger.warn('telemetry not supported')
         })
         connection.listen()
         // Error is handled in the intialize call.
@@ -3483,21 +3484,23 @@ export abstract class BaseLanguageClient {
         let textDocumentSyncOptions:
           | TextDocumentSyncOptions
           | undefined = undefined
-        if (
-          Is.number(result.capabilities.textDocumentSync) &&
-          result.capabilities.textDocumentSync !== TextDocumentSyncKind.None
-        ) {
-          textDocumentSyncOptions = {
-            openClose: true,
-            change: result.capabilities.textDocumentSync,
-            save: {
-              includeText: false
+        if (Is.number(result.capabilities.textDocumentSync)) {
+          if (result.capabilities.textDocumentSync === TextDocumentSyncKind.None) {
+            textDocumentSyncOptions = {
+              openClose: false,
+              change: TextDocumentSyncKind.None,
+              save: undefined
+            }
+          } else {
+            textDocumentSyncOptions = {
+              openClose: true,
+              change: result.capabilities.textDocumentSync,
+              save: {
+                includeText: false
+              }
             }
           }
-        } else if (
-          result.capabilities.textDocumentSync !== void 0 &&
-          result.capabilities.textDocumentSync !== null
-        ) {
+        } else if (result.capabilities.textDocumentSync == null) {
           textDocumentSyncOptions = result.capabilities
             .textDocumentSync as TextDocumentSyncOptions
         }
