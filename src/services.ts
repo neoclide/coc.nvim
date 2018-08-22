@@ -2,10 +2,10 @@ import { Neovim } from '@chemzqm/neovim'
 import Emitter from 'events'
 import fs from 'fs'
 import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSelector, TextDocument } from 'vscode-languageserver-protocol'
 import { LanguageService } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
-import { disposeAll, echoErr, echoMessage, echoWarning } from './util'
+import { disposeAll, echoErr, echoMessage } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('services')
 
@@ -36,7 +36,6 @@ function getStateName(state: ServiceStat): string {
 
 export class ServiceManager extends Emitter implements Disposable {
   private nvim: Neovim
-  private languageIds: Set<string> = new Set()
   private readonly registed: Map<string, IServiceProvider> = new Map()
   private disposables: Disposable[] = []
 
@@ -65,15 +64,13 @@ export class ServiceManager extends Emitter implements Disposable {
       logger.error(e.message)
     }
     workspace.onDidWorkspaceInitialized(() => {
-      let { filetypes } = workspace
-      for (let filetype of filetypes) {
-        this.start(filetype)
-      }
+      let document = workspace.getDocument(workspace.bufnr)
+      this.start(document.textDocument)
     }, null, this.disposables)
 
-    workspace.emitter.on('FileType', filetype => {
-      this.start(filetype)
-    })
+    workspace.onDidOpenTextDocument(doc => {
+      this.start(doc)
+    }, null, this.disposables)
   }
 
   public dispose(): void {
@@ -91,7 +88,7 @@ export class ServiceManager extends Emitter implements Disposable {
   }
 
   public regist(service: IServiceProvider): void {
-    let { id, languageIds } = service
+    let { id } = service
     if (!id) logger.error('invalid service ', service.name)
     if (!service.enable) return
     if (this.registed.get(id)) {
@@ -99,9 +96,6 @@ export class ServiceManager extends Emitter implements Disposable {
       return
     }
     this.registed.set(id, service)
-    languageIds.forEach(lang => {
-      this.languageIds.add(lang)
-    })
     service.onServiceReady(() => {
       echoMessage(this.nvim, `service ${id} started`)
       this.emit('ready', id)
@@ -112,20 +106,18 @@ export class ServiceManager extends Emitter implements Disposable {
     return this.registed.get(id)
   }
 
-  public getServices(languageId: string): IServiceProvider[] {
-    if (!this.checkProvider(languageId)) return
+  public getServices(document: TextDocument): IServiceProvider[] {
     let res: IServiceProvider[] = []
     for (let service of this.registed.values()) {
-      if (service.languageIds.indexOf(languageId) !== -1) {
+      if (workspace.match(service.selector, document) > 0) {
         res.push(service)
       }
     }
     return res
   }
 
-  public start(languageId: string): void {
-    if (!this.checkProvider(languageId)) return
-    let services = this.getServices(languageId)
+  private start(document: TextDocument): void {
+    let services = this.getServices(document)
     for (let service of services) {
       let { state } = service
       if (state === ServiceStat.Initial) {
@@ -176,7 +168,7 @@ export class ServiceManager extends Emitter implements Disposable {
     for (let [id, service] of this.registed) {
       res.push({
         id,
-        languageIds: service.languageIds,
+        languageIds: documentSelectorToLanguageIds(service.selector),
         state: getStateName(service.state)
       })
     }
@@ -194,18 +186,20 @@ export class ServiceManager extends Emitter implements Disposable {
       )
     }
   }
+}
 
-  private checkProvider(languageId: string, warning = false): boolean {
-    if (!languageId) return false
-    if (!this.languageIds.has(languageId)) {
-      if (warning) {
-        echoWarning(this.nvim, `service not found for ${languageId}`)
-      }
-      return false
+function documentSelectorToLanguageIds(documentSelector: DocumentSelector): string[] {
+  let res = documentSelector.map(filter => {
+    if (typeof filter == 'string') {
+      return filter
     }
-    return true
+    return filter.language
+  })
+  res = res.filter(s => s != null)
+  if (res.length == 0) {
+    throw new Error('Invliad document selector')
   }
-
+  return res
 }
 
 export default new ServiceManager()

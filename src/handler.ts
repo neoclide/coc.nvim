@@ -372,7 +372,7 @@ export default class Handler {
         if (!service || service.state !== ServiceStat.Running) {
           continue
         }
-        if (service.languageIds.indexOf(document.filetype) == -1) {
+        if (workspace.match(service.selector, document.textDocument) > 0) {
           continue
         }
         res.push(o.id)

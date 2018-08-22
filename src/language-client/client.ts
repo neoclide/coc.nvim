@@ -868,9 +868,7 @@ abstract class DocumentNotifiactions<P, E>
     textDocument: TextDocument
   ): boolean {
     for (const selector of selectors) {
-      let { languageId } = textDocument
-      let languageIds = cv.documentSelectorToLanguageIds(selector)
-      if (languageIds.indexOf(languageId) != -1) {
+      if (workspace.match(selector, textDocument) > 0) {
         return true
       }
     }
@@ -1000,7 +998,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
       if (this._syncedDocuments.has(uri)) {
         return
       }
-      if (languages.match(documentSelector, textDocument)) {
+      if (workspace.match(documentSelector, textDocument) > 0) {
         let middleware = this._client.clientOptions.middleware!
         let didOpen = (textDocument: TextDocument) => {
           this._client.sendNotification(
@@ -1080,7 +1078,7 @@ class DidCloseTextDocumentFeature extends DocumentNotifiactions<
     let selectors = this._selectors.values()
     this._syncedDocuments.forEach(textDocument => {
       if (
-        languages.match(selector, textDocument) &&
+        workspace.match(selector, textDocument) > 0 &&
         !this._selectorFilter!(selectors, textDocument)
       ) {
         let middleware = this._client.clientOptions.middleware!
@@ -1167,7 +1165,7 @@ class DidChangeTextDocumentFeature
     }
     let { textDocument } = workspace.getDocument(event.textDocument.uri)
     for (const changeData of this._changeData.values()) {
-      if (languages.match(changeData.documentSelector, textDocument)) {
+      if (workspace.match(changeData.documentSelector, textDocument) > 0) {
         let middleware = this._client.clientOptions.middleware!
         if (changeData.syncKind === TextDocumentSyncKind.Incremental) {
           if (middleware.didChange) {
@@ -2714,9 +2712,8 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
         )
     }
     let middleware = client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
     return languages.registerRenameProvider(
-      languageIds, {
+      options.documentSelector, {
         provideRenameEdits: (
           document: TextDocument,
           position: Position,

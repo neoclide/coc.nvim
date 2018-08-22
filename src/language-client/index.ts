@@ -2,7 +2,7 @@ import { SpawnOptions } from 'child_process'
 import fs from 'fs'
 import net from 'net'
 import path from 'path'
-import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSelector, Emitter, Event } from 'vscode-languageserver-protocol'
 import which from 'which'
 import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, State, Transport, TransportKind } from '../language-client/main'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from '../types'
@@ -20,8 +20,8 @@ function isInteger(o: any): boolean {
 
 export class LanguageService implements IServiceProvider {
   public enable: boolean
-  public languageIds: string[]
-  public readonly state: ServiceStat
+  public selector: DocumentSelector
+  private _state: ServiceStat
   private configSections: string | string[]
   private _onDidServiceReady = new Emitter<void>()
   protected client: LanguageClient
@@ -34,9 +34,9 @@ export class LanguageService implements IServiceProvider {
     protected config: LanguageServerConfig,
     configSections?: string | string[]
   ) {
-    this.state = ServiceStat.Initial
+    this._state = ServiceStat.Initial
     this.enable = config.enable !== false // tslint:disable-line
-    this.languageIds = config.filetypes
+    this.selector = config.filetypes
     this.configSections = configSections || config.configSection || `${this.id}.settings`
     if (!config.command && !config.module) {
       echoErr(workspace.nvim, `Command and module not found for ${id}`)
@@ -45,7 +45,12 @@ export class LanguageService implements IServiceProvider {
     }
   }
 
+  public get state(): ServiceStat {
+    return this._state
+  }
+
   public async init(): Promise<void> {
+    this._state = ServiceStat.Starting
     let { config, name } = this
     let { args, module, command, port, host } = config
     args = args || []
@@ -58,6 +63,7 @@ export class LanguageService implements IServiceProvider {
       } catch (e) {
         echoMessage(workspace.nvim, `Executable ${command} not found`)
         this.enable = false
+        this._state = ServiceStat.StartFailed
         return
       }
     }
@@ -96,10 +102,9 @@ export class LanguageService implements IServiceProvider {
         })
       }
     }
-    let documentSelector = this.languageIds
     let clientOptions: LanguageClientOptions = {
       forceFullSync: config.forceFullSync,
-      documentSelector,
+      documentSelector: this.selector,
       synchronize: {
         configurationSection: this.configSections
       },
@@ -115,15 +120,24 @@ export class LanguageService implements IServiceProvider {
 
     client.onDidChangeState(changeEvent => {
       let { oldState, newState } = changeEvent
+      if (newState == State.Starting) {
+        this._state = ServiceStat.Starting
+      } else if (newState == State.Running) {
+        this._state = ServiceStat.Running
+      } else if (newState == State.Stopped) {
+        this._state = ServiceStat.Stopped
+      }
       let oldStr = this.stateString(oldState)
       let newStr = this.stateString(newState)
       logger.info(`${name} state change: ${oldStr} => ${newStr}`)
     }, null, this.disposables)
+
     Object.defineProperty(this, 'state', {
       get: () => {
         return client.serviceState
       }
     })
+
     client.registerProposedFeatures()
     let disposable = client.start()
     this.disposables.push(disposable)
@@ -133,6 +147,7 @@ export class LanguageService implements IServiceProvider {
         resolve()
       }, e => {
         logger.error(e.message)
+        this._state = ServiceStat.StartFailed
         resolve()
       })
     })

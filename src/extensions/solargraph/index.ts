@@ -1,20 +1,20 @@
-import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
-import {verifyGemIsCurrent, downloadCore, createConfig} from './util'
+import { Disposable, DocumentSelector, Emitter, Event } from 'vscode-languageserver-protocol'
 import which from 'which'
 import commandManager from '../../commands'
-import {LanguageClient, State} from '../../language-client/main'
-import {IServiceProvider, LanguageServerConfig, ServiceStat} from '../../types'
-import {disposeAll, echoErr} from '../../util'
+import { LanguageClient, State } from '../../language-client/main'
+import { IServiceProvider, LanguageServerConfig, ServiceStat } from '../../types'
+import { disposeAll, echoErr } from '../../util'
 import workspace from '../../workspace'
-import {makeLanguageClient} from './language-client'
 import { Configuration } from './configuration'
+import { makeLanguageClient } from './language-client'
+import { createConfig, downloadCore, verifyGemIsCurrent } from './util'
 const logger = require('../../util/logger')('extension-solargraph')
 
 export default class SolargraphService implements IServiceProvider {
   public readonly id: string
   public readonly name: string
   public enable: boolean
-  public languageIds: string[]
+  public selector: DocumentSelector
   public readonly state: ServiceStat
   private client: LanguageClient
   private config: LanguageServerConfig
@@ -37,12 +37,12 @@ export default class SolargraphService implements IServiceProvider {
     } catch (e) {
       this.enable = false
     }
-    this.languageIds = config.filetypes || ['ruby']
+    this.selector = config.filetypes || ['ruby']
   }
 
   public init(): Promise<any> {
-    let {config, name} = this
-    let applyConfiguration = (config:Configuration) => {
+    let { config, name } = this
+    let applyConfiguration = (config: Configuration) => {
       config.commandPath = config.commandPath || 'solargraph'
       config.useBundler = config.useBundler || false
       config.bundlerPath = config.bundlerPath || 'bundle'
@@ -57,7 +57,7 @@ export default class SolargraphService implements IServiceProvider {
       solargraphConfiguration
     )
     client.onDidChangeState(changeEvent => {
-      let {oldState, newState} = changeEvent
+      let { oldState, newState } = changeEvent
       let oldStr = oldState == State.Running ? 'running' : 'stopped'
       let newStr = newState == State.Running ? 'running' : 'stopped'
       logger.info(`${name} state change: ${oldStr} => ${newStr}`)
@@ -75,7 +75,7 @@ export default class SolargraphService implements IServiceProvider {
       verifyGemIsCurrent()
     }
 
-    return new Promise((resolve):void => { // tslint:disable-line
+    return new Promise((resolve): void => { // tslint:disable-line
       client.onReady().then(() => {
         this.registerCommand()
         this._onDidServiceReady.fire(void 0)
@@ -112,11 +112,11 @@ export default class SolargraphService implements IServiceProvider {
     }))
     // Build gem documentation command
     this.disposables.push(commandManager.registerCommand('solargraph.buildGemDocs', () => {
-      this.client.sendNotification('$/solargraph/documentGems', {rebuild: false})
+      this.client.sendNotification('$/solargraph/documentGems', { rebuild: false })
     }))
     // Rebuild gems documentation command
     this.disposables.push(commandManager.registerCommand('solargraph.rebuildAllGemDocs', () => {
-      this.client.sendNotification('$/solargraph/documentGems', {rebuild: true})
+      this.client.sendNotification('$/solargraph/documentGems', { rebuild: true })
     }))
     this.disposables.push(commandManager.registerCommand('solargraph.config', () => {
       createConfig(this.configurations)
@@ -127,7 +127,7 @@ export default class SolargraphService implements IServiceProvider {
   }
 
   public async restart(): Promise<any> {
-    let {client, config} = this
+    let { client, config } = this
     if (!client) return
     if (this.state == ServiceStat.Running) {
       await this.stop()

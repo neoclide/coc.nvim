@@ -436,22 +436,6 @@ class Languages {
     }
   }
 
-  public match(documentSelector: DocumentSelector, document: TextDocument): boolean {
-    if (documentSelector.length == 0) {
-      return false
-    }
-    let languageIds = documentSelector.map(filter => {
-      if (typeof filter == 'string') {
-        return filter
-      }
-      return filter.language
-    })
-    languageIds = languageIds.filter(s => s != null)
-    if (languageIds.length == 0) return false
-    let { languageId } = document
-    return languageIds.indexOf(languageId) != -1
-  }
-
   private get token(): CancellationToken {
     let token = this.cancelTokenSource.token
     if (token.isCancellationRequested) {

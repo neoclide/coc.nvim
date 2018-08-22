@@ -310,8 +310,7 @@ export interface IServiceProvider {
   id: string
   name: string
   enable: boolean
-  // supported language types
-  languageIds: string[]
+  selector: DocumentSelector
   // current state
   state: ServiceStat
   init(): Promise<void>

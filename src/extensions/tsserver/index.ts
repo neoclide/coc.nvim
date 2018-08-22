@@ -1,4 +1,4 @@
-import { Disposable, Emitter, Event, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable, DocumentSelector, Emitter, Event, TextEdit } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
 import commandManager from '../../commands'
 import languages from '../../languages'
@@ -16,7 +16,7 @@ export default class TsserverService implements IServiceProvider {
   public name = 'tsserver'
   public enable: boolean
   // supported language types
-  public languageIds: string[] = languageIds
+  public selector: DocumentSelector
   public state = ServiceStat.Initial
   private clientHost: TypeScriptServiceClientHost
   private _onDidServiceReady = new Emitter<void>()
@@ -31,7 +31,7 @@ export default class TsserverService implements IServiceProvider {
     this.descriptions = standardLanguageDescriptions.filter(o => {
       return enableJavascript ? true : o.id != 'javascript'
     })
-    this.languageIds = this.descriptions.reduce((arr, c) => {
+    this.selector = this.descriptions.reduce((arr, c) => {
       return arr.concat(c.modeIds)
     }, [])
   }
