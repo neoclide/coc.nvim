@@ -21,7 +21,7 @@ export default class Document {
   private nvim: Neovim
   private srcId = 0
   private _fireContentChanges: Function & { clear(): void }
-  private _insertEnter: boolean
+  private _addLine: boolean
   private attached = false
   // real current lines
   private lines: string[] = []
@@ -29,10 +29,8 @@ export default class Document {
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private _onDocumentDetach = new Emitter<TextDocument>()
-  public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this
-    ._onDocumentChange.event
-  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach
-    .event
+  public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
+  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
   constructor(public buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
@@ -179,19 +177,17 @@ export default class Document {
   ): void {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
-    this._insertEnter = false
-    if (lastline - firstline == 1 && linedata.length == 2) {
-      if (linedata[1].trim() == '' && this.lines[firstline] == linedata[0]) {
-        this._insertEnter = true
-      }
+    this._addLine = false
+    if (linedata.length > lastline - firstline) {
+      this._addLine = true
     }
     this._changedtick = tick
     this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
   }
 
-  public get insertEnter(): boolean {
-    return this._insertEnter
+  public get addLine(): boolean {
+    return this._addLine
   }
 
   /**

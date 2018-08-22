@@ -43,8 +43,8 @@ export default class Handler {
     })
     emitter.on('TextChangedI', async bufnr => {
       let doc = workspace.getDocument(bufnr)
-      if (Date.now() - lastTs < 40 && lastChar || doc.insertEnter) {
-        let character = doc.insertEnter ? '\n' : lastChar
+      if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
+        let character = doc.addLine ? '\n' : lastChar
         lastChar = null
         await this.onCharacterType(character, bufnr)
       }
@@ -373,9 +373,8 @@ export default class Handler {
           continue
         }
         if (workspace.match(service.selector, document.textDocument) > 0) {
-          continue
+          res.push(o.id)
         }
-        res.push(o.id)
       }
     }
     return res
@@ -387,8 +386,8 @@ export default class Handler {
 
   private async onCharacterType(ch: string, bufnr: number): Promise<void> {
     let doc = workspace.getDocument(bufnr)
-    let { changedtick } = doc
     if (!doc) return
+    let { changedtick } = doc
     if (doc.isWord(ch)) return
     let { document, position } = await workspace.getCurrentState()
     doc.forceSync()
