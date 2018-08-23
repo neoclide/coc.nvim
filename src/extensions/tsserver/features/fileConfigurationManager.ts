@@ -5,7 +5,7 @@
 import { TextDocument } from 'vscode-languageserver-protocol'
 import { WorkspaceConfiguration } from '../../../types'
 import workspace from '../../../workspace'
-import * as Proto from '../protocol'
+import Proto from '../protocol'
 import { ITypeScriptServiceClient } from '../typescriptService'
 import API from '../utils/api'
 import * as languageIds from '../utils/languageModeIds'
@@ -78,7 +78,7 @@ export default class FileConfigurationManager {
   }
 
   public isTypeScriptDocument(languageId: string): boolean {
-    return languageId === languageIds.typescript || languageId === languageIds.typescriptreact || 
+    return languageId === languageIds.typescript || languageId === languageIds.typescriptreact ||
       languageId === languageIds.typescripttsx || languageId === languageIds.typescriptjsx
   }
 
