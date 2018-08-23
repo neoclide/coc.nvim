@@ -178,5 +178,6 @@ nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<
 nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
 nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
 nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
+nnoremap <Plug>(coc-openlink)            :<C-u>call CocAction('openLink')<CR>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
 inoremap <expr> <Plug>(coc-complete-custom)     coc#complete_custom()

@@ -443,15 +443,21 @@ export class Workspace implements IWorkspace {
   }
 
   public async openResource(uri: string, cmd = 'drop'): Promise<void> {
+    let { nvim, cwd } = this
     let u = Uri.parse(uri)
     // not supported
-    if (u.scheme !== 'file') return
-    let { nvim } = this
-    let filepath = u.fsPath
-    let cwd = await nvim.call('getcwd')
-    let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-    // edit it even exists
-    await nvim.call('coc#util#edit_file', [file, cmd])
+    if (/^http/.test(u.scheme)) {
+      await nvim.call('coc#util#open_url', uri)
+      return
+    }
+    if (u.scheme == 'file') {
+      let filepath = u.fsPath
+      let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+      // edit it even exists
+      await nvim.call('coc#util#edit_file', [file, cmd])
+      return
+    }
+    this.showMessage(`scheme ${u.scheme} not supported!`, 'error')
   }
 
   public createOutputChannel(name: string): OutputChannel {

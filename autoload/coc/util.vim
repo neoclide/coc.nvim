@@ -549,7 +549,7 @@ function! coc#util#matchdelete(ids)
   endfor
 endfunction
 
-function! coc#util#open(url)
+function! coc#util#open_url(url)
   if has('mac') && executable('open')
     call system('open '.a:url)
     return

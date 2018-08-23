@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -341,6 +341,27 @@ export default class Handler {
     return links
   }
 
+  public async openLink(cmd: string): Promise<boolean> {
+    cmd = cmd || 'edit'
+    let { document, position } = await workspace.getCurrentState()
+    let links = await languages.getDocumentLinks(document)
+    if (!links || links.length == 0) return false
+    for (let link of links) {
+      if (withIn(link.range, position)) {
+        let { target } = link
+        if (!target) {
+          link = await languages.resolveDocumentLink(link)
+          target = link.target
+        }
+        if (target) {
+          await workspace.openResource(target, cmd)
+          return true
+        }
+        return false
+      }
+    }
+  }
+
   private validWorkspaceSymbol(symbol: SymbolInformation): boolean {
     switch (symbol.kind) {
       case SymbolKind.Namespace:
@@ -589,4 +610,13 @@ function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number
       addDoucmentSymbol(res, sym, level + 1)
     }
   }
+}
+
+function withIn(range: Range, position: Position): boolean {
+  let { start, end } = range
+  let { line, character } = position
+  if (line < start.line || line > end.line) return false
+  if (line == start.line && character < start.character) return false
+  if ((line == end.line && character > end.character)) return false
+  return true
 }

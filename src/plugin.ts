@@ -86,6 +86,9 @@ export default class Plugin {
         case 'links': {
           return await handler.links()
         }
+        case 'openLink': {
+          return await handler.openLink(args[1])
+        }
         case 'highlight': {
           await handler.highlight()
           break

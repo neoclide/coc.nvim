@@ -33,7 +33,7 @@ export default class PythonService extends LanguageService {
       let idx = await workspace.showQuickpick(items, `${command} not found in $PATH`)
       if (idx == -1) return
       if (idx == 2) {
-        workspace.nvim.call('coc#util#open', ['https://github.com/palantir/python-language-server#installation'], true) // tslint:disable-line
+        workspace.nvim.call('coc#util#open_url', ['https://github.com/palantir/python-language-server#installation'], true) // tslint:disable-line
         return
       }
       if (idx == 3) {

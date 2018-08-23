@@ -306,6 +306,10 @@ mode, 'v_' works for visual mode.
 			Works with both normal and visual mode.
 
 
+<Plug>(coc-openlink) 				*n_coc-openlink*
+
+			Open link under cursor.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
@@ -545,6 +549,12 @@ Available Actions ~
 
 	autocmd CursorHold * silent call CocAction('highlight')
 <
+"openLink" [{command}] 				*coc-action-openlink*
+
+	Open link under cursor with {command}.
+	{command} default to `edit`.
+	File and url links are supported.
+
 ------------------------------------------------------------------------------
 
 						*coc#refresh()*

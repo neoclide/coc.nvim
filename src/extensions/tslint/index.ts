@@ -367,7 +367,7 @@ async function applyDisableRuleEdit(uri: string, documentVersion: number, edits:
 function showRuleDocumentation(_uri: string, _documentVersion: number, _edits: TextEdit[], ruleId: string): void {
   const tslintDocBaseURL = 'https://palantir.github.io/tslint/rules'
   if (!ruleId) return
-  workspace.nvim.call('coc#util#open', tslintDocBaseURL + '/' + ruleId).catch(_e => {
+  workspace.nvim.call('coc#util#open_url', tslintDocBaseURL + '/' + ruleId).catch(_e => {
     // noop
   })
 }
