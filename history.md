@@ -1,3 +1,12 @@
+# 2018-08-23
+
+* Fix sometimes client status invalid.
+* Add multiply provider support for all features.
+* Add `documentLink` support
+* Add `documentHighlight` support
+* Add `foldingRange` support
+* Add support of `documentSelector` same as VSCode
+
 # 2018-08-21
 
 * Fix diagnostic and arguments of tsserver.
