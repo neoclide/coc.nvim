@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, DocumentSymbol, SymbolKind, TextDocument, Range} from 'vscode-languageserver-protocol'
-import {DocumentSymbolProvider} from '../../../provider'
+import { CancellationToken, DocumentSymbol, Range, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { DocumentSymbolProvider } from '../../../provider'
 import * as Proto from '../protocol'
 import * as PConst from '../protocol.const'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 const logger = require('../../../util/logger')('tsserver-documentSymbol')
 
@@ -46,7 +46,7 @@ const getSymbolKind = (kind: string): SymbolKind => {
 }
 
 export default class TypeScriptDocumentSymbolProvider implements DocumentSymbolProvider {
-  public constructor(private readonly client: ITypeScriptServiceClient) {}
+  public constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async provideDocumentSymbols(
     resource: TextDocument,

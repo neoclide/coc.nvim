@@ -18,7 +18,7 @@ export default class Word extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {input} = opt
+    let { input } = opt
     if (input.length === 0) return false
     return true
   }
@@ -42,7 +42,7 @@ export default class Word extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('word', new Word())
   return Disposable.create(() => {
     sourceMap.delete('word')

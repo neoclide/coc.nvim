@@ -3,13 +3,13 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import {OutputChannel} from '../../../types'
+import { OutputChannel } from '../../../types'
 import workspace from '../../../workspace'
 import * as is from './is'
 
 export default class Logger {
 
-  private _channel:OutputChannel
+  private _channel: OutputChannel
 
   private get output(): OutputChannel {
     if (this._channel) {
@@ -19,7 +19,7 @@ export default class Logger {
     return this._channel
   }
 
-  public dispose():void {
+  public dispose(): void {
     if (this._channel) {
       this._channel.dispose()
     }

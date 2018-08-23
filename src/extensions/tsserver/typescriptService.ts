@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, Event} from 'vscode-languageserver-protocol'
+import { CancellationToken, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import * as Proto from './protocol'
 import API from './utils/api'
-import {TypeScriptServiceConfiguration} from './utils/configuration'
+import { TypeScriptServiceConfiguration } from './utils/configuration'
 import Logger from './utils/logger'
 
 export interface TypeScriptServerPlugin {

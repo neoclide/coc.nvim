@@ -2,17 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
+import { CancellationToken, CompletionContext, CompletionItem, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { CompletionItemProvider } from '../../../provider'
 import * as Proto from '../protocol'
 import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
-import {CompletionItemProvider} from '../../../provider'
-import {
-  TextDocument,
-  CancellationToken,
-  CompletionContext,
-  CompletionItem,
-  Position,
-} from 'vscode-languageserver-protocol'
 
 export default class TypeScriptTagCompletion implements CompletionItemProvider {
   constructor(
@@ -53,7 +47,7 @@ export default class TypeScriptTagCompletion implements CompletionItemProvider {
   }
 
   private getTagSnippet(closingTag: Proto.TextInsertion): string {
-    let {newText, caretOffset} = closingTag
+    let { newText, caretOffset } = closingTag
     return newText.slice(0, caretOffset) + '$0' + newText.slice(caretOffset)
   }
 }

@@ -1,4 +1,4 @@
-import {diffLines} from '../../util/diff'
+import { diffLines } from '../../util/diff'
 
 describe('should get diffLines', () => {
   it('should get diff for added', () => {

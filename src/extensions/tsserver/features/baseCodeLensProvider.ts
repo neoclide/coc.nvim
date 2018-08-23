@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, CodeLens, Emitter, Event, Range, TextDocument} from 'vscode-languageserver-protocol'
-import {CodeLensProvider} from '../../../provider'
+import { CancellationToken, CodeLens, Emitter, Event, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { CodeLensProvider } from '../../../provider'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
-import {escapeRegExp} from '../utils/regexp'
+import { ITypeScriptServiceClient } from '../typescriptService'
+import { escapeRegExp } from '../utils/regexp'
 import * as typeConverters from '../utils/typeConverters'
 
 export class CachedNavTreeResponse {
@@ -46,7 +46,7 @@ export abstract class TypeScriptBaseCodeLensProvider implements CodeLensProvider
   public constructor(
     protected client: ITypeScriptServiceClient,
     private cachedResponse: CachedNavTreeResponse
-  ) {}
+  ) { }
 
   public get onDidChangeCodeLenses(): Event<void> {
     return this.onDidChangeCodeLensesEmitter.event
@@ -63,7 +63,7 @@ export abstract class TypeScriptBaseCodeLensProvider implements CodeLensProvider
 
     try {
       const response = await this.cachedResponse.execute(document, () =>
-        this.client.execute('navtree', {file: filepath}, token)
+        this.client.execute('navtree', { file: filepath }, token)
       )
       if (!response) {
         return []
@@ -80,7 +80,7 @@ export abstract class TypeScriptBaseCodeLensProvider implements CodeLensProvider
         range => {
           return {
             range,
-            data: {uri: document.uri}
+            data: { uri: document.uri }
           }
         }
       )

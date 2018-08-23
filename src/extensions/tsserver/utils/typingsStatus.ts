@@ -2,14 +2,14 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {Disposable} from 'vscode-languageserver-protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
-import {errorMsg, moreMsg} from './nvimBinding'
+import { Disposable } from 'vscode-languageserver-protocol'
+import { ITypeScriptServiceClient } from '../typescriptService'
+import { errorMsg, moreMsg } from './nvimBinding'
 
 const typingsInstallTimeout = 30 * 1000
 
 export default class TypingsStatus implements Disposable {
-  private _acquiringTypings: {[eventId: string]: NodeJS.Timer} = Object.create(
+  private _acquiringTypings: { [eventId: string]: NodeJS.Timer } = Object.create(
     {}
   )
   private _client: ITypeScriptServiceClient
@@ -67,13 +67,13 @@ export class AtaProgressReporter {
   private _invalid = false
 
   constructor(client: ITypeScriptServiceClient) {
-    const disposables:Disposable[] = []
+    const disposables: Disposable[] = []
     disposables.push(client.onDidBeginInstallTypings(e => this._onBegin(e.eventId)))
     disposables.push(client.onDidEndInstallTypings(e => this._onEndOrTimeout(e.eventId)))
     disposables.push(client.onTypesInstallerInitializationFailed(_ =>
       this.onTypesInstallerInitializationFailed()
     ))
-     this._disposable = Disposable.create(() => {
+    this._disposable = Disposable.create(() => {
       disposables.forEach(disposable => {
         disposable.dispose()
       })

@@ -1,4 +1,4 @@
-import {LanguageClient, LanguageClientOptions, Middleware, ServerOptions} from '../../language-client/main'
+import { LanguageClient, LanguageClientOptions, Middleware, ServerOptions } from '../../language-client/main'
 import workspace from '../../workspace'
 import { Configuration } from './configuration'
 // const logger = require('../../util/logger')('extension-solargraph-client')
@@ -25,8 +25,8 @@ export function makeLanguageClient(
       enablePages: false
     }
   }
-  let serverOptions: ServerOptions =  {
-    command: configurations.commandPath ||' solargraph',
+  let serverOptions: ServerOptions = {
+    command: configurations.commandPath || ' solargraph',
     args: ['stdio']
   }
 

@@ -1,5 +1,5 @@
 
-export function getCharCodes(str:string):number[] {
+export function getCharCodes(str: string): number[] {
   let res = []
   for (let i = 0, l = str.length; i < l; i++) {
     res.push(str.charCodeAt(i))
@@ -7,7 +7,7 @@ export function getCharCodes(str:string):number[] {
   return res
 }
 
-export function fuzzyChar(a:string, b:string):boolean {
+export function fuzzyChar(a: string, b: string): boolean {
   let ca = a.charCodeAt(0)
   let cb = b.charCodeAt(0)
   if (ca === cb) return true
@@ -16,7 +16,7 @@ export function fuzzyChar(a:string, b:string):boolean {
 }
 
 // upper case must match, lower case ignore case
-export function fuzzyMatch(needle:number[], input:string):boolean {
+export function fuzzyMatch(needle: number[], input: string): boolean {
   let totalCount = needle.length
   let i = 0
   for (let j = 0; j < input.length; j++) {

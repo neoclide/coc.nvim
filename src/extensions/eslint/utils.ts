@@ -1,5 +1,5 @@
 import path from 'path'
-import {statAsync} from '../../util/fs'
+import { statAsync } from '../../util/fs'
 
 function exists(file: string): Promise<boolean> {
   return statAsync(file).then(stat => {

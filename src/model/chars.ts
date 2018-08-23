@@ -8,7 +8,7 @@ export class Range {
     this.end = end ? end : start
   }
 
-  public static fromKeywordOption(keywordOption:string):Range[] {
+  public static fromKeywordOption(keywordOption: string): Range[] {
     let parts = keywordOption.split(',')
     let ranges: Range[] = []
     for (let part of parts) {
@@ -34,7 +34,7 @@ export class Range {
     return ranges
   }
 
-  public contains(c: number):boolean {
+  public contains(c: number): boolean {
     return c >= this.start && c <= this.end
   }
 }
@@ -45,22 +45,22 @@ export class Chars {
     this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
-  public addKeyword(ch: string):void {
+  public addKeyword(ch: string): void {
     let c = ch.charCodeAt(0)
-    let {ranges} = this
+    let { ranges } = this
     if (!ranges.some(o => o.contains(c))) {
       ranges.push(new Range(c))
     }
   }
 
-  public setKeywordOption(keywordOption:string):void {
+  public setKeywordOption(keywordOption: string): void {
     this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
-  public matchKeywords(content: string, min = 3):string[] {
+  public matchKeywords(content: string, min = 3): string[] {
     if (!content) return []
     content = content + '\n'
-    let res:string[] = []
+    let res: string[] = []
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
       let ch = content[i]
@@ -76,15 +76,15 @@ export class Chars {
     return res
   }
 
-  public isKeywordChar(ch: string):boolean {
-    let {ranges} = this
+  public isKeywordChar(ch: string): boolean {
+    let { ranges } = this
     let c = ch.charCodeAt(0)
     if (c > 255) return false
     return ranges.some(r => r.contains(c))
   }
 
-  public isKeyword(word: string):boolean {
-    let {ranges} = this
+  public isKeyword(word: string): boolean {
+    let { ranges } = this
     for (let i = 0, l = word.length; i < l; i++) {
       let ch = word.charCodeAt(i)
       // for speed

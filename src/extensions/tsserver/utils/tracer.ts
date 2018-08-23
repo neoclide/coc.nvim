@@ -96,7 +96,7 @@ export default class Tracer {
 
   public logTrace(message: string, data?: any): void {
     if (this.trace !== Trace.Off) {
-			this.logger.logLevel('Trace', message, data)
+      this.logger.logLevel('Trace', message, data)
     }
   }
 }

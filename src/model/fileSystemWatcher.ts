@@ -1,6 +1,6 @@
-import {Disposable, Emitter, Event} from 'vscode-languageserver-protocol'
+import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import Watchman, {FileChange} from '../watchman'
+import Watchman, { FileChange } from '../watchman'
 import path = require('path')
 const logger = require('../util/logger')('filesystem-watcher')
 
@@ -43,12 +43,12 @@ export default class FileSystemWatcher implements Disposable {
   }
 
   private async listen(client: Watchman): Promise<void> {
-    let {globPattern,
+    let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
-      ignoreDeleteEvents} = this
+      ignoreDeleteEvents } = this
     this.subscription = await client.subscribe(globPattern, (change: FileChange) => {
-      let {root, files} = change
+      let { root, files } = change
       for (let file of files) {
         let uri = Uri.file(path.join(root, file.name))
         if (!file.exists) {

@@ -1,8 +1,8 @@
+import { echoMessage } from '../../util'
 import workspace from '../../workspace'
-import {echoMessage} from '../../util'
-import {Configuration} from './configuration'
+import { Configuration } from './configuration'
 
-export function verifyGemIsCurrent():void {
+export function verifyGemIsCurrent(): void {
   workspace.runCommand('gem outdated').then(res => {
     if (res.match(/[\s]solargraph[\s]/)) {
       notifyGemUpdate()
@@ -14,7 +14,7 @@ export function verifyGemIsCurrent():void {
   })
 }
 
-export function downloadCore(configuration:Configuration):void {
+export function downloadCore(configuration: Configuration): void {
   let cmd = getCommands(configuration, 'download-core')
   workspace.nvim.call('coc#util#open_terminal', [{
     id: 0,
@@ -22,7 +22,7 @@ export function downloadCore(configuration:Configuration):void {
   }], true)
 }
 
-export function createConfig(configuration:Configuration):void {
+export function createConfig(configuration: Configuration): void {
   let cmd = getCommands(configuration, 'download-core')
   workspace.runCommand(cmd).then(res => {
     if (res) {
@@ -33,7 +33,7 @@ export function createConfig(configuration:Configuration):void {
   })
 }
 
-function getCommands(configuration:Configuration, ...args:string[]):string {
+function getCommands(configuration: Configuration, ...args: string[]): string {
   let cmds = []
   if (configuration.useBundler) {
     cmds.push(configuration.bundlerPath, 'exec', 'solargraph')

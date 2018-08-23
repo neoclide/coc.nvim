@@ -37,8 +37,8 @@ export default class OmniSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let {line, colnr, col, func} = opt
-    let {nvim} = this
+    let { line, colnr, col, func } = opt
+    let { nvim } = this
     if (['LanguageClient#complete'].indexOf('func') !== -1) {
       echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)
       return null
@@ -69,7 +69,7 @@ export default class OmniSource extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('omni', new OmniSource())
   return Disposable.create(() => {
     sourceMap.delete('omni')

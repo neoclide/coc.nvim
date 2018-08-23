@@ -1,5 +1,5 @@
 
-export function memoize(_target: any, key: string, descriptor: any):void {
+export function memoize(_target: any, key: string, descriptor: any): void {
   let fnKey: string
   let fn: Function
 
@@ -15,7 +15,7 @@ export function memoize(_target: any, key: string, descriptor: any):void {
 
   const memoizeKey = `$memoize$${key}`
 
-  descriptor[fnKey] = function(...args: any[]):any {
+  descriptor[fnKey] = function(...args: any[]): any {
     if (!this.hasOwnProperty(memoizeKey)) {
       Object.defineProperty(this, memoizeKey, {
         configurable: false,

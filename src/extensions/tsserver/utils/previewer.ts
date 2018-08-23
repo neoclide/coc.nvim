@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import {MarkupContent, MarkupKind} from 'vscode-languageserver-protocol'
+import { MarkupContent, MarkupKind } from 'vscode-languageserver-protocol'
 import * as Proto from '../protocol'
 
 function getTagBodyText(tag: Proto.JSDocTagInfo): string | undefined {

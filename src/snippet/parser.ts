@@ -1,4 +1,4 @@
-import {CharCode} from './charCode'
+import { CharCode } from './charCode'
 
 export enum TokenType {
   Dollar,
@@ -25,7 +25,7 @@ export interface Token {
 }
 
 export class Scanner {
-  private static _table: {[ch: number]: TokenType} = {
+  private static _table: { [ch: number]: TokenType } = {
     [CharCode.DollarSign]: TokenType.Dollar,
     [CharCode.Colon]: TokenType.Colon,
     [CharCode.Comma]: TokenType.Comma,
@@ -69,7 +69,7 @@ export class Scanner {
 
   public next(): Token {
     if (this.pos >= this.value.length) {
-      return {type: TokenType.EOF, pos: this.pos, len: 0}
+      return { type: TokenType.EOF, pos: this.pos, len: 0 }
     }
 
     let pos = this.pos
@@ -81,7 +81,7 @@ export class Scanner {
     type = Scanner._table[ch]
     if (typeof type === 'number') {
       this.pos += 1
-      return {type, pos, len: 1}
+      return { type, pos, len: 1 }
     }
 
     // number
@@ -93,7 +93,7 @@ export class Scanner {
       } while (Scanner.isDigitCharacter(ch))
 
       this.pos += len
-      return {type, pos, len}
+      return { type, pos, len }
     }
 
     // variable name
@@ -104,7 +104,7 @@ export class Scanner {
       } while (Scanner.isVariableCharacter(ch) || Scanner.isDigitCharacter(ch))
 
       this.pos += len
-      return {type, pos, len}
+      return { type, pos, len }
     }
 
     // format
@@ -120,7 +120,7 @@ export class Scanner {
     )
 
     this.pos += len
-    return {type, pos, len}
+    return { type, pos, len }
   }
 }
 
@@ -146,7 +146,7 @@ export abstract class Marker {
   }
 
   public replace(child: Marker, others: Marker[]): void {
-    const {parent} = child
+    const { parent } = child
     const idx = parent.children.indexOf(child)
     const newChildren = parent.children.slice(0)
     newChildren.splice(idx, 1, ...others)
@@ -437,9 +437,9 @@ function walk(marker: Marker[], visitor: (marker: Marker) => boolean): void {
 }
 
 export class TextmateSnippet extends Marker {
-  private _placeholders: {all: Placeholder[]; last: Placeholder}
+  private _placeholders: { all: Placeholder[]; last: Placeholder }
 
-  public get placeholderInfo(): {all: Placeholder[]; last: Placeholder} {
+  public get placeholderInfo(): { all: Placeholder[]; last: Placeholder } {
     if (!this._placeholders) {
       // fill in placeholders
       let all: Placeholder[] = []
@@ -451,13 +451,13 @@ export class TextmateSnippet extends Marker {
         }
         return true
       })
-      this._placeholders = {all, last}
+      this._placeholders = { all, last }
     }
     return this._placeholders
   }
 
   public get placeholders(): Placeholder[] {
-    const {all} = this.placeholderInfo
+    const { all } = this.placeholderInfo
     return all
   }
 
@@ -490,7 +490,7 @@ export class TextmateSnippet extends Marker {
 
   public enclosingPlaceholders(placeholder: Placeholder): Placeholder[] {
     let ret: Placeholder[] = []
-    let {parent} = placeholder
+    let { parent } = placeholder
     while (parent) {
       if (parent instanceof Placeholder) {
         ret.push(parent)

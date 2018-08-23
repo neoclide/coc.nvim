@@ -1,8 +1,8 @@
 import Uri from 'vscode-uri'
-import {LanguageClient} from '../../language-client/main'
+import { LanguageClient } from '../../language-client/main'
 
 export default class SolargraphDocumentProvider {
-  private docs: {[uri: string]: string}
+  private docs: { [uri: string]: string }
 
   constructor(private languageClient: LanguageClient) {
     this.docs = {}
@@ -39,7 +39,7 @@ export default class SolargraphDocumentProvider {
     let method = '$/solargraph' + Uri.parse(uri).path
     let query = this.parseQuery(Uri.parse(uri).query)
     this.languageClient
-      .sendRequest(method, {query: query.query})
+      .sendRequest(method, { query: query.query })
       .then((result: any) => {
         this.docs[uri.toString()] = result.content
       })

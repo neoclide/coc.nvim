@@ -1,6 +1,6 @@
-import {CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument} from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionContext, CompletionItem, CompletionList, InsertTextFormat, Position, TextDocument } from 'vscode-languageserver-protocol'
 import languages from '../../languages'
-import {CompletionItemProvider} from '../../provider'
+import { CompletionItemProvider } from '../../provider'
 import workspace from '../../workspace'
 
 class SnippetProvider implements CompletionItemProvider {
@@ -10,7 +10,7 @@ class SnippetProvider implements CompletionItemProvider {
     token: CancellationToken,
     context: CompletionContext
   ): Promise<CompletionItem[] | CompletionList> {
-    let {uri} = document
+    let { uri } = document
     let doc = workspace.getDocument(uri)
     let range = doc.getWordRangeAtPosition(position)
     return [{

@@ -14,7 +14,7 @@ export class ResourceMap<T> {
 
   constructor(
     private readonly _normalizePath?: (resource: string) => string | null
-  ) {}
+  ) { }
 
   public has(resource: string): boolean {
     const file = this.toKey(resource)
@@ -26,7 +26,7 @@ export class ResourceMap<T> {
     return file ? this._map.get(file) : undefined
   }
 
-  public set(resource: string, value: T):void {
+  public set(resource: string, value: T): void {
     const file = this.toKey(resource)
     if (file) {
       this._map.set(file, value)
@@ -58,14 +58,14 @@ export class ResourceMap<T> {
     return this.isCaseInsensitivePath(key) ? key.toLowerCase() : key
   }
 
-  private isCaseInsensitivePath(path: string):boolean {
+  private isCaseInsensitivePath(path: string): boolean {
     if (isWindowsPath(path)) {
       return true
     }
     return path[0] === '/' && this.onIsCaseInsenitiveFileSystem
   }
 
-  private get onIsCaseInsenitiveFileSystem():boolean {
+  private get onIsCaseInsenitiveFileSystem(): boolean {
     if (process.platform === 'win32') {
       return true
     }

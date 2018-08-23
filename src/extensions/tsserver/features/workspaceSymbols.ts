@@ -2,11 +2,11 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, Range, SymbolInformation, SymbolKind} from 'vscode-languageserver-protocol'
-import {WorkspaceSymbolProvider} from '../../../provider'
+import { CancellationToken, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
+import { WorkspaceSymbolProvider } from '../../../provider'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as typeConverters from '../utils/typeConverters'
 const logger = require('../../../util/logger')('typsscript-workspace-symbols')
 
@@ -33,7 +33,7 @@ export default class TypeScriptWorkspaceSymbolProvider implements WorkspaceSymbo
   public constructor(
     private readonly client: ITypeScriptServiceClient,
     private readonly languageIds: string[]
-  ) {}
+  ) { }
 
   public async provideWorkspaceSymbols(
     search: string,

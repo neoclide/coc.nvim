@@ -2,15 +2,15 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, Hover, MarkedString, Position, TextDocument} from 'vscode-languageserver-protocol'
-import {HoverProvider} from '../../../provider'
+import { CancellationToken, Hover, MarkedString, Position, TextDocument } from 'vscode-languageserver-protocol'
+import { HoverProvider } from '../../../provider'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
-import {tagsMarkdownPreview} from '../utils/previewer'
+import { ITypeScriptServiceClient } from '../typescriptService'
+import { tagsMarkdownPreview } from '../utils/previewer'
 import * as typeConverters from '../utils/typeConverters'
 
 export default class TypeScriptHoverProvider implements HoverProvider {
-  public constructor(private readonly client: ITypeScriptServiceClient) {}
+  public constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async provideHover(
     document: TextDocument,
@@ -44,7 +44,7 @@ export default class TypeScriptHoverProvider implements HoverProvider {
     const parts = []
 
     if (data.displayString) {
-      parts.push({language: 'typescript', value: data.displayString})
+      parts.push({ language: 'typescript', value: data.displayString })
     }
 
     const tags = tagsMarkdownPreview(data.tags)

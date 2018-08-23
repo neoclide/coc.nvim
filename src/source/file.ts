@@ -19,7 +19,7 @@ export default class File extends Source {
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let {line, colnr, bufnr} = opt
+    let { line, colnr, bufnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
     if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
@@ -44,7 +44,7 @@ export default class File extends Source {
     if (stat) {
       let abbr = stat.isDirectory() ? filename + '/' : filename
       let word = filename
-      return {word, abbr}
+      return { word, abbr }
     }
     return null
   }
@@ -79,12 +79,12 @@ export default class File extends Source {
     return res
   }
 
-  public get trimSameExts():string[] {
+  public get trimSameExts(): string[] {
     return this.getConfig('trimSameExts', [])
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let {input, pathstr, col, cwd, ext, fullpath, dirname, part} = opt
+    let { input, pathstr, col, cwd, ext, fullpath, dirname, part } = opt
     let root
     if (/^\./.test(pathstr)) {
       root = fullpath ? path.dirname(fullpath) : cwd
@@ -118,7 +118,7 @@ export default class File extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('file', new File())
   return Disposable.create(() => {
     sourceMap.delete('file')

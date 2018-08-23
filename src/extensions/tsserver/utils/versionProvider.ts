@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 import fs from 'fs'
 import path from 'path'
-import {getParentDirs} from '../../../util/fs'
-import {globalResolve} from '../../../util/resolve'
-import API from './api'
+import { getParentDirs } from '../../../util/fs'
+import { globalResolve } from '../../../util/resolve'
 import workspace from '../../../workspace'
-import {TypeScriptServiceConfiguration} from './configuration'
+import API from './api'
+import { TypeScriptServiceConfiguration } from './configuration'
 const logger = require('../../../util/logger')('tsserver-versionProvider')
 
 export class TypeScriptVersion {
@@ -82,7 +82,7 @@ export class TypeScriptVersion {
 
 export class TypeScriptVersionProvider {
 
-  public constructor(private configuration: TypeScriptServiceConfiguration) {}
+  public constructor(private configuration: TypeScriptServiceConfiguration) { }
 
   public updateConfiguration(
     configuration: TypeScriptServiceConfiguration
@@ -92,7 +92,7 @@ export class TypeScriptVersionProvider {
 
   public async getDefaultVersion(): Promise<TypeScriptVersion> {
     // tsdk from configuration
-    let {globalTsdk} = this.configuration
+    let { globalTsdk } = this.configuration
     if (globalTsdk) return new TypeScriptVersion(globalTsdk)
     // resolve global module
     let modulePath = await globalResolve('typescript')
@@ -105,7 +105,7 @@ export class TypeScriptVersionProvider {
   }
 
   public get globalVersion(): TypeScriptVersion | undefined {
-    let {globalTsdk} = this.configuration
+    let { globalTsdk } = this.configuration
     if (globalTsdk) return new TypeScriptVersion(globalTsdk)
     return undefined
   }

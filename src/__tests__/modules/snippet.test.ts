@@ -1,5 +1,5 @@
 /* tslint:disable:no-console */
-import {SnippetParser} from '../../snippet/parser'
+import { SnippetParser } from '../../snippet/parser'
 
 describe('snippet parser', () => {
   test('parse a snippet', () => {

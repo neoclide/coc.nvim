@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import * as cp from 'child_process'
-import {join} from 'path'
+import { join } from 'path'
 import ChildProcess = cp.ChildProcess
 
 const isWindows = process.platform === 'win32'

@@ -1,10 +1,10 @@
-import Source from '../model/source'
-import workspace from '../workspace'
-import { Disposable } from 'vscode-languageserver-protocol'
-import {CompleteOption, CompleteResult, ISource} from '../types'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
+import { Disposable } from 'vscode-languageserver-protocol'
+import Source from '../model/source'
+import { CompleteOption, CompleteResult, ISource } from '../types'
+import workspace from '../workspace'
 const logger = require('../util/logger')('source-emoji')
 
 export interface Item {
@@ -29,7 +29,7 @@ export default class Emoji extends Source {
       let lines = content.split(/\n/).slice(0, -1)
       items = lines.map(str => {
         let parts = str.split(':')
-        return {description: parts[0], character: parts[1]}
+        return { description: parts[0], character: parts[1] }
       })
     }
     return {
@@ -45,7 +45,7 @@ export default class Emoji extends Source {
   }
 }
 
-export function regist(sourceMap:Map<string, ISource>):Disposable {
+export function regist(sourceMap: Map<string, ISource>): Disposable {
   sourceMap.set('emoji', new Emoji())
   return Disposable.create(() => {
     sourceMap.delete('emoji')

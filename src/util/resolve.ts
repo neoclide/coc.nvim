@@ -1,10 +1,10 @@
-import {exec} from 'child_process'
-import {statAsync} from './fs'
+import { exec } from 'child_process'
 import path from 'path'
+import { statAsync } from './fs'
 
 let resolved
 
-function resolveRoot():Promise<string> {
+function resolveRoot(): Promise<string> {
   if (resolved) return Promise.resolve(resolved)
   return new Promise(resolve => {
     exec('npm root -g', (error, out) => {
@@ -17,7 +17,7 @@ function resolveRoot():Promise<string> {
   })
 }
 
-export async function globalResolve(name:string):Promise<string> {
+export async function globalResolve(name: string): Promise<string> {
   let root = await resolveRoot()
   if (!root) return
   let p = path.join(root, name)

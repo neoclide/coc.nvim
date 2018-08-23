@@ -2,10 +2,10 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import {CancellationToken, Position, SignatureHelp, SignatureInformation, TextDocument} from 'vscode-languageserver-protocol'
-import {SignatureHelpProvider} from '../../../provider'
+import { CancellationToken, Position, SignatureHelp, SignatureInformation, TextDocument } from 'vscode-languageserver-protocol'
+import { SignatureHelpProvider } from '../../../provider'
 import * as Proto from '../protocol'
-import {ITypeScriptServiceClient} from '../typescriptService'
+import { ITypeScriptServiceClient } from '../typescriptService'
 import * as Previewer from '../utils/previewer'
 import * as typeConverters from '../utils/typeConverters'
 const logger = require('../../../util/logger')('typescript-signature')
@@ -13,7 +13,7 @@ const logger = require('../../../util/logger')('typescript-signature')
 export default class TypeScriptSignatureHelpProvider implements SignatureHelpProvider {
   public static readonly triggerCharacters = ['(', ',', '<']
 
-  public constructor(private readonly client: ITypeScriptServiceClient) {}
+  public constructor(private readonly client: ITypeScriptServiceClient) { }
 
   public async provideSignatureHelp(
     document: TextDocument,
@@ -38,7 +38,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
       return undefined
     }
 
-    const result:SignatureHelp = {
+    const result: SignatureHelp = {
       activeSignature: info.selectedItemIndex,
       activeParameter: this.getActiveParmeter(info),
       signatures: info.items.map(signature => {
@@ -56,7 +56,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
     return info.argumentIndex
   }
 
-  private convertSignature(item: Proto.SignatureHelpItem):SignatureInformation {
+  private convertSignature(item: Proto.SignatureHelpItem): SignatureInformation {
     return {
       label: Previewer.plain(item.prefixDisplayParts).replace(/\($/, ''),
       documentation: Previewer.markdownDocumentation(
@@ -65,7 +65,7 @@ export default class TypeScriptSignatureHelpProvider implements SignatureHelpPro
       ),
       parameters: item.parameters.map(p => {
         return {
-           label: Previewer.plain(p.displayParts),
+          label: Previewer.plain(p.displayParts),
           documentation: Previewer.markdownDocumentation(p.documentation, [])
         }
       })

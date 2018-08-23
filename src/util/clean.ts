@@ -1,8 +1,8 @@
 import fs from 'fs'
 import glob from 'glob'
-import {tmpdir} from 'os'
+import { tmpdir } from 'os'
 import pify from 'pify'
-import {validSocket} from './fs'
+import { validSocket } from './fs'
 
 export default async function(): Promise<void> {
   try {

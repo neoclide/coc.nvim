@@ -1,4 +1,4 @@
-import {echoErr, echoMessage, echoWarning} from '../../../util'
+import { echoErr, echoMessage, echoWarning } from '../../../util'
 import workspace from '../../../workspace'
 
 export function errorMsg(msg): void {
