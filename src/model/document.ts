@@ -461,7 +461,7 @@ export default class Document {
       srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
       this.srcId = srcId
     } else {
-      await buffer.clearHighlight({ srcId })
+      buffer.clearHighlight({ srcId })
     }
     for (let hl of highlights) {
       let hlGroup = hl.kind == DocumentHighlightKind.Text
@@ -494,7 +494,7 @@ export default class Document {
   public async clearHighlight(): Promise<void> {
     let { srcId, buffer } = this
     if (srcId) {
-      await buffer.clearHighlight({ srcId })
+      buffer.clearHighlight({ srcId })
     }
   }
 }
