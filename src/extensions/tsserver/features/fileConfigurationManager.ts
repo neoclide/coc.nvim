@@ -78,7 +78,8 @@ export default class FileConfigurationManager {
   }
 
   public isTypeScriptDocument(languageId: string): boolean {
-    return languageId === languageIds.typescript || languageId === languageIds.typescriptreact || languageId === languageIds.typescripttsx
+    return languageId === languageIds.typescript || languageId === languageIds.typescriptreact || 
+      languageId === languageIds.typescripttsx || languageId === languageIds.typescriptjsx
   }
 
   public enableJavascript(): boolean {
