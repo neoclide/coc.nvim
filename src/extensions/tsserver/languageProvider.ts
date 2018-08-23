@@ -14,6 +14,7 @@ import BufferSyncSupport from './features/bufferSyncSupport'
 import CompletionItemProvider from './features/completionItemProvider'
 import DefinitionProvider from './features/definitionProvider'
 import { DiagnosticsManager } from './features/diagnostics'
+import DirectiveCommentCompletionProvider from './features/directiveCommentCompletions'
 import DocumentHighlight from './features/documentHighlight'
 import DocumentSymbolProvider from './features/documentSymbol'
 import FileConfigurationManager from './features/fileConfigurationManager'
@@ -124,6 +125,20 @@ export default class LanguageProvider {
         CompletionItemProvider.triggerCharacters
       )
     )
+
+    if (this.client.apiVersion.gte(API.v230)) {
+      this.disposables.push(
+        languages.registerCompletionItemProvider(
+          `${this.description.id}-directive`,
+          'TSC',
+          languageIds,
+          new DirectiveCommentCompletionProvider(
+            client,
+          ),
+          ['@']
+        )
+      )
+    }
     let definitionProvider = new DefinitionProvider(client)
 
     this.disposables.push(

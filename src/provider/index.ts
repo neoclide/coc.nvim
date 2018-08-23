@@ -100,7 +100,7 @@ export interface CompletionItemProvider {
     document: TextDocument,
     position: Position,
     token: CancellationToken,
-    context: CompletionContext
+    context?: CompletionContext
   ): ProviderResult<CompletionItem[] | CompletionList>
 
   /**
