@@ -6,6 +6,7 @@
 export const typescript = 'typescript'
 export const typescriptreact = 'typescriptreact'
 export const typescripttsx = 'typescript.tsx'
+export const typescriptjsx = 'typescript.jsx'
 export const javascript = 'javascript'
 export const javascriptreact = 'javascript.jsx'
 export const jsxTags = 'jsx-tags'

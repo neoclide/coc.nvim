@@ -20,6 +20,8 @@ function mode2ScriptKind(
       return 'TS'
     case languageModeIds.typescripttsx:
       return 'TSX'
+    case languageModeIds.typescriptjsx:
+      return 'TSX'
     case languageModeIds.typescriptreact:
       return 'TSX'
     case languageModeIds.javascript:

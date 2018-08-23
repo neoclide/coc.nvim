@@ -18,7 +18,8 @@ export const standardLanguageDescriptions: LanguageDescription[] = [
     id: 'typescript',
     diagnosticSource: 'ts',
     diagnosticOwner: 'typescript',
-    modeIds: [languageModeIds.typescript, languageModeIds.typescriptreact, languageModeIds.typescripttsx],
+    modeIds: [languageModeIds.typescript, languageModeIds.typescriptreact, 
+      languageModeIds.typescripttsx, languageModeIds.typescriptjsx],
     configFile: 'tsconfig.json'
   },
   {
