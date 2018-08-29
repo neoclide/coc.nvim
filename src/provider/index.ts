@@ -1,4 +1,4 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionItem, CompletionList, CompletionTriggerKind, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
@@ -35,21 +35,6 @@ export type ProviderResult<T> =
   | undefined
   | null
   | Thenable<T | undefined | null>
-
-export enum CompletionTriggerKind {
-  /**
-   * Completion was triggered normally.
-   */
-  Invoke = 0,
-  /**
-   * Completion was triggered by a trigger character.
-   */
-  TriggerCharacter = 1,
-  /**
-   * Completion was re-triggered as current completion list is incomplete
-   */
-  TriggerForIncompleteCompletions = 2
-}
 
 /**
  * Contains additional information about the context in which
