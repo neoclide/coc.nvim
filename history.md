@@ -1,3 +1,9 @@
+# 2018-08-30
+
+* Fix wrong `triggerKind` from VSCode.
+* Add `<Plug>(coc-openlink)` for open link.
+* Add `typescript.jsx` as valid typescript type.
+
 # 2018-08-23
 
 * Fix sometimes client status invalid.
