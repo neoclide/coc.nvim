@@ -43,6 +43,7 @@ export class DiagnosticManager {
   private nvim: Neovim
   private srcId = 1000
   private srcIdMap: Map<string, number> = new Map()
+  private enableMessage = true
   private showMessage: Function & { clear(): void }
   constructor() {
 
@@ -55,7 +56,9 @@ export class DiagnosticManager {
         })
       }
       workspace.emitter.on('CursorMoved', () => {
-        this.showMessage()
+        if (this.enableMessage) {
+          this.showMessage()
+        }
       })
     }, null, this.disposables)
 
@@ -104,6 +107,7 @@ export class DiagnosticManager {
 
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
+    this.enableMessage = config.get<boolean>('enableMessage', true)
     this.srcId = config.get<number>('highlightOffset', 1000),
       this.config = {
         locationlist: config.get<boolean>('locationlist', true),

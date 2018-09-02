@@ -259,6 +259,11 @@
       "description": "Set to false to disable diagnostic",
       "default": true
     },
+    "coc.preferences.diagnostic.enableMessage": {
+      "type": "boolean",
+      "description": "Set to false to disable echo message on CursorMove",
+      "default": true
+    },
     "coc.preferences.diagnostic.locationlist": {
       "type": "boolean",
       "description": "Create location list for error & warning",
