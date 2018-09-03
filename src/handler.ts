@@ -183,12 +183,24 @@ export default class Handler {
     let { nvim } = this
     let { document, position } = await workspace.getCurrentState()
     if (!document) return
-    let curname = await nvim.call('expand', '<cword>')
-    let doc = workspace.getDocument(document.uri)
-    if (!doc.isWord(curname)) {
-      workspace.showMessage(`'${curname}' is not a valid word!`, 'error')
+    let res = await languages.prepareRename(document, position)
+    if (res === false) {
+      workspace.showMessage('Invalid position for rename', 'error')
       return
     }
+    let curname: string
+    if (res == null) {
+      curname = await nvim.call('expand', '<cword>')
+    } else {
+      if (Range.is(res)) {
+        let doc = workspace.getDocument(document.uri)
+        let line = doc.getline(res.start.line)
+        curname = line.slice(res.start.character, res.end.character)
+      } else {
+        curname = res.placeholder
+      }
+    }
+    if (!curname) return
     let newName = await nvim.call('input', ['new name:', curname])
     nvim.command('normal! :<C-u>', true)
     if (!newName) {

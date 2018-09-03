@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Commands from '../commands'
 import languages from '../languages'
@@ -415,6 +415,10 @@ export interface ProvideOnTypeFormattingEditsSignature {
   ): ProviderResult<TextEdit[]>
 }
 
+export interface PrepareRenameSignature {
+  (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Range | { range: Range, placeholder: string }>
+}
+
 export interface ProvideRenameEditsSignature {
   (
     document: TextDocument,
@@ -577,6 +581,12 @@ export interface _Middleware {
     token: CancellationToken,
     next: ProvideOnTypeFormattingEditsSignature
   ) => ProviderResult<TextEdit[]>
+  prepareRename?: (
+    this: void, document: TextDocument,
+    position: Position,
+    token: CancellationToken,
+    next: PrepareRenameSignature
+  ) => ProviderResult<Range | { range: Range, placeholder: string }>
   provideRenameEdits?: (
     this: void,
     document: TextDocument,
@@ -2671,10 +2681,9 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
   }
 
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    ensure(
-      ensure(capabilites, 'textDocument')!,
-      'rename'
-    )!.dynamicRegistration = true
+    let rename = ensure(ensure(capabilites, 'textDocument')!, 'rename')!
+    rename.dynamicRegistration = true
+    rename.prepareSupport = true
   }
 
   public initialize(
@@ -2690,7 +2699,7 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
     })
   }
 
-  protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
+  protected registerLanguageProvider(options: RenameRegistrationOptions): Disposable {
     let client = this._client
     let provideRenameEdits: ProvideRenameEditsSignature = (
       document,
@@ -2713,6 +2722,21 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
         }
         )
     }
+    let prepareRename: PrepareRenameSignature = (document, position, token) => {
+      let params: TextDocumentPositionParams = {
+        textDocument: cv.asTextDocumentIdentifier(document),
+        position
+      };
+      return client.sendRequest(PrepareRenameRequest.type, params, token).then(result => {
+        return result;
+      },
+        (error: ResponseError<void>) => {
+          client.logFailedRequest(PrepareRenameRequest.type, error);
+          return Promise.reject(new Error(error.message));
+        }
+      );
+    };
+
     let middleware = client.clientOptions.middleware!
     return languages.registerRenameProvider(
       options.documentSelector, {
@@ -2731,7 +2755,13 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
               provideRenameEdits
             )
             : provideRenameEdits(document, position, newName, token)
-        }
+        },
+        prepareRename: options.prepareProvider
+          ? (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Range | { range: Range, placeholder: string }> => {
+            return middleware.prepareRename
+              ? middleware.prepareRename(document, position, token, prepareRename)
+              : prepareRename(document, position, token);
+          } : undefined
       })
   }
 }

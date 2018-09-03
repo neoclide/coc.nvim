@@ -235,7 +235,7 @@ class Languages {
   }
 
   @check
-  public async prepareRename(document: TextDocument, position: Position): Promise<Range | { range: Range; placeholder: string }> {
+  public async prepareRename(document: TextDocument, position: Position): Promise<Range | { range: Range; placeholder: string } | false> {
     return await this.renameManager.prepareRename(document, position, this.token)
   }
 

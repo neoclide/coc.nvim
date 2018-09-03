@@ -33,11 +33,14 @@ export default class RenameManager extends Manager<RenameProvider> implements Di
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Range | { range: Range; placeholder: string }> {
+  ): Promise<Range | { range: Range; placeholder: string } | false> {
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
+    if (provider.prepareRename == null) return null
     let res = await Promise.resolve(provider.prepareRename(document, position, token))
+    // can not rename
+    if (res == null) false
     return res
   }
 
