@@ -1,4 +1,4 @@
-import { CancellationToken, CodeAction, CodeActionContext, Command, Disposable, DocumentSelector, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, Command, Disposable, DocumentSelector, Range, TextDocument } from 'vscode-languageserver-protocol'
 import { CodeActionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
@@ -6,11 +6,12 @@ const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
 
-  public register(selector: DocumentSelector, provider: CodeActionProvider): Disposable {
+  public register(selector: DocumentSelector, provider: CodeActionProvider, codeActionKinds?: CodeActionKind[]): Disposable {
     let item: ProviderItem<CodeActionProvider> = {
       id: uuid(),
       selector,
-      provider
+      provider,
+      kinds: codeActionKinds
     }
     this.providers.add(item)
     return Disposable.create(() => {
