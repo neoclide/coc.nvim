@@ -161,9 +161,9 @@
   version "10.5.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.5.3.tgz#5bcfaf088ad17894232012877669634c06b20cc5"
 
-"@types/node@^10.7.1":
-  version "10.7.1"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.7.1.tgz#b704d7c259aa40ee052eec678758a68d07132a2e"
+"@types/node@^10.9.4":
+  version "10.9.4"
+  resolved "http://r.cnpmjs.org/@types/node/download/@types/node-10.9.4.tgz#0f4cb2dc7c1de6096055357f70179043c33e9897"
 
 "@types/once@^1.4.0":
   version "1.4.0"
@@ -177,9 +177,9 @@
   version "5.5.0"
   resolved "https://registry.yarnpkg.com/@types/semver/-/semver-5.5.0.tgz#146c2a29ee7d3bae4bf2fcb274636e264c813c45"
 
-"@types/uuid@^3.4.3":
-  version "3.4.3"
-  resolved "https://registry.yarnpkg.com/@types/uuid/-/uuid-3.4.3.tgz#121ace265f5569ce40f4f6d0ff78a338c732a754"
+"@types/uuid@^3.4.4":
+  version "3.4.4"
+  resolved "http://r.cnpmjs.org/@types/uuid/download/@types/uuid-3.4.4.tgz#7af69360fa65ef0decb41fd150bf4ca5c0cefdf5"
   dependencies:
     "@types/node" "*"
 
@@ -1267,6 +1267,17 @@ glob@^7.0.3, glob@^7.0.5, glob@^7.1.1, glob@^7.1.2:
     once "^1.3.0"
     path-is-absolute "^1.0.0"
 
+glob@^7.1.3:
+  version "7.1.3"
+  resolved "http://r.cnpmjs.org/glob/download/glob-7.1.3.tgz#3960832d3f1574108342dafd3a67b332c0969df1"
+  dependencies:
+    fs.realpath "^1.0.0"
+    inflight "^1.0.4"
+    inherits "2"
+    minimatch "^3.0.4"
+    once "^1.3.0"
+    path-is-absolute "^1.0.0"
+
 globals@^11.1.0:
   version "11.7.0"
   resolved "https://registry.yarnpkg.com/globals/-/globals-11.7.0.tgz#a583faa43055b1aca771914bf68258e2fc125673"
@@ -2064,9 +2075,9 @@ json5@^0.5.0, json5@^0.5.1:
   version "0.5.1"
   resolved "https://registry.yarnpkg.com/json5/-/json5-0.5.1.tgz#1eade7acc012034ad84e2396767ead9fa5495821"
 
-jsonc-parser@^2.0.1:
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/jsonc-parser/-/jsonc-parser-2.0.1.tgz#9d23cd2709714fff508a1a6679d82135bee1ae60"
+jsonc-parser@^2.0.2:
+  version "2.0.2"
+  resolved "http://r.cnpmjs.org/jsonc-parser/download/jsonc-parser-2.0.2.tgz#42fcf56d70852a043fadafde51ddb4a85649978d"
 
 jsonfile@^4.0.0:
   version "4.0.0"
@@ -3340,9 +3351,9 @@ type-check@~0.3.2:
   dependencies:
     prelude-ls "~1.1.2"
 
-typescript@^3.0.1:
-  version "3.0.1"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.0.1.tgz#43738f29585d3a87575520a4b93ab6026ef11fdb"
+typescript@^3.0.3:
+  version "3.0.3"
+  resolved "http://r.cnpmjs.org/typescript/download/typescript-3.0.3.tgz#4853b3e275ecdaa27f78fda46dc273a7eb7fc1c8"
 
 uglify-js@^2.6:
   version "2.8.29"
@@ -3419,16 +3430,16 @@ vscode-jsonrpc@^3.6.2:
   version "3.6.2"
   resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-3.6.2.tgz#3b5eef691159a15556ecc500e9a8a0dd143470c8"
 
-vscode-languageserver-protocol@^3.11.0:
-  version "3.11.0"
-  resolved "https://registry.yarnpkg.com/vscode-languageserver-protocol/-/vscode-languageserver-protocol-3.11.0.tgz#7e5463300a783d3596b494e5761ced99368eadb8"
+vscode-languageserver-protocol@^3.12.0:
+  version "3.12.0"
+  resolved "http://r.cnpmjs.org/vscode-languageserver-protocol/download/vscode-languageserver-protocol-3.12.0.tgz#5b23501292abad88f0463b01e83ff98e64a37652"
   dependencies:
     vscode-jsonrpc "^3.6.2"
-    vscode-languageserver-types "^3.11.0"
+    vscode-languageserver-types "^3.12.0"
 
-vscode-languageserver-types@^3.11.0:
-  version "3.11.0"
-  resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.11.0.tgz#0d27cc59917796f0cfa363de10ae1649c2991526"
+vscode-languageserver-types@^3.12.0:
+  version "3.12.0"
+  resolved "http://r.cnpmjs.org/vscode-languageserver-types/download/vscode-languageserver-types-3.12.0.tgz#f96051381b6a050b7175b37d6cb5d2f2eb64b944"
 
 vscode-uri@^1.0.6:
   version "1.0.6"
