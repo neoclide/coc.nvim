@@ -1,8 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentHighlightKind, DocumentSelector, Event, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentHighlightKind, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import { FormattingOptions } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 

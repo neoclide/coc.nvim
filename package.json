@@ -2,7 +2,7 @@
   "name": "coc.nvim",
   "version": "0.0.14",
   "description": "Completetion manage for neovim",
-  "main": "./lib/attach.js",
+  "main": "./lib/index.js",
   "bin": "./bin/server.js",
   "scripts": {
     "clean": "rimraf lib",

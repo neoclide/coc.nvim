@@ -2,9 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, Command, CompletionItem, InsertTextFormat, MarkupContent, MarkupKind, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, Command, CompletionContext, CompletionItem, InsertTextFormat, MarkupContent, MarkupKind, Position, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import commands, { Command as CommandItem } from '../../../commands'
-import { CompletionContext, CompletionItemProvider } from '../../../provider'
+import { CompletionItemProvider } from '../../../provider'
 import workspace from '../../../workspace'
 import Proto from '../protocol'
 import * as PConst from '../protocol.const'

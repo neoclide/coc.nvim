@@ -2,9 +2,9 @@
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
-import { CancellationToken, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, FormattingOptions, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../../../commands'
-import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider, FormattingOptions } from '../../../provider'
+import { DocumentFormattingEditProvider, DocumentRangeFormattingEditProvider } from '../../../provider'
 import workspace from '../../../workspace'
 import * as Proto from '../protocol'
 import { ITypeScriptServiceClient } from '../typescriptService'
