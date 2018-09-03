@@ -1,5 +1,6 @@
 import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
+import events from './events'
 import Plugin from './plugin'
 const logger = require('./util/logger')('attach')
 
@@ -14,22 +15,19 @@ export default function(opts: Attach): Plugin {
         })
         return
       case 'CocAutocmd':
-        plugin.cocAutocmd(args).catch(e => {
-          logger.error('Autocmd error: ' + e.stack)
-        })
+        (events as any).fire(args[0], args.slice(1))
         return
       default:
-        plugin.emitter.emit('notification', method, args)
+        plugin.emit('notification', method, args)
     }
   })
 
   nvim.on('request', (method: string, args, resp) => {
     switch (method) {
       case 'CocAutocmd':
-        plugin.cocAutocmd.call(plugin, args).then(() => {
+        (events as any).fire(args[0], args.slice(1)).then(() => {
           resp.send()
-        }, e => {
-          logger.error('Action error: ' + e.stack)
+        }, () => {
           resp.send()
         })
         return

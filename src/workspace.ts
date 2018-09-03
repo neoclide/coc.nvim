@@ -2,7 +2,6 @@ import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import { exec } from 'child_process'
 import debounce from 'debounce'
 import deepEqual from 'deep-equal'
-import { EventEmitter } from 'events'
 import fs from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
@@ -10,6 +9,7 @@ import path from 'path'
 import { DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configurations'
+import events from './events'
 import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
@@ -39,7 +39,6 @@ export class Workspace implements IWorkspace {
   public bufnr: number
   public terminal: Terminal
   public readonly nvim: Neovim
-  public readonly emitter: EventEmitter
 
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
@@ -90,18 +89,18 @@ export class Workspace implements IWorkspace {
   }
 
   public async init(): Promise<void> {
-    this.emitter.on('InsertEnter', this.onInsertEnter.bind(this))
-    this.emitter.on('BufEnter', this.onBufEnter.bind(this))
-    this.emitter.on('BufWinEnter', this.onBufWinEnter.bind(this))
-    this.emitter.on('DirChanged', this.onDirChanged.bind(this))
-    this.emitter.on('BufCreate', this.onBufCreate.bind(this))
-    this.emitter.on('BufUnload', this.onBufUnload.bind(this))
-    this.emitter.on('BufWritePost', this.onBufWritePost.bind(this))
-    this.emitter.on('BufWritePre', this.onBufWritePre.bind(this))
-    this.emitter.on('OptionSet', this.onOptionSet.bind(this))
-    this.emitter.on('FileType', this.onFileTypeChange.bind(this))
-    this.emitter.on('CursorHold', this.checkBuffer.bind(this))
-    this.emitter.on('TextChanged', this.checkBuffer.bind(this))
+    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
+    this.disposables.push(events.on('BufEnter', this.onBufEnter, this))
+    this.disposables.push(events.on('BufWinEnter', this.onBufWinEnter, this))
+    this.disposables.push(events.on('DirChanged', this.onDirChanged, this))
+    this.disposables.push(events.on('BufCreate', this.onBufCreate, this))
+    this.disposables.push(events.on('BufUnload', this.onBufUnload, this))
+    this.disposables.push(events.on('BufWritePost', this.onBufWritePost, this))
+    this.disposables.push(events.on('BufWritePre', this.onBufWritePre, this))
+    this.disposables.push(events.on('OptionSet', this.onOptionSet, this))
+    this.disposables.push(events.on('FileType', this.onFileTypeChange, this))
+    this.disposables.push(events.on('CursorHold', this.checkBuffer as any, this))
+    this.disposables.push(events.on('TextChanged', this.checkBuffer as any, this))
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
@@ -626,14 +625,14 @@ export class Workspace implements IWorkspace {
 
   // events for sync buffer of vim
   private initVimEvents(): void {
-    let { emitter, nvim } = this
+    let { nvim } = this
     let lastChar = ''
     let lastTs = null
-    emitter.on('InsertCharPre', ch => {
+    events.on('InsertCharPre', ch => {
       lastChar = ch
       lastTs = Date.now()
     })
-    emitter.on('TextChangedI', bufnr => {
+    events.on('TextChangedI', bufnr => {
       let doc = this.getDocument(bufnr)
       if (!doc) return
       if (Date.now() - lastTs < 40 && lastChar) {
@@ -647,7 +646,7 @@ export class Workspace implements IWorkspace {
       }
       lastChar = null
     })
-    emitter.on('TextChanged', bufnr => {
+    events.on('TextChanged', bufnr => {
       let doc = this.getDocument(bufnr)
       if (doc) doc.fetchContent()
     })

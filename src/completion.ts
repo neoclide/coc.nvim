@@ -1,47 +1,33 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
+import { CompletionItem, CompletionItemKind, Disposable, InsertTextFormat, Position } from 'vscode-languageserver-protocol'
 import completes from './completes'
+import events from './events'
 import Increment from './increment'
 import Document from './model/document'
 import sources from './sources'
 import { CompleteOption, SourceStat, SourceType, VimCompleteItem } from './types'
-import { echoErr, isCocItem } from './util'
+import { disposeAll, echoErr, isCocItem } from './util'
 import { byteSlice, isWord } from './util/string'
 import workspace from './workspace'
-import Emitter = require('events')
 const logger = require('./util/logger')('completion')
 
-function onError(e): void {
-  logger.error(e.stack)
-}
-
-export class Completion {
+export class Completion implements Disposable {
   private increment: Increment
   private lastChangedI: number
   private nvim: Neovim
   private completing = false
+  private disposeables: Disposable[] = []
 
-  public init(nvim, emitter: Emitter): void {
+  public init(nvim): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
-    emitter.on('InsertCharPre', character => {
-      this.onInsertCharPre(character)
-    })
-    emitter.on('InsertLeave', () => {
-      this.onInsertLeave().catch(onError)
-    })
-    emitter.on('InsertEnter', () => {
-      this.onInsertEnter().catch(onError)
-    })
-    emitter.on('TextChangedP', () => {
-      this.onTextChangedP().catch(onError)
-    })
-    emitter.on('TextChangedI', () => {
-      this.onTextChangedI().catch(onError)
-    })
-    emitter.on('CompleteDone', item => {
-      this.onCompleteDone(item).catch(onError)
-    })
+    this.disposeables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
+    this.disposeables.push(events.on('InsertLeave', this.onInsertLeave, this))
+    this.disposeables.push(events.on('InsertEnter', this.onInsertEnter, this))
+    this.disposeables.push(events.on('TextChangedP', this.onTextChangedP, this))
+    this.disposeables.push(events.on('TextChangedI', this.onTextChangedI, this))
+    this.disposeables.push(events.on('CompleteDone', this.onCompleteDone, this))
+
     // stop change emit on completion
     let document: Document = null
     increment.on('start', option => {
@@ -260,6 +246,7 @@ export class Completion {
       this.increment.removeAllListeners()
       this.increment.stop()
     }
+    disposeAll(this.disposeables)
   }
 
   public completionKindString(kind: CompletionItemKind): string {

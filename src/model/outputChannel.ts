@@ -1,8 +1,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
+import events from '../events'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
-import workspace from '../workspace'
 const logger = require('../util/logger')("outpubChannel")
 
 export default class BufferChannel implements OutputChannel {
@@ -11,12 +11,7 @@ export default class BufferChannel implements OutputChannel {
   private disposables: Disposable[] = []
   private _showing = false
   constructor(public name: string, private nvim: Neovim) {
-    let { emitter } = workspace
-    let onUnload = this.onUnload.bind(this)
-    emitter.on('BufUnload', onUnload)
-    this.disposables.push(Disposable.create(() => {
-      emitter.removeListener('BufUnload', onUnload)
-    }))
+    this.disposables.push(events.on('BufUnload', this.onUnload, this))
   }
 
   public async isShown(): Promise<boolean> {

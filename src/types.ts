@@ -13,8 +13,6 @@ export interface EditerState {
 
 export type ColorMap = Map<DocumentHighlightKind, string>
 
-export type Filter = 'word' | 'fuzzy'
-
 export type ModuleResolve = () => Promise<string>
 
 export interface WinEnter {
@@ -181,14 +179,6 @@ export interface SourceStat {
   type: string
   filepath: string
   disabled: boolean
-}
-
-export interface QueryOption {
-  filetype: string
-  filename: string
-  content: string
-  col: number
-  lnum: number
 }
 
 export interface WorkspaceConfiguration {

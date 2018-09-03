@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
+import events from '../events'
 import Document from '../model/document'
 import { DiagnosticItem, LocationListItem } from '../types'
 import { disposeAll } from '../util'
@@ -55,7 +56,7 @@ export class DiagnosticManager {
           logger.error(err.stack)
         })
       }
-      workspace.emitter.on('CursorMoved', () => {
+      events.on('CursorMoved', () => {
         if (this.enableMessage) {
           this.showMessage()
         }

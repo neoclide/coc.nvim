@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import Emitter from 'events'
+import { EventEmitter } from 'events'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -11,19 +11,19 @@ import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
-export default class Plugin {
+export default class Plugin extends EventEmitter {
   private initialized = false
   private handler: Handler
-  public emitter: Emitter
 
   constructor(public nvim: Neovim) {
-    let emitter = this.emitter = new Emitter()
-      ; (workspace as any).nvim = nvim
-      ; (workspace as any).emitter = emitter
+    super()
+    Object.defineProperty(workspace, 'nvim', {
+      get: () => this.nvim
+    })
     sources.init()
     services.init(nvim)
     commandManager.init(nvim, this)
-    completion.init(nvim, this.emitter)
+    completion.init(nvim)
     clean() // tslint:disable-line
   }
 
@@ -32,50 +32,10 @@ export default class Plugin {
     this.initialized = true
     let { nvim } = this
     await workspace.init()
-    this.handler = new Handler(nvim, this.emitter, services)
+    this.handler = new Handler(nvim)
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
-    this.emitter.emit('ready')
-  }
-
-  public async cocAutocmd(args: any): Promise<void> {
-    let { emitter } = this
-    logger.debug('Autocmd:', args)
-    switch (args[0] as string) {
-      case 'BufEnter':
-      case 'BufWinEnter':
-      case 'BufCreate':
-      case 'BufWritePost':
-      case 'BufUnload':
-      case 'BufHidden':
-      case 'DirChanged':
-      case 'TextChanged':
-      case 'InsertCharPre':
-      case 'InsertLeave':
-      case 'InsertEnter':
-      case 'CompleteDone':
-      case 'TextChangedP':
-      case 'TextChangedI':
-      case 'CursorMovedI':
-      case 'CursorMoved':
-      case 'FileType':
-      case 'BufWritePre':
-      case 'CursorHold':
-      case 'OptionSet':
-        let fns = emitter.listeners(args[0])
-        if (fns && fns.length) {
-          for (let fn of fns) {
-            try {
-              await Promise.resolve(fn.apply(null, args.slice(1)))
-            } catch (e) {
-              workspace.showMessage(`Error on ${args[0]}: ${e.message}`, 'error')
-            }
-          }
-        }
-        break
-      default:
-        logger.error(`Unknown event ${args[0]}`)
-    }
+    this.emit('ready')
   }
 
   public async cocAction(args: any): Promise<any> {
@@ -192,7 +152,6 @@ export default class Plugin {
     sources.dispose()
     await services.stopAll()
     services.dispose()
-    this.emitter.removeAllListeners()
     this.handler.dispose()
     snippetManager.dispose()
     commandManager.dispose()

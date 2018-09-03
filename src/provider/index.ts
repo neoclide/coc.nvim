@@ -1,4 +1,4 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionItem, CompletionList, CompletionTriggerKind, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
@@ -35,26 +35,6 @@ export type ProviderResult<T> =
   | undefined
   | null
   | Thenable<T | undefined | null>
-
-/**
- * Contains additional information about the context in which
- * [completion provider](#CompletionItemProvider.provideCompletionItems) is triggered.
- */
-export interface CompletionContext {
-  /**
-   * How the completion was triggered.
-   */
-  readonly triggerKind: CompletionTriggerKind
-
-  /**
-   * Character that triggered the completion item provider.
-   *
-   * `undefined` if provider was not triggered by a character.
-   *
-   * The trigger character is already in the document when the completion provider is triggered.
-   */
-  readonly triggerCharacter?: string
-}
 
 /**
  * The completion item provider interface defines the contract between extensions and
@@ -375,26 +355,6 @@ export interface RenameProvider {
 }
 
 /**
- * Value-object describing what options formatting should use.
- */
-export interface FormattingOptions {
-  /**
-   * Size of a tab in spaces.
-   */
-  tabSize: number
-
-  /**
-   * Prefer spaces over tabs.
-   */
-  insertSpaces: boolean
-
-  /**
-   * Signature for further properties.
-   */
-  [key: string]: boolean | number | string
-}
-
-/**
  * The document formatting provider interface defines the contract between extensions and
  * the formatting-feature.
  */
@@ -587,35 +547,6 @@ export interface OnTypeFormattingEditProvider {
 }
 
 /**
- * The document link provider defines the contract between extensions and feature of showing
- * links in the editor.
- */
-export interface DocumentLinkProvider {
-
-  /**
-   * Provide links for the given document. Note that the editor ships with a default provider that detects
-   * `http(s)` and `file` links.
-   *
-   * @param document The document in which the command was invoked.
-   * @param token A cancellation token.
-   * @return An array of [document links](#DocumentLink) or a thenable that resolves to such. The lack of a result
-   * can be signaled by returning `undefined`, `null`, or an empty array.
-   */
-  provideDocumentLinks(document: TextDocument, token: CancellationToken): ProviderResult<DocumentLink[]>
-
-  /**
-   * Given a link fill in its [target](#DocumentLink.target). This method is called when an incomplete
-   * link is selected in the UI. Providers can implement this method and return incomplete links
-   * (without target) from the [`provideDocumentLinks`](#DocumentLinkProvider.provideDocumentLinks) method which
-   * often helps to improve performance.
-   *
-   * @param link The link that is to be resolved.
-   * @param token A cancellation token.
-   */
-  resolveDocumentLink?(link: DocumentLink, token: CancellationToken): ProviderResult<DocumentLink>
-}
-
-/**
  * The document color provider defines the contract between extensions and feature of
  * picking and modifying colors in the editor.
  */
@@ -641,19 +572,4 @@ export interface DocumentColorProvider {
    * can be signaled by returning `undefined`, `null`, or an empty array.
    */
   provideColorPresentations(color: Color, context: { document: TextDocument, range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
-}
-
-/**
- * The folding range provider interface defines the contract between extensions and
- * [Folding](https://code.visualstudio.com/docs/editor/codebasics#_folding) in the editor.
- */
-export interface FoldingRangeProvider {
-  /**
-   * Returns a list of folding ranges or null and undefined if the provider
-   * does not want to participate or was cancelled.
-   * @param document The document in which the command was invoked.
-   * @param context Additional context information (for future use)
-   * @param token A cancellation token.
-   */
-  provideFoldingRanges(document: TextDocument, context: FoldingContext, token: CancellationToken): ProviderResult<FoldingRange[]>
 }

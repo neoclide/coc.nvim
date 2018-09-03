@@ -48,7 +48,7 @@ export class Helper extends Emitter {
       }
     })
     return new Promise(resolve => {
-      plugin.emitter.once('ready', resolve)
+      plugin.once('ready', resolve)
     })
   }
 

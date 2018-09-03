@@ -5,7 +5,9 @@ import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
+import events from './events'
 import languages from './languages'
+import services from './services'
 import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
@@ -28,7 +30,7 @@ export default class Handler {
   private disposables: Disposable[] = []
   // codeLens instances
 
-  constructor(private nvim: Neovim, emitter, private services: import('./services').ServiceManager) {
+  constructor(private nvim: Neovim) {
     this.showSignatureHelp = debounce(() => {
       this._showSignatureHelp().catch(e => {
         logger.error(e.stack)
@@ -37,25 +39,25 @@ export default class Handler {
 
     let lastChar = ''
     let lastTs = null
-    emitter.on('InsertCharPre', ch => {
+    this.disposables.push(events.on('InsertCharPre', ch => {
       lastChar = ch
       lastTs = Date.now()
-    })
-    emitter.on('TextChangedI', async bufnr => {
+    }))
+    this.disposables.push(events.on('TextChangedI', async bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
         let character = doc.addLine ? '\n' : lastChar
         lastChar = null
         await this.onCharacterType(character, bufnr)
       }
-    })
-    emitter.on('BufUnload', bufnr => {
+    }))
+    this.disposables.push(events.on('BufUnload', bufnr => {
       let codeLensBuffer = this.codeLensBuffers.get(bufnr)
       if (codeLensBuffer) {
         codeLensBuffer.dispose()
         this.codeLensBuffers.delete(bufnr)
       }
-    })
+    }))
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
@@ -401,7 +403,7 @@ export default class Handler {
       if (idx == -1 || serviceId == 'workspace') {
         res.push(o.id)
       } else {
-        let service = this.services.getService(serviceId)
+        let service = services.getService(serviceId)
         if (!service || service.state !== ServiceStat.Running) {
           continue
         }
