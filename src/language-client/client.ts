@@ -970,8 +970,7 @@ class DidOpenTextDocumentFeature extends DocumentNotifiactions<DidOpenTextDocume
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities)
-      .resolvedTextDocumentSync
+    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -1275,8 +1274,7 @@ class WillSaveFeature extends DocumentNotifiactions<WillSaveTextDocumentParams, 
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities)
-      .resolvedTextDocumentSync
+    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -1309,8 +1307,7 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities)
-      .resolvedTextDocumentSync
+    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -1412,8 +1409,7 @@ class DidSaveTextDocumentFeature extends DocumentNotifiactions<
     capabilities: ServerCapabilities,
     documentSelector: DocumentSelector
   ): void {
-    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities)
-      .resolvedTextDocumentSync
+    let textDocumentSyncOptions = (capabilities as ResolvedTextDocumentSyncCapabilities).resolvedTextDocumentSync
     if (
       documentSelector &&
       textDocumentSyncOptions &&
@@ -3492,9 +3488,8 @@ export abstract class BaseLanguageClient {
               }
             }
           }
-        } else if (result.capabilities.textDocumentSync == null) {
-          textDocumentSyncOptions = result.capabilities
-            .textDocumentSync as TextDocumentSyncOptions
+        } else if (result.capabilities.textDocumentSync != null) {
+          textDocumentSyncOptions = result.capabilities.textDocumentSync as TextDocumentSyncOptions
         }
         this._capabilities = Object.assign({}, result.capabilities, {
           resolvedTextDocumentSync: textDocumentSyncOptions
