@@ -632,7 +632,6 @@ export interface LanguageClientOptions {
   initializationFailedHandler?: InitializationFailedHandler
   errorHandler?: ErrorHandler
   middleware?: Middleware
-  forceFullSync?: boolean
 }
 
 interface ResolvedClientOptions {
@@ -726,7 +725,7 @@ const SupportedCompletionItemKinds: CompletionItemKind[] = [
 ]
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
-  if (target[key] === void 0) {
+  if (target[key] == null) {
     target[key] = {} as any
   }
   return target[key]
@@ -841,7 +840,7 @@ namespace DynamicFeature {
       Is.func(candidate.register) &&
       Is.func(candidate.unregister) &&
       Is.func(candidate.dispose) &&
-      candidate.messages !== void 0
+      candidate.messages != null
     )
   }
 }
@@ -1135,7 +1134,7 @@ class DidChangeTextDocumentFeature
     if (
       documentSelector &&
       textDocumentSyncOptions &&
-      textDocumentSyncOptions.change !== void 0 &&
+      textDocumentSyncOptions.change != null &&
       textDocumentSyncOptions.change !== TextDocumentSyncKind.None
     ) {
       this.register(this.messages, {
@@ -1485,7 +1484,7 @@ class FileSystemWatcherFeature
       let watchCreate: boolean = true,
         watchChange: boolean = true,
         watchDelete: boolean = true
-      if (watcher.kind !== void 0 && watcher.kind !== null) {
+      if (watcher.kind != null) {
         watchCreate = (watcher.kind & WatchKind.Create) !== 0
         watchChange = (watcher.kind & WatchKind.Change) != 0
         watchDelete = (watcher.kind & WatchKind.Delete) != 0
@@ -2879,7 +2878,7 @@ class ConfigurationFeature
 
   public initialize(): void {
     let section = this._client.clientOptions.synchronize!.configurationSection
-    if (section !== void 0) {
+    if (section != null) {
       this.register(this.messages, {
         id: UUID.generateUuid(),
         registerOptions: {
@@ -2897,7 +2896,7 @@ class ConfigurationFeature
       this.onDidChangeConfiguration(data.registerOptions.section)
     })
     this._listeners.set(data.id, disposable)
-    if (data.registerOptions.section !== void 0) {
+    if (data.registerOptions.section != null) {
       this.onDidChangeConfiguration(data.registerOptions.section)
     }
   }
@@ -2925,7 +2924,7 @@ class ConfigurationFeature
       sections = configurationSection
     }
     let didChangeConfiguration = (sections: string[] | undefined): void => {
-      if (sections === void 0) {
+      if (sections == null) {
         this._client.sendNotification(DidChangeConfigurationNotification.type, {
           settings: null
         })
@@ -3140,6 +3139,10 @@ export abstract class BaseLanguageClient {
 
   public get id(): string {
     return this._id
+  }
+
+  public get name(): string {
+    return this._name
   }
 
   private set state(value: ClientState) {
