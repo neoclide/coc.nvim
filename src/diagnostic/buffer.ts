@@ -121,12 +121,10 @@ export class DiagnosticBuffer {
     let { document } = this
     if (!document) return
     try {
-      this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
       this.setLocationlist()
-      await Promise.all([
-        this.setDiagnosticInfo(),
-        this._clear(owner)
-      ])
+      await this._clear(owner)
+      this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
+      await this.setDiagnosticInfo()
       if (diagnostics && diagnostics.length != 0) {
         diagnostics.sort((a, b) => b.severity - a.severity)
         let signIds = this.getSignIds(owner, diagnostics.length)
