@@ -90,7 +90,7 @@ function! s:Enable()
     else
       autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
-    autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', expand('<amatch>'), win_getid())
+    autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
@@ -164,6 +164,8 @@ augroup coc_init
 augroup end
 
 command! -nargs=0 CocRestart  :call coc#rpc#restart()
+command! -nargs=+ CocInstall  :call coc#util#install(<q-args>)
+command! -nargs=0 CocUpdate   :call coc#util#update()
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>

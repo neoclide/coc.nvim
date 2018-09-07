@@ -35,7 +35,7 @@ export interface CompletionSource {
   languageIds: string[]
 }
 
-export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _key: string, descriptor: any): void {
+export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
     return
@@ -48,7 +48,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, _k
       let resolved = false
       let timer = setTimeout(() => {
         cancelTokenSource.cancel()
-        if (!resolved) reject(new Error('timeout after 3s'))
+        if (!resolved) reject(new Error(`${key} timeout after 3s`))
       }, 3000)
       Promise.resolve(fn.apply(this, args)).then(res => {
         clearTimeout(timer)

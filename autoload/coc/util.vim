@@ -1,6 +1,7 @@
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
+let s:install_yarn = 0
 
 function! coc#util#platform()
   if s:is_win
@@ -270,7 +271,7 @@ function! coc#util#echo_signature(activeParameter, activeSignature, signatures) 
 endfunction
 
 function! s:echo_signatureItem(list)
-  let w = winwidth(0)
+  let w = &columns
   let cl = 0
   let idx = 0
   let outRange = 0
@@ -611,7 +612,7 @@ function! s:coc_installed(status)
   if s:is_vim
     call coc#util#install_node_rpc()
   else
-    call coc#rpc#start_server()
+    call coc#rpc#restart()
   endif
 endfunction
 
@@ -628,4 +629,70 @@ function! coc#util#do_complete(name, opt, cb)
   let l:Cb = {res -> a:cb(v:null, res)}
   let args = [a:opt, l:Cb]
   call call(handler, args)
+endfunction
+
+function! coc#util#extension_root()
+  if s:is_win
+    let dir = $HOME.'/AppData/Local/coc/extensions'
+  else
+    let dir = $HOME.'/.config/coc/extensions'
+  endif
+  if !isdirectory(dir)
+    call mkdir(dir, 'p')
+  endif
+  return dir
+endfunction
+
+function! coc#util#install(names)
+  if !executable('yarn')
+    if get(s:, 'install_yarn', 0) == 0 && !s:is_win
+      let s:install_yarn = 1
+      call coc#util#open_terminal({
+            \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh'
+            \ 'keepfocus': 1,
+            \ 'Callback': { -> coc#util#install(a:names)},
+            \})
+    else
+      echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
+    endif
+    return
+  endif
+  let dir = coc#util#extension_root()
+  let l:Cb = {status -> s:extension_installed(status, a:names)}
+  call coc#util#open_terminal({
+        \ 'cwd': dir,
+        \ 'cmd': 'yarn add '.a:names,
+        \ 'keepfocus': 1,
+        \ 'Callback': l:Cb,
+        \})
+endfunction
+
+function! s:extension_installed(status, name)
+  if a:status == 0
+    call coc#util#echo_messages('MoreMsg', ['extension '.a:name. ' installed!'])
+    call coc#rpc#notify('CocInstalled', split(a:name, '\s\+'))
+  else
+    call coc#util#echo_messages('Error', ['extension '.a:name. ' install failed!'])
+  endif
+endfunction
+
+function! coc#util#update()
+  if !executable('yarn')
+    echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
+    return
+  endif
+  let dir = coc#util#extension_root()
+  let l:Cb = {status -> s:extension_updated(status)}
+  call coc#util#open_terminal({
+        \ 'cwd': dir,
+        \ 'cmd': 'yarn upgrade --latest --ignore-engines',
+        \ 'keepfocus': 1,
+        \ 'Callback': l:Cb,
+        \})
+endfunction
+
+function! s:extension_updated(status)
+  if a:status == 0
+    call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
+  endif
 endfunction

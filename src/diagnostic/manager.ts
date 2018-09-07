@@ -56,20 +56,21 @@ export class DiagnosticManager {
           logger.error(err.stack)
         })
       }
-      events.on('CursorMoved', () => {
-        if (this.enableMessage) {
-          this.showMessage()
-        }
-      })
+    }, null, this.disposables)
+
+    events.on('CursorHold', () => {
+      if (this.enableMessage) {
+        this.showMessage(true)
+      }
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {
       this.setConfiguration()
     }, null, this.disposables)
 
-    workspace.onDidBufWinEnter(({ document, winid }) => {
-      let uri = document ? document.uri : null
-      let buf = this.buffers.find(buf => buf.uri == uri)
+    events.on('BufWinEnter', (bufnr, winid) => {
+      let doc = workspace.getDocument(bufnr)
+      let buf = doc ? this.buffers.find(buf => buf.uri == doc.uri) : null
       if (buf) {
         buf.setLocationlist()
       } else {
@@ -96,8 +97,8 @@ export class DiagnosticManager {
       }
     })
 
-    this.showMessage = debounce(() => {
-      this.echoMessage().catch(e => {
+    this.showMessage = debounce(truncate => {
+      this.echoMessage(truncate).catch(e => {
         logger.error(e.stack)
       })
     }, 200)
@@ -331,7 +332,7 @@ export class DiagnosticManager {
    * @private
    * @returns {Promise<void>}
    */
-  private async echoMessage(): Promise<void> {
+  private async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
@@ -353,14 +354,13 @@ export class DiagnosticManager {
       }
     }
     if (res.length == 0) return
-    res = res.slice(0, 2)
     let lines: string[] = res.map(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = severityName(severity)[0]
       let msg = message.replace(/\n/g, ' ')
       return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
     })
-    await workspace.echoLines(lines)
+    await workspace.echoLines(lines, truncate)
   }
 
   public clear(owner: string, uri?: string): void {

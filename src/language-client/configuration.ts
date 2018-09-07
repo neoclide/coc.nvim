@@ -5,6 +5,7 @@
 import { ClientCapabilities, ConfigurationRequest } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, StaticFeature } from './client'
+const logger = require('../util/logger')('languageclient-configuration')
 
 export interface ConfigurationWorkspaceMiddleware {
   configuration?: ConfigurationRequest.MiddlewareSignature
@@ -43,7 +44,7 @@ export class ConfigurationFeature implements StaticFeature {
     if (section) {
       let index = section.lastIndexOf('.')
       if (index === -1) {
-        result = workspace.getConfiguration(undefined, resource).get(section)
+        result = workspace.getConfiguration(undefined, resource).get(section, {})
       } else {
         let config = workspace.getConfiguration(section.substr(0, index))
         if (config) {
@@ -58,9 +59,6 @@ export class ConfigurationFeature implements StaticFeature {
           result[key] = config.get(key)
         }
       }
-    }
-    if (!result) {
-      return null
     }
     return result
   }

@@ -2941,17 +2941,34 @@ class ConfigurationFeature
   }
 
   private extractSettingsInformation(keys: string[]): any {
-    if (keys.length == 1) {
-      let res = workspace.getConfiguration().get(keys[0])
-      return res
+    function ensurePath(config: any, path: string[]): any {
+      let current = config;
+      for (let i = 0; i < path.length - 1; i++) {
+        let obj = current[path[i]];
+        if (!obj) {
+          obj = Object.create(null);
+          current[path[i]] = obj;
+        }
+        current = obj;
+      }
+      return current;
     }
-    let res: any = {}
-    for (let key of keys) {
-      let parts = key.split('.')
-      let p = parts[parts.length - 1]
-      res[p] = workspace.getConfiguration().get(key)
+    let result = Object.create(null);
+    for (let i = 0; i < keys.length; i++) {
+      let key = keys[i];
+      let index: number = key.indexOf('.');
+      let config: any = null;
+      if (index >= 0) {
+        config = workspace.getConfiguration(key.substr(0, index)).get(key.substr(index + 1));
+      } else {
+        config = workspace.getConfiguration(key);
+      }
+      if (config) {
+        let path = keys[i].split('.');
+        ensurePath(result, path)[path[path.length - 1]] = config;
+      }
     }
-    return res
+    return result;
   }
 
   private getMiddleware() {
@@ -3450,8 +3467,12 @@ export abstract class BaseLanguageClient {
           }
         })
         connection.onRequest(ShowMessageRequest.type, params => {
-          if (!params.actions) {
-            let msgType = params.type == MessageType.Error ? 'error' : params.type == MessageType.Warning ? 'warning' : 'more'
+          if (!params.actions || params.actions.length == 0) {
+            let msgType = params.type == MessageType.Error
+              ? 'error'
+              : params.type == MessageType.Warning
+                ? 'warning'
+                : 'more'
             workspace.showMessage(params.message, msgType as any)
             return Promise.resolve(null)
           }
@@ -3466,8 +3487,7 @@ export abstract class BaseLanguageClient {
         connection.listen()
         // Error is handled in the intialize call.
         return this.initialize(connection)
-      })
-      .then(undefined, error => {
+      }).then(undefined, error => {
         this.state = ClientState.StartFailed
         this._onReadyCallbacks.reject(error)
         this.error('Starting client failed', error)
@@ -3694,8 +3714,7 @@ export abstract class BaseLanguageClient {
 
   private createConnection(): Thenable<IConnection> {
     let errorHandler = (error: Error, message: Message, count: number) => {
-      logger.debug(error)
-      logger.debug(message)
+      logger.error('connection error:', error, message)
       this.handleConnectionError(error, message, count)
     }
 

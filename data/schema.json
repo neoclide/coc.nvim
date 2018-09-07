@@ -572,8 +572,8 @@
       "description": "http proxy used for json server"
     },
     "http.proxyStrictSSL": {
-      "type": "string",
-      "default": ""
+      "type": "boolean",
+      "default": true
     },
     "languageserver": {
       "type": "object",

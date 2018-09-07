@@ -124,7 +124,7 @@ export class DiagnosticBuffer {
       this.setLocationlist()
       await this._clear(owner)
       this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
-      await this.setDiagnosticInfo()
+      this.setDiagnosticInfo()
       if (diagnostics && diagnostics.length != 0) {
         diagnostics.sort((a, b) => b.severity - a.severity)
         let signIds = this.getSignIds(owner, diagnostics.length)
@@ -232,7 +232,7 @@ export class DiagnosticBuffer {
     nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${buffer.id}`, true)
   }
 
-  private async setDiagnosticInfo(): Promise<void> {
+  private setDiagnosticInfo(): void {
     let { document } = this
     if (!document) return
     let { buffer } = document
@@ -247,7 +247,7 @@ export class DiagnosticBuffer {
       information = information + diagnosticInfo.information
       hint = hint + diagnosticInfo.hint
     }
-    await buffer.setVar('coc_diagnostic_info', { error, warning, information, hint })
+    buffer.setVar('coc_diagnostic_info', { error, warning, information, hint }, true)
   }
 
   private async addHighlight(owner: string, range: Range): Promise<void> {

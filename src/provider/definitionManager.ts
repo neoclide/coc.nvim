@@ -2,6 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Location, Position, Te
 import { DefinitionProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
+const logger = require('../util/logger')('definitionManager')
 
 export default class DefinitionManager extends Manager<DefinitionProvider> implements Disposable {
 

@@ -16,7 +16,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ChangeInfo, ConfigurationTarget, DocumentInfo, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WinEnter, WorkspaceConfiguration } from './types'
+import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
@@ -36,9 +36,9 @@ export interface VimSettings {
 }
 
 export class Workspace implements IWorkspace {
-  public bufnr: number
   public terminal: Terminal
   public readonly nvim: Neovim
+  public bufnr: number
 
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
@@ -51,9 +51,8 @@ export class Workspace implements IWorkspace {
   private disposables: Disposable[] = []
   private configFiles: string[] = []
   private checkBuffer: Function & { clear(): void; }
+  private _settingsScheme: any
 
-  private _onDidBufWinEnter = new Emitter<WinEnter>()
-  private _onDidEnterDocument = new Emitter<DocumentInfo>()
   private _onDidAddDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
@@ -62,7 +61,6 @@ export class Workspace implements IWorkspace {
   private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
 
-  public readonly onDidEnterTextDocument: Event<DocumentInfo> = this._onDidEnterDocument.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidCloseDocument.event
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
@@ -70,7 +68,6 @@ export class Workspace implements IWorkspace {
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
-  public readonly onDidBufWinEnter: Event<WinEnter> = this._onDidBufWinEnter.event
 
   constructor() {
     let config = this.loadConfigurations()
@@ -83,38 +80,58 @@ export class Workspace implements IWorkspace {
         logger.error(e.message)
       })
     }, 50)
+    this._settingsScheme = JSON.parse(fs.readFileSync(path.join(this.pluginRoot, 'data/schema.json'), 'utf8'))
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
   }
 
   public async init(): Promise<void> {
-    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
-    this.disposables.push(events.on('BufEnter', this.onBufEnter, this))
-    this.disposables.push(events.on('BufWinEnter', this.onBufWinEnter, this))
-    this.disposables.push(events.on('DirChanged', this.onDirChanged, this))
-    this.disposables.push(events.on('BufCreate', this.onBufCreate, this))
-    this.disposables.push(events.on('BufUnload', this.onBufUnload, this))
-    this.disposables.push(events.on('BufWritePost', this.onBufWritePost, this))
-    this.disposables.push(events.on('BufWritePre', this.onBufWritePre, this))
-    this.disposables.push(events.on('OptionSet', this.onOptionSet, this))
-    this.disposables.push(events.on('FileType', this.onFileTypeChange, this))
-    this.disposables.push(events.on('CursorHold', this.checkBuffer as any, this))
-    this.disposables.push(events.on('TextChanged', this.checkBuffer as any, this))
+    let extensions = require('./extensions').default
+    extensions.onDidLoadExtension(extension => {
+      let { packageJSON } = extension
+      let { contributes } = packageJSON
+      if (!contributes || !contributes.configuration) {
+        return
+      }
+      let { properties } = contributes.configuration
+      if (!properties) return
+      let props = this._settingsScheme.properties
+      for (let key of Object.keys(properties)) {
+        props[key] = properties[key]
+        let val = properties[key].default
+        if (val !== undefined) {
+          this._configurations.updateDefaults(key, val)
+        }
+      }
+    }, null, this.disposables)
+
+    events.on('BufEnter', bufnr => {
+      this.bufnr = bufnr
+    }, null, this.disposables)
+    events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
+    events.on('DirChanged', this.onDirChanged, this, this.disposables)
+    events.on('BufCreate', this.onBufCreate, this, this.disposables)
+    events.on('BufUnload', this.onBufUnload, this, this.disposables)
+    events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
+    events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
+    events.on('OptionSet', this.onOptionSet, this, this.disposables)
+    events.on('FileType', this.onFileTypeChange, this, this.disposables)
+    events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
+    events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
     }))
     let buffer = await this.nvim.buffer
-    this.bufnr = buffer.id
     this._onDidWorkspaceInitialized.fire(void 0)
     this._initialized = true
     if (this.isVim) this.initVimEvents()
-    this.onBufEnter(buffer.id)
+    events.fire('BufEnter', [buffer.id]) // tslint:disable-line
     let winid = await this.nvim.call('win_getid')
     let name = await buffer.name
-    this.onBufWinEnter(name, winid)
+    events.fire('BufWinEnter', [name, winid]) // tslint:disable-line
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -184,6 +201,10 @@ export class Workspace implements IWorkspace {
 
   public get initialized(): boolean {
     return this._initialized
+  }
+
+  public get settingsScheme(): any {
+    return this._settingsScheme
   }
 
   public get ready(): Promise<void> {
@@ -266,7 +287,7 @@ export class Workspace implements IWorkspace {
         let doc = this.getDocument(textDocument.uri)
         await doc.applyEdits(nvim, edits)
       }
-      echoMessage(nvim, `${n} buffers changed!`)
+      this.showMessage(`${n} buffers changed!`, 'more')
     }
     if (changes) {
       let keys = Object.keys(changes)
@@ -347,7 +368,7 @@ export class Workspace implements IWorkspace {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId)
   }
 
-  public async echoLines(lines: string[]): Promise<void> {
+  public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
     let cmdHeight = (await nvim.getOption('cmdheight') as number)
     if (lines.length > cmdHeight) {
@@ -355,7 +376,10 @@ export class Workspace implements IWorkspace {
       let last = lines[cmdHeight - 1]
       lines[cmdHeight - 1] = `${last} ...`
     }
+    let columns = await nvim.getOption('columns')
     let cmd = lines.map(line => {
+      line = line.replace(/'/g, "''").replace(/\n/g, '')
+      if (truncate) line = line.slice(0, (columns as number) - 1)
       return `echo '${line.replace(/'/g, "''")}'`
     }).join('|')
     await nvim.command(cmd)
@@ -378,6 +402,9 @@ export class Workspace implements IWorkspace {
     }
     return this.nvim.buffer.then(buffer => {
       this.bufnr = buffer.id
+      if (this.buffers.has(buffer.id)) {
+        return this.buffers.get(buffer.id)
+      }
       return this.onBufCreate(buffer).then(() => {
         return this.getDocument(this.bufnr)
       })
@@ -471,7 +498,7 @@ export class Workspace implements IWorkspace {
   public showOutputChannel(name: string): void {
     let channel = this.outputChannels.get(name)
     if (!channel) {
-      echoErr(this.nvim, `Channel "${name}" not found`)
+      this.showMessage(`Channel "${name}" not found`, 'error')
       return
     }
     channel.show(false)
@@ -569,11 +596,11 @@ export class Workspace implements IWorkspace {
       let { uri, version } = textDocument
       let doc = this.getDocument(uri)
       if (!doc) {
-        echoErr(this.nvim, `${uri} not found`)
+        this.showMessage(`${uri} not found`, 'error')
         return false
       }
       if (doc.version != version) {
-        echoErr(this.nvim, `${uri} changed before apply edit`)
+        this.showMessage(`${uri} changed before apply edit`, 'error')
         return false
       }
     }
@@ -585,12 +612,12 @@ export class Workspace implements IWorkspace {
     for (let uri of Object.keys(changes)) {
       let scheme = Uri.parse(uri).scheme
       if (!isSupportedScheme(scheme)) {
-        echoErr(this.nvim, `Schema of ${uri} not supported.`)
+        this.showMessage(`Schema of ${uri} not supported.`, 'error')
         return false
       }
       let filepath = Uri.parse(uri).fsPath
       if (!this.getDocument(uri) && !fs.existsSync(filepath)) {
-        echoErr(this.nvim, `File ${filepath} not exists`)
+        this.showMessage(`File ${filepath} not exists`, 'error')
         return false
       }
     }
@@ -650,19 +677,6 @@ export class Workspace implements IWorkspace {
       let doc = this.getDocument(bufnr)
       if (doc) doc.fetchContent()
     })
-  }
-
-  private onBufEnter(bufnr: number): void {
-    this.bufnr = bufnr
-    let doc = this.buffers.get(bufnr)
-    if (!doc) return
-    let buf = doc.buffer
-    let documentInfo: DocumentInfo = {
-      bufnr: buf.id,
-      uri: doc.uri,
-      languageId: doc.filetype,
-    }
-    this._onDidEnterDocument.fire(documentInfo)
   }
 
   private async onBufCreate(buf: number | Buffer): Promise<void> {
@@ -745,17 +759,6 @@ export class Workspace implements IWorkspace {
     this.onConfigurationChange()
   }
 
-  private onBufWinEnter(filepath: string, winid: number): void {
-    let uri = /^\w:/.test(filepath) ? filepath : Uri.file(filepath).toString()
-    let doc = this.getDocument(uri)
-    if (doc) {
-      this._onDidBufWinEnter.fire({
-        document: doc.textDocument,
-        winid
-      })
-    }
-  }
-
   private onFileTypeChange(filetype: string, bufnr: number): void {
     let doc = this.getDocument(bufnr)
     if (!doc) return
@@ -770,13 +773,6 @@ export class Workspace implements IWorkspace {
     let doc = this.getDocument(bufnr)
     if (!doc) {
       await this.onBufCreate(bufnr)
-      doc = this.getDocument(bufnr)
-      if (!doc) return
-      if (bufnr != this.bufnr) {
-        this.onBufEnter(bufnr)
-      }
-      let winid = await this.nvim.call('bufwinid', '%')
-      this.onBufWinEnter(doc.uri, winid)
     }
   }
 

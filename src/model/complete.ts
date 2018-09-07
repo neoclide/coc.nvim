@@ -147,7 +147,7 @@ export default class Complete {
       let sb = b.sortText
       if (sa && sb) {
         if (sa === sb) return b.score - a.score
-        return sa > sb ? -1 : 1
+        return sa < sb ? -1 : 1
       } else {
         return b.score - a.score
       }

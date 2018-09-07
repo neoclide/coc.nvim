@@ -1,11 +1,12 @@
-import { Neovim } from '@chemzqm/neovim'
-import Emitter from 'events'
+import { EventEmitter } from 'events'
 import fs from 'fs'
+import net from 'net'
 import path from 'path'
-import { Disposable, DocumentSelector, TextDocument } from 'vscode-languageserver-protocol'
-import { LanguageService } from './language-client'
+import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
+import which from 'which'
+import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
-import { disposeAll, echoErr, echoMessage } from './util'
+import { disposeAll } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('services')
 
@@ -34,35 +35,15 @@ function getStateName(state: ServiceStat): string {
   }
 }
 
-export class ServiceManager extends Emitter implements Disposable {
-  private nvim: Neovim
+export class ServiceManager extends EventEmitter implements Disposable {
   private readonly registed: Map<string, IServiceProvider> = new Map()
   private disposables: Disposable[] = []
+  private started: Set<string> = new Set()
 
-  public init(nvim: Neovim): void {
-    this.nvim = nvim
-    let root = path.join(__dirname, 'extensions')
-    let files = fs.readdirSync(root)
-    try {
-      for (let file of files) {
-        let fullpath = path.join(root, file)
-        let stat = fs.statSync(fullpath)
-        if (stat && stat.isDirectory) {
-          try {
-            let ServiceClass = require(fullpath).default
-            this.regist(new ServiceClass())
-          } catch (e) {
-            logger.error(`error loading ${file}: ${e.message}`)
-          }
-        }
-      }
-      this.createCustomServices()
-      let ids = Array.from(this.registed.keys())
-      logger.info(`Created services: ${ids.join(',')}`)
-    } catch (e) {
-      echoErr(this.nvim, `Service init error: ${e.message}`)
-      logger.error(e.message)
-    }
+  public init(): void {
+    this.createCustomServices()
+    let ids = Array.from(this.registed.keys())
+    logger.info(`Created services: ${ids.join(',')}`)
     workspace.onDidWorkspaceInitialized(() => {
       let document = workspace.getDocument(workspace.bufnr)
       this.start(document.textDocument)
@@ -81,25 +62,30 @@ export class ServiceManager extends Emitter implements Disposable {
     }
   }
 
-  public registServices(services: IServiceProvider[]): void {
-    for (let service of services) {
-      this.regist(service)
-    }
-  }
-
-  public regist(service: IServiceProvider): void {
+  public regist(service: IServiceProvider): Disposable {
     let { id } = service
     if (!id) logger.error('invalid service ', service.name)
     if (!service.enable) return
     if (this.registed.get(id)) {
-      echoErr(this.nvim, `Service ${id} already exists`)
+      workspace.showMessage(`Service ${id} already exists`, 'error')
       return
     }
     this.registed.set(id, service)
+    if (this.shouldStart(service)) {
+      this.started.add(service.id)
+      service.start().catch(_e => {
+        // noop
+      })
+    }
     service.onServiceReady(() => {
-      echoMessage(this.nvim, `service ${id} started`)
+      workspace.showMessage(`service ${id} started`, 'more')
       this.emit('ready', id)
     }, null, this.disposables)
+    return Disposable.create(() => {
+      service.stop()
+      service.dispose()
+      this.registed.delete(id)
+    })
   }
 
   public getService(id: string): IServiceProvider {
@@ -116,14 +102,27 @@ export class ServiceManager extends Emitter implements Disposable {
     return res
   }
 
+  private shouldStart(service: IServiceProvider): boolean {
+    for (let doc of workspace.documents) {
+      if (workspace.match(service.selector, doc.textDocument)) {
+        return true
+      }
+    }
+    return false
+  }
+
   private start(document: TextDocument): void {
     let services = this.getServices(document)
     for (let service of services) {
+      if (this.started.has(service.id)) {
+        continue
+      }
+      this.started.add(service.id)
       let { state } = service
-      if (state === ServiceStat.Initial) {
-        logger.debug('starting', service.name)
-        service.init().catch(e => {
-          logger.error(`service ${service.name} start failed: ${e.message}`)
+      if (state === ServiceStat.Initial || state === ServiceStat.Stopped) {
+        logger.debug('starting: ', service.id)
+        service.start().catch(_e => {
+          // noop
         })
       }
     }
@@ -132,7 +131,7 @@ export class ServiceManager extends Emitter implements Disposable {
   public stop(id: string): Promise<void> {
     let service = this.registed.get(id)
     if (!service) {
-      echoErr(this.nvim, `Service ${id} not found`)
+      workspace.showMessage(`Service ${id} not found`, 'error')
       return
     }
     return Promise.resolve(service.stop())
@@ -147,19 +146,20 @@ export class ServiceManager extends Emitter implements Disposable {
   public async toggle(id: string): Promise<void> {
     let service = this.registed.get(id)
     if (!service) {
-      return echoErr(this.nvim, `Service ${id} not found`)
+      workspace.showMessage(`Service ${id} not found`, 'error')
+      return
     }
     let { state } = service
     try {
       if (state == ServiceStat.Running) {
         await Promise.resolve(service.stop())
       } else if (state == ServiceStat.Initial) {
-        await service.init()
+        await service.start()
       } else if (state == ServiceStat.Stopped) {
         await service.restart()
       }
     } catch (e) {
-      echoErr(this.nvim, `Service error: ${e.message}`)
+      workspace.showMessage(`Service error: ${e.message}`, 'error')
     }
   }
 
@@ -181,10 +181,73 @@ export class ServiceManager extends Emitter implements Disposable {
     for (let key of Object.keys(lspConfig)) {
       let config = lspConfig[key]
       let id = `${base}.${key}`
-      this.regist(
-        new LanguageService(id, key, config)
-      )
+      if (config.enable === false) continue
+      let opts = getLanguageServerOptions(id, key, config)
+      if (!opts) continue
+      let client = new LanguageClient(id, key, opts[1], opts[0])
+      this.registLanguageClient(client)
     }
+  }
+
+  public registLanguageClient(client: LanguageClient): Disposable {
+    let disposables: Disposable[] = []
+    let onDidServiceReady = new Emitter<void>()
+
+    let service: IServiceProvider = {
+      client,
+      enable: true,
+      id: client.id,
+      name: client.name,
+      selector: client.clientOptions.documentSelector,
+      state: ServiceStat.Initial,
+      onServiceReady: onDidServiceReady.event,
+      start: (): Promise<void> => {
+        if (service.state != ServiceStat.Initial && service.state != ServiceStat.Stopped) {
+          return
+        }
+        let disposable = client.start()
+        disposables.push(disposable)
+        return new Promise(resolve => {
+          client.onReady().then(() => {
+            onDidServiceReady.fire(void 0)
+            resolve()
+          }, e => {
+            workspace.showMessage(`Server ${client.name} failed to start: ${e ? e.message : ''}`)
+            service.state = ServiceStat.StartFailed
+            resolve()
+          })
+        })
+      },
+      dispose: () => {
+        client.stop()
+        onDidServiceReady.dispose()
+        disposeAll(disposables)
+      },
+      stop: async (): Promise<void> => {
+        return await Promise.resolve(client.stop())
+      },
+      restart: async (): Promise<void> => {
+        if (service.state == ServiceStat.Running) {
+          await service.stop()
+        }
+        client.restart()
+      },
+    }
+    client.onDidChangeState(changeEvent => {
+      let { oldState, newState } = changeEvent
+      if (newState == State.Starting) {
+        service.state = ServiceStat.Starting
+      } else if (newState == State.Running) {
+        service.state = ServiceStat.Running
+      } else if (newState == State.Stopped) {
+        service.state = ServiceStat.Stopped
+      }
+      let oldStr = stateString(oldState)
+      let newStr = stateString(newState)
+      logger.info(`${client.name} state change: ${oldStr} => ${newStr}`)
+    }, null, disposables)
+
+    return this.regist(service)
   }
 }
 
@@ -195,11 +258,129 @@ function documentSelectorToLanguageIds(documentSelector: DocumentSelector): stri
     }
     return filter.language
   })
-  res = res.filter(s => s != null)
-  if (res.length == 0) {
-    throw new Error('Invliad document selector')
-  }
+  res = res.filter(s => typeof s == 'string')
   return res
+}
+
+// convert config to options
+function getLanguageServerOptions(id: string, name: string, config: LanguageServerConfig): [LanguageClientOptions, ServerOptions] {
+  let { command, module, port, args } = config
+  args = args || []
+  if (!command && !module && !port) {
+    workspace.showMessage(`Invalid config of language server ${name}`, 'error')
+    return null
+  }
+  if (module && !fs.existsSync(module as string)) {
+    workspace.showMessage(`module file ${module} not found for ${name}`, 'error')
+    return null
+  }
+  if (command) {
+    try {
+      let resolved = which.sync(config.command)
+      if (args.indexOf('--node-ipc') !== -1) {
+        module = resolved
+      }
+    } catch (e) {
+      workspace.showMessage(`Executable ${command} not found`, 'error')
+      return null
+    }
+  }
+  let isModule = module != null
+  let serverOptions: ServerOptions
+  if (isModule) {
+    serverOptions = {
+      module: module.toString(),
+      args,
+      transport: getTransportKind(args),
+      options: getSpawnOptions(config)
+    }
+  } else if (command) {
+    serverOptions = {
+      command,
+      args,
+      options: getForkOptions(config)
+    }
+  } else if (port) {
+    serverOptions = () => {
+      return new Promise((resolve, reject) => {
+        let client = new net.Socket()
+        client.connect(port, config.host || '127.0.0.1', () => {
+          resolve({
+            reader: client,
+            writer: client
+          })
+        })
+        client.on('error', e => {
+          reject(new Error(`Connection error for ${id}: ${e.message}`))
+        })
+      })
+    }
+  }
+  let clientOptions: LanguageClientOptions = {
+    documentSelector: config.filetypes,
+    synchronize: {
+      configurationSection: id
+    },
+    diagnosticCollectionName: name,
+    outputChannelName: id,
+    stdioEncoding: config.stdioEncoding || 'utf8',
+    initializationOptions: config.initializationOptions || {}
+  }
+  return [clientOptions, serverOptions]
+}
+
+function getTransportKind(args: string[]): Transport {
+  if (!args || args.indexOf('--node-ipc') !== -1) {
+    return TransportKind.ipc
+  }
+  if (args.indexOf('--stdio') !== -1) {
+    return TransportKind.stdio
+  }
+  let idx = args.findIndex(s => s === '--socket' || s === '--port')
+  if (idx !== -1 && typeof args[idx + 1] == 'number') {
+    let n = args[idx + 1]
+    return {
+      kind: TransportKind.socket,
+      port: Number(n)
+    }
+  }
+  return TransportKind.ipc
+}
+
+function getForkOptions(config: LanguageServerConfig): ForkOptions {
+  return {
+    cwd: getCwd(config.cwd),
+    execArgv: config.execArgv || []
+  }
+}
+
+function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
+  return {
+    cwd: getCwd(config.cwd),
+    detached: !!config.detached,
+    shell: !!config.shell
+  }
+}
+
+function getCwd(cwd: string): string {
+  if (cwd) {
+    if (path.isAbsolute(cwd)) return cwd
+    let p = path.join(workspace.root, cwd)
+    if (fs.existsSync(p)) return p
+  }
+  return workspace.root
+}
+
+function stateString(state: State): string {
+  switch (state) {
+    case State.Running:
+      return 'running'
+    case State.Starting:
+      return 'starting'
+    case State.Stopped:
+      return 'stopped'
+  }
+  return 'unknown'
 }
 
 export default new ServiceManager()

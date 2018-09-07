@@ -1,5 +1,13 @@
+*.map
 lib/extensions
+lib/__tests__
 plugin
 autoload
 rplugin
 src
+.github
+bin
+build
+coverage
+data
+tslint.json

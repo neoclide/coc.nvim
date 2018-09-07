@@ -53,8 +53,8 @@ export class ConfigurationModel implements IConfigurationModel {
   // Update methods
 
   public setValue(key: string, value: any): void {
-    addToValueTree(this.contents, key, value, e => {
-      throw new Error(e)
+    addToValueTree(this.contents, key, value, message => {
+      logger.error(message)
     })
   }
 
@@ -172,12 +172,12 @@ export class Configuration {
     return configuration.getValue(section)
   }
 
-  public updateValue(key: string, value: any): void {
-    let memoryConfiguration = this._memoryConfiguration
+  public updateValue(key: string, value: any, updateDefaults = false): void {
+    let configuration = updateDefaults ? this._defaultConfiguration : this._memoryConfiguration
     if (value === void 0) {
-      memoryConfiguration.removeValue(key)
+      configuration.removeValue(key)
     } else {
-      memoryConfiguration.setValue(key, value)
+      configuration.setValue(key, value)
     }
     this._consolidateConfiguration = null
   }

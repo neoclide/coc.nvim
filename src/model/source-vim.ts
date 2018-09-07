@@ -1,6 +1,6 @@
-import { CompleteOption, CompleteResult, DocumentInfo, VimCompleteItem } from '../types'
+import workspace from '../workspace'
+import { CompleteOption, CompleteResult, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
-import { echoErr } from '../util/index'
 import { byteSlice } from '../util/string'
 import Source from './source'
 const logger = require('../util/logger')('model-source-vim')
@@ -15,7 +15,7 @@ export default class VimSource extends Source {
     try {
       res = await this.nvim.call(name, args)
     } catch (e) {
-      echoErr(this.nvim, `Vim error from source ${this.name}: ${e.message}`)
+      workspace.showMessage(`Vim error from source ${this.name}: ${e.message}`, 'error')
       return null
     }
     return res
@@ -36,9 +36,17 @@ export default class VimSource extends Source {
     this.callOptinalFunc('on_complete', [item]) // tslint:disable-line
   }
 
-  public onEnter(info: DocumentInfo): void {
+  public onEnter(bufnr: number): void {
     if (this.optionalFns.indexOf('on_enter') === -1) return
-    this.callOptinalFunc('on_enter', [info]) // tslint:disable-line
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    let { filetypes } = this
+    if (filetypes && filetypes.indexOf(doc.filetype) == -1) return
+    this.callOptinalFunc('on_enter', [{
+      bufnr,
+      uri: doc.uri,
+      languageId: doc.filetype
+    }]) // tslint:disable-line
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {

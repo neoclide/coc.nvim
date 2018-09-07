@@ -31,7 +31,7 @@ export default class Document {
   private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
-  constructor(public buffer: Buffer) {
+  constructor(public readonly buffer: Buffer) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 20)
@@ -199,9 +199,9 @@ export default class Document {
   public async checkDocument(): Promise<void> {
     this.paused = false
     let { buffer } = this
-    this._fireContentChanges.clear()
     this._changedtick = await buffer.changedtick
     this.lines = await buffer.lines
+    this._fireContentChanges.clear()
     this.fireContentChanges()
   }
 
@@ -496,5 +496,11 @@ export default class Document {
     if (srcId) {
       buffer.clearHighlight({ srcId })
     }
+  }
+
+  public async getcwd(): Promise<string> {
+    let wid = await this.nvim.call('bufwinid', this.buffer.id)
+    if (wid == -1) return await this.nvim.call('getcwd')
+    return await this.nvim.call('getcwd', wid)
   }
 }

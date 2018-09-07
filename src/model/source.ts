@@ -11,7 +11,7 @@ export default abstract class Source implements ISource {
   public readonly sourceType: SourceType
   public readonly triggerCharacters: string[]
   // exists opitonnal function names for remote source
-  protected readonly optionalFns: string[]
+  public readonly optionalFns: string[]
   protected readonly nvim: Neovim
   private _disabled = false
   constructor(option: SourceConfig) {

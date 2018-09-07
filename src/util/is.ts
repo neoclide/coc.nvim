@@ -1,4 +1,3 @@
-const toString = Object.prototype.toString
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
 export function defined(value: any): boolean {
@@ -10,15 +9,15 @@ export function undefined(value: any): boolean {
 }
 
 export function boolean(value: any): value is boolean {
-  return value === true || value === false
+  return typeof value === 'boolean'
 }
 
 export function string(value: any): value is string {
-  return toString.call(value) === '[object String]'
+  return typeof value === 'string'
 }
 
 export function number(value: any): value is number {
-  return toString.call(value) === '[object Number]'
+  return typeof value === 'number'
 }
 
 export function array(array: any): array is any[] {
@@ -26,7 +25,7 @@ export function array(array: any): array is any[] {
 }
 
 export function func(value: any): value is Function {
-  return toString.call(value) === '[object Function]'
+  return typeof value == 'function'
 }
 
 export function objectLiteral(obj: any): obj is object {

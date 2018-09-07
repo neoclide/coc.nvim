@@ -100,13 +100,13 @@
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
 
-"@chemzqm/tsconfig@0.0.2":
-  version "0.0.2"
-  resolved "https://registry.yarnpkg.com/@chemzqm/tsconfig/-/tsconfig-0.0.2.tgz#bdf9a2f8cbbe6b7966aac62c00311c22e503015e"
+"@chemzqm/tsconfig@0.0.3":
+  version "0.0.3"
+  resolved "https://registry.yarnpkg.com/@chemzqm/tsconfig/-/tsconfig-0.0.3.tgz#ce3480d15d8cec46a315488caa07c9fca819aecc"
 
-"@chemzqm/tslint-config@^1.0.16":
-  version "1.0.16"
-  resolved "https://registry.yarnpkg.com/@chemzqm/tslint-config/-/tslint-config-1.0.16.tgz#a1beaff5384e51af8d7bc59a5b0ff03c30bb33e2"
+"@chemzqm/tslint-config@^1.0.17":
+  version "1.0.17"
+  resolved "https://registry.yarnpkg.com/@chemzqm/tslint-config/-/tslint-config-1.0.17.tgz#9365dc9bdece0927fdfa6c068e1c70524c35a5fc"
   dependencies:
     tslint-config-prettier "^1.6.0"
     tslint-react "^3.2.0"
@@ -3430,7 +3430,7 @@ vscode-jsonrpc@^3.6.2:
   version "3.6.2"
   resolved "https://registry.yarnpkg.com/vscode-jsonrpc/-/vscode-jsonrpc-3.6.2.tgz#3b5eef691159a15556ecc500e9a8a0dd143470c8"
 
-vscode-languageserver-protocol@^3.12.0:
+vscode-languageserver-protocol@^3.10.3, vscode-languageserver-protocol@^3.12.0:
   version "3.12.0"
   resolved "http://r.cnpmjs.org/vscode-languageserver-protocol/download/vscode-languageserver-protocol-3.12.0.tgz#5b23501292abad88f0463b01e83ff98e64a37652"
   dependencies:
@@ -3441,7 +3441,14 @@ vscode-languageserver-types@^3.12.0:
   version "3.12.0"
   resolved "http://r.cnpmjs.org/vscode-languageserver-types/download/vscode-languageserver-types-3.12.0.tgz#f96051381b6a050b7175b37d6cb5d2f2eb64b944"
 
-vscode-uri@^1.0.6:
+vscode-languageserver@^5.0.3:
+  version "5.0.3"
+  resolved "https://registry.yarnpkg.com/vscode-languageserver/-/vscode-languageserver-5.0.3.tgz#29a4655348868223d9b3b6e385a50e77c6f4992e"
+  dependencies:
+    vscode-languageserver-protocol "^3.10.3"
+    vscode-uri "^1.0.5"
+
+vscode-uri@^1.0.5, vscode-uri@^1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/vscode-uri/-/vscode-uri-1.0.6.tgz#6b8f141b0bbc44ad7b07e94f82f168ac7608ad4d"
 

@@ -61,9 +61,11 @@ function! s:job_opts.on_stderr(chan_id, data, event) dict
 endfunction
 
 function! s:job_opts.on_stdout(chan_id, data, event) dict
-  if get(g:, 'nvim_node_rpc_debug', 0)
+  if get(g:, 'coc_node_rpc_debug', 0)
     for msg in a:data
-      echom msg
+      if !empty(msg)
+        echom msg
+      endif
     endfor
   endif
 endfunction

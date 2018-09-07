@@ -9,6 +9,7 @@ import snippetManager from './snippet/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
+import extensions from './extensions'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -21,7 +22,7 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     sources.init()
-    services.init(nvim)
+    services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
     clean() // tslint:disable-line
@@ -33,6 +34,7 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     await workspace.init()
     this.handler = new Handler(nvim)
+    extensions.init()
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emit('ready')

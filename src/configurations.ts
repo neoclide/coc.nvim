@@ -25,6 +25,10 @@ export default class Configurations {
     this._configuration = Configurations.parse(data)
   }
 
+  public updateDefaults(key: string, value: any):void {
+    this._configuration.updateValue(key, value, true)
+  }
+
   /**
    * getConfiguration
    *
@@ -72,6 +76,18 @@ export default class Configurations {
         return undefined
       }
     }
+    Object.defineProperty(result, 'has', {
+      enumerable: false
+    })
+    Object.defineProperty(result, 'get', {
+      enumerable: false
+    })
+    Object.defineProperty(result, 'update', {
+      enumerable: false
+    })
+    Object.defineProperty(result, 'inspect', {
+      enumerable: false
+    })
 
     if (typeof config === 'object') {
       mixin(result, config, false)

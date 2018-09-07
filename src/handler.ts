@@ -332,8 +332,10 @@ export default class Handler {
   }
 
   public async highlight(): Promise<void> {
-    let { document, position } = await workspace.getCurrentState()
-    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document, position)
+    let document = await workspace.document
+    if (!document) return
+    let { position } = await workspace.getCurrentState()
+    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
     if (!highlights) return
     let doc = workspace.getDocument(document.uri)
     await doc.setHighlights(highlights)

@@ -87,7 +87,7 @@ export function getUri(fullpath: string, id: number): string {
     let w = require('../workspace').default
     return `untitled:${w.cwd}/${id}`
   }
-  if (/^\w+:\/\//.test(fullpath)) return fullpath
+  if (/^\w+:\//.test(fullpath)) return fullpath
   return Uri.file(fullpath).toString()
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "description": "Completetion manage for neovim",
   "main": "./lib/index.js",
   "bin": "./bin/server.js",
@@ -57,8 +57,8 @@
     "assets": "lib/**/*.json"
   },
   "devDependencies": {
-    "@chemzqm/tsconfig": "0.0.2",
-    "@chemzqm/tslint-config": "^1.0.16",
+    "@chemzqm/tsconfig": "0.0.3",
+    "@chemzqm/tslint-config": "^1.0.17",
     "@types/debounce": "^1.0.0",
     "@types/deep-equal": "^1.0.1",
     "@types/diff": "^3.5.1",
@@ -98,6 +98,7 @@
     "semver": "^5.5.1",
     "tslib": "^1.9.3",
     "uuid": "^3.3.2",
+    "vscode-languageserver": "^5.0.3",
     "vscode-languageserver-protocol": "^3.12.0",
     "vscode-languageserver-types": "^3.12.0",
     "vscode-uri": "^1.0.6",

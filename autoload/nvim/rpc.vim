@@ -22,7 +22,7 @@ else
   endif
 endif
 
-if get(g:, 'nvim_node_rpc_debug', 0)
+if get(g:, 'coc_node_rpc_debug', 0)
   call ch_logfile(s:logfile, 'w')
 endif
 

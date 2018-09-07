@@ -43,14 +43,6 @@ describe('workspace properties', () => {
     expect(workspaceFolder.uri).toBe(uri)
   })
 
-  it('should return current bufnr', async () => {
-    let { bufnr } = workspace
-    expect(bufnr).toBe(1)
-    let buf = await helper.edit('tmp')
-    await helper.wait(30)
-    expect(bufnr).toBe(buf.id)
-  })
-
   it('should check isVim and isNvim', async () => {
     let { isVim, isNvim } = workspace
     expect(isVim).toBe(false)
@@ -258,10 +250,10 @@ describe('workspace methods', () => {
   })
 
   it('should get current document', async () => {
-    let bufnr = workspace.bufnr
+    let buf = await nvim.buffer
     let doc = await workspace.document
-    expect(doc.bufnr).toBe(bufnr)
-    let buf = await helper.edit('tmp')
+    expect(doc.bufnr).toBe(buf.id)
+    buf = await helper.edit('tmp')
     doc = await workspace.document
     expect(doc.bufnr).toBe(buf.id)
   })
@@ -480,22 +472,6 @@ describe('workspace events', () => {
     workspace.onDidOpenTextDocument(fn, null, disposables)
     await helper.edit('tmp')
     await helper.wait(300)
-    expect(fn).toHaveBeenCalledTimes(1)
-  })
-
-  it('should fire onDidEnterTextDocument', async () => {
-    let fn = jest.fn()
-    workspace.onDidEnterTextDocument(fn, null, disposables)
-    await helper.edit('tmp')
-    await helper.wait(100)
-    expect(fn).toHaveBeenCalledTimes(1)
-  })
-
-  it('should fire onDidBufWinEnter', async () => {
-    let fn = jest.fn()
-    workspace.onDidBufWinEnter(fn, null, disposables)
-    await helper.edit('tmp')
-    await helper.wait(100)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 

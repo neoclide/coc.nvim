@@ -1,6 +1,6 @@
 *coc-nvim.txt*				Completion framework for neovim
 
-Version: 0.0.12
+Version: 0.0.16
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -38,7 +38,7 @@ INTRODUCTION					*coc-introduction*
 
 Coc tries to make best experience of LSP features, especially for completion.
 
-It has intergration with some language server extensions from VSCode, and
+It works with extensions featured as extensions of VSCode, and
 you can configure coc to work with custom language server as well.
 
 ==============================================================================
@@ -372,7 +372,7 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			Diagnostic infomation of current buffer, can be used
 			for customize status line. See |coc-status|.
 
-g:nvim_node_rpc_debug 				*g:nvim_node_rpc_debug*
+g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 			Log channel commucation by using |ch_logfile|. Vim
 			only.
 
@@ -575,7 +575,7 @@ health#coc#check()
 
 nvim#rpc#open_log
 
-	Open log of channel, vim only. Set |g:nvim_node_rpc_debug| to 1 to
+	Open log of channel, vim only. Set |g:coc_node_rpc_debug| to 1 to
 	enable log.
 
 ------------------------------------------------------------------------------
@@ -606,6 +606,18 @@ COMMANDS 					*coc-commands*
 
 		Use 'let $NODE_DEBUG=nvim*' to debug commucation between
 		node-client and neovim.
+
+:CocInstall {names} 				*:CocInstall*
+
+		Install one of more coc extensions.
+
+		Checkout
+		https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions
+		for available extensions.
+
+:CocUpdate 					*:CocUpdate*
+
+		Update all coc extensions.
 
 ------------------------------------------------------------------------------
 

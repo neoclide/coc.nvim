@@ -7,11 +7,12 @@ import pify from 'pify'
 import { Disposable } from 'vscode-jsonrpc'
 import which from 'which'
 import VimSource from './model/source-vim'
-import { CompleteOption, DocumentInfo, ISource, SourceConfig, SourceType, VimCompleteItem } from './types'
-import { disposeAll, echoErr } from './util'
+import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem } from './types'
+import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import { isWord } from './util/string'
 import workspace from './workspace'
+import events from './events'
 const logger = require('./util/logger')('sources')
 
 export class Sources extends EventEmitter {
@@ -36,7 +37,7 @@ export class Sources extends EventEmitter {
       this.emit('ready')
       workspace.showMessage(`Error on source create ${e.message}`, 'error')
     })
-    workspace.onDidEnterTextDocument(this.onDocumentEnter, this, this.disposables)
+    events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
   }
 
   public get ready(): Promise<void> {
@@ -168,7 +169,7 @@ export class Sources extends EventEmitter {
     let fns = await nvim.call('coc#util#remote_fns', name) as string[]
     for (let fn of ['init', 'complete']) {
       if (fns.indexOf(fn) == -1) {
-        echoErr(nvim, `${fn} not found for source ${name}`)
+        workspace.showMessage(`${fn} not found for source ${name}`, 'error')
         return null
       }
     }
@@ -185,12 +186,11 @@ export class Sources extends EventEmitter {
       source = new VimSource(config)
       this.addSource(name, source)
     } catch (e) {
-      echoErr(nvim, `Error on create vim source ${name}: ${e.message}`)
+      workspace.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
     }
   }
 
   private createNvimProcess(): cp.ChildProcess {
-    if (global.hasOwnProperty('__TEST__')) return null
     try {
       let p = which.sync('nvim')
       let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
@@ -234,14 +234,14 @@ export class Sources extends EventEmitter {
     if (proc) proc.kill()
   }
 
-  private onDocumentEnter(info: DocumentInfo): void {
+  private onDocumentEnter(bufnr: number): void {
     this.ready.then(() => { // tslint:disable-line
-      if (info.bufnr != workspace.bufnr) return
+      if (bufnr != workspace.bufnr) return
       let { sources } = this
       for (let s of sources) {
         if (!s.enable) continue
         if (typeof s.onEnter == 'function') {
-          s.onEnter(info)
+          s.onEnter(bufnr)
         }
       }
     })
@@ -254,7 +254,7 @@ export class Sources extends EventEmitter {
           try {
             await Promise.resolve(source.refresh())
           } catch (e) {
-            echoErr(this.nvim, `Refresh ${name} error: ${e.message}`)
+            workspace.showMessage(`Refresh ${name} error: ${e.message}`, 'error')
           }
         }
       }

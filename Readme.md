@@ -110,42 +110,42 @@ Name         | Description                              | Filetypes   | Requirem
 
 ## Extensions
 
-Language server are decoupled from coc.nvim to make the core smaller, and easier
-for user to use their own version of language server.
+Extension are powerful than configured language server. Checkout
+[Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
 * **Tsserver**
 
     Used for `javascript` and `typescript`
 
-        yarn global add typescript
+        :CocInstall coc-tsserver
 
 * **Html**
 
     Used for `html` `handlebars` `razor`
 
-        yarn global add vscode-html-languageserver-bin
+        :CocInstall coc-html
 
 * **Json**
 
     Used for `json` and `jsonc`
 
-        yarn global add vscode-json-languageserver
+        :CocInstall coc-json
 
 * **Css**
 
     Used for `css` `scss` `less` and `wxss`
 
-        yarn global add css-langserver
+        :CocInstall coc-css
 
 * **Wxml**
 
-        yarn global add wxml-langserver
+        :CocInstall coc-wxml
 
 * **Vetur**
 
     Used for `vue`
 
-        yarn global add vue-language-server
+        :CocInstall coc-vetur
 
 * **Solargraph**
 
@@ -155,6 +155,10 @@ for user to use their own version of language server.
 
         gem install solargraph
 
+    then
+
+        :CocInstall coc-solargraph
+
 * **Pyls**
 
     Used for `python`
@@ -163,25 +167,30 @@ for user to use their own version of language server.
 
         pip install 'python-language-server[all]'
 
+    then
+
+        :CocInstall coc-pyls
+
 * **Stylelint**
 
     Used for  `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
 
-        yarn global add stylelint-langserver
+        :CocInstall coc-stylelint
 
 * **Eslint**
 
     Used for `javascript`
 
-        yarn global add eslint-server
+        :CocInstall coc-eslint
 
 * **Tslint**
 
     Used for `typescript`
 
-        yarn global add tslint-server
+        :CocInstall coc-tslint
 
-**Note:** use `:CocConfig` to edit configuration file, auto completion is supported
+**Note:** use `:CocConfig` to edit configuration file, auto completion is
+supported after `coc-json` installed.
 
 ## Example vim configuration
 
@@ -191,6 +200,9 @@ set hidden
 
 " Better display for messages
 set cmdheight=2
+
+" always show signcolumns
+set signcolumn=yes
 
 " Use tab for trigger completion with characters ahead and navigate.
 inoremap <silent><expr> <TAB>
@@ -202,8 +214,8 @@ inoremap <expr><S-TAB> pumvisible() ? "\<C-p>" : "\<C-h>"
 " Use <c-space> for trigger completion.
 inoremap <silent><expr> <c-space> coc#refresh()
 
-" Use <C-p> to complete 'word', 'emoji' and 'include' sources
-imap <silent> <C-p> <Plug>(coc-complete-custom)
+" Use <C-x><C-o> to complete 'word', 'emoji' and 'include' sources
+imap <silent> <C-x><C-o> <Plug>(coc-complete-custom)
 
 function! s:check_back_space() abort
   let col = col('.') - 1
@@ -211,6 +223,7 @@ function! s:check_back_space() abort
 endfunction
 
 " Use <cr> for confirm completion.
+" Coc only does snippet and additional edit on confirm.
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
 " Use `[c` and `]c` for navigate diagnostics
@@ -290,9 +303,11 @@ nnoremap <silent> <space>s  :<C-u>Denite coc-service<cr>
 nnoremap <silent> <space>l  :<C-u>Denite coc-link<cr>
 ```
 
-## Trouble shooting
+## Feedback
 
-Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues).
+If you like this plugin, star it! It's a great way of getting feedback. The same goes for reporting issues or feature requests.
+
+Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.com/chemzqm)
 
 ## LICENSE
 
@@ -306,4 +321,3 @@ Don't be hesitated to [open a issue](https://github.com/neoclide/coc.nvim/issues
 [Gitter]: https://gitter.im/coc-nvim/Lobby
 [Doc Badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
 [Doc Link]: doc/coc.txt
-

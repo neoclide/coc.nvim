@@ -1,23 +1,23 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentHighlightKind, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
+import { LanguageClient } from './language-client'
+import log4js from 'log4js'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
+
+export interface WinEnter {
+  document: TextDocument | null
+  winid: number
+}
 
 export interface EditerState {
   document: TextDocument
   position: Position
 }
 
-export type ColorMap = Map<DocumentHighlightKind, string>
-
 export type ModuleResolve = () => Promise<string>
-
-export interface WinEnter {
-  document: TextDocument | null
-  winid: number
-}
 
 export enum SourceType {
   Native,
@@ -167,12 +167,6 @@ export interface CompleteResult {
   priority?: number
 }
 
-export interface Config {
-  hasUserData: boolean
-  completeOpt: string
-  watchmanBinaryPath: string
-}
-
 export interface SourceStat {
   name: string
   type: string
@@ -288,21 +282,16 @@ export enum ServiceStat {
   Stopped,
 }
 
-export interface DocumentInfo {
-  bufnr: number
-  uri: string
-  languageId: string
-}
-
 export interface IServiceProvider {
   // unique service id
   id: string
   name: string
   enable: boolean
+  client?: LanguageClient
   selector: DocumentSelector
   // current state
   state: ServiceStat
-  init(): Promise<void>
+  start(): Promise<void>
   dispose(): void
   stop(): Promise<void> | void
   restart(): Promise<void> | void
@@ -336,7 +325,7 @@ export interface ISource {
    *
    * @returns {undefined}
    */
-  onEnter?(info: DocumentInfo): void
+  onEnter?(bufnr: number): void
 
   /**
    * Do completetion
@@ -545,9 +534,80 @@ export interface OutputChannel {
   dispose(): void
 }
 
+/**
+ * Represents an extension.
+ *
+ * To get an instance of an `Extension` use [getExtension](#extensions.getExtension).
+ */
+export interface Extension<T> {
+
+  /**
+   * The canonical extension identifier in the form of: `publisher.name`.
+   */
+  readonly id: string
+
+  /**
+   * The absolute file path of the directory containing this extension.
+   */
+  readonly extensionPath: string
+
+  /**
+   * `true` if the extension has been activated.
+   */
+  readonly isActive: boolean
+
+  /**
+   * The parsed contents of the extension's package.json.
+   */
+  readonly packageJSON: any
+
+  /**
+   * The public API exported by this extension. It is an invalid action
+   * to access this field before this extension has been activated.
+   */
+  readonly exports: T
+
+  /**
+   * Activates this extension and returns its public API.
+   *
+   * @return A promise that will resolve when this extension has been activated.
+   */
+  activate(): Promise<T>
+}
+
+/**
+ * An extension context is a collection of utilities private to an
+ * extension.
+ *
+ * An instance of an `ExtensionContext` is provided as the first
+ * parameter to the `activate`-call of an extension.
+ */
+export interface ExtensionContext {
+
+  /**
+   * An array to which disposables can be added. When this
+   * extension is deactivated the disposables will be disposed.
+   */
+  subscriptions: Disposable[]
+
+  /**
+   * The absolute file path of the directory containing the extension.
+   */
+  extensionPath: string
+
+  /**
+   * Get the absolute path of a resource contained in the extension.
+   *
+   * @param relativePath A relative path to a resource contained in the extension.
+   * @return The absolute path of the resource.
+   */
+  asAbsolutePath(relativePath: string): string
+
+  logger: log4js.Logger
+}
+
 export interface IWorkspace {
   nvim: Neovim
-  bufnr: number
   // root of current file or cwd
   root: string
   isVim: boolean
@@ -561,9 +621,7 @@ export interface IWorkspace {
   document: Promise<Document | null>
   textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder
-  onDidEnterTextDocument: Event<DocumentInfo>
   onDidOpenTextDocument: Event<TextDocument>
-  onDidBufWinEnter: Event<WinEnter>
   onDidCloseTextDocument: Event<TextDocument>
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>

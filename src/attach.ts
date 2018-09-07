@@ -2,6 +2,7 @@ import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
+import extensions from './extensions'
 const logger = require('./util/logger')('attach')
 
 export default function(opts: Attach): Plugin {
@@ -16,6 +17,13 @@ export default function(opts: Attach): Plugin {
         return
       case 'CocAutocmd':
         (events as any).fire(args[0], args.slice(1))
+        return
+      case 'CocInstalled':
+        for (let name of args) {
+          extensions.onExtensionInstall(name).catch(e => {
+            logger.error(e.message)
+          })
+        }
         return
       default:
         plugin.emit('notification', method, args)

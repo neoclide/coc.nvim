@@ -20,5 +20,6 @@
     "src"
   ],
   "exclude": [
+    "src/extensions/clang"
   ]
 }
