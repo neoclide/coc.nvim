@@ -6,8 +6,8 @@
 
 Coc is an intellisense engine for vim8 & neovim.
 
-It's a completion framework, language server client with bundled extensions
-from [VSCode](https://github.com/Microsoft/vscode) that just works.
+It's a completion framework, language server client with support of extensions featured as
+[VSCode](https://github.com/Microsoft/vscode) has.
 
 ![example.gif](https://user-images.githubusercontent.com/251450/42722527-028898ea-8780-11e8-959f-09db0d39ba05.gif)
 
