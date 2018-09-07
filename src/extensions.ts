@@ -4,7 +4,7 @@ import os from 'os'
 import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import { Extension, ExtensionContext } from './types'
-import { disposeAll } from './util'
+import { disposeAll, wait } from './util'
 import { statAsync, readFile } from './util/fs'
 import { createExtension } from './util/factory'
 import workspace from './workspace'
@@ -21,7 +21,6 @@ export interface ExtensionItem {
 }
 
 function loadJson(file: string): any {
-  if (!fs.existsSync(file)) return null
   try {
     let content = fs.readFileSync(file, 'utf8')
     return JSON.parse(content)
@@ -41,14 +40,17 @@ export class Extensions {
   private list: ExtensionItem[] = []
   private version: string
   private root = extensionRoot()
+  public isEmpty = false
 
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
 
   public init(): void {
     let { root } = this
-    let json = loadJson(path.join(root, 'package.json'))
+    let jsonFile = path.join(root, 'package.json')
+    let json = loadJson(jsonFile)
     if (!json || !json.dependencies) {
+      this.isEmpty = true
       return
     }
     let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
@@ -75,7 +77,7 @@ export class Extensions {
     }
   }
 
-  private hasExtension(id: string): boolean {
+  public hasExtension(id: string): boolean {
     return this.list.find(o => o.id == id) != null
   }
 
@@ -89,8 +91,9 @@ export class Extensions {
     let content = await readFile(jsonFile, 'utf8')
     let packageJSON = JSON.parse(content)
     if (this.hasExtension(packageJSON.name)) {
-      workspace.showMessage(`Extension ${packageJSON.name} already loaded`, 'warning')
-      return
+      workspace.showMessage(`deactivate ${packageJSON.name}`)
+      this.deactivate(packageJSON.name)
+      await wait(200)
     }
     let { engines } = packageJSON
     if (engines && engines.hasOwnProperty('coc')) {

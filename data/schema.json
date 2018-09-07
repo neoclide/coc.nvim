@@ -210,6 +210,11 @@
       "description": "How should completion be triggered",
       "enum": ["always", "trigger", "none"]
     },
+    "coc.preferences.checkEmpty": {
+      "type": "boolean",
+      "default": true,
+      "description": "check if extensions empty"
+    },
     "coc.preferences.languageSourcePriority": {
       "type": "number",
       "default": 9,
