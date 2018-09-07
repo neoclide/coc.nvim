@@ -15,15 +15,12 @@ _True snippet and additional text edit support_
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
-## Pros.
+## Why?
 
-* Easy to install and many features just work.
-* Optimized for speed, no effect on startup time and fastest completion
-  experience.
-* Built in and custom completion source support.
-* Full completion features support of language server protocol.
-* Featured language server extensions from VSCode, like tsserver, tslint etc.
-* Custom language server configuration support.
+* 🚀 **Fast**: instant increment completion, increment buffer sync using buffer update events.
+* 💎 **Reliable**: typed language, tested with CI.
+* 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (exclude workspace Folder)
+* ❤️  **Flexible**: [Configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [custom language server configuration](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
 ## Table of contents
 
