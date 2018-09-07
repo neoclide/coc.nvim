@@ -44,7 +44,7 @@ export class ConfigurationFeature implements StaticFeature {
     if (section) {
       let index = section.lastIndexOf('.')
       if (index === -1) {
-        result = workspace.getConfiguration(undefined, resource).get(section, {})
+        result = workspace.getConfiguration(undefined, resource).get<any>(section, {})
       } else {
         let config = workspace.getConfiguration(section.substr(0, index))
         if (config) {

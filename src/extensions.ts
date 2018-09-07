@@ -62,7 +62,7 @@ export class Extensions {
       return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
-    }))
+    })) // tslint:disable-line
   }
 
   public async onExtensionInstall(id): Promise<void> {
