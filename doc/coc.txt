@@ -363,7 +363,7 @@ g:coc_codelen_jump_key 				*g:coc_codelen_jump_key*
 g:coc_codelen_action_key 			*g:coc_codelen_action_key*
 
 			Do command of codeLens in codeLens buffer, a prompt
-			would be shown if multiply codeLens found at the
+			would be shown if multiple codeLens found at the
 			same line.
 
 			Default: <d>

@@ -1,3 +1,16 @@
+# 2018-09-07
+
+* **Break change**: all extension all seperated from core, checkout
+  [Using coc extension](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+* Fix `textDocumentSync` option not work when received as object.
+* Fix wrong diagnostic info when using multiple lint servers.
+* Use `CursorHold` for show diagnostic message.
+* Add option `coc.preferences.enableMessage` to disable showing of diagnostic
+  message.
+* Add new events module for receive vim events.
+* Add support for `prepareRename`.
+* Add support for `CodeActionOptions`
+
 # 2018-08-30
 
 * Fix wrong `triggerKind` from VSCode.
