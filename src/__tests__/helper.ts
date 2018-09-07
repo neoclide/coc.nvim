@@ -63,22 +63,19 @@ export class Helper extends Emitter {
 
   public waitPopup(): Promise<void> {
     return new Promise((resolve, reject) => {
-      let timer = setTimeout(() => {
+      let timeout = setTimeout(() => {
+        clearInterval(interval)
         reject(new Error('timeout after 5s'))
       }, 5000)
-      this.nvim.call('pumvisible').then(visible => {
-        if (visible) {
-          clearTimeout(timer)
-          resolve()
-        } else {
-          this.once('popupmenu_show', () => {
-            clearTimeout(timer)
+      let interval = setInterval(() => {
+        this.nvim.call('pumvisible').then(visible => {
+          if (visible) {
+            clearTimeout(timeout)
+            clearInterval(interval)
             resolve()
-          })
-        }
-      }, e => {
-        console.error(e) // tslint:disable-line
-      })
+          }
+        }, reject)
+      }, 100)
     })
   }
 

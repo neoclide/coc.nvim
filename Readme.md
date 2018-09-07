@@ -59,6 +59,10 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   * [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
   * [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
 
+* [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+
+  * [Manage extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions#installupdate-coc-extension)
+
 * [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
 
   * [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
@@ -69,11 +73,11 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 * [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
   * [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
-  * [Built in server extensions](https://github.com/neoclide/coc.nvim/wiki/Language-servers#built-in-server-extensions)
   * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
-  * [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
-* [ Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+* [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+
+* [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
 * [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
