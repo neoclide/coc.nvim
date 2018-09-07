@@ -45,8 +45,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let ids = Array.from(this.registed.keys())
     logger.info(`Created services: ${ids.join(',')}`)
     workspace.onDidWorkspaceInitialized(() => {
-      let document = workspace.getDocument(workspace.bufnr)
-      this.start(document.textDocument)
+      for (let doc of workspace.documents) {
+        this.start(doc.textDocument)
+      }
     }, null, this.disposables)
 
     workspace.onDidOpenTextDocument(doc => {

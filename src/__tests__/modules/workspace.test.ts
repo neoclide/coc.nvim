@@ -307,15 +307,6 @@ describe('workspace methods', () => {
     expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
-
-  it('should install module if not exists', async () => {
-    let p = workspace.resolveModule('uid', '')
-    await helper.wait(2000)
-    await nvim.input('2<enter>')
-    let res = await p
-    expect(res).toBeTruthy()
-    await workspace.runCommand('yarn global remove uid')
-  }, 30000)
 })
 
 describe('workspace utility', () => {
