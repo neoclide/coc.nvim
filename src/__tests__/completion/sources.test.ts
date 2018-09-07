@@ -137,18 +137,3 @@ describe('remote sources', () => {
     expect(res).toBe(true)
   })
 })
-
-describe('service source', () => {
-
-  it('should works for tsserver source', async () => {
-    await helper.edit('tmp.ts')
-    await helper.onServiceReady('tsserver')
-    // need sometime for initialize completion
-    await helper.wait(8000)
-    await nvim.setLine('notDeepEqu')
-    await nvim.input('Aa')
-    let res = await helper.visible('notDeepEqual', 'tsserver-typescript')
-    expect(res).toBe(true)
-  }, 10000)
-
-})
