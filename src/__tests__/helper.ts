@@ -27,7 +27,9 @@ export class Helper extends Emitter {
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
     if (uiAttach) {
-      this.nvim.uiAttach(80, 80, {})
+      this.nvim.uiAttach(80, 80, {}).catch(_e => {
+        // noop
+      })
     }
     proc.on('exit', () => {
       this.proc = null

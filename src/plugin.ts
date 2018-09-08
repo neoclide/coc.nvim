@@ -44,6 +44,7 @@ export default class Plugin extends EventEmitter {
   }
 
   private async checkEmpty(): Promise<void> {
+    if (process.env.NODE_ENV === 'test') return
     workspace.onDidOpenTextDocument(async doc => {
       if (!extensions.hasExtension('coc-json')) {
         let file = Uri.parse(doc.uri).fsPath
