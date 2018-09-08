@@ -34,7 +34,6 @@ const REMOVED_GLOBALS = [
   '_kill',
   'EventEmitter',
   '_maxListeners',
-  '_fatalException',
   'exit',
   'kill',
 ]
