@@ -20,8 +20,9 @@ describe('native sources', () => {
   it('should works for around source', async () => {
     await helper.edit('around')
     await nvim.setLine('foo')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('of')
+    await helper.wait(30)
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
@@ -32,6 +33,7 @@ describe('native sources', () => {
     let buf = await nvim.buffer
     let dict = await buf.getOption('dictionary') as string
     expect(dict.indexOf('test.dict') !== -1).toBeTruthy()
+    await helper.wait(30)
     await nvim.input('id')
     let res = await helper.visible('dictionary', 'dictionary')
     expect(res).toBe(true)
