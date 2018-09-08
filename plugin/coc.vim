@@ -164,7 +164,7 @@ augroup coc_init
 augroup end
 
 command! -nargs=0 CocRestart  :call coc#rpc#restart()
-command! -nargs=+ CocInstall  :call coc#util#install(<q-args>)
+command! -nargs=+ CocInstall  :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate   :call coc#util#update()
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>

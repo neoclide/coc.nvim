@@ -643,7 +643,7 @@ function! coc#util#extension_root()
   return dir
 endfunction
 
-function! coc#util#install(names)
+function! coc#util#install_extension(names)
   if !executable('yarn')
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
