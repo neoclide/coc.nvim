@@ -66,7 +66,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public regist(service: IServiceProvider): Disposable {
     let { id } = service
     if (!id) logger.error('invalid service ', service.name)
-    if (!service.enable) return
+    if (service.enable === false) return
     if (this.registed.get(id)) {
       workspace.showMessage(`Service ${id} already exists`, 'error')
       return
@@ -317,10 +317,11 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
       })
     }
   }
+  let section = config.settings == null ? null : `${id}.settings`
   let clientOptions: LanguageClientOptions = {
     documentSelector: config.filetypes,
     synchronize: {
-      configurationSection: id
+      configurationSection: section
     },
     diagnosticCollectionName: name,
     outputChannelName: id,
