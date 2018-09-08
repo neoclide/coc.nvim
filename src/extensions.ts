@@ -11,6 +11,7 @@ import events from './events'
 import workspace from './workspace'
 import glob from 'glob'
 import Uri from 'vscode-uri'
+import JsonDB from 'node-json-db'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -40,6 +41,7 @@ function extensionRoot(): string {
 }
 
 export class Extensions {
+  private disposables: Disposable[] = []
   private list: ExtensionItem[] = []
   private version: string
   private root = extensionRoot()
@@ -52,6 +54,7 @@ export class Extensions {
 
   public init(): void {
     let { root } = this
+    let db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let jsonFile = path.join(root, 'package.json')
     let json = loadJson(jsonFile)
     if (!json || !json.dependencies) {
@@ -68,6 +71,29 @@ export class Extensions {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
     })) // tslint:disable-line
+    let now = new Date()
+    let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    this.onDidActiveExtension(async extension => {
+      let { id, packageJSON } = extension
+      let key = `/extension/${id}/ts`
+      let ts = (db as any).exists(key) ? db.getData(key) : null
+      if (!ts || Number(ts) < today.getTime()) {
+        db.push(key, Date.now())
+        try {
+          let res = await workspace.runCommand(`yarn info ${id} version --json`)
+          let version = JSON.parse(res).data
+          if (semver.gt(version, packageJSON.version)) {
+            let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
+            if (res) {
+              await workspace.nvim.command(`CocInstall ${id}`)
+            }
+          }
+        } catch (e) {
+          logger.error(e.stack)
+          // noop
+        }
+      }
+    }, null, this.disposables)
   }
 
   public async onExtensionInstall(id): Promise<void> {
@@ -86,6 +112,14 @@ export class Extensions {
     return this.list.find(o => o.id == id) != null
   }
 
+  public isActivted(id: string): boolean {
+    let item = this.list.find(o => o.id == id)
+    if (item && item.extension.isActive) {
+      return true
+    }
+    return false
+  }
+
   private async loadExtension(folder: string): Promise<void> {
     let jsonFile = path.join(folder, 'package.json')
     let stat = await statAsync(jsonFile)
@@ -95,7 +129,7 @@ export class Extensions {
     }
     let content = await readFile(jsonFile, 'utf8')
     let packageJSON = JSON.parse(content)
-    if (this.hasExtension(packageJSON.name)) {
+    if (this.isActivted(packageJSON.name)) {
       workspace.showMessage(`deactivate ${packageJSON.name}`)
       this.deactivate(packageJSON.name)
       await wait(200)
@@ -108,7 +142,7 @@ export class Extensions {
       }
       this.createExtension(folder, Object.freeze(packageJSON))
     } else {
-      workspace.showMessage(`engine coc not found in package.json of ${folder}`, 'warning')
+      workspace.showMessage(`engine coc not found in package.json of ${folder}`, 'error')
     }
   }
 
@@ -191,8 +225,8 @@ export class Extensions {
       if (extension.isActive) {
         this._onDidActiveExtension.fire(extension)
       }
-    }, e => {
-      logger.error(`Error on active extension ${id}: `, e.message)
+    }, _e => {
+      // noop
     })
   }
 
@@ -271,7 +305,12 @@ export class Extensions {
       activate: async (): Promise<API> => {
         if (isActive) return
         isActive = true
-        exports = await Promise.resolve(active(context))
+        try {
+          exports = await Promise.resolve(active(context))
+        } catch (e) {
+          isActive = false
+          workspace.showMessage(`Error on active extension ${id}: `, e.message)
+        }
         return exports as API
       }
     }
