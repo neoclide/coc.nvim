@@ -44,9 +44,7 @@ export function defaults(obj: any, ...sources: any[]): any {
 export function omit<T>(obj: T, properties: string[]): T {
   let o = {}
   for (let key of Object.keys(obj)) {
-    if (properties.indexOf(key) !== -1) {
-      o[key] = null
-    } else {
+    if (properties.indexOf(key) == -1) {
       o[key] = obj[key]
     }
   }

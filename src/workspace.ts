@@ -700,23 +700,21 @@ export class Workspace implements IWorkspace {
     }
     if (attached) {
       this.buffers.set(buffer.id, document)
-      if (isSupportedScheme(document.schema)) {
-        this._onDidAddDocument.fire(document.textDocument)
-        document.onDocumentChange(({ textDocument, contentChanges }) => {
-          let { version, uri } = textDocument
-          this._onDidChangeDocument.fire({
-            textDocument: { version, uri },
-            contentChanges
-          })
+      this._onDidAddDocument.fire(document.textDocument)
+      document.onDocumentChange(({ textDocument, contentChanges }) => {
+        let { version, uri } = textDocument
+        this._onDidChangeDocument.fire({
+          textDocument: { version, uri },
+          contentChanges
         })
-      }
+      })
     }
     logger.debug('buffer created', buffer.id)
   }
 
   private async onBufWritePost(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
-    if (!doc || !isSupportedScheme(doc.schema)) return
+    if (!doc) return
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
@@ -725,9 +723,7 @@ export class Workspace implements IWorkspace {
     if (doc) {
       this.buffers.delete(bufnr)
       await doc.detach()
-      if (isSupportedScheme(doc.schema)) {
-        this._onDidCloseDocument.fire(doc.textDocument)
-      }
+      this._onDidCloseDocument.fire(doc.textDocument)
     }
     logger.debug('buffer unload', bufnr)
   }
@@ -738,7 +734,7 @@ export class Workspace implements IWorkspace {
     if (!doc) return
     await doc.checkDocument()
     if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
-    if (doc && isSupportedScheme(doc.schema)) {
+    if (doc) {
       let event: TextDocumentWillSaveEvent = {
         document: doc.textDocument,
         reason: TextDocumentSaveReason.Manual
@@ -762,10 +758,9 @@ export class Workspace implements IWorkspace {
   private onFileTypeChange(filetype: string, bufnr: number): void {
     let doc = this.getDocument(bufnr)
     if (!doc) return
-    let supported = isSupportedScheme(doc.schema)
-    if (supported) this._onDidCloseDocument.fire(doc.textDocument)
+    this._onDidCloseDocument.fire(doc.textDocument)
     doc.setFiletype(filetype)
-    if (supported) this._onDidAddDocument.fire(doc.textDocument)
+    this._onDidAddDocument.fire(doc.textDocument)
   }
 
   private async _checkBuffer(): Promise<void> {

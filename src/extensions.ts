@@ -7,7 +7,10 @@ import { Extension, ExtensionContext } from './types'
 import { disposeAll, wait } from './util'
 import { statAsync, readFile } from './util/fs'
 import { createExtension } from './util/factory'
+import events from './events'
 import workspace from './workspace'
+import glob from 'glob'
+import Uri from 'vscode-uri'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -43,7 +46,9 @@ export class Extensions {
   public isEmpty = false
 
   private _onDidLoadExtension = new Emitter<Extension<API>>()
+  private _onDidActiveExtension = new Emitter<Extension<API>>()
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
+  public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
 
   public init(): void {
     let { root } = this
@@ -101,20 +106,94 @@ export class Extensions {
         workspace.showMessage(`${packageJSON.name} requires ${engines.coc}, current version ${this.version}`, 'error')
         return
       }
-      let id = this.createExtension(folder, packageJSON)
-      // always activate
-      await this.activate(id)
+      this.createExtension(folder, Object.freeze(packageJSON))
     } else {
       workspace.showMessage(`engine coc not found in package.json of ${folder}`, 'warning')
     }
   }
 
-  public async activate(id): Promise<boolean> {
+  private setupActiveEvents(id: string, packageJSON: any): void {
+    let { activationEvents } = packageJSON
+    if (!activationEvents || activationEvents.indexOf('*') !== -1 || !Array.isArray(activationEvents)) {
+      this.activate(id)
+      return
+    }
+    let active = () => {
+      disposeAll(disposables)
+      this.activate(id)
+    }
+    let disposables: Disposable[] = []
+    for (let eventName of activationEvents as string[]) {
+      let parts = eventName.split(':')
+      let ev = parts[0]
+      if (ev == 'onLanguage') {
+        if (workspace.filetypes.has(parts[1])) {
+          active()
+          return
+        }
+        events.on('FileType', filetype => {
+          if (filetype === parts[1]) active()
+        }, null, disposables)
+      } else if (ev == 'onCommand') {
+        events.on('Command', command => {
+          if (command == parts[1]) {
+            active()
+            // wait for service ready
+            return new Promise(resolve => {
+              setTimeout(resolve, 500)
+            })
+          }
+        }, null, disposables)
+      } else if (ev == 'workspaceContains') {
+        let check = () => {
+          glob(parts[1], { cwd: workspace.cwd }, (err, files) => {
+            if (err) {
+              workspace.showMessage(`glob error: ${err.message}`, 'error')
+              return
+            }
+            if (files && files.length) {
+              disposeAll(disposables)
+              this.activate(id)
+            }
+          })
+        }
+        check()
+        events.on('DirChanged', check, this, disposables)
+      } else if (ev == 'onFileSystem') {
+        for (let doc of workspace.documents) {
+          let u = Uri.parse(doc.uri)
+          if (u.scheme == parts[1]) {
+            return active()
+          }
+        }
+        workspace.onDidOpenTextDocument(document => {
+          let u = Uri.parse(document.uri)
+          if (u.scheme == parts[1]) {
+            disposeAll(disposables)
+            this.activate(id)
+          }
+        }, null, disposables)
+      } else {
+        workspace.showMessage(`Unsupported event ${eventName} of ${id}`, 'error')
+      }
+    }
+  }
+
+  public activate(id): void {
     let item = this.list.find(o => o.id == id)
-    if (!item) return false
+    if (!item) {
+      workspace.showMessage(`Extension ${id} not found!`, 'error')
+      return
+    }
     let { extension } = item
-    await extension.activate()
-    return extension.isActive
+    if (extension.isActive) return
+    extension.activate().then(() => {
+      if (extension.isActive) {
+        this._onDidActiveExtension.fire(extension)
+      }
+    }, e => {
+      logger.error(`Error on active extension ${id}: `, e.message)
+    })
   }
 
   public deactivate(id): boolean {
@@ -229,6 +308,7 @@ export class Extensions {
       }
     })
     this._onDidLoadExtension.fire(extension)
+    this.setupActiveEvents(id, packageJSON)
     return id
   }
 }

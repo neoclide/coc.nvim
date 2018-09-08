@@ -402,7 +402,7 @@ export default class Document {
 
   private async gitCheck(): Promise<void> {
     let { uri } = this
-    if (!uri.startsWith('file://')) return
+    if (!uri.startsWith('file')) return
     let filepath = Uri.parse(uri).fsPath
     this.isIgnored = await isGitIgnored(filepath)
   }

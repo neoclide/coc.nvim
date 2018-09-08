@@ -41,7 +41,7 @@ const REMOVED_GLOBALS = [
 
 function removedGlobalStub(name: string): Function {
   return () => {
-    throw new Error(`process.${name}() is not allowed in Plugin sandbox`)
+    throw new Error(`process.${name}() is not allowed in extension sandbox`)
   }
 }
 
@@ -105,7 +105,7 @@ function createSandbox(filename: string): ISandbox {
 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
-  sandbox.process = omit(process, REMOVED_GLOBALS) as NodeJS.Process
+  // sandbox.process = omit(process, REMOVED_GLOBALS) as NodeJS.Process
 
   REMOVED_GLOBALS.forEach(name => {
     sandbox.process[name] = removedGlobalStub(name)
@@ -120,10 +120,6 @@ function createSandbox(filename: string): ISandbox {
     }
     return process.umask()
   }
-
-  sandbox.process.stdin = devNull
-  sandbox.process.stdout = devNull
-  sandbox.process.stderr = devNull
 
   return sandbox
 }
