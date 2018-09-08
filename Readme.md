@@ -312,7 +312,7 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 
 ## LICENSE
 
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large) [![Greenkeeper badge](https://badges.greenkeeper.io/neoclide/coc.nvim.svg)](https://greenkeeper.io/)
 
 [Build Status Badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [Build Status]: https://travis-ci.org/neoclide/coc.nvim
