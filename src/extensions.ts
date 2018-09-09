@@ -12,6 +12,7 @@ import workspace from './workspace'
 import glob from 'glob'
 import Uri from 'vscode-uri'
 import JsonDB from 'node-json-db'
+import { Neovim } from '@chemzqm/neovim'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -33,18 +34,11 @@ function loadJson(file: string): any {
   }
 }
 
-function extensionRoot(): string {
-  if (process.platform === 'win32') {
-    return path.join(os.homedir(), 'AppData/Local/coc/extensions')
-  }
-  return path.join(os.homedir(), '.config/coc/extensions')
-}
-
 export class Extensions {
   private disposables: Disposable[] = []
   private list: ExtensionItem[] = []
   private version: string
-  private root = extensionRoot()
+  private root: string
   public isEmpty = false
 
   private _onDidLoadExtension = new Emitter<Extension<API>>()
@@ -52,8 +46,8 @@ export class Extensions {
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
 
-  public init(): void {
-    let { root } = this
+  public async init(nvim: Neovim): Promise<void> {
+    let root = this.root = await nvim.call('coc#util#extension_root')
     let db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let jsonFile = path.join(root, 'package.json')
     let json = loadJson(jsonFile)
@@ -108,7 +102,7 @@ export class Extensions {
     }
   }
 
-  public hasExtension(id: string): boolean {
+  public has(id: string): boolean {
     return this.list.find(o => o.id == id) != null
   }
 

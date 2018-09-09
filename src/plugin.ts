@@ -36,32 +36,21 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     await workspace.init()
     this.handler = new Handler(nvim)
-    extensions.init()
+    await extensions.init(nvim)
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emit('ready')
-    await this.checkEmpty()
-  }
-
-  private async checkEmpty(): Promise<void> {
     if (process.env.NODE_ENV === 'test') return
     workspace.onDidOpenTextDocument(async doc => {
-      if (!extensions.hasExtension('coc-json')) {
-        let file = Uri.parse(doc.uri).fsPath
-        if (path.basename(file) == 'coc-settings.json') {
-          workspace.showMessage('Installing coc-json for json Intellisense')
-          await this.nvim.command('CocInstall coc-json')
-        }
+      if (doc.languageId != 'json' || extensions.has('coc-json')) {
+        return
+      }
+      let file = Uri.parse(doc.uri).fsPath
+      if (path.basename(file) == 'coc-settings.json') {
+        workspace.showMessage('Installing coc-json for json Intellisense')
+        await this.nvim.command('CocInstall coc-json')
       }
     })
-    if (!extensions.isEmpty) return
-    let preferences = workspace.getConfiguration('coc.preferences')
-    if (!preferences.get<boolean>('checkEmpty')) return
-    await this.nvim.call('coc#util#open_url', 'https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
-    let idx = await workspace.showQuickpick(['Disable this promption'], 'No coc extension found')
-    if (idx == 0) {
-      preferences.update('checkEmpty', false)
-    }
   }
 
   public async cocAction(args: any): Promise<any> {

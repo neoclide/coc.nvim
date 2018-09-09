@@ -53,7 +53,6 @@ function! coc#util#job_command()
     endif
   endif
   echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
-  " TODO run download
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
@@ -614,6 +613,11 @@ function! s:coc_installed(status)
   else
     call coc#rpc#restart()
   endif
+  let dir = coc#util#extension_root()
+  if !isdirectory(dir)
+    echohl WarningMsg | echon 'No extensions found' | echohl None
+    call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
+  endif
 endfunction
 
 function! s:rpc_installed(status)
@@ -637,9 +641,6 @@ function! coc#util#extension_root()
   else
     let dir = $HOME.'/.config/coc/extensions'
   endif
-  if !isdirectory(dir)
-    call mkdir(dir, 'p')
-  endif
   return dir
 endfunction
 
@@ -658,6 +659,9 @@ function! coc#util#install_extension(names)
     return
   endif
   let dir = coc#util#extension_root()
+  if !isdirectory(dir)
+    call mkdir(dir, 'p')
+  endif
   let l:Cb = {status -> s:extension_installed(status, a:names)}
   call coc#util#open_terminal({
         \ 'cwd': dir,
@@ -682,6 +686,7 @@ function! coc#util#update()
     return
   endif
   let dir = coc#util#extension_root()
+  if !isdirectory(dir) | return | endif
   let l:Cb = {status -> s:extension_updated(status)}
   call coc#util#open_terminal({
         \ 'cwd': dir,
