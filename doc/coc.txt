@@ -554,6 +554,25 @@ Available Actions ~
 	Open link under cursor with {command}.
 	{command} default to `edit`.
 	File and url links are supported.
+	
+"extensionStats" 				*coc-action-extensionStats*
+
+	Get all extension states as list. Including `id`, `root` and `state`
+
+	State could be `disabled` `activited` and `loaded`
+
+"toggleExtension" {id} 				*coc-action-toggleExtension*
+
+	Enable/disable a extension.
+
+"reloadExtension" {id} 				*coc-action-reloadExtension*
+
+	Reload activited extension.
+
+"deactivateExtension" {id} 			*coc-action-deactivateExtension*
+
+	Deactivated extension of {id}.
+
 
 ------------------------------------------------------------------------------
 

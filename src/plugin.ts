@@ -154,6 +154,14 @@ export default class Plugin extends EventEmitter {
           return handler.doCodeLensAction()
         case 'runCommand':
           return await handler.runCommand(...args.slice(1))
+        case 'extensionStats':
+          return extensions.getExtensionStates()
+        case 'reloadExtension':
+          return await extensions.reloadExtension(args[1])
+        case 'toggleExtension':
+          return await extensions.toggleExtension(args[1])
+        case 'deactivateExtension':
+          return extensions.deactivate(args[1])
         default:
           logger.error(`unknown action ${args[0]}`)
       }

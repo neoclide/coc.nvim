@@ -7,7 +7,7 @@ import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
-import { Extension, ExtensionContext } from './types'
+import { Extension, ExtensionInfo, ExtensionState, ExtensionContext } from './types'
 import { disposeAll, wait } from './util'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
@@ -38,6 +38,7 @@ export class Extensions {
   private list: ExtensionItem[] = []
   private version: string
   private root: string
+  private db: JsonDB
   public isEmpty = false
 
   private _onDidLoadExtension = new Emitter<Extension<API>>()
@@ -47,19 +48,14 @@ export class Extensions {
 
   public async init(nvim: Neovim): Promise<void> {
     let root = this.root = await nvim.call('coc#util#extension_root')
-    let db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
-    let jsonFile = path.join(root, 'package.json')
-    let json = loadJson(jsonFile)
-    if (!json || !json.dependencies) {
-      this.isEmpty = true
-      return
-    }
+    let db = this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
     this.version = version
-    let paths = Object.keys(json.dependencies).map(name => {
-      return path.join(root, 'node_modules', name)
-    })
+
+    let paths = this.getExtensionFolders()
     Promise.all(paths.map(folder => {
+      let id = path.dirname(folder)
+      if (this.isDisabled(id)) return
       return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
@@ -89,6 +85,65 @@ export class Extensions {
         }
       }, null, this.disposables)
     }
+  }
+
+  public getExtensionState(id: string): ExtensionState {
+    let disabled = this.isDisabled(id)
+    if (disabled) {
+      return 'disabled'
+    }
+    let item = this.list.find(o => o.id == id)
+    if (!item) {
+      workspace.showMessage(`Extension ${id} not found!`)
+      return null
+    }
+    let { extension } = item
+    return extension.isActive ? 'activited' : 'loaded'
+  }
+
+  public getExtensionStates(): ExtensionInfo[] {
+    let folders = this.getExtensionFolders()
+    return folders.map(folder => {
+      let id = path.basename(folder)
+      return {
+        id,
+        root: folder,
+        state: this.getExtensionState(id)
+      }
+    })
+  }
+
+  public async toggleExtension(id: string): Promise<void> {
+    let state = this.getExtensionState(id)
+    if (state == null) return
+    if (state == 'activited') {
+      this.deactivate(id)
+    }
+    if (state != 'disabled') {
+      // unload
+      let idx = this.list.findIndex(o => o.id == id)
+      this.list.splice(idx, 1)
+    }
+    let { db } = this
+    let key = `/extension/${id}/disabled`
+    db.push(key, state == 'disabled' ? false : true)
+    if (state == 'disabled') {
+      let folder = path.join(this.root, 'node_modules', id)
+      this.loadExtension(folder)
+    }
+    await wait(200)
+  }
+
+  public async reloadExtension(id: string): Promise<void> {
+    this.deactivate(id)
+    await wait(200)
+    this.activate(id)
+  }
+
+  private isDisabled(id: string): boolean {
+    let { db } = this
+    let key = `/extension/${id}/disabled`
+    return (db as any).exists(key) && db.getData(key) == true
   }
 
   public async onExtensionInstall(id): Promise<void> {
@@ -209,6 +264,10 @@ export class Extensions {
   }
 
   public activate(id): void {
+    if (this.isDisabled(id)) {
+      workspace.showMessage(`Extension ${id} is disabled!`, 'error')
+      return
+    }
     let item = this.list.find(o => o.id == id)
     if (!item) {
       workspace.showMessage(`Extension ${id} not found!`, 'error')
@@ -342,6 +401,18 @@ export class Extensions {
     this._onDidLoadExtension.fire(extension)
     this.setupActiveEvents(id, packageJSON)
     return id
+  }
+
+  private getExtensionFolders(): string[] {
+    let { root } = this
+    let jsonFile = path.join(root, 'package.json')
+    let json = loadJson(jsonFile)
+    if (!json || !json.dependencies) {
+      return []
+    }
+    return Object.keys(json.dependencies).map(name => {
+      return path.join(root, 'node_modules', name)
+    })
   }
 }
 
