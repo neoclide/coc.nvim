@@ -59,8 +59,6 @@ to your `init.vim` and run: >
 
   :PlugInstall
 
-then restart neovim.
-
 For other plugin manager, run `:coc#util#install()` after plugin is loaded,
 this command would download latest coc binary from github release page.
 
@@ -72,7 +70,7 @@ configuration.
 
 Use command |:CocConfig| to open user configuration file, or create
 `.vim/coc-settings.json` for workspace configuration.  Autocompletion would be
-enabled after json-Language-server installed.
+enabled after `coc-json` extension installed.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for detail.
@@ -80,8 +78,8 @@ for detail.
 ==============================================================================
 COMPLETION					*coc-completion*
 
-The completion of coc is triggered automatically, you can change some of
-completion behavior be using configuration file.
+The completion of coc is triggered automatically by default, you can change
+some of completion behavior be using configuration file.
 
 To disable automatic trigger, use: >
 
@@ -90,7 +88,6 @@ To disable automatic trigger, use: >
 To disable trigger after insert enter, use: >
 
 	"coc.preferences.triggerAfterInsertEnter": true,
-<
 
 To change the timeout of completion, use: >
 
@@ -110,8 +107,8 @@ Use `<cr>` for confirm completion, use: >
 
 	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 <
-Note: snippet and `additionalTextEdit` feature requires confirm completion
-to work.
+Note: snippet and `additionalTextEdit` only work after completion is
+confirmed.
 
 Use <C-x><C-u> to complete custom sources, including `word`, `emoji` and
 `include` >
@@ -129,102 +126,12 @@ for more tips.
 ==============================================================================
 LANGUAGESERVER					*coc-languageserver*
 
-Coc have support for most language server features, checkout
+Coc have support for almost every language server features except
+workspaceFolder related and telementry , checkout
 
 https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features
 
 for a complete list.
-
-==============================================================================
-
-Build in extensions:
-
-------------------------------------------------------------------------------
-tsserver
-
-Full features support as VSCode's typescript extension, support javascript and
-typescript.
-
-Install global typescript module to make this extension works for all of your
-javascript/typescript files. >
-
-	yarn global add typescript
->
-------------------------------------------------------------------------------
-html
-
-Install global language server by: >
-
-	yarn global add vscode-html-languageserver-bin
->
-
-checkout: https://www.npmjs.com/package/vscode-html-languageserver-bin for
-available features.
-
-------------------------------------------------------------------------------
-css
-
-Install global language server by: >
-
-	yarn global add css-langserver
->
-
-checkout: https://www.npmjs.com/package/vscode-css-languageservice for
-available features.
-
-------------------------------------------------------------------------------
-json
-
-Install global language server by: >
-
-	yarn global add vscode-json-languageserver
-
-checkout: https://www.npmjs.org/package/vscode-json-languageserver for
-available features.
-
-------------------------------------------------------------------------------
-wxml
-
-Install global language server by: >
-
-	yarn global add wxml-langserver
-
-checkout: https://www.npmjs.org/package/wxml-langserver for
-available features.
-
-------------------------------------------------------------------------------
-vetur
-
-Used for vue files.
-
-Install global language server by: >
-
-	yarn global add vue-language-server
-
-checkout: https://www.npmjs.org/package/vue-language-server for
-available features.
-
-------------------------------------------------------------------------------
-solargraph
-
-Used for ruby files.
-
-Install global language server by: >
-
-	gem install solargraph
-
-checkout: https://github.com/castwide/solargraph for available features.
-
-------------------------------------------------------------------------------
-pyls
-
-Used for python files.
-
-Install global language server by: >
-
-	pip install 'python-language-server[all]'
-
-checkout: https://github.com/palantir/python-language-server for available features.
 
 ==============================================================================
 INTERFACE					*coc-interface*
@@ -573,7 +480,6 @@ Available Actions ~
 
 	Deactivated extension of {id}.
 
-
 ------------------------------------------------------------------------------
 
 						*coc#refresh()*
@@ -612,12 +518,11 @@ COMMANDS 					*coc-commands*
 
 		Restart coc service.
 
-		Use this command when you want to change workspace or
-		something goes wrong.
+		Use this command when you find something goes wrong.
 
 :CocConfig 					*:CocConfig*
 
-		Open config file `coc-setting.json`
+		Edit config file `coc-setting.json`
 
 :CocErrors 					*:CocErrors*
 
@@ -628,7 +533,7 @@ COMMANDS 					*coc-commands*
 
 :CocInstall {names} 				*:CocInstall*
 
-		Install one of more coc extensions.
+		Install one or more coc extensions.
 
 		Checkout
 		https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions
@@ -658,6 +563,15 @@ AUTOCMD 					*coc-autocmds*
 >
  		autocmd QuickFixCmdPost * botright copen 8
 <
+						*CocNvimInit*
+:autocmd User CocNvimInit {command}
+
+		Triggered after coc services started.
+
+		If you want trigger action of coc after vim started, this
+		autocmd should be used because coc started in async.
+
+
 
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
@@ -666,7 +580,7 @@ Coc make use of list interface provided by |denite.nvim| for better filter & sor
 experience and advanced actions.
 
 ------------------------------------------------------------------------------
-						*coc-denite-sources*
+						*coc-denite-source*
 :Denite coc-source
 
 	Show all sources of coc completion.
