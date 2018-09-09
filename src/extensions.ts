@@ -1,18 +1,17 @@
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
+import glob from 'glob'
+import JsonDB from 'node-json-db'
 import path from 'path'
-import os from 'os'
 import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import events from './events'
 import { Extension, ExtensionContext } from './types'
 import { disposeAll, wait } from './util'
-import { statAsync, readFile } from './util/fs'
 import { createExtension } from './util/factory'
-import events from './events'
+import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
-import glob from 'glob'
-import Uri from 'vscode-uri'
-import JsonDB from 'node-json-db'
-import { Neovim } from '@chemzqm/neovim'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -67,27 +66,29 @@ export class Extensions {
     })) // tslint:disable-line
     let now = new Date()
     let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    this.onDidActiveExtension(async extension => {
-      let { id, packageJSON } = extension
-      let key = `/extension/${id}/ts`
-      let ts = (db as any).exists(key) ? db.getData(key) : null
-      if (!ts || Number(ts) < today.getTime()) {
-        db.push(key, Date.now())
-        try {
-          let res = await workspace.runCommand(`yarn info ${id} version --json`)
-          let version = JSON.parse(res).data
-          if (semver.gt(version, packageJSON.version)) {
-            let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
-            if (res) {
-              await workspace.nvim.command(`CocInstall ${id}`)
+    if (process.env.NODE_ENV != 'test') {
+      this.onDidActiveExtension(async extension => {
+        let { id, packageJSON } = extension
+        let key = `/extension/${id}/ts`
+        let ts = (db as any).exists(key) ? db.getData(key) : null
+        if (!ts || Number(ts) < today.getTime()) {
+          db.push(key, Date.now())
+          try {
+            let res = await workspace.runCommand(`yarn info ${id} version --json`)
+            let version = JSON.parse(res).data
+            if (semver.gt(version, packageJSON.version)) {
+              let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
+              if (res) {
+                await workspace.nvim.command(`CocInstall ${id}`)
+              }
             }
+          } catch (e) {
+            logger.error(e.stack)
+            // noop
           }
-        } catch (e) {
-          logger.error(e.stack)
-          // noop
         }
-      }
-    }, null, this.disposables)
+      }, null, this.disposables)
+    }
   }
 
   public async onExtensionInstall(id): Promise<void> {
@@ -283,8 +284,8 @@ export class Extensions {
       workspace.showMessage(`js entry not found for ${root}`, 'error')
       return
     }
-    let active = createExtension(filename)
-    if (!active) return
+    let ext = createExtension(id, filename)
+    if (!ext) return
     let subscriptions: Disposable[] = []
     let context: ExtensionContext = {
       subscriptions,
@@ -300,7 +301,7 @@ export class Extensions {
         if (isActive) return
         isActive = true
         try {
-          exports = await Promise.resolve(active(context))
+          exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
           isActive = false
           workspace.showMessage(`Error on active extension ${id}: `, e.message)
@@ -308,34 +309,32 @@ export class Extensions {
         return exports as API
       }
     }
-    Object.defineProperty(extension, 'id', {
-      get: () => {
-        return id
+    Object.defineProperties(extension, {
+      id: {
+        get: () => id
+      },
+      packageJSON: {
+        get: () => packageJSON
+      },
+      extensionPath: {
+        get: () => root
+      },
+      isActive: {
+        get: () => isActive
+      },
+      exports: {
+        get: () => exports
       }
     })
-    Object.defineProperty(extension, 'packageJSON', {
-      get: () => {
-        return packageJSON
-      }
-    })
-    Object.defineProperty(extension, 'extensionPath', {
-      get: () => {
-        return root
-      }
-    })
-    Object.defineProperty(extension, 'isActive', {
-      get: () => {
-        return isActive
-      }
-    })
-    Object.defineProperty(extension, 'exports', {
-      get: () => {
-        return exports
-      }
-    })
+
     this.list.push({
       id, extension, deactivate: () => {
         isActive = false
+        if (ext.deactivate) {
+          Promise.resolve(ext.deactivate()).catch(e => {
+            logger.error(`Error on ${id} deactivate: `, e.message)
+          })
+        }
         context.subscriptions = []
         disposeAll(subscriptions)
       }

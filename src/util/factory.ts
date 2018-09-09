@@ -1,12 +1,15 @@
 import * as path from 'path'
 import * as vm from 'vm'
 import { omit, defaults } from './lodash'
-import { DevNull } from './devnull'
 import workspace from '../workspace'
-import { ExtensionContext } from '../types'
-const logger = require('./logger')('util-factoroy')
+import { ExtensionContext, Thenable } from '../types'
+import { Logger } from 'log4js'
+const createLogger = require('./logger')
 
-export type Active = (context: ExtensionContext) => any
+export interface ExtensionExport {
+  activate: (context: ExtensionContext) => any
+  deactivate: () => any | null
+}
 
 export interface IModule {
   new(name: string): any
@@ -34,6 +37,7 @@ const REMOVED_GLOBALS = [
   '_kill',
   'EventEmitter',
   '_maxListeners',
+  '_fatalException',
   'exit',
   'kill',
 ]
@@ -83,13 +87,20 @@ export interface ISandbox {
   console: { [key in keyof Console]?: Function }
 }
 
-function createSandbox(filename: string): ISandbox {
+function createSandbox(filename: string, logger: Logger): ISandbox {
   const module = new Module(filename)
   module.paths = Module._nodeModulePaths(filename)
 
   const sandbox = vm.createContext({
     module,
-    console
+    console: {
+      log: (...args: any[]) => {
+        logger.log.apply(logger, args)
+      },
+      error: (...args: any[]) => {
+        logger.error.apply(logger, args)
+      }
+    }
   }) as ISandbox
 
   defaults(sandbox, global)
@@ -104,13 +115,11 @@ function createSandbox(filename: string): ISandbox {
 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
-  // sandbox.process = omit(process, REMOVED_GLOBALS) as NodeJS.Process
+  sandbox.process = omit<NodeJS.Process>(process, REMOVED_GLOBALS)
 
   REMOVED_GLOBALS.forEach(name => {
     sandbox.process[name] = removedGlobalStub(name)
   })
-
-  const devNull = new DevNull()
 
   // read-only umask
   sandbox.process.umask = (mask: number) => {
@@ -124,22 +133,27 @@ function createSandbox(filename: string): ISandbox {
 }
 
 // inspiration drawn from Module
-export function createExtension(filename: string): Active {
+export function createExtension(id: string, filename: string): ExtensionExport {
+  const logger = createLogger('util-factoroy')
   try {
-    const sandbox = createSandbox(filename)
+    const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 
     delete Module._cache[require.resolve(filename)]
 
     // attempt to import plugin
-    // Require plugin to export a class
+    // Require plugin to export activate & deactivate
     const defaultImport = sandbox.require(filename)
-    const active = (defaultImport && defaultImport.activate) || defaultImport
+    const activate = (defaultImport && defaultImport.activate) || defaultImport
 
-    if (typeof active !== 'function') {
+    if (typeof activate !== 'function') {
       workspace.showMessage(`activate method not found in ${filename}`, 'error')
       return
     }
-    return active
+
+    return {
+      activate,
+      deactivate: typeof defaultImport.deactivate === 'function' ? defaultImport.deactivate : null
+    }
   } catch (err) {
     logger.error(`Error loading child ChildPlugin ${filename}`)
     logger.error(err.stack)
