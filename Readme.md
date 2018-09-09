@@ -6,8 +6,8 @@
 
 Coc is an intellisense engine for vim8 & neovim.
 
-It's a completion framework, language server client with support of extensions featured as
-[VSCode](https://github.com/Microsoft/vscode) has.
+It's a completion framework, language server client which
+[support extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ![example.gif](https://user-images.githubusercontent.com/251450/42722527-028898ea-8780-11e8-959f-09db0d39ba05.gif)
 
@@ -19,8 +19,8 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 * 🚀 **Fast**: instant increment completion, increment buffer sync using buffer update events.
 * 💎 **Reliable**: typed language, tested with CI.
-* 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (exclude workspace Folder)
-* ❤️  **Flexible**: [Configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [custom language server configuration](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
+* 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (except workspace Folder and telemetry)
+* ❤️  **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
 ## Table of contents
 
