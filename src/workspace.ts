@@ -88,21 +88,28 @@ export class Workspace implements IWorkspace {
 
   public async init(): Promise<void> {
     let extensions = require('./extensions').default
+    let jsonSchemas = []
     extensions.onDidLoadExtension(extension => {
       let { packageJSON } = extension
       let { contributes } = packageJSON
-      if (!contributes || !contributes.configuration) {
-        return
-      }
-      let { properties } = contributes.configuration
-      if (!properties) return
-      let props = this._settingsScheme.properties
-      for (let key of Object.keys(properties)) {
-        props[key] = properties[key]
-        let val = properties[key].default
-        if (val !== undefined) {
-          this._configurations.updateDefaults(key, val)
+      if (!contributes) return
+      let { jsonValidation, configuration } = contributes
+      if (configuration) {
+        let { properties } = configuration
+        if (properties) {
+          let props = this._settingsScheme.properties
+          for (let key of Object.keys(properties)) {
+            props[key] = properties[key]
+            let val = properties[key].default
+            if (val !== undefined) {
+              this._configurations.updateDefaults(key, val)
+            }
+          }
         }
+      }
+      if (jsonValidation && jsonValidation.length) {
+        jsonSchemas.push(...jsonValidation)
+        this._configurations.updateDefaults('json.schemas', jsonSchemas)
       }
     }, null, this.disposables)
 
