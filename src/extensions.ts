@@ -129,7 +129,9 @@ export class Extensions {
     db.push(key, state == 'disabled' ? false : true)
     if (state == 'disabled') {
       let folder = path.join(this.root, 'node_modules', id)
-      this.loadExtension(folder)
+      this.loadExtension(folder).catch(_e => {
+        // noop
+      })
     }
     await wait(200)
   }

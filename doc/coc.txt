@@ -19,6 +19,7 @@ Interface		|coc-interface|
   Commands		  |coc-commands|
   Autocmds 		  |coc-autocmds|
 Denite support 		|coc-denite|
+  Denite extension  	|coc-denite-extension|
   Denite source  	|coc-denite-source|
   Denite diagnostic     |coc-denite-diagnostic|
   Denite symbols        |coc-denite-symbols|
@@ -578,6 +579,23 @@ DENITE SUPPORT 					*coc-denite*
 
 Coc make use of list interface provided by |denite.nvim| for better filter & sort
 experience and advanced actions.
+
+------------------------------------------------------------------------------
+						*coc-denite-extension*
+:Denite coc-extension
+
+	Manage extensions using denite interface.
+
+	Actions:
+
+	'toggle': enable/disable selected extensions, it's persisted.
+
+	'activate': activate selected extension(s).
+
+	'deactivate': deactivate selected extension(s).
+
+	'reload': reload selected extension(s).
+
 
 ------------------------------------------------------------------------------
 						*coc-denite-source*
