@@ -240,6 +240,14 @@
       "description": "Not make vim select first item on completion start",
       "default": true
     },
+    "coc.preferences.formatOnSaveFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should run format on save.",
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.preferences.watchmanPath": {
       "type": "string",
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",

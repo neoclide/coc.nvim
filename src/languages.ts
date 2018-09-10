@@ -82,6 +82,22 @@ class Languages {
   private codeLensManager = new CodeLensManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
 
+  constructor() {
+    workspace.onWillSaveUntil(event => {
+      let config = workspace.getConfiguration('coc.preferences')
+      let filetypes = config.get<string[]>('formatOnSaveFiletypes')
+      let { languageId } = event.document
+      if (filetypes && filetypes.indexOf(languageId) !== -1) {
+        let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
+          let options = await workspace.getFormatOptions(event.document.uri)
+          let textEdits = await this.provideDocumentFormattingEdits(event.document, options)
+          return textEdits
+        }
+        event.waitUntil(willSaveWaitUntil())
+      }
+    }, null, 'languageserver')
+  }
+
   private get nvim(): Neovim {
     return workspace.nvim
   }

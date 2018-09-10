@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { IWorkspace, TextDocumentWillSaveEvent } from '../types'
-import { echoErr, wait } from '../util'
+import { wait } from '../util'
 const logger = require('../util/logger')('willSaveHandler')
 
 export type Callback = (event: TextDocumentWillSaveEvent) => void
@@ -18,8 +18,8 @@ export default class WillSaveUntilHandler {
   }
 
   public addCallback(callback: Callback, thisArg: any, clientId: string): Disposable {
-    let { nvim } = this
     let fn = (event: TextDocumentWillSaveEvent): Promise<void> => {
+      let { nvim, workspace } = this
       let ev: TextDocumentWillSaveEvent = Object.assign({}, event)
       return new Promise(resolve => {
         let called = false
@@ -27,18 +27,19 @@ export default class WillSaveUntilHandler {
           called = true
           let { document } = ev
           let timer = setTimeout(() => {
-            echoErr(nvim, `${clientId} will save operation timeout after 0.5s`)
+            workspace.showMessage(`${clientId} will save operation timeout after 0.5s`, 'error')
             resolve(null)
           }, 500)
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
             clearTimeout(timer)
-            let doc = this.workspace.getDocument(document.uri)
+            let doc = workspace.getDocument(document.uri)
             if (doc && edits && TextEdit.is(edits[0])) {
               doc.applyEdits(nvim, edits).then(() => {
                 // make sure server received ChangedText
                 setTimeout(resolve, 50)
               }, e => {
-                echoErr(nvim, `${clientId} error on applyEdits ${e.message}`)
+                logger.error(e)
+                workspace.showMessage(`${clientId} error on applyEdits ${e.message}`, 'error')
                 resolve()
               })
             } else {
@@ -46,7 +47,7 @@ export default class WillSaveUntilHandler {
             }
           }, e => {
             clearTimeout(timer)
-            echoErr(nvim, `${clientId} error on willSaveUntil ${e.message}`)
+            workspace.showMessage(`${clientId} error on willSaveUntil ${e.message}`, 'error')
             resolve()
           })
         }
