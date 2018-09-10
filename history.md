@@ -1,3 +1,12 @@
+# 2018-09-10
+
+* Add `Denite coc-extension` for manage extensions.
+* Add actions for manage extension including `toggleExtension` `reloadExtension`
+  `deactivateExtension`
+* Add check for extension update everyday.
+* Fix extensions using same process of coc itself.
+* Fix `configurationSection` should be null if none was specified.
+
 # 2018-09-07
 
 * **Break change**: all extension all seperated from core, checkout
