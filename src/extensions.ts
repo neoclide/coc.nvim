@@ -188,7 +188,8 @@ export class Extensions {
     }
     let { engines } = packageJSON
     if (engines && engines.hasOwnProperty('coc')) {
-      if (!semver.satisfies(this.version, engines.coc)) {
+      let required = engines.coc.replace(/^\^/, '>=')
+      if (!semver.satisfies(this.version, required)) {
         workspace.showMessage(`${packageJSON.name} requires ${engines.coc}, current version ${this.version}`, 'error')
         return
       }
