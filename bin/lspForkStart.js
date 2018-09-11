@@ -34,7 +34,7 @@ log('STDOUT_PIPE_NAME: ' + stdOutPipeName);
     });
     var fsWriteSyncString = function (fd, str, _position, encoding) {
         //  fs.writeSync(fd, string[, position[, encoding]]);
-        var buf = new Buffer(str, encoding || 'utf8');
+        var buf = Buffer.from(str, encoding || 'utf8');
         return fsWriteSyncBuffer(fd, buf, 0, buf.length);
     };
     var fsWriteSyncBuffer = function (_fd, buffer, off, len) {
