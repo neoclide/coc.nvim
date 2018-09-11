@@ -87,6 +87,10 @@ export class Extensions {
     }
   }
 
+  public get all():Extension<API>[] {
+    return this.list.map(o => o.extension)
+  }
+
   public getExtensionState(id: string): ExtensionState {
     let disabled = this.isDisabled(id)
     if (disabled) {
@@ -366,6 +370,7 @@ export class Extensions {
           exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
           isActive = false
+          logger.error(e)
           workspace.showMessage(`Error on active extension ${id}: `, e.message)
         }
         return exports as API
