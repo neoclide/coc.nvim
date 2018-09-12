@@ -284,13 +284,13 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
-    if (!this.validteDocumentChanges(documentChanges)) return false
+    if (!this.validteDocumentChanges(documentChanges as TextDocumentEdit[])) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
       let n = 0
       for (let change of documentChanges) {
-        let { textDocument, edits } = change
+        let { textDocument, edits } = change as TextDocumentEdit
         let doc = this.getDocument(textDocument.uri)
         await doc.applyEdits(nvim, edits)
       }
