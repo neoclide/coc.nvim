@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFileOptions, RenameFileOptions, DeleteFileOptions } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { LanguageClient } from './language-client'
@@ -646,7 +646,9 @@ export interface IWorkspace {
   echoLines(lines: string[]): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
-  createFile(filepath: string, opts: { ignoreIfExists?: boolean }): Promise<void>
+  createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
+  renameFile(oldPath: string, newPath: string, opts?:RenameFileOptions):Promise<void>
+  deleteFile(filepath: string, opts?:DeleteFileOptions):Promise<void>
   openResource(uri: string): Promise<void>
   createOutputChannel(name: string): OutputChannel
   showOutputChannel(name: string): void

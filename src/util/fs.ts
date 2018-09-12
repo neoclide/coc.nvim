@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import pify from 'pify'
 import readline from 'readline'
+import mkdirp from 'mkdirp'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -15,6 +16,24 @@ export async function statAsync(filepath: string): Promise<fs.Stats | null> {
     stat = await pify(fs.stat)(filepath)
   } catch (e) { } // tslint:disable-line
   return stat
+}
+
+export function mkdirAsync(filepath: string):Promise<void> {
+  return new Promise((resolve, reject) => {
+    mkdirp(filepath, err => {
+      if (err) return reject(err)
+      resolve()
+    })
+  })
+}
+
+export function renameAsync(oldPath: string, newPath: string):Promise<void> {
+  return new Promise((resolve, reject) => {
+    fs.rename(oldPath, newPath, err => {
+      if (err) return reject(err)
+      resolve()
+    })
+  })
 }
 
 export async function isGitIgnored(fullpath: string): Promise<boolean> {

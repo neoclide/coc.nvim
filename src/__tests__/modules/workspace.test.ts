@@ -334,6 +334,59 @@ describe('workspace utility', () => {
     fs.unlinkSync(filepath)
   })
 
+  it('should create folder if not exists', async () => {
+    let filepath = path.join(__dirname, 'bar/')
+    await workspace.createFile(filepath)
+    expect(fs.existsSync(filepath)).toBe(true)
+    fs.rmdirSync(filepath)
+  })
+
+  it('should not throw on folder create if overwrite is true', async () => {
+    let filepath = path.join(__dirname, 'bar/')
+    await workspace.createFile(filepath)
+    await workspace.createFile(filepath, {overwrite: true})
+    expect(fs.existsSync(filepath)).toBe(true)
+    fs.rmdirSync(filepath)
+  })
+
+  it('should rename if file not exists', async () => {
+    let filepath = path.join(__dirname, 'foo')
+    let newPath = path.join(__dirname, 'bar')
+    await workspace.createFile(filepath)
+    await workspace.renameFile(filepath, newPath)
+    expect(fs.existsSync(newPath)).toBe(true)
+    expect(fs.existsSync(filepath)).toBe(false)
+    fs.unlinkSync(newPath)
+  })
+
+  it('should overwrite if file exists', async () => {
+    let filepath = path.join(__dirname, 'foo')
+    let newPath = path.join(__dirname, 'bar')
+    await workspace.createFile(filepath)
+    await workspace.createFile(newPath)
+    await workspace.renameFile(filepath, newPath, {overwrite: true})
+    expect(fs.existsSync(newPath)).toBe(true)
+    expect(fs.existsSync(filepath)).toBe(false)
+    fs.unlinkSync(newPath)
+  })
+
+  it('should delete file if exists', async () => {
+    let filepath = path.join(__dirname, 'foo')
+    await workspace.createFile(filepath)
+    expect(fs.existsSync(filepath)).toBe(true)
+    await workspace.deleteFile(filepath)
+    expect(fs.existsSync(filepath)).toBe(false)
+  })
+
+
+  it('should delete folder if exists', async () => {
+    let filepath = path.join(__dirname, 'foo/')
+    await workspace.createFile(filepath)
+    expect(fs.existsSync(filepath)).toBe(true)
+    await workspace.deleteFile(filepath, {recursive: true})
+    expect(fs.existsSync(filepath)).toBe(false)
+  })
+
   it('should open resource', async () => {
     let uri = URI.file(path.join(__dirname, 'bar')).toString()
     await workspace.openResource(uri)

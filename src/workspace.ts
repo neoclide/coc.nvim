@@ -6,7 +6,7 @@ import fs from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFile, RenameFile, DeleteFile, DeleteFileOptions, CreateFileOptions, RenameFileOptions } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configurations'
 import events from './events'
@@ -17,11 +17,12 @@ import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { resolveRoot, writeFile } from './util/fs'
+import { resolveRoot, writeFile, statAsync, mkdirAsync, renameAsync } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
+import pify from 'pify'
 import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
@@ -284,15 +285,24 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
-    if (!this.validteDocumentChanges(documentChanges as TextDocumentEdit[])) return false
+    if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
     if (documentChanges && documentChanges.length) {
       let n = 0
       for (let change of documentChanges) {
-        let { textDocument, edits } = change as TextDocumentEdit
-        let doc = this.getDocument(textDocument.uri)
-        await doc.applyEdits(nvim, edits)
+        if (TextDocumentEdit.is(change)) {
+          let { textDocument, edits } = change
+          let doc = this.getDocument(textDocument.uri)
+          await doc.applyEdits(nvim, edits)
+        } else if (CreateFile.is(change)) {
+          let file = Uri.parse(change.uri).fsPath
+          await this.createFile(file, change.options)
+        } else if (RenameFile.is(change)) {
+          await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
+        } else if (DeleteFile.is(change)) {
+          await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
+        }
       }
       this.showMessage(`${n} buffers changed!`, 'more')
     }
@@ -465,14 +475,66 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async createFile(filepath: string, opts: { ignoreIfExists?: boolean } = {}): Promise<void> {
-    if (fs.existsSync(filepath) && opts.ignoreIfExists) return
-    let uri = Uri.file(filepath).toString()
-    let doc = this.getDocument(uri)
-    if (doc) return
-    let encoding = await this.getFileEncoding()
-    fs.writeFileSync(filepath, '', encoding || '')
-    if (!doc) await this.openResource(uri)
+  public async createFile(filepath: string, opts: CreateFileOptions = {}): Promise<void> {
+    let stat = await statAsync(filepath)
+    if (stat && !opts.overwrite && !opts.ignoreIfExists) {
+      this.showMessage(`${filepath} already exists!`, 'error')
+      return
+    }
+    if (!stat || opts.overwrite) {
+      if (filepath.endsWith('/')) {
+        try {
+          await mkdirAsync(filepath)
+        } catch (e) {
+          this.showMessage(`Can't create ${filepath}: ${e.message}`, 'error')
+        }
+      } else {
+        let uri = Uri.file(filepath).toString()
+        let doc = this.getDocument(uri)
+        if (doc) return
+        let encoding = await this.getFileEncoding()
+        fs.writeFileSync(filepath, '', encoding || '')
+        if (!doc) await this.openResource(uri)
+      }
+    }
+  }
+
+  public async renameFile(oldPath: string, newPath: string, opts:RenameFileOptions = {}):Promise<void> {
+    let {overwrite, ignoreIfExists} = opts
+    let stat = await statAsync(newPath)
+    if (stat && !overwrite && !ignoreIfExists) {
+      this.showMessage(`${newPath} already exists`, 'error')
+      return
+    }
+    if (!stat || overwrite) {
+      try {
+        await renameAsync(oldPath, newPath)
+      } catch (e) {
+        console.error(e)
+        this.showMessage(`Rename error ${e.message}`, 'error')
+      }
+    }
+  }
+
+  public async deleteFile(filepath: string, opts:DeleteFileOptions = {}):Promise<void> {
+    let {ignoreIfNotExists, recursive} = opts
+    let stat = await statAsync(filepath)
+    let isDir = filepath.endsWith('/')
+    if (!stat && !ignoreIfNotExists) {
+      this.showMessage(`${filepath} not exists`, 'error')
+      return
+    }
+    if (stat == null) return
+    if (isDir && !recursive) {
+      this.showMessage(`Can't remove directory, recursive not set`, 'error')
+      return
+    }
+    try {
+      let method = isDir ? 'rmdir' : 'unlink'
+      await pify(fs[method])(filepath)
+    } catch (e) {
+      this.showMessage(`Error on delete ${filepath}: ${e.message}`, 'error')
+    }
   }
 
   public async openResource(uri: string, cmd = 'drop'): Promise<void> {
@@ -596,18 +658,56 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  private validteDocumentChanges(documentChanges: TextDocumentEdit[] | null): boolean {
+  private validteDocumentChanges(documentChanges: any[] | null): boolean {
     if (!documentChanges) return true
+    if (!Array.isArray(documentChanges)) {
+      this.showMessage(`Invalid documentChanges of WorkspaceEdit`, 'error')
+      logger.error('documentChanges: ', documentChanges)
+      return false
+    }
     for (let change of documentChanges) {
-      let { textDocument } = change
-      let { uri, version } = textDocument
-      let doc = this.getDocument(uri)
-      if (!doc) {
-        this.showMessage(`${uri} not found`, 'error')
-        return false
-      }
-      if (doc.version != version) {
-        this.showMessage(`${uri} changed before apply edit`, 'error')
+      if (TextDocumentEdit.is(change)) {
+        let { textDocument } = change
+        let { uri, version } = textDocument
+        let doc = this.getDocument(uri)
+        if (!doc) {
+          this.showMessage(`${uri} not found`, 'error')
+          return false
+        }
+        if (doc.version != version) {
+          this.showMessage(`${uri} changed before apply edit`, 'error')
+          return false
+        }
+      } else if (CreateFile.is(change)) {
+        let u = Uri.parse(change.uri)
+        if (u.scheme === 'file') {
+          this.showMessage(`scheme of ${change.uri} should be file`, 'error')
+          return false
+        }
+        let exists = fs.existsSync(u.fsPath)
+        let opts = change.options || {}
+        if (!opts.ignoreIfExists && !opts.overwrite && exists) {
+          this.showMessage(`${change.uri} already exists.`)
+          return false
+        }
+      } else if (RenameFile.is(change)) {
+        let { newUri, options } = change
+        options = options || {}
+        let exists = fs.existsSync(Uri.parse(newUri).fsPath)
+        if (!options.overwrite && !options.ignoreIfExists && exists) {
+          this.showMessage(`${newUri} already exists.`)
+          return false
+        }
+      } else if (DeleteFile.is(change)) {
+        let { uri, options } = change
+        options = options || {}
+        let exists = fs.existsSync(Uri.parse(uri).fsPath)
+        if (!exists && !(options as DeleteFileOptions).ignoreIfNotExists) {
+          this.showMessage(`${uri} not exists.`)
+          return false
+        }
+      } else {
+        this.showMessage(`document change ${JSON.stringify(change)} not supported`, 'error')
         return false
       }
     }

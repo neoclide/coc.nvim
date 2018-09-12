@@ -11,7 +11,7 @@
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "jest",
     "test-build": "jest --runInBand  --coverage --forceExit",
-    "prepublish": "yarn clean && yarn build",
+    "prepare": "yarn clean && yarn build",
     "release": "pkg . --out-path ./build"
   },
   "repository": {
@@ -83,6 +83,7 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "4.3.23",
+    "@types/mkdirp": "^0.5.2",
     "debounce": "^1.2.0",
     "deep-equal": "^1.0.1",
     "diff": "^3.5.0",
@@ -93,6 +94,7 @@
     "jsonc-parser": "^2.0.2",
     "log4js": "^3.0.5",
     "minimatch": "^3.0.4",
+    "mkdirp": "^0.5.1",
     "node-json-db": "^0.9.0",
     "node-serial": "^0.1.1",
     "once": "^1.4.0",
@@ -100,7 +102,6 @@
     "semver": "^5.5.1",
     "tslib": "^1.9.3",
     "uuid": "^3.3.2",
-    "vscode-languageserver": "^5.1.0",
     "vscode-languageserver-protocol": "^3.13.0",
     "vscode-languageserver-types": "^3.13.0",
     "vscode-uri": "^1.0.6",
