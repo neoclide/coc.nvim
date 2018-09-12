@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, TextDocumentEdit, ResourceOperationKind, FailureHandlingKind } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, TextDocumentEdit, ResourceOperationKind, FailureHandlingKind, TraceFormat, TraceOptions } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Commands from '../commands'
 import languages from '../languages'
@@ -78,6 +78,8 @@ interface IConnection {
   ): void
 
   trace(value: Trace, tracer: Tracer, sendNotification?: boolean): void
+  trace(value: Trace, tracer: Tracer, traceOptions?: TraceOptions): void
+  
 
   initialize(params: InitializeParams): Thenable<InitializeResult>
   shutdown(): Thenable<void>
@@ -160,8 +162,21 @@ function createConnection(
     trace: (
       value: Trace,
       tracer: Tracer,
-      sendNotification: boolean = false
-    ): void => connection.trace(value, tracer, sendNotification),
+      sendNotificationOrTraceOptions?: boolean | TraceOptions
+    ): void => {
+      const defaultTraceOptions: TraceOptions = {
+        sendNotification: false,
+        traceFormat: TraceFormat.Text
+      }
+
+      if (sendNotificationOrTraceOptions === void 0) {
+        connection.trace(value, tracer, defaultTraceOptions)
+      } else if (Is.boolean(sendNotificationOrTraceOptions)) {
+        connection.trace(value, tracer, sendNotificationOrTraceOptions)
+      } else {
+        connection.trace(value, tracer, sendNotificationOrTraceOptions)
+      }
+    },
 
     initialize: (params: InitializeParams) =>
       connection.sendRequest(InitializeRequest.type, params),
@@ -621,7 +636,7 @@ export interface LanguageClientOptions {
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   outputChannelName?: string
-  outputChannel?: OutputChannel;
+  outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
   /**
    * The encoding use to read stdout and stderr. Defaults
@@ -850,20 +865,20 @@ interface CreateParamsSignature<E, P> {
 }
 
 class OnReady {
-  private _used: boolean;
+  private _used: boolean
   constructor(private _resolve: () => void, private _reject: (error: any) => void) {
-    this._used = false;
+    this._used = false
   }
   public get isUsed(): boolean {
-    return this._used;
+    return this._used
   }
   public resolve(): void {
-    this._used = true;
-    this._resolve();
+    this._used = true
+    this._resolve()
   }
   public reject(error: any): void {
-    this._used = true;
-    this._reject(error);
+    this._used = true
+    this._reject(error)
   }
 }
 
@@ -2332,7 +2347,7 @@ class CodeActionFeature extends TextDocumentFeature<CodeActionRegistrationOption
     }
     let codeActionKinds: CodeActionKind[] | undefined
     if (!Is.boolean(capabilities.codeActionProvider)) {
-      codeActionKinds = capabilities.codeActionProvider.codeActionKinds;
+      codeActionKinds = capabilities.codeActionProvider.codeActionKinds
     }
 
 
@@ -2654,7 +2669,7 @@ class DocumentOnTypeFormattingFeature extends TextDocumentFeature<DocumentOnType
         position,
         ch,
         options
-      };
+      }
       return client.sendRequest(DocumentOnTypeFormattingRequest.type, params, token).then(res => res, error => {
         client.logFailedRequest(DocumentOnTypeFormattingRequest.type, error)
         return Promise.resolve([])
@@ -2725,16 +2740,16 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
       let params: TextDocumentPositionParams = {
         textDocument: cv.asTextDocumentIdentifier(document),
         position
-      };
+      }
       return client.sendRequest(PrepareRenameRequest.type, params, token).then(result => {
-        return result;
+        return result
       },
         (error: ResponseError<void>) => {
-          client.logFailedRequest(PrepareRenameRequest.type, error);
-          return Promise.reject(new Error(error.message));
+          client.logFailedRequest(PrepareRenameRequest.type, error)
+          return Promise.reject(new Error(error.message))
         }
-      );
-    };
+      )
+    }
 
     let middleware = client.clientOptions.middleware!
     return languages.registerRenameProvider(
@@ -2759,7 +2774,7 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
           ? (document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Range | { range: Range, placeholder: string }> => {
             return middleware.prepareRename
               ? middleware.prepareRename(document, position, token, prepareRename)
-              : prepareRename(document, position, token);
+              : prepareRename(document, position, token)
           } : undefined
       })
   }
@@ -2942,33 +2957,33 @@ class ConfigurationFeature
 
   private extractSettingsInformation(keys: string[]): any {
     function ensurePath(config: any, path: string[]): any {
-      let current = config;
+      let current = config
       for (let i = 0; i < path.length - 1; i++) {
-        let obj = current[path[i]];
+        let obj = current[path[i]]
         if (!obj) {
-          obj = Object.create(null);
-          current[path[i]] = obj;
+          obj = Object.create(null)
+          current[path[i]] = obj
         }
-        current = obj;
+        current = obj
       }
-      return current;
+      return current
     }
-    let result = Object.create(null);
+    let result = Object.create(null)
     for (let i = 0; i < keys.length; i++) {
-      let key = keys[i];
-      let index: number = key.indexOf('.');
-      let config: any = null;
+      let key = keys[i]
+      let index: number = key.indexOf('.')
+      let config: any = null
       if (index >= 0) {
-        config = workspace.getConfiguration(key.substr(0, index)).get(key.substr(index + 1));
+        config = workspace.getConfiguration(key.substr(0, index)).get(key.substr(index + 1))
       } else {
-        config = workspace.getConfiguration(key);
+        config = workspace.getConfiguration(key)
       }
       if (config) {
-        let path = keys[i].split('.');
-        ensurePath(result, path)[path[path.length - 1]] = config;
+        let path = keys[i].split('.')
+        ensurePath(result, path)[path[path.length - 1]] = config
       }
     }
-    return result;
+    return result
   }
 
   private getMiddleware() {
@@ -3077,8 +3092,8 @@ export abstract class BaseLanguageClient {
   private _connectionPromise: Thenable<IConnection> | undefined
   private _resolvedConnection: IConnection | undefined
   private _initializeResult: InitializeResult | undefined
-  private _disposeOutputChannel: boolean;
-  private _outputChannel: OutputChannel | undefined;
+  private _disposeOutputChannel: boolean
+  private _outputChannel: OutputChannel | undefined
   private _capabilities: ServerCapabilities &
     ResolvedTextDocumentSyncCapabilities
 
@@ -3091,6 +3106,7 @@ export abstract class BaseLanguageClient {
   private _fileEventDelayer: Delayer<void>
   private _stateChangeEmitter: Emitter<StateChangeEvent>
 
+  private _traceFormat: TraceFormat
   private _trace: Trace
   private _tracer: Tracer
 
@@ -3123,11 +3139,11 @@ export abstract class BaseLanguageClient {
     this._resolvedConnection = undefined
     this._initializeResult = undefined
     if (clientOptions.outputChannel) {
-      this._outputChannel = clientOptions.outputChannel;
-      this._disposeOutputChannel = false;
+      this._outputChannel = clientOptions.outputChannel
+      this._disposeOutputChannel = false
     } else {
-      this._outputChannel = undefined;
-      this._disposeOutputChannel = true;
+      this._outputChannel = undefined
+      this._disposeOutputChannel = true
     }
 
     this._listeners = undefined
@@ -3142,8 +3158,12 @@ export abstract class BaseLanguageClient {
     this._onStop = undefined
     this._stateChangeEmitter = new Emitter<StateChangeEvent>()
     this._tracer = {
-      log: (message: string, data?: string) => {
-        this.logTrace(message, data)
+      log: (messageOrDataObject: string | any, data?: string) => {
+        if (Is.string(messageOrDataObject)) {
+          this.logTrace(messageOrDataObject, data)
+        } else {
+          this.logObjectTrace(messageOrDataObject)
+        }
       }
     }
     this._syncedDocuments = new Map<string, TextDocument>()
@@ -3332,11 +3352,25 @@ export abstract class BaseLanguageClient {
     this.onReady().then(
       () => {
         this.resolveConnection().then(connection => {
-          connection.trace(value, this._tracer)
+          connection.trace(this._trace, this._tracer, {
+            sendNotification: false,
+            traceFormat: this._traceFormat
+          })
         })
       },
       () => { }
     )
+  }
+
+  private logObjectTrace(data: any): void {
+    if (data.isLSPMessage && data.type) {
+      this.outputChannel.append(`[LSP   - ${(new Date().toLocaleTimeString())}] `)
+    } else {
+      this.outputChannel.append(`[Trace - ${(new Date().toLocaleTimeString())}] `)
+    }
+    if (data) {
+      this.outputChannel.appendLine(`${JSON.stringify(data)}`)
+    }
   }
 
   private data2String(data: any): string {
@@ -3796,11 +3830,23 @@ export abstract class BaseLanguageClient {
   ): void {
     let config = workspace.getConfiguration(this._id)
     let trace: Trace = Trace.Off
+    let traceFormat: TraceFormat = TraceFormat.Text
     if (config) {
-      trace = Trace.fromString(config.get('trace.server', 'off'))
+      const traceConfig = config.get('trace.server', 'off')
+
+      if (typeof traceConfig === 'string') {
+        trace = Trace.fromString(traceConfig)
+      } else {
+        trace = Trace.fromString(config.get('trace.server.verbosity', 'off'))
+        traceFormat = TraceFormat.fromString(config.get('trace.server.format', 'text'))
+      }
     }
     this._trace = trace
-    connection.trace(this._trace, this._tracer, sendNotification)
+    this._traceFormat = traceFormat
+    connection.trace(this._trace, this._tracer, {
+      sendNotification,
+      traceFormat: this._traceFormat
+    })
   }
 
   private hookFileEvents(_connection: IConnection): void {
@@ -3894,8 +3940,8 @@ export abstract class BaseLanguageClient {
     ensure(result, 'workspace')!.applyEdit = true
     let workspaceEdit = ensure(ensure(result, 'workspace')!, 'workspaceEdit')
     workspaceEdit.documentChanges = true
-    workspaceEdit.resourceOperations = [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete];
-    workspaceEdit.failureHandling = FailureHandlingKind.TextOnlyTransactional;
+    workspaceEdit.resourceOperations = [ResourceOperationKind.Create, ResourceOperationKind.Rename, ResourceOperationKind.Delete]
+    workspaceEdit.failureHandling = FailureHandlingKind.TextOnlyTransactional
     ensure(ensure(result, 'textDocument')!, 'publishDiagnostics')!.relatedInformation = true
     for (let feature of this._features) {
       feature.fillClientCapabilities(result)
