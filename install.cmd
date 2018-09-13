@@ -8,7 +8,7 @@ $file = "coc-win.zip"
 $releases = "https://api.github.com/repos/$repo/releases"
 
 Write-Host Determining latest release
-$tag = (Invoke-WebRequest $releases | ConvertFrom-Json)[0].tag_name
+if ($args[0]) { $tag = $args[0] } else { $tag = (Invoke-WebRequest $releases | ConvertFrom-Json)[0].tag_name }
 
 $download = "https://github.com/$repo/releases/download/$tag/$file"
 $name = $file.Split(".")[0]

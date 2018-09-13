@@ -2,6 +2,7 @@ let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:install_yarn = 0
+let s:package_file = s:root.'/package.json'
 
 function! coc#util#platform()
   if s:is_win
@@ -597,7 +598,8 @@ function! coc#util#install_node_rpc() abort
 endfunction
 
 function! coc#util#install()
-  let cmd = s:is_win ? 'install.cmd' : './install.sh'
+  let obj = json_decode(readfile(s:package_file))
+  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
   call coc#util#open_terminal({
         \ 'cmd': cmd,
         \ 'cwd': s:root,
@@ -606,7 +608,7 @@ function! coc#util#install()
   wincmd p
 endfunction
 
-function! s:coc_installed(status)
+function! s:coc_installed(status, ...)
   if a:status != 0 | return | endif
   if s:is_vim
     call coc#util#install_node_rpc()
