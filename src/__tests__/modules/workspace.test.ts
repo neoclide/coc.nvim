@@ -585,11 +585,11 @@ describe('workspace private', () => {
     expect(attached).toBe(false)
       ; (workspace as any).initVimEvents()
     await nvim.setLine('abc')
-    await helper.wait(100)
+    await helper.wait(300)
     let doc = workspace.getDocument(buf.id)
     expect(doc.content).toMatch('abc')
     await nvim.input('Adef')
-    await helper.wait(100)
+    await helper.wait(300)
     expect(doc.content).toMatch('abcdef')
   })
 
