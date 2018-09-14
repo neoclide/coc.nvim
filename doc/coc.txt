@@ -88,7 +88,7 @@ To disable automatic trigger, use: >
 <
 To disable trigger after insert enter, use: >
 
-	"coc.preferences.triggerAfterInsertEnter": true,
+	"coc.preferences.triggerAfterInsertEnter": false,
 
 To change the timeout of completion, use: >
 
@@ -128,7 +128,7 @@ for more tips.
 LANGUAGESERVER					*coc-languageserver*
 
 Coc have support for almost every language server features except
-workspaceFolder related and telementry , checkout
+workspaceFolder related and telemetry , checkout
 
 https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features
 
@@ -221,7 +221,7 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
-g:coc_auto_copen  				*g:coc_force_debug*
+g:coc_auto_copen  				*g:coc_auto_copen
 
 			Open quickfix window after quickfix changed by coc.
 
@@ -230,7 +230,7 @@ g:coc_auto_copen  				*g:coc_force_debug*
 g:coc_force_debug  				*g:coc_force_debug*
 
 			Coc would use precompiled binary when the binary file
-			exists, set this to 1 to use complied code instead of
+			exists, set this to 1 to use compiled code instead of
 			prebuild binary.
 
 			Default: 0
@@ -281,7 +281,7 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			for customize status line. See |coc-status|.
 
 g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
-			Log channel commucation by using |ch_logfile|. Vim
+			Log channel communication by using |ch_logfile|. Vim
 			only.
 
 ------------------------------------------------------------------------------
@@ -290,9 +290,9 @@ FUNCTIONS 					*coc-functions*
 Coc functions are normally used by user defined command/keymap or other
 plugins.
 
-Note: coc functions only works after coc service initailized, it will silent
-fail if the service is not enabled.  To the function on startup, use autocmd
-like: >
+Note: coc functions only work after the coc service is initialized, it will
+silently fails if the service is not enabled. To run a function on startup,
+use autocmd like: >
 
  	autocmd User CocNvimInit call s:CocAction('runCommand',
 						\ 'tsserver.watchBuild')
@@ -467,19 +467,19 @@ Available Actions ~
 
 	Get all extension states as list. Including `id`, `root` and `state`
 
-	State could be `disabled` `activited` and `loaded`
+	State could be `disabled`, `activated` and `loaded`
 
 "toggleExtension" {id} 				*coc-action-toggleExtension*
 
-	Enable/disable a extension.
+	Enable/disable an extension.
 
 "reloadExtension" {id} 				*coc-action-reloadExtension*
 
-	Reload activited extension.
+	Reload activated extension.
 
 "deactivateExtension" {id} 			*coc-action-deactivateExtension*
 
-	Deactivated extension of {id}.
+	Deactivate extension of {id}.
 
 ------------------------------------------------------------------------------
 
@@ -529,7 +529,7 @@ COMMANDS 					*coc-commands*
 
 		Show error messages of coc.
 
-		Use 'let $NODE_DEBUG=nvim*' to debug commucation between
+		Use 'let $NODE_DEBUG=nvim*' to debug communication between
 		node-client and neovim.
 
 :CocInstall {names} 				*:CocInstall*
@@ -747,7 +747,7 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 ==============================================================================
 CHANGELOG					*coc-changelog*
 
-Check out *../history.md*
+Check out https://github.com/neoclide/coc.nvim/blob/master/history.md
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:
