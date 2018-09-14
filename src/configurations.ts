@@ -29,6 +29,10 @@ export default class Configurations {
     this._configuration.updateValue(key, value, true)
   }
 
+  public get defaults():any {
+    return this._configuration.defaults.contents
+  }
+
   /**
    * getConfiguration
    *

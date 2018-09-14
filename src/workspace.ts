@@ -510,7 +510,7 @@ export class Workspace implements IWorkspace {
       try {
         await renameAsync(oldPath, newPath)
       } catch (e) {
-        console.error(e)
+        // console.error(e)
         this.showMessage(`Rename error ${e.message}`, 'error')
       }
     }
@@ -734,7 +734,7 @@ export class Workspace implements IWorkspace {
   private loadConfigurations(): IConfigurationData {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
-    let defaultConfig = this.parseContentFromFile(file)
+    let defaultConfig:IConfigurationModel = this.getDefaultConfiguration(file)
     let home = process.env.VIMCONFIG
     if (global.hasOwnProperty('__TEST__')) {
       home = path.join(this.pluginRoot, 'src/__tests__')
@@ -754,6 +754,15 @@ export class Workspace implements IWorkspace {
       defaults: defaultConfig,
       user: userConfig,
       workspace: workspaceConfig
+    }
+  }
+
+  private getDefaultConfiguration(file:string): IConfigurationModel {
+    if (!this._configurations) {
+      return this.parseContentFromFile(file)
+    }
+    return {
+      contents: this._configurations.defaults
     }
   }
 
@@ -858,6 +867,7 @@ export class Workspace implements IWorkspace {
   }
 
   private onDirChanged(cwd: string): void {
+    if (cwd == this._cwd) return
     this._cwd = cwd
     this.onConfigurationChange()
   }
