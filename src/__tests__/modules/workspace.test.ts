@@ -378,7 +378,6 @@ describe('workspace utility', () => {
     expect(fs.existsSync(filepath)).toBe(false)
   })
 
-
   it('should delete folder if exists', async () => {
     let filepath = path.join(__dirname, 'foo/')
     await workspace.createFile(filepath)
