@@ -199,6 +199,9 @@ supported after `coc-json` installed.
 " if hidden not set, TextEdit might fail.
 set hidden
 
+" To make the CursorHold event trigger faster.
+set updatetime=300
+
 " Better display for messages
 set cmdheight=2
 
