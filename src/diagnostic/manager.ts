@@ -37,6 +37,7 @@ function severityName(severity: DiagnosticSeverity): string {
 
 export class DiagnosticManager {
   public config: DiagnosticConfig
+  public showMessage: Function & { clear(): void }
   private enabled = true
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
@@ -45,7 +46,6 @@ export class DiagnosticManager {
   private srcId = 1000
   private srcIdMap: Map<string, number> = new Map()
   private enableMessage = true
-  private showMessage: Function & { clear(): void }
   constructor() {
 
     workspace.onDidWorkspaceInitialized(() => {
@@ -338,11 +338,26 @@ export class DiagnosticManager {
     let document = workspace.getDocument(buffer.id)
     if (!document) return
     let offset = await workspace.getOffset()
-    let { textDocument } = document
-    let collections = this.getCollections(document.uri)
+    let diagnostics = this.diagnosticsAtOffset(offset, document.textDocument)
+    if (diagnostics.length == 0) {
+      diagnostics = this.diagnosticsAtOffset(offset + 1, document.textDocument)
+    }
+    if (diagnostics.length == 0) return
+    let lines: string[] = diagnostics.map(diagnostic => {
+      let { source, code, severity, message } = diagnostic
+      let s = severityName(severity)[0]
+      let msg = message.replace(/\n/g, ' ')
+      return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
+    })
+    await workspace.echoLines(lines, truncate)
+  }
+
+  private diagnosticsAtOffset(offset:number, textDocument:TextDocument):Diagnostic[] {
     let res: Diagnostic[] = []
+    let { uri } = textDocument
+    let collections = this.getCollections(uri)
     for (let collection of collections) {
-      let diagnostics = collection.get(document.uri)
+      let diagnostics = collection.get(uri)
       for (let diagnostic of diagnostics) {
         let { range } = diagnostic
         diagnostic.source = diagnostic.source || collection.name
@@ -353,14 +368,7 @@ export class DiagnosticManager {
         }
       }
     }
-    if (res.length == 0) return
-    let lines: string[] = res.map(diagnostic => {
-      let { source, code, severity, message } = diagnostic
-      let s = severityName(severity)[0]
-      let msg = message.replace(/\n/g, ' ')
-      return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
-    })
-    await workspace.echoLines(lines, truncate)
+    return res
   }
 
   public clear(owner: string, uri?: string): void {
