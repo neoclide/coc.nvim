@@ -151,6 +151,11 @@ mode, 'v_' works for visual mode.
 
 			Use `coc.preferences.customSources` to configure.
 
+<Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
+
+			Show diagnostic message of current position, no
+			truncate.
+
 <Plug>(coc-diagnostic-next) 			*n_coc-diagnostic-next*
 			
 			Jump to next diagnostic position.
@@ -277,8 +282,12 @@ g:coc_codelen_action_key 			*g:coc_codelen_action_key*
 			Default: <d>
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
-			Diagnostic infomation of current buffer, can be used
-			for customize status line. See |coc-status|.
+			Diagnostic infomation of current buffer, the format
+			would like:
+
+			`{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
+
+			can be used for customize statusline. See |coc-status|.
 
 g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 			Log channel communication by using |ch_logfile|. Vim
@@ -330,9 +339,7 @@ Available Actions ~
 
 "diagnosticInfo" 				*coc-action-diagnosticInfo*
 
-	Get diagnostic info of current buffer, the format would like:
-
-	`{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
+	Show diagnostic message at current position, no truncate.
 
 "jumpDefinition" 				*coc-action-jumpDefinition*
 

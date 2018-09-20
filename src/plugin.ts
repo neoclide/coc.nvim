@@ -10,8 +10,6 @@ import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
 import extensions from './extensions'
-import path from 'path'
-import Uri from 'vscode-uri'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -90,6 +88,9 @@ export default class Plugin extends EventEmitter {
           break
         case 'toggleSource':
           completion.toggleSource(args[1])
+          break
+        case 'diagnosticInfo':
+          diagnosticManager.showMessage(false)
           break
         case 'diagnosticNext':
           diagnosticManager.jumpNext().catch(e => {

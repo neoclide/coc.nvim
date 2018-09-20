@@ -174,6 +174,7 @@ nnoremap <Plug>(coc-rename)              :<C-u>call CocAction('rename')<CR>
 nnoremap <Plug>(coc-format-selected)     :<C-u>set  operatorfunc=<SID>FormatFromSelected<CR>g@
 nnoremap <Plug>(coc-codeaction-selected) :<C-u>set  operatorfunc=<SID>CodeActionFromSelected<CR>g@
 nnoremap <Plug>(coc-format)              :<C-u>call CocAction('format')<CR>
+nnoremap <Plug>(coc-diagnostic-info)     :<C-u>call CocAction('diagnosticInfo')<CR>
 nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocAction('diagnosticNext')<CR>
 nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocAction('diagnosticPrevious')<CR>
 nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
