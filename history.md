@@ -1,3 +1,9 @@
+# 2018-09-20
+
+- Fix diagnostic check next offset for diagnostics.
+- Add `<Plug>(coc-diagnostic-info)` for show diagnostic message without
+  truncate.
+
 # 2018-09-15
 
 - Fix wrong configuration on update.
