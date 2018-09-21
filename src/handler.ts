@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, FormattingOptions, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -53,6 +53,7 @@ export default class Handler {
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer
+      await wait(50)
       await this.onCharacterType(String.fromCharCode(27), buf.id)
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {

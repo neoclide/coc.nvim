@@ -1,8 +1,8 @@
-# [C](#)onqure [o](#)f  [C](#)ompletion
+# [C](#)onqure [o](#)f [C](#)ompletion
 
-| CI (Linux, macOS) | Coverage | Gitter | Doc    |
-|-------------------|----------|--------|--------|
-| [![Build Status Badge][]][Build Status] | [![Coverage Badge][]][Coverage Report] |  [![Gitter Badge][]][Gitter] | [![Doc Badge][]][Doc Link]
+| CI (Linux, macOS)                       | Coverage                               | Gitter                      | Doc                        |
+| --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- |
+| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] |
 
 Coc is an intellisense engine for vim8 & neovim.
 
@@ -17,32 +17,32 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 ## Why?
 
-* 🚀 **Fast**: instant increment completion, increment buffer sync using buffer update events.
-* 💎 **Reliable**: typed language, tested with CI.
-* 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (except workspace Folder and telemetry)
-* ❤️  **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
+- 🚀 **Fast**: instant increment completion, increment buffer sync using buffer update events.
+- 💎 **Reliable**: typed language, tested with CI.
+- 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (except workspace Folder and telemetry)
+- ❤️ **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
 ## Table of contents
 
-* [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
+- [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
   For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
 
-  ``` vim
+  ```vim
   Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
   ```
 
   Or build from source code by install [nodejs](https://nodejs.org/en/download/)
   and [yarn](https://yarnpkg.com/en/docs/install)
 
-  ``` sh
+  ```sh
   curl -sL install-node.now.sh/lts | sh
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
   And add:
 
-  ``` vim
+  ```vim
   Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
   ```
 
@@ -51,142 +51,142 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   For other plugin manager, run command `:call coc#util#install()` to download
   binary after coc is installed.
 
-* [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
+- [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
-  * [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
-  * [Snippet completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#snippet-completion)
-  * [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
-  * [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
-  * [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
+  - [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
+  - [Snippet completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#snippet-completion)
+  - [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
+  - [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
+  - [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
 
-* [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+- [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-  * [Manage extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions#installupdate-coc-extension)
+  - [Manage extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions#installupdate-coc-extension)
 
-* [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
+- [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
 
-  * [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
-  * [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
-  * [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
-  * [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
+  - [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
+  - [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
+  - [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
+  - [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
 
-* [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
+- [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
-  * [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
-  * [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
+  - [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
+  - [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
-* [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+- [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
-* [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+- [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
-* [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
+- [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
 
-* [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+- [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Completion sources
 
-Name         | Description                              | Filetypes   | Requirement
------------- | -------------                            |------------ |------------
-`around`     | Words of current buffer.                 | all         |
-`buffer`     | Words of none current buffer.            | all         |
-`dictionary` | Words from files of `dictionary` option. | all         |
-`tag`        | Words from `taglist` of current buffer.  | all         |
-`file`       | Filename completion.                     | all         |
-`omni`       | Invoke `omnifunc` for complete items     | []          |
-`word`       | Words from google 10000 english repo.    | all         |
-`emoji`      | Emoji characters.                        | all         |
-`include`    | Full path completion.                    | all         |
-`gocode`     | Completion using gocode                  | ['go']      | Install [gocode](https://github.com/mdempsky/gocode)
-`ultisnips`  | Snippets completion                      | all         | Install [ultisnips](https://github.com/SirVer/ultisnips)
-`neco`       | Viml completion                          | vim         | Install [neco-vim](https://github.com/Shougo/neco-vim)
-`neosnippet` | Snippets completion                      | all         | Install [neosnippet.vim](https://github.com/Shougo/neosnippet.vim)
+| Name         | Description                              | Filetypes | Requirement                                                        |
+| ------------ | ---------------------------------------- | --------- | ------------------------------------------------------------------ |
+| `around`     | Words of current buffer.                 | all       |
+| `buffer`     | Words of none current buffer.            | all       |
+| `dictionary` | Words from files of `dictionary` option. | all       |
+| `tag`        | Words from `taglist` of current buffer.  | all       |
+| `file`       | Filename completion.                     | all       |
+| `omni`       | Invoke `omnifunc` for complete items     | []        |
+| `word`       | Words from google 10000 english repo.    | all       |
+| `emoji`      | Emoji characters.                        | all       |
+| `include`    | Full path completion.                    | all       |
+| `gocode`     | Completion using gocode                  | ['go']    | Install [gocode](https://github.com/mdempsky/gocode)               |
+| `ultisnips`  | Snippets completion                      | all       | Install [ultisnips](https://github.com/SirVer/ultisnips)           |
+| `neco`       | Viml completion                          | vim       | Install [neco-vim](https://github.com/Shougo/neco-vim)             |
+| `neosnippet` | Snippets completion                      | all       | Install [neosnippet.vim](https://github.com/Shougo/neosnippet.vim) |
 
-* To enable `omni` source for certain files, open `coc-settings.json` by `:CocConfig`, then add configuration like:
+- To enable `omni` source for certain files, open `coc-settings.json` by `:CocConfig`, then add configuration like:
 
-    ```
-    "coc.source.omni.filetypes": ["python"],
-    ```
+  ```
+  "coc.source.omni.filetypes": ["python"],
+  ```
 
-* To complete sources: `include`, `emoji` and `word`, use mapping of `<Plug>(coc-complete-custom)`
+- To complete sources: `include`, `emoji` and `word`, use mapping of `<Plug>(coc-complete-custom)`
 
 ## Extensions
 
 Extension are powerful than configured language server. Checkout
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
-* **Tsserver**
+- **Tsserver**
 
-    Used for `javascript` and `typescript`
+  Used for `javascript` and `typescript`
 
         :CocInstall coc-tsserver
 
-* **Html**
+- **Html**
 
-    Used for `html` `handlebars` `razor`
+  Used for `html` `handlebars` `razor`
 
         :CocInstall coc-html
 
-* **Json**
+- **Json**
 
-    Used for `json` and `jsonc`
+  Used for `json` and `jsonc`
 
         :CocInstall coc-json
 
-* **Css**
+- **Css**
 
-    Used for `css` `scss` `less` and `wxss`
+  Used for `css` `scss` `less` and `wxss`
 
         :CocInstall coc-css
 
-* **Wxml**
+- **Wxml**
 
         :CocInstall coc-wxml
 
-* **Vetur**
+- **Vetur**
 
-    Used for `vue`
+  Used for `vue`
 
         :CocInstall coc-vetur
 
-* **Solargraph**
+- **Solargraph**
 
-    Used for `ruby`
+  Used for `ruby`
 
-    Install [solargraph](http://solargraph.org/) by:
+  Install [solargraph](http://solargraph.org/) by:
 
         gem install solargraph
 
-    then
+  then
 
         :CocInstall coc-solargraph
 
-* **Pyls**
+- **Pyls**
 
-    Used for `python`
+  Used for `python`
 
-    Install [pyls](https://github.com/palantir/python-language-server) by:
+  Install [pyls](https://github.com/palantir/python-language-server) by:
 
         pip install 'python-language-server[all]'
 
-    then
+  then
 
         :CocInstall coc-pyls
 
-* **Stylelint**
+- **Stylelint**
 
-    Used for  `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
+  Used for `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
 
         :CocInstall coc-stylelint
 
-* **Eslint**
+- **Eslint**
 
-    Used for `javascript`
+  Used for `javascript`
 
         :CocInstall coc-eslint
 
-* **Tslint**
+- **Tslint**
 
-    Used for `typescript`
+  Used for `typescript`
 
         :CocInstall coc-tslint
 
@@ -195,12 +195,9 @@ supported after `coc-json` installed.
 
 ## Example vim configuration
 
-``` vim
+```vim
 " if hidden not set, TextEdit might fail.
 set hidden
-
-" To make the CursorHold event trigger faster.
-set updatetime=300
 
 " Better display for messages
 set cmdheight=2
@@ -317,11 +314,11 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
 
-[Build Status Badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
-[Build Status]: https://travis-ci.org/neoclide/coc.nvim
-[Coverage Badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
-[Coverage Report]: https://codecov.io/gh/neoclide/coc.nvim
-[Gitter Badge]: https://badges.gitter.im/coc-nvim/Lobby.svg
-[Gitter]: https://gitter.im/coc-nvim/Lobby
-[Doc Badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
-[Doc Link]: doc/coc.txt
+[build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
+[build status]: https://travis-ci.org/neoclide/coc.nvim
+[coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
+[coverage report]: https://codecov.io/gh/neoclide/coc.nvim
+[gitter badge]: https://badges.gitter.im/coc-nvim/Lobby.svg
+[gitter]: https://gitter.im/coc-nvim/Lobby
+[doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
+[doc link]: doc/coc.txt

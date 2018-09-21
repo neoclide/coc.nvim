@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
@@ -37,8 +36,8 @@ function severityName(severity: DiagnosticSeverity): string {
 
 export class DiagnosticManager {
   public config: DiagnosticConfig
-  public showMessage: Function & { clear(): void }
   private enabled = true
+  private timer: NodeJS.Timer
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
@@ -58,9 +57,20 @@ export class DiagnosticManager {
       }
     }, null, this.disposables)
 
-    events.on('CursorHold', () => {
-      if (this.enableMessage) {
-        this.showMessage(true)
+    events.on('CursorMoved', () => {
+      if (this.timer) {
+        clearTimeout(this.timer)
+      }
+      this.timer = setTimeout(async () => {
+        let mode = await workspace.nvim.mode
+        if (mode.blocking || mode.mode != 'n') return
+        await this.echoMessage(true)
+      }, 500)
+    }, null, this.disposables)
+
+    events.on(['InsertEnter', 'TextChanged'], () => {
+      if (this.timer) {
+        clearTimeout(this.timer)
       }
     }, null, this.disposables)
 
@@ -97,13 +107,10 @@ export class DiagnosticManager {
       }
     })
 
-    this.showMessage = debounce(truncate => {
-      this.echoMessage(truncate).catch(e => {
-        logger.error(e.stack)
-      })
-    }, 200)
     this.disposables.push(Disposable.create(() => {
-      this.showMessage.clear()
+      if (this.timer) {
+        clearTimeout(this.timer)
+      }
     }))
   }
 
@@ -332,8 +339,10 @@ export class DiagnosticManager {
    * @private
    * @returns {Promise<void>}
    */
-  private async echoMessage(truncate = false): Promise<void> {
+  public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled) return
+    if (truncate && !this.enableMessage) return
+    if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return

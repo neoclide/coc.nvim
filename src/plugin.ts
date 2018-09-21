@@ -90,17 +90,15 @@ export default class Plugin extends EventEmitter {
           completion.toggleSource(args[1])
           break
         case 'diagnosticInfo':
-          diagnosticManager.showMessage(false)
+          await diagnosticManager.echoMessage()
           break
         case 'diagnosticNext':
-          diagnosticManager.jumpNext().catch(e => {
-            logger.error(e.message)
-          })
+          await diagnosticManager.jumpNext()
+          await diagnosticManager.echoMessage()
           break
         case 'diagnosticPrevious':
-          diagnosticManager.jumpPrevious().catch(e => {
-            logger.error(e.message)
-          })
+          await diagnosticManager.jumpPrevious()
+          await diagnosticManager.echoMessage()
           break
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
