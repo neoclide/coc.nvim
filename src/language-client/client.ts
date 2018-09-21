@@ -3448,6 +3448,10 @@ export abstract class BaseLanguageClient {
     return this._onReady
   }
 
+  public get started(): boolean {
+    return this.state != ClientState.Initial
+  }
+
   private isConnectionActive(): boolean {
     return this.state === ClientState.Running && !!this._resolvedConnection
   }
