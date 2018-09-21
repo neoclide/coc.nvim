@@ -104,6 +104,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   private shouldStart(service: IServiceProvider): boolean {
+    if (service.state != ServiceStat.Initial) {
+      return false
+    }
     for (let doc of workspace.documents) {
       if (workspace.match(service.selector, doc.textDocument)) {
         return true

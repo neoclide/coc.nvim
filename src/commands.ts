@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
 import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
-import events from './events'
 import sources from './sources'
 import { wait } from './util'
 import workspace from './workspace'
@@ -173,18 +172,14 @@ export class CommandManager implements Disposable {
    * the command handler function doesn't return anything.
    */
   public executeCommand(command: string, ...rest: any[]): void {
-    events.fire('Command', [command]).then(() => {
-      let cmd = this.commands.get(command)
-      if (!cmd) {
-        workspace.showMessage(`Command: ${command} not found`, 'error')
-        return
-      }
-      Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
-        workspace.showMessage(`Command error: ${e.message}`, 'error')
-        logger.error(e.stack)
-      })
-    }, e => {
-      workspace.showMessage(e.message, 'error')
+    let cmd = this.commands.get(command)
+    if (!cmd) {
+      workspace.showMessage(`Command: ${command} not found`, 'error')
+      return
+    }
+    Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
+      workspace.showMessage(`Command error: ${e.message}`, 'error')
+      logger.error(e.stack)
     })
   }
 }
