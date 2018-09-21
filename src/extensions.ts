@@ -146,6 +146,12 @@ export class Extensions {
     this.activate(id)
   }
 
+  public async uninstallExtension(id: string): Promise<void> {
+    this.deactivate(id)
+    await wait(200)
+    await workspace.runCommand(`yarn remove ${id}`, this.root)
+  }
+
   private isDisabled(id: string): boolean {
     let { db } = this
     let key = `/extension/${id}/disabled`

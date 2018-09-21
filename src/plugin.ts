@@ -161,6 +161,8 @@ export default class Plugin extends EventEmitter {
           return await extensions.reloadExtension(args[1])
         case 'toggleExtension':
           return await extensions.toggleExtension(args[1])
+        case 'uninstallExtension':
+          return await extensions.uninstallExtension(args[1])
         default:
           logger.error(`unknown action ${args[0]}`)
       }

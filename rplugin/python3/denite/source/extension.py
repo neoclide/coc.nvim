@@ -65,8 +65,8 @@ class Kind(BaseKind):
     def __init__(self, vim):
         super().__init__(vim)
         self.default_action = 'toggle'
-        self.redraw_actions += ['toggle']
-        self.persist_actions += ['toggle']
+        self.redraw_actions += ['toggle', 'uninstall']
+        self.persist_actions += ['toggle', 'uninstall']
 
     def action_toggle(self, context):
         for target in context['targets']:
@@ -83,3 +83,7 @@ class Kind(BaseKind):
     def action_deactivate(self, context):
         for target in context['targets']:
             self.vim.call('CocAction', 'deactivateExtension', target['source__id'])
+
+    def action_uninstall(self, context):
+        for target in context['targets']:
+            self.vim.call('CocAction', 'uninstallExtension', target['source__id'])

@@ -1,38 +1,38 @@
 *coc-nvim.txt*				Completion framework for neovim
 
-Version: 0.0.16
+Version: 0.0.18
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
 CONTENTS					*coc-contents*
 
-Introduction		|coc-introduction|
-Requirement		|coc-requirement|
-Install			|coc-install|
-Configuration 		|coc-configuration|
-Completion   		|coc-completion|
-LanguageServer 		|coc-languageserver|
-Interface		|coc-interface|
-  Keymapings 		|coc-keymapings|
-  Variables		  |coc-variables|
-  Functions		  |coc-functions|
-  Commands		  |coc-commands|
-  Autocmds 		  |coc-autocmds|
-Denite support 		|coc-denite|
-  Denite extension  	|coc-denite-extension|
-  Denite source  	|coc-denite-source|
-  Denite diagnostic     |coc-denite-diagnostic|
-  Denite symbols        |coc-denite-symbols|
-  Denite workspace      |coc-denite-workspace|
-  Denite service        |coc-denite-service|
-  Denite command        |coc-denite-command|
-Statueline support      |coc-status|
-  Manual                |coc-status-manual|
-  Airline 		|coc-status-airline|
-  Lightline  		|coc-stauts-lightline|
-Custom Source 		|coc-custom-source|
-Faq			|coc-faq|
-Changelog		|coc-changelog|
+Introduction					|coc-introduction|
+Requirement					|coc-requirement|
+Install						|coc-install|
+Configuration 					|coc-configuration|
+Completion   					|coc-completion|
+LanguageServer 					|coc-languageserver|
+Interface					|coc-interface|
+  Keymapings 					|coc-keymapings|
+  Variables					  |coc-variables|
+  Functions					  |coc-functions|
+  Commands					  |coc-commands|
+  Autocmds 					  |coc-autocmds|
+Denite support 					|coc-denite|
+  Denite extension  				|coc-denite-extension|
+  Denite source  				|coc-denite-source|
+  Denite diagnostic     			|coc-denite-diagnostic|
+  Denite symbols        			|coc-denite-symbols|
+  Denite workspace      			|coc-denite-workspace|
+  Denite service        			|coc-denite-service|
+  Denite command        			|coc-denite-command|
+Statueline support      			|coc-status|
+  Manual                			|coc-status-manual|
+  Airline 					|coc-status-airline|
+  Lightline  					|coc-stauts-lightline|
+Custom Source 					|coc-custom-source|
+Faq						|coc-faq|
+Changelog					|coc-changelog|
 
 ==============================================================================
 INTRODUCTION					*coc-introduction*
@@ -480,6 +480,10 @@ Available Actions ~
 
 	Enable/disable an extension.
 
+"uninstallExtension" {id} 			*coc-action-uninstallExtension*
+
+	Uninstall an extension.
+
 "reloadExtension" {id} 				*coc-action-reloadExtension*
 
 	Reload activated extension.
@@ -584,8 +588,8 @@ AUTOCMD 					*coc-autocmds*
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
 
-Coc make use of list interface provided by |denite.nvim| for better filter & sort
-experience and advanced actions.
+Coc provide some sources of |denite.nvim| for better filter & sort experience
+and advance actions.
 
 ------------------------------------------------------------------------------
 						*coc-denite-extension*
@@ -602,6 +606,8 @@ experience and advanced actions.
 	'deactivate': deactivate selected extension(s).
 
 	'reload': reload selected extension(s).
+
+	'uninstall': uninstall selected extension(s).
 
 
 ------------------------------------------------------------------------------
