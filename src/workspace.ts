@@ -18,7 +18,7 @@ import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile, statAsync, mkdirAsync, renameAsync } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, wait } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
@@ -448,7 +448,10 @@ export class Workspace implements IWorkspace {
     } else {
       doc = await this.document
     }
-    if (!doc) return { tabSize: 2, insertSpaces: true }
+    if (!doc) return {
+      tabSize: await this.nvim.getOption('tabstop') as number,
+      insertSpaces: (await this.nvim.getOption('expandtab')) == 1
+    }
     let { buffer } = doc
     let tabSize = await buffer.getOption('tabstop') as number
     let insertSpaces = (await buffer.getOption('expandtab')) == 1
@@ -494,7 +497,10 @@ export class Workspace implements IWorkspace {
         if (doc) return
         let encoding = await this.getFileEncoding()
         fs.writeFileSync(filepath, '', encoding || '')
-        if (!doc) await this.openResource(uri)
+        if (!doc) {
+          let bufname = filepath.startsWith(this.cwd) ? path.relative(this.cwd, filepath) : filepath
+          await this.nvim.command(`argadd ${bufname}`)
+        }
       }
     }
   }
@@ -509,6 +515,12 @@ export class Workspace implements IWorkspace {
     if (!stat || overwrite) {
       try {
         await renameAsync(oldPath, newPath)
+        let uri = Uri.file(oldPath).toString()
+        let doc = this.getDocument(uri)
+        if (doc) {
+          await doc.buffer.setName(this.getBufName(newPath))
+          await this.onBufCreate(doc.bufnr)
+        }
       } catch (e) {
         // console.error(e)
         this.showMessage(`Rename error ${e.message}`, 'error')
@@ -518,8 +530,8 @@ export class Workspace implements IWorkspace {
 
   public async deleteFile(filepath: string, opts:DeleteFileOptions = {}):Promise<void> {
     let {ignoreIfNotExists, recursive} = opts
-    let stat = await statAsync(filepath)
-    let isDir = filepath.endsWith('/')
+    let stat = await statAsync(filepath.replace(/\/$/, ''))
+    let isDir = stat.isDirectory || filepath.endsWith('/')
     if (!stat && !ignoreIfNotExists) {
       this.showMessage(`${filepath} not exists`, 'error')
       return
@@ -532,6 +544,13 @@ export class Workspace implements IWorkspace {
     try {
       let method = isDir ? 'rmdir' : 'unlink'
       await pify(fs[method])(filepath)
+      if (!isDir) {
+        let uri = Uri.file(filepath).toString()
+        let doc = this.getDocument(uri)
+        if (doc) {
+          await this.nvim.command(`bdelete ${doc.bufnr}`)
+        }
+      }
     } catch (e) {
       this.showMessage(`Error on delete ${filepath}: ${e.message}`, 'error')
     }
@@ -1016,6 +1035,12 @@ export class Workspace implements IWorkspace {
   private async onInsertEnter(): Promise<void> {
     let document = await this.document
     await document.clearHighlight()
+  }
+
+  private getBufName(fullpath:string):string {
+    let { cwd } = this
+    if (!fullpath.startsWith(cwd)) return fullpath
+    return path.relative(cwd, fullpath)
   }
 }
 
