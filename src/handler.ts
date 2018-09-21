@@ -39,25 +39,29 @@ export default class Handler {
 
     let lastChar = ''
     let lastTs = null
-    this.disposables.push(events.on('InsertCharPre', ch => {
+    events.on('InsertCharPre', ch => {
       lastChar = ch
       lastTs = Date.now()
-    }))
-    this.disposables.push(events.on('TextChangedI', async bufnr => {
+    }, null, this.disposables)
+    events.on('TextChangedI', async bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
         let character = doc.addLine ? '\n' : lastChar
         lastChar = null
         await this.onCharacterType(character, bufnr)
       }
-    }))
-    this.disposables.push(events.on('BufUnload', bufnr => {
+    }, null, this.disposables)
+    events.on('InsertLeave', async () => {
+      let buf = await nvim.buffer
+      await this.onCharacterType(String.fromCharCode(27), buf.id)
+    }, null, this.disposables)
+    events.on('BufUnload', bufnr => {
       let codeLensBuffer = this.codeLensBuffers.get(bufnr)
       if (codeLensBuffer) {
         codeLensBuffer.dispose()
         this.codeLensBuffers.delete(bufnr)
       }
-    }))
+    }, null, this.disposables)
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
@@ -228,13 +232,7 @@ export default class Handler {
     if (!document || !mode) return
     let range = await this.getSelectedRange(mode, document.textDocument)
     if (!range) return
-    let buffer = await this.nvim.buffer
-    let tabSize = await buffer.getOption('tabstop') as number
-    let insertSpaces = (await buffer.getOption('expandtab')) == 1
-    let options: FormattingOptions = {
-      tabSize,
-      insertSpaces
-    }
+    let options = await workspace.getFormatOptions()
     let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
     if (!textEdits) return
     await document.applyEdits(this.nvim, textEdits)
@@ -425,7 +423,6 @@ export default class Handler {
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let { changedtick } = doc
-    if (doc.isWord(ch)) return
     let { document, position } = await workspace.getCurrentState()
     doc.forceSync()
     await wait(20)

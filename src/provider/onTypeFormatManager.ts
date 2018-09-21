@@ -2,6 +2,7 @@ import { CancellationToken, Disposable, DocumentSelector, Position, TextDocument
 import { isWord } from '../util/string'
 import workspace from '../workspace'
 import { OnTypeFormattingEditProvider } from './index'
+const logger = require('../util/logger')('onTypeFormatManager')
 
 export interface ProviderItem {
   triggerCharacters: string[]
@@ -24,7 +25,7 @@ export default class OnTypeFormatManager implements Disposable {
     })
   }
 
-  private getProvider(document: TextDocument, triggerCharacter: string): OnTypeFormattingEditProvider | null {
+  public getProvider(document: TextDocument, triggerCharacter: string): OnTypeFormattingEditProvider | null {
     for (let o of this.providers) {
       let { triggerCharacters, selector } = o
       if (workspace.match(selector, document) > 0 && triggerCharacters.indexOf(triggerCharacter) > -1) {

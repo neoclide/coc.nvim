@@ -321,6 +321,14 @@ class Languages {
 
   @check
   public async provideDocumentTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
+    if (character.charCodeAt(0) == 27) {
+      let provider = this.onTypeFormatManager.getProvider(document, character)
+      if (!provider) return
+      let options = await workspace.getFormatOptions()
+      let { line } = position
+      let range = Range.create({ line, character: 0 }, { line: line + 1, character: 0 })
+      return this.provideDocumentRangeFormattingEdits(document, range, options)
+    }
     return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
   }
 
