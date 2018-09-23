@@ -531,7 +531,7 @@ export class Workspace implements IWorkspace {
   public async deleteFile(filepath: string, opts:DeleteFileOptions = {}):Promise<void> {
     let {ignoreIfNotExists, recursive} = opts
     let stat = await statAsync(filepath.replace(/\/$/, ''))
-    let isDir = stat.isDirectory || filepath.endsWith('/')
+    let isDir = stat.isDirectory() || filepath.endsWith('/')
     if (!stat && !ignoreIfNotExists) {
       this.showMessage(`${filepath} not exists`, 'error')
       return
