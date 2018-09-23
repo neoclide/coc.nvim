@@ -69,7 +69,7 @@ export class Completes {
 
   public hasMatch(search: string): boolean {
     let { complete } = this
-    if (!complete) return false
+    if (!complete || complete.results == null) return false
     let { results } = complete
     let codes = getCharCodes(search)
     for (let res of results) {

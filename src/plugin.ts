@@ -120,9 +120,7 @@ export default class Plugin extends EventEmitter {
           })
           break
         case 'showSignatureHelp':
-          setTimeout(() => {
-            handler.showSignatureHelp()
-          }, 20)
+          handler.showSignatureHelp()
           break
         case 'documentSymbols':
           return handler.getDocumentSymbols()
