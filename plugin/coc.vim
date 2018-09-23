@@ -30,6 +30,7 @@ function! CocActionAsync(...) abort
     let args = copy(a:000)[0:-2]
   endif
   call coc#rpc#request_async('CocAction', args, Cb)
+  return ''
 endfunction
 
 function! s:OpenConfig()

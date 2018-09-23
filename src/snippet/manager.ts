@@ -6,6 +6,7 @@ import workspace from '../workspace'
 import { Placeholder } from './parser'
 import Snippet from './snippet'
 import { wait, isLineEdit, disposeAll } from '../util'
+import events from '../events'
 const logger = require('../util/logger')('snippet-manager')
 
 function onError(err): void {
@@ -29,16 +30,18 @@ export class SnippetManager {
         return workspace.nvim
       }
     })
-    this.disposables.push(
-      workspace.onDidChangeTextDocument(this.onDocumentChange, this)
-    )
-    this.disposables.push(
-      workspace.onDidCloseTextDocument(textDocument => {
-        if (textDocument.uri == this.uri) {
-          this.detach().catch(onError)
-        }
-      })
-    )
+    workspace.onDidChangeTextDocument(this.onDocumentChange, this, this.disposables)
+    workspace.onDidCloseTextDocument(textDocument => {
+      if (textDocument.uri == this.uri) {
+        this.detach()
+      }
+    }, null, this.disposables)
+    events.on('InsertLeave', async () => {
+      let {mode} = await this.nvim.mode
+      if (mode == 'n') {
+        this.detach()
+      }
+    }, null, this.disposables)
   }
 
   public get isActivted(): boolean {
@@ -58,17 +61,13 @@ export class SnippetManager {
     this.activted = true
   }
 
-  public async detach(): Promise<void> {
+  public detach(): void {
     if (!this.activted) return
     this.activted = false
     this.uri = ''
     if (!this.snippet.hasPlaceholder) return
     this.snippet = null
-    try {
-      await this.nvim.call('coc#snippet#disable')
-    } catch (e) {
-      onError(e)
-    }
+    this.nvim.call('coc#snippet#disable', [], true)
   }
 
   public get document(): Document {
@@ -79,11 +78,12 @@ export class SnippetManager {
     let { snippet, document } = this
     if (!document) return
     let text = snippet.toString()
+    if (text == content) return
     let change = getChangeItem(text, content)
     if (!change) return
     let [placeholder, start] = snippet.findPlaceholder(change, change.offset)
-    if (!placeholder || placeholder.index == 0) {
-      await this.detach()
+    if (!placeholder) {
+      this.detach()
       return
     }
     let newText = snippet.getNewText(change, placeholder, start)
@@ -99,7 +99,7 @@ export class SnippetManager {
   }
 
   public async insertSnippet(document: Document, line: number, newLine: string, prepend: string, append: string): Promise<void> {
-    if (this.activted) await this.detach()
+    if (this.activted) this.detach()
     try {
       let { buffer } = document
       this.uri = document.uri
@@ -135,8 +135,6 @@ export class SnippetManager {
   public async jumpNext(): Promise<void> {
     let { currIndex, snippet } = this
     let { maxIndex } = snippet
-    let valid = await this.checkPosition()
-    if (!valid) return
     let idx: number
     if (currIndex == maxIndex) {
       idx = 0
@@ -152,8 +150,6 @@ export class SnippetManager {
   public async jumpPrev(): Promise<void> {
     let { currIndex, snippet } = this
     let { maxIndex } = snippet
-    let valid = await this.checkPosition()
-    if (!valid) return
     let idx: number
     if (currIndex == 0) {
       idx = maxIndex
@@ -166,15 +162,6 @@ export class SnippetManager {
     if (placeholder) await this.jumpTo(placeholder)
   }
 
-  public async checkPosition(): Promise<boolean> {
-    let lnum = await this.nvim.call('line', ['.'])
-    if (lnum - 1 != this.startLnum) {
-      await this.detach()
-      return false
-    }
-    return true
-  }
-
   /**
    * Check the real current line
    *
@@ -185,10 +172,7 @@ export class SnippetManager {
     if (!document) return
     // need this to make sure we have current line
     await wait(20)
-    let line = this.snippet.toString()
-    let currline = document.getline(startLnum)
-    if (line == currline) return
-    await this.onLineChange(currline)
+    await this.onLineChange(document.getline(startLnum))
   }
 
   private onDocumentChange(e: DidChangeTextDocumentParams): void {
@@ -198,19 +182,15 @@ export class SnippetManager {
     // fired by snippet manager
     if (document.changedtick - this.changedtick == 1) return
     let valid = true
-    if (contentChanges.length > 1) {
+    let edit: TextEdit = {
+      range: contentChanges[0].range,
+      newText: contentChanges[0].text
+    }
+    if (edit.range == null || !isLineEdit(edit, startLnum)) {
       valid = false
-    } else {
-      let edit: TextEdit = {
-        range: contentChanges[0].range,
-        newText: contentChanges[0].text
-      }
-      if (edit.range == null || !isLineEdit(edit, startLnum)) {
-        valid = false
-      }
     }
     if (!valid) {
-      this.detach().catch(onError)
+      this.detach()
       return
     }
     let newLine = document.getline(startLnum)
