@@ -152,7 +152,7 @@ export class Extensions {
     await workspace.runCommand(`yarn remove ${id}`, this.root)
   }
 
-  private isDisabled(id: string): boolean {
+  public isDisabled(id: string): boolean {
     let { db } = this
     let key = `/extension/${id}/disabled`
     return (db as any).exists(key) && db.getData(key) == true

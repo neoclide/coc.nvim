@@ -40,10 +40,10 @@ export default class Plugin extends EventEmitter {
     this.emit('ready')
     if (process.env.NODE_ENV === 'test') return
     workspace.onDidOpenTextDocument(async doc => {
-      if (!extensions.has('coc-json') && doc.uri.endsWith('coc-settings.json')) {
-        workspace.showMessage('Installing coc-json for json Intellisense')
-        await this.nvim.command('CocInstall coc-json')
-      }
+      if (!doc.uri.endsWith('coc-settings.json')) return
+      if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
+      workspace.showMessage('Installing coc-json for json Intellisense')
+      await this.nvim.command('CocInstall coc-json')
     })
   }
 

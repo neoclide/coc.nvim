@@ -336,7 +336,7 @@ export default class Handler {
     if (!document) return
     let { position } = await workspace.getCurrentState()
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
-    if (!highlights) return
+    if (!highlights || highlights.length == 0) return
     let doc = workspace.getDocument(document.uri)
     await doc.setHighlights(highlights)
   }
