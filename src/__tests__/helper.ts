@@ -63,15 +63,12 @@ export class Helper extends Emitter {
   public async waitPopup(): Promise<void> {
     let visible = await this.nvim.call('pumvisible')
     if (visible) return
-    let m = await this.nvim.mode
-    if (m.blocking) {
-      throw new Error('blocking')
-    }
     for (let i = 0; i < 50; i++) {
       await this.wait(100)
       let visible = await this.nvim.call('pumvisible')
       if (visible) return
     }
+    throw new Error('timeout after 5s')
   }
 
   public async reset(): Promise<void> {

@@ -112,30 +112,3 @@ describe('native sources', () => {
     expect(res).toBe(true)
   })
 })
-
-describe('remote sources', () => {
-  it('should works for neosnippet source', async () => {
-    await helper.edit('neosnippet')
-    await nvim.input('ineo')
-    await helper.wait(100)
-    let res = await helper.visible('neosnippet', 'neosnippet')
-    expect(res).toBe(true)
-  })
-
-  it('should works for neco source', async () => {
-    let buf = await helper.edit('neco.vim')
-    await buf.setOption('omnifunc', '')
-    await nvim.input('ine')
-    await helper.wait(100)
-    let res = await helper.visible('neco', 'neco')
-    expect(res).toBe(true)
-  })
-
-  it('should works for ultisnips source', async () => {
-    await helper.edit('ultisnips')
-    await nvim.input('iulti')
-    await helper.wait(100)
-    let res = await helper.visible('ultisnips', 'ultisnips')
-    expect(res).toBe(true)
-  })
-})
