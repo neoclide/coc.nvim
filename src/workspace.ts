@@ -388,7 +388,7 @@ export class Workspace implements IWorkspace {
   public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
     let cmdHeight = (await nvim.getOption('cmdheight') as number)
-    if (lines.length > cmdHeight) {
+    if (lines.length > cmdHeight && truncate) {
       lines = lines.slice(0, cmdHeight)
       let last = lines[cmdHeight - 1]
       lines[cmdHeight - 1] = `${last} ...`
@@ -399,7 +399,7 @@ export class Workspace implements IWorkspace {
       if (truncate) line = line.slice(0, (columns as number) - 1)
       return `echo '${line.replace(/'/g, "''")}'`
     }).join('|')
-    await nvim.command(cmd)
+    nvim.command(cmd, true)
   }
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {

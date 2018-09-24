@@ -17,7 +17,7 @@ class Source(Base):
         self.name = 'coc-diagnostic'
         self.matchers = ['matcher_fuzzy']
         self.sorters = []
-        self.kind = FileKind(vim)
+        self.kind = Kind(vim)
 
     def define_syntax(self):
         self.vim.command('syntax case ignore')
@@ -57,3 +57,15 @@ class Source(Base):
                 })
 
         return candidates
+
+class Kind(FileKind):
+
+    def __init__(self, vim):
+        super().__init__(vim)
+        self.default_action = 'jump'
+
+    def action_jump(self, context):
+        target = context['targets'][0]
+        self._open(context, 'drop')
+        self.vim.call('CocAction', 'diagnosticInfo')
+

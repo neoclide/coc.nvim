@@ -20,7 +20,7 @@ class Source(Base):
 
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'commands')
-        if items is None or items is 0:
+        if items is None or items:
             return []
         candidates = []
         for item in items:

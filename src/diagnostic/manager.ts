@@ -57,15 +57,11 @@ export class DiagnosticManager {
       }
     }, null, this.disposables)
 
-    events.on('CursorMoved', () => {
+    events.on('CursorMoved', bufnr => {
       if (this.timer) {
         clearTimeout(this.timer)
       }
-      this.timer = setTimeout(async () => {
-        let mode = await workspace.nvim.mode
-        if (mode.blocking || mode.mode != 'n') return
-        await this.echoMessage(true)
-      }, 500)
+      this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
     }, null, this.disposables)
 
     events.on(['InsertEnter', 'TextChanged'], () => {
@@ -137,10 +133,10 @@ export class DiagnosticManager {
     let { nvim } = workspace
     let { documents } = workspace
     let { errorSign, warningSign, infoSign, hintSign } = this.config
-    await nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`)
-    await nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`)
-    await nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`)
-    await nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`)
+    nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`, true)
     // create buffers
     for (let doc of documents) {
       this.buffers.push(new DiagnosticBuffer(doc.uri, this))
@@ -249,6 +245,7 @@ export class DiagnosticManager {
         break
       }
     }
+    this._echoMessage()
   }
 
   /**
@@ -271,6 +268,7 @@ export class DiagnosticManager {
         break
       }
     }
+    this._echoMessage()
   }
 
   public getLocationList(uri: string, bufnr: number): LocationListItem[] {
@@ -356,11 +354,12 @@ export class DiagnosticManager {
       diagnostics = this.diagnosticsAtOffset(offset + 1, document.textDocument)
     }
     if (diagnostics.length == 0) return
-    let lines: string[] = diagnostics.map(diagnostic => {
+    let lines: string[] = []
+    diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = severityName(severity)[0]
-      let msg = message.replace(/\n/g, ' ')
-      return `[${source}${code ? ' ' + code : ''}] ${msg} [${s}]`
+      let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
+      lines.push(...str.split('\n'))
     })
     await workspace.echoLines(lines, truncate)
   }
@@ -417,6 +416,21 @@ export class DiagnosticManager {
 
   private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
+  }
+
+  private async onHold(bufnr: number): Promise<void> {
+    if (workspace.bufnr != bufnr) return
+    let m = await this.nvim.mode
+    if (m.blocking || m.mode != 'n') return
+    await this.echoMessage(true)
+  }
+
+  private _echoMessage(): void {
+    setTimeout(() => {
+      this.echoMessage().catch(e => {
+        logger.error(e)
+      })
+    }, 100)
   }
 }
 

@@ -232,7 +232,7 @@ describe('workspace methods', () => {
     await workspace.echoLines(['a', 'b', 'd', 'e'])
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
-    expect(s).toBe('b')
+    expect(s).toBe('e')
   })
 
   it('should read content from buffer', async () => {

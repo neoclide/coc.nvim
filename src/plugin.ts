@@ -3,13 +3,13 @@ import { EventEmitter } from 'events'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
+import extensions from './extensions'
 import Handler from './handler'
 import services from './services'
 import snippetManager from './snippet/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
-import extensions from './extensions'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -53,6 +53,7 @@ export default class Plugin extends EventEmitter {
     try {
       switch (args[0] as string) {
         case 'links': {
+          await workspace.echoLines(['a', 'b', 'd', 'e'])
           return await handler.links()
         }
         case 'openLink': {
@@ -90,15 +91,18 @@ export default class Plugin extends EventEmitter {
           completion.toggleSource(args[1])
           break
         case 'diagnosticInfo':
-          await diagnosticManager.echoMessage()
+          // denite would clear message without timer
+          setTimeout(() => {
+            diagnosticManager.echoMessage().catch(e => {
+              logger.error(e)
+            })
+          }, 40)
           break
         case 'diagnosticNext':
           await diagnosticManager.jumpNext()
-          await diagnosticManager.echoMessage()
           break
         case 'diagnosticPrevious':
           await diagnosticManager.jumpPrevious()
-          await diagnosticManager.echoMessage()
           break
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
