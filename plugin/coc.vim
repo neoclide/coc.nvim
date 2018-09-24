@@ -129,11 +129,14 @@ function! s:Enable()
   command! -nargs=0 CocErrors  :call coc#rpc#show_error()
 endfunction
 
-hi default CocErrorSign   guifg=#ff0000
-hi default CocWarningSign guifg=#ff922b
-hi default CocInfoSign    guifg=#fab005
-hi default CocHintSign    guifg=#15aabf
-hi default CocUnderline   term=underline gui=underline
+hi default CocErrorSign        guifg=#ff0000
+hi default CocWarningSign      guifg=#ff922b
+hi default CocInfoSign         guifg=#fab005
+hi default CocHintSign         guifg=#15aabf
+hi default CocErrorHighlight   term=underline gui=underline
+hi default CocWarningHighlight term=underline gui=underline
+hi default CocInfoHighlight    term=underline gui=underline
+hi default CocHintHighlight    term=underline gui=underline
 
 hi default CocHighlightText  guibg=#111111
 hi default CocHighlightRead  guibg=#111111

@@ -133,11 +133,11 @@ export class DiagnosticBuffer {
           let signId = signIds[i]
           this.addSign(signId, line, diagnostic.severity)
           if (workspace.isVim) {
-            this.addHighlight(owner, diagnostic.range).catch(e => {
+            this.addHighlight(owner, diagnostic.range, diagnostic.severity).catch(e => {
               logger.error(e.message)
             })
           } else {
-            this.addHighlightNvim(owner, diagnostic.range)
+            this.addHighlightNvim(owner, diagnostic.range, diagnostic.severity)
           }
         })
       }
@@ -146,7 +146,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  private addHighlightNvim(owner: string, range: Range): void {
+  private addHighlightNvim(owner: string, range: Range, severity: DiagnosticSeverity): void {
     let srcId = this.manager.getSrcId(owner)
     let { start, end } = range
     let { document } = this
@@ -159,7 +159,7 @@ export class DiagnosticBuffer {
       let e = i == end.line ? end.character : -1
       buffer.addHighlight({
         srcId,
-        hlGroup: 'CocUnderline',
+        hlGroup: getNameFromSeverity(severity) + 'Highlight',
         line: i,
         colStart: s == 0 ? 0 : byteIndex(line, s),
         colEnd: e == -1 ? -1 : byteIndex(line, e),
@@ -250,7 +250,7 @@ export class DiagnosticBuffer {
     buffer.setVar('coc_diagnostic_info', { error, warning, information, hint }, true)
   }
 
-  private async addHighlight(owner: string, range: Range): Promise<void> {
+  private async addHighlight(owner: string, range: Range, severity: DiagnosticSeverity): Promise<void> {
     let { start, end } = range
     let { document, srcIdMap } = this
     if (!document) return
@@ -276,7 +276,7 @@ export class DiagnosticBuffer {
         }
       }
       if (workspace.bufnr != document.bufnr) return
-      let id = await workspace.nvim.call('matchaddpos', ['CocUnderline', list, 99])
+      let id = await workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99])
       let ids = srcIdMap.get(owner)
       if (ids) {
         ids.add(id)
