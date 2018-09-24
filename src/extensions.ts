@@ -51,7 +51,6 @@ export class Extensions {
     let db = this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
     this.version = version
-
     let paths = this.getExtensionFolders()
     Promise.all(paths.map(folder => {
       let id = path.dirname(folder)
@@ -62,29 +61,28 @@ export class Extensions {
     })) // tslint:disable-line
     let now = new Date()
     let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    if (!global.hasOwnProperty('__TEST__')) {
-      this.onDidActiveExtension(async extension => {
-        let { id, packageJSON } = extension
-        let key = `/extension/${id}/ts`
-        let ts = (db as any).exists(key) ? db.getData(key) : null
-        if (!ts || Number(ts) < today.getTime()) {
-          db.push(key, Date.now())
-          try {
-            let res = await workspace.runCommand(`yarn info ${id} version --json`)
-            let version = JSON.parse(res).data
-            if (semver.gt(version, packageJSON.version)) {
-              let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
-              if (res) {
-                await workspace.nvim.command(`CocInstall ${id}`)
-              }
+    this.onDidActiveExtension(async extension => {
+      if (global.hasOwnProperty('__TEST__')) return
+      let { id, packageJSON } = extension
+      let key = `/extension/${id}/ts`
+      let ts = (db as any).exists(key) ? db.getData(key) : null
+      if (!ts || Number(ts) < today.getTime()) {
+        db.push(key, Date.now())
+        try {
+          let res = await workspace.runCommand(`yarn info ${id} version --json`)
+          let version = JSON.parse(res).data
+          if (semver.gt(version, packageJSON.version)) {
+            let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
+            if (res) {
+              await workspace.nvim.command(`CocInstall ${id}`)
             }
-          } catch (e) {
-            logger.error(e.stack)
-            // noop
           }
+        } catch (e) {
+          logger.error(e.stack)
+          // noop
         }
-      }, null, this.disposables)
-    }
+      }
+    }, null, this.disposables)
   }
 
   public get all():Extension<API>[] {
@@ -420,6 +418,7 @@ export class Extensions {
   private getExtensionFolders(): string[] {
     let { root } = this
     let jsonFile = path.join(root, 'package.json')
+    if (!fs.existsSync(jsonFile)) return []
     let json = loadJson(jsonFile)
     if (!json || !json.dependencies) {
       return []
