@@ -1,3 +1,17 @@
+# 2018-09-24
+
+- **break change**: use `CursorMove` instead of `CursorHold` for diagnostic
+  message.
+- **break change**: direct move to diagnostic position would show diagnostic
+  message without truncate.
+- **break change**: snippet would be canceled when mode changed to normal, no
+  mapping of `<esc>` any more.
+- Add format document on `insertLeave` when `onTypeFormat` is supported.
+- Add buffer operations on resource edit.
+- Add `uninstall` action for `Denite coc-extension`.
+- Fix active extension on command not working.
+- Fix delete file from resource edit not works.
+
 # 2018-09-20
 
 - Fix diagnostic check next offset for diagnostics.
