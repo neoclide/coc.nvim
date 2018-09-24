@@ -76,7 +76,7 @@ export default class Plugin extends EventEmitter {
           break
         }
         case 'snippetCancel': {
-          await snippetManager.detach()
+          snippetManager.detach()
           break
         }
         case 'startCompletion':
