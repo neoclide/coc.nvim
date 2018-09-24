@@ -38,7 +38,7 @@ export default class Plugin extends EventEmitter {
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emit('ready')
-    if (process.env.NODE_ENV === 'test') return
+    if (global.hasOwnProperty('__TEST__')) return
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return

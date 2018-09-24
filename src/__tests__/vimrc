@@ -16,7 +16,7 @@ let s:plugin = s:dir.'/plugins'
 
 autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
-imap <silent> <C-u> <Plug>(coc-complete-custom)
+imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
 
 execute 'set runtimepath+='.s:root
 execute 'set runtimepath+='.s:plugin

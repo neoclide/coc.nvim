@@ -62,7 +62,7 @@ export class Extensions {
     })) // tslint:disable-line
     let now = new Date()
     let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    if (process.env.NODE_ENV != 'test') {
+    if (!global.hasOwnProperty('__TEST__')) {
       this.onDidActiveExtension(async extension => {
         let { id, packageJSON } = extension
         let key = `/extension/${id}/ts`
