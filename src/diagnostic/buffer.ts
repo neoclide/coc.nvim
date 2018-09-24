@@ -95,7 +95,7 @@ export class DiagnosticBuffer {
     for (let winid of ids) {
       let curr = await nvim.call('getloclist', [winid, { title: 1 }])
       let action = (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) ? 'r' : ' '
-      nvim.call('setloclist', [winid, items, action, 'Diagnostics of coc'], true)
+      await nvim.call('setloclist', [winid, items, action, 'Diagnostics of coc'])
     }
   }
 

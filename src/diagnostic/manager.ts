@@ -78,13 +78,17 @@ export class DiagnosticManager {
       this.setConfiguration()
     }, null, this.disposables)
 
-    events.on('BufWinEnter', (bufnr, winid) => {
+    events.on('BufWinEnter', async (bufnr, winid) => {
+      if (!this.config.locationlist) return
       let doc = workspace.getDocument(bufnr)
       let buf = doc ? this.buffers.find(buf => buf.uri == doc.uri) : null
       if (buf) {
         buf.setLocationlist()
       } else {
-        workspace.nvim.call('setloclist', [winid, [], 'f'], true)
+        let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
+        if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
+          this.nvim.call('setloclist', [winid, [], 'f'], true)
+        }
       }
     }, null, this.disposables)
 
@@ -117,15 +121,15 @@ export class DiagnosticManager {
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
-    this.srcId = config.get<number>('highlightOffset', 1000),
-      this.config = {
-        locationlist: config.get<boolean>('locationlist', true),
-        signOffset: config.get<number>('signOffset', 1000),
-        errorSign: config.get<string>('errorSign', '>>'),
-        warningSign: config.get<string>('warningSign', '>>'),
-        infoSign: config.get<string>('infoSign', '>>'),
-        hintSign: config.get<string>('hintSign', '>>'),
-      }
+    this.srcId = config.get<number>('highlightOffset', 1000)
+    this.config = {
+      locationlist: config.get<boolean>('locationlist', true),
+      signOffset: config.get<number>('signOffset', 1000),
+      errorSign: config.get<string>('errorSign', '>>'),
+      warningSign: config.get<string>('warningSign', '>>'),
+      infoSign: config.get<string>('infoSign', '>>'),
+      hintSign: config.get<string>('hintSign', '>>'),
+    }
     this.enabled = config.get<boolean>('enable', true)
   }
 
