@@ -56,7 +56,7 @@ export default class File extends Source {
       if (f == null) return false
       if (ignoreHidden && /^\./.test(f)) return false
       for (let p of ignorePatterns) {
-        if (minimatch(f, p)) return false
+        if (minimatch(f, p, { dot: true })) return false
       }
       return true
     })

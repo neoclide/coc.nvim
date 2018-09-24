@@ -53,7 +53,7 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     }
 
     if (pattern) {
-      if (pattern === u.fsPath || minimatch(u.fsPath, pattern)) {
+      if (pattern === u.fsPath || minimatch(u.fsPath, pattern, { dot: true })) {
         ret = 10
       } else {
         return 0
