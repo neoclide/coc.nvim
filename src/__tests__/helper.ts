@@ -72,7 +72,6 @@ export class Helper extends Emitter {
       let visible = await this.nvim.call('pumvisible')
       if (visible) return
     }
-    throw new Error('timeout after 5 seconds')
   }
 
   public async reset(): Promise<void> {
