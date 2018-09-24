@@ -64,7 +64,7 @@ export class Helper extends Emitter {
     return new Promise((resolve, reject) => {
       let timeout = setTimeout(() => {
         clearInterval(interval)
-        reject(new Error('timeout after 5s'))
+        reject(new Error('timeout after 5 seconds'))
       }, 5000)
       let interval = setInterval(() => {
         this.nvim.call('pumvisible').then(visible => {
@@ -135,7 +135,7 @@ export class Helper extends Emitter {
     await this.wait(50)
     let m = await this.nvim.mode
     if (m.blocking) {
-      console.log('blocking')
+      console.log('blocking') // tslint:disable-line
     }
     return buf
   }
