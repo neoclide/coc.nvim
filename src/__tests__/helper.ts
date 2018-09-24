@@ -60,22 +60,19 @@ export class Helper extends Emitter {
     }
   }
 
-  public waitPopup(): Promise<void> {
-    return new Promise((resolve, reject) => {
-      let timeout = setTimeout(() => {
-        clearInterval(interval)
-        reject(new Error('timeout after 5 seconds'))
-      }, 5000)
-      let interval = setInterval(() => {
-        this.nvim.call('pumvisible').then(visible => {
-          if (visible) {
-            clearTimeout(timeout)
-            clearInterval(interval)
-            resolve()
-          }
-        }, reject)
-      }, 100)
-    })
+  public async waitPopup(): Promise<void> {
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) return
+    let m = await this.nvim.mode
+    if (m.blocking) {
+      throw new Error('blocking')
+    }
+    for (let i = 0; i < 50; i++) {
+      await this.wait(100)
+      let visible = await this.nvim.call('pumvisible')
+      if (visible) return
+    }
+    throw new Error('timeout after 5 seconds')
   }
 
   public async reset(): Promise<void> {
