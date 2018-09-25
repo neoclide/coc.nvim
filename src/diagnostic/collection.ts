@@ -40,7 +40,6 @@ export default class Collection implements DiagnosticCollection {
 
   public delete(uri: string): void {
     this.diagnosticsMap.delete(uri)
-    diagnosticManager.clear(this.name, uri)
   }
 
   public clear(): void {

@@ -856,6 +856,11 @@ export class Workspace implements IWorkspace {
   private async onBufUnload(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
+      let manager = (await import('./diagnostic/manager')).default
+      let diagnosticBuf = manager.getBuffer(doc.uri)
+      if (diagnosticBuf) {
+        await diagnosticBuf.clear()
+      }
       this.buffers.delete(bufnr)
       await doc.detach()
       this._onDidCloseDocument.fire(doc.textDocument)

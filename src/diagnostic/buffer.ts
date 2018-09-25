@@ -212,7 +212,7 @@ export class DiagnosticBuffer {
     let signIds = this.signMap.get(owner) || []
     try {
       await this.clearHighlight(owner)
-      nvim.call('coc#util#unplace_signs', [document.bufnr, signIds], true)
+      await nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
       this.signMap.set(owner, [])
       this.infoMap.delete(owner)
     } catch (e) {
@@ -220,20 +220,40 @@ export class DiagnosticBuffer {
     }
   }
 
-  public async clear(owner?: string): Promise<void> {
+  private async _clearAll(): Promise<void> {
+    let { document, nvim } = this
+    let names = Array.from(this.signMap.keys())
+    let signIds = []
+    for (let name of names) {
+      let ids = this.signMap.get(name) || []
+      signIds.push(...ids)
+    }
+    if (signIds.length) {
+      await nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
+    }
+    await Promise.all(names.map(name => {
+      return this.clearHighlight(name)
+    }))
+    this.signMap.clear()
+    this.infoMap.clear()
+    this.setDiagnosticInfo()
+  }
+
+  public clear(owner?: string): Promise<any> {
     this.setLocationlist.clear()
     if (!owner) {
-      await this.resetLocationlist()
-    }
-    this.promise = this.promise.then(() => {
-      if (owner) {
+      this.resetLocationlist().catch(e => {
+        logger.error(e)
+      })
+      this.promise = this.promise.then(() => {
+        return this._clearAll() as any
+      })
+    } else {
+      this.promise = this.promise.then(() => {
         return this._clear(owner) as any
-      }
-      let names = Array.from(this.signMap.keys())
-      return Promise.all(names.map(name => {
-        return this._clear(name)
-      }))
-    })
+      })
+    }
+    return this.promise
   }
 
   private addSign(signId: number, line: number, severity: DiagnosticSeverity): void {

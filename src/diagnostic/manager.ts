@@ -407,7 +407,7 @@ export class DiagnosticManager {
       collection.clear()
     }
     for (let buf of buffers) {
-      buf.resetLocationlist().catch(e => {
+      buf.clear().catch(e => {
         logger.error(e)
       })
     }
