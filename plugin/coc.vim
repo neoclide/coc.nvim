@@ -58,6 +58,7 @@ function! s:Disable() abort
   echohl MoreMsg
     echom '[coc.nvim] Disabled'
   echohl None
+  call CocAction('disable')
   let g:coc_enabled = 0
 endfunction
 

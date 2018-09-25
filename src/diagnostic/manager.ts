@@ -395,7 +395,7 @@ export class DiagnosticManager {
     for (let buffer of buffers) {
       if (!uri || buffer.uri == uri) {
         buffer.clear(owner).catch(e => {
-          logger.error(e.stack)
+          logger.error(e)
         })
       }
     }
@@ -403,10 +403,12 @@ export class DiagnosticManager {
 
   public clearAll(): void {
     let { buffers } = this
-    this.collections = []
+    for (let collection of this.collections) {
+      collection.clear()
+    }
     for (let buf of buffers) {
-      buf.clear().catch(e => {
-        logger.error(e.message)
+      buf.resetLocationlist().catch(e => {
+        logger.error(e)
       })
     }
   }

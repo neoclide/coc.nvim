@@ -48,6 +48,7 @@ export default class Collection implements DiagnosticCollection {
       this.delete(uri)
     }
   }
+
   public forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void {
     for (let uri of this.diagnosticsMap.keys()) {
       let diagnostics = this.diagnosticsMap.get(uri)

@@ -85,6 +85,17 @@ export class DiagnosticBuffer {
     })
   }
 
+  public async resetLocationlist(): Promise<void> {
+    let ids = await this.getWinids()
+    let { nvim } = this
+    for (let winid of ids) {
+      let curr = await nvim.call('getloclist', [winid, { title: 1 }])
+      if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
+        nvim.call('setloclist', [winid, [], 'f'], true)
+      }
+    }
+  }
+
   private async _setLocationlist(): Promise<void> {
     if (!this.enableLoclist) return
     let { nvim, document } = this
@@ -200,10 +211,8 @@ export class DiagnosticBuffer {
     if (!document) return
     let signIds = this.signMap.get(owner) || []
     try {
-      await Promise.all([
-        this.clearHighlight(owner),
-        nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
-      ])
+      await this.clearHighlight(owner)
+      nvim.call('coc#util#unplace_signs', [document.bufnr, signIds], true)
       this.signMap.set(owner, [])
       this.infoMap.delete(owner)
     } catch (e) {
@@ -213,6 +222,9 @@ export class DiagnosticBuffer {
 
   public async clear(owner?: string): Promise<void> {
     this.setLocationlist.clear()
+    if (!owner) {
+      await this.resetLocationlist()
+    }
     this.promise = this.promise.then(() => {
       if (owner) {
         return this._clear(owner) as any
