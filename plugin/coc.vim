@@ -58,7 +58,6 @@ function! s:Disable() abort
   echohl MoreMsg
     echom '[coc.nvim] Disabled'
   echohl None
-  call CocAction('disable')
   let g:coc_enabled = 0
 endfunction
 
@@ -152,6 +151,10 @@ function! s:CodeActionFromSelected(type)
   call CocAction('codeAction', a:type)
 endfunction
 
+function! s:StatChange(dict, key, val)
+  return coc#rpc#request('CocAction', ['toggle', get(a:val, 'new', 0)])
+endfunction
+
 function! s:OnVimEnter()
   " it's possible that client is not ready
   call coc#rpc#notify('VimEnter', [])
@@ -162,7 +165,7 @@ endfunction
 
 augroup coc_init
   autocmd!
-  autocmd User     CocNvimInit call s:Enable()
+  autocmd User     CocNvimInit call s:Enable() | call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
   autocmd VimEnter *           call s:OnVimEnter()
   if s:is_vim
     autocmd User NvimRpcInit call coc#rpc#start_server()

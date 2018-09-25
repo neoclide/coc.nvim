@@ -521,10 +521,10 @@ COMMANDS 					*coc-commands*
 
 
 :CocDisable 					*:CocDisable*
-		Disable completion of coc
+		Disable all events of coc
 
 :CocEnable 					*:CocEnable*
-		Enable completion of coc
+		Enable events of coc
 
 :CocRestart 					*:CocRestart*
 

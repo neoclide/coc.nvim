@@ -41,14 +41,12 @@ export class DiagnosticManager {
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private nvim: Neovim
   private srcId = 1000
   private srcIdMap: Map<string, number> = new Map()
   private enableMessage = true
   constructor() {
 
     workspace.onDidWorkspaceInitialized(() => {
-      this.nvim = workspace.nvim
       this.setConfiguration()
       if (this.enabled) {
         this.init().catch(err => {
@@ -118,6 +116,10 @@ export class DiagnosticManager {
         clearTimeout(this.timer)
       }
     }))
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
   private setConfiguration(): void {
@@ -401,7 +403,7 @@ export class DiagnosticManager {
     }
   }
 
-  public clearAll(): void {
+  public dispose(): void {
     let { buffers } = this
     for (let collection of this.collections) {
       collection.clear()
@@ -411,10 +413,6 @@ export class DiagnosticManager {
         logger.error(e)
       })
     }
-  }
-
-  public dispose(): void {
-    this.clearAll()
     this.buffers = []
     this.collections = []
     disposeAll(this.disposables)

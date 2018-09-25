@@ -54,7 +54,7 @@ export class Workspace implements IWorkspace {
   private checkBuffer: Function & { clear(): void; }
   private _settingsScheme: any
 
-  private _onDidAddDocument = new Emitter<TextDocument>()
+  private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
@@ -62,7 +62,7 @@ export class Workspace implements IWorkspace {
   private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
 
-  public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidAddDocument.event
+  public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidOpenDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidCloseDocument.event
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
@@ -128,18 +128,8 @@ export class Workspace implements IWorkspace {
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
-    let buffers = await this.nvim.buffers
-    await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf)
-    }))
-    let buffer = await this.nvim.buffer
-    this._onDidWorkspaceInitialized.fire(void 0)
-    this._initialized = true
+    await this.attach()
     if (this.isVim) this.initVimEvents()
-    events.fire('BufEnter', [buffer.id]) // tslint:disable-line
-    let winid = await this.nvim.call('win_getid')
-    let name = await buffer.name
-    events.fire('BufWinEnter', [name, winid]) // tslint:disable-line
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -644,6 +634,32 @@ export class Workspace implements IWorkspace {
     return res == 1
   }
 
+  public async attach(): Promise<void> {
+    let buffers = await this.nvim.buffers
+    await Promise.all(buffers.map(buf => {
+      return this.onBufCreate(buf)
+    }))
+    let buffer = await this.nvim.buffer
+    if (!this._initialized) {
+      this._onDidWorkspaceInitialized.fire(void 0)
+      this._initialized = true
+    }
+    await events.fire('BufEnter', [buffer.id])
+    let winid = await this.nvim.call('win_getid')
+    let name = await buffer.name
+    await events.fire('BufWinEnter', [name, winid])
+  }
+
+  public detach(): void {
+    for (let bufnr of this.buffers.keys()) {
+      let doc = this.getDocument(bufnr)
+      doc.clearHighlight()
+      this.onBufUnload(bufnr).catch(e => {
+        logger.error(e)
+      })
+    }
+  }
+
   public dispose(): void {
     for (let ch of this.outputChannels.values()) {
       ch.dispose()
@@ -653,6 +669,7 @@ export class Workspace implements IWorkspace {
         logger.error(e)
       })
     }
+    this.buffers.clear()
     Watchman.dispose()
     this.terminal.removeAllListeners()
     disposeAll(this.disposables)
@@ -835,7 +852,7 @@ export class Workspace implements IWorkspace {
     }
     if (attached) {
       this.buffers.set(buffer.id, document)
-      this._onDidAddDocument.fire(document.textDocument)
+      this._onDidOpenDocument.fire(document.textDocument)
       document.onDocumentChange(({ textDocument, contentChanges }) => {
         let { version, uri } = textDocument
         this._onDidChangeDocument.fire({
@@ -901,7 +918,7 @@ export class Workspace implements IWorkspace {
     if (!doc) return
     this._onDidCloseDocument.fire(doc.textDocument)
     doc.setFiletype(filetype)
-    this._onDidAddDocument.fire(doc.textDocument)
+    this._onDidOpenDocument.fire(doc.textDocument)
   }
 
   private async _checkBuffer(): Promise<void> {
