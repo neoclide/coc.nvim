@@ -10,6 +10,7 @@ import snippetManager from './snippet/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
+import events from './events'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -53,11 +54,7 @@ export default class Plugin extends EventEmitter {
     try {
       switch (args[0] as string) {
         case 'toggle': {
-          if (args[1] == 1) {
-            await workspace.attach()
-          } else {
-            await workspace.detach()
-          }
+          await events.fire('toggle', [args[1]])
           return
         }
         case 'links': {

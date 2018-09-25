@@ -127,6 +127,13 @@ export class Workspace implements IWorkspace {
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
+    events.on('toggle', async enable => {
+      if (enable == 1) {
+        await this.attach()
+      } else {
+        await this.detach()
+      }
+    })
     this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
     await this.attach()
     if (this.isVim) this.initVimEvents()
@@ -634,7 +641,7 @@ export class Workspace implements IWorkspace {
     return res == 1
   }
 
-  public async attach(): Promise<void> {
+  private async attach(): Promise<void> {
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
@@ -650,7 +657,7 @@ export class Workspace implements IWorkspace {
     await events.fire('BufWinEnter', [name, winid])
   }
 
-  public async detach(): Promise<void> {
+  private async detach(): Promise<void> {
     for (let bufnr of this.buffers.keys()) {
       let doc = this.getDocument(bufnr)
       doc.clearHighlight()

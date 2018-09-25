@@ -12,7 +12,7 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
 
 export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'TextChangedP' | 'CursorMovedI'
 
-export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'DirChanged' | 'OptionSet' | 'Command'
+export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' | 'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'DirChanged' | 'OptionSet' | 'Command' | 'toggle'
 
 export type OptionValue = string | number | boolean
 
@@ -36,6 +36,7 @@ class Events {
 
   public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'toggle', handler: (enabled: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
