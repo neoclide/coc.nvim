@@ -60,7 +60,7 @@ function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   execute 'echohl '.a:hl
   for msg in a:msgs
-    echo msg
+    echom msg
   endfor
   echohl None
 endfunction
