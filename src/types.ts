@@ -643,7 +643,7 @@ export interface IWorkspace {
   getQuickfixItem(loc: Location): Promise<QuickfixItem>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
-  echoLines(lines: string[]): Promise<void>
+  echoLines(lines: string[], truncate?: boolean): Promise<void>
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts?: CreateFileOptions): Promise<void>

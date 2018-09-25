@@ -225,14 +225,14 @@ describe('workspace methods', () => {
     await workspace.echoLines(['a', 'b'])
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
-    expect(s).toBe('b')
+    expect(s).toBe('a')
   })
 
-  it('should echo multiple lines', async () => {
-    await workspace.echoLines(['a', 'b', 'd', 'e'])
+  it('should echo multiple lines with truncate', async () => {
+    await workspace.echoLines(['a', 'b', 'd', 'e'], true)
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
-    expect(s).toBe('e')
+    expect(s).toBe('a')
   })
 
   it('should read content from buffer', async () => {
