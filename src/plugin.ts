@@ -52,6 +52,10 @@ export default class Plugin extends EventEmitter {
     let { handler } = this
     try {
       switch (args[0] as string) {
+        case 'disable': {
+          diagnosticManager.clearAll()
+          return
+        }
         case 'links': {
           await workspace.echoLines(['a', 'b', 'd', 'e'])
           return await handler.links()

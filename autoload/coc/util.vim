@@ -60,9 +60,14 @@ function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   execute 'echohl '.a:hl
   for msg in a:msgs
-    echo msg
+    echom msg
   endfor
   echohl None
+endfunction
+
+function! coc#util#echo_lines(lines)
+  let msg = join(a:lines, "\n")
+  echo msg
 endfunction
 
 function! coc#util#get_fullpath(bufnr) abort
@@ -228,6 +233,10 @@ function! coc#util#get_search(col) abort
 endfunction
 
 function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort
+  let showcmd = &showcmd
+  let ruler = &ruler
+  let &showcmd = 0
+  let &ruler = 0
   let arr = []
   let i = 0
   let activeParameter = get(a:, 'activeParameter', 0)
@@ -268,6 +277,8 @@ function! coc#util#echo_signature(activeParameter, activeSignature, signatures) 
       echon "\n"
     endif
   endfor
+  let &showcmd = showcmd
+  let &ruler = ruler
 endfunction
 
 function! s:echo_signatureItem(list)
