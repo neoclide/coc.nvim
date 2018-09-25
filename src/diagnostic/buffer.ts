@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { DiagnosticInfo } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticManager } from './manager'
@@ -25,45 +24,16 @@ function getNameFromSeverity(severity: DiagnosticSeverity): string {
   }
 }
 
-function getDiagnosticInfo(diagnostics: Diagnostic[]): DiagnosticInfo {
-  let error = 0
-  let warning = 0
-  let information = 0
-  let hint = 0
-  if (diagnostics && diagnostics.length) {
-    for (let diagnostic of diagnostics) {
-      switch (diagnostic.severity) {
-        case DiagnosticSeverity.Error:
-          error = error + 1
-          break
-        case DiagnosticSeverity.Warning:
-          warning = warning + 1
-          break
-        case DiagnosticSeverity.Information:
-          information = information + 1
-          break
-        case DiagnosticSeverity.Hint:
-          hint = hint + 1
-          break
-        default:
-          error = error + 1
-      }
-    }
-  }
-  return { error, warning, information, hint }
-}
-
 // maintains sign and highlightId
 export class DiagnosticBuffer {
   private signMap: Map<string, number[]> = new Map()
   private srcIdMap: Map<string, Set<number>> = new Map()
-  private infoMap: Map<string, DiagnosticInfo> = new Map()
   private nvim: Neovim
   private signId: number
   private promise: Promise<void | void[]> = Promise.resolve(null)
   public setLocationlist: Function & { clear: () => void }
 
-  constructor(public readonly uri: string, private manager: DiagnosticManager) {
+  constructor(public readonly bufnr: number, public readonly uri: string, private manager: DiagnosticManager) {
     this.nvim = workspace.nvim
     this.signId = manager.config.signOffset || 1000
     this.setLocationlist = debounce(() => {
@@ -85,17 +55,6 @@ export class DiagnosticBuffer {
     })
   }
 
-  public async resetLocationlist(): Promise<void> {
-    let ids = await this.getWinids()
-    let { nvim } = this
-    for (let winid of ids) {
-      let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-      if (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) {
-        nvim.call('setloclist', [winid, [], 'f'], true)
-      }
-    }
-  }
-
   private async _setLocationlist(): Promise<void> {
     if (!this.enableLoclist) return
     let { nvim, document } = this
@@ -111,8 +70,7 @@ export class DiagnosticBuffer {
   }
 
   private async getWinids(): Promise<number[]> {
-    let { nvim, document } = this
-    let { bufnr } = document
+    let { nvim, bufnr } = this
     let res: number[] = []
     let wins = await nvim.windows
     for (let win of wins) {
@@ -129,12 +87,10 @@ export class DiagnosticBuffer {
   }
 
   private async _set(owner: string, diagnostics: Diagnostic[] | null): Promise<void> {
-    let { document } = this
-    if (!document) return
     try {
       this.setLocationlist()
       await this._clear(owner)
-      this.infoMap.set(owner, getDiagnosticInfo(diagnostics))
+      if (!this.document) return
       this.setDiagnosticInfo()
       if (diagnostics && diagnostics.length != 0) {
         diagnostics.sort((a, b) => b.severity - a.severity)
@@ -207,52 +163,23 @@ export class DiagnosticBuffer {
   }
 
   private async _clear(owner: string): Promise<void> {
-    let { document, nvim } = this
-    if (!document) return
+    let { nvim } = this
     let signIds = this.signMap.get(owner) || []
     try {
-      await this.clearHighlight(owner)
-      await nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
       this.signMap.set(owner, [])
-      this.infoMap.delete(owner)
+      await this.clearHighlight(owner)
+      await nvim.call('coc#util#unplace_signs', [this.bufnr, signIds])
     } catch (e) {
-      logger.error(e.stack)
+      logger.error(e)
     }
   }
 
-  private async _clearAll(): Promise<void> {
-    let { document, nvim } = this
-    let names = Array.from(this.signMap.keys())
-    let signIds = []
-    for (let name of names) {
-      let ids = this.signMap.get(name) || []
-      signIds.push(...ids)
-    }
-    if (signIds.length) {
-      await nvim.call('coc#util#unplace_signs', [document.bufnr, signIds])
-    }
-    await Promise.all(names.map(name => {
-      return this.clearHighlight(name)
-    }))
-    this.signMap.clear()
-    this.infoMap.clear()
+  public clear(owner: string): Promise<any> {
+    this.setLocationlist()
     this.setDiagnosticInfo()
-  }
-
-  public clear(owner?: string): Promise<any> {
-    this.setLocationlist.clear()
-    if (!owner) {
-      this.resetLocationlist().catch(e => {
-        logger.error(e)
-      })
-      this.promise = this.promise.then(() => {
-        return this._clearAll() as any
-      })
-    } else {
-      this.promise = this.promise.then(() => {
-        return this._clear(owner) as any
-      })
-    }
+    this.promise = this.promise.then(() => {
+      return this._clear(owner) as any
+    })
     return this.promise
   }
 
@@ -267,19 +194,8 @@ export class DiagnosticBuffer {
   private setDiagnosticInfo(): void {
     let { document } = this
     if (!document) return
-    let { buffer } = document
-    let error = 0
-    let warning = 0
-    let information = 0
-    let hint = 0
-    for (let [, diagnosticInfo] of this.infoMap) {
-      if (!diagnosticInfo) continue
-      error = error + diagnosticInfo.error
-      warning = warning + diagnosticInfo.warning
-      information = information + diagnosticInfo.information
-      hint = hint + diagnosticInfo.hint
-    }
-    buffer.setVar('coc_diagnostic_info', { error, warning, information, hint }, true)
+    let info = this.manager.getDiagnosticInfo(this.uri)
+    document.buffer.setVar('coc_diagnostic_info', info, true)
   }
 
   private async addHighlight(owner: string, range: Range, severity: DiagnosticSeverity): Promise<void> {
@@ -321,14 +237,14 @@ export class DiagnosticBuffer {
   }
 
   private async clearHighlight(owner: string): Promise<void> {
-    let { document, nvim } = this
+    let { bufnr, nvim, document } = this
     if (workspace.isNvim) {
       let srcId = this.manager.getSrcId(owner)
-      if (srcId) document.buffer.clearHighlight({ srcId })
+      if (document && srcId) document.buffer.clearHighlight({ srcId })
     } else {
       let ids = this.srcIdMap.get(owner) || new Set()
       this.srcIdMap.set(owner, new Set())
-      if (!document || workspace.bufnr != document.bufnr) return
+      if (workspace.bufnr != bufnr) return
       await nvim.call('coc#util#matchdelete', [Array.from(ids)])
     }
   }

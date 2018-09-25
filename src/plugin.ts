@@ -56,7 +56,7 @@ export default class Plugin extends EventEmitter {
           if (args[1] == 1) {
             await workspace.attach()
           } else {
-            workspace.detach()
+            await workspace.detach()
           }
           return
         }

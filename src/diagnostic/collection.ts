@@ -38,13 +38,14 @@ export default class Collection implements DiagnosticCollection {
     return
   }
 
-  public delete(uri: string): void {
+  public async delete(uri: string): Promise<void> {
     this.diagnosticsMap.delete(uri)
+    await diagnosticManager.clearBuffer(this.name, uri)
   }
 
-  public clear(): void {
+  public async clear(): Promise<void> {
     for (let uri of this.diagnosticsMap.keys()) {
-      this.delete(uri)
+      await this.delete(uri)
     }
   }
 
@@ -65,7 +66,7 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public dispose(): void {
-    this.clear()
+    this.diagnosticsMap.clear()
     diagnosticManager.removeCollection(this.name)
   }
 }

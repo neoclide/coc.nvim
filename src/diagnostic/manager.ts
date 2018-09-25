@@ -3,7 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, LocationListItem } from '../types'
+import { DiagnosticItem, LocationListItem, DiagnosticInfo } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -92,13 +92,19 @@ export class DiagnosticManager {
       }
     }, null, this.disposables)
 
-    workspace.onDidCloseTextDocument(textDocument => {
-      let { uri } = textDocument
+    events.on('BufUnload', async bufnr => {
+      let document = workspace.getDocument(bufnr)
+      if (!document) return
+      let { uri } = document
       for (let collection of this.collections) {
-        collection.delete(uri)
+        await collection.delete(uri)
       }
       let idx = this.buffers.findIndex(buf => buf.uri == uri)
-      if (idx !== -1) this.buffers.splice(idx, 1)
+      if (idx !== -1) {
+        let buf = this.buffers[idx]
+        await buf.clearSigns()
+        this.buffers.splice(idx, 1)
+      }
     }, null, this.disposables)
 
     workspace.onWillSaveTextDocument(e => {
@@ -147,11 +153,14 @@ export class DiagnosticManager {
     nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`, true)
     // create buffers
     for (let doc of documents) {
-      this.buffers.push(new DiagnosticBuffer(doc.uri, this))
+      this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
     }
+
     workspace.onDidOpenTextDocument(textDocument => {
-      this.buffers.push(new DiagnosticBuffer(textDocument.uri, this))
+      let doc = workspace.getDocument(textDocument.uri)
+      this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
     }, null, this.disposables)
+
     workspace.onDidCloseTextDocument(textDocument => {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
@@ -392,26 +401,24 @@ export class DiagnosticManager {
     return res
   }
 
-  public clear(owner: string, uri?: string): void {
-    let { buffers } = this
-    for (let buffer of buffers) {
-      if (!uri || buffer.uri == uri) {
-        buffer.clear(owner).catch(e => {
-          logger.error(e)
-        })
-      }
+  public async clearBuffer(owner: string, uri: string): Promise<void> {
+    let buf = this.getBuffer(uri)
+    if (buf) await buf.clear(owner)
+  }
+
+  public async clear(owner: string, uri?: string): Promise<void> {
+    let collection = this.collections.find(o => o.name == owner)
+    if (!collection) return
+    if (!uri) {
+      await collection.clear()
+    } else {
+      await collection.delete(uri)
     }
   }
 
   public dispose(): void {
-    let { buffers } = this
     for (let collection of this.collections) {
-      collection.clear()
-    }
-    for (let buf of buffers) {
-      buf.clear().catch(e => {
-        logger.error(e)
-      })
+      collection.dispose()
     }
     this.buffers = []
     this.collections = []
@@ -424,6 +431,18 @@ export class DiagnosticManager {
 
   private getCollections(uri: string): DiagnosticCollection[] {
     return this.collections.filter(c => c.has(uri))
+  }
+
+  public getDiagnosticInfo(uri: string): DiagnosticInfo {
+    let diagnostics = []
+    let collections = this.getCollections(uri)
+    collections.forEach(collection => {
+      let arr = collection.get(uri)
+      if (arr && arr.length) {
+        diagnostics.push(...arr)
+      }
+    })
+    return getDiagnosticInfo(diagnostics)
   }
 
   private async onHold(bufnr: number): Promise<void> {
@@ -440,6 +459,34 @@ export class DiagnosticManager {
       })
     }, 100)
   }
+}
+
+function getDiagnosticInfo(diagnostics: Diagnostic[]): DiagnosticInfo {
+  let error = 0
+  let warning = 0
+  let information = 0
+  let hint = 0
+  if (diagnostics && diagnostics.length) {
+    for (let diagnostic of diagnostics) {
+      switch (diagnostic.severity) {
+        case DiagnosticSeverity.Error:
+          error = error + 1
+          break
+        case DiagnosticSeverity.Warning:
+          warning = warning + 1
+          break
+        case DiagnosticSeverity.Information:
+          information = information + 1
+          break
+        case DiagnosticSeverity.Hint:
+          hint = hint + 1
+          break
+        default:
+          error = error + 1
+      }
+    }
+  }
+  return { error, warning, information, hint }
 }
 
 export default new DiagnosticManager()

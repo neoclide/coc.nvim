@@ -650,13 +650,11 @@ export class Workspace implements IWorkspace {
     await events.fire('BufWinEnter', [name, winid])
   }
 
-  public detach(): void {
+  public async detach(): Promise<void> {
     for (let bufnr of this.buffers.keys()) {
       let doc = this.getDocument(bufnr)
       doc.clearHighlight()
-      this.onBufUnload(bufnr).catch(e => {
-        logger.error(e)
-      })
+      await events.fire('BufUnload', [bufnr])
     }
   }
 
@@ -840,8 +838,7 @@ export class Workspace implements IWorkspace {
     if (buftype == 'help' || buftype == 'quickfix' || buftype == 'nofile') return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
-      // it could be buffer name changed
-      await this.onBufUnload(buffer.id)
+      await events.fire('BufUnload', [buffer.id])
     }
     let document = new Document(buffer)
     let attached: boolean
@@ -873,11 +870,6 @@ export class Workspace implements IWorkspace {
   private async onBufUnload(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
-      let manager = (await import('./diagnostic/manager')).default
-      let diagnosticBuf = manager.getBuffer(doc.uri)
-      if (diagnosticBuf) {
-        await diagnosticBuf.clear()
-      }
       this.buffers.delete(bufnr)
       await doc.detach()
       this._onDidCloseDocument.fire(doc.textDocument)
@@ -1056,7 +1048,7 @@ export class Workspace implements IWorkspace {
 
   private async onInsertEnter(): Promise<void> {
     let document = await this.document
-    await document.clearHighlight()
+    document.clearHighlight()
   }
 
   private getBufName(fullpath:string):string {
