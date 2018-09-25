@@ -65,6 +65,11 @@ function! coc#util#echo_messages(hl, msgs)
   echohl None
 endfunction
 
+function! coc#util#echo_lines(lines)
+  let msg = join(a:lines, "\n")
+  echo msg
+endfunction
+
 function! coc#util#get_fullpath(bufnr) abort
   let fname = bufname(a:bufnr)
   if empty(fname) | return '' | endif

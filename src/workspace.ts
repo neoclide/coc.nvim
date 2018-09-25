@@ -394,12 +394,12 @@ export class Workspace implements IWorkspace {
       lines[cmdHeight - 1] = `${last} ...`
     }
     let columns = await nvim.getOption('columns')
-    let cmd = lines.map(line => {
-      line = line.replace(/'/g, "''").replace(/\n/g, '')
+    lines = lines.map(line => {
+      line = line.replace(/\n/g, ' ')
       if (truncate) line = line.slice(0, (columns as number) - 1)
-      return `echo '${line.replace(/'/g, "''")}'`
-    }).join('|')
-    nvim.command(cmd, true)
+      return line
+    })
+    await nvim.call('coc#util#echo_lines', [lines])
   }
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
