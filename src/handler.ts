@@ -35,7 +35,7 @@ export default class Handler {
       this._showSignatureHelp().catch(e => {
         logger.error(e.stack)
       })
-    }, 100)
+    }, 200)
 
     let lastChar = ''
     let lastTs = null
@@ -437,12 +437,12 @@ export default class Handler {
 
   private async _showSignatureHelp(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
+    let visible = await this.nvim.call('pumvisible')
     let signatureHelp = await languages.getSignatureHelp(document, position)
-    if (!signatureHelp) return
+    if (!signatureHelp || visible) return
     let { activeParameter, activeSignature, signatures } = signatureHelp
     await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
-    await this.nvim.setOption('showcmd', true)
   }
 
   private async handleDefinition(definition: Definition): Promise<void> {
