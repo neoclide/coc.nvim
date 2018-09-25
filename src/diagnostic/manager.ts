@@ -81,9 +81,15 @@ export class DiagnosticManager {
       if (buf) {
         buf.setLocationlist()
       } else {
-        let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
-        if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-          this.nvim.call('setloclist', [winid, [], 'f'], true)
+        let bufs = await this.nvim.buffers
+        let buf = bufs.find(buf => buf.id == bufnr)
+        if (buf) {
+          let buftype = await buf.getOption('buftype')
+          if (buftype == 'quickfix') return
+          let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
+          if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
+            this.nvim.call('setloclist', [winid, [], 'f'], true)
+          }
         }
       }
     }, null, this.disposables)
@@ -278,11 +284,12 @@ export class DiagnosticManager {
         if (u != uri) return
         for (let diagnostic of diagnostics) {
           let { start } = diagnostic.range
+          let msg = diagnostic.message.split('\n')[0]
           let o: LocationListItem = {
             bufnr,
             lnum: start.line + 1,
             col: start.character + 1,
-            text: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
+            text: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg}`,
             type: severityName(diagnostic.severity).slice(0, 1).toUpperCase(),
           }
           res.push(o)
@@ -396,6 +403,7 @@ export class DiagnosticManager {
 
   public clearAll(): void {
     let { buffers } = this
+    this.collections = []
     for (let buf of buffers) {
       buf.clear().catch(e => {
         logger.error(e.message)
