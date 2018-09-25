@@ -135,6 +135,10 @@ hi default CocWarningSign guifg=#ff922b
 hi default CocInfoSign    guifg=#fab005
 hi default CocHintSign    guifg=#15aabf
 hi default CocUnderline   cterm=underline gui=underline
+hi default link CocErrorHighlight   CocUnderline
+hi default link CocWarningHighlight CocUnderline
+hi default link CocInfoHighlight    CocUnderline
+hi default link CocHintHighlight    CocUnderline
 
 hi default CocHighlightText  guibg=#111111
 hi default CocHighlightRead  guibg=#111111
