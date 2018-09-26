@@ -55,3 +55,6 @@ export function lastIndex<T>(array: T[], fn: (t: T) => boolean): number {
   }
   return i
 }
+
+export const flatMap = <T, U>(xs: T[], f: (item: T) => U[]): U[] =>
+    xs.reduce((x: U[], y: T) => [...x, ...f(y)], [])

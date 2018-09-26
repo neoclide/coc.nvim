@@ -136,7 +136,8 @@ export class Sources extends EventEmitter {
     })
   }
 
-  public addSource(name: string, source: ISource): void {
+  public addSource(source: ISource): void {
+    let { name } = source
     if (this.names.indexOf(name) !== -1) {
       workspace.showMessage(`Source "${name}" recreated`, 'warning')
     }
@@ -184,7 +185,7 @@ export class Sources extends EventEmitter {
         optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
       })
       source = new VimSource(config)
-      this.addSource(name, source)
+      this.addSource(source)
     } catch (e) {
       workspace.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
     }

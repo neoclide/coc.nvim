@@ -50,6 +50,10 @@ export class Completion implements Disposable {
     return lastChangedI && Date.now() - lastChangedI < 30
   }
 
+  public get option(): CompleteOption | null {
+    return completes.option
+  }
+
   public startCompletion(option: CompleteOption): void {
     this._doComplete(option).then(() => {
       this.completing = false

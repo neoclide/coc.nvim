@@ -272,6 +272,11 @@
       "description": "Set to false to disable diagnostic",
       "default": true
     },
+    "coc.preferences.snippets.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable snippets",
+      "default": true
+    },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "boolean",
       "description": "Set to false to disable echo message on CursorMove",

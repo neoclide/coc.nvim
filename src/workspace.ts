@@ -425,16 +425,18 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  public async getCurrentState(): Promise<EditerState> {
-    let document = await this.document
+  public async getCursorPosition(): Promise<Position> {
     let [, lnum, col] = await this.nvim.call('getcurpos')
     let line = await this.nvim.call('getline', '.')
+    return Position.create(lnum - 1, byteIndex(line, col - 1))
+  }
+
+  public async getCurrentState(): Promise<EditerState> {
+    let document = await this.document
+    let position = await this.getCursorPosition()
     return {
       document: document.textDocument,
-      position: {
-        line: lnum - 1,
-        character: byteIndex(line, col - 1)
-      }
+      position
     }
   }
 

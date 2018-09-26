@@ -22,11 +22,13 @@ import RenameManager from './provider/renameManager'
 import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
-import snippetManager from './snippet/manager'
+import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage } from './util'
 import workspace from './workspace'
+import { byteLength } from './util/string'
+import { ExtensionSnippetProvider } from './snippets/provider'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -96,6 +98,39 @@ class Languages {
         event.waitUntil(willSaveWaitUntil())
       }
     }, null, 'languageserver')
+
+    workspace.onDidWorkspaceInitialized(() => {
+      let provider = new ExtensionSnippetProvider()
+      snippetManager.registerSnippetProvider(provider)
+      let completionProvider: CompletionItemProvider = {
+        provideCompletionItems: async (
+          document: TextDocument,
+          position: Position,
+          _token: CancellationToken
+        ): Promise<CompletionItem[]> => {
+          let { languageId } = document
+          if (languageId == 'typescript.tsx' || languageId == 'typescript.jsx') {
+            languageId = 'typescriptreact'
+          }
+          let snippets = await snippetManager.getSnippetsForLanguage(languageId)
+          let res: CompletionItem[] = []
+          let opt = completion.option
+          for (let snip of snippets) {
+            res.push({
+              label: snip.prefix,
+              detail: snip.body.replace(/(\n|\t)/g, '').slice(0, 50),
+              documentation: snip.description,
+              insertTextFormat: InsertTextFormat.Snippet,
+              textEdit: TextEdit.replace(
+                Range.create({line: position.line, character: opt.col}, position), snip.body
+              )
+            })
+          }
+          return res
+        }
+      }
+      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider)
+    })
   }
 
   private get nvim(): Neovim {
@@ -113,13 +148,13 @@ class Languages {
   public registerCompletionItemProvider(
     name: string,
     shortcut: string,
-    languageIds: string | string[],
+    languageIds: string | string[] | null,
     provider: CompletionItemProvider,
     triggerCharacters?: string[]
   ): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters)
-    sources.addSource(name, source)
+    sources.addSource(source)
     logger.debug('created service source', name)
     return {
       dispose: () => {
@@ -140,8 +175,8 @@ class Languages {
     selector: DocumentSelector,
     provider: SignatureHelpProvider,
     triggerCharacters?: string[]): Disposable {
-    return this.signatureManager.register(selector, provider, triggerCharacters)
-  }
+      return this.signatureManager.register(selector, provider, triggerCharacters)
+    }
 
   public registerDocumentSymbolProvider(selector, provider: DocumentSymbolProvider): Disposable {
     return this.documentSymbolManager.register(selector, provider)
@@ -321,15 +356,11 @@ class Languages {
 
   @check
   public async provideDocumentTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
-    if (character.charCodeAt(0) == 27) {
-      let provider = this.onTypeFormatManager.getProvider(document, character)
-      if (!provider) return
-      let options = await workspace.getFormatOptions()
-      let { line } = position
-      let range = Range.create({ line, character: 0 }, { line: line + 1, character: 0 })
-      return this.provideDocumentRangeFormattingEdits(document, range, options)
-    }
     return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
+  }
+
+  public hasOnTypeProvider(character: string, document: TextDocument): boolean {
+    return this.onTypeFormatManager.getProvider(document, character) != null
   }
 
   public dispose(): void {
@@ -344,7 +375,7 @@ class Languages {
     name: string,
     shortcut: string,
     provider: CompletionItemProvider,
-    languageIds: string[],
+    languageIds: string[] | null,
     triggerCharacters: string[],
   ): ISource {
     // track them for resolve
@@ -416,11 +447,11 @@ class Languages {
           try {
             let isConfirm = await this.checkConfirm(completeItem, option)
             if (!isConfirm) return
-            let hasSnippet = await this.applyTextEdit(completeItem, option)
+            let snippet = await this.applyTextEdit(completeItem, option)
             let { additionalTextEdits } = completeItem
             await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
             // start snippet listener after additionalTextEdits
-            if (hasSnippet) await snippetManager.attach()
+            if (snippet) await snippetManager.insertSnippet(snippet)
             let { command } = completeItem
             if (command) commands.execute(command)
           } catch (e) {
@@ -480,14 +511,14 @@ class Languages {
     return true
   }
 
-  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<boolean> {
+  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<string | null> {
     let { nvim } = this
     let { textEdit } = item
-    if (!textEdit) return false
+    if (!textEdit) return null
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     let document = workspace.getDocument(option.bufnr)
-    if (!document) return false
+    if (!document) return null
     let line = document.getline(option.linenr - 1)
     let deleteCount = range.end.character - option.colnr + 1
     let character = range.start.character
@@ -495,15 +526,16 @@ class Languages {
     let start = line.substr(0, character)
     let label = item.insertText || item.label // tslint:disable-line
     let end = line.substr(option.col + label.length + deleteCount)
-    let newLine = `${start}${newText}${end}`
     if (isSnippet) {
-      await snippetManager.insertSnippet(document, option.linenr - 1, newText, start, end)
-      return true
+      await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])
+      await nvim.call('cursor', [option.linenr, byteLength(start) + 1])
+      return newText
     }
+    let newLine = `${start}${newText}${end}`
     if (newLine != line) {
       await nvim.call('setline', [option.linenr, newLine])
     }
-    return false
+    return null
   }
 
   private async applyAdditionaLEdits(textEdits: TextEdit[], bufnr: number): Promise<void> {
