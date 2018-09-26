@@ -48,13 +48,16 @@ export default class Handler {
       if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
         let character = doc.addLine ? '\n' : lastChar
         lastChar = null
-        await this.onCharacterType(character, bufnr)
+        let position = await workspace.getCursorPosition()
+        await this.onCharacterType(character, bufnr, position)
       }
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer
-      await wait(50)
-      await this.onCharacterType(String.fromCharCode(27), buf.id)
+      let { mode } = await nvim.mode
+      if (mode != 'n') return
+      let position = await workspace.getCursorPosition()
+      await this.onCharacterType('\n', buf.id, { line: position.line + 1, character: 0 })
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {
       let codeLensBuffer = this.codeLensBuffers.get(bufnr)
@@ -334,11 +337,13 @@ export default class Handler {
   public async highlight(): Promise<void> {
     let document = await workspace.document
     if (!document) return
-    let { position } = await workspace.getCurrentState()
+    let position = await workspace.getCursorPosition()
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
-    if (!highlights || highlights.length == 0) return
-    let doc = workspace.getDocument(document.uri)
-    await doc.setHighlights(highlights)
+    if (!highlights || highlights.length == 0) {
+      document.clearHighlight()
+      return
+    }
+    await document.setHighlights(highlights)
   }
 
   public async links(): Promise<DocumentLink[]> {
@@ -421,17 +426,18 @@ export default class Handler {
     disposeAll(this.disposables)
   }
 
-  private async onCharacterType(ch: string, bufnr: number): Promise<void> {
+  private async onCharacterType(ch: string, bufnr: number, position: Position): Promise<void> {
     let doc = workspace.getDocument(bufnr)
-    if (!doc) return
-    let { changedtick } = doc
-    let { document, position } = await workspace.getCurrentState()
-    doc.forceSync()
-    await wait(20)
-    let edits = await languages.provideDocumentTypeEdits(ch, document, position)
-    if (doc.changedtick != changedtick) return
-    if (edits && edits.length) {
-      await doc.applyEdits(this.nvim, edits)
+    if (!doc || doc.paused) return
+    if (languages.hasOnTypeProvider(ch, doc.textDocument)) {
+      let { changedtick } = doc
+      doc.forceSync()
+      await wait(20)
+      let edits = await languages.provideDocumentTypeEdits(ch, doc.textDocument, position)
+      if (doc.changedtick != changedtick) return
+      if (edits && edits.length) {
+        await doc.applyEdits(this.nvim, edits)
+      }
     }
   }
 
