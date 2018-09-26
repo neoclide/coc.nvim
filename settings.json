@@ -6,6 +6,7 @@
   "$schema": "./data/schema.json",
   "coc.preferences.autoTrigger": "always",
   "coc.preferences.checkEmpty": true,
+  "coc.preferences.snippets.enable": true,
   // only used when autoTrigger is always
   "coc.preferences.triggerAfterInsertEnter": true,
   "coc.preferences.customSources": ["word", "emoji", "include"],

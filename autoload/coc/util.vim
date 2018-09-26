@@ -662,7 +662,7 @@ function! coc#util#install_extension(names)
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
       call coc#util#open_terminal({
-            \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh'
+            \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh',
             \ 'keepfocus': 1,
             \ 'Callback': { -> coc#util#install(a:names)},
             \})

@@ -19,6 +19,27 @@ export interface EditerState {
   position: Position
 }
 
+export interface Snippet {
+  prefix: string
+  body: string
+  description: string
+}
+
+export interface SnippetProvider {
+  getSnippets(language: string): Promise<Snippet[]>
+  refresh?(): void
+}
+
+export interface SnippetManager {
+  isSnippetActive: boolean
+  insertSnippet(snippet: string): Promise<void>
+  cancel(): void
+  nextPlaceholder(): Promise<void>
+  previousPlaceholder(): Promise<void>
+  getSnippetsForLanguage(language: string): Promise<Snippet[]>
+  registerSnippetProvider(snippetProvider: SnippetProvider): void
+}
+
 export type ModuleResolve = () => Promise<string>
 
 export enum SourceType {

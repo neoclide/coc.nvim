@@ -33,6 +33,11 @@ function! coc#_hide() abort
   call feedkeys("\<C-e>", 'in')
 endfunction
 
+function! coc#_select() abort
+  if !pumvisible() | return | endif
+  call feedkeys("\<C-y>", 'in')
+endfunction
+
 function! coc#start(...)
   if !get(g:, 'coc_enabled', 0) 
     call coc#util#on_error('Service not running!')

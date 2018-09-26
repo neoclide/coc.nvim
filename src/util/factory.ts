@@ -1,3 +1,4 @@
+import fs from 'fs'
 import * as path from 'path'
 import * as vm from 'vm'
 import { omit, defaults } from './lodash'
@@ -134,6 +135,10 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 
 // inspiration drawn from Module
 export function createExtension(id: string, filename: string): ExtensionExport {
+  if (!fs.existsSync(filename)) {
+    // tslint:disable-next-line:no-empty
+    return { activate: () => { }, deactivate: () => { } }
+  }
   const logger = createLogger('util-factoroy')
   try {
     const sandbox = createSandbox(filename, createLogger(`extension-${id}`))

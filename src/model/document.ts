@@ -205,6 +205,10 @@ export default class Document {
     this.fireContentChanges()
   }
 
+  public get dirty(): boolean {
+    return this.content != this.lines.join('\n')
+  }
+
   private fireContentChanges(): void {
     let { paused, textDocument } = this
     if (paused) return
@@ -306,9 +310,13 @@ export default class Document {
     this.fireContentChanges()
   }
 
-  public forceSync(): void {
-    this._fireContentChanges.clear()
-    this.fireContentChanges()
+  public forceSync(ignorePause = false): void {
+    if (this.paused && ignorePause) {
+      this.paused = false
+    } else {
+      this._fireContentChanges.clear()
+      this.fireContentChanges()
+    }
   }
 
   public getOffset(lnum: number, col: number): number {

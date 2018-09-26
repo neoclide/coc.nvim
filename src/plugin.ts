@@ -1,16 +1,16 @@
 import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import commandManager from './commands'
-import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
+import events from './events'
 import extensions from './extensions'
 import Handler from './handler'
+import completion from './completion'
 import services from './services'
-import snippetManager from './snippet/manager'
+import snippetManager from './snippets/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
-import events from './events'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -73,15 +73,15 @@ export default class Plugin extends EventEmitter {
           break
         }
         case 'snippetPrev': {
-          await snippetManager.jumpPrev()
+          await snippetManager.previousPlaceholder()
           break
         }
         case 'snippetNext': {
-          await snippetManager.jumpNext()
+          await snippetManager.nextPlaceholder()
           break
         }
         case 'snippetCancel': {
-          snippetManager.detach()
+          snippetManager.cancel()
           break
         }
         case 'startCompletion':

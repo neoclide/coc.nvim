@@ -3391,6 +3391,10 @@ vscode-languageserver-types@3.13.0, vscode-languageserver-types@^3.13.0:
   version "3.13.0"
   resolved "https://registry.yarnpkg.com/vscode-languageserver-types/-/vscode-languageserver-types-3.13.0.tgz#b704b024cef059f7b326611c99b9c8753c0a18b4"
 
+vscode-snippet-parser@^0.0.5:
+  version "0.0.5"
+  resolved "https://registry.yarnpkg.com/vscode-snippet-parser/-/vscode-snippet-parser-0.0.5.tgz#86ff0439212265265283d9ca86ee1bd1e66fc322"
+
 vscode-uri@^1.0.6:
   version "1.0.6"
   resolved "https://registry.yarnpkg.com/vscode-uri/-/vscode-uri-1.0.6.tgz#6b8f141b0bbc44ad7b07e94f82f168ac7608ad4d"

@@ -156,7 +156,8 @@ export class Extensions {
     return (db as any).exists(key) && db.getData(key) == true
   }
 
-  public async onExtensionInstall(id): Promise<void> {
+  public async onExtensionInstall(id: string): Promise<void> {
+    if (/^http:\/\//.test(id)) return
     let item = this.list.find(o => o.id == id)
     if (item) {
       item.deactivate()
@@ -201,6 +202,8 @@ export class Extensions {
         workspace.showMessage(`${packageJSON.name} requires ${engines.coc}, current version ${this.version}`, 'error')
         return
       }
+      this.createExtension(folder, Object.freeze(packageJSON))
+    } else if (engines && engines.hasOwnProperty('vscode')) {
       this.createExtension(folder, Object.freeze(packageJSON))
     } else {
       workspace.showMessage(`engine coc not found in package.json of ${folder}`, 'error')
@@ -350,10 +353,6 @@ export class Extensions {
     let isActive = false
     let exports = null
     let filename = path.join(root, packageJSON.main || 'index.js')
-    if (!fs.existsSync(filename)) {
-      workspace.showMessage(`js entry not found for ${root}`, 'error')
-      return
-    }
     let ext = createExtension(id, filename)
     if (!ext) return
     let subscriptions: Disposable[] = []
@@ -426,6 +425,16 @@ export class Extensions {
     return Object.keys(json.dependencies).map(name => {
       return path.join(root, 'node_modules', name)
     })
+  }
+
+  private resolvePackageId(url: string): string {
+    let { root } = this
+    let jsonFile = path.join(root, 'package.json')
+    if (!fs.existsSync(jsonFile)) return null
+    let json = loadJson(jsonFile)
+    if (!json || !json.dependencies) {
+      return null
+    }
   }
 }
 
