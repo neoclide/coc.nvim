@@ -163,9 +163,16 @@ function! s:OnVimEnter()
   endif
 endfunction
 
+function! s:OnInit()
+  call s:Enable()
+  call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
+  let extensions = get(g:, 'coc_local_extensions', [])
+  call coc#rpc#notify('registExtensions', extensions)
+endfunction
+
 augroup coc_init
   autocmd!
-  autocmd User     CocNvimInit call s:Enable() | call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
+  autocmd User     CocNvimInit call s:OnInit()
   autocmd VimEnter *           call s:OnVimEnter()
   if s:is_vim
     autocmd User NvimRpcInit call coc#rpc#start_server()

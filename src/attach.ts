@@ -26,7 +26,7 @@ export default function(opts: Attach): Plugin {
         }
         return
       default:
-        plugin.emit('notification', method, args)
+        plugin.emit(method, args)
     }
   })
 

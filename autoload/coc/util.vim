@@ -3,6 +3,7 @@ let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:install_yarn = 0
 let s:package_file = s:root.'/package.json'
+let g:coc_local_extensions = []
 
 function! coc#util#platform()
   if s:is_win
@@ -12,6 +13,15 @@ function! coc#util#platform()
     return 'mac'
   endif
   return 'linux'
+endfunction
+
+function! coc#util#regist_extension(folder)
+  if index(g:coc_local_extensions, a:folder) == -1
+    call add(g:coc_local_extensions, a:folder)
+    if get(g:, 'coc_enabled', 0)
+      call coc#rpc#notify('registExtensions', [a:folder])
+    endif
+  endif
 endfunction
 
 function! coc#util#valid_buf(bufnr)
@@ -32,9 +42,9 @@ endfunction
 
 function! coc#util#binary()
   let platform = coc#util#platform()
-  if platform == 'windows'
+  if platform ==# 'windows'
     return s:root.'/build/coc-win.exe'
-  elseif platform == 'mac'
+  elseif platform ==# 'mac'
     return s:root.'/build/coc-macos'
   endif
   return s:root.'/build/coc-linux'

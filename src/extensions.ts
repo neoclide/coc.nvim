@@ -51,8 +51,9 @@ export class Extensions {
     let db = this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
     this.version = version
-    let paths = this.getExtensionFolders()
-    Promise.all(paths.map(folder => {
+    let stats = this.globalExtensionStats()
+    Promise.all(stats.map(state => {
+      let folder = state.root
       let id = path.dirname(folder)
       if (this.isDisabled(id)) return
       return this.loadExtension(folder).catch(e => {
@@ -91,28 +92,17 @@ export class Extensions {
 
   public getExtensionState(id: string): ExtensionState {
     let disabled = this.isDisabled(id)
-    if (disabled) {
-      return 'disabled'
-    }
+    if (disabled) return 'disabled'
     let item = this.list.find(o => o.id == id)
-    if (!item) {
-      workspace.showMessage(`Extension ${id} not found!`)
-      return null
-    }
+    if (!item) return 'unknown'
     let { extension } = item
     return extension.isActive ? 'activited' : 'loaded'
   }
 
   public getExtensionStates(): ExtensionInfo[] {
-    let folders = this.getExtensionFolders()
-    return folders.map(folder => {
-      let id = path.basename(folder)
-      return {
-        id,
-        root: folder,
-        state: this.getExtensionState(id)
-      }
-    })
+    let globalStats = this.globalExtensionStats()
+    let localStats = this.localExtensionStats()
+    return globalStats.concat(localStats)
   }
 
   public async toggleExtension(id: string): Promise<void> {
@@ -145,6 +135,10 @@ export class Extensions {
   }
 
   public async uninstallExtension(id: string): Promise<void> {
+    if (!this.isGlobalExtension(id)) {
+      workspace.showMessage(`${id} not global extension, uninstall not supported.`, 'error')
+      return
+    }
     this.deactivate(id)
     await wait(200)
     await workspace.runCommand(`yarn remove ${id}`, this.root)
@@ -181,7 +175,7 @@ export class Extensions {
     return false
   }
 
-  private async loadExtension(folder: string): Promise<void> {
+  public async loadExtension(folder: string): Promise<void> {
     let jsonFile = path.join(folder, 'package.json')
     let stat = await statAsync(jsonFile)
     if (!stat || !stat.isFile()) {
@@ -206,7 +200,7 @@ export class Extensions {
     } else if (engines && engines.hasOwnProperty('vscode')) {
       this.createExtension(folder, Object.freeze(packageJSON))
     } else {
-      workspace.showMessage(`engine coc not found in package.json of ${folder}`, 'error')
+      workspace.showMessage(`engine coc & vscode not found in ${jsonFile}`, 'error')
     }
   }
 
@@ -414,7 +408,7 @@ export class Extensions {
     return id
   }
 
-  private getExtensionFolders(): string[] {
+  private globalExtensionStats(): ExtensionInfo[] {
     let { root } = this
     let jsonFile = path.join(root, 'package.json')
     if (!fs.existsSync(jsonFile)) return []
@@ -423,18 +417,41 @@ export class Extensions {
       return []
     }
     return Object.keys(json.dependencies).map(name => {
-      return path.join(root, 'node_modules', name)
+      return {
+        id: name,
+        root: path.join(root, 'node_modules', name),
+        state: this.getExtensionState(name)
+      }
     })
   }
 
-  private resolvePackageId(url: string): string {
+  private localExtensionStats(): ExtensionInfo[] {
+    let { root } = this
+    let res: ExtensionInfo[] = []
+    this.list.forEach(item => {
+      let p = item.extension.extensionPath
+      if (!p.startsWith(root)) {
+        let jsonFile = path.join(p, 'package.json')
+        let json = loadJson(jsonFile)
+        res.push({
+          id: json.name,
+          root: p,
+          state: this.getExtensionState(json.name)
+        })
+      }
+    })
+    return res
+  }
+
+  public isGlobalExtension(id: string): boolean {
     let { root } = this
     let jsonFile = path.join(root, 'package.json')
-    if (!fs.existsSync(jsonFile)) return null
+    if (!fs.existsSync(jsonFile)) return false
     let json = loadJson(jsonFile)
     if (!json || !json.dependencies) {
-      return null
+      return false
     }
+    return json.dependencies.hasOwnProperty(id)
   }
 }
 

@@ -1,11 +1,12 @@
 import fs from 'fs'
+import { Logger } from 'log4js'
 import * as path from 'path'
 import * as vm from 'vm'
-import { omit, defaults } from './lodash'
+import { ExtensionContext } from '../types'
 import workspace from '../workspace'
-import { ExtensionContext, Thenable } from '../types'
-import { Logger } from 'log4js'
+import { defaults, omit } from './lodash'
 const createLogger = require('./logger')
+const logger = createLogger('util-factoroy')
 
 export interface ExtensionExport {
   activate: (context: ExtensionContext) => any
@@ -137,9 +138,8 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 export function createExtension(id: string, filename: string): ExtensionExport {
   if (!fs.existsSync(filename)) {
     // tslint:disable-next-line:no-empty
-    return { activate: () => { }, deactivate: () => { } }
+    return { activate: () => { }, deactivate: null }
   }
-  const logger = createLogger('util-factoroy')
   try {
     const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 
@@ -151,16 +151,15 @@ export function createExtension(id: string, filename: string): ExtensionExport {
     const activate = (defaultImport && defaultImport.activate) || defaultImport
 
     if (typeof activate !== 'function') {
-      workspace.showMessage(`activate method not found in ${filename}`, 'error')
-      return
+      // tslint:disable-next-line:no-empty
+      return { activate: () => { }, deactivate: null}
     }
-
     return {
       activate,
       deactivate: typeof defaultImport.deactivate === 'function' ? defaultImport.deactivate : null
     }
   } catch (err) {
-    logger.error(`Error loading child ChildPlugin ${filename}`)
+    workspace.showMessage(`Error loading extension from ${filename}: ${err.message}`)
     logger.error(err.stack)
   }
 
