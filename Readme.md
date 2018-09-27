@@ -58,7 +58,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   - [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
   - [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
 
-- [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets<Paste>)
+- [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)
 
 - [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
