@@ -6,7 +6,7 @@ import { LanguageClient } from './language-client'
 import log4js from 'log4js'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
-export type ExtensionState = 'disabled' | 'loaded' | 'activited'
+export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 
 export interface ExtensionInfo {
   id: string

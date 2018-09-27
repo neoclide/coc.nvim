@@ -26,6 +26,11 @@ export default class Plugin extends EventEmitter {
     services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
+    this.on('registExtensions', args => {
+      for (let folder of args as string[]) {
+        extensions.loadExtension(folder)
+      }
+    })
     clean() // tslint:disable-line
   }
 
@@ -177,6 +182,7 @@ export default class Plugin extends EventEmitter {
   }
 
   public async dispose(): Promise<void> {
+    this.removeAllListeners()
     workspace.dispose()
     sources.dispose()
     await services.stopAll()
