@@ -212,7 +212,7 @@ export class SnippetSession {
       return
     }
 
-    await this._snippet.setPlaceholder(index, val)
+    this._snippet.setPlaceholder(index, val)
     // Update current placeholder
     this._currentPlaceholder = getPlaceholderByIndex(this._snippet.getPlaceholders(), index)
     await this._updateSnippet()

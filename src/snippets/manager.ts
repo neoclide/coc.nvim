@@ -24,7 +24,9 @@ export class SnippetManager implements types.SnippetManager {
       const activeSession = this._activeSession
       if (activeSession) {
         if (activeSession.document.uri == uri) {
-          activeSession.synchronizeUpdatedPlaceholders(e.contentChanges[0])
+          activeSession.synchronizeUpdatedPlaceholders(e.contentChanges[0]).catch(e => {
+            logger.error(e)
+          })
         }
       }
     }, null, this.disposables)
@@ -40,7 +42,16 @@ export class SnippetManager implements types.SnippetManager {
 
     events.on(['CursorMoved', 'CursorMovedI'], () => {
       if (this.isSnippetActive) {
-        this._activeSession.updateCursorPosition()
+        this._activeSession.updateCursorPosition().catch(e => {
+          logger.error(e)
+        })
+      }
+    }, null, this.disposables)
+
+    events.on('InsertLeave', async () => {
+      let { mode } = await workspace.nvim.mode
+      if (mode == 'n') {
+        this.cancel()
       }
     }, null, this.disposables)
   }
@@ -58,8 +69,6 @@ export class SnippetManager implements types.SnippetManager {
    */
   public async insertSnippet(snippet: string): Promise<void> {
     this.cancel()
-    logger.debug('[SnippetManager::insertSnippet]')
-
     const snippetSession = new SnippetSession(workspace.nvim, snippet)
     await snippetSession.start()
     await workspace.nvim.call('coc#snippet#enable')
