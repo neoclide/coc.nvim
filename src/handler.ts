@@ -48,16 +48,14 @@ export default class Handler {
       if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
         let character = doc.addLine ? '\n' : lastChar
         lastChar = null
-        let position = await workspace.getCursorPosition()
-        await this.onCharacterType(character, bufnr, position)
+        await this.onCharacterType(character, bufnr)
       }
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer
       let { mode } = await nvim.mode
       if (mode != 'n') return
-      let position = await workspace.getCursorPosition()
-      await this.onCharacterType('\n', buf.id, { line: position.line + 1, character: 0 })
+      await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {
       let codeLensBuffer = this.codeLensBuffers.get(bufnr)
@@ -426,18 +424,31 @@ export default class Handler {
     disposeAll(this.disposables)
   }
 
-  private async onCharacterType(ch: string, bufnr: number, position: Position): Promise<void> {
+  private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
+    let config = workspace.getConfiguration('coc.preferences')
+    let formatOnType = config.get<boolean>('formatOnType')
+    if (!formatOnType) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || doc.paused) return
-    if (languages.hasOnTypeProvider(ch, doc.textDocument)) {
-      let { changedtick } = doc
+    if (!doc || doc.paused || workspace.bufnr != bufnr) return
+    if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
+    let position = await workspace.getCursorPosition()
+    let origLine = doc.getline(position.line)
+    let { changedtick, dirty } = doc
+    if (dirty) {
       doc.forceSync()
       await wait(20)
-      let edits = await languages.provideDocumentTypeEdits(ch, doc.textDocument, position)
-      if (doc.changedtick != changedtick) return
-      if (edits && edits.length) {
-        await doc.applyEdits(this.nvim, edits)
-      }
+    }
+    let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
+    let edits = await languages.provideDocumentOntTypeEdits(ch, doc.textDocument, pos)
+    // changed by other process
+    if (doc.changedtick != changedtick) return
+    if (edits && edits.length) {
+      await doc.applyEdits(this.nvim, edits)
+    }
+    let newLine = doc.getline(position.line)
+    if (newLine.length > origLine.length) {
+      let col = position.character + 1 + (newLine.length - origLine.length)
+      await this.nvim.call('cursor', [position.line + 1, col])
     }
   }
 

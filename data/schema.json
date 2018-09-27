@@ -267,6 +267,11 @@
       "default": "edit",
       "enum": ["edit", "split", "vsplit", "tabe"]
     },
+    "coc.preferences.formatOnType": {
+      "type": "boolean",
+      "description": "Set to false to disable format on type",
+      "default": true
+    },
     "coc.preferences.diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic",

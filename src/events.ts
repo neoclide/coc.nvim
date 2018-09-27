@@ -24,12 +24,12 @@ class Events {
     logger.debug('Autocmd:', event, args)
     let handlers = this.handlers.get(event)
     if (handlers) {
-      for (let fn of handlers) {
-        try {
-          await Promise.resolve(fn.apply(null, args))
-        } catch (e) {
-          workspace.showMessage(`Error on ${event}: ${e.message}`, 'error')
-        }
+      try {
+        await Promise.all(handlers.map(fn => {
+          return Promise.resolve(fn.apply(null, args))
+        }))
+      } catch (e) {
+        workspace.showMessage(`Error on ${event}: ${e.message}`, 'error')
       }
     }
   }
