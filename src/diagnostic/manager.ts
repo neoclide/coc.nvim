@@ -93,18 +93,14 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('BufUnload', async bufnr => {
-      let document = workspace.getDocument(bufnr)
-      if (!document) return
-      let { uri } = document
+      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
+      if (idx == -1) return
+      let buf = this.buffers[idx]
       for (let collection of this.collections) {
-        await collection.delete(uri)
+        await collection.delete(buf.uri)
       }
-      let idx = this.buffers.findIndex(buf => buf.uri == uri)
-      if (idx !== -1) {
-        let buf = this.buffers[idx]
-        await buf.clearSigns()
-        this.buffers.splice(idx, 1)
-      }
+      await this.nvim.command(`sign unplace * buffer=${bufnr}`)
+      this.buffers.splice(idx, 1)
     }, null, this.disposables)
 
     workspace.onWillSaveTextDocument(e => {
