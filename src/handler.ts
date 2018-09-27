@@ -21,6 +21,8 @@ interface SymbolInfo {
   kind: string
   level?: number
   containerName?: string
+  selectionRange: Range
+  range?: Range
 }
 
 export default class Handler {
@@ -144,6 +146,7 @@ export default class Handler {
           text: name,
           level,
           kind: getSymbolKind(kind),
+          selectionRange: location.range,
           containerName
         }
         res.push(o)
@@ -156,7 +159,7 @@ export default class Handler {
   public async getWorkspaceSymbols(): Promise<SymbolInfo[]> {
     let document = await workspace.document
     if (!document) return
-    let cword = await this.nvim.call('expand', ['<cword>'])
+    let cword = await this.nvim.call('expand', '<cword>')
     let query = await this.nvim.call('input', ['Query:', cword])
     let symbols = await languages.getWorkspaceSymbols(document.textDocument, query)
     if (!symbols) {
@@ -175,6 +178,7 @@ export default class Handler {
         lnum: start.line + 1,
         text: name,
         kind: getSymbolKind(kind),
+        selectionRange: location.range
       })
     }
     return res
@@ -627,7 +631,7 @@ function sortSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
 }
 
 function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number): void {
-  let { name, selectionRange, kind, children } = sym
+  let { name, selectionRange, kind, children, range } = sym
   let { start } = selectionRange
   res.push({
     col: start.character + 1,
@@ -635,6 +639,8 @@ function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number
     text: name,
     level,
     kind: getSymbolKind(kind),
+    range,
+    selectionRange
   })
   if (children && children.length) {
     children.sort(sortSymbols)
