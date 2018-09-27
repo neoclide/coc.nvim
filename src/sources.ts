@@ -95,8 +95,10 @@ export class Sources extends EventEmitter {
       sources = this.getSourcesForFiletype(filetype, false)
     }
     let customs = workspace.getConfiguration('coc.preferences').get<string[]>('customSources', [])
+    if (custom) {
+      return sources.filter(source => customs.indexOf(source.name) !== -1)
+    }
     return sources.filter(source => {
-      if (custom) return customs.indexOf(source.name) !== -1
       return customs.indexOf(source.name) == -1
     })
   }
