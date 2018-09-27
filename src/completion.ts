@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompletionItem, CompletionItemKind, Disposable, InsertTextFormat, Position } from 'vscode-languageserver-protocol'
+import { Range, CompletionItem, CompletionItemKind, Disposable, InsertTextFormat, Position } from 'vscode-languageserver-protocol'
 import completes from './completes'
 import events from './events'
 import Increment from './increment'
@@ -310,23 +310,33 @@ export class Completion implements Disposable {
     }
   }
 
-  public convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
+  public convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
     let obj: VimCompleteItem = {
-      word: item.insertText || item.label, // tslint:disable-line
+      word: this.getWord(item),
       menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
       kind: this.completionKindString(item.kind),
       sortText: validString(item.sortText) ? item.sortText : item.label,
       filterText: validString(item.filterText) ? item.filterText : item.label,
       isSnippet
     }
-    if (item.preselect) {
-      obj.sortText = '\0' + obj.sortText
-    }
-    if (!isSnippet && !item.insertText && item.textEdit) { // tslint:disable-line
+    if (item.preselect) obj.sortText = '\0' + obj.sortText
+    // tslint:disable-next-line: deprecation
+    if (!isSnippet && !item.insertText && item.textEdit) {
       obj.word = item.textEdit.newText
       // make sure we can find it on CompleteDone
-      item.insertText = obj.word // tslint:disable-line
+      // tslint:disable-next-line: deprecation
+      item.insertText = obj.word
+    }
+    // tslint:disable-next-line: deprecation
+    if (isSnippet && item.insertText && !item.textEdit) {
+      let line = opt.linenr - 1
+      // use textEdit for snippet
+      item.textEdit = {
+        range: Range.create(line, opt.col - 1, line, opt.colnr - 1),
+        // tslint:disable-next-line: deprecation
+        newText: item.insertText
+      }
     }
     obj.abbr = item.data && item.data.abbr ? item.data.abbr : obj.filterText
     if (item.data && item.data.optional) {
@@ -353,6 +363,15 @@ export class Completion implements Disposable {
       line: linenr - 1,
       character: part.length + 1 + (colnr - col > 1 ? 1 : 0)
     }
+  }
+
+  public getWord(item: CompletionItem): string {
+    // tslint:disable-next-line: deprecation
+    let { label, insertTextFormat, insertText } = item
+    if (insertTextFormat == InsertTextFormat.Snippet) {
+      return label
+    }
+    return insertText || label
   }
 }
 

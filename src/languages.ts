@@ -390,7 +390,7 @@ class Languages {
       if (!completeItems || completeItems.length == 0) return null
       let { word } = item
       return completeItems.find(o => {
-        return word == o.insertText || word == o.label // tslint:disable-line
+        return word == completion.getWord(o)
       })
     }
     return {
@@ -480,7 +480,7 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
           isIncomplete,
-          items: completeItems.map(o => completion.convertVimCompleteItem(o, shortcut))
+          items: completeItems.map(o => completion.convertVimCompleteItem(o, shortcut, opt))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
@@ -506,7 +506,7 @@ class Languages {
     let mode = await nvim.call('mode')
     if (mode !== 'i') return false
     let curcol = await nvim.call('col', ['.'])
-    let label = item.insertText || item.label // tslint:disable-line
+    let label = completion.getWord(item)
     if (curcol != col + label.length + 1) return false
     return true
   }
@@ -524,7 +524,7 @@ class Languages {
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let label = item.insertText || item.label // tslint:disable-line
+    let label = completion.getWord(item)
     let end = line.substr(option.col + label.length + deleteCount)
     if (isSnippet) {
       await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])

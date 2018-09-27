@@ -124,4 +124,3 @@ export class CocSnippet {
 function normalizeNewLines(str: string): string {
   return str.split("\r\n").join("\n")
 }
-
