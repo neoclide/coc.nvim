@@ -58,7 +58,6 @@ export default class Plugin extends EventEmitter {
           return
         }
         case 'links': {
-          await workspace.echoLines(['a', 'b', 'd', 'e'])
           return await handler.links()
         }
         case 'openLink': {
