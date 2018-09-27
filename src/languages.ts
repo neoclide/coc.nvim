@@ -355,7 +355,7 @@ class Languages {
   }
 
   @check
-  public async provideDocumentTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
+  public async provideDocumentOntTypeEdits(character: string, document: TextDocument, position: Position): Promise<TextEdit[] | null> {
     return this.onTypeFormatManager.onCharacterType(character, document, position, this.token)
   }
 

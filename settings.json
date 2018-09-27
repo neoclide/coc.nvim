@@ -12,6 +12,7 @@
   "coc.preferences.customSources": ["word", "emoji", "include"],
   "coc.preferences.timeout": 300,
   "coc.preferences.noselect": true,
+  "coc.preferences.formatOnType": true,
   // "coc.preferences.watchmanPath": "",
   "coc.preferences.jumpCommand": "edit",
   "coc.preferences.diagnostic.locationlist": true,
