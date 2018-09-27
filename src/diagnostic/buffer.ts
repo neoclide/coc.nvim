@@ -137,10 +137,9 @@ export class DiagnosticBuffer {
   }
 
   public async clearSigns(): Promise<void> {
-    let { document, signs } = this
+    let { document, signs, bufnr } = this
     if (!document) return
-    let { buffer } = document
-    let content = await this.nvim.call('execute', [`sign place buffer=${buffer.id}`])
+    let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
     let lines: string[] = content.split('\n')
     let ids = []
     for (let line of lines) {
@@ -151,7 +150,7 @@ export class DiagnosticBuffer {
         ids.push(id)
       }
     }
-    this.nvim.call('coc#util#unplace_signs', [buffer.id, ids], true)
+    this.nvim.call('coc#util#unplace_signs', [bufnr, ids], true)
   }
 
   private get signs(): number[] {
