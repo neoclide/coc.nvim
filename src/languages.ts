@@ -467,6 +467,7 @@ class Languages {
         option = opt
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
+        if (!doc) return null
         let document = doc.textDocument
         let position = completion.getPosition(opt)
         let context: CompletionContext = {
