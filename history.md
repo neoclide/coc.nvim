@@ -1,10 +1,29 @@
+# 2018-09-27
+
+- **Break change**: `:CocDisable` disabled all events from vim.
+- **Break change**: new snippet implementation.
+  - Support multiple line snippet.
+  - Support VSCode snippet extension.
+  - Support completion of snippets from snippet extension.
+- Add highlight groups for different severity.
+- Add `coc.preferences.formatOnType` option.
+- Add `coc.preferences.snippets.enable` option.
+- Fix snippet not works as `insertText`.
+- Fix echo message with multiple lines.
+- Fix `signatureHelp` with `showcmd` disabled.
+- Fix location list cleared on `:lopen`.
+- Fix diagnostic info not cleared on `:CocDisable`
+- Fix diagnostic info not cleared on buffer unload.
+- Fix buffer highlight not cleared on `highlight` action.
+- Fix format on type not work as expected.
+
 # 2018-09-24
 
-- **break change**: use `CursorMove` instead of `CursorHold` for diagnostic
+- **Break change**: use `CursorMove` instead of `CursorHold` for diagnostic
   message.
-- **break change**: direct move to diagnostic position would show diagnostic
+- **Break change**: direct move to diagnostic position would show diagnostic
   message without truncate.
-- **break change**: snippet would be canceled when mode changed to normal, no
+- **Break change**: snippet would be canceled when mode changed to normal, no
   mapping of `<esc>` any more.
 - Add format document on `insertLeave` when `onTypeFormat` is supported.
 - Add buffer operations on resource edit.
