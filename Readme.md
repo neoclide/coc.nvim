@@ -191,6 +191,12 @@ Extension are powerful than configured language server. Checkout
 
         :CocInstall coc-tslint
 
+- **Pritter**
+
+  [Prettier](https://github.com/prettier/prettier) extension.
+
+        :CocInstall coc-prettier
+
 **Note:** use `:CocConfig` to edit configuration file, auto completion is
 supported after `coc-json` installed.
 

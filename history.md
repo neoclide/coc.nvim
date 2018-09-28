@@ -1,3 +1,15 @@
+# 2018-09-28
+
+- **Break change**: `coc.preferences.formatOnType` default to `false`.
+- **Break change**: snippet completion disabled in `string` and `comment`.
+- Add support for register local extension.
+- Add title for commands in `Denite coc-command`
+- Fix prompt hidden by echo message.
+- Fix contribute commands not shown in denite interface.
+- Fix parse of `iskeyword`, support character range.
+- Fix `triggerKind` of completion.
+- Fix install extension from url not reloaded.
+
 # 2018-09-27
 
 - **Break change**: `:CocDisable` disabled all events from vim.
