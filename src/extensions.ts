@@ -91,6 +91,22 @@ export class Extensions {
     return this.list.map(o => o.extension)
   }
 
+  public get commands(): { [index: string]: string } {
+    let res = {}
+    for (let item of this.list) {
+      let { packageJSON } = item.extension
+      if (packageJSON.contributes) {
+        let { commands } = packageJSON.contributes
+        if (commands && commands.length) {
+          for (let cmd of commands) {
+            res[cmd.command] = cmd.title
+          }
+        }
+      }
+    }
+    return res
+  }
+
   public getExtensionState(id: string): ExtensionState {
     let disabled = this.isDisabled(id)
     if (disabled) return 'disabled'
