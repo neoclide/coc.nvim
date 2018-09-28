@@ -176,7 +176,9 @@ export default class Plugin extends EventEmitter {
           logger.error(`unknown action ${args[0]}`)
       }
     } catch (e) {
-      workspace.showMessage(`Error on '${args[0]}': ${e.message}`, 'error')
+      if (!/\btimeout\b/.test(e.message)) {
+        workspace.showMessage(`Error on '${args[0]}': ${e.message}`, 'error')
+      }
       logger.error(e.stack)
     }
   }
