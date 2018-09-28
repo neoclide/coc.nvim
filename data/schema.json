@@ -264,8 +264,8 @@
     },
     "coc.preferences.formatOnType": {
       "type": "boolean",
-      "description": "Set to false to disable format on type",
-      "default": true
+      "description": "Set to true to enable format on type",
+      "default": false
     },
     "coc.preferences.diagnostic.enable": {
       "type": "boolean",
