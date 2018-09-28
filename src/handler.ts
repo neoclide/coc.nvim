@@ -7,8 +7,6 @@ import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import languages from './languages'
-import services from './services'
-import { ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
@@ -229,7 +227,7 @@ export default class Handler {
     if (!document) return
     let options = await workspace.getFormatOptions()
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
-    if (!textEdits) return
+    if (!textEdits || textEdits.length == 0) return
     await document.applyEdits(this.nvim, textEdits)
   }
 
@@ -412,13 +410,7 @@ export default class Handler {
       if (idx == -1 || serviceId == 'workspace') {
         res.push(o.id)
       } else {
-        let service = services.getService(serviceId)
-        if (!service || service.state !== ServiceStat.Running) {
-          continue
-        }
-        if (workspace.match(service.selector, document.textDocument) > 0) {
-          res.push(o.id)
-        }
+        res.push(o.id)
       }
     }
     return res
