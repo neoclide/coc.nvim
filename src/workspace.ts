@@ -44,6 +44,7 @@ export class Workspace implements IWorkspace {
   private willSaveUntilHandler: WillSaveUntilHandler
   private vimSettings: VimSettings
   private _cwd = process.cwd()
+  private _blocking = false
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
@@ -400,6 +401,7 @@ export class Workspace implements IWorkspace {
   }
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
+    if (this._blocking) return
     if (identify == 'error') {
       return echoErr(this.nvim, msg)
     }
@@ -632,14 +634,18 @@ export class Workspace implements IWorkspace {
         return `${index + 1}. ${str}`
       })
     )
+    this._blocking = true
     let res = await this.nvim.call('inputlist', [msgs])
+    this._blocking = false
     let n = parseInt(res, 10)
     if (isNaN(n) || n <= 0 || n > msgs.length) return -1
     return n - 1
   }
 
   public async showPrompt(title: string): Promise<boolean> {
+    this._blocking = true
     let res = await this.nvim.call('coc#util#prompt_confirm', title)
+    this._blocking = false
     return res == 1
   }
 
