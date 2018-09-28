@@ -106,15 +106,21 @@ class Languages {
         provideCompletionItems: async (
           document: TextDocument,
           position: Position,
-          _token: CancellationToken
+          _token: CancellationToken,
+          context: CompletionContext
         ): Promise<CompletionItem[]> => {
+          if (context && context.triggerCharacter) return []
           let { languageId } = document
           if (languageId == 'typescript.tsx' || languageId == 'typescript.jsx') {
             languageId = 'typescriptreact'
           }
+          let opt = completion.option
+          let { synname } = opt
+          if (/string/i.test(synname) || /comment/i.test(synname)) {
+            return []
+          }
           let snippets = await snippetManager.getSnippetsForLanguage(languageId)
           let res: CompletionItem[] = []
-          let opt = completion.option
           for (let snip of snippets) {
             res.push({
               label: snip.prefix,
@@ -471,9 +477,9 @@ class Languages {
         let document = doc.textDocument
         let position = completion.getPosition(opt)
         let context: CompletionContext = {
-          triggerKind: triggerCharacter ? CompletionTriggerKind.Invoked : CompletionTriggerKind.TriggerCharacter,
-          triggerCharacter
+          triggerKind: triggerCharacter ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked
         }
+        if (triggerCharacter) context.triggerCharacter = triggerCharacter
         let cancellSource = new CancellationTokenSource()
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null

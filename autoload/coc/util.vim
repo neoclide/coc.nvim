@@ -175,7 +175,7 @@ endfunction
 function! coc#util#get_complete_option(...)
   let opt = get(a:, 1, {})
   let pos = getcurpos()
-  let line = getline('.')
+  let line = getline(pos[1])
   let l:start = pos[2] - 1
   while l:start > 0 && line[l:start - 1] =~# '\k'
     let l:start -= 1
@@ -195,6 +195,7 @@ function! coc#util#get_complete_option(...)
         \ 'colnr' : pos[2],
         \ 'col': l:start,
         \ 'iskeyword': &iskeyword,
+        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name")
         \}, opt)
 endfunction
 
