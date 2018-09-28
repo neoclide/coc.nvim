@@ -61,6 +61,8 @@ export default class Handler {
       let buf = await nvim.buffer
       let { mode } = await nvim.mode
       if (mode != 'n') return
+      let line = await nvim.call('getline', '.')
+      if (/^\s*$/.test(line)) return
       await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
     events.on('BufUnload', bufnr => {

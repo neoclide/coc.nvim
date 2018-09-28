@@ -187,8 +187,12 @@ export class Completion implements Disposable {
     // check trigger
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
-    let option = await nvim.call('coc#util#get_complete_option')
-    Object.assign(option, { triggerCharacter: latestInsertChar })
+    let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
+    let doc = workspace.getDocument(option.bufnr)
+    if (!doc) return
+    if (latestInsertChar && !doc.isWord(latestInsertChar)) {
+      Object.assign(option, { triggerCharacter: latestInsertChar })
+    }
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }

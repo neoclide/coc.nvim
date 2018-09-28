@@ -161,6 +161,7 @@ export interface CompleteOption {
   linenr: number
   iskeyword: string
   custom: boolean
+  synname: string
   [index: string]: any
 }
 
