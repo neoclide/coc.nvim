@@ -4,8 +4,18 @@ import { getChange } from '../../util/diff'
 import { createTmpFile, isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { isCocItem } from '../../util/index'
+import { score } from '../../util/match'
+import Uri from 'vscode-uri'
 import path = require('path')
 import fs = require('fs')
+
+describe('score test', () => {
+  test('should match schema', () => {
+    let uri = Uri.file('/foo').toString()
+    let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
+    expect(s).toBe(5)
+  })
+})
 
 describe('isCocItem test', () => {
   test('should be coc item', () => {

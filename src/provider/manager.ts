@@ -1,5 +1,6 @@
 import { Definition, DocumentSelector, Location, TextDocument } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
+const logger = require('../util/logger')('provider-manager')
 
 export interface ProviderItem<T> {
   id: string,
