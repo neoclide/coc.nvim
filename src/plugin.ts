@@ -26,9 +26,9 @@ export default class Plugin extends EventEmitter {
     services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
-    this.on('registExtensions', args => {
+    this.on('registExtensions', async args => {
       for (let folder of args as string[]) {
-        extensions.loadExtension(folder)
+        await extensions.loadExtension(folder)
       }
     })
     clean() // tslint:disable-line
