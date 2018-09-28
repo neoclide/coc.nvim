@@ -19,6 +19,9 @@ export class Range {
         ranges.push(new Range(65, 90))
         ranges.push(new Range(97, 122))
         ranges.push(new Range(192, 255))
+      } else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
+        let ms = part.match(/^([A-Za-z])-([A-Za-z])$/)
+        ranges.push(new Range(ms[1].charCodeAt(0), ms[2].charCodeAt(0)))
       } else if (/^\d+-\d+$/.test(part)) {
         let ms = part.match(/^(\d+)-(\d+)$/)
         ranges.push(new Range(Number(ms[1]), Number(ms[2])))
