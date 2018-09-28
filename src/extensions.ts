@@ -65,6 +65,7 @@ export class Extensions {
     this.onDidActiveExtension(async extension => {
       if (global.hasOwnProperty('__TEST__')) return
       let { id, packageJSON } = extension
+      if (!this.isGlobalExtension(id) || this.isExoticExtension(id)) return
       let key = `/extension/${id}/ts`
       let ts = (db as any).exists(key) ? db.getData(key) : null
       if (!ts || Number(ts) < today.getTime()) {
@@ -73,7 +74,7 @@ export class Extensions {
           let res = await workspace.runCommand(`yarn info ${id} version --json`)
           let version = JSON.parse(res).data
           if (semver.gt(version, packageJSON.version)) {
-            let res = await workspace.showPrompt(`a new version: ${version} of ${id} detected, update?`)
+            let res = await workspace.showPrompt(`a new version: ${version} of ${id} available, update?`)
             if (res) {
               await workspace.nvim.command(`CocInstall ${id}`)
             }
@@ -106,6 +107,10 @@ export class Extensions {
   }
 
   public async toggleExtension(id: string): Promise<void> {
+    if (!this.isGlobalExtension(id)) {
+      workspace.showMessage(`toggle state of local extension ${id} not supported`, 'error')
+      return
+    }
     let state = this.getExtensionState(id)
     if (state == null) return
     if (state == 'activited') {
@@ -121,8 +126,8 @@ export class Extensions {
     db.push(key, state == 'disabled' ? false : true)
     if (state == 'disabled') {
       let folder = path.join(this.root, 'node_modules', id)
-      this.loadExtension(folder).catch(_e => {
-        // noop
+      this.loadExtension(folder).catch(e => {
+        workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
     }
     await wait(200)
@@ -151,7 +156,8 @@ export class Extensions {
   }
 
   public async onExtensionInstall(id: string): Promise<void> {
-    if (/^http:\/\//.test(id)) return
+    if (/^\w+:/.test(id)) id = this.packageNameFromUrl(id)
+    if (!id || /^-/.test(id)) return
     let item = this.list.find(o => o.id == id)
     if (item) {
       item.deactivate()
@@ -202,6 +208,23 @@ export class Extensions {
     } else {
       workspace.showMessage(`engine coc & vscode not found in ${jsonFile}`, 'error')
     }
+  }
+
+  private loadJson(): any {
+    let { root } = this
+    let jsonFile = path.join(root, 'package.json')
+    if (!fs.existsSync(jsonFile)) return null
+    return loadJson(jsonFile)
+  }
+
+  private packageNameFromUrl(url: string): string {
+    let json = this.loadJson()
+    if (!json || !json.dependencies) return null
+    for (let key of Object.keys(json.dependencies)) {
+      let val = json.dependencies[key]
+      if (val == url) return key
+    }
+    return null
   }
 
   private setupActiveEvents(id: string, packageJSON: any): void {
@@ -410,9 +433,7 @@ export class Extensions {
 
   private globalExtensionStats(): ExtensionInfo[] {
     let { root } = this
-    let jsonFile = path.join(root, 'package.json')
-    if (!fs.existsSync(jsonFile)) return []
-    let json = loadJson(jsonFile)
+    let json = this.loadJson()
     if (!json || !json.dependencies) {
       return []
     }
@@ -443,15 +464,25 @@ export class Extensions {
     return res
   }
 
-  public isGlobalExtension(id: string): boolean {
-    let { root } = this
-    let jsonFile = path.join(root, 'package.json')
-    if (!fs.existsSync(jsonFile)) return false
-    let json = loadJson(jsonFile)
+  private isGlobalExtension(id: string): boolean {
+    let json = this.loadJson()
     if (!json || !json.dependencies) {
       return false
     }
     return json.dependencies.hasOwnProperty(id)
+  }
+
+  private isExoticExtension(id: string): boolean {
+    let json = this.loadJson()
+    if (!json || !json.dependencies) {
+      return true
+    }
+    let { dependencies } = json
+    let val = dependencies[id]
+    if (!val || /^\w+:/.test(val)) {
+      return true
+    }
+    return false
   }
 }
 
