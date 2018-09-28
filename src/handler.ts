@@ -420,11 +420,16 @@ export default class Handler {
     let document = await workspace.document
     if (!document) return []
     let { commands } = extensions
-    for (let o of list) {
+    for (let key of Object.keys(commands)) {
       res.push({
-        id: o.id,
-        title: commands[o.id] || ''
+        id: key,
+        title: commands[key] || ''
       })
+    }
+    for (let o of list) {
+      if (commands[o.id] == null) {
+        res.push({ id: o.id, title: '' })
+      }
     }
     return res
   }
