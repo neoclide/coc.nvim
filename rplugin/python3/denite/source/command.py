@@ -18,6 +18,15 @@ class Source(Base):
         self.sorters = ['sorter/sublime']
         self.kind = Kind(vim)
 
+    def define_syntax(self):
+        self.vim.command('syntax case ignore')
+        self.vim.command(r'syntax match deniteCommand_CocHeader /\v^.*$/ containedin=' + self.syntax_name)
+        self.vim.command(r'syntax match deniteCommand_CocId /\v^\s\S+/ contained '
+                         r'containedin=deniteCommand_CocHeader nextgroup=deniteCommand_CocTitle')
+
+    def highlight(self):
+        self.vim.command('highlight default link deniteCommand_CocId Identifier')
+
     def gather_candidates(self, context):
         items = self.vim.call('CocAction', 'commands')
         if items is None or items is 0:
@@ -25,9 +34,9 @@ class Source(Base):
         candidates = []
         for item in items:
             candidates.append({
-                'word': item,
-                'abbr': item,
-                'source__name': item
+                'word': item['id'],
+                'abbr': item['id'] + ' ' + item['title'],
+                'source__name': item['id']
                 })
 
         return candidates

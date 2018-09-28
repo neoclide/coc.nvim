@@ -9,6 +9,7 @@ import events from './events'
 import languages from './languages'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
+import extensions from './extensions'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -21,6 +22,11 @@ interface SymbolInfo {
   containerName?: string
   selectionRange: Range
   range?: Range
+}
+
+interface CommandItem {
+  id: string
+  title: string
 }
 
 export default class Handler {
@@ -250,7 +256,8 @@ export default class Handler {
       }
       commandManager.executeCommand(id, ...args)
     } else {
-      let ids = await this.getCommands()
+      let cmds = await this.getCommands()
+      let ids = cmds.map(o => o.id)
       let idx = await workspace.showQuickpick(ids)
       if (idx == -1) return
       commandManager.executeCommand(ids[idx])
@@ -338,6 +345,12 @@ export default class Handler {
     let document = await workspace.document
     if (!document) return
     let position = await workspace.getCursorPosition()
+    let line = document.getline(position.line)
+    let ch = line[position.character]
+    if (!ch || !document.isWord(ch)) {
+      document.clearHighlight()
+      return
+    }
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
     if (!highlights || highlights.length == 0) {
       document.clearHighlight()
@@ -399,19 +412,17 @@ export default class Handler {
     }
   }
 
-  public async getCommands(): Promise<string[]> {
+  public async getCommands(): Promise<CommandItem[]> {
     let list = commandManager.commandList
-    let res: string[] = []
+    let res: CommandItem[] = []
     let document = await workspace.document
     if (!document) return []
+    let { commands } = extensions
     for (let o of list) {
-      let idx = o.id.indexOf('.')
-      let serviceId = o.id.slice(0, idx)
-      if (idx == -1 || serviceId == 'workspace') {
-        res.push(o.id)
-      } else {
-        res.push(o.id)
-      }
+      res.push({
+        id: o.id,
+        title: commands[o.id] || ''
+      })
     }
     return res
   }
