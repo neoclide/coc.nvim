@@ -34,9 +34,9 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
     let ret = 0
     if (scheme) {
       if (scheme === u.scheme) {
-        ret = 10
-      } else if (scheme === '*') {
         ret = 5
+      } else if (scheme === '*') {
+        ret = 3
       } else {
         return 0
       }
@@ -54,7 +54,7 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
 
     if (pattern) {
       if (pattern === u.fsPath || minimatch(u.fsPath, pattern, { dot: true })) {
-        ret = 10
+        ret = 5
       } else {
         return 0
       }
