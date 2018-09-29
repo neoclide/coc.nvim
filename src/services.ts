@@ -4,7 +4,7 @@ import net from 'net'
 import path from 'path'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
 import which from 'which'
-import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
+import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, SpawnOptions, State, Transport, TransportKind, RevealOutputChannelOn } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll } from './util'
 import workspace from './workspace'
@@ -317,6 +317,7 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
   let section = config.settings == null ? null : `${id}.settings`
   let clientOptions: LanguageClientOptions = {
     documentSelector: config.filetypes,
+    revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
       configurationSection: section
     },
@@ -326,6 +327,21 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
     initializationOptions: config.initializationOptions || {}
   }
   return [clientOptions, serverOptions]
+}
+
+function getRevealOutputChannelOn(revealOn: string | undefined): RevealOutputChannelOn {
+  switch (revealOn) {
+    case 'info':
+      return RevealOutputChannelOn.Info
+    case 'warn':
+      return RevealOutputChannelOn.Warn
+    case 'error':
+      return RevealOutputChannelOn.Error
+    case 'never':
+      return RevealOutputChannelOn.Never
+    default:
+      return RevealOutputChannelOn.Error
+  }
 }
 
 function getTransportKind(args: string[]): Transport {

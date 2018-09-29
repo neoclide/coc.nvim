@@ -68,6 +68,7 @@ export interface LanguageServerConfig {
   shell?: boolean
   execArgv?: string[]
   initializationOptions?: any
+  revealOutputChannelOn?: string
   configSection?: string
   forceFullSync?: boolean
   [index: string]: any
@@ -669,8 +670,8 @@ export interface IWorkspace {
   getCurrentState(): Promise<EditerState>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
-  renameFile(oldPath: string, newPath: string, opts?:RenameFileOptions):Promise<void>
-  deleteFile(filepath: string, opts?:DeleteFileOptions):Promise<void>
+  renameFile(oldPath: string, newPath: string, opts?: RenameFileOptions): Promise<void>
+  deleteFile(filepath: string, opts?: DeleteFileOptions): Promise<void>
   openResource(uri: string): Promise<void>
   createOutputChannel(name: string): OutputChannel
   showOutputChannel(name: string): void

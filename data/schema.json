@@ -32,6 +32,11 @@
             "type": "string"
           }
         },
+        "revealOutputChannelOn": {
+          "type": "string",
+          "default": "error",
+          "enum": ["info", "warn", "error", "never"]
+        },
         "initializationOptions": {
           "type": "object",
           "default": {},
@@ -100,6 +105,11 @@
           "items": {
             "type": "string"
           }
+        },
+        "revealOutputChannelOn": {
+          "type": "string",
+          "default": "error",
+          "enum": ["info", "warn", "error", "never"]
         },
         "initializationOptions": {
           "type": "object",
@@ -179,6 +189,11 @@
           "type": "boolean",
           "default": false,
           "description": "Use shell for process"
+        },
+        "revealOutputChannelOn": {
+          "type": "string",
+          "default": "error",
+          "enum": ["info", "warn", "error", "never"]
         },
         "initializationOptions": {
           "type": "object",

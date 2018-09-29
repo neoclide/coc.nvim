@@ -165,7 +165,7 @@ export class Workspace implements IWorkspace {
     let { uri, root } = this
     let config = this.getConfiguration('coc.preferences', uri)
     let rootPath = config.inspect<string>('rootPath').workspaceValue
-    if (!path.isAbsolute(rootPath)) {
+    if (rootPath && !path.isAbsolute(rootPath)) {
       rootPath = path.join(root, rootPath)
     }
     return rootPath || root
