@@ -563,7 +563,7 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocQuickfixChange {command}
 
-		Used for open a auctom view of quickfix results, disable
+		Used for open a custom view for quickfix results, disable
 		default quickfix list open by set: >
 
 		let g:coc_auto_copen = 0
