@@ -278,6 +278,7 @@ export class SnippetSession {
     if (this.changedtick && this.document.changedtick - this.changedtick == 1) {
       return
     }
+
     let edit: TextEdit = {
       range: change.range,
       newText: change.text
@@ -304,7 +305,7 @@ export class SnippetSession {
 
     // Check substring of placeholder start / placeholder finish
     let currentLine = this.document.getline(bounds.line)
-    if (this.isEndLine) {
+    if (this.isEndLine && this._suffix.length) {
       currentLine = currentLine.slice(0, - this._suffix.length)
     }
 
@@ -339,8 +340,8 @@ export class SnippetSession {
     const currentSnippetLines = this._snippet.getLines()
 
     const start = currentPlaceholder.line === 0
-        ? this._prefix.length + currentPlaceholder.character
-        : currentPlaceholder.character
+      ? this._prefix.length + currentPlaceholder.character
+      : currentPlaceholder.character
     const length = currentPlaceholder.value.length
     const distanceFromEnd =
       currentSnippetLines[currentPlaceholder.line].length -
@@ -393,7 +394,6 @@ export class SnippetSession {
     if (currentPlaceholder.choice) {
       this.nvim.call('coc#snippet#show_choices', [adjustedLine + 1, col, len, currentPlaceholder.choice], true)
     } else {
-      logger.debug('select:', len)
       this.nvim.call('coc#snippet#range_select', [adjustedLine + 1, col, len], true)
     }
   }
