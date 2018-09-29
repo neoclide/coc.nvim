@@ -725,3 +725,7 @@ function! s:extension_updated(status)
     call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
   endif
 endfunction
+
+function! coc#util#cc(index)
+  call timer_start(60, { -> execute('cc! '.a:index)})
+endfunction

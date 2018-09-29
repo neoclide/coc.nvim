@@ -563,18 +563,20 @@ AUTOCMD 					*coc-autocmds*
 
 :autocmd User CocQuickfixChange {command}
 
-		Normally used for open a list view of quickfix results,
-		for example: >
+		Used for open a auctom view of quickfix results, disable
+		default quickfix list open by set: >
 
-  		autocmd User CocQuickfixChange :copen
+		let g:coc_auto_copen = 0
+<
+		To use |denite.nvim| for open quickfix list: >
 
 		autocmd User CocQuickfixChange :Denite -mode=normal quickfix
 <
-		If you want to keep the behavior of open quickfix list after
-		every time quickfix list change, can use command like:
->
- 		autocmd QuickFixCmdPost * botright copen 8
+		To use |fzf| for open quickfix list: >
+
+		autocmd User CocQuickfixChange :call fzf_quickfix#run()
 <
+
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
 
