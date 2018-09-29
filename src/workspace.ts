@@ -155,14 +155,37 @@ export class Workspace implements IWorkspace {
   }
 
   public get root(): string {
-    let { cwd, bufnr } = this
-    let dir: string
+    let { cwd, uri } = this
+    let dir = uri ? path.dirname(Uri.parse(uri).fsPath) : cwd
+    return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
+  }
+
+  public get rootPath(): string {
+    // rootPath for language server
+    let { uri, root } = this
+    let config = this.getConfiguration('coc.preferences', uri)
+    let rootPath = config.inspect<string>('rootPath').workspaceValue
+    if (!path.isAbsolute(rootPath)) {
+      rootPath = path.join(root, rootPath)
+    }
+    return rootPath || root
+  }
+
+  /**
+   * uri of current file, could be null
+   *
+   * @public
+   * @returns {string}
+   */
+  public get uri(): string {
+    let { bufnr } = this
     if (bufnr) {
       let document = this.getDocument(bufnr)
-      if (document && document.schema == 'file') dir = path.dirname(Uri.parse(document.uri).fsPath)
+      if (document && document.schema == 'file') {
+        return document.uri
+      }
     }
-    dir = dir || cwd
-    return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
+    return null
   }
 
   public get workspaceFolder(): WorkspaceFolder {
@@ -506,8 +529,8 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async renameFile(oldPath: string, newPath: string, opts:RenameFileOptions = {}):Promise<void> {
-    let {overwrite, ignoreIfExists} = opts
+  public async renameFile(oldPath: string, newPath: string, opts: RenameFileOptions = {}): Promise<void> {
+    let { overwrite, ignoreIfExists } = opts
     let stat = await statAsync(newPath)
     if (stat && !overwrite && !ignoreIfExists) {
       this.showMessage(`${newPath} already exists`, 'error')
@@ -529,8 +552,8 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  public async deleteFile(filepath: string, opts:DeleteFileOptions = {}):Promise<void> {
-    let {ignoreIfNotExists, recursive} = opts
+  public async deleteFile(filepath: string, opts: DeleteFileOptions = {}): Promise<void> {
+    let { ignoreIfNotExists, recursive } = opts
     let stat = await statAsync(filepath.replace(/\/$/, ''))
     let isDir = stat.isDirectory() || filepath.endsWith('/')
     if (!stat && !ignoreIfNotExists) {
@@ -783,7 +806,7 @@ export class Workspace implements IWorkspace {
   private loadConfigurations(): IConfigurationData {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
-    let defaultConfig:IConfigurationModel = this.getDefaultConfiguration(file)
+    let defaultConfig: IConfigurationModel = this.getDefaultConfiguration(file)
     let home = process.env.VIMCONFIG
     if (global.hasOwnProperty('__TEST__')) {
       home = path.join(this.pluginRoot, 'src/__tests__')
@@ -791,6 +814,7 @@ export class Workspace implements IWorkspace {
     file = path.join(home, CONFIG_FILE_NAME)
     this.configFiles.push(file)
     let userConfig = this.parseContentFromFile(file)
+
     file = path.join(this.root, '.vim/' + CONFIG_FILE_NAME)
     let workspaceConfig
     if (this.configFiles.indexOf(file) == -1) {
@@ -806,7 +830,7 @@ export class Workspace implements IWorkspace {
     }
   }
 
-  private getDefaultConfiguration(file:string): IConfigurationModel {
+  private getDefaultConfiguration(file: string): IConfigurationModel {
     if (!this._configurations) {
       return this.parseContentFromFile(file)
     }
@@ -1066,7 +1090,7 @@ export class Workspace implements IWorkspace {
     document.clearHighlight()
   }
 
-  private getBufName(fullpath:string):string {
+  private getBufName(fullpath: string): string {
     let { cwd } = this
     if (!fullpath.startsWith(cwd)) return fullpath
     return path.relative(cwd, fullpath)

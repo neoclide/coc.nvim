@@ -215,6 +215,11 @@
       "default": 9,
       "description": "Priority of language sources."
     },
+    "coc.preferences.rootPath": {
+      "type": "string",
+      "default": "",
+      "description": "rootPath of language server, relative to current file, use the directory contains .vim and .git by default."
+    },
     "coc.preferences.maxCompleteItemCount": {
       "type": "number",
       "default": 50,

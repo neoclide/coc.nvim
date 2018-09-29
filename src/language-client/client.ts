@@ -79,7 +79,7 @@ interface IConnection {
 
   trace(value: Trace, tracer: Tracer, sendNotification?: boolean): void
   trace(value: Trace, tracer: Tracer, traceOptions?: TraceOptions): void
-  
+
 
   initialize(params: InitializeParams): Thenable<InitializeResult>
   shutdown(): Thenable<void>
@@ -3548,7 +3548,7 @@ export abstract class BaseLanguageClient {
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
     let initOption = this._clientOptions.initializationOptions
-    let rootPath = workspace.root
+    let rootPath = workspace.rootPath
     let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
