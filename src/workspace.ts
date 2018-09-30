@@ -685,8 +685,7 @@ export class Workspace implements IWorkspace {
     }
     await events.fire('BufEnter', [buffer.id])
     let winid = await this.nvim.call('win_getid')
-    let name = await buffer.name
-    await events.fire('BufWinEnter', [name, winid])
+    await events.fire('BufWinEnter', [buffer.id, winid])
   }
 
   private async detach(): Promise<void> {

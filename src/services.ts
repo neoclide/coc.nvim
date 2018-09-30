@@ -49,7 +49,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public init(): void {
     this.createCustomServices()
-    events.on('BufWinEnter', bufnr => {
+    events.on('BufWinEnter', (bufnr, _winid) => {
       let doc = workspace.getDocument(bufnr)
       if (doc) {
         this.checkLazyClients(doc.textDocument)
