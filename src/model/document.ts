@@ -52,9 +52,6 @@ export default class Document {
           this.fireContentChanges()
           paused = true
         } else {
-          // setImmediate(() => {
-          //   logger.debug('line:', this.getline(37))
-          // })
           paused = false
           // fire immediatelly
           this._fireContentChanges.clear()

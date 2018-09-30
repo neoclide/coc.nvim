@@ -248,7 +248,12 @@
     "coc.preferences.timeout": {
       "type": "integer",
       "default": 500,
-      "description": "Timeout for completion"
+      "description": "Timeout for completion, in miliseconds."
+    },
+    "coc.preferences.triggerCompletionWait": {
+      "type": "integer",
+      "default": 60,
+      "description": "Wait time between trigger characer type and completion start."
     },
     "coc.preferences.noselect": {
       "type": "boolean",
