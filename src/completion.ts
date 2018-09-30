@@ -190,9 +190,7 @@ export class Completion implements Disposable {
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     let doc = workspace.getDocument(option.bufnr)
     if (!doc) return
-    if (latestInsertChar && !doc.isWord(latestInsertChar)) {
-      Object.assign(option, { triggerCharacter: latestInsertChar })
-    }
+    if (latestInsertChar) option.triggerCharacter = latestInsertChar
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }

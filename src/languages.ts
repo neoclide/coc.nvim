@@ -128,7 +128,7 @@ class Languages {
               documentation: snip.description,
               insertTextFormat: InsertTextFormat.Snippet,
               textEdit: TextEdit.replace(
-                Range.create({line: position.line, character: opt.col}, position), snip.body
+                Range.create({ line: position.line, character: opt.col }, position), snip.body
               )
             })
           }
@@ -181,8 +181,8 @@ class Languages {
     selector: DocumentSelector,
     provider: SignatureHelpProvider,
     triggerCharacters?: string[]): Disposable {
-      return this.signatureManager.register(selector, provider, triggerCharacters)
-    }
+    return this.signatureManager.register(selector, provider, triggerCharacters)
+  }
 
   public registerDocumentSymbolProvider(selector, provider: DocumentSymbolProvider): Disposable {
     return this.documentSymbolManager.register(selector, provider)
@@ -474,12 +474,13 @@ class Languages {
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
+        let isTrigger = triggerCharacters.indexOf(triggerCharacter) != -1
         let document = doc.textDocument
         let position = completion.getPosition(opt)
         let context: CompletionContext = {
-          triggerKind: triggerCharacter ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked
+          triggerKind: isTrigger ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked
         }
-        if (triggerCharacter) context.triggerCharacter = triggerCharacter
+        if (isTrigger) context.triggerCharacter = triggerCharacter
         let cancellSource = new CancellationTokenSource()
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
