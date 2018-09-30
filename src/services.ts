@@ -8,12 +8,19 @@ import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, Spaw
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll } from './util'
 import workspace from './workspace'
+import events from './events'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
   id: string
   state: string
   languageIds: string[]
+}
+
+interface LazyClient {
+  id: string
+  documentSelector: DocumentSelector
+  init: Function
 }
 
 function getStateName(state: ServiceStat): string {
@@ -37,16 +44,19 @@ function getStateName(state: ServiceStat): string {
 
 export class ServiceManager extends EventEmitter implements Disposable {
   private readonly registed: Map<string, IServiceProvider> = new Map()
+  private readonly lazyClients: Set<LazyClient> = new Set()
   private disposables: Disposable[] = []
-  private started: Set<string> = new Set()
 
   public init(): void {
     this.createCustomServices()
-    let ids = Array.from(this.registed.keys())
-    logger.info(`Created services: ${ids.join(',')}`)
-    workspace.onDidOpenTextDocument(doc => {
-      this.start(doc)
+    events.on('BufWinEnter', bufnr => {
+      let doc = workspace.getDocument(bufnr)
+      if (doc) {
+        this.checkLazyClients(doc.textDocument)
+        this.start(doc.textDocument)
+      }
     }, null, this.disposables)
+    this.checkLazyClients()
   }
 
   public dispose(): void {
@@ -67,10 +77,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     }
     this.registed.set(id, service)
     if (this.shouldStart(service)) {
-      this.started.add(service.id)
-      service.start().catch(_e => {
-        // noop
-      })
+      service.start() // tslint:disable-line
     }
     service.onServiceReady(() => {
       workspace.showMessage(`service ${id} started`, 'more')
@@ -101,8 +108,12 @@ export class ServiceManager extends EventEmitter implements Disposable {
     if (service.state != ServiceStat.Initial) {
       return false
     }
+    return this.matchSelector(service.selector)
+  }
+
+  private matchSelector(selector: DocumentSelector): boolean {
     for (let doc of workspace.documents) {
-      if (workspace.match(service.selector, doc.textDocument)) {
+      if (workspace.match(selector, doc.textDocument)) {
         return true
       }
     }
@@ -112,17 +123,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   private start(document: TextDocument): void {
     let services = this.getServices(document)
     for (let service of services) {
-      if (this.started.has(service.id)) {
-        continue
-      }
-      this.started.add(service.id)
-      let { state } = service
-      if (state === ServiceStat.Initial || state === ServiceStat.Stopped) {
-        logger.debug('starting: ', service.id)
-        service.start().catch(_e => {
-          // noop
-        })
-      }
+      service.start() // tslint:disable-line
     }
   }
 
@@ -182,8 +183,24 @@ export class ServiceManager extends EventEmitter implements Disposable {
       if (config.enable === false) continue
       let opts = getLanguageServerOptions(id, key, config)
       if (!opts) continue
-      let client = new LanguageClient(id, key, opts[1], opts[0])
-      this.registLanguageClient(client)
+      this.lazyClients.add({
+        id,
+        documentSelector: opts[0].documentSelector || [{ language: '*' }],
+        init: () => {
+          let client = new LanguageClient(id, key, opts[1], opts[0])
+          this.registLanguageClient(client)
+        }
+      })
+    }
+  }
+
+  private checkLazyClients(document?: TextDocument): void {
+    for (let [client] of this.lazyClients.entries()) {
+      if ((document && workspace.match(client.documentSelector, document))
+        || this.matchSelector(client.documentSelector)) {
+        this.lazyClients.delete(client)
+        client.init()
+      }
     }
   }
 
@@ -201,8 +218,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
       onServiceReady: onDidServiceReady.event,
       start: (): Promise<void> => {
         if (service.state != ServiceStat.Initial && service.state != ServiceStat.Stopped) {
-          return
+          return Promise.resolve()
         }
+        service.state = ServiceStat.Starting
+        logger.debug(`starting service: ${client.name}`)
         let disposable = client.start()
         disposables.push(disposable)
         return new Promise(resolve => {
@@ -228,6 +247,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
         if (service.state == ServiceStat.Running) {
           await service.stop()
         }
+        service.state = ServiceStat.Starting
         client.restart()
       },
     }
@@ -316,7 +336,7 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
   }
   let section = config.settings == null ? null : `${id}.settings`
   let clientOptions: LanguageClientOptions = {
-    documentSelector: config.filetypes,
+    documentSelector: config.filetypes || [{ language: '*' }],
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
       configurationSection: section

@@ -29,6 +29,7 @@ class Events {
           return Promise.resolve(fn.apply(null, args))
         }))
       } catch (e) {
+        logger.error(e)
         workspace.showMessage(`Error on ${event}: ${e.message}`, 'error')
       }
     }

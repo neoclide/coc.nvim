@@ -673,12 +673,12 @@ export class Workspace implements IWorkspace {
   }
 
   private async attach(): Promise<void> {
+    let buffer = await this.nvim.buffer
+    this.bufnr = buffer.id
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
     }))
-    let buffer = await this.nvim.buffer
-    this.bufnr = buffer.id
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true

@@ -344,7 +344,7 @@ describe('workspace utility', () => {
   it('should not throw on folder create if overwrite is true', async () => {
     let filepath = path.join(__dirname, 'bar/')
     await workspace.createFile(filepath)
-    await workspace.createFile(filepath, {overwrite: true})
+    await workspace.createFile(filepath, { overwrite: true })
     expect(fs.existsSync(filepath)).toBe(true)
     fs.rmdirSync(filepath)
   })
@@ -364,7 +364,7 @@ describe('workspace utility', () => {
     let newPath = path.join(__dirname, 'bar')
     await workspace.createFile(filepath)
     await workspace.createFile(newPath)
-    await workspace.renameFile(filepath, newPath, {overwrite: true})
+    await workspace.renameFile(filepath, newPath, { overwrite: true })
     expect(fs.existsSync(newPath)).toBe(true)
     expect(fs.existsSync(filepath)).toBe(false)
     fs.unlinkSync(newPath)
@@ -382,7 +382,7 @@ describe('workspace utility', () => {
     let filepath = path.join(__dirname, 'foo/')
     await workspace.createFile(filepath)
     expect(fs.existsSync(filepath)).toBe(true)
-    await workspace.deleteFile(filepath, {recursive: true})
+    await workspace.deleteFile(filepath, { recursive: true })
     expect(fs.existsSync(filepath)).toBe(false)
   })
 
