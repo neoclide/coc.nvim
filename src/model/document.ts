@@ -53,9 +53,6 @@ export default class Document {
           paused = true
         } else {
           paused = false
-          // fire immediatelly
-          this._fireContentChanges.clear()
-          this.fireContentChanges()
         }
       }
     })

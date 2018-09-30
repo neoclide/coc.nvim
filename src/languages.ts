@@ -451,6 +451,12 @@ class Languages {
         let timeout = workspace.isVim ? 100 : 30
         setTimeout(async () => {
           try {
+            let mode = await this.nvim.call('mode')
+            if (mode !== 'i') {
+              let doc = workspace.getDocument(option.bufnr)
+              if (doc) doc.forceSync()
+              return
+            }
             let isConfirm = await this.checkConfirm(completeItem, option)
             if (!isConfirm) return
             let snippet = await this.applyTextEdit(completeItem, option)
@@ -511,8 +517,6 @@ class Languages {
   private async checkConfirm(item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let { col } = option
     let { nvim } = this
-    let mode = await nvim.call('mode')
-    if (mode !== 'i') return false
     let curcol = await nvim.call('col', ['.'])
     let label = completion.getWord(item)
     if (curcol != col + label.length + 1) return false
