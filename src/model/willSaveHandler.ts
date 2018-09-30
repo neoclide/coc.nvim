@@ -27,7 +27,7 @@ export default class WillSaveUntilHandler {
           called = true
           let { document } = ev
           let timer = setTimeout(() => {
-            workspace.showMessage(`${clientId} will save operation timeout after 0.5s`, 'error')
+            workspace.showMessage(`${clientId} will save operation timeout after 0.5s`, 'warning')
             resolve(null)
           }, 500)
           Promise.resolve(thenable).then((edits: TextEdit[]) => {
