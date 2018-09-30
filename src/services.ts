@@ -8,7 +8,6 @@ import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, Spaw
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll } from './util'
 import workspace from './workspace'
-import events from './events'
 const logger = require('./util/logger')('services')
 
 interface ServiceInfo {
@@ -49,14 +48,11 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public init(): void {
     this.createCustomServices()
-    events.on('BufWinEnter', (bufnr, _winid) => {
-      let doc = workspace.getDocument(bufnr)
-      if (doc) {
-        this.checkLazyClients(doc.textDocument)
-        this.start(doc.textDocument)
-      }
+    workspace.onDidOpenTextDocument(document => {
+      this.checkLazyClients(document)
+      this.start(document)
     }, null, this.disposables)
-    this.checkLazyClients()
+    // this.checkLazyClients()
   }
 
   public dispose(): void {

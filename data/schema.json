@@ -247,7 +247,7 @@
     },
     "coc.preferences.timeout": {
       "type": "integer",
-      "default": 300,
+      "default": 500,
       "description": "Timeout for completion"
     },
     "coc.preferences.noselect": {

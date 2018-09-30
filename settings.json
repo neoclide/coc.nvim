@@ -9,7 +9,7 @@
   // only used when autoTrigger is always
   "coc.preferences.triggerAfterInsertEnter": true,
   "coc.preferences.customSources": ["word", "emoji", "include"],
-  "coc.preferences.timeout": 300,
+  "coc.preferences.timeout": 500,
   "coc.preferences.noselect": true,
   "coc.preferences.formatOnType": false,
   // "coc.preferences.watchmanPath": "",
