@@ -1,3 +1,11 @@
+# 2018-09-30
+
+- Add quickfix source of denite and fzf
+- Add option `coc.preferences.rootPath`
+- Add option `revealOutputChannelOn` to language server.
+- Fix jump of placeholder.
+- Fix empty root on language server initialize.
+
 # 2018-09-28
 
 - **Break change**: `coc.preferences.formatOnType` default to `false`.
