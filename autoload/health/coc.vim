@@ -4,9 +4,13 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
-  if !executable('node') || !executable('npm')
+  if !executable('node')
     let valid = 0
     call health#report_error('Environment node.js not found, install node.js from http://nodejs.org/')
+  endif
+  if !executable('yarn')
+    let valid = 0
+    call health#report_error('Environment executable yarn not found, check https://yarnpkg.com/en/docs/install for installation.')
   endif
   let output = system('node -v')
   if v:shell_error && output !=# ""
