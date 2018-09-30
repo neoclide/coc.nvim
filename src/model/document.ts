@@ -21,7 +21,6 @@ export default class Document {
   private nvim: Neovim
   private srcId = 0
   private _fireContentChanges: Function & { clear(): void }
-  private _addLine: boolean
   private attached = false
   // real current lines
   private lines: string[] = []
@@ -53,6 +52,9 @@ export default class Document {
           this.fireContentChanges()
           paused = true
         } else {
+          // setImmediate(() => {
+          //   logger.debug('line:', this.getline(37))
+          // })
           paused = false
           // fire immediatelly
           this._fireContentChanges.clear()
@@ -177,17 +179,9 @@ export default class Document {
   ): void {
     if (tick == null) return
     if (buf.id !== this.buffer.id) return
-    this._addLine = false
-    if (linedata.length > lastline - firstline) {
-      this._addLine = true
-    }
     this._changedtick = tick
     this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
-  }
-
-  public get addLine(): boolean {
-    return this._addLine
   }
 
   /**

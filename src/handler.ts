@@ -50,9 +50,10 @@ export default class Handler {
       lastTs = Date.now()
     }, null, this.disposables)
     events.on('TextChangedI', async bufnr => {
-      let doc = workspace.getDocument(bufnr)
-      if (Date.now() - lastTs < 40 && lastChar || doc.addLine) {
-        let character = doc.addLine ? '\n' : lastChar
+      let line: string = await nvim.call('getline', '.')
+      let isEmpty = line.trim().length == 0
+      if (Date.now() - lastTs < 40 && lastChar || isEmpty) {
+        let character = isEmpty ? '\n' : lastChar
         lastChar = null
         await this.onCharacterType(character, bufnr)
       }
