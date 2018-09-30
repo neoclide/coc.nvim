@@ -23,7 +23,6 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     sources.init()
-    services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
     this.on('registExtensions', async args => {
@@ -39,6 +38,7 @@ export default class Plugin extends EventEmitter {
     this.initialized = true
     let { nvim } = this
     await workspace.init()
+    services.init()
     this.handler = new Handler(nvim)
     await extensions.init(nvim)
     await nvim.command('doautocmd User CocNvimInit')
