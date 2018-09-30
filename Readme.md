@@ -209,6 +209,9 @@ set hidden
 " Better display for messages
 set cmdheight=2
 
+" Smaller updatetime for CursorHold & CursorHoldI
+set updatetime=300
+
 " always show signcolumns
 set signcolumn=yes
 
@@ -256,7 +259,7 @@ function! s:show_documentation()
 endfunction
 
 " Show signature help while editing
-autocmd CursorHoldI,CursorMovedI * silent! call CocAction('showSignatureHelp')
+autocmd CursorHoldI * silent! call CocAction('showSignatureHelp')
 
 " Highlight symbol under cursor on CursorHold
 autocmd CursorHold * silent call CocActionAsync('highlight')
