@@ -870,6 +870,9 @@ export class Workspace implements IWorkspace {
 
   private async onBufCreate(buf: number | Buffer): Promise<void> {
     this.checkBuffer.clear()
+    if (this.initialized) {
+      this.bufnr = await this.nvim.call('bufnr', '%')
+    }
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
@@ -954,6 +957,7 @@ export class Workspace implements IWorkspace {
 
   private async _checkBuffer(): Promise<void> {
     let bufnr = await this.nvim.call('bufnr', '%')
+    this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
     if (!doc) {
       await this.onBufCreate(bufnr)
