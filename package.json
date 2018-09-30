@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "bin": "./bin/server.js",
   "scripts": {
-    "clean": "rimraf lib",
+    "clean": "rimraf lib build",
     "lint": "tslint -c tslint.json -p .",
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
