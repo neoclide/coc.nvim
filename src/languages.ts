@@ -474,7 +474,7 @@ class Languages {
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
-        let isTrigger = triggerCharacters.indexOf(triggerCharacter) != -1
+        let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let document = doc.textDocument
         let position = completion.getPosition(opt)
         let context: CompletionContext = {
