@@ -13,8 +13,6 @@ class Source(Base):
         super().__init__(vim)
 
         self.name = 'coc-link'
-        self.matchers = ['matcher_fuzzy']
-        self.sorters = ['sorter/sublime']
         self.kind = 'file'
 
     def gather_candidates(self, context):

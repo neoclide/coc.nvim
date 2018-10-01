@@ -16,7 +16,6 @@ class Source(Base):
 
         self.name = 'quickfix'
         self.kind = 'file'
-        self.matchers = ['matcher_fuzzy']
         self.sorters = []
 
         self.kind = QuickfixKind(vim)

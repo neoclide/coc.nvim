@@ -13,7 +13,6 @@ class Source(Base):
         super().__init__(vim)
 
         self.name = 'coc-service'
-        self.matchers = ['matcher_fuzzy']
         self.sorters = []
         self.kind = SourceKind(vim)
 

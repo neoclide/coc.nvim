@@ -15,8 +15,6 @@ class Source(Base):
         super().__init__(vim)
 
         self.name = 'coc-workspace'
-        self.matchers = ['matcher_fuzzy']
-        self.sorters = ['sorter/sublime']
         self.kind = FileKind(vim)
 
     def define_syntax(self):

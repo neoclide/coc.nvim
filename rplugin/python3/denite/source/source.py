@@ -15,8 +15,6 @@ class Source(Base):
         super().__init__(vim)
 
         self.name = 'coc-source'
-        self.matchers = ['matcher_fuzzy']
-        self.sorters = []
         self.kind = SourceKind(vim)
 
     def define_syntax(self):
