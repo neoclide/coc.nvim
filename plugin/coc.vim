@@ -106,7 +106,7 @@ function! s:Enable()
     autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'))
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
-    autocmd OptionSet  completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
+    autocmd OptionSet           * call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd BufNewFile,BufReadPost, * call s:SyncAutoCmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutoCmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
@@ -139,9 +139,9 @@ hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
 
-hi default CocHighlightText  guibg=#111111
-hi default CocHighlightRead  guibg=#111111
-hi default CocHighlightWrite guibg=#111111
+hi default CocHighlightText  guibg=#111111 ctermbg=223
+hi default link CocHighlightRead  CocHighlightText
+hi default link CocHighlightRead  CocHighlightText
 
 function! s:FormatFromSelected(type)
   call CocAction('formatSelected', a:type)
