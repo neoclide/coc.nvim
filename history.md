@@ -1,3 +1,13 @@
+# 2018-10-01
+
+- Improved document `didChange` before trigger completion.
+- Add option `coc.preferences.triggerCompletionWait`, default 60.
+- Add watch for `iskeyword` change.
+- Fix snippet jump not works sometime.
+- Fix possible wrong `rootPath` of language server.
+- Fix highlight of highlight action not using terminal colors.
+- Fix detect for insert new line character.
+
 # 2018-09-30
 
 - Add quickfix source of denite and fzf
