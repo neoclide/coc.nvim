@@ -942,6 +942,8 @@ export class Workspace implements IWorkspace {
     if (name === 'iskeyword') {
       this.document.then(document => {
         if (document) document.setIskeyword(newValue)
+      }, _e => {
+        // noop
       })
     }
   }
