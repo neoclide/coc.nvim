@@ -2,7 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Emitter, Event, FormattingOptions, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Document from '../model/document'
-import { wait, isLineEdit } from '../util'
+import { wait } from '../util'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
@@ -283,25 +283,12 @@ export class SnippetSession {
       range: change.range,
       newText: change.text
     }
-    if (!isLineEdit(edit)) {
-      this._onCancelEvent.fire(void 0)
-      return
-    }
-
-    // Get current cursor position
-    const cursorPosition = await workspace.getCursorPosition()
 
     if (!this._currentPlaceholder) {
       return
     }
 
     const bounds = this._getBoundsForPlaceholder()
-
-    if (cursorPosition.line !== bounds.line) {
-      logger.info('Cursor outside snippet, cancelling snippet session')
-      this._onCancelEvent.fire(void 0)
-      return
-    }
 
     // Check substring of placeholder start / placeholder finish
     let currentLine = this.document.getline(bounds.line)
@@ -312,10 +299,12 @@ export class SnippetSession {
     const startPosition = bounds.start
     const endPosition = currentLine.length - bounds.distanceFromEnd
 
-    if (
-      cursorPosition.character < startPosition ||
-      cursorPosition.character > endPosition + 2
-    ) {
+    let { start, end } = edit.range
+    if (start.line != bounds.line
+      || end.line != bounds.line
+      || start.character < startPosition) {
+      logger.info('Change outside snippet, cancelling snippet session')
+      this._onCancelEvent.fire(void 0)
       return
     }
 
@@ -367,11 +356,8 @@ export class SnippetSession {
   }
 
   private async forceSync(): Promise<void> {
-    let { dirty } = this.document
-    if (dirty) {
-      this.document.forceSync()
-      await wait(30)
-    }
+    this.document.forceSync()
+    await wait(20)
   }
 
   private get isEndLine(): boolean {

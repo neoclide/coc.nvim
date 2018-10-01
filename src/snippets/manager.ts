@@ -103,7 +103,7 @@ export class SnippetManager implements types.SnippetManager {
     }
   }
 
-  public dispose():void {
+  public dispose(): void {
     this.cancel()
     this.disposables.forEach(d => d.dispose())
   }
