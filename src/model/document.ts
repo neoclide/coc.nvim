@@ -10,6 +10,8 @@ import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
 
+export type LastChangeType = 'insert' | 'change' | 'delete'
+
 // wrapper class of TextDocument
 export default class Document {
   public paused: boolean
@@ -19,6 +21,7 @@ export default class Document {
   public textDocument: TextDocument
   public fetchContent: Function & { clear(): void }
   private nvim: Neovim
+  private _lastChange: LastChangeType = 'insert'
   private srcId = 0
   private _fireContentChanges: Function & { clear(): void }
   private attached = false
@@ -60,6 +63,10 @@ export default class Document {
 
   public get words(): string[] {
     return this._words
+  }
+
+  public get lastChange(): LastChangeType {
+    return this._lastChange
   }
 
   private generateWords(): void {
@@ -176,9 +183,16 @@ export default class Document {
     linedata: string[]
     // more:boolean
   ): void {
-    if (tick == null) return
-    if (buf.id !== this.buffer.id) return
+    if (buf.id !== this.buffer.id || !tick) return
     this._changedtick = tick
+    let c = lastline - firstline - linedata.length
+    if (c > 0) {
+      this._lastChange = 'delete'
+    } else if (c < 0) {
+      this._lastChange = 'insert'
+    } else {
+      this._lastChange = 'change'
+    }
     this.lines.splice(firstline, lastline - firstline, ...linedata)
     this._fireContentChanges()
   }
