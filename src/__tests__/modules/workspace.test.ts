@@ -589,8 +589,9 @@ describe('workspace private', () => {
     let doc = workspace.getDocument(buf.id)
     expect(doc.content).toMatch('abc')
     await nvim.input('Adef')
-    await helper.wait(300)
-    expect(doc.content).toMatch('abcdef')
+    await nvim.call('coc#_hide')
+    await helper.wait(100)
+    expect(doc.getline(0)).toMatch('abcdef')
   })
 
   it('should parse config with errors', async () => {

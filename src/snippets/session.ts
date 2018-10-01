@@ -369,7 +369,7 @@ export class SnippetSession {
   private async forceSync(): Promise<void> {
     let { dirty } = this.document
     if (dirty) {
-      this.document.forceSync(true)
+      this.document.forceSync()
       await wait(30)
     }
   }

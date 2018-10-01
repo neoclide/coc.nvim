@@ -298,13 +298,10 @@ export default class Document {
     this.fireContentChanges()
   }
 
-  public forceSync(ignorePause = false): void {
-    if (this.paused && ignorePause) {
-      this.paused = false
-    } else {
-      this._fireContentChanges.clear()
-      this.fireContentChanges()
-    }
+  public forceSync(): void {
+    this.paused = false
+    this._fireContentChanges.clear()
+    this.fireContentChanges()
   }
 
   public getOffset(lnum: number, col: number): number {
