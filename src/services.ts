@@ -119,7 +119,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
   private start(document: TextDocument): void {
     let services = this.getServices(document)
     for (let service of services) {
-      service.start() // tslint:disable-line
+      if (service.state == ServiceStat.Initial) {
+        service.start() // tslint:disable-line
+      }
     }
   }
 
