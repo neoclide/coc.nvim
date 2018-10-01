@@ -25,7 +25,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
-import { echoMessage } from './util'
+import { echoMessage, wait } from './util'
 import workspace from './workspace'
 import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
@@ -390,7 +390,8 @@ class Languages {
     let resolving: string
     let option: CompleteOption
     let preferences = workspace.getConfiguration('coc.preferences')
-    let priority = preferences.get('languageSourcePriority', 9)
+    let priority = preferences.get<number>('languageSourcePriority', 9)
+    let waitTime = preferences.get<number>('triggerCompletionWait', 60)
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
@@ -480,6 +481,7 @@ class Languages {
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
+        if (triggerCharacter) await wait(waitTime)
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let document = doc.textDocument
         let position = completion.getPosition(opt)

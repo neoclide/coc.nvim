@@ -36,21 +36,12 @@ export default class Complete {
   private completeSource(source: ISource): Promise<any> {
     let start = Date.now()
     let s = new Serial()
-    let { col, triggerCharacter } = this.option
+    let { col } = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
     let preferences = workspace.getConfiguration('coc.preferences')
     let timeout = preferences.get<number>('timeout', 500)
-    let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    s.timeout(Math.min(Number(timeout), 3000))
-    // wait for content sync
-    if (triggerCharacter) {
-      s.add(done => {
-        setTimeout(() => {
-          done()
-        }, waitTime)
-      })
-    }
+    s.timeout(Math.min(timeout, 3000))
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
         source.shouldComplete(option).then(res => {
