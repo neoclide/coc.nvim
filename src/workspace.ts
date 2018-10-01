@@ -936,9 +936,13 @@ export class Workspace implements IWorkspace {
   }
 
   private onOptionSet(name: string, _oldValue: any, newValue: any): void {
-    logger.debug('optionSet:', name)
     if (name === 'completeopt') {
       this.vimSettings.completeOpt = newValue
+    }
+    if (name === 'iskeyword') {
+      this.document.then(document => {
+        if (document) document.setIskeyword(newValue)
+      })
     }
   }
 

@@ -119,8 +119,14 @@ export default class Document {
       0,
       this.lines.join('\n')
     )
+    this.setIskeyword(iskeyword)
+    return true
+  }
+
+  public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
-    if (this.includeDash(filetype)) chars.addKeyword('-')
+    if (this.buftype !== '') return
+    if (this.includeDash(this.filetype)) chars.addKeyword('-')
     this.gitCheck().then(
       () => {
         this.generateWords()
@@ -129,7 +135,6 @@ export default class Document {
         logger.error('git error', e.stack)
       }
     )
-    return true
   }
 
   /**
