@@ -87,7 +87,7 @@ describe('native sources', () => {
   it('should works for emoji source', async () => {
     await helper.edit('emoji')
     await nvim.input('ismile')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('<C-x><C-u>')
     let res = await helper.visible('😄', 'emoji')
     expect(res).toBe(true)
@@ -97,7 +97,7 @@ describe('native sources', () => {
     let s = 'strengthening'
     await helper.edit('word')
     await nvim.input('i' + s.slice(0, -2))
-    await helper.wait(60)
+    await helper.wait(100)
     await nvim.input('<C-x><C-u>')
     let res = await helper.visible(s, 'word')
     expect(res).toBe(true)
@@ -106,7 +106,7 @@ describe('native sources', () => {
   it('should works for include source', async () => {
     await helper.edit('word')
     await nvim.input('icombas')
-    await helper.wait(60)
+    await helper.wait(100)
     await nvim.input('<C-x><C-u>')
     let res = await helper.visible('./completion/basic.test.ts', 'include')
     expect(res).toBe(true)
