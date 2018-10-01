@@ -76,6 +76,12 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   - [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
   - [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
+    - [Dart](https://github.com/neoclide/coc.nvim/wiki/Language-servers#darto)
+    - [Rust](https://github.com/neoclide/coc.nvim/wiki/Language-servers#rust)
+    - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
+    - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
+    - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
+
 - [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
 - [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
