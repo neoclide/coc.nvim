@@ -236,7 +236,7 @@ endfunction
 function! coc#util#get_search(col) abort
   let line = getline('.')
   let curcol = col('.')
-  if curcol <= a:col || mode() !~ '^i'
+  if curcol <= a:col || mode() !~? '^i'
     return v:null
   endif
   if curcol == a:col + 1 | return '' | endif
@@ -246,8 +246,8 @@ endfunction
 function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort
   let showcmd = &showcmd
   let ruler = &ruler
-  let &showcmd = 0
-  let &ruler = 0
+  noa set noruler
+  noa set noshowcmd
   let arr = []
   let i = 0
   let activeParameter = get(a:, 'activeParameter', 0)
@@ -288,8 +288,8 @@ function! coc#util#echo_signature(activeParameter, activeSignature, signatures) 
       echon "\n"
     endif
   endfor
-  let &showcmd = showcmd
-  let &ruler = ruler
+  if showcmd | noa set showcmd | endif
+  if ruler | noa set ruler | endif
 endfunction
 
 function! s:echo_signatureItem(list)
