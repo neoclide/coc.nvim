@@ -203,6 +203,12 @@ Extension are powerful than configured language server. Checkout
 
         :CocInstall coc-prettier
 
+- **Jest**
+
+  [Jest](https://github.com/facebook/jest) extension.
+
+        :CocInstall coc-jest
+
 **Note:** use `:CocConfig` to edit configuration file, auto completion is
 supported after `coc-json` installed.
 
