@@ -6,7 +6,6 @@ import { wait } from '../util'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
-
 const logger = require('../util/logger')('snippets-session')
 
 export const splitLineAtPosition = (line: string, position: number): [string, string] => {
@@ -282,6 +281,11 @@ export class SnippetSession {
     let edit: TextEdit = {
       range: change.range,
       newText: change.text
+    }
+    if (this.document.lastChange != 'change') {
+      logger.info('Change outside snippet, cancelling snippet session')
+      this._onCancelEvent.fire(void 0)
+      return
     }
 
     if (!this._currentPlaceholder) {
