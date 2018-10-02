@@ -362,9 +362,9 @@ endfunction
 " change content of current buffer
 function! coc#util#buf_setlines(lines)
   let l:winview = winsaveview()
-  let count = line('$')
+  let l:count = line('$')
   keepjumps call setline(1, a:lines)
-  if count > len(a:lines)
+  if l:count > len(a:lines)
     let lnum = len(a:lines) + 1
     execute 'keepjumps normal '.lnum.'G'
     keepjumps normal! dG
@@ -378,7 +378,12 @@ endfunction
 
 " cmd, cwd
 function! coc#util#open_terminal(opts) abort
-  execute 'belowright 5new +setl\ buftype=nofile '
+  if get(a:opts, 'position', 'bottom')
+    let p = '5new'
+  else
+    let p = 'vnew'
+  endif
+  execute 'belowright '.p.' +setl\ buftype=nofile '
   setl buftype=nofile
   setl winfixheight
   setl norelativenumber
