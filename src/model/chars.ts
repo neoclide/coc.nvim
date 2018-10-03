@@ -13,12 +13,12 @@ export class Range {
     let ranges: Range[] = []
     for (let part of parts) {
       if (part == '@') {
-        // number and letters
-        ranges.push(new Range(95))
-        ranges.push(new Range(48, 57))
+        // isalpha() of c
         ranges.push(new Range(65, 90))
         ranges.push(new Range(97, 122))
         ranges.push(new Range(192, 255))
+      } else if (part == '@-@') {
+        ranges.push(new Range(64))
       } else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
         let ms = part.match(/^([A-Za-z])-([A-Za-z])$/)
         ranges.push(new Range(ms[1].charCodeAt(0), ms[2].charCodeAt(0)))
@@ -62,17 +62,20 @@ export class Chars {
 
   public matchKeywords(content: string, min = 3): string[] {
     if (!content) return []
-    content = content + '\n'
     let res: string[] = []
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
       let ch = content[i]
-      if (this.isKeywordChar(ch)) {
+      let isKeyword = this.isKeywordChar(ch)
+      if (isKeyword) {
         str = str + ch
-      } else {
-        if (str.length >= min && res.indexOf(str) == -1) {
-          res.push(str)
-        }
+      }
+      if (str.length >= min
+        && res.indexOf(str) == -1
+        && (i == l - 1 || !isKeyword)) {
+        res.push(str)
+      }
+      if (!isKeyword) {
         str = ''
       }
     }
