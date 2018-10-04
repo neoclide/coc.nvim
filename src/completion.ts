@@ -17,6 +17,7 @@ export class Completion implements Disposable {
   private nvim: Neovim
   private completing = false
   private disposeables: Disposable[] = []
+  private lastItems: VimCompleteItem[] = []
 
   public init(nvim): void {
     this.nvim = nvim
@@ -38,6 +39,7 @@ export class Completion implements Disposable {
     increment.on('stop', () => {
       if (!document) return
       document.paused = false
+      this.lastItems = []
     })
   }
 
@@ -63,17 +65,24 @@ export class Completion implements Disposable {
     })
   }
 
-  public async resumeCompletion(resumeInput: string): Promise<void> {
+  public async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
     let { nvim, increment } = this
     let oldComplete = completes.complete
     try {
       let { colnr, input } = oldComplete.option
       let opt = Object.assign({}, oldComplete.option, {
         input: resumeInput,
-        colnr: colnr + resumeInput.length - input.length
+        colnr: colnr + (resumeInput.length - input.length)
       })
       logger.trace(`Resume options: ${JSON.stringify(opt)}`)
       let items = completes.filterCompleteItems(opt)
+      if (isChangedP) {
+        let filtered = this.filterItemsVim(resumeInput)
+        if (filtered.length == items.length) {
+          logger.trace('filter by vim, resume skip')
+          return
+        }
+      }
       logger.trace(`Filtered item length: ${items.length}`)
       if (!items || items.length === 0) {
         increment.stop()
@@ -82,6 +91,7 @@ export class Completion implements Disposable {
       // make sure input not changed
       if (increment.search == resumeInput) {
         nvim.call('coc#_set_context', [opt.col, items], true)
+        this.lastItems = items
         await nvim.call('coc#_do_complete', [])
       }
     } catch (e) {
@@ -134,6 +144,7 @@ export class Completion implements Disposable {
     let { search } = increment
     if (search === input) {
       nvim.call('coc#_set_context', [option.col, items], true)
+      this.lastItems = items
       await nvim.call('coc#_do_complete', [])
     } else {
       if (search) {
@@ -149,7 +160,7 @@ export class Completion implements Disposable {
     if (increment.latestInsert) {
       if (!increment.isActivted || this.completing) return
       let search = await increment.getResumeInput()
-      if (search) await this.resumeCompletion(search)
+      if (search) await this.resumeCompletion(search, true)
       return
     }
     if (this.completing || this.hasLatestChangedI) return
@@ -374,6 +385,13 @@ export class Completion implements Disposable {
       return label
     }
     return insertText || label
+  }
+
+  // vim's logic for filter items
+  private filterItemsVim(input: string): VimCompleteItem[] {
+    return this.lastItems.filter(item => {
+      return item.word.startsWith(input)
+    })
   }
 }
 
