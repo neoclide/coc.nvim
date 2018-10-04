@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import Terminal from '../../model/terminal'
-import { createNvim, wait } from '../../util'
+import { createNvim, wait, platform } from '../../util'
 import workspace from '../../workspace'
 
 let nvim: Neovim
@@ -26,10 +26,12 @@ describe('terminal', () => {
   test('terminal.installModule()', async () => {
     let t = new Terminal(nvim)
       ; (workspace as any).nvim = nvim
-    let p = t.installModule('uid')
-    await wait(100)
-    await nvim.input('1<enter>')
-    let res = await p
-    expect(res).toMatch('uid')
+    if (platform.isMacintosh) {
+      let p = t.installModule('uid')
+      await wait(100)
+      await nvim.input('1<enter>')
+      let res = await p
+      expect(res).toMatch('uid')
+    }
   }, 30000)
 })
