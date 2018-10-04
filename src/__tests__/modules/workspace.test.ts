@@ -286,12 +286,12 @@ describe('workspace methods', () => {
   })
 
   it('should resolve module path if exists', async () => {
-    let res = await workspace.resolveModule('typescript', 'tsserver', true)
+    let res = await workspace.resolveModule('typescript', true)
     expect(res).toBeTruthy()
   })
 
   it('should not resolve module if not exists', async () => {
-    let res = await workspace.resolveModule('foo', 'tsserver', true)
+    let res = await workspace.resolveModule('foo', true)
     expect(res).toBeFalsy()
   })
 

@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import path from 'path'
 import { TerminalResult } from '../types'
-import { executable } from '../util'
+import { executable, runCommand } from '../util'
 import { statAsync } from '../util/fs'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-terminal')
@@ -14,13 +14,12 @@ export default class Terminal extends EventEmitter {
   private _npmFolder: string | undefined
   private _yarnFolder: string | undefined
   private installing: Set<string> = new Set()
-  private disables: string[] = []
 
-  private get nvim(): Neovim {
-    return workspace.nvim
+  constructor(private nvim: Neovim) {
+    super()
   }
 
-  public get nodeFolder(): Promise<string> {
+  private get nodeFolder(): Promise<string> {
     if (this._npmFolder) return Promise.resolve(this._npmFolder)
     return this.nvim.call('coc#util#module_folder', 'npm').then(folder => {
       this._npmFolder = folder
@@ -28,7 +27,7 @@ export default class Terminal extends EventEmitter {
     })
   }
 
-  public get yarnFolder(): Promise<string> {
+  private get yarnFolder(): Promise<string> {
     if (this._yarnFolder) return Promise.resolve(this._yarnFolder)
     return this.nvim.call('coc#util#module_folder', 'yarn').then(folder => {
       this._yarnFolder = folder
@@ -50,39 +49,32 @@ export default class Terminal extends EventEmitter {
     return null
   }
 
-  public async installModule(mod: string, section?: string): Promise<string> {
+  public async installModule(mod: string): Promise<string> {
     if (this.installing.has(mod)) return
-    if (this.disables.indexOf(mod) !== -1) return
     let items = [
       'Use npm to install',
-      'Use yarn to install',
-      `Disable "${section}"`
+      'Use yarn to install'
     ]
     let idx = await workspace.showQuickpick(items, `${mod} not found, choose action by number`)
     // cancel
     if (idx == -1) return
-    if (idx == 2) {
-      this.disables.push(mod)
-      if (section) {
-        let config = workspace.getConfiguration(section)
-        config.update('enable', false, true)
-        workspace.showMessage(`${section} disabled, to change this, use :CocConfig to edit configuration file.`)
-      }
-      return
-    }
     this.installing.add(mod)
     let pre = isLinux ? 'sudo ' : ''
     let cmd = idx == 0 ? `${pre} npm install -g ${mod}` : `yarn global add ${mod}`
     if (idx == 1 && !executable('yarn')) {
       try {
-        let res = await this.runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash')
-        if (!res.success) return
+        await runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash', process.cwd())
       } catch (e) {
+        workspace.showMessage(e.message, 'error')
         return
       }
     }
-    let res = await this.runCommand(cmd)
-    if (!res.success) return
+    try {
+      await runCommand(cmd, process.cwd())
+    } catch (e) {
+      workspace.showMessage(e.message, 'error')
+      return
+    }
     return await this.resolveModule(mod)
   }
 

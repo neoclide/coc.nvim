@@ -675,7 +675,7 @@ export interface IWorkspace {
   openResource(uri: string): Promise<void>
   createOutputChannel(name: string): OutputChannel
   showOutputChannel(name: string): void
-  resolveModule(name: string, section: string, silent?): Promise<string>
+  resolveModule(name: string, silent?): Promise<string>
   showQuickpick(items: string[], placeholder?: string): Promise<number>
   showPrompt(title: string): Promise<boolean>
   match(selector: DocumentSelector, document: TextDocument): number

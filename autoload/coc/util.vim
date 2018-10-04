@@ -378,7 +378,7 @@ endfunction
 
 " cmd, cwd
 function! coc#util#open_terminal(opts) abort
-  if get(a:opts, 'position', 'bottom')
+  if get(a:opts, 'position', 'bottom') ==# 'bottom'
     let p = '5new'
   else
     let p = 'vnew'
@@ -390,6 +390,7 @@ function! coc#util#open_terminal(opts) abort
   setl nonumber
   setl bufhidden=wipe
   let cmd = get(a:opts, 'cmd', '')
+  let autoclose = get(a:opts, 'autoclose', 1)
   if empty(cmd)
     throw 'command required!'
   endif
@@ -400,11 +401,11 @@ function! coc#util#open_terminal(opts) abort
   let Callback = get(a:opts, 'Callback', v:null)
   if has('nvim')
     call termopen(cmd, {
-          \ 'on_exit': function('s:OnExit', [bufnr, Callback]),
+          \ 'on_exit': function('s:OnExit', [autoclose, bufnr, Callback]),
           \})
   else
     call term_start(cmd, {
-          \ 'exit_cb': function('s:OnExit', [bufnr, Callback]),
+          \ 'exit_cb': function('s:OnExit', [autoclose, bufnr, Callback]),
           \ 'curwin': 1,
           \})
   endif
@@ -428,9 +429,9 @@ function! coc#util#run_terminal(opts, cb)
   call coc#util#open_terminal(opts)
 endfunction
 
-function! s:OnExit(bufnr, Callback, job_id, status, ...)
+function! s:OnExit(autoclose, bufnr, Callback, job_id, status, ...)
   let content = join(getbufline(a:bufnr, 1, '$'), "\n")
-  if a:status == 0
+  if a:status == 0 && a:autoclose == 1
     execute 'silent! bd! '.a:bufnr
   endif
   if !empty(a:Callback)

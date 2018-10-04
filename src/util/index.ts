@@ -1,6 +1,7 @@
-import { Neovim } from '@chemzqm/neovim'
+import { attach, Neovim } from '@chemzqm/neovim'
+import cp, { exec } from 'child_process'
 import net from 'net'
-import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
@@ -99,19 +100,6 @@ export function disposeAll(disposables: Disposable[]): void {
   }
 }
 
-export function isLineEdit(edit: TextEdit, lnum?: number): boolean {
-  let { newText, range } = edit
-  let { start, end } = range
-  if (start.line == end.line) {
-    if (newText.indexOf('\n') !== -1) return false
-    return lnum == null ? true : start.line == lnum
-  }
-  if (end.line == start.line + 1 && newText.endsWith('\n')) {
-    return lnum == null ? true : start.line == lnum
-  }
-  return false
-}
-
 export function executable(command: string): boolean {
   try {
     which.sync(command)
@@ -121,26 +109,29 @@ export function executable(command: string): boolean {
   return true
 }
 
-export function defer<T>(): Promise<T> & { resolve: (res: T) => void, reject: (err: Error) => void } {
-  let res
-  let rej
-
-  let promise = new Promise<T>((resolve, reject) => {
-    res = resolve
-    rej = reject
+export function createNvim(): Neovim {
+  let p = which.sync('nvim')
+  let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
+    shell: false
   })
+  return attach({ proc })
+}
 
-  Object.defineProperty(promise, 'resolve', {
-    get: () => {
-      return res
+export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<string> {
+  return new Promise<string>((resolve, reject) => {
+    let timer: NodeJS.Timer
+    if (timeout) {
+      timer = setTimeout(() => {
+        reject(new Error(`timeout after ${timeout}s`))
+      }, timeout * 1000)
     }
+    exec(cmd, { cwd }, (err, stdout) => {
+      if (timer) clearTimeout(timer)
+      if (err) {
+        reject(new Error(`exited with ${err.code}`))
+        return
+      }
+      resolve(stdout)
+    })
   })
-
-  Object.defineProperty(promise, 'reject', {
-    get: () => {
-      return rej
-    }
-  })
-
-  return promise as any
 }

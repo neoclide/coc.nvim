@@ -1,5 +1,4 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
-import { exec } from 'child_process'
 import debounce from 'debounce'
 import deepEqual from 'deep-equal'
 import fs from 'fs'
@@ -18,7 +17,7 @@ import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile, statAsync, mkdirAsync, renameAsync } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
+import { disposeAll, runCommand, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
@@ -75,7 +74,6 @@ export class Workspace implements IWorkspace {
     let config = this.loadConfigurations()
     let configurationShape = this.configurationShape = new ConfigurationShape(this)
     this._configurations = new Configurations(config, configurationShape)
-    this.terminal = new Terminal()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
     this.checkBuffer = debounce(() => {
       this._checkBuffer().catch(e => {
@@ -91,6 +89,7 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     let extensions = require('./extensions').default
     let jsonSchemas = []
+    this.terminal = new Terminal(this.nvim)
     extensions.onDidLoadExtension(extension => {
       let { packageJSON } = extension
       let { contributes } = packageJSON
@@ -616,33 +615,18 @@ export class Workspace implements IWorkspace {
     channel.show(false)
   }
 
-  public async resolveModule(name: string, section: string, silent = false): Promise<string> {
+  public async resolveModule(name: string, silent = false): Promise<string> {
     let res = await this.terminal.resolveModule(name)
     if (res) return res
     if (!silent) {
-      res = await this.terminal.installModule(name, section)
+      res = await this.terminal.installModule(name)
     }
     return res
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
     cwd = cwd || this.cwd
-    return new Promise<string>((resolve, reject) => {
-      let timer: NodeJS.Timer
-      if (timeout) {
-        timer = setTimeout(() => {
-          reject(new Error(`timeout after ${timeout}s`))
-        }, timeout * 1000)
-      }
-      exec(cmd, { cwd }, (err, stdout) => {
-        if (timer) clearTimeout(timer)
-        if (err) {
-          reject(new Error(`exited with ${err.code}`))
-          return
-        }
-        resolve(stdout)
-      })
-    })
+    return runCommand(cmd, cwd, timeout)
   }
 
   public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
