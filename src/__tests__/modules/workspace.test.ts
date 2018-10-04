@@ -12,7 +12,6 @@ import helper from '../helper'
 let nvim: Neovim
 let workspace: IWorkspace
 let disposables: Disposable[] = []
-jest.setTimeout(30000)
 
 beforeAll(async () => {
   await helper.setup()
@@ -266,7 +265,6 @@ describe('workspace methods', () => {
   it('should run terminal command', async () => {
     let res = await workspace.runTerminalCommand('ls', __dirname)
     expect(res.success).toBe(true)
-    await helper.wait(300)
   })
 
   it('should show mesages', async () => {

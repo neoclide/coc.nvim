@@ -99,7 +99,7 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
-  it('should trigger on insert enter', async () => {
+  it('should not trigger on insert enter', async () => {
     await helper.edit('insert')
     await nvim.setLine('foo bar')
     await helper.wait(30)
@@ -108,8 +108,9 @@ describe('completion', () => {
     await nvim.input('<esc>')
     await helper.wait(30)
     await nvim.input('A')
-    let res = await helper.visible('foo', 'around')
-    expect(res).toBe(true)
+    await helper.wait(30)
+    let visible = await nvim.call('pumvisible')
+    expect(visible).toBe(0)
   })
 
   it('should filter on fast input', async () => {
