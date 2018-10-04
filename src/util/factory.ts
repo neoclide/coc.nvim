@@ -40,8 +40,7 @@ const REMOVED_GLOBALS = [
   'EventEmitter',
   '_maxListeners',
   '_fatalException',
-  'exit',
-  'kill',
+  'exit', 'kill',
 ]
 
 function removedGlobalStub(name: string): Function {
@@ -101,6 +100,12 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
       },
       error: (...args: any[]) => {
         logger.error.apply(logger, args)
+      },
+      info: (...args: any[]) => {
+        logger.info.apply(logger, args)
+      },
+      warn: (...args: any[]) => {
+        logger.warn.apply(logger, args)
       }
     }
   }) as ISandbox
@@ -152,7 +157,7 @@ export function createExtension(id: string, filename: string): ExtensionExport {
 
     if (typeof activate !== 'function') {
       // tslint:disable-next-line:no-empty
-      return { activate: () => { }, deactivate: null}
+      return { activate: () => { }, deactivate: null }
     }
     return {
       activate,

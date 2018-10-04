@@ -1,5 +1,7 @@
 import { attach, Neovim } from '@chemzqm/neovim'
 import cp, { exec } from 'child_process'
+import debounce from 'debounce'
+import fs from 'fs'
 import net from 'net'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
@@ -133,5 +135,26 @@ export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<
       }
       resolve(stdout)
     })
+  })
+}
+
+export function watchFiles(uris: string[], onChange: () => void): Disposable {
+  let callback = debounce(onChange, 200)
+  let watchers = []
+  for (let uri of uris) {
+    if (!fs.existsSync(uri)) continue
+    let watcher = fs.watch(uri, {
+      persistent: false,
+      recursive: false,
+      encoding: 'utf8'
+    }, () => {
+      callback()
+    })
+    watchers.push(watcher)
+  }
+  return Disposable.create(() => {
+    for (let watcher of watchers) {
+      watcher.close()
+    }
   })
 }

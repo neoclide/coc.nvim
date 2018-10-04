@@ -17,12 +17,11 @@ import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { resolveRoot, writeFile, statAsync, mkdirAsync, renameAsync } from './util/fs'
-import { disposeAll, runCommand, echoErr, echoMessage, echoWarning, isSupportedScheme } from './util/index'
+import { disposeAll, runCommand, echoErr, echoMessage, echoWarning, isSupportedScheme, watchFiles } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
 import pify from 'pify'
-import { watchFiles } from './util/watch'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
