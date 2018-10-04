@@ -5,7 +5,8 @@ import fs from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
-import { DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFile, RenameFile, DeleteFile, DeleteFileOptions, CreateFileOptions, RenameFileOptions } from 'vscode-languageserver-protocol'
+import pify from 'pify'
+import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configurations'
 import events from './events'
@@ -16,12 +17,11 @@ import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { resolveRoot, writeFile, statAsync, mkdirAsync, renameAsync } from './util/fs'
-import { disposeAll, runCommand, echoErr, echoMessage, echoWarning, isSupportedScheme, watchFiles } from './util/index'
+import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, watchFiles } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
-import pify from 'pify'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
@@ -32,6 +32,7 @@ const isPkg = process.hasOwnProperty('pkg')
 export interface VimSettings {
   completeOpt: string
   isVim: boolean
+  easymotion: number
 }
 
 export class Workspace implements IWorkspace {
@@ -150,6 +151,10 @@ export class Workspace implements IWorkspace {
 
   public get cwd(): string {
     return this._cwd
+  }
+
+  private get easymotion(): boolean {
+    return this.vimSettings.easymotion == 1
   }
 
   public get root(): string {
@@ -875,8 +880,12 @@ export class Workspace implements IWorkspace {
     if (attached) {
       this.buffers.set(buffer.id, document)
       this._onDidOpenDocument.fire(document.textDocument)
-      document.onDocumentChange(({ textDocument, contentChanges }) => {
+      document.onDocumentChange(async ({ textDocument, contentChanges }) => {
         let { version, uri } = textDocument
+        if (this.easymotion) {
+          let active = await this.nvim.call('EasyMotion#is_active')
+          if (active) return
+        }
         this._onDidChangeDocument.fire({
           textDocument: { version, uri },
           contentChanges

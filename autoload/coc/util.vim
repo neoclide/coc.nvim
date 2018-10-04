@@ -443,6 +443,7 @@ function! coc#util#vim_info()
   return {
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
         \}
 endfunction
 
