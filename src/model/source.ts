@@ -64,9 +64,9 @@ export default abstract class Source implements ISource {
     let res = []
     let { input } = opt
     let cword = opt.word
-    let cFirst = input.length ? input[0] : null
+    if (!input.length) return []
+    let cFirst = input[0]
     for (let word of words) {
-      if (!cFirst) continue
       if (!word || word.length < 3) continue
       if (cFirst && !fuzzyChar(cFirst, word[0])) continue
       if (word == cword || word == input) continue
