@@ -84,7 +84,7 @@ export default class BufferChannel implements OutputChannel {
     let { buffer, nvim } = this
     if (!buffer) return
     this.buffer = null
-    nvim.command(`slient! bd! ${buffer.id}`, true)
+    nvim.command(`silent! bd! ${buffer.id}`, true)
   }
 
   public dispose(): void {
