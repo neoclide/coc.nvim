@@ -7,7 +7,7 @@
   "coc.preferences.autoTrigger": "always",
   "coc.preferences.snippets.enable": true,
   // only used when autoTrigger is always
-  "coc.preferences.triggerAfterInsertEnter": true,
+  "coc.preferences.triggerAfterInsertEnter": false,
   "coc.preferences.customSources": ["word", "emoji", "include"],
   "coc.preferences.timeout": 500,
   "coc.preferences.noselect": true,

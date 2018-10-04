@@ -243,7 +243,7 @@
     "coc.preferences.triggerAfterInsertEnter": {
       "type": "boolean",
       "description": "Trigger completion after InsertEnter, auto trigger should be always to enable this option",
-      "default": true
+      "default": false
     },
     "coc.preferences.timeout": {
       "type": "integer",
