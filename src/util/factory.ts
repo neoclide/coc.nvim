@@ -24,8 +24,6 @@ export interface IModule {
   _nodeModulePaths: (filename: string) => string[]
 }
 
-const coc = require('../')
-
 const Module: IModule = require('module')
 
 const REMOVED_GLOBALS = [
@@ -51,18 +49,18 @@ function removedGlobalStub(name: string): Function {
 
 // @see node/lib/internal/module.js
 function makeRequireFunction(this: any): any {
-  const require: any = (p: string) => {
+  const req: any = (p: string) => {
     if (p === 'coc.nvim') {
-      return coc
+      return require('../')
     }
     return this.require(p)
   }
-  require.resolve = (request: string) => Module._resolveFilename(request, this)
-  require.main = process.mainModule
+  req.resolve = (request: string) => Module._resolveFilename(request, this)
+  req.main = process.mainModule
   // Enable support to add extra extension types
-  require.extensions = Module._extensions
-  require.cache = Module._cache
-  return require
+  req.extensions = Module._extensions
+  req.cache = Module._cache
+  return req
 }
 
 // @see node/lib/module.js

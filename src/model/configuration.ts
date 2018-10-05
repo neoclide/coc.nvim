@@ -62,6 +62,7 @@ export class ConfigurationModel implements IConfigurationModel {
     removeFromValueTree(this.contents, key)
   }
 }
+
 export function addToValueTree(
   settingsTreeRoot: any,
   key: string,

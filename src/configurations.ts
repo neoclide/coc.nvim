@@ -25,11 +25,11 @@ export default class Configurations {
     this._configuration = Configurations.parse(data)
   }
 
-  public updateDefaults(key: string, value: any):void {
+  public updateDefaults(key: string, value: any): void {
     this._configuration.updateValue(key, value, true)
   }
 
-  public get defaults():any {
+  public get defaults(): any {
     return this._configuration.defaults.contents
   }
 
@@ -40,7 +40,7 @@ export default class Configurations {
    * @param {string} section
    * @returns {WorkspaceConfiguration}
    */
-  public getConfiguration(section?: string): WorkspaceConfiguration {
+  public getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration {
 
     const config = Object.freeze(lookUp(this._configuration.getValue(null), section))
 

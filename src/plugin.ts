@@ -26,11 +26,6 @@ export default class Plugin extends EventEmitter {
     services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
-    this.on('registExtensions', async args => {
-      for (let folder of args as string[]) {
-        await extensions.loadExtension(folder)
-      }
-    })
     clean() // tslint:disable-line
   }
 
@@ -41,6 +36,11 @@ export default class Plugin extends EventEmitter {
     await workspace.init()
     this.handler = new Handler(nvim)
     await extensions.init(nvim)
+    this.on('registExtensions', async args => {
+      for (let folder of args as string[]) {
+        await extensions.loadExtension(folder)
+      }
+    })
     await nvim.command('doautocmd User CocNvimInit')
     logger.info('coc initialized')
     this.emit('ready')

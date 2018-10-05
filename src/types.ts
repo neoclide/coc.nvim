@@ -54,6 +54,21 @@ export interface ChangeInfo {
   changedtick: number
 }
 
+/**
+ * An event describing the change in Configuration
+ */
+export interface ConfigurationChangeEvent {
+
+  /**
+   * Returns `true` if the given section for the given resource (if provided) is affected.
+   *
+   * @param section Configuration name, supports _dotted_ names.
+   * @param resource A resource Uri.
+   * @return `true` if the given section for the given resource (if provided) is affected.
+   */
+  affectsConfiguration(section: string, resource?: string): boolean
+}
+
 export interface LanguageServerConfig {
   module?: string | ModuleResolve
   command?: string
@@ -651,7 +666,7 @@ export interface IWorkspace {
   onDidChangeTextDocument: Event<DidChangeTextDocumentParams>
   onWillSaveTextDocument: Event<TextDocumentWillSaveEvent>
   onDidSaveTextDocument: Event<TextDocument>
-  onDidChangeConfiguration: Event<WorkspaceConfiguration>
+  onDidChangeConfiguration: Event<ConfigurationChangeEvent>
   onDidWorkspaceInitialized: Event<void>
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   showMessage(msg: string, identify?: MsgTypes): void

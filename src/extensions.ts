@@ -87,7 +87,7 @@ export class Extensions {
     }, null, this.disposables)
   }
 
-  public get all():Extension<API>[] {
+  public get all(): Extension<API>[] {
     return this.list.map(o => o.extension)
   }
 
@@ -442,6 +442,19 @@ export class Extensions {
         disposeAll(subscriptions)
       }
     })
+    let { contributes } = packageJSON
+    if (contributes) {
+      let { configuration } = contributes
+      if (configuration && configuration.properties) {
+        let { properties } = configuration
+        for (let key of Object.keys(properties)) {
+          let val = properties[key].default
+          if (val !== undefined) {
+            (workspace as any)._configurations.updateDefaults(key, val)
+          }
+        }
+      }
+    }
     this._onDidLoadExtension.fire(extension)
     this.setupActiveEvents(id, packageJSON)
     return id

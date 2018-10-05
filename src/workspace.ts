@@ -1,6 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import deepEqual from 'deep-equal'
 import fs from 'fs'
 import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
@@ -16,10 +15,11 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationChangeEvent } from './types'
 import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, watchFiles } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
+import { equals } from './util/object'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
@@ -52,14 +52,13 @@ export class Workspace implements IWorkspace {
   private disposables: Disposable[] = []
   private configFiles: string[] = []
   private checkBuffer: Function & { clear(): void; }
-  private _settingsScheme: any
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new Emitter<TextDocument>()
-  private _onDidChangeConfiguration = new Emitter<WorkspaceConfiguration>()
+  private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
 
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidOpenDocument.event
@@ -67,7 +66,7 @@ export class Workspace implements IWorkspace {
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
   public readonly onWillSaveTextDocument: Event<TextDocumentWillSaveEvent> = this._onWillSaveDocument.event
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
-  public readonly onDidChangeConfiguration: Event<WorkspaceConfiguration> = this._onDidChangeConfiguration.event
+  public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
 
   constructor() {
@@ -80,40 +79,13 @@ export class Workspace implements IWorkspace {
         logger.error(e.message)
       })
     }, 50)
-    this._settingsScheme = JSON.parse(fs.readFileSync(path.join(this.pluginRoot, 'data/schema.json'), 'utf8'))
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
   }
 
   public async init(): Promise<void> {
-    let extensions = require('./extensions').default
-    let jsonSchemas = []
     this.terminal = new Terminal(this.nvim)
-    extensions.onDidLoadExtension(extension => {
-      let { packageJSON } = extension
-      let { contributes } = packageJSON
-      if (!contributes) return
-      let { jsonValidation, configuration } = contributes
-      if (configuration) {
-        let { properties } = configuration
-        if (properties) {
-          let props = this._settingsScheme.properties
-          for (let key of Object.keys(properties)) {
-            props[key] = properties[key]
-            let val = properties[key].default
-            if (val !== undefined) {
-              this._configurations.updateDefaults(key, val)
-            }
-          }
-        }
-      }
-      if (jsonValidation && jsonValidation.length) {
-        jsonSchemas.push(...jsonValidation)
-        this._configurations.updateDefaults('json.schemas', jsonSchemas)
-      }
-    }, null, this.disposables)
-
     events.on('BufEnter', bufnr => {
       this.bufnr = bufnr
     }, null, this.disposables)
@@ -235,10 +207,6 @@ export class Workspace implements IWorkspace {
     return this._initialized
   }
 
-  public get settingsScheme(): any {
-    return this._settingsScheme
-  }
-
   public get ready(): Promise<void> {
     if (this._initialized) return Promise.resolve()
     return new Promise<void>(resolve => {
@@ -278,9 +246,9 @@ export class Workspace implements IWorkspace {
     )
   }
 
-  public getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration {
+  public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
     // TODO support resource
-    return this._configurations.getConfiguration(section)
+    return this._configurations.getConfiguration(section, resource)
   }
 
   public getDocument(uri: string | number): Document
@@ -713,8 +681,13 @@ export class Workspace implements IWorkspace {
     let { _configurations } = this
     let config = this.loadConfigurations()
     this._configurations = new Configurations(config, this.configurationShape)
-    if (!_configurations || !deepEqual(_configurations, this._configurations)) {
-      this._onDidChangeConfiguration.fire(this.getConfiguration())
+    if (!_configurations || !equals(_configurations, this._configurations)) {
+      this._onDidChangeConfiguration.fire({
+        affectsConfiguration: (section: string, resource?: string): boolean => {
+          return equals(_configurations.getConfiguration(section, resource),
+            this._configurations.getConfiguration(section, resource))
+        }
+      })
     }
   }
 
@@ -795,7 +768,7 @@ export class Workspace implements IWorkspace {
     let file = path.join(this.pluginRoot, 'settings.json')
     this.configFiles.push(file)
     let defaultConfig: IConfigurationModel = this.getDefaultConfiguration(file)
-    let home = process.env.VIMCONFIG
+    let home = process.env.VIMCONFIG || path.join(os.homedir(), '.vim')
     if (global.hasOwnProperty('__TEST__')) {
       home = path.join(this.pluginRoot, 'src/__tests__')
     }
