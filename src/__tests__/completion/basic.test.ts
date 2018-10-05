@@ -60,7 +60,7 @@ describe('completion', () => {
     await helper.waitPopup()
     let items = await helper.getItems()
     let l = items.length
-    await nvim.input('o')
+    await nvim.input('oa')
     await helper.wait(100)
     items = await helper.getItems()
     expect(items.findIndex(o => o.word == 'fallback')).toBe(-1)
