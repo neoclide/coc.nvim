@@ -21,7 +21,6 @@ export default class Increment extends Emitter {
   private _search: string
   // private lastChange: LastChange | null | undefined
   private activted = false
-  private _incrementopt?: string
 
   constructor(private nvim: Neovim) {
     super()
@@ -62,7 +61,7 @@ export default class Increment extends Emitter {
     }
     this.activted = true
     this._search = option.input
-    let opt = this._incrementopt = Increment.getStartOption()
+    let opt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`, true)
     this.emit('start', Object.assign({}, option))
   }

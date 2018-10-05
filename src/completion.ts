@@ -179,6 +179,7 @@ export class Completion implements Disposable {
       if (this.completing) return
       let search = await increment.getResumeInput()
       if (search != null) return await this.resumeCompletion(search)
+      // no trigger for word character
       if (latestInsertChar && isWord(latestInsertChar)) return
     } else if (increment.search && !latestInsertChar) {
       // restart when user correct search

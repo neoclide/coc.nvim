@@ -378,7 +378,7 @@ export class DiagnosticManager {
     await workspace.echoLines(lines, truncate)
   }
 
-  private diagnosticsAtOffset(offset:number, textDocument:TextDocument):Diagnostic[] {
+  private diagnosticsAtOffset(offset: number, textDocument: TextDocument): Diagnostic[] {
     let res: Diagnostic[] = []
     let { uri } = textDocument
     let collections = this.getCollections(uri)

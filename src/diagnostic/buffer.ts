@@ -28,19 +28,21 @@ function getNameFromSeverity(severity: DiagnosticSeverity): string {
 export class DiagnosticBuffer {
   private signMap: Map<string, number[]> = new Map()
   private srcIdMap: Map<string, Set<number>> = new Map()
-  private nvim: Neovim
   private signId: number
   private promise: Promise<void | void[]> = Promise.resolve(null)
   public setLocationlist: Function & { clear: () => void }
 
   constructor(public readonly bufnr: number, public readonly uri: string, private manager: DiagnosticManager) {
-    this.nvim = workspace.nvim
     this.signId = manager.config.signOffset || 1000
     this.setLocationlist = debounce(() => {
       this._setLocationlist().catch(e => {
         logger.error(e.stack)
       })
     }, 200)
+  }
+
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
   private enableLoclist(): boolean {
