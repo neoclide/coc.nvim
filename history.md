@@ -1,3 +1,12 @@
+# 2018-10-05
+
+- **Break change**, `workspace.onDidChangeConfiguration` emit `ConfigurationChangeEvent` now.
+- Add `position` to function `coc#util#open_terminal`.
+- Improve performance of completion by use vim's filter when possible.
+- Fix service start multiple times.
+- Fix parse of `iskeyword` option, consider `@-@`.
+- Fix completion of snippet: cancel on line change.
+
 # 2018-10-01
 
 - Improved document `didChange` before trigger completion.
