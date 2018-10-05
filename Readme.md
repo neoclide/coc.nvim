@@ -121,41 +121,41 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 Extension are powerful than configured language server. Checkout
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
-- **Tsserver**
+- **[coc-tsserver](https://github.com/neoclide/coc-tsserver)**
 
   Used for `javascript` and `typescript`
 
         :CocInstall coc-tsserver
 
-- **Html**
+- **[coc-html](https://github.com/neoclide/coc-html)**
 
   Used for `html` `handlebars` `razor`
 
         :CocInstall coc-html
 
-- **Json**
+- **[coc-json](https://github.com/neoclide/coc-json)**
 
   Used for `json` and `jsonc`
 
         :CocInstall coc-json
 
-- **Css**
+- **[coc-css](https://github.com/neoclide/coc-css)**
 
   Used for `css` `scss` `less` and `wxss`
 
         :CocInstall coc-css
 
-- **Wxml**
+- **[coc-wxml](https://github.com/neoclide/coc-wxml)**
 
         :CocInstall coc-wxml
 
-- **Vetur**
+- **[coc-vetur](https://github.com/neoclide/coc-vetur)**
 
   Used for `vue`
 
         :CocInstall coc-vetur
 
-- **Solargraph**
+- **[coc-solargraph](https://github.com/neoclide/coc-solargraph)**
 
   Used for `ruby`
 
@@ -167,7 +167,7 @@ Extension are powerful than configured language server. Checkout
 
         :CocInstall coc-solargraph
 
-- **Pyls**
+- **[coc-pyls](https://github.com/neoclide/coc-pyls)**
 
   Used for `python`
 
@@ -179,31 +179,31 @@ Extension are powerful than configured language server. Checkout
 
         :CocInstall coc-pyls
 
-- **Stylelint**
+- **[coc-stylelint](https://github.com/neoclide/coc-stylelint)**
 
   Used for `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
 
         :CocInstall coc-stylelint
 
-- **Eslint**
+- **[coc-eslint](https://github.com/neoclide/coc-eslint)**
 
   Used for `javascript`
 
         :CocInstall coc-eslint
 
-- **Tslint**
+- **[coc-tslint](https://github.com/neoclide/coc-tslint)**
 
   Used for `typescript`
 
         :CocInstall coc-tslint
 
-- **Pritter**
+- **[coc-prettier](https://github.com/neoclide/coc-prettier)**
 
   [Prettier](https://github.com/prettier/prettier) extension.
 
         :CocInstall coc-prettier
 
-- **Jest**
+- **[coc-jest](https://github.com/neoclide/coc-jest)**
 
   [Jest](https://github.com/facebook/jest) extension.
 
