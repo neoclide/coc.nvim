@@ -310,9 +310,9 @@ export class Extensions {
     }
   }
 
-  public activate(id): void {
+  public activate(id, silent = true): void {
     if (this.isDisabled(id)) {
-      workspace.showMessage(`Extension ${id} is disabled!`, 'error')
+      if (!silent) workspace.showMessage(`Extension ${id} is disabled!`, 'error')
       return
     }
     let item = this.list.find(o => o.id == id)
