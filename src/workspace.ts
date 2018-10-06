@@ -7,7 +7,7 @@ import path from 'path'
 import pify from 'pify'
 import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import Configurations from './configurations'
+import Configurations from './model/configurations'
 import events from './events'
 import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
@@ -843,7 +843,7 @@ export class Workspace implements IWorkspace {
     if (doc) {
       await events.fire('BufUnload', [buffer.id])
     }
-    let document = new Document(buffer)
+    let document = new Document(buffer, this._configurations)
     let attached: boolean
     try {
       attached = await document.init(this.nvim, buftype, this.isNvim)

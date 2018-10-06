@@ -163,7 +163,7 @@ export default class Plugin extends EventEmitter {
         case 'extensionStats':
           return extensions.getExtensionStates()
         case 'activeExtension':
-          return extensions.activate(args[1])
+          return extensions.activate(args[1], false)
         case 'deactivateExtension':
           return extensions.deactivate(args[1])
         case 'reloadExtension':

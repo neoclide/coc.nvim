@@ -1,7 +1,7 @@
-import { Configuration, ConfigurationModel } from './model/configuration'
-import { ConfigurationInspect, ConfigurationShape, ConfigurationTarget, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from './types'
-import { mixin } from './util/object'
-const logger = require('./util/logger')('configurations')
+import { Configuration, ConfigurationModel } from './configuration'
+import { ConfigurationInspect, ConfigurationShape, ConfigurationTarget, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
+import { mixin } from '../util/object'
+const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
   if (key) {

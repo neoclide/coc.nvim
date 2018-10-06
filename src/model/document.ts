@@ -8,6 +8,7 @@ import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
+import Configurations from './configurations'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -27,13 +28,15 @@ export default class Document {
   private attached = false
   // real current lines
   private lines: string[] = []
+  private limitLines: number
+  private hyphenAsKeyword: boolean
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
-  constructor(public readonly buffer: Buffer) {
+  constructor(public readonly buffer: Buffer, private configurations: Configurations) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 20)
@@ -69,9 +72,20 @@ export default class Document {
     return this._lastChange
   }
 
-  private generateWords(): void {
+  private generateWords(newLines?: string[]): void {
     if (this.isIgnored) return
     let { content } = this
+    if (newLines
+      && this.limitLines
+      && this.lineCount > this.limitLines) {
+      let words = this.chars.matchKeywords(newLines.join('\n'))
+      for (let word of words) {
+        if (this.words.indexOf(word) == -1) {
+          this._words.push(word)
+        }
+      }
+      return
+    }
     this._words = this.chars.matchKeywords(content)
   }
 
@@ -126,6 +140,9 @@ export default class Document {
       0,
       this.lines.join('\n')
     )
+    let config = this.configurations.getConfiguration('coc.preferences', uri)
+    this.limitLines = config.get<number>('parseKeywordsLimitLines', 5000)
+    this.hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
     this.setIskeyword(iskeyword)
     return true
   }
@@ -133,7 +150,7 @@ export default class Document {
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
     if (this.buftype !== '') return
-    if (this.includeDash(this.filetype)) chars.addKeyword('-')
+    if (this.hyphenAsKeyword) chars.addKeyword('-')
     this.gitCheck().then(
       () => {
         this.generateWords()
@@ -225,21 +242,22 @@ export default class Document {
       let change = getChange(this.content, content)
       this.createDocument()
       let { version, uri } = this
-      let changes = [
-        {
-          range: {
-            start: textDocument.positionAt(change.start),
-            end: textDocument.positionAt(change.end)
-          },
-          rangeLength: change.end - change.start,
-          text: change.newText
-        }
-      ]
+      let start = textDocument.positionAt(change.start)
+      let end = textDocument.positionAt(change.end)
+      let changes = [{
+        range: { start, end },
+        rangeLength: change.end - change.start,
+        text: change.newText
+      }]
       this._onDocumentChange.fire({
         textDocument: { version, uri },
         contentChanges: changes
       })
-      this.generateWords()
+      process.nextTick(() => {
+        let endLine = start.line + change.newText.split('\n').length
+        let newLines = this.lines.slice(start.line, endLine)
+        this.generateWords(newLines)
+      })
     } catch (e) {
       logger.error(e.message)
     }
@@ -402,14 +420,6 @@ export default class Document {
       }
     }
     return { start, end }
-  }
-
-  private includeDash(filetype): boolean {
-    return (
-      ['json', 'html', 'wxml', 'css', 'less', 'scss', 'wxss'].indexOf(
-        filetype
-      ) != -1
-    )
   }
 
   private async gitCheck(): Promise<void> {

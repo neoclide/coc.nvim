@@ -66,6 +66,9 @@ export class Chars {
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
       let ch = content[i]
+      if ('-' == ch && str.length == 0) {
+        continue
+      }
       let isKeyword = this.isKeywordChar(ch)
       if (isKeyword) {
         str = str + ch

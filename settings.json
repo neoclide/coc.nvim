@@ -12,6 +12,8 @@
   "coc.preferences.timeout": 500,
   "coc.preferences.noselect": true,
   "coc.preferences.formatOnType": false,
+  "coc.preferences.parseKeywordsLimitLines": 5000,
+  "coc.preferences.hyphenAsKeyword": true,
   // "coc.preferences.watchmanPath": "",
   "coc.preferences.jumpCommand": "edit",
   "coc.preferences.diagnostic.locationlist": true,
