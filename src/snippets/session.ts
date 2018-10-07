@@ -361,7 +361,7 @@ export class SnippetSession {
 
   private async forceSync(): Promise<void> {
     this.document.forceSync()
-    await wait(20)
+    await wait(40)
   }
 
   private get isEndLine(): boolean {

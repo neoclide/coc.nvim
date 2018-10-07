@@ -858,10 +858,6 @@ export class Workspace implements IWorkspace {
       this._onDidOpenDocument.fire(document.textDocument)
       document.onDocumentChange(async ({ textDocument, contentChanges }) => {
         let { version, uri } = textDocument
-        if (this.easymotion) {
-          let active = await this.nvim.call('EasyMotion#is_active')
-          if (active) return
-        }
         this._onDidChangeDocument.fire({
           textDocument: { version, uri },
           contentChanges
