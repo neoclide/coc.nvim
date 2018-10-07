@@ -627,7 +627,7 @@ function! coc#util#install_node_rpc() abort
 endfunction
 
 function! coc#util#install()
-  let obj = json_decode(readfile(s:package_file))
+  let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
   call coc#util#open_terminal({
         \ 'cmd': cmd,
