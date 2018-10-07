@@ -464,9 +464,12 @@ export class Workspace implements IWorkspace {
     let { line, character } = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let filepath = Uri.parse(uri).fsPath
-    let bufnr = await nvim.call('bufnr', [filepath])
-    if (bufnr != -1 && jumpCommand == 'edit') {
-      await nvim.command(`buffer ${cmd} ${bufnr}`)
+    await nvim.command(`normal! m'`)
+    let bufnr = await nvim.call('bufnr', filepath)
+    if (bufnr == this.bufnr) {
+      await nvim.call('cursor', [line + 1, character + 1])
+    } else if (bufnr != -1 && jumpCommand == 'edit') {
+      nvim.command(`buffer ${cmd} ${bufnr}`, true)
     } else {
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
       await nvim.command(`exe '${jumpCommand} ${cmd} ' . fnameescape('${file}')`)
