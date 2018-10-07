@@ -32,10 +32,14 @@ endfunction
 
 function! s:Filter(input, items, index)
   let ch = a:input[a:index]
+  let colon = a:input =~# '\v^(g|l|s):'
   let res = []
   for item in a:items
     let word = item['word']
     if !empty(ch) && word[a:index] !=# ch
+      continue
+    endif
+    if !colon && word[1:1] =~# ':'
       continue
     endif
     let o = {}
