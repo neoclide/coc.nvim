@@ -1,5 +1,4 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CompleteOption } from './types'
 import workspace from './workspace'
 import Emitter = require('events')
 const logger = require('./util/logger')('increment')
@@ -9,15 +8,8 @@ export interface LastInsert {
   timestamp: number
 }
 
-export interface LastChange {
-  linenr: number
-  colnr: number
-  timestamp: number
-}
-
 export default class Increment extends Emitter {
   public lastInsert?: LastInsert
-  // private lastChange: LastChange | null | undefined
   private activted = false
 
   constructor(private nvim: Neovim) {
@@ -47,23 +39,21 @@ export default class Increment extends Emitter {
    * @param {string} word - the word before cursor
    * @returns {Promise<void>}
    */
-  public start(option: CompleteOption): void {
+  public start(): void {
     let { nvim, activted } = this
-    if (activted) {
-      return
-    }
+    if (activted) return
     this.activted = true
     let opt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`, true)
-    this.emit('start', Object.assign({}, option))
+    this.emit('start')
   }
 
   public stop(): void {
-    if (!this.activted) return
+    let { nvim, activted } = this
+    if (!activted) return
     this.activted = false
-    let completeOpt = workspace.getVimSetting('completeOpt')
-    this.nvim.call('coc#_hide', [], true)
-    this.nvim.command(`noa set completeopt=${completeOpt}`, true)
+    let completeOpt = workspace.completeOpt
+    nvim.command(`noa set completeopt=${completeOpt}`, true)
     this.emit('stop')
   }
 
@@ -73,7 +63,7 @@ export default class Increment extends Emitter {
 
   // keep other options
   public static getStartOption(): string {
-    let opt = workspace.getVimSetting('completeOpt')
+    let opt = workspace.completeOpt
     let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
     let parts = opt.split(',')
     // longest & menu can't work with increment search
@@ -89,5 +79,4 @@ export default class Increment extends Emitter {
     }
     return parts.join(',')
   }
-
 }

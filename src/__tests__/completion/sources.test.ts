@@ -45,7 +45,7 @@ describe('native sources', () => {
     await helper.edit('another')
     await nvim.setLine('other')
     await nvim.command('bp')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('io')
     let res = await helper.visible('other', 'buffer')
     expect(res).toBe(true)
@@ -57,6 +57,7 @@ describe('native sources', () => {
     await nvim.input('icomm')
     let opt = await buf.getOption('omnifunc') as string
     expect(opt).toBe('syntaxcomplete#Complete')
+    await helper.wait(100)
     let res = await helper.visible('command', 'omni')
     expect(res).toBe(true)
   })

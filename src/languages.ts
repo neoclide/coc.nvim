@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionContext, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -24,7 +24,7 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem, CompletionContext } from './types'
 import { echoMessage, wait } from './util'
 import * as complete from './util/complete'
 import workspace from './workspace'
@@ -115,8 +115,7 @@ class Languages {
           if (languageId == 'typescript.tsx' || languageId == 'typescript.jsx') {
             languageId = 'typescriptreact'
           }
-          let opt = completion.option
-          let { synname } = opt
+          let { synname } = context.option!
           if (/string/i.test(synname) || /comment/i.test(synname)) {
             return []
           }
@@ -129,7 +128,7 @@ class Languages {
               documentation: snip.description,
               insertTextFormat: InsertTextFormat.Snippet,
               textEdit: TextEdit.replace(
-                Range.create({ line: position.line, character: opt.col }, position), snip.body
+                Range.create({ line: position.line, character: context.option!.col }, position), snip.body
               )
             })
           }
@@ -487,7 +486,8 @@ class Languages {
         let document = doc.textDocument
         let position = complete.getPosition(opt)
         let context: CompletionContext = {
-          triggerKind: isTrigger ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked
+          triggerKind: isTrigger ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked,
+          option: opt
         }
         if (isTrigger) context.triggerCharacter = triggerCharacter
         let cancellSource = new CancellationTokenSource()

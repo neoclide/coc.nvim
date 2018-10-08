@@ -5,6 +5,7 @@
 import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, DocumentSymbolParams, Position, ReferenceParams, TextDocument, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../../types'
+import { omit } from '../../util/lodash'
 
 export function documentSelectorToLanguageIds(documentSelector: DocumentSelector): string[] {
   let res = documentSelector.map(filter => {
@@ -82,7 +83,7 @@ export function asCompletionParams(textDocument: TextDocument, position: Positio
       uri: textDocument.uri,
     },
     position,
-    context,
+    context: omit(context, ['option']),
   }
 }
 

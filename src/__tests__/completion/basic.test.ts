@@ -95,10 +95,8 @@ describe('completion', () => {
   it('should filter on fast input', async () => {
     await helper.edit('insert')
     await nvim.setLine('foo bar')
-    await helper.wait(30)
-    await nvim.input('ob')
-    await helper.wait(30)
-    await nvim.input('a')
+    await helper.wait(60)
+    await nvim.input('oba')
     await helper.waitPopup()
     let items = await helper.getItems()
     let item = items.find(o => o.word == 'foo')

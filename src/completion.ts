@@ -3,7 +3,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from './events'
 import Increment from './increment'
 import Complete from './model/complete'
-import Document from './model/document'
 import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem } from './types'
 import { disposeAll } from './util'
@@ -23,6 +22,7 @@ export class Completion implements Disposable {
   private completeItems: VimCompleteItem[] = []
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
+  private option: CompleteOption = null
 
   // vim's logic for filter items
   private filterItemsVim(input: string): VimCompleteItem[] {
@@ -67,12 +67,6 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
-  public get option(): CompleteOption | null {
-    let { complete } = this
-    if (!complete) return null
-    return complete.option
-  }
-
   public init(nvim: Neovim): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
@@ -88,16 +82,15 @@ export class Completion implements Disposable {
       // noop
     })
     // stop change emit on completion
-    let document: Document = null
-    increment.on('start', option => {
-      let { bufnr } = option
-      document = workspace.getDocument(bufnr)
-      if (document) document.paused = true
+    increment.on('start', () => {
+      this.completeItems = []
+      let { document } = this.option
+      document.paused = true
     })
     increment.on('stop', () => {
-      if (!document) return
+      let { document } = this.option
       document.paused = false
-      this.completeItems = []
+      this.option = null
     })
   }
 
@@ -140,6 +133,7 @@ export class Completion implements Disposable {
     option.input = resumeInput
     let items = complete.filterResults(resumeInput, true)
     if (!insertMode || !items || items.length === 0) {
+      this.nvim.call('coc#_hide', [], true)
       increment.stop()
       return
     }
@@ -155,11 +149,10 @@ export class Completion implements Disposable {
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
-    let { document } = option
-    let changedtick = document.changedtick
+    let { document, linenr, line } = option
     let { nvim, increment } = this
-    // could happen for auto trigger
-    increment.start(option)
+    this.option = option
+    increment.start()
     logger.trace(`options: ${JSON.stringify(option)}`)
     let arr = sources.getCompleteSources(option)
     logger.trace(`Activted sources: ${arr.map(o => o.name).join(',')}`)
@@ -170,7 +163,7 @@ export class Completion implements Disposable {
       increment.stop()
       return
     }
-    if (document.changedtick == changedtick) {
+    if (document.getline(linenr - 1) == line) {
       nvim.call('coc#_set_context', [option.col, items], true)
       this.completeItems = items
       await nvim.call('coc#_do_complete', [])
@@ -204,6 +197,7 @@ export class Completion implements Disposable {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
       if (search == null) return
+      if (!increment.isActivted) return
       let { input, document } = this.option
       let len = input.length
       if (search.length && len == 0 && document.isWord(search[0])) {
@@ -236,6 +230,7 @@ export class Completion implements Disposable {
 
   private async onInsertLeave(): Promise<void> {
     this.insertMode = false
+    this.nvim.call('coc#_hide', [], true)
     this.increment.stop()
   }
 
@@ -256,9 +251,11 @@ export class Completion implements Disposable {
       character,
       timestamp: Date.now(),
     }
+    if (this.completing) return
     if (increment.isActivted) {
       let { input } = this.option
       if (!this.hasMatch(input + character)) {
+        this.nvim.call('coc#_hide', [], true)
         increment.stop()
       }
     }

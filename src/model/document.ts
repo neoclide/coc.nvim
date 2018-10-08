@@ -39,7 +39,7 @@ export default class Document {
   constructor(public readonly buffer: Buffer, private configurations: Configurations) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
-    }, 20)
+    }, 100)
     this.fetchContent = debounce(() => {
       this._fetchContent().catch(_e => {
         // noop

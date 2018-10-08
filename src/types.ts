@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFileOptions, RenameFileOptions, DeleteFileOptions } from 'vscode-languageserver-protocol'
+import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFileOptions, RenameFileOptions, DeleteFileOptions, CompletionTriggerKind } from 'vscode-languageserver-protocol'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { LanguageClient } from './language-client'
@@ -158,6 +158,23 @@ export interface SourceConfig {
 
 export interface RecentScore {
   [index: string]: number
+}
+
+/**
+ * Contains additional information about the context in which a completion request is triggered.
+ */
+export interface CompletionContext {
+  /**
+   * How the completion was triggered.
+   */
+  triggerKind: CompletionTriggerKind
+  /**
+   * The trigger character (a single character) that has trigger code complete.
+   * Is undefined if `triggerKind !== CompletionTriggerKind.TriggerCharacter`
+   */
+  triggerCharacter?: string
+
+  option?: CompleteOption
 }
 
 // option on complete & should_complete
