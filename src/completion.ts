@@ -151,11 +151,10 @@ export class Completion implements Disposable {
 
   private async onTextChangedP(): Promise<void> {
     let { increment } = this
-    if (this.hasLatestChangedI || this.completing) return
+    if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     let search = await increment.getResumeInput()
     if (search == null) return
     if (increment.latestInsert) {
-      if (!increment.isActivted) return
       await this.resumeCompletion(search, true)
       return
     }
@@ -172,7 +171,12 @@ export class Completion implements Disposable {
       if (bufnr !== increment.bufnr) return
       let search = await increment.getResumeInput()
       if (search == null) return
-      return await this.resumeCompletion(search)
+      let len = this.option.input.length
+      if (search.length && len == 0) {
+        increment.stop()
+      } else {
+        return await this.resumeCompletion(search)
+      }
     }
     if (!latestInsertChar) return
     // check trigger
