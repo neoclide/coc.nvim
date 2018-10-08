@@ -1,6 +1,7 @@
 import Complete from './model/complete'
 import { CompleteOption, ISource, RecentScore, VimCompleteItem } from './types'
 import { fuzzyMatch, getCharCodes } from './util/fuzzy'
+import workspace from './workspace'
 const logger = require('./util/logger')('completes')
 
 export class Completes {
@@ -29,18 +30,19 @@ export class Completes {
   public async doComplete(
     sources: ISource[],
     option: CompleteOption): Promise<VimCompleteItem[]> {
-    let complete = new Complete(option, this.recentScores)
+    let config = workspace.getConfiguration('coc.preferences')
+    let complete = new Complete(option, this.recentScores, config)
     this.complete = complete
     let items = await complete.doComplete(sources)
     this.completeItems = items || []
     return items
   }
 
-  public filterCompleteItems(option: CompleteOption): VimCompleteItem[] {
-    let origComplete = this.complete
-    if (!origComplete || !origComplete.results) return []
-    let complete = new Complete(option, this.recentScores)
-    let items = complete.filterResults(origComplete.results, true)
+  public filterCompleteItems(input: string): VimCompleteItem[] {
+    let { complete } = this
+    if (!complete || !complete.results) return []
+    this.option.input = input
+    let items = complete.filterResults(input, true)
     this.completeItems = items || []
     return items
   }
@@ -60,11 +62,6 @@ export class Completes {
     let { complete } = this
     if (!complete) return null
     return complete.option
-  }
-
-  public get input(): string | null {
-    let { option } = this
-    return option ? option.input : null
   }
 
   public hasMatch(search: string): boolean {

@@ -12,12 +12,14 @@ export default abstract class Source implements ISource {
   public readonly triggerCharacters: string[]
   // exists opitonnal function names for remote source
   public readonly optionalFns: string[]
+  public readonly isSnippet: boolean
   protected readonly nvim: Neovim
   private _disabled = false
   constructor(option: SourceConfig) {
     let { name, optionalFns } = option
     this.name = name
     this.nvim = workspace.nvim
+    this.isSnippet = !!option.snippet
     this.optionalFns = optionalFns || []
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native

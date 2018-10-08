@@ -236,7 +236,7 @@ endfunction
 function! coc#util#get_search(col) abort
   let line = getline('.')
   let curcol = col('.')
-  if curcol <= a:col || mode() !~? '^i'
+  if curcol <= a:col
     return v:null
   endif
   if curcol == a:col + 1 | return '' | endif

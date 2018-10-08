@@ -3,6 +3,7 @@ import completes from './completes'
 import { CompleteOption } from './types'
 import workspace from './workspace'
 import Emitter = require('events')
+import { byteSlice } from './util/string'
 const logger = require('./util/logger')('increment')
 
 export interface LastInsert {
@@ -18,7 +19,6 @@ export interface LastChange {
 
 export default class Increment extends Emitter {
   public lastInsert?: LastInsert
-  private _search: string
   // private lastChange: LastChange | null | undefined
   private activted = false
 
@@ -26,8 +26,9 @@ export default class Increment extends Emitter {
     super()
   }
 
-  public get search(): string {
-    return this._search
+  public get bufnr(): number {
+    let { option } = completes
+    return option ? option.bufnr : null
   }
 
   public get latestInsert(): LastInsert | null {
@@ -56,21 +57,19 @@ export default class Increment extends Emitter {
   public start(option: CompleteOption): void {
     let { nvim, activted } = this
     if (activted) {
-      this._search = option.input
       return
     }
     this.activted = true
-    this._search = option.input
     let opt = Increment.getStartOption()
     nvim.command(`noa set completeopt=${opt}`, true)
     this.emit('start', Object.assign({}, option))
   }
 
   public stop(): void {
-    this._search = ''
     if (!this.activted) return
     this.activted = false
     let completeOpt = workspace.getVimSetting('completeOpt')
+    this.nvim.call('coc#_hide', [], true)
     this.nvim.command(`noa set completeopt=${completeOpt}`, true)
     this.emit('stop')
   }
@@ -80,18 +79,14 @@ export default class Increment extends Emitter {
   }
 
   public async getResumeInput(): Promise<string> {
-    let { activted, nvim } = this
-    if (!activted) return null
     let { option } = completes
-    let search = await nvim.call('coc#util#get_search', [option.col])
-    this._search = search
-    if (search == null || !completes.hasMatch(search)) {
-      await this.nvim.call('coc#_hide')
+    let [, lnum, col] = await this.nvim.call('getcurpos')
+    if (lnum != option.linenr || col <= option.col) {
       this.stop()
-      this._search = search
       return null
     }
-    return search
+    let line = option.document.getline(lnum - 1)
+    return byteSlice(line, option.col, col - 1)
   }
 
   // keep other options

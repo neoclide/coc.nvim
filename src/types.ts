@@ -153,6 +153,7 @@ export interface SourceConfig {
   optionalFns?: string[]
   shortcut?: string
   filepath?: string
+  snippet?: boolean
 }
 
 export interface RecentScore {
@@ -178,6 +179,7 @@ export interface CompleteOption {
   iskeyword: string
   custom: boolean
   synname: string
+  document: Document
   [index: string]: any
 }
 
@@ -345,6 +347,7 @@ export interface ISource {
   priority: number
   sourceType: SourceType
   triggerCharacters: string[]
+  isSnippet?: boolean
   filetypes?: string[]
   filepath?: string
   // should the first character always match

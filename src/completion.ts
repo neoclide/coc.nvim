@@ -5,21 +5,22 @@ import events from './events'
 import Increment from './increment'
 import Document from './model/document'
 import sources from './sources'
+import workspace from './workspace'
 import { CompleteOption, SourceStat, SourceType, VimCompleteItem } from './types'
 import { disposeAll, echoErr, isCocItem } from './util'
 import { byteSlice, isWord } from './util/string'
-import workspace from './workspace'
 const logger = require('./util/logger')('completion')
 
 export class Completion implements Disposable {
   private increment: Increment
   private lastChangedI: number
+  private insertMode = false
   private nvim: Neovim
   private completing = false
   private disposeables: Disposable[] = []
   private lastItems: VimCompleteItem[] = []
 
-  public init(nvim): void {
+  public init(nvim: Neovim): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
     this.disposeables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
@@ -28,7 +29,9 @@ export class Completion implements Disposable {
     this.disposeables.push(events.on('TextChangedP', this.onTextChangedP, this))
     this.disposeables.push(events.on('TextChangedI', this.onTextChangedI, this))
     this.disposeables.push(events.on('CompleteDone', this.onCompleteDone, this))
-
+    nvim.mode.then(({ mode }) => {
+      this.insertMode = mode.startsWith('i')
+    })
     // stop change emit on completion
     let document: Document = null
     increment.on('start', option => {
@@ -57,6 +60,11 @@ export class Completion implements Disposable {
   }
 
   public startCompletion(option: CompleteOption): void {
+    Object.defineProperty(option, 'document', {
+      value: workspace.getDocument(option.bufnr),
+      enumerable: false
+    })
+    if (option.document == null) return
     this._doComplete(option).then(() => {
       this.completing = false
     }).catch(e => {
@@ -65,35 +73,23 @@ export class Completion implements Disposable {
     })
   }
 
-  public async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
+  private async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
     let { nvim, increment } = this
-    let oldComplete = completes.complete
     try {
-      let { colnr, input } = oldComplete.option
-      let opt = Object.assign({}, oldComplete.option, {
-        input: resumeInput,
-        colnr: colnr + (resumeInput.length - input.length)
-      })
-      logger.trace(`Resume options: ${JSON.stringify(opt)}`)
-      let items = completes.filterCompleteItems(opt)
-      if (isChangedP) {
-        let filtered = this.filterItemsVim(resumeInput)
-        if (filtered.length == items.length) {
-          logger.trace('filter by vim, resume skip')
-          return
-        }
-      }
-      logger.trace(`Filtered item length: ${items.length}`)
+      let items = completes.filterCompleteItems(resumeInput)
       if (!items || items.length === 0) {
         increment.stop()
         return
       }
-      // make sure input not changed
-      if (increment.search == resumeInput) {
-        nvim.call('coc#_set_context', [opt.col, items], true)
-        this.lastItems = items
-        await nvim.call('coc#_do_complete', [])
+      if (isChangedP) {
+        let filtered = this.filterItemsVim(resumeInput)
+        if (filtered.length == items.length) {
+          return
+        }
       }
+      nvim.call('coc#_set_context', [completes.option.col, items], true)
+      this.lastItems = items
+      await nvim.call('coc#_do_complete', [])
     } catch (e) {
       echoErr(nvim, `completion error: ${e.message}`)
       logger.error(e.stack)
@@ -129,79 +125,60 @@ export class Completion implements Disposable {
   private async _doComplete(option: CompleteOption): Promise<void> {
     if (this.completing) return
     this.completing = true
+    let { document } = option
+    let changedtick = document.changedtick
     let { nvim, increment } = this
     // could happen for auto trigger
     increment.start(option)
-    let { input } = option
     logger.trace(`options: ${JSON.stringify(option)}`)
     let arr = sources.getCompleteSources(option)
     logger.trace(`Activted sources: ${arr.map(o => o.name).join(',')}`)
     let items = await completes.doComplete(arr, option)
-    if (items.length == 0) {
+    if (items.length == 0 || !this.insertMode) {
       increment.stop()
       return
     }
-    let { search } = increment
-    if (search === input) {
+    if (document.changedtick == changedtick) {
       nvim.call('coc#_set_context', [option.col, items], true)
       this.lastItems = items
       await nvim.call('coc#_do_complete', [])
-    } else {
-      if (search) {
-        await this.resumeCompletion(search)
-      } else {
-        increment.stop()
-      }
+      return
     }
+    let search = await increment.getResumeInput()
+    if (search == null) return
+    await this.resumeCompletion(search)
   }
 
   private async onTextChangedP(): Promise<void> {
     let { increment } = this
+    if (this.hasLatestChangedI || this.completing) return
+    let search = await increment.getResumeInput()
+    if (search == null) return
     if (increment.latestInsert) {
-      if (!increment.isActivted || this.completing) return
-      let search = await increment.getResumeInput()
-      if (search) await this.resumeCompletion(search, true)
+      if (!increment.isActivted) return
+      await this.resumeCompletion(search, true)
       return
     }
-    if (this.completing || this.hasLatestChangedI) return
-    let { option } = completes
-    let search = await this.nvim.call('coc#util#get_search', [option.col])
-    if (search == null) return
     let item = completes.getCompleteItem(search)
     if (item) await sources.doCompleteResolve(item)
   }
 
-  private async onTextChangedI(): Promise<void> {
+  private async onTextChangedI(bufnr: number): Promise<void> {
     this.lastChangedI = Date.now()
+    if (this.completing) return
     let { nvim, increment } = this
     let { latestInsertChar } = increment
     if (increment.isActivted) {
-      if (this.completing) return
+      if (bufnr !== increment.bufnr) return
       let search = await increment.getResumeInput()
-      if (search != null) return await this.resumeCompletion(search)
-      // no trigger for word character
-      if (latestInsertChar && isWord(latestInsertChar)) return
-    } else if (increment.search && !latestInsertChar) {
-      // restart when user correct search
-      let [, lnum] = await nvim.call('getcurpos')
-      let { option } = completes
-      if (lnum == option.linenr) {
-        let search = await this.nvim.call('coc#util#get_search', [option.col])
-        if (search.length < increment.search.length) {
-          option.input = search
-          increment.start(option)
-          await this.resumeCompletion(search)
-          return
-        }
-      }
+      if (search == null) return
+      return await this.resumeCompletion(search)
     }
-    if (increment.isActivted || !latestInsertChar) return
+    if (!latestInsertChar) return
     // check trigger
     let shouldTrigger = await this.shouldTrigger(latestInsertChar)
     if (!shouldTrigger) return
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
-    let doc = workspace.getDocument(option.bufnr)
-    if (!doc) return
     if (latestInsertChar) option.triggerCharacter = latestInsertChar
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
@@ -221,15 +198,16 @@ export class Completion implements Disposable {
   }
 
   private async onInsertLeave(): Promise<void> {
-    await this.nvim.call('coc#_hide')
+    this.insertMode = false
     this.increment.stop()
   }
 
   private async onInsertEnter(): Promise<void> {
+    this.insertMode = true
     let autoTrigger = this.getPreference('autoTrigger', 'always')
     if (autoTrigger !== 'always') return
-    let trigger = this.getPreference('triggerAfterInsertEnter', true)
-    if (trigger) {
+    let trigger = this.getPreference('triggerAfterInsertEnter', false)
+    if (trigger && !this.completing) {
       let option = await this.nvim.call('coc#util#get_complete_option')
       this.startCompletion(option)
     }
@@ -240,6 +218,13 @@ export class Completion implements Disposable {
     increment.lastInsert = {
       character,
       timestamp: Date.now(),
+    }
+    if (increment.isActivted) {
+      let { document } = completes.option
+      let characters = sources.getTriggerCharacters(document.filetype)
+      if (characters.has(character)) {
+        increment.stop()
+      }
     }
   }
 

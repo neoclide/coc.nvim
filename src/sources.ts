@@ -107,17 +107,20 @@ export class Sources extends EventEmitter {
     return this.getTriggerSources(character, languageId).length > 0
   }
 
+  public getTriggerCharacters(languageId: string): Set<string> {
+    let res: Set<string> = new Set()
+    let sources = this.getSourcesForFiletype(languageId, false)
+    for (let s of sources) {
+      for (let c of s.triggerCharacters) {
+        res.add(c)
+      }
+    }
+    return res
+  }
+
   public getTriggerSources(character: string, languageId: string): ISource[] {
     let special = !isWord(character)
-    let sources = this.sources.filter(s => {
-      if (!s.enable) return false
-      let { filetypes } = s
-      if (filetypes && filetypes[0] == '-') return true
-      if (filetypes && filetypes.indexOf(languageId) == -1) {
-        return false
-      }
-      return true
-    })
+    let sources = this.getSourcesForFiletype(languageId, false)
     if (special) {
       return sources.filter(o => {
         return o.triggerCharacters.indexOf(character) !== -1

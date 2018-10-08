@@ -390,7 +390,7 @@ class Languages {
     let resolving: string
     let option: CompleteOption
     let preferences = workspace.getConfiguration('coc.preferences')
-    let priority = preferences.get<number>('languageSourcePriority', 9)
+    let priority = preferences.get<number>('languageSourcePriority', 99)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
