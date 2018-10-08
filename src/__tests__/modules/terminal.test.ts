@@ -28,7 +28,7 @@ describe('terminal', () => {
       ; (workspace as any).nvim = nvim
     if (platform.isMacintosh) {
       let p = t.installModule('uid')
-      await wait(100)
+      await wait(30)
       await nvim.input('1<enter>')
       let res = await p
       expect(res).toMatch('uid')

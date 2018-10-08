@@ -15,6 +15,8 @@ class Source(Base):
         super().__init__(vim)
 
         self.name = 'coc-symbols'
+        self.matchers = ['matcher_fuzzy']
+        self.sorters = ['sorter/sublime']
         self.kind = FileKind(vim)
 
     def define_syntax(self):
@@ -39,8 +41,10 @@ class Source(Base):
             return []
         candidates = []
         for item in items:
+            if item['kind'] == 'Variable':
+                continue
             candidates.append({
-                'word': item['text'] + item['kind'],
+                'word': item['text'],
                 'abbr': '%s%s [%s]' % ('  ' * item['level'], item['text'], item['kind']),
                 'action__path': context['__bufname'],
                 'action__col': item['col'],
