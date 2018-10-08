@@ -3,7 +3,6 @@ import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { getChange } from '../../util/diff'
 import { createTmpFile, isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
-import { isCocItem } from '../../util/index'
 import { score } from '../../util/match'
 import Uri from 'vscode-uri'
 import path = require('path')
@@ -14,23 +13,6 @@ describe('score test', () => {
     let uri = Uri.file('/foo').toString()
     let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
-  })
-})
-
-describe('isCocItem test', () => {
-  test('should be coc item', () => {
-    let item = {
-      word: 'f',
-      user_data: '{"cid": 123}'
-    }
-    expect(isCocItem(item)).toBeTruthy
-  })
-
-  test('shoud not be coc item', () => {
-    expect(isCocItem(null)).toBeFalsy
-    expect(isCocItem({})).toBeFalsy
-    expect(isCocItem({ word: '' })).toBeFalsy
-    expect(isCocItem({ word: '', user_data: 'abc' })).toBeFalsy
   })
 })
 

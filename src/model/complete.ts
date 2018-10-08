@@ -1,8 +1,8 @@
 import { score } from 'fuzzaldrin'
-import { CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem, WorkspaceConfiguration } from '../types'
+import Serial from 'node-serial'
+import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
-import Serial = require('node-serial')
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -16,7 +16,7 @@ export default class Complete {
   public readonly recentScores: RecentScore
   constructor(opts: CompleteOption,
     recentScores: RecentScore | null,
-    private config: WorkspaceConfiguration) {
+    private config: CompleteConfig) {
     this.option = opts
     Object.defineProperty(this, 'recentScores', {
       get: (): RecentScore => {
@@ -33,17 +33,13 @@ export default class Complete {
     return this.option.id
   }
 
-  private get maxItemCount(): number {
-    return this.config.get('maxCompleteItemCount', 50)
-  }
-
   private completeSource(source: ISource): Promise<CompleteResult | null> {
     let start = Date.now()
     let s = new Serial()
     let { col } = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
-    let timeout = this.config.get<number>('timeout', 500)
+    let timeout = this.config.timeout
     s.timeout(Math.min(timeout, 3000))
     s.add((done, ctx) => {
       if (typeof source.shouldComplete === 'function') {
@@ -110,7 +106,7 @@ export default class Complete {
         if (filterText.length < input.length) continue
         if (isIncrement && item.sortText) delete item.sortText
         if (input.length && !fuzzyMatch(codes, filterText)) continue
-        if (!isIncrement) {
+        if (!data.cid) {
           data = Object.assign(data, { cid: this.id, source })
           item.user_data = JSON.stringify(data)
         }
@@ -130,7 +126,7 @@ export default class Complete {
         return b.score - a.score
       }
     })
-    return arr.slice(0, this.maxItemCount)
+    return arr.slice(0, this.config.maxItemCount)
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {

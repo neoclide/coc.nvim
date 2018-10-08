@@ -51,17 +51,6 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
   nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
-export function isCocItem(item: any): boolean {
-  if (!item || !item.hasOwnProperty('user_data')) return false
-  let { user_data } = item
-  try {
-    let res = JSON.parse(user_data)
-    return res.cid != null
-  } catch (e) {
-    return false
-  }
-}
-
 function getValidPort(port: number, cb: (port: number) => void): void {
   let server = net.createServer()
   server.listen(port, () => {

@@ -512,7 +512,7 @@ describe('workspace events', () => {
     let fn = jest.fn()
     workspace.onDidOpenTextDocument(fn, null, disposables)
     await helper.edit('tmp')
-    await helper.wait(300)
+    await helper.wait(30)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 

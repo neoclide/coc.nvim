@@ -92,12 +92,12 @@ export default class Plugin extends EventEmitter {
           completion.startCompletion(args[1])
           break
         case 'sourceStat':
-          return await completion.sourceStat()
+          return sources.sourceStat()
         case 'refreshSource':
           await sources.refresh(args[1])
           break
         case 'toggleSource':
-          completion.toggleSource(args[1])
+          sources.toggleSource(args[1])
           break
         case 'diagnosticInfo':
           // denite would clear message without timer

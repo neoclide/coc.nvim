@@ -1,9 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
-import completes from './completes'
 import { CompleteOption } from './types'
 import workspace from './workspace'
 import Emitter = require('events')
-import { byteSlice } from './util/string'
 const logger = require('./util/logger')('increment')
 
 export interface LastInsert {
@@ -24,11 +22,6 @@ export default class Increment extends Emitter {
 
   constructor(private nvim: Neovim) {
     super()
-  }
-
-  public get bufnr(): number {
-    let { option } = completes
-    return option ? option.bufnr : null
   }
 
   public get latestInsert(): LastInsert | null {
@@ -76,17 +69,6 @@ export default class Increment extends Emitter {
 
   public get isActivted(): boolean {
     return this.activted
-  }
-
-  public async getResumeInput(): Promise<string> {
-    let { option } = completes
-    let [, lnum, col] = await this.nvim.call('getcurpos')
-    if (lnum != option.linenr || col <= option.col) {
-      this.stop()
-      return null
-    }
-    let line = option.document.getline(lnum - 1)
-    return byteSlice(line, option.col, col - 1)
   }
 
   // keep other options

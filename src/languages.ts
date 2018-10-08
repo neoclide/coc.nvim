@@ -26,6 +26,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage, wait } from './util'
+import * as complete from './util/complete'
 import workspace from './workspace'
 import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
@@ -397,7 +398,7 @@ class Languages {
       if (!completeItems || completeItems.length == 0) return null
       let { word } = item
       return completeItems.find(o => {
-        return word == completion.getWord(o)
+        return word == complete.getWord(o)
       })
     }
     return {
@@ -437,7 +438,7 @@ class Languages {
           // vim have no suppport for update complete item
           let str = resolved.detail ? resolved.detail.trim() : ''
           echoMessage(this.nvim, str)
-          let doc = completion.getDocumentation(resolved)
+          let doc = complete.getDocumentation(resolved)
           if (doc) str += '\n\n' + doc
           if (str.length) {
             // TODO vim has bug with layout change on pumvisible
@@ -484,7 +485,7 @@ class Languages {
         if (triggerCharacter) await wait(waitTime)
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let document = doc.textDocument
-        let position = completion.getPosition(opt)
+        let position = complete.getPosition(opt)
         let context: CompletionContext = {
           triggerKind: isTrigger ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked
         }
@@ -496,7 +497,7 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
           isIncomplete,
-          items: completeItems.map(o => completion.convertVimCompleteItem(o, shortcut, opt))
+          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, opt))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
@@ -520,7 +521,7 @@ class Languages {
     let { col } = option
     let { nvim } = this
     let curcol = await nvim.call('col', ['.'])
-    let label = completion.getWord(item)
+    let label = complete.getWord(item)
     if (curcol != col + label.length + 1) return false
     return true
   }
@@ -538,7 +539,7 @@ class Languages {
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let label = completion.getWord(item)
+    let label = complete.getWord(item)
     let end = line.substr(option.col + label.length + deleteCount)
     if (isSnippet) {
       await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])

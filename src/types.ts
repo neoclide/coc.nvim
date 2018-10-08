@@ -216,6 +216,11 @@ export interface SourceStat {
   disabled: boolean
 }
 
+export interface CompleteConfig {
+  maxItemCount: number
+  timeout: number
+}
+
 export interface WorkspaceConfiguration {
   /**
    * Return a value from this configuration.

@@ -48,7 +48,7 @@ export class SnippetManager implements types.SnippetManager {
       }
     }, null, this.disposables)
 
-    events.on('InsertLeave', async () => {
+    events.on(['InsertLeave', 'TextChanged'], async () => {
       let { mode } = await workspace.nvim.mode
       if (mode == 'n') {
         this.cancel()
