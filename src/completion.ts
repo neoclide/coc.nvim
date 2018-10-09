@@ -62,6 +62,12 @@ export class Completion implements Disposable {
     return byteSlice(line, option.col, col - 1)
   }
 
+  private get isTriggered(): boolean {
+    let { option } = this
+    let { document, triggerCharacter } = option
+    return triggerCharacter && !document.isWord(triggerCharacter)
+  }
+
   private get bufnr(): number {
     let { option } = this
     return option ? option.bufnr : null
@@ -206,7 +212,7 @@ export class Completion implements Disposable {
       if (!increment.isActivted) return
       let { document } = this.option
       let len = input.length
-      if (search.length && len == 0 && document.isWord(search[0])) {
+      if (!this.isTriggered && len == 0 && document.isWord(search[0])) {
         increment.stop()
       } else {
         return await this.resumeCompletion(search)
