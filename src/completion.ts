@@ -67,6 +67,11 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
+  private get input(): string {
+    let { option } = this
+    return option ? option.input : null
+  }
+
   public init(nvim: Neovim): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
@@ -163,6 +168,7 @@ export class Completion implements Disposable {
       increment.stop()
       return
     }
+    // changedtick could change without content change
     if (document.getline(linenr - 1) == line) {
       nvim.call('coc#_set_context', [option.col, items], true)
       this.completeItems = items
@@ -175,11 +181,11 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(): Promise<void> {
-    let { increment } = this
+    let { increment, input } = this
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     let { latestInsert } = increment
     let search = await this.getResumeInput()
-    if (search == null) return
+    if (search == null || input == search) return
     if (latestInsert) {
       await this.resumeCompletion(search, true)
       return
@@ -191,14 +197,14 @@ export class Completion implements Disposable {
   private async onTextChangedI(bufnr: number): Promise<void> {
     this.lastChangedI = Date.now()
     if (this.completing) return
-    let { nvim, increment } = this
+    let { nvim, increment, input } = this
     let { latestInsertChar } = increment
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
-      if (search == null) return
+      if (search == null || search == input) return
       if (!increment.isActivted) return
-      let { input, document } = this.option
+      let { document } = this.option
       let len = input.length
       if (search.length && len == 0 && document.isWord(search[0])) {
         increment.stop()
