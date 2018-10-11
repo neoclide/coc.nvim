@@ -98,6 +98,14 @@
           "default": "",
           "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
         },
+        "env": {
+          "type": "array",
+          "default": null,
+          "description": "Environment variable for child process.",
+          "items": {
+            "type": "string"
+          }
+        },
         "execArgv": {
           "type": "array",
           "default": ["--nolazy", "--inspect-brk=6045"],
@@ -179,6 +187,14 @@
           "type": "string",
           "default": "",
           "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+        },
+        "env": {
+          "type": "array",
+          "default": null,
+          "description": "Environment variable for child process.",
+          "items": {
+            "type": "string"
+          }
         },
         "detached": {
           "type": "boolean",

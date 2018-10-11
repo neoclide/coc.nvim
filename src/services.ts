@@ -396,7 +396,8 @@ function getTransportKind(args: string[]): Transport {
 function getForkOptions(config: LanguageServerConfig): ForkOptions {
   return {
     cwd: getCwd(config.cwd),
-    execArgv: config.execArgv || []
+    execArgv: config.execArgv || [],
+    env: config.env || undefined
   }
 }
 
@@ -404,7 +405,8 @@ function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   return {
     cwd: getCwd(config.cwd),
     detached: !!config.detached,
-    shell: !!config.shell
+    shell: !!config.shell,
+    env: config.env || undefined
   }
 }
 
