@@ -328,20 +328,20 @@ export class Workspace implements IWorkspace {
   }
 
   public async getQuickfixItem(loc: Location, text?: string): Promise<QuickfixItem> {
-    let { cwd } = this
+    let { cwd, nvim } = this
     let { uri, range } = loc
     let { line, character } = range.start
-    let fullpath = Uri.parse(uri).fsPath
-    let doc = this.getDocument(uri)
-    let bufnr = doc ? doc.bufnr : 0
+    let u = Uri.parse(uri)
+    let bufname = u.scheme == 'file' ? u.fsPath : uri
+    let bufnr = await nvim.call('bufnr', bufname)
     text = text ? text : await this.getLine(uri, line)
     let item: QuickfixItem = {
-      filename: fullpath.startsWith(cwd) ? path.relative(cwd, fullpath) : fullpath,
+      filename: bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname,
       lnum: line + 1,
       col: character + 1,
       text
     }
-    if (bufnr) item.bufnr = bufnr
+    if (bufnr != -1) item.bufnr = bufnr
     return item
   }
 
@@ -463,16 +463,18 @@ export class Workspace implements IWorkspace {
     let { nvim, cwd } = this
     let { line, character } = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
-    let filepath = Uri.parse(uri).fsPath
+    let u = Uri.parse(uri)
+    let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
     await nvim.command(`normal! m'`)
-    let bufnr = await nvim.call('bufnr', filepath)
+    let bufnr = await nvim.call('bufnr', bufname)
     if (bufnr == this.bufnr) {
       await nvim.call('cursor', [line + 1, character + 1])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       nvim.command(`buffer ${cmd} ${bufnr}`, true)
     } else {
-      let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-      await nvim.command(`exe '${jumpCommand} ${cmd} ' . fnameescape('${file}')`)
+      let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
+      file = await nvim.call('fnameescape', file)
+      await nvim.command(`${jumpCommand} ${cmd} ${file}`)
     }
   }
 
