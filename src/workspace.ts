@@ -125,9 +125,9 @@ export class Workspace implements IWorkspace {
     return this._cwd
   }
 
-  private get easymotion(): boolean {
-    return this.vimSettings.easymotion == 1
-  }
+  // private get easymotion(): boolean {
+  //   return this.vimSettings.easymotion == 1
+  // }
 
   public get root(): string {
     let { cwd, uri } = this
@@ -571,7 +571,7 @@ export class Workspace implements IWorkspace {
       await nvim.call('coc#util#edit_file', [file, cmd])
       return
     }
-    this.showMessage(`scheme ${u.scheme} not supported!`, 'error')
+    await nvim.command(`${cmd} ${uri}`)
   }
 
   public createOutputChannel(name: string): OutputChannel {
