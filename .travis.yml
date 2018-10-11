@@ -25,12 +25,6 @@ before_install:
     else
       curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
       sudo dpkg -i ripgrep_0.9.0_amd64.deb
-      git clone https://github.com/facebook/watchman.git
-      cd watchman
-      ./autogen.sh
-      ./configure
-      make
-      sudo make install
     fi
   - rg --version
   - curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
