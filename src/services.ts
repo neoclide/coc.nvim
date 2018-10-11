@@ -210,9 +210,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
       return
     }
     if (params) {
-      return await service.client.sendRequest(method, params)
+      return await Promise.resolve(service.client.sendRequest(method, params))
     }
-    return await service.client.sendRequest(method)
+    return await Promise.resolve(service.client.sendRequest(method))
   }
 
   public registLanguageClient(client: LanguageClient): Disposable {
