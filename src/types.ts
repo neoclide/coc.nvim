@@ -696,6 +696,7 @@ export interface IWorkspace {
   onDidWorkspaceInitialized: Event<void>
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   showMessage(msg: string, identify?: MsgTypes): void
+  findUp(filename: string | string[]): Promise<string | null>
   getDocument(uri: string | number): Document
   getDocument(bufnr: number): Document | null
   getOffset(): Promise<number>

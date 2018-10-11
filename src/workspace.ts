@@ -5,6 +5,7 @@ import { parse, ParseError } from 'jsonc-parser'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
+import findUp from 'find-up'
 import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './model/configurations'
@@ -231,6 +232,18 @@ export class Workspace implements IWorkspace {
 
   public getVimSetting<K extends keyof VimSettings>(name: K): VimSettings[K] {
     return this.vimSettings[name]
+  }
+
+  public async findUp(filename: string | string[]): Promise<string | null> {
+    let doc = await this.document
+    let u = Uri.parse(doc.uri)
+    let root: string
+    if (u.scheme == 'file') {
+      root = path.dirname(u.fsPath)
+    } else {
+      root = this.cwd
+    }
+    return await findUp(filename, { cwd: root })
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {

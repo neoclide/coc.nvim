@@ -18,7 +18,7 @@ export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   return stat
 }
 
-export function mkdirAsync(filepath: string):Promise<void> {
+export function mkdirAsync(filepath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     mkdirp(filepath, err => {
       if (err) return reject(err)
@@ -27,7 +27,7 @@ export function mkdirAsync(filepath: string):Promise<void> {
   })
 }
 
-export function renameAsync(oldPath: string, newPath: string):Promise<void> {
+export function renameAsync(oldPath: string, newPath: string): Promise<void> {
   return new Promise((resolve, reject) => {
     fs.rename(oldPath, newPath, err => {
       if (err) return reject(err)
@@ -64,23 +64,6 @@ export function getParentDirs(fullpath: string): string[] {
     p = path.dirname(p)
   }
   return res
-}
-/**
- * Resolve directory from `root` that contains `sub`
- *
- * @public
- * @param {string} root
- * @param {string} sub
- * @returns {string | null}
- */
-export function resolveDirectory(root: string, sub: string): string | null {
-  let paths = getParentDirs(root)
-  paths.unshift(root)
-  for (let p of paths) {
-    let d = path.join(p, sub)
-    if (fs.existsSync(d)) return d
-  }
-  return null
 }
 
 export function resolveRoot(cwd: string, subs: string[], home?: string): string | null {

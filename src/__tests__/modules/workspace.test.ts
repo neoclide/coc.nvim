@@ -446,6 +446,19 @@ describe('workspace utility', () => {
     expect(pos[2]).toBe(2)
   })
 
+  it('should jumpTo custom uri scheme', async () => {
+    let uri = 'jdt://foo'
+    await workspace.jumpTo(uri, { line: 1, character: 1 })
+    let buf = await nvim.buffer
+    let name = await buf.name
+    expect(name).toBe(uri)
+  })
+
+  it('should findUp to tsconfig.json', async () => {
+    let filepath = await workspace.findUp('tsconfig.json')
+    expect(filepath).toMatch('tsconfig.json')
+  })
+
   it('should show errors', async () => {
     let uri = URI.file('/tmp/foo').toString()
     let content = 'bar'
