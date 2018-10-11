@@ -15,6 +15,10 @@ function! coc#source#neco#get_startcol(opt) abort
   let colnr = a:opt['colnr']
   let part = colnr == 1 ? '' : a:opt['line'][0:colnr-2]
   let col = necovim#get_complete_position(part)
+  let ch = a:opt['line'][col + 1]
+  if ch ==# ':'
+    return col + 2
+  endif
   return col
 endfunction
 
@@ -48,6 +52,8 @@ function! s:Filter(input, items, index)
         let o[key] = value[0:-2]
       elseif key ==# 'word' && value =~# '()$'
         let o[key] = value[0:-3]
+      elseif key ==# 'word' && colon
+        let o[key] = value[2:]
       else
         let o[key] = value
       endif
