@@ -530,7 +530,9 @@ describe('workspace events', () => {
     await helper.edit('tmp')
     workspace.onDidChangeTextDocument(fn, null, disposables)
     await nvim.setLine('foo')
-    await helper.wait(100)
+    let doc = await workspace.document
+    doc.forceSync()
+    await helper.wait(20)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
