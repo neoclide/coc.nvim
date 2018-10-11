@@ -318,7 +318,25 @@ CocActionAsync({action, [...{args}], {callback}})
 
 	Call CocAction in none block way, callback is called with `error` and
 	`response`.
-	
+
+						*CocRequest()*
+CocRequest({id}, {type}, [{params}])
+
+	Send request to language client of {id} with {type} and optional
+	{params}. eg: >
+
+	call CocRequest('tslint', 'textDocument/tslint/allFixes',
+		\  {'textDocument': {'uri': 'file:///tmp'}})
+<
+	vim error would raise when request response with error.
+
+						*CocRequestAsync()*
+CocRequest({id}, {type}, [{params}, {callback}])
+
+	Async request for remote language client. {callback} is called with
+	error and response.
+
+
 Available Actions ~
 
 "sourceStat" 					*coc-action-sourceStat*

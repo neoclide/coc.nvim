@@ -42,16 +42,13 @@ export default function(opts: Attach): Plugin {
       default:
         let m = method[0].toLowerCase() + method.slice(1)
         if (typeof plugin[m] !== 'function') {
-          // tslint:disable-next-line:no-console
-          console.error(`Action ${m} not found`)
-          logger.error(`Action ${m} not found`)
-          return resp.send(null)
+          return resp.send(`Action ${m} not found`, true)
         }
-        plugin[m](args).then(res => {
+        plugin[m].apply(plugin, args).then(res => {
           resp.send(res)
         }, e => {
           logger.error('Action error: ' + e.stack)
-          resp.send()
+          resp.send(e.message, true)
         })
     }
   })

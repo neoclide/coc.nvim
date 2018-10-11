@@ -53,7 +53,11 @@ export default class Plugin extends EventEmitter {
     })
   }
 
-  public async cocAction(args: any): Promise<any> {
+  public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+    return await services.sendRequest(id, method, params)
+  }
+
+  public async cocAction(...args: any[]): Promise<any> {
     if (!this.initialized) return
     let { handler } = this
     try {

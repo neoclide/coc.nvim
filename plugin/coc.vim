@@ -21,15 +21,28 @@ function! CocAction(...) abort
 endfunction
 
 function! CocActionAsync(...) abort
+  return s:AsyncRequest('CocAction', a:000)
+endfunction
+
+function! CocRequest(...) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
-  let Cb = a:000[a:1 - 1]
+  return coc#rpc#request('sendRequest', a:000)
+endfunction
+
+function! CocRequestAsync()
+  return s:AsyncRequest('sendRequest', a:000)
+endfunction
+
+function! s:AsyncRequest(name, args) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return | endif
+  let Cb = a:args[len(a:args) - 1]
   if type(Cb) != 2
     let Cb = {-> {}}
-    let args = copy(a:000)
+    let args = copy(a:args)
   else
-    let args = copy(a:000)[0:-2]
+    let args = copy(a:args)[0:-2]
   endif
-  call coc#rpc#request_async('CocAction', args, Cb)
+  call coc#rpc#request_async(a:name, args, Cb)
   return ''
 endfunction
 

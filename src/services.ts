@@ -202,6 +202,19 @@ export class ServiceManager extends EventEmitter implements Disposable {
     }
   }
 
+  public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+    let service = this.getService(id)
+    if (!service) service = this.getService(`languageserver.${id}`)
+    if (!service || !service.client) {
+      workspace.showMessage(`LanguageClient ${id} not found`)
+      return
+    }
+    if (params) {
+      return await service.client.sendRequest(method, params)
+    }
+    return await service.client.sendRequest(method)
+  }
+
   public registLanguageClient(client: LanguageClient): Disposable {
     let disposables: Disposable[] = []
     let onDidServiceReady = new Emitter<void>()
