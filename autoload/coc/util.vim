@@ -444,6 +444,7 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
+        \ 'terminalAttach': has('nvim-0.3.2') ? v:true : v:false,
         \}
 endfunction
 

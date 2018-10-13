@@ -34,6 +34,7 @@ export interface VimSettings {
   completeOpt: string
   isVim: boolean
   easymotion: number
+  terminalAttach: boolean
 }
 
 export class Workspace implements IWorkspace {
@@ -858,6 +859,7 @@ export class Workspace implements IWorkspace {
     if (!loaded) return
     let buftype = await buffer.getOption('buftype') as string
     if (buftype == 'help' || buftype == 'quickfix' || buftype == 'nofile') return
+    if (buftype == 'terminal' && !this.vimSettings.terminalAttach) return
     let doc = this.buffers.get(buffer.id)
     if (doc) {
       await events.fire('BufUnload', [buffer.id])
@@ -946,9 +948,7 @@ export class Workspace implements IWorkspace {
     let bufnr = await this.nvim.call('bufnr', '%')
     this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
-    if (!doc) {
-      await this.onBufCreate(bufnr)
-    }
+    if (!doc) await this.onBufCreate(bufnr)
   }
 
   private async getFileEncoding(): Promise<string> {

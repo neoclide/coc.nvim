@@ -4,6 +4,10 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
+  if !has('nvim-0.3.2')
+    let valid = 0
+    call health#report_warn('Neovim version below 0.3.2, some feature would not work.')
+  endif
   if !executable('node')
     let valid = 0
     call health#report_error('Environment node.js not found, install node.js from http://nodejs.org/')
