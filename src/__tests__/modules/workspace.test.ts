@@ -393,11 +393,11 @@ describe('workspace utility', () => {
   })
 
   it('should open none file uri', async () => {
-    let uri = 'term://abc'
+    let uri = 'jdi://abc'
     await workspace.openResource(uri)
     let buf = await nvim.buffer
     let name = await buf.name
-    expect(name).toBe('')
+    expect(name).toBe('jdi://abc')
   })
 
   it('should create outputChannel', () => {
