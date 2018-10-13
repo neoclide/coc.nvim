@@ -132,7 +132,8 @@ export class Workspace implements IWorkspace {
 
   public get root(): string {
     let { cwd, uri } = this
-    let dir = uri ? path.dirname(Uri.parse(uri).fsPath) : cwd
+    let u = uri ? Uri.parse(uri) : null
+    let dir = u && u.scheme == 'file' ? path.dirname(u.fsPath) : cwd
     return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
   }
 

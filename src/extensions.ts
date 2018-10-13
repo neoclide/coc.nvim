@@ -277,7 +277,7 @@ export class Extensions {
         }, null, disposables)
       } else if (ev == 'workspaceContains') {
         let check = () => {
-          glob(parts[1], { cwd: workspace.cwd }, (err, files) => {
+          glob(parts[1], { cwd: workspace.root }, (err, files) => {
             if (err) {
               workspace.showMessage(`glob error: ${err.message}`, 'error')
               return
