@@ -392,7 +392,7 @@ describe('workspace utility', () => {
     expect(name).toMatch('bar')
   })
 
-  it('should not open unsupported resource', async () => {
+  it('should open none file uri', async () => {
     let uri = 'term://abc'
     await workspace.openResource(uri)
     let buf = await nvim.buffer

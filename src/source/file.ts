@@ -19,8 +19,7 @@ export default class File extends Source {
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let { line, colnr, document } = opt
-    if (document.schema !== 'file') return false
+    let { line, colnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
     if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
