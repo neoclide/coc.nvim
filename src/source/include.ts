@@ -22,12 +22,12 @@ export default class Include extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { nvim } = this
-    let { input, bufnr } = opt
+    let { input } = opt
     let command = await this.command
     if (input.length == 0) return null
     let trimSameExts = this.getConfig('trimSameExts', [])
-    let fullpath = await nvim.call('coc#util#get_fullpath', bufnr)
+    let buf = await this.nvim.buffer
+    let fullpath = await buf.name
     let items = []
     if (command) {
       let dir = workspace.root

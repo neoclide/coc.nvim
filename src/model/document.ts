@@ -2,7 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DidChangeTextDocumentParams, DocumentHighlight, DocumentHighlightKind, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import { BufferOption, ChangeInfo } from '../types'
+import { ChangeInfo } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
@@ -127,13 +127,12 @@ export default class Document {
       if (!res) return false
     }
     this.attached = true
-    let opts = (await nvim.call('coc#util#get_bufoptions', [
-      buffer.id
-    ])) as BufferOption
-    this._changedtick = opts.changedtick
+    this._changedtick = await buffer.changedtick
+    let bufname = await buffer.name
     this.lines = (await buffer.lines) as string[]
-    let { fullpath, filetype, iskeyword } = opts
-    let uri = getUri(fullpath, buffer.id)
+    let filetype = await buffer.getOption('filetype') as string
+    let iskeyword = await buffer.getOption('iskeyword') as string
+    let uri = getUri(bufname, buffer.id)
     this.textDocument = TextDocument.create(
       uri,
       filetype,

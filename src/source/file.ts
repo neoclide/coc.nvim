@@ -19,7 +19,8 @@ export default class File extends Source {
     })
   }
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let { line, colnr, bufnr } = opt
+    let { line, colnr, document } = opt
+    if (document.schema !== 'file') return false
     let part = byteSlice(line, 0, colnr - 1)
     if (!part || part.slice(-2) == '//') return false
     let ms = part.match(pathRe)
@@ -29,7 +30,8 @@ export default class File extends Source {
         opt.pathstr = os.homedir() + opt.pathstr.slice(1)
       }
       opt.part = ms[1]
-      let fullpath = opt.fullpath = await this.nvim.call('coc#util#get_fullpath', [bufnr])
+      let buf = await this.nvim.buffer
+      let fullpath = opt.fullpath = await buf.name
       opt.dirname = path.dirname(fullpath)
       opt.cwd = await this.nvim.call('getcwd', [])
       opt.ext = fullpath ? path.extname(path.basename(fullpath)) : ''
