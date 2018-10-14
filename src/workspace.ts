@@ -295,29 +295,10 @@ export class Workspace implements IWorkspace {
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
-    if (documentChanges && documentChanges.length) {
-      let n = 0
-      for (let change of documentChanges) {
-        if (TextDocumentEdit.is(change)) {
-          let { textDocument, edits } = change
-          let doc = this.getDocument(textDocument.uri)
-          await doc.applyEdits(nvim, edits)
-        } else if (CreateFile.is(change)) {
-          let file = Uri.parse(change.uri).fsPath
-          await this.createFile(file, change.options)
-        } else if (RenameFile.is(change)) {
-          await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
-        } else if (DeleteFile.is(change)) {
-          await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
-        }
-      }
-      this.showMessage(`${n} buffers changed!`, 'more')
-    }
     if (changes) {
-      let keys = Object.keys(changes)
       let n = this.fileCount(changes)
       if (n > 0) {
-        let c = await nvim.call('coc#util#prompt_change', [keys.length])
+        let c = await nvim.call('coc#util#prompt_change', n)
         if (c != 1) return false
       }
       let filetype = await nvim.buffer.getOption('filetype') as string
@@ -337,6 +318,24 @@ export class Workspace implements IWorkspace {
           await writeFile(filepath, res)
         }
       }
+    }
+    if (documentChanges && documentChanges.length) {
+      let n = documentChanges.length
+      for (let change of documentChanges) {
+        if (TextDocumentEdit.is(change)) {
+          let { textDocument, edits } = change
+          let doc = this.getDocument(textDocument.uri)
+          await doc.applyEdits(nvim, edits)
+        } else if (CreateFile.is(change)) {
+          let file = Uri.parse(change.uri).fsPath
+          await this.createFile(file, change.options)
+        } else if (RenameFile.is(change)) {
+          await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
+        } else if (DeleteFile.is(change)) {
+          await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
+        }
+      }
+      this.showMessage(`${n} documents changed!`, 'more')
     }
     await nvim.call('setpos', ['.', curpos])
     return true
