@@ -607,13 +607,8 @@ export class Workspace implements IWorkspace {
     channel.show(false)
   }
 
-  public async resolveModule(name: string, silent = false): Promise<string> {
-    let res = await this.terminal.resolveModule(name)
-    if (res) return res
-    if (!silent) {
-      res = await this.terminal.installModule(name)
-    }
-    return res
+  public async resolveModule(name: string): Promise<string> {
+    return await this.terminal.resolveModule(name)
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
