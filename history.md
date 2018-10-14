@@ -1,3 +1,24 @@
+# 2018-10-14
+
+- **Break change** API: `workspace.resoleModule` only does resolve.
+- **Break change** extension would still be loaded even if current coc version
+  miss match.
+- **Break change** variables are removed from view of `Denite coc-symbols`
+- Fix `workspace.applyEdits`
+- Fix `console.log` throws in extension.
+- Fix invalid `workspace.root` with custom buffer schema.
+- Fix possible crash on neovim 0.3.1 by not attach terminal buffer.
+- Fix jump position not stored when jump to current buffer position.
+- Fix install function not works on vim.
+- Add support for custom uri schema for `workspace.jumpTo` and `workspace.openResource`
+- Add `workspace.findUp` for find up file of current buffer.
+- Add `env` option for custom language server config.
+- Add vim function: `CocRequest` and `CocRequestAsync` for send request to
+  language server in vim.
+- Add `coc.preferences.parseKeywordsLimitLines` and `coc.preferences.hyphenAsKeyword`
+  for buffer parse.
+- Rework completion for performance and accuracy.
+
 # 2018-10-05
 
 - **Break change**, `workspace.onDidChangeConfiguration` emit `ConfigurationChangeEvent` now.
