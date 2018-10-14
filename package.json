@@ -57,7 +57,6 @@
     "assets": "lib/**/*.json"
   },
   "devDependencies": {
-    "@chemzqm/tsconfig": "0.0.3",
     "@chemzqm/tslint-config": "^1.0.17",
     "@types/debounce": "^1.0.0",
     "@types/diff": "^3.5.1",
@@ -83,6 +82,7 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "4.3.24",
+    "@chemzqm/tsconfig": "0.0.3",
     "debounce": "^1.2.0",
     "diff": "^3.5.0",
     "fast-diff": "^1.2.0",
