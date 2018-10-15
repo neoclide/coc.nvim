@@ -10,6 +10,7 @@ import languages from './languages'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
 import extensions from './extensions'
+import completion from './completion'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -50,10 +51,10 @@ export default class Handler {
       lastTs = Date.now()
     }, null, this.disposables)
     events.on('TextChangedI', async bufnr => {
-      let line: string = await nvim.call('getline', '.')
-      let isEmpty = line.trim().length == 0
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
+      let line: string = await nvim.call('getline', '.')
+      let isEmpty = line.trim().length == 0
       if (Date.now() - lastTs < 40 && lastChar
         || (isEmpty && doc.lastChange == 'insert')) {
         let character = (isEmpty && doc.lastChange == 'insert') ? '\n' : lastChar
@@ -472,9 +473,9 @@ export default class Handler {
 
   private async _showSignatureHelp(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
-    let visible = await this.nvim.call('pumvisible')
     let signatureHelp = await languages.getSignatureHelp(document, position)
-    if (!signatureHelp || visible) return
+    // let visible = await this.nvim.call('pumvisible')
+    if (!signatureHelp || completion.isActivted) return
     let { activeParameter, activeSignature, signatures } = signatureHelp
     await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
