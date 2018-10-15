@@ -15,6 +15,7 @@ const logger = require('./util/logger')('completion')
 export class Completion implements Disposable {
   private increment: Increment
   private lastChangedI: number
+  private lastPumvisible = 0
   private insertMode = false
   private nvim: Neovim
   private completing = false
@@ -105,6 +106,10 @@ export class Completion implements Disposable {
     })
   }
 
+  public get isActivted(): boolean {
+    return this.increment.isActivted
+  }
+
   private getPreference(name: string, defaultValue: any): any {
     return workspace.getConfiguration('coc.preferences').get(name, defaultValue)
   }
@@ -119,7 +124,7 @@ export class Completion implements Disposable {
 
   public get hasLatestChangedI(): boolean {
     let { lastChangedI } = this
-    return lastChangedI && Date.now() - lastChangedI < 30
+    return lastChangedI && Date.now() - lastChangedI < 80
   }
 
   public startCompletion(option: CompleteOption): void {
@@ -157,6 +162,7 @@ export class Completion implements Disposable {
     nvim.call('coc#_set_context', [option.col, items], true)
     this.completeItems = items
     await nvim.call('coc#_do_complete', [])
+    this.lastPumvisible = Date.now()
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
@@ -179,6 +185,7 @@ export class Completion implements Disposable {
       nvim.call('coc#_set_context', [option.col, items], true)
       this.completeItems = items
       await nvim.call('coc#_do_complete', [])
+      this.lastPumvisible = Date.now()
       return
     }
     let search = await this.getResumeInput()
@@ -188,6 +195,7 @@ export class Completion implements Disposable {
 
   private async onTextChangedP(): Promise<void> {
     let { increment, input } = this
+    if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     let { latestInsert } = increment
     let search = await this.getResumeInput()
