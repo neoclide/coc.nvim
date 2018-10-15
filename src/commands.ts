@@ -37,10 +37,23 @@ export class CommandManager implements Disposable {
 
   public init(nvim: Neovim, plugin: any): void {
     this.register({
+      id: 'vscode.open',
+      execute: async (url: string) => {
+        await nvim.call('coc#util#open_url', url)
+      }
+    }, true)
+    this.register({
       id: 'editor.action.triggerSuggest',
       execute: async () => {
         await wait(30)
         await nvim.call('coc#start')
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.restart',
+      execute: async () => {
+        await wait(30)
+        await nvim.command('CocRestart')
       }
     }, true)
     this.register({
