@@ -155,6 +155,12 @@ Extension are powerful than configured language server. Checkout
 
         :CocInstall coc-vetur
 
+- **[coc-java](https://github.com/neoclide/coc-java)**
+
+  Used for `java`
+
+        :CocInstall coc-java
+
 - **[coc-solargraph](https://github.com/neoclide/coc-solargraph)**
 
   Used for `ruby`
