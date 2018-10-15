@@ -36,7 +36,7 @@ export default class Document {
   private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
-  constructor(public readonly buffer: Buffer, private configurations: Configurations) {
+  constructor(public readonly buffer: Buffer, private configurations: Configurations, private isVim: boolean) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 100)
@@ -477,7 +477,8 @@ export default class Document {
   }
 
   public async setHighlights(highlights: DocumentHighlight[]): Promise<void> {
-    let { srcId, buffer } = this
+    let { srcId, buffer, isVim } = this
+    if (isVim) return
     if (srcId == 0) {
       srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
       this.srcId = srcId
@@ -513,7 +514,8 @@ export default class Document {
   }
 
   public clearHighlight(): void {
-    let { srcId, buffer } = this
+    let { srcId, buffer, isVim } = this
+    if (isVim) return
     if (srcId) {
       buffer.clearHighlight({ srcId })
     }

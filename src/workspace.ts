@@ -135,7 +135,7 @@ export class Workspace implements IWorkspace {
     let { cwd, uri } = this
     let u = uri ? Uri.parse(uri) : null
     let dir = u && u.scheme == 'file' ? path.dirname(u.fsPath) : cwd
-    return resolveRoot(dir, ['.vim', '.git', '.hg', '.watchmanconfig'], os.homedir()) || cwd
+    return resolveRoot(dir, ['.vim', '.git', '.hg', '.projections.json'], os.homedir()) || cwd
   }
 
   public get rootPath(): string {
@@ -869,7 +869,7 @@ export class Workspace implements IWorkspace {
     if (doc) {
       await events.fire('BufUnload', [buffer.id])
     }
-    let document = new Document(buffer, this._configurations)
+    let document = new Document(buffer, this._configurations, this.isVim)
     let attached: boolean
     try {
       attached = await document.init(this.nvim, buftype, this.isNvim)
