@@ -642,6 +642,17 @@ export class Workspace implements IWorkspace {
     return res == 1
   }
 
+  public async requestInput(title: string, defaultValue?: string): Promise<string> {
+    let { nvim } = this
+    let res = await nvim.call('input', [title + ':', defaultValue || ''])
+    nvim.command('normal! :<C-u>', true)
+    if (!res) {
+      this.showMessage('Empty word, canceled', 'warning')
+      return null
+    }
+    return res
+  }
+
   private async attach(): Promise<void> {
     let buffer = await this.nvim.buffer
     this.bufnr = buffer.id

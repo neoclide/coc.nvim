@@ -500,6 +500,14 @@ describe('workspace utility', () => {
     let res = await p
     expect(res).toBe(true)
   })
+
+  it('should request input', async () => {
+    let p = workspace.requestInput('name')
+    await helper.wait(100)
+    await nvim.input('bar<enter>')
+    let res = await p
+    expect(res).toBe('bar')
+  })
 })
 
 describe('workspace events', () => {

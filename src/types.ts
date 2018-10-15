@@ -720,6 +720,7 @@ export interface IWorkspace {
   resolveModule(name: string): Promise<string>
   showQuickpick(items: string[], placeholder?: string): Promise<number>
   showPrompt(title: string): Promise<boolean>
+  requestInput(title: string, defaultValue?: string): Promise<string>
   match(selector: DocumentSelector, document: TextDocument): number
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
   runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
