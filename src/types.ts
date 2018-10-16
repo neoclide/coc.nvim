@@ -669,6 +669,12 @@ export interface ExtensionContext {
    */
   asAbsolutePath(relativePath: string): string
 
+  /**
+   * The absolute directory path for extension to download persist data.
+   * The directory could be not exists.
+   */
+  storagePath: string
+
   logger: log4js.Logger
 }
 

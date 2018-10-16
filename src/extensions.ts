@@ -394,6 +394,7 @@ export class Extensions {
       asAbsolutePath: relativePath => {
         return path.join(root, relativePath)
       },
+      storagePath: path.join(this.root, `${id}-data`),
       logger: createLogger(id)
     }
 
