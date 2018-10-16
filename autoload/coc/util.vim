@@ -5,6 +5,11 @@ let s:install_yarn = 0
 let s:package_file = s:root.'/package.json'
 let g:coc_local_extensions = []
 
+function! coc#util#version()
+  let c = execute('version')
+  return matchstr(c, 'NVIM v\zs[^\n-]*')
+endfunction
+
 function! coc#util#platform()
   if s:is_win
     return 'windows'
@@ -444,7 +449,6 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
-        \ 'terminalAttach': has('nvim-0.3.2') ? v:true : v:false,
         \}
 endfunction
 

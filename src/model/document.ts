@@ -8,6 +8,7 @@ import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
+import semver from 'semver'
 import Configurations from './configurations'
 const logger = require('../util/logger')('model-document')
 
@@ -36,7 +37,10 @@ export default class Document {
   private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
-  constructor(public readonly buffer: Buffer, private configurations: Configurations, private isVim: boolean) {
+  constructor(
+    public readonly buffer: Buffer,
+    private configurations: Configurations,
+    private isVim: boolean) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 100)
@@ -62,6 +66,17 @@ export default class Document {
         }
       }
     })
+  }
+
+  private get couldAttach(): boolean {
+    if (this.isVim) return false
+    // no need to attach these buffers
+    if (['help', 'quickfix', 'nofile'].indexOf(this.buftype) != -1) return false
+    if (this.buftype == 'terminal') {
+      let { VERSION } = process.env
+      if (semver.lt(VERSION, '0.3.2')) return false
+    }
+    return true
   }
 
   public get words(): string[] {
@@ -114,15 +129,11 @@ export default class Document {
     return this.lines.length
   }
 
-  public async init(
-    nvim: Neovim,
-    buftype: string,
-    isNvim: boolean
-  ): Promise<boolean> {
+  public async init(nvim: Neovim): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
-    this.buftype = buftype
-    if (isNvim) {
+    this.buftype = await buffer.getOption('buftype') as string
+    if (this.couldAttach) {
       let res = await this.attach()
       if (!res) return false
     }
@@ -172,7 +183,6 @@ export default class Document {
   }
 
   public async attach(): Promise<boolean> {
-    if (this.buffer.isAttached) return true
     let attached = await this.buffer.attach()
     if (!attached) return false
     this.buffer.listen('lines', (...args) => {

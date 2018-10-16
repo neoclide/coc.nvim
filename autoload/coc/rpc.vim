@@ -13,6 +13,7 @@ function! coc#rpc#start_server()
   if s:server_running | return | endif
   let cmd = coc#util#job_command()
   let $VIMCONFIG = coc#util#get_config_home()
+  let $VERSION = coc#util#version()
   if empty(cmd) | return | endif
   if s:is_vim
     let s:job = job_start(cmd, {

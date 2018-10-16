@@ -34,7 +34,6 @@ export interface VimSettings {
   completeOpt: string
   isVim: boolean
   easymotion: number
-  terminalAttach: boolean
 }
 
 export class Workspace implements IWorkspace {
@@ -657,19 +656,18 @@ export class Workspace implements IWorkspace {
   }
 
   private async attach(): Promise<void> {
-    let buffer = await this.nvim.buffer
-    this.bufnr = buffer.id
+    let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf)
+      return this.onBufCreate(buf, true)
     }))
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true
     }
-    await events.fire('BufEnter', [buffer.id])
+    await events.fire('BufEnter', [bufnr])
     let winid = await this.nvim.call('win_getid')
-    await events.fire('BufWinEnter', [buffer.id, winid])
+    await events.fire('BufWinEnter', [bufnr, winid])
   }
 
   private async detach(): Promise<void> {
@@ -857,39 +855,26 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  private async onBufCreate(buf: number | Buffer): Promise<void> {
+  private async onBufCreate(buf: number | Buffer, initial = false): Promise<void> {
     this.checkBuffer.clear()
-    if (this.initialized) {
-      this.bufnr = await this.nvim.call('bufnr', '%')
-    }
+    if (!initial) this.bufnr = await this.nvim.call('bufnr', '%')
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
-    let buftype = await buffer.getOption('buftype') as string
-    if (buftype == 'help' || buftype == 'quickfix' || buftype == 'nofile') return
-    if (buftype == 'terminal' && !this.vimSettings.terminalAttach) return
-    let doc = this.buffers.get(buffer.id)
-    if (doc) {
-      await events.fire('BufUnload', [buffer.id])
-    }
+    let doc = this.getDocument(buffer.id)
+    if (doc) await events.fire('BufUnload', [buffer.id])
     let document = new Document(buffer, this._configurations, this.isVim)
-    let attached: boolean
-    try {
-      attached = await document.init(this.nvim, buftype, this.isNvim)
-    } catch (e) {
-      return
-    }
-    if (attached) {
-      this.buffers.set(buffer.id, document)
-      this._onDidOpenDocument.fire(document.textDocument)
-      document.onDocumentChange(async ({ textDocument, contentChanges }) => {
-        let { version, uri } = textDocument
-        this._onDidChangeDocument.fire({
-          textDocument: { version, uri },
-          contentChanges
-        })
+    let attached = await document.init(this.nvim)
+    if (!attached) return
+    this.buffers.set(buffer.id, document)
+    this._onDidOpenDocument.fire(document.textDocument)
+    document.onDocumentChange(async ({ textDocument, contentChanges }) => {
+      let { version, uri } = textDocument
+      this._onDidChangeDocument.fire({
+        textDocument: { version, uri },
+        contentChanges
       })
-    }
+    })
     logger.debug('buffer created', buffer.id)
   }
 
