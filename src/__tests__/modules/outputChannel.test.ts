@@ -61,6 +61,7 @@ describe('OutputChannel', () => {
     c.append('foo')
     await wait(30)
     c.clear()
+    await wait(30)
     let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
     let content = lines.join('')
     expect(content).toBe('')
