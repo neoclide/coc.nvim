@@ -14,6 +14,7 @@ function! coc#rpc#start_server()
   let cmd = coc#util#job_command()
   let $VIMCONFIG = coc#util#get_config_home()
   let $VERSION = coc#util#version()
+  let $ROOTS = join(get(g:, 'rooter_patterns', []), ',')
   if empty(cmd) | return | endif
   if s:is_vim
     let s:job = job_start(cmd, {
@@ -175,7 +176,7 @@ endfunction
 
 function! s:empty(item)
   if empty(a:item) | return 1 | endif
-  if type(a:item) == 3 && len(a:item) == 1 && get(a:, 'item', 0) == ''
+  if type(a:item) == 3 && len(a:item) == 1 && get(a:, 'item', 0) ==# ''
     return 1
   endif
   return 0

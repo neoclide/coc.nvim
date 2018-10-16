@@ -293,6 +293,14 @@ g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 			Log channel communication by using |ch_logfile|. Vim
 			only.
 
+g:rooter_patterns 				*g:rooter_patterns*
+
+			To specify how to identify a project's root directory >
+
+			let g:rooter_patterns = ['Rakefile', '.git/']
+<
+			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
+
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
 

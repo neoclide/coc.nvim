@@ -134,7 +134,14 @@ export class Workspace implements IWorkspace {
     let { cwd, uri } = this
     let u = uri ? Uri.parse(uri) : null
     let dir = u && u.scheme == 'file' ? path.dirname(u.fsPath) : cwd
-    return resolveRoot(dir, ['.vim', '.git', '.hg', '.projections.json'], os.homedir()) || cwd
+    let { ROOTS } = process.env
+    let files: string[]
+    if (ROOTS) {
+      files = ROOTS.split(',').map(s => s.endsWith('/') ? s.slice(0, -1) : s)
+    } else {
+      files = ['.vim', '.git', '.hg', '.projections.json']
+    }
+    return resolveRoot(dir, files, os.homedir()) || cwd
   }
 
   public get rootPath(): string {
