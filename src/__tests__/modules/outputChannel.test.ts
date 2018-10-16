@@ -12,16 +12,6 @@ afterEach(() => {
 })
 
 describe('OutputChannel', () => {
-  test('outputChannel.isShown()', async () => {
-    let c = new OutputChannel('test', nvim)
-    let shown = await c.isShown()
-    expect(shown).toBe(false)
-    c.show()
-    await wait(100)
-    shown = await c.isShown()
-    expect(shown).toBe(true)
-  })
-
   test('outputChannel.show(true)', async () => {
     let c = new OutputChannel('test', nvim)
     let bufnr = (await nvim.buffer).id
@@ -42,11 +32,11 @@ describe('OutputChannel', () => {
 
   test('outputChannel.appendLine()', async () => {
     let c = new OutputChannel('test', nvim)
-    c.show(false)
+    c.show()
     await wait(100)
     let buf = await nvim.buffer
     c.appendLine('foo')
-    await wait(30)
+    await wait(100)
     let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
     expect(lines).toContain('foo')
   })
@@ -57,8 +47,10 @@ describe('OutputChannel', () => {
     await wait(100)
     let buf = await nvim.buffer
     c.append('foo')
+    c.append('bar')
+    await wait(30)
     let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
-    expect(lines).toContain('foo')
+    expect(lines).toContain('foobar')
   })
 
   test('outputChannel.clear()', async () => {

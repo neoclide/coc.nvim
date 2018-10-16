@@ -1,112 +1,124 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import events from '../events'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')("outpubChannel")
 
 export default class BufferChannel implements OutputChannel {
-  private buffer: Buffer = null
   private content = ''
   private disposables: Disposable[] = []
   private _showing = false
+  private promise = Promise.resolve(void 0)
   constructor(public name: string, private nvim: Neovim) {
-    this.disposables.push(events.on('BufUnload', this.onUnload, this))
   }
 
-  public async isShown(): Promise<boolean> {
-    let { nvim, name } = this
-    let exists = await nvim.call('bufexists', [`[coc ${name}]`])
-    if (!exists && this.buffer) {
-      this.buffer = null
-    }
-    return exists == 1
+  private get bufname(): string {
+    return `[coc ${this.name}]`
   }
 
-  private onUnload(bufnr: number): void {
-    let { buffer } = this
-    if (buffer && buffer.id == bufnr) {
-      this.buffer = null
+  private async getBuffer(): Promise<Buffer> {
+    let { nvim, bufname } = this
+    let buffers = await nvim.buffers
+    for (let buf of buffers) {
+      let name = await nvim.call('bufname', buf.id)
+      if (name == bufname) {
+        return buf
+      }
     }
+    return null
+  }
+
+  private async _append(value: string, isLine: boolean): Promise<void> {
+    let buf = await this.getBuffer()
+    if (!buf) return
+    let { nvim } = this
+    let content: string
+    if (!isLine) {
+      let last = await nvim.call('getline', '$')
+      content = last + value
+    } else {
+      content = value
+    }
+    await buf.append(content.split('\n'))
   }
 
   public append(value: string): void {
     this.content += value
-    let { buffer } = this
-    if (!buffer) return
-    let lines = this.content.split('\n')
-    buffer.setLines(lines.slice(-1), {
-      start: -2,
-      end: -1,
-      strictIndexing: false
-    }).catch(e => {
-      logger.error(e.message)
+    this.promise = this.promise.then(() => {
+      return this._append(value, false)
     })
   }
 
   public appendLine(value: string): void {
-    let newLines = value.split('\n')
-    this.content += `${value}\n`
-    let { buffer } = this
-    if (!buffer) return
-    buffer.append(newLines).catch(e => {
-      logger.error(e.message)
+    this.content += value + '\n'
+    this.promise = this.promise.then(() => {
+      return this._append(value, true)
     })
   }
 
   public clear(): void {
     this.content = ''
-    if (this.buffer) {
-      this.buffer.setLines([], {
+    // tslint:disable-next-line:no-floating-promises
+    this.getBuffer().then(buf => {
+      if (buf) {
+        buf.setLines([], {
+          start: 1,
+          end: -1,
+          strictIndexing: false
+        }).catch(_e => {
+          // noop
+        })
+      }
+    })
+  }
+
+  public hide(): void {
+    let { nvim } = this
+    // tslint:disable-next-line:no-floating-promises
+    this.getBuffer().then(buf => {
+      if (buf) {
+        nvim.command(`silent! bd! ${buf.id}`, true)
+      }
+    })
+  }
+
+  public dispose(): void {
+    this.hide()
+    this.content = ''
+    disposeAll(this.disposables)
+  }
+
+  private async openBuffer(preserveFocus?: boolean): Promise<void> {
+    let buffer = await this.getBuffer()
+    let { nvim, content } = this
+    if (!buffer) {
+      await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
+      await nvim.command('setl bufhidden=hide')
+      await nvim.command('setl noswapfile')
+      buffer = await nvim.buffer
+      await buffer.setLines(content.split('\n'), {
         start: 1,
         end: -1,
         strictIndexing: false
-      }).catch(_e => {
-        // noop
       })
+    } else {
+      let wnr = await nvim.call('bufwinnr', buffer.id)
+      // is shown
+      if (wnr != -1) return
+      await nvim.command(`vert belowright sb ${buffer.id}`)
+    }
+    if (preserveFocus) {
+      await nvim.command('wincmd p')
     }
   }
 
   public show(preserveFocus?: boolean): void {
     if (this._showing) return
     this._showing = true
-    this.isShown().then(shown => {
+    this.openBuffer(preserveFocus).then(() => {
       this._showing = false
-      if (!shown) {
-        return this.openBuffer(preserveFocus)
-      }
-    }).catch(() => {
+    }, () => {
       this._showing = false
     })
-  }
-
-  public hide(): void {
-    let { buffer, nvim } = this
-    if (!buffer) return
-    this.buffer = null
-    nvim.command(`silent! bd! ${buffer.id}`, true)
-  }
-
-  public dispose(): void {
-    this.hide()
-    this.buffer = null
-    disposeAll(this.disposables)
-  }
-
-  private async openBuffer(preserveFocus?: boolean): Promise<void> {
-    let { buffer, nvim, content } = this
-    if (!buffer) {
-      await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
-      await nvim.command('setl bufhidden=hide')
-      buffer = this.buffer = await nvim.buffer
-    }
-    await buffer.setLines(content.split('\n'), {
-      start: 1,
-      end: -1,
-      strictIndexing: false
-    })
-    if (preserveFocus) {
-      await this.nvim.command('wincmd p')
-    }
   }
 }
