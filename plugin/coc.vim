@@ -29,7 +29,7 @@ function! CocRequest(...) abort
   return coc#rpc#request('sendRequest', a:000)
 endfunction
 
-function! CocRequestAsync()
+function! CocRequestAsync(...)
   return s:AsyncRequest('sendRequest', a:000)
 endfunction
 
