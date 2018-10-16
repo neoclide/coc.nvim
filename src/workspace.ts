@@ -574,15 +574,18 @@ export class Workspace implements IWorkspace {
     let { nvim, cwd } = this
     let u = Uri.parse(uri)
     // not supported
-    if (/^http/.test(u.scheme)) {
+    if (u.scheme.startsWith('http')) {
       await nvim.call('coc#util#open_url', uri)
       return
     }
     if (u.scheme == 'file') {
       let filepath = u.fsPath
       let file = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+      let wildignore = await nvim.getOption('wildignore')
+      await nvim.setOption('wildignore', '')
       // edit it even exists
       await nvim.call('coc#util#edit_file', [file, cmd])
+      await nvim.setOption('wildignore', wildignore)
       return
     }
     await nvim.command(`${cmd} ${uri}`)
