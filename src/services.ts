@@ -4,7 +4,7 @@ import net from 'net'
 import path from 'path'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
 import which from 'which'
-import { ForkOptions, LanguageClient, LanguageClientOptions, ServerOptions, SpawnOptions, State, Transport, TransportKind, RevealOutputChannelOn } from './language-client'
+import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll } from './util'
 import workspace from './workspace'
@@ -206,13 +206,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let service = this.getService(id)
     if (!service) service = this.getService(`languageserver.${id}`)
     if (!service || !service.client) {
-      workspace.showMessage(`LanguageClient ${id} not found`)
+      throw new Error(`LanguageClient ${id} not found`)
       return
     }
-    if (params) {
-      return await Promise.resolve(service.client.sendRequest(method, params))
-    }
-    return await Promise.resolve(service.client.sendRequest(method))
+    return await Promise.resolve(service.client.sendRequest(method, params))
   }
 
   public registLanguageClient(client: LanguageClient): Disposable {
@@ -229,6 +226,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
       onServiceReady: onDidServiceReady.event,
       start: (): Promise<void> => {
         if (service.state != ServiceStat.Initial && service.state != ServiceStat.Stopped) {
+          return Promise.resolve()
+        }
+        if (client.getPublicState() == State.Starting) {
           return Promise.resolve()
         }
         service.state = ServiceStat.Starting

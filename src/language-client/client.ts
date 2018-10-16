@@ -3191,7 +3191,7 @@ export abstract class BaseLanguageClient {
     }
   }
 
-  private getPublicState(): State {
+  public getPublicState(): State {
     if (this.state === ClientState.Running) {
       return State.Running
     } else if (this.state === ClientState.Starting) {
