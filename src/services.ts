@@ -6,7 +6,7 @@ import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-lang
 import which from 'which'
 import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
-import { disposeAll } from './util'
+import { disposeAll, wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('services')
 
@@ -87,7 +87,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   public getService(id: string): IServiceProvider {
-    return this.registed.get(id)
+    let service = this.registed.get(id)
+    if (!service) service = this.registed.get(`languageserver.${id}`)
+    return service
   }
 
   public getServices(document: TextDocument): IServiceProvider[] {
@@ -204,9 +206,18 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
     let service = this.getService(id)
-    if (!service) service = this.getService(`languageserver.${id}`)
+    // wait for extension activate
+    if (!service) await wait(100)
+    service = this.getService(id)
     if (!service || !service.client) {
       throw new Error(`LanguageClient ${id} not found`)
+      return
+    }
+    if (service.state == ServiceStat.Starting) {
+      await service.client.onReady()
+    }
+    if (service.state != ServiceStat.Running) {
+      throw new Error(`LanguageClient ${id} not running`)
       return
     }
     return await Promise.resolve(service.client.sendRequest(method, params))
