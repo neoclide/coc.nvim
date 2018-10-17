@@ -62,7 +62,8 @@ export class Chars {
 
   public matchKeywords(content: string, min = 3): string[] {
     if (!content) return []
-    let res: string[] = []
+    content = content + '\n'
+    let res: Set<string> = new Set()
     let str = ''
     for (let i = 0, l = content.length; i < l; i++) {
       let ch = content[i]
@@ -73,16 +74,14 @@ export class Chars {
       if (isKeyword) {
         str = str + ch
       }
-      if (str.length >= min
-        && res.indexOf(str) == -1
-        && (i == l - 1 || !isKeyword)) {
-        res.push(str)
+      if (str.length >= min && !res.has(str) && !isKeyword) {
+        res.add(str)
       }
       if (!isKeyword) {
         str = ''
       }
     }
-    return res
+    return Array.from(res)
   }
 
   public isKeywordChar(ch: string): boolean {
