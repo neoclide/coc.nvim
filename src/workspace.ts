@@ -18,7 +18,7 @@ import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { Env, ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationChangeEvent } from './types'
 import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, watchFiles } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, watchFiles, wait } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
 import { equals } from './util/object'
 import { score } from './util/match'
@@ -72,7 +72,7 @@ export class Workspace implements IWorkspace {
       this._checkBuffer().catch(e => {
         logger.error(e.message)
       })
-    }, 50)
+    }, 100)
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
@@ -269,13 +269,12 @@ export class Workspace implements IWorkspace {
     return this._configurations.getConfiguration(section, resource)
   }
 
-  public getDocument(uri: string | number): Document
-  public getDocument(bufnr: number): Document | null {
-    if (typeof bufnr === 'number') {
-      return this.buffers.get(bufnr)
+  public getDocument(uri: number | string): Document {
+    if (typeof uri === 'number') {
+      return this.buffers.get(uri)
     }
     for (let doc of this.buffers.values()) {
-      if (doc && doc.uri === bufnr) return doc
+      if (doc && doc.uri === uri) return doc
     }
     return null
   }
@@ -867,9 +866,16 @@ export class Workspace implements IWorkspace {
     if (!loaded) return
     let doc = this.getDocument(buffer.id)
     if (doc) await events.fire('BufUnload', [buffer.id])
-    let document = new Document(buffer, this._configurations, this._env)
-    let attached = await document.init(this.nvim)
-    if (!attached) return
+    let document = new Document(buffer,
+      this._configurations.getConfiguration('coc.preferences'),
+      this._env)
+    try {
+      let attached = await document.init(this.nvim)
+      if (!attached) return
+    } catch (e) {
+      logger.error(e)
+      return
+    }
     this.buffers.set(buffer.id, document)
     this._onDidOpenDocument.fire(document.textDocument)
     document.onDocumentChange(async ({ textDocument, contentChanges }) => {
@@ -929,6 +935,7 @@ export class Workspace implements IWorkspace {
 
   private onDirChanged(cwd: string): void {
     if (cwd == this._cwd) return
+    process.chdir(cwd)
     this._cwd = cwd
     this.onConfigurationChange()
   }
@@ -942,6 +949,7 @@ export class Workspace implements IWorkspace {
   }
 
   private async _checkBuffer(): Promise<void> {
+    await wait(60)
     let bufnr = await this.nvim.call('bufnr', '%')
     this.bufnr = bufnr
     let doc = this.getDocument(bufnr)

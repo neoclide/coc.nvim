@@ -121,7 +121,7 @@ function! s:Enable()
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd OptionSet           iskeyword call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd OptionSet           completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
-    autocmd BufNewFile,BufReadPost, * call s:SyncAutoCmd('BufCreate', +expand('<abuf>'))
+    autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutoCmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
   augroup end

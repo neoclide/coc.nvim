@@ -7,6 +7,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
+import isuri from 'isuri'
 
 export { platform }
 const logger = require('./logger')('util-index')
@@ -73,13 +74,13 @@ export function getPort(port = 44877): Promise<number> {
   })
 }
 
-export function getUri(fullpath: string, id: number): string {
-  if (!fullpath) {
-    let w = require('../workspace').default
-    return `untitled:${w.cwd}/${id}`
-  }
-  if (/^\w+:\//.test(fullpath)) return fullpath
-  return Uri.file(fullpath).toString()
+export function getUri(bufname: string, id: number, buftype: string): string {
+  if (buftype == 'quickfix') return `quickfix:${process.cwd()}/${id}`
+  if (buftype == 'nofile') return `nofile:${bufname}/${id}`
+  if (!bufname) return `untitled:${process.cwd()}/${id}`
+  bufname = bufname.replace(/\s/g, '%20')
+  if (isuri.isValid(bufname)) return bufname
+  return Uri.file(bufname).toString()
 }
 
 export function disposeAll(disposables: Disposable[]): void {

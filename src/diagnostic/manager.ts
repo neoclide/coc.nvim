@@ -4,7 +4,7 @@ import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import { DiagnosticItem, LocationListItem, DiagnosticInfo } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
@@ -74,20 +74,22 @@ export class DiagnosticManager {
 
     events.on('BufWinEnter', async (bufnr, winid) => {
       if (!this.config.locationlist) return
+      await wait(60)
       let doc = workspace.getDocument(bufnr)
-      let buf = doc ? this.buffers.find(buf => buf.uri == doc.uri) : null
+      if (!doc) return
+      let buf = this.buffers.find(buf => buf.uri == doc.uri)
       if (buf) {
         buf.setLocationlist()
       } else {
-        let bufs = await this.nvim.buffers
-        let buf = bufs.find(buf => buf.id == bufnr)
-        if (buf) {
-          let buftype = await buf.getOption('buftype')
-          if (buftype == 'quickfix') return
+        let { buftype } = doc
+        if (buftype == 'quickfix') return
+        try {
           let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
           if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
             this.nvim.call('setloclist', [winid, [], 'f'], true)
           }
+        } catch (_e) {
+          // noop
         }
       }
     }, null, this.disposables)

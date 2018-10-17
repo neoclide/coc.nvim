@@ -711,8 +711,7 @@ export interface IWorkspace {
   onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable
   showMessage(msg: string, identify?: MsgTypes): void
   findUp(filename: string | string[]): Promise<string | null>
-  getDocument(uri: string | number): Document
-  getDocument(bufnr: number): Document | null
+  getDocument(uri: number | string): Document
   getOffset(): Promise<number>
   getFormatOptions(uri?: string): Promise<FormattingOptions>
   getConfigFile(target: ConfigurationTarget): string

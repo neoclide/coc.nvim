@@ -2,14 +2,13 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DidChangeTextDocumentParams, DocumentHighlight, DocumentHighlightKind, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import { ChangeInfo, Env } from '../types'
+import { WorkspaceConfiguration, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
 import semver from 'semver'
-import Configurations from './configurations'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -26,11 +25,10 @@ export default class Document {
   private _lastChange: LastChangeType = 'insert'
   private srcId = 0
   private _fireContentChanges: Function & { clear(): void }
+  private _filetype: string
   private attached = false
   // real current lines
   private lines: string[] = []
-  private limitLines: number
-  private hyphenAsKeyword: boolean
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -39,7 +37,7 @@ export default class Document {
   public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
-    private configurations: Configurations,
+    private configurations: WorkspaceConfiguration,
     private env: Env) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
@@ -68,7 +66,7 @@ export default class Document {
     })
   }
 
-  private get couldAttach(): boolean {
+  private get shouldAttach(): boolean {
     let { isVim, version } = this.env
     if (isVim) return false
     // no need to attach these buffers
@@ -87,25 +85,16 @@ export default class Document {
     return this._lastChange
   }
 
-  private generateWords(newLines?: string[]): void {
+  private generateWords(): void {
     if (this.isIgnored) return
-    let { content } = this
-    if (newLines
-      && this.limitLines
-      && this.lineCount > this.limitLines) {
-      let words = this.chars.matchKeywords(newLines.join('\n'))
-      for (let word of words) {
-        if (this.words.indexOf(word) == -1) {
-          this._words.push(word)
-        }
-      }
-      return
-    }
-    this._words = this.chars.matchKeywords(content)
+    let limit = this.configurations.get<number>('limitLines', 5000)
+    let lines = this.lines.slice(0, limit)
+    this._words = this.chars.matchKeywords(lines.join('\n'))
   }
 
   public setFiletype(filetype: string): void {
     let { uri, version } = this
+    this._filetype = filetype
     version = version ? version + 1 : 1
     let textDocument = TextDocument.create(uri, filetype, version, this.content)
     this.textDocument = textDocument
@@ -132,43 +121,40 @@ export default class Document {
   public async init(nvim: Neovim): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
-    this.buftype = await buffer.getOption('buftype') as string
-    if (this.couldAttach) {
+    let buftype = this.buftype = await buffer.getOption('buftype') as string
+    let iskeyword = await buffer.getOption('iskeyword') as string
+    let filetype = this._filetype = await buffer.getOption('filetype') as string
+    if (this.shouldAttach) {
       let res = await this.attach()
       if (!res) return false
     }
     this.attached = true
     this._changedtick = await buffer.changedtick
-    let bufname = await buffer.name
+    let bufname: string
+    if (buftype == 'nofile') {
+      bufname = await nvim.call('bufname', buffer.id)
+    } else {
+      bufname = await buffer.name
+    }
     this.lines = (await buffer.lines) as string[]
-    let filetype = await buffer.getOption('filetype') as string
-    let iskeyword = await buffer.getOption('iskeyword') as string
-    let uri = getUri(bufname, buffer.id)
-    this.textDocument = TextDocument.create(
-      uri,
-      filetype,
-      0,
-      this.lines.join('\n')
-    )
-    let config = this.configurations.getConfiguration('coc.preferences', uri)
-    this.limitLines = config.get<number>('parseKeywordsLimitLines', 5000)
-    this.hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
+    let uri = getUri(bufname, buffer.id, buftype)
+    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
     this.setIskeyword(iskeyword)
     return true
   }
 
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
+    // normal buffer only
     if (this.buftype !== '') return
-    if (this.hyphenAsKeyword) chars.addKeyword('-')
-    this.gitCheck().then(
-      () => {
-        this.generateWords()
-      },
-      e => {
-        logger.error('git error', e.stack)
-      }
-    )
+    let config = this.configurations
+    let hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
+    if (hyphenAsKeyword) chars.addKeyword('-')
+    this.gitCheck().then(() => {
+      this.generateWords()
+    }, e => {
+      logger.error('git error', e.stack)
+    })
   }
 
   /**
@@ -262,11 +248,7 @@ export default class Document {
         textDocument: { version, uri },
         contentChanges: changes
       })
-      process.nextTick(() => {
-        let endLine = start.line + change.newText.split('\n').length
-        let newLines = this.lines.slice(start.line, endLine)
-        this.generateWords(newLines)
-      })
+      this.generateWords()
     } catch (e) {
       logger.error(e.message)
     }
@@ -295,7 +277,7 @@ export default class Document {
   }
 
   public get filetype(): string {
-    return this.textDocument.languageId
+    return this._filetype
   }
 
   public get uri(): string {
