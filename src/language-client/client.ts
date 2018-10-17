@@ -2709,7 +2709,7 @@ class RenameFeature extends TextDocumentFeature<TextDocumentRegistrationOptions>
     }
     this.register(this.messages, {
       id: UUID.generateUuid(),
-      registerOptions: Object.assign({}, { documentSelector: documentSelector })
+      registerOptions: Object.assign({}, { documentSelector: documentSelector }, capabilities.renameProvider || {})
     })
   }
 
