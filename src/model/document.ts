@@ -2,7 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DidChangeTextDocumentParams, DocumentHighlight, DocumentHighlightKind, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import { ChangeInfo } from '../types'
+import { ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
@@ -40,7 +40,7 @@ export default class Document {
   constructor(
     public readonly buffer: Buffer,
     private configurations: Configurations,
-    private isVim: boolean) {
+    private env: Env) {
     this._fireContentChanges = debounce(() => {
       this.fireContentChanges()
     }, 100)
@@ -69,12 +69,12 @@ export default class Document {
   }
 
   private get couldAttach(): boolean {
-    if (this.isVim) return false
+    let { isVim, version } = this.env
+    if (isVim) return false
     // no need to attach these buffers
     if (['help', 'quickfix', 'nofile'].indexOf(this.buftype) != -1) return false
     if (this.buftype == 'terminal') {
-      let { VERSION } = process.env
-      if (semver.lt(VERSION, '0.3.2')) return false
+      if (semver.lt(version, '0.3.2')) return false
     }
     return true
   }
@@ -487,8 +487,8 @@ export default class Document {
   }
 
   public async setHighlights(highlights: DocumentHighlight[]): Promise<void> {
-    let { srcId, buffer, isVim } = this
-    if (isVim) return
+    let { srcId, buffer } = this
+    if (this.env.isVim) return
     if (srcId == 0) {
       srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
       this.srcId = srcId
@@ -524,8 +524,8 @@ export default class Document {
   }
 
   public clearHighlight(): void {
-    let { srcId, buffer, isVim } = this
-    if (isVim) return
+    let { srcId, buffer } = this
+    if (this.env.isVim) return
     if (srcId) {
       buffer.clearHighlight({ srcId })
     }

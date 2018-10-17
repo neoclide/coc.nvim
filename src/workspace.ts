@@ -16,7 +16,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationChangeEvent } from './types'
+import { Env, ChangeInfo, ConfigurationTarget, EditerState, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationChangeEvent } from './types'
 import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, watchFiles } from './util/index'
 import { emptyObject, objectLiteral } from './util/is'
@@ -29,20 +29,13 @@ const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
 
-// global neovim settings
-export interface VimSettings {
-  completeOpt: string
-  isVim: boolean
-  easymotion: number
-}
-
 export class Workspace implements IWorkspace {
   public terminal: Terminal
   public readonly nvim: Neovim
   public bufnr: number
 
   private willSaveUntilHandler: WillSaveUntilHandler
-  private vimSettings: VimSettings
+  private _env: Env
   private _cwd = process.cwd()
   private _blocking = false
   private _initialized = false
@@ -107,7 +100,7 @@ export class Workspace implements IWorkspace {
         await this.detach()
       }
     })
-    this.vimSettings = await this.nvim.call('coc#util#vim_info') as VimSettings
+    this._env = await this.nvim.call('coc#util#vim_info') as Env
     await this.attach()
     if (this.isVim) this.initVimEvents()
   }
@@ -124,6 +117,10 @@ export class Workspace implements IWorkspace {
 
   public get cwd(): string {
     return this._cwd
+  }
+
+  public get env(): Env {
+    return this._env
   }
 
   // private get easymotion(): boolean {
@@ -201,15 +198,15 @@ export class Workspace implements IWorkspace {
   }
 
   public get isVim(): boolean {
-    return this.vimSettings.isVim
+    return this._env.isVim
   }
 
   public get isNvim(): boolean {
-    return !this.vimSettings.isVim
+    return !this._env.isVim
   }
 
   public get completeOpt(): string {
-    return this.vimSettings.completeOpt
+    return this._env.completeOpt
   }
 
   public get initialized(): boolean {
@@ -238,8 +235,8 @@ export class Workspace implements IWorkspace {
     return score(selector, document.uri, document.languageId)
   }
 
-  public getVimSetting<K extends keyof VimSettings>(name: K): VimSettings[K] {
-    return this.vimSettings[name]
+  public getVimSetting<K extends keyof Env>(name: K): Env[K] {
+    return this._env[name]
   }
 
   public async findUp(filename: string | string[]): Promise<string | null> {
@@ -870,7 +867,7 @@ export class Workspace implements IWorkspace {
     if (!loaded) return
     let doc = this.getDocument(buffer.id)
     if (doc) await events.fire('BufUnload', [buffer.id])
-    let document = new Document(buffer, this._configurations, this.isVim)
+    let document = new Document(buffer, this._configurations, this._env)
     let attached = await document.init(this.nvim)
     if (!attached) return
     this.buffers.set(buffer.id, document)
@@ -919,7 +916,7 @@ export class Workspace implements IWorkspace {
 
   private onOptionSet(name: string, _oldValue: any, newValue: any): void {
     if (name === 'completeopt') {
-      this.vimSettings.completeOpt = newValue
+      this._env.completeOpt = newValue
     }
     if (name === 'iskeyword') {
       this.document.then(document => {

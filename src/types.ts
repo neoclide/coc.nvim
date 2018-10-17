@@ -14,6 +14,14 @@ export interface ExtensionInfo {
   state: ExtensionState
 }
 
+export interface Env {
+  completeOpt: string
+  readonly isVim: boolean
+  readonly version: string
+  readonly easymotion: boolean
+  readonly roots: string[]
+}
+
 export interface EditerState {
   document: TextDocument
   position: Position

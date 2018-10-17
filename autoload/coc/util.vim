@@ -446,6 +446,8 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'version': coc#util#version(),
+        \ 'roots': get(g:, 'rooter_patterns', []),
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
