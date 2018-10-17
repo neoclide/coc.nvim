@@ -52,7 +52,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
       this.checkLazyClients(document)
       this.start(document)
     }, null, this.disposables)
-    // this.checkLazyClients()
   }
 
   public dispose(): void {
@@ -106,10 +105,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     if (service.state != ServiceStat.Initial) {
       return false
     }
-    return this.matchSelector(service.selector)
-  }
-
-  private matchSelector(selector: DocumentSelector): boolean {
+    let selector = service.selector
     for (let doc of workspace.documents) {
       if (workspace.match(selector, doc.textDocument)) {
         return true
@@ -185,7 +181,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       if (!opts) continue
       this.lazyClients.add({
         id,
-        documentSelector: opts[0].documentSelector || [{ language: '*' }],
+        documentSelector: opts[0].documentSelector,
         init: () => {
           let client = new LanguageClient(id, key, opts[1], opts[0])
           this.registLanguageClient(client)
@@ -196,8 +192,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   private checkLazyClients(document?: TextDocument): void {
     for (let [client] of this.lazyClients.entries()) {
-      if ((document && workspace.match(client.documentSelector, document))
-        || this.matchSelector(client.documentSelector)) {
+      if (document && workspace.match(client.documentSelector, document)) {
         this.lazyClients.delete(client)
         client.init()
       }
