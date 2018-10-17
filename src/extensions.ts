@@ -251,6 +251,7 @@ export class Extensions {
     let active = () => {
       disposeAll(disposables)
       this.activate(id)
+      active = () => { } // tslint:disable-line
     }
     let disposables: Disposable[] = []
     for (let eventName of activationEvents as string[]) {
@@ -261,8 +262,10 @@ export class Extensions {
           active()
           return
         }
-        events.on('FileType', filetype => {
-          if (filetype === parts[1]) active()
+        workspace.onDidOpenTextDocument(document => {
+          if (document.languageId == parts[1]) {
+            active()
+          }
         }, null, disposables)
       } else if (ev == 'onCommand') {
         events.on('Command', command => {
@@ -299,8 +302,7 @@ export class Extensions {
         workspace.onDidOpenTextDocument(document => {
           let u = Uri.parse(document.uri)
           if (u.scheme == parts[1]) {
-            disposeAll(disposables)
-            this.activate(id)
+            active()
           }
         }, null, disposables)
       } else {
