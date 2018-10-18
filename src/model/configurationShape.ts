@@ -1,17 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { applyEdits, modify } from 'jsonc-parser'
-import { FormattingOptions } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
 import { echoErr } from '../util'
 const logger = require('../util/logger')('model-ConfigurationShape')
 
 export default class ConfigurationProxy implements ConfigurationShape {
-  private formattingOptions: FormattingOptions
 
   constructor(private workspace: IWorkspace) {
-    this.formattingOptions = { tabSize: 2, insertSpaces: true }
   }
 
   private get nvim(): Neovim {
@@ -19,11 +16,12 @@ export default class ConfigurationProxy implements ConfigurationShape {
   }
 
   private async modifyConfiguration(target: ConfigurationTarget, key: string, value?: any): Promise<void> {
+
     let { nvim } = this
     let file = this.workspace.getConfigFile(target)
-    let content = ''
-    if (file) content = await this.workspace.readFile(Uri.file(file).toString())
-    let { formattingOptions } = this
+    if (!file) return
+    let formattingOptions = await this.workspace.getFormatOptions()
+    let content = await this.workspace.readFile(Uri.file(file).toString())
     value = value == null ? undefined : value
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)

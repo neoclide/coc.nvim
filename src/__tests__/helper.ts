@@ -124,8 +124,8 @@ export class Helper extends Emitter {
 
   public async edit(file: string): Promise<Buffer> {
     await this.nvim.command(`exe 'edit ' . fnameescape('${file}')`)
-    let buf = await this.nvim.buffer
     await this.wait(50)
+    let buf = await this.nvim.buffer
     let m = await this.nvim.mode
     if (m.blocking) {
       console.log('blocking') // tslint:disable-line

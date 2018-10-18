@@ -70,7 +70,7 @@ export default class Plugin extends EventEmitter {
           return await handler.links()
         }
         case 'openLink': {
-          return await handler.openLink(args[1])
+          return await handler.openLink()
         }
         case 'highlight': {
           await handler.highlight()
@@ -193,7 +193,9 @@ export default class Plugin extends EventEmitter {
     sources.dispose()
     await services.stopAll()
     services.dispose()
-    this.handler.dispose()
+    if (this.handler) {
+      this.handler.dispose()
+    }
     snippetManager.dispose()
     commandManager.dispose()
     completion.dispose()

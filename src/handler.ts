@@ -382,8 +382,7 @@ export default class Handler {
     return links
   }
 
-  public async openLink(cmd: string): Promise<boolean> {
-    cmd = cmd || 'edit'
+  public async openLink(): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let links = await languages.getDocumentLinks(document)
     if (!links || links.length == 0) return false
@@ -395,7 +394,7 @@ export default class Handler {
           target = link.target
         }
         if (target) {
-          await workspace.openResource(target, cmd)
+          await workspace.openResource(target)
           return true
         }
         return false

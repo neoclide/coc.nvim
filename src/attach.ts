@@ -12,7 +12,7 @@ export default function(opts: Attach): Plugin {
     switch (method) {
       case 'VimEnter':
         plugin.init().catch(e => {
-          logger.error(e.message)
+          logger.error(e)
         })
         return
       case 'CocAutocmd':
@@ -21,7 +21,7 @@ export default function(opts: Attach): Plugin {
       case 'CocInstalled':
         for (let name of args) {
           extensions.onExtensionInstall(name).catch(e => {
-            logger.error(e.message)
+            logger.error(e)
           })
         }
         return
@@ -57,7 +57,7 @@ export default function(opts: Attach): Plugin {
     await nvim.setVar('coc_node_channel_id', channelId)
     let entered = await nvim.getVvar('vim_did_enter')
     if (entered) plugin.init().catch(e => {
-      logger.error(e.message)
+      logger.error(e)
     })
   }).catch(e => {
     logger.error(e)

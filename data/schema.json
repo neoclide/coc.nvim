@@ -307,6 +307,12 @@
         "type": "string"
       }
     },
+    "coc.preferences.openResourceCommand": {
+      "type": "string",
+      "description": "Command used for open resource.",
+      "default": "edit",
+      "enum": ["edit", "split", "vsplit", "tabe"]
+    },
     "coc.preferences.jumpCommand": {
       "type": "string",
       "description": "Command used for location jump, like goto definition, goto references etc.",

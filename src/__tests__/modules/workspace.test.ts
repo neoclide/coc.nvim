@@ -188,7 +188,7 @@ describe('workspace methods', () => {
     file = workspace.getConfigFile(ConfigurationTarget.User)
     expect(file).toBeTruthy()
     file = workspace.getConfigFile(ConfigurationTarget.Workspace)
-    expect(file).toBeTruthy()
+    expect(file).toBeFalsy()
   })
 
   it('should create file watcher', async () => {
@@ -459,18 +459,6 @@ describe('workspace utility', () => {
     expect(filepath).toMatch('tsconfig.json')
   })
 
-  it('should show errors', async () => {
-    let uri = URI.file('/tmp/foo').toString()
-    let content = 'bar'
-    let errors = []
-    for (let i = 1; i < 17; i++) {
-      errors.push({ error: i, offset: 0, length: 1 })
-    }
-    await (workspace as any).showErrors(uri, content, errors)
-    let list = await nvim.call('getqflist', { title: 1 })
-    expect(list.title).toMatch('Errors of coc config')
-  })
-
   it('should choose quickpick', async () => {
     let p = workspace.showQuickpick(['a', 'b'])
     await helper.wait(100)
@@ -572,10 +560,14 @@ describe('workspace events', () => {
 
   it('should fire onDidChangeConfiguration', async () => {
     let fn = jest.fn()
-    workspace.onDidChangeConfiguration(fn, null, disposables)
+    workspace.onDidChangeConfiguration(e => {
+      expect(e.affectsConfiguration('tsserver')).toBe(true)
+      expect(e.affectsConfiguration('tslint')).toBe(false)
+      fn()
+    }, null, disposables)
     let config = workspace.getConfiguration('tsserver')
     config.update('enable', false)
-    await helper.wait(500)
+    await helper.wait(2000)
     expect(fn).toHaveBeenCalledTimes(1)
     config.update('enable', undefined)
   })
@@ -613,14 +605,6 @@ describe('workspace private', () => {
     await nvim.call('coc#_hide')
     await helper.wait(100)
     expect(doc.getline(0)).toMatch('abcdef')
-  })
-
-  it('should parse config with errors', async () => {
-    let uri = URI.file('/tmp/foo').toString()
-    await (workspace as any).parseConfig(uri, 'abc')
-    await helper.wait(100)
-    let list = await nvim.call('getqflist', { title: 1 })
-    expect(list.title).toMatch('Errors of coc config')
   })
 
   it('should detach buffers', async () => {
