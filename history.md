@@ -1,3 +1,23 @@
+# 2018-10-18
+
+- **Break change**: all buffers are created as document.
+- **Break change**: retrieve workspace root on document create.
+- Fix `uri` for all buffer types.
+- Fix bad performance on parse keywords.
+- Fix check of language client state.
+- Fix register of `renameProvider`
+- Fix `CocRequestAsync` not work.
+- Fix `workspace.openResource` error with `wildignore` option.
+- Fix output channel can't shown if hidden.
+- Fix extension activate before document create.
+- Add command `vscode.open` and `editor.action.restart`.
+- Add `workspace.requestInput` method.
+- Add support of `g:rooter_patterns`
+- Add `storagePath` to `ExtensionContext`
+- Add `workspace.env` property.
+- Add support of scoped configuration.
+- Disable buffer highlight on vim.
+
 # 2018-10-14
 
 - **Break change** API: `workspace.resoleModule` only does resolve.
