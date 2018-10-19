@@ -173,7 +173,14 @@ export class Completion implements Disposable {
     nvim.call('coc#_set_context', [option.col, items], true)
     this.completeItems = items
     await nvim.call('coc#_do_complete', [])
+    await this.onPumVisible()
+  }
+
+  private async onPumVisible(): Promise<void> {
     this.lastPumvisible = Date.now()
+    let first = this.completeItems[0]
+    let noselect = this.preferences.get<boolean>('noselect')
+    if (!noselect) await sources.doCompleteResolve(first)
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
@@ -196,7 +203,7 @@ export class Completion implements Disposable {
       nvim.call('coc#_set_context', [option.col, items], true)
       this.completeItems = items
       await nvim.call('coc#_do_complete', [])
-      this.lastPumvisible = Date.now()
+      await this.onPumVisible()
       return
     }
     let search = await this.getResumeInput()
