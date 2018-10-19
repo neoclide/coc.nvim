@@ -158,7 +158,7 @@ export class Completion implements Disposable {
     let { nvim, increment, option, complete, insertMode } = this
     if (!complete || !complete.results) return
     option.input = resumeInput
-    let items = complete.filterResults(resumeInput, true)
+    let items = complete.filterResults(resumeInput)
     if (!insertMode || !items || items.length === 0) {
       this.nvim.call('coc#_hide', [], true)
       increment.stop()
@@ -319,6 +319,8 @@ export class Completion implements Disposable {
     let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     let doc = await workspace.document
+    // let [, lnum, col] = await this.nvim.call('getcurpos')
+    // let line = doc.getline(lnum - 1)
     if (sources.shouldTrigger(character, doc.filetype)) return true
     if (doc.isWord(character)) return autoTrigger == 'always'
     return false

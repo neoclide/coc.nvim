@@ -39,11 +39,11 @@ function! coc#_select() abort
 endfunction
 
 function! coc#start(...)
-  if !get(g:, 'coc_enabled', 0) 
-    call coc#util#on_error('Service not running!')
+  if !get(g:, 'coc_enabled', 0)
     return ''
   endif
-  let opt = coc#util#get_complete_option({
+  let opt = coc#util#get_complete_option()
+  call extend(opt, {
         \ 'reload': get(a:, 1, 0),
         \ 'custom': get(a:, 2, 0),
         \})

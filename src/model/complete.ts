@@ -12,12 +12,10 @@ const WORD_SOURCES = new Set(['word', 'around', 'buffer', 'dictionary', 'tag', '
 export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
-  public option: CompleteOption
   public readonly recentScores: RecentScore
-  constructor(opts: CompleteOption,
+  constructor(private option: CompleteOption,
     recentScores: RecentScore | null,
     private config: CompleteConfig) {
-    this.option = opts
     Object.defineProperty(this, 'recentScores', {
       get: (): RecentScore => {
         return recentScores || {}
@@ -27,10 +25,6 @@ export default class Complete {
 
   public get startcol(): number {
     return this.option.col || 0
-  }
-
-  private get id(): number {
-    return this.option.id
   }
 
   private completeSource(source: ISource): Promise<CompleteResult | null> {
@@ -80,7 +74,7 @@ export default class Complete {
     })
   }
 
-  public filterResults(input: string, isIncrement = false): VimCompleteItem[] {
+  public filterResults(input: string, cid?: number): VimCompleteItem[] {
     let { results } = this
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
@@ -104,10 +98,10 @@ export default class Complete {
           } catch (e) { } // tslint:disable-line
         }
         if (filterText.length < input.length) continue
-        if (isIncrement && item.sortText) delete item.sortText
+        if (!cid && item.sortText) delete item.sortText
         if (input.length && !fuzzyMatch(codes, filterText)) continue
-        if (!data.cid) {
-          data = Object.assign(data, { cid: this.id, source })
+        if (cid) {
+          data = Object.assign(data, { cid, source })
           item.user_data = JSON.stringify(data)
         }
         let factor = priority / 10000 + this.getBonusScore(input, item)
@@ -150,7 +144,7 @@ export default class Complete {
     }
     this.results = results
     logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
-    return this.filterResults(opts.input)
+    return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
 
   private getBonusScore(input: string, item: VimCompleteItem): number {

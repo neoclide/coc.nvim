@@ -13,14 +13,6 @@ export default class OmniSource extends Source {
     })
   }
 
-  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let func: string = await this.nvim.call('getbufvar', ['%', '&omnifunc'])
-    opt.func = func
-    if (typeof func == 'string' && func.length != 0) return true
-    echoMessage(this.nvim, 'omnifunc option is empty, omni source skipped')
-    return false
-  }
-
   private convertToItems(list: any[], extra: any = {}): VimCompleteItem[] {
     let { menu } = this
     let res = []
@@ -37,7 +29,9 @@ export default class OmniSource extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
-    let { line, colnr, col, func } = opt
+    let func = await this.nvim.eval('&omnifunc') as string
+    if (!func) return null
+    let { line, colnr, col } = opt
     let { nvim } = this
     if (['LanguageClient#complete'].indexOf('func') !== -1) {
       echoMessage(nvim, `omnifunc ${func} is broken, skipped!`)

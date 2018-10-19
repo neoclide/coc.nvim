@@ -11,6 +11,11 @@ import { byteSlice } from '../util/string'
 // const logger = require('../util/logger')('source-file')
 const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
+interface PathOption {
+  pathstr: string
+  part: string
+}
+
 export default class File extends Source {
   constructor() {
     super({
@@ -18,25 +23,20 @@ export default class File extends Source {
       filepath: __filename
     })
   }
-  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+
+  private getPathOption(opt: CompleteOption): PathOption | null {
     let { line, colnr } = opt
     let part = byteSlice(line, 0, colnr - 1)
-    if (!part || part.slice(-2) == '//') return false
+    if (!part || part.slice(-2) == '//') return null
     let ms = part.match(pathRe)
     if (ms && ms.length) {
-      opt.pathstr = ms[0]
-      if (opt.pathstr.startsWith('~')) {
-        opt.pathstr = os.homedir() + opt.pathstr.slice(1)
+      let pathstr = ms[0]
+      if (pathstr.startsWith('~')) {
+        pathstr = os.homedir() + pathstr.slice(1)
       }
-      opt.part = ms[1]
-      let buf = await this.nvim.buffer
-      let fullpath = opt.fullpath = await buf.name
-      opt.dirname = path.dirname(fullpath)
-      opt.cwd = await this.nvim.call('getcwd', [])
-      opt.ext = fullpath ? path.extname(path.basename(fullpath)) : ''
-      return true
+      return { pathstr, part: ms[1] }
     }
-    return false
+    return null
   }
 
   private async getFileItem(root: string, filename: string): Promise<VimCompleteItem | null> {
@@ -85,10 +85,16 @@ export default class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { input, pathstr, col, cwd, ext, fullpath, dirname, part } = opt
+    let { input, col, filepath } = opt
+    let option = this.getPathOption(opt)
+    if (!option) return null
+    let { pathstr, part } = option
+    let dirname = path.dirname(filepath)
+    let ext = path.extname(path.basename(filepath))
+    let cwd = await this.nvim.call('getcwd', [])
     let root
     if (/^\./.test(pathstr)) {
-      root = fullpath ? path.dirname(fullpath) : cwd
+      root = filepath ? path.dirname(filepath) : cwd
     } else if (/^\//.test(pathstr)) {
       root = /\/$/.test(pathstr) ? pathstr : path.dirname(pathstr)
     } else if (part) {

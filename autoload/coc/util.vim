@@ -177,8 +177,7 @@ function! coc#util#get_input()
   return pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
 endfunction
 
-function! coc#util#get_complete_option(...)
-  let opt = get(a:, 1, {})
+function! coc#util#get_complete_option()
   let pos = getcurpos()
   let line = getline(pos[1])
   let l:start = pos[2] - 1
@@ -186,22 +185,18 @@ function! coc#util#get_complete_option(...)
     let l:start -= 1
   endwhile
   let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
-  return extend({
-        \ 'id': localtime(),
-        \ 'changedtick': b:changedtick,
+  return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
         \ 'line': line,
-        \ 'buftype': &buftype,
         \ 'filetype': &filetype,
         \ 'filepath': expand('%:p'),
         \ 'bufnr': bufnr('%'),
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
-        \ 'iskeyword': &iskeyword,
         \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name")
-        \}, opt)
+        \}
 endfunction
 
 function! coc#util#edit_file(filepath, ...)

@@ -10,6 +10,11 @@ export interface CacheItem {
   words: Set<string>
 }
 
+export interface TagItem {
+  file: string
+  mtime: Date
+}
+
 let TAG_CACHE: { [index: string]: CacheItem } = {}
 
 export default class Tag extends Source {
@@ -20,21 +25,20 @@ export default class Tag extends Source {
     })
   }
 
-  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+  private async getTagFiles(): Promise<TagItem[]> {
     let files = await this.nvim.call('tagfiles')
+    if (!files || files.length == 0) return []
     let cwd = await this.nvim.call('getcwd')
     files = files.map(f => {
       return path.isAbsolute(f) ? f : path.join(cwd, f)
     })
-    let tagfiles = []
+    let tagfiles: TagItem[] = []
     for (let file of files) {
       let stat = await statAsync(file)
       if (!stat || !stat.isFile()) continue
       tagfiles.push({ file, mtime: stat.mtime })
     }
-    if (tagfiles.length === 0) return false
-    opt.tagfiles = tagfiles
-    return true
+    return tagfiles
   }
 
   public async refresh(): Promise<void> {
@@ -56,8 +60,10 @@ export default class Tag extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { tagfiles, input } = opt
+    let { input } = opt
     if (input.length == 0) return null
+    let tagfiles = await this.getTagFiles()
+    if (!tagfiles || tagfiles.length == 0) return null
     let list = await Promise.all(tagfiles.map(o => this.loadTags(o.file, o.mtime)))
     let allWords: Set<string> = new Set()
     for (let words of list as any) {

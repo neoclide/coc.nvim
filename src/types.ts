@@ -188,25 +188,20 @@ export interface CompletionContext {
 
 // option on complete & should_complete
 export interface CompleteOption {
-  id: number
   bufnr: number
   line: string
   col: number
   input: string
-  buftype: string
   filetype: string
   filepath: string
   word: string
-  changedtick: number
   triggerCharacter: string
   // cursor position
   colnr: number
   linenr: number
-  iskeyword: string
   custom: boolean
   synname: string
   document: Document
-  [index: string]: any
 }
 
 export interface VimCompleteItem {

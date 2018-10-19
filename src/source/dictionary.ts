@@ -24,7 +24,6 @@ export default class Dictionary extends Source {
     let { input } = opt
     if (input.length === 0) return false
     let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
-    dictOption = opt.dictOption = dictOption.trim()
     if (!dictOption) return false
     return true
   }
@@ -69,7 +68,8 @@ export default class Dictionary extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { dictOption } = opt
+    let dictOption: string = await this.nvim.call('getbufvar', ['%', '&dictionary'])
+    if (!dictOption) return null
     let words = []
     if (dictOption) {
       let files = dictOption.split(',')
