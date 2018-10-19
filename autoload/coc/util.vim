@@ -199,11 +199,6 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-function! coc#util#edit_file(filepath, ...)
-  let cmd = get(a:, 1, 'edit')
-  execute 'keepalt '.cmd.' '.fnameescape(a:filepath)
-endfunction
-
 function! coc#util#prompt_change(count)
   echohl MoreMsg
   echom a:count.' files will be changed. Confirm? (y/n)'
@@ -231,16 +226,6 @@ endfunction
 
 function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
-endfunction
-
-function! coc#util#get_search(col) abort
-  let line = getline('.')
-  let curcol = col('.')
-  if curcol <= a:col
-    return v:null
-  endif
-  if curcol == a:col + 1 | return '' | endif
-  return line[a:col : curcol - 2]
 endfunction
 
 function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort
@@ -359,19 +344,6 @@ function! coc#util#open_codelens()
   hi def link codelinesAction      MoreMsg
 endfunction
 
-" change content of current buffer
-function! coc#util#buf_setlines(lines)
-  let l:winview = winsaveview()
-  let l:count = line('$')
-  keepjumps call setline(1, a:lines)
-  if l:count > len(a:lines)
-    let lnum = len(a:lines) + 1
-    execute 'keepjumps normal '.lnum.'G'
-    keepjumps normal! dG
-  endif
-  call winrestview(l:winview)
-endfunction
-
 function! coc#util#setline(lnum, line)
   keepjumps call setline(a:lnum, a:line)
 endfunction
@@ -449,6 +421,7 @@ function! coc#util#vim_info()
         \}
 endfunction
 
+" used by vim
 function! coc#util#get_content(bufnr)
   if !bufexists(a:bufnr) | return '' | endif
   return {
@@ -466,74 +439,6 @@ function! coc#util#get_changeinfo()
         \}
 endfunction
 
-" run command and get result on succeed
-function! coc#util#run_command(opts)
-  let cmd = get(a:opts, 'cmd', '')
-  let id = get(a:opts, 'id', '')
-  let timeout = get(a:opts, 'timeout', 60)
-  let oldcwd = getcwd()
-  let cwd = get(a:opts, 'cwd', '')
-  if empty(cmd) | return | endif
-  if !empty(cwd) | execute 'lcd '.cwd | endif
-  if has('nvim')
-    let jobid = jobstart(cmd, {
-          \ 'stdout_buffered': 1,
-          \ 'stderr_buffered': 1,
-          \ 'on_stdout': {channel, data -> s:on_result(id, data)},
-          \ 'on_stderr': {channel, data -> s:on_error(id, data)},
-          \})
-    if jobid <= 0
-      echohl Error | echon 'Start job failed: '.cmd | echohl None
-    endif
-    call timer_start(timeout*1000, { -> execute('silent! call jobstop('.jobid.')')})
-  else
-    let job = job_start(cmd, {
-          \ 'in_mode': 'raw',
-          \ 'out_mode': 'raw',
-          \ 'err_mode': 'raw',
-          \ 'err_cb': {channel, data -> s:on_error(id, data)},
-          \ 'out_cb': {channel, data -> s:on_result(id, data)},
-          \})
-    call timer_start(timeout*1000, { -> s:stop_job(job)})
-  endif
-  execute 'lcd '.oldcwd
-endfunction
-
-function! s:stop_job(job)
-  if job_status(a:job) == 'run'
-    call job_stop(a:job, 'kill')
-  endif
-endfunction
-
-function! s:on_result(id, result)
-  if type(a:result) == 3
-    let msg = join(a:result, "\n")
-  else
-    let msg = a:result
-  endif
-  call coc#rpc#notify('JobResult', [a:id, msg])
-endfunction
-
-function! s:on_error(id, msgs)
-  if type(a:msgs) == 1
-    echohl Error | echon a:msgs | echohl None
-  else
-    for msg in a:msgs
-      echohl Error | echon msg | echohl None
-    endfor
-  endif
-  if !s:empty(a:msgs)
-    call coc#rpc#notify('JobResult', [a:id, ''])
-  endif
-endfunction
-
-function! s:empty(msgs)
-  if empty(a:msgs) | return 1 | endif
-  if len(a:msgs) == 1 && get(a:msgs, 1, '') ==# ''
-    return 1
-  endif
-endfunction
-
 " show diff of current buffer
 function! coc#util#diff_content(lines) abort
   let tmpfile = tempname()
@@ -548,9 +453,7 @@ function! coc#util#diff_content(lines) abort
 endfunction
 
 function! coc#util#clear()
-  if !has('nvim')
-    silent! call clearmatches()
-  endif
+  silent! call clearmatches()
 endfunction
 
 function! coc#util#clear_signs()
@@ -615,7 +518,7 @@ function! coc#util#install_node_rpc() abort
   let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
   if res !=? 'y' | return | endif
   let cmd = ''
-  let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') == 'Linux'
+  let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') ==# 'Linux'
   if executable('npm')
     let cmd = (isLinux ? 'sudo ' : ' ').'npm i -g vim-node-rpc'
   else
@@ -648,7 +551,7 @@ function! s:coc_installed(status, ...)
   endif
   let dir = coc#util#extension_root()
   if !isdirectory(dir)
-    echohl WarningMsg | echon 'No extensions found' | echohl None
+    echohl WarningMsg | echom 'No extensions found' | echohl None
     call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
   endif
 endfunction
@@ -656,7 +559,7 @@ endfunction
 function! s:rpc_installed(status)
   if a:status == 0
     redraw!
-    echohl MoreMsg | echon 'vim-node-rpc installed, starting rpc server.' | echohl None
+    echohl MoreMsg | echom 'vim-node-rpc installed, starting rpc server.' | echohl None
     call nvim#rpc#start_server()
   endif
 endfunction

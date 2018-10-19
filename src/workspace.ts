@@ -916,7 +916,9 @@ export class Workspace implements IWorkspace {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     await doc.checkDocument()
-    if (bufnr == this.bufnr) nvim.call('coc#util#clear', [], true)
+    if (bufnr == this.bufnr && this.env.isVim) {
+      nvim.call('coc#util#clear', [], true)
+    }
     if (doc) {
       let event: TextDocumentWillSaveEvent = {
         document: doc.textDocument,
