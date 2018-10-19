@@ -512,7 +512,7 @@ describe('workspace events', () => {
     let opt = workspace.completeOpt
     expect(opt).toMatch('menuone')
     await nvim.command('set completeopt=menu,preview')
-    await helper.wait(30)
+    await helper.wait(100)
     opt = workspace.completeOpt
     expect(opt).toBe('menu,preview')
   })

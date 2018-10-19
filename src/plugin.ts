@@ -5,12 +5,12 @@ import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extensions'
 import Handler from './handler'
-import completion from './completion'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
+import completion from './completion'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {

@@ -1,34 +1,31 @@
 import { Neovim } from '@chemzqm/neovim'
 import workspace from './workspace'
 import Emitter = require('events')
+import events from './events'
+import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('./util/logger')('increment')
 
-export interface LastInsert {
-  character: string
-  timestamp: number
-}
-
 export default class Increment extends Emitter {
-  public lastInsert?: LastInsert
+  private disposables: Disposable[] = []
   private activted = false
+  private completeOpt = 'noselect,noinsert,menuone'
 
   constructor(private nvim: Neovim) {
     super()
+    workspace.onDidWorkspaceInitialized(this.setCompleteOpt, this, this.disposables)
+    workspace.onDidChangeConfiguration(this.setCompleteOpt, this, this.disposables)
+    events.on('OptionSet', (name: string, _oldValue: any, newValue: any) => {
+      if (name === 'completeopt') {
+        workspace.env.completeOpt = newValue
+        this.setCompleteOpt()
+      }
+    }, null, this.disposables)
   }
 
-  public get latestInsert(): LastInsert | null {
-    let { lastInsert } = this
-    let d = workspace.isVim ? 100 : 50
-    if (!lastInsert || Date.now() - lastInsert.timestamp > d) {
-      return null
-    }
-    return lastInsert
-  }
-
-  public get latestInsertChar(): string {
-    let { latestInsert } = this
-    if (!latestInsert) return ''
-    return latestInsert.character
+  private setCompleteOpt(): void {
+    let { completeOpt } = workspace.env
+    let noselect = workspace.getConfiguration('coc.preferences').get<boolean>('noselect', true)
+    this.completeOpt = Increment.getStartOption(completeOpt, noselect)
   }
 
   /**
@@ -43,7 +40,7 @@ export default class Increment extends Emitter {
     let { nvim, activted } = this
     if (activted) return
     this.activted = true
-    let opt = Increment.getStartOption()
+    let opt = this.completeOpt
     nvim.command(`noa set completeopt=${opt}`, true)
     this.emit('start')
   }
@@ -62,10 +59,10 @@ export default class Increment extends Emitter {
   }
 
   // keep other options
-  public static getStartOption(): string {
-    let opt = workspace.completeOpt
-    let useNoSelect = workspace.getConfiguration('coc.preferences').get('noselect', 'true')
-    let parts = opt.split(',')
+  public static getStartOption(completeOpt: string, noselect: boolean): string {
+    // let opt = workspace.completeOpt
+    // let useNoSelect = workspace.getConfiguration('coc.preferences').get<boolean>('noselect', true)
+    let parts = completeOpt.split(',')
     // longest & menu can't work with increment search
     parts = parts.filter(s => s != 'menu' && s != 'longest')
     if (parts.indexOf('menuone') === -1) {
@@ -74,7 +71,7 @@ export default class Increment extends Emitter {
     if (parts.indexOf('noinsert') === -1) {
       parts.push('noinsert')
     }
-    if (useNoSelect && parts.indexOf('noselect') === -1) {
+    if (noselect && parts.indexOf('noselect') === -1) {
       parts.push('noselect')
     }
     return parts.join(',')

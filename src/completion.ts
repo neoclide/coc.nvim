@@ -4,7 +4,7 @@ import events from './events'
 import Increment from './increment'
 import Complete from './model/complete'
 import sources from './sources'
-import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem } from './types'
+import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
 import { disposeAll } from './util'
 import { isCocItem } from './util/complete'
 import { fuzzyMatch, getCharCodes } from './util/fuzzy'
@@ -12,18 +12,33 @@ import { byteSlice } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('completion')
 
+export interface LastInsert {
+  character: string
+  timestamp: number
+}
+
 export class Completion implements Disposable {
   private increment: Increment
+  private lastInsert?: LastInsert
   private lastChangedI: number
   private lastPumvisible = 0
   private insertMode = false
   private nvim: Neovim
   private completing = false
-  private disposeables: Disposable[] = []
+  private disposables: Disposable[] = []
   private completeItems: VimCompleteItem[] = []
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
   private option: CompleteOption = null
+  private preferences: WorkspaceConfiguration
+
+  constructor() {
+    this.preferences = workspace.getConfiguration('coc.preferences')
+
+    workspace.onDidChangeConfiguration(_e => {
+      this.preferences = workspace.getConfiguration('coc.preferences')
+    }, null, this.disposables)
+  }
 
   // vim's logic for filter items
   private filterItemsVim(input: string): VimCompleteItem[] {
@@ -82,12 +97,12 @@ export class Completion implements Disposable {
   public init(nvim: Neovim): void {
     this.nvim = nvim
     let increment = this.increment = new Increment(nvim)
-    this.disposeables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
-    this.disposeables.push(events.on('InsertLeave', this.onInsertLeave, this))
-    this.disposeables.push(events.on('InsertEnter', this.onInsertEnter, this))
-    this.disposeables.push(events.on('TextChangedP', this.onTextChangedP, this))
-    this.disposeables.push(events.on('TextChangedI', this.onTextChangedI, this))
-    this.disposeables.push(events.on('CompleteDone', this.onCompleteDone, this))
+    this.disposables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
+    this.disposables.push(events.on('InsertLeave', this.onInsertLeave, this))
+    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
+    this.disposables.push(events.on('TextChangedP', this.onTextChangedP, this))
+    this.disposables.push(events.on('TextChangedI', this.onTextChangedI, this))
+    this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
     nvim.mode.then(({ mode }) => {
       this.insertMode = mode.startsWith('i')
     }, _e => {
@@ -108,10 +123,6 @@ export class Completion implements Disposable {
 
   public get isActivted(): boolean {
     return this.increment.isActivted
-  }
-
-  private getPreference(name: string, defaultValue: any): any {
-    return workspace.getConfiguration('coc.preferences').get(name, defaultValue)
   }
 
   private getCompleteConfig(): CompleteConfig {
@@ -197,7 +208,7 @@ export class Completion implements Disposable {
     let { increment, input } = this
     if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
-    let { latestInsert } = increment
+    let { latestInsert } = this
     let search = await this.getResumeInput()
     if (search == null || input == search) return
     if (latestInsert) {
@@ -212,7 +223,7 @@ export class Completion implements Disposable {
     this.lastChangedI = Date.now()
     if (this.completing) return
     let { nvim, increment, input } = this
-    let { latestInsertChar } = increment
+    let { latestInsertChar } = this
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
@@ -256,9 +267,9 @@ export class Completion implements Disposable {
 
   private async onInsertEnter(): Promise<void> {
     this.insertMode = true
-    let autoTrigger = this.getPreference('autoTrigger', 'always')
+    let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
     if (autoTrigger !== 'always') return
-    let trigger = this.getPreference('triggerAfterInsertEnter', false)
+    let trigger = this.preferences.get<boolean>('triggerAfterInsertEnter', false)
     if (trigger && !this.completing) {
       let option = await this.nvim.call('coc#util#get_complete_option')
       this.startCompletion(option)
@@ -267,7 +278,7 @@ export class Completion implements Disposable {
 
   private onInsertCharPre(character: string): void {
     let { increment } = this
-    increment.lastInsert = {
+    this.lastInsert = {
       character,
       timestamp: Date.now(),
     }
@@ -281,9 +292,24 @@ export class Completion implements Disposable {
     }
   }
 
+  private get latestInsert(): LastInsert | null {
+    let { lastInsert } = this
+    let d = workspace.isVim ? 100 : 50
+    if (!lastInsert || Date.now() - lastInsert.timestamp > d) {
+      return null
+    }
+    return lastInsert
+  }
+
+  private get latestInsertChar(): string {
+    let { latestInsert } = this
+    if (!latestInsert) return ''
+    return latestInsert.character
+  }
+
   private async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
-    let autoTrigger = this.getPreference('autoTrigger', 'always')
+    let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     let doc = await workspace.document
     if (sources.shouldTrigger(character, doc.filetype)) return true
@@ -296,7 +322,7 @@ export class Completion implements Disposable {
       this.increment.removeAllListeners()
       this.increment.stop()
     }
-    disposeAll(this.disposeables)
+    disposeAll(this.disposables)
   }
 
   public hasMatch(search: string): boolean {

@@ -254,7 +254,6 @@ export class Workspace implements IWorkspace {
   }
 
   public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
-    // TODO support resource
     return this._configurations.getConfiguration(section, resource)
   }
 
@@ -929,9 +928,6 @@ export class Workspace implements IWorkspace {
   }
 
   private onOptionSet(name: string, _oldValue: any, newValue: any): void {
-    if (name === 'completeopt') {
-      this._env.completeOpt = newValue
-    }
     if (name === 'iskeyword') {
       this.document.then(document => {
         if (document) document.setIskeyword(newValue)
@@ -945,7 +941,6 @@ export class Workspace implements IWorkspace {
     if (cwd == this._cwd) return
     process.chdir(cwd)
     this._cwd = cwd
-    this.onConfigurationChange()
   }
 
   private onFileTypeChange(filetype: string, bufnr: number): void {
