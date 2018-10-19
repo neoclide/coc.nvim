@@ -282,6 +282,7 @@ g:coc_codelen_action_key 			*g:coc_codelen_action_key*
 			Default: <d>
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
+
 			Diagnostic infomation of current buffer, the format
 			would like:
 
@@ -290,8 +291,11 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			can be used for customize statusline. See |coc-status|.
 
 g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
-			Log channel communication by using |ch_logfile|. Vim
-			only.
+
+			If truthy, log channel communication by using
+			|ch_logfile|. Vim only.
+
+			Default: 0
 
 g:rooter_patterns 				*g:rooter_patterns*
 
