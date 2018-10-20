@@ -194,8 +194,14 @@ export class Sources extends EventEmitter {
     return this.getSourcesForFiletype(filetype, false, custom)
   }
 
-  public shouldTrigger(character: string, languageId: string, custom = false): boolean {
-    return this.getTriggerSources(character, languageId, custom).length > 0
+  public shouldTrigger(character: string, languageId: string): boolean {
+    let idx = this.sources.findIndex(s => {
+      let { enable, triggerCharacters, filetypes } = s
+      if (!enable) return false
+      if (filetypes && filetypes.indexOf(languageId) == -1) return false
+      return triggerCharacters && triggerCharacters.indexOf(character) !== -1
+    })
+    return idx !== -1
   }
 
   public getTriggerCharacters(languageId: string, custom = false): Set<string> {

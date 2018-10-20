@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import commandManager from './commands'
 import diagnosticManager from './diagnostic/manager'

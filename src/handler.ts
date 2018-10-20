@@ -1,4 +1,4 @@
-import { Neovim } from '@chemzqm/neovim'
+import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
@@ -32,6 +32,7 @@ interface CommandItem {
 
 export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
+  private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
   private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
   private disposables: Disposable[] = []
@@ -77,6 +78,20 @@ export default class Handler {
         this.codeLensBuffers.delete(bufnr)
       }
     }, null, this.disposables)
+    events.on('BufReadCmd', async () => {
+      await nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap')
+      await nvim.command('setfiletype markdown')
+      let buf = await nvim.buffer
+      await buf.setLines(this.documentLines, {
+        start: 0,
+        end: -1,
+        strictIndexing: false
+      })
+      await buf.setOption('bufhidden', 'wipe')
+      await buf.setOption('readonly', true)
+      await buf.setOption('buflisted', false)
+      await nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`)
+    })
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
@@ -535,23 +550,24 @@ export default class Handler {
     if (Array.isArray(contents)) {
       for (let item of contents) {
         if (typeof item === 'string') {
-          lines.push(item)
+          lines.push(...item.split('\n'))
         } else {
           lines.push('``` ' + item.language)
-          lines.push(item.value)
+          lines.push(...item.value.split('\n'))
           lines.push('```')
         }
       }
     } else if (typeof contents == 'string') {
-      lines.push(contents)
+      lines.push(...contents.split('\n'))
     } else if (MarkedString.is(contents)) { // tslint:disable-line
       lines.push('``` ' + contents.language)
-      lines.push(contents.value)
+      lines.push(...contents.value.split('\n'))
       lines.push('```')
     } else if (MarkupContent.is(contents)) {
-      lines.push(contents.value)
+      lines.push(...contents.value.split('\n'))
     }
-    await this.nvim.call('coc#util#preview_info', [lines.join('\n')])
+    this.documentLines = lines
+    await this.nvim.command(`pedit coc://document`)
   }
 
 }

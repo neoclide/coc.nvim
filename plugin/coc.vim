@@ -124,6 +124,7 @@ function! s:Enable()
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutoCmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
+    autocmd BufReadCmd,FileReadCmd,SourceCmd coc://* call s:SyncAutoCmd('BufReadCmd', expand('<amatch>'))
   augroup end
 
   " same behaviour of ultisnips
