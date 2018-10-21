@@ -10,6 +10,7 @@ import { isCocItem } from './util/complete'
 import { fuzzyMatch, getCharCodes } from './util/fuzzy'
 import { byteSlice } from './util/string'
 import workspace from './workspace'
+import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
 export interface LastInsert {
@@ -18,6 +19,8 @@ export interface LastInsert {
 }
 
 export class Completion implements Disposable {
+  // current input string
+  private input: string
   private increment: Increment
   private lastInsert?: LastInsert
   private lastChangedI: number
@@ -67,6 +70,12 @@ export class Completion implements Disposable {
     }
   }
 
+  private get document(): Document {
+    let { option } = this
+    if (!option) return null
+    return workspace.getDocument(option.bufnr)
+  }
+
   private async getResumeInput(): Promise<string> {
     let { option, increment } = this
     let [, lnum, col] = await this.nvim.call('getcurpos')
@@ -74,14 +83,13 @@ export class Completion implements Disposable {
       increment.stop()
       return null
     }
-    let line = option.document.getline(lnum - 1)
+    let line = this.document.getline(lnum - 1)
     return byteSlice(line, option.col, col - 1)
   }
 
   private get isTriggered(): boolean {
-    let { option } = this
-    let { document, triggerCharacter } = option
-    return triggerCharacter && !document.isWord(triggerCharacter)
+    let { triggerCharacter } = this.option
+    return triggerCharacter && !this.document.isWord(triggerCharacter)
   }
 
   private get bufnr(): number {
@@ -89,10 +97,10 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
-  private get input(): string {
-    let { option } = this
-    return option ? option.input : null
-  }
+  // private get input(): string {
+  //   let { option } = this
+  //   return option ? option.input : null
+  // }
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
@@ -111,12 +119,10 @@ export class Completion implements Disposable {
     // stop change emit on completion
     increment.on('start', () => {
       this.completeItems = []
-      let { document } = this.option
-      document.paused = true
+      this.document.paused = true
     })
     increment.on('stop', () => {
-      let { document } = this.option
-      document.paused = false
+      this.document.paused = false
       this.option = null
     })
   }
@@ -139,11 +145,9 @@ export class Completion implements Disposable {
   }
 
   public startCompletion(option: CompleteOption): void {
-    Object.defineProperty(option, 'document', {
-      value: workspace.getDocument(option.bufnr),
-      enumerable: false
-    })
-    if (option.document == null || this.completing) return
+    this.option = option
+    this.input = option.input
+    if (this.document == null || this.completing) return
     this.completing = true
     this._doComplete(option).then(() => {
       this.completing = false
@@ -157,7 +161,7 @@ export class Completion implements Disposable {
   private async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
     let { nvim, increment, option, complete, insertMode } = this
     if (!complete || !complete.results) return
-    option.input = resumeInput
+    this.input = resumeInput
     let items = complete.filterResults(resumeInput)
     if (!insertMode || !items || items.length === 0) {
       this.nvim.call('coc#_hide', [], true)
@@ -184,9 +188,8 @@ export class Completion implements Disposable {
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
-    let { document, linenr, line } = option
-    let { nvim, increment } = this
-    this.option = option
+    let { linenr, line } = option
+    let { nvim, increment, document } = this
     increment.start()
     logger.trace(`options: ${JSON.stringify(option)}`)
     let arr = sources.getCompleteSources(option)
@@ -229,20 +232,17 @@ export class Completion implements Disposable {
   private async onTextChangedI(bufnr: number): Promise<void> {
     this.lastChangedI = Date.now()
     if (this.completing) return
-    let { nvim, increment, input } = this
-    let { latestInsertChar } = this
+    let { nvim, increment, input, latestInsertChar } = this
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
       if (search == null || search == input) return
       if (!increment.isActivted) return
-      let { document } = this.option
-      let len = input.length
-      if (!this.isTriggered && len == 0 && document.isWord(search[0])) {
+      if (search.length < this.option.input.length) {
         increment.stop()
-      } else {
-        return await this.resumeCompletion(search)
+        return
       }
+      return await this.resumeCompletion(search)
     }
     if (!latestInsertChar) return
     // check trigger
@@ -250,6 +250,7 @@ export class Completion implements Disposable {
     if (!shouldTrigger) return
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     if (latestInsertChar) option.triggerCharacter = latestInsertChar
+    Object.freeze(option)
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
@@ -274,11 +275,11 @@ export class Completion implements Disposable {
 
   private async onInsertEnter(): Promise<void> {
     this.insertMode = true
-    let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
-    if (autoTrigger !== 'always') return
     let trigger = this.preferences.get<boolean>('triggerAfterInsertEnter', false)
-    if (trigger && !this.completing) {
-      let option = await this.nvim.call('coc#util#get_complete_option')
+    if (!trigger || this.completing) return
+    let minLength = this.preferences.get<number>('minTriggerInputLength', 1)
+    let option = await this.nvim.call('coc#util#get_complete_option')
+    if (option.input.length >= minLength) {
       this.startCompletion(option)
     }
   }
@@ -319,10 +320,13 @@ export class Completion implements Disposable {
     let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     let doc = await workspace.document
-    // let [, lnum, col] = await this.nvim.call('getcurpos')
-    // let line = doc.getline(lnum - 1)
     if (sources.shouldTrigger(character, doc.filetype)) return true
-    if (doc.isWord(character)) return autoTrigger == 'always'
+    if (autoTrigger !== 'always') return false
+    if (doc.isWord(character)) {
+      let minLength = this.preferences.get<number>('minTriggerInputLength', 1)
+      let input = await this.nvim.call('coc#util#get_input') as string
+      return input.length >= minLength
+    }
     return false
   }
 

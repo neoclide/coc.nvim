@@ -80,7 +80,7 @@ describe('completion', () => {
     await helper.wait(100)
     items = await helper.getItems()
     words = items.map(o => o.word)
-    expect(words).toEqual(['format', 'fallback', 'forceDocumentSync'])
+    expect(words).toEqual([])
   })
 
   it('should not trigger on insert enter', async () => {

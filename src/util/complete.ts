@@ -14,11 +14,11 @@ export function isCocItem(item: any): boolean {
 }
 
 export function getPosition(opt: CompleteOption): Position {
-  let { line, linenr, col, colnr } = opt
-  let part = byteSlice(line, 0, col - 1)
+  let { line, linenr, colnr } = opt
+  let part = byteSlice(line, 0, colnr - 1)
   return {
     line: linenr - 1,
-    character: part.length + 1 + (colnr - col > 1 ? 1 : 0)
+    character: part.length
   }
 }
 

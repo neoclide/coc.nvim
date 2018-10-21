@@ -243,7 +243,7 @@
     },
     "coc.preferences.languageSourcePriority": {
       "type": "number",
-      "default": 9,
+      "default": 99,
       "description": "Priority of language sources."
     },
     "coc.preferences.rootPath": {
@@ -266,10 +266,15 @@
       "default": 500,
       "description": "Timeout for completion, in miliseconds."
     },
+    "coc.preferences.minTriggerInputLength": {
+      "type": "number",
+      "default": 1,
+      "description": "Mininal input length for trigger completion, default 1"
+    },
     "coc.preferences.triggerCompletionWait": {
       "type": "integer",
       "default": 60,
-      "description": "Wait time between trigger characer type and completion start."
+      "description": "Wait time between trigger characer type and completion start, for sync content to the server"
     },
     "coc.preferences.noselect": {
       "type": "boolean",

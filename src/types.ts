@@ -201,7 +201,6 @@ export interface CompleteOption {
   linenr: number
   custom: boolean
   synname: string
-  document: Document
 }
 
 export interface VimCompleteItem {

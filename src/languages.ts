@@ -529,25 +529,31 @@ class Languages {
     let { nvim } = this
     let { textEdit } = item
     if (!textEdit) return null
+    let { line, bufnr, linenr } = option
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    let document = workspace.getDocument(option.bufnr)
-    if (!document) return null
-    let line = document.getline(option.linenr - 1)
-    let deleteCount = range.end.character - option.colnr + 1
     let character = range.start.character
     // replace inserted word
     let start = line.substr(0, character)
-    let label = complete.getWord(item)
-    let end = line.substr(option.col + label.length + deleteCount)
+    let end = line.substr(range.end.character)
     if (isSnippet) {
       await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])
-      await nvim.call('cursor', [option.linenr, byteLength(start) + 1])
+      await nvim.call('cursor', [linenr, byteLength(start) + 1])
       return newText
     }
-    let newLine = `${start}${newText}${end}`
-    if (newLine != line) {
-      await nvim.call('setline', [option.linenr, newLine])
+    let newLines = `${start}${newText}${end}`.split('\n')
+    if (newLines.length == 1) {
+      await nvim.call('coc#util#setline', [linenr, newLines[0]])
+      await nvim.call('cursor', [linenr, byteLength(start + newText) + 1])
+    } else {
+      let document = workspace.getDocument(bufnr)
+      if (document) {
+        await document.buffer.setLines(newLines, {
+          start: linenr - 1,
+          end: linenr,
+          strictIndexing: false
+        })
+      }
     }
     return null
   }
