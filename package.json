@@ -59,7 +59,6 @@
   "devDependencies": {
     "@chemzqm/tslint-config": "^1.0.17",
     "@types/debounce": "^3.0.0",
-    "@types/diff": "^3.5.1",
     "@types/fast-diff": "^1.1.0",
     "@types/fb-watchman": "^2.0.0",
     "@types/find-up": "^2.1.1",
@@ -84,7 +83,6 @@
     "@chemzqm/neovim": "4.3.24",
     "@chemzqm/tsconfig": "0.0.3",
     "debounce": "^1.2.0",
-    "diff": "^3.5.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
     "find-up": "^3.0.0",

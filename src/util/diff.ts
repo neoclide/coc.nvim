@@ -1,8 +1,5 @@
-import { diffLines as DiffLines } from 'diff'
 import fastDiff from 'fast-diff'
 import { ChangedLines, ChangeItem } from '../types'
-import { lastIndex } from './array'
-import { trimLast } from './string'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -11,42 +8,36 @@ interface Change {
   newText: string
 }
 
-function getlines(str: string): string[] {
-  let s = trimLast(str, '\n')
-  return s.split('\n')
-}
-
 export function diffLines(from: string, to: string): ChangedLines {
-  let diffs = DiffLines(from, to)
-  let lastIdx = lastIndex(diffs, o => (o.added || o.removed))
-  if (lastIdx == -1) return null
-  let lnum = 0
-  let start = -1
-  let end = -1
-  let lines = []
-  let idx = 0
-  for (let diff of diffs) {
-    if (idx > lastIdx) {
+  let newLines: string[] = to.split('\n')
+  let oldLines: string[] = from.split('\n')
+  let start = 0
+  let end = oldLines.length
+  let oldLen = end
+  let len = newLines.length
+  for (let i = 0; i <= end; i++) {
+    if (newLines[i] !== oldLines[i]) {
+      start = i
       break
     }
-    if (start == -1 && (diff.removed || diff.added)) {
-      start = lnum
-      end = diff.removed ? start + diff.count : start
-      if (diff.added) lines.push(...getlines(diff.value))
-    } else if (diff.removed) {
-      end = lnum + diff.count
-    } else if (diff.added) {
-      end = lnum
-      lines.push(...getlines(diff.value))
-    } else if (start != -1) {
-      lines.push(...getlines(diff.value))
+    if (i == end) {
+      start = end
     }
-    if (!diff.added) {
-      lnum = lnum + diff.count
-    }
-    idx = idx + 1
   }
-  return { start, end, replacement: lines }
+  for (let j = oldLen; j >= 0; j--) {
+    if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
+      end = j
+      break
+    }
+    if (j == 0) {
+      end = 0
+    }
+  }
+  return {
+    start,
+    end,
+    replacement: newLines.slice(start, len - (oldLen - end))
+  }
 }
 
 export function getChangeItem(oldStr: string, newStr: string): ChangeItem {

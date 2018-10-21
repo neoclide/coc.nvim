@@ -3,9 +3,9 @@ import { diffLines } from '../../util/diff'
 describe('should get diffLines', () => {
   it('should get diff for added', () => {
     let d = diffLines('1\n2', '1\n2\n3\n4')
-    expect(d.start).toBe(1)
+    expect(d.start).toBe(2)
     expect(d.end).toBe(2)
-    expect(d.replacement).toEqual(['2', '3', '4'])
+    expect(d.replacement).toEqual(['3', '4'])
   })
 
   it('should get diff for added #1', () => {
@@ -40,6 +40,13 @@ describe('should get diffLines', () => {
     let d = diffLines('1\n2\n3\n4', '1\n4')
     expect(d.start).toBe(1)
     expect(d.end).toBe(3)
+    expect(d.replacement).toEqual([])
+  })
+
+  it('should get diff for remove #1', () => {
+    let d = diffLines('1\n2\n3\n4', '1')
+    expect(d.start).toBe(1)
+    expect(d.end).toBe(4)
     expect(d.replacement).toEqual([])
   })
 })
