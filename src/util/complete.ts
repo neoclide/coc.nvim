@@ -98,9 +98,9 @@ export function completionKindString(kind: CompletionItemKind): string {
 export function convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
-    word: this.getWord(item),
+    word: getWord(item),
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
-    kind: this.completionKindString(item.kind),
+    kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,
     filterText: validString(item.filterText) ? item.filterText : item.label,
     isSnippet
@@ -128,7 +128,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
     obj.abbr = obj.abbr + '?'
   }
   if (isSnippet) obj.abbr = obj.abbr + '~'
-  let document = this.getDocumentation(item)
+  let document = getDocumentation(item)
   if (document) obj.info = document
   // item.commitCharacters not necessary for vim
   return obj

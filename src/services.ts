@@ -206,14 +206,12 @@ export class ServiceManager extends EventEmitter implements Disposable {
     service = this.getService(id)
     if (!service || !service.client) {
       throw new Error(`LanguageClient ${id} not found`)
-      return
     }
     if (service.state == ServiceStat.Starting) {
       await service.client.onReady()
     }
     if (service.state != ServiceStat.Running) {
       throw new Error(`LanguageClient ${id} not running`)
-      return
     }
     return await Promise.resolve(service.client.sendRequest(method, params))
   }

@@ -112,11 +112,6 @@
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
 
-"@chemzqm/tsconfig@0.0.3":
-  version "0.0.3"
-  resolved "https://registry.yarnpkg.com/@chemzqm/tsconfig/-/tsconfig-0.0.3.tgz#ce3480d15d8cec46a315488caa07c9fca819aecc"
-  integrity sha512-MjF25vbqLYR+S+JJLgBi0vn4gZqv/C87H+yPSlVKEqlIJAJOGJOgFPUFvRS7pdRHqkv2flX/oRxzxhlu2V0X1w==
-
 "@chemzqm/tslint-config@^1.0.17":
   version "1.0.17"
   resolved "https://registry.yarnpkg.com/@chemzqm/tslint-config/-/tslint-config-1.0.17.tgz#9365dc9bdece0927fdfa6c068e1c70524c35a5fc"

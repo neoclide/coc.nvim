@@ -42,7 +42,7 @@ export function diffLines(from: string, to: string): ChangedLines {
 
 export function getChangeItem(oldStr: string, newStr: string): ChangeItem {
   let change = getChange(oldStr, newStr)
-  if (!change) return
+  if (!change) return null
   let { start, end } = change
   return {
     offset: change.start,

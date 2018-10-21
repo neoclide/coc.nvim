@@ -111,7 +111,7 @@ export default class CodeLensBuffer {
   private async resolveItem(item: LineItem): Promise<LineItem> {
     let { codeLenses } = item
     let document = workspace.getDocument(this.bufnr)
-    if (!document) return
+    if (!document) return null
     codeLenses = await Promise.all(codeLenses.map(codeLens => {
       return languages.resolveCodeLens(codeLens)
     }))

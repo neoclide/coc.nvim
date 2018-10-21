@@ -1,14 +1,20 @@
 {
-  "extends": "./node_modules/@chemzqm/tsconfig/tsconfig.json",
   "compilerOptions": {
     "outDir": "lib",
+    "sourceMap": true,
+    "allowUnreachableCode": false,
+    "forceConsistentCasingInFileNames": true,
+    "noImplicitAny": false,
+    "noImplicitThis": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "strictPropertyInitialization": false,
     "target": "es2015",
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
     "importHelpers": true,
     "lib": ["es2017", "es2018"],
-    "sourceMap": true,
     "declaration": true,
     "resolveJsonModule": true,
     "esModuleInterop": true,
@@ -20,6 +26,5 @@
     "src"
   ],
   "exclude": [
-    "src/extensions/clang"
   ]
 }
