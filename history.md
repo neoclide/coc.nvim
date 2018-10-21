@@ -1,3 +1,16 @@
+# 2018-10-21
+
+- **Break change**: `triggerAfterInsertEnter` now respect `minTriggerInputLength`.
+- Add `coc.preferences.minTriggerInputLength`.
+- Add command: `:CocCommand`.
+- Fix `position` of `provideCompletionItems`.
+- Fix content change not trigger after completion.
+- Fix default sorters & matchers of denite sources.
+- Fix `outputChannel` wrong `buftype`.
+- Fix completion not works with `textEdit` add new lines.
+- Fix first item not resolved when `noselect` is disabled
+- Remove using of `diff` module.
+
 # 2018-10-18
 
 - **Break change**: all buffers are created as document.
