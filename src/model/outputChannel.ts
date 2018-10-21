@@ -92,12 +92,12 @@ export default class BufferChannel implements OutputChannel {
     let buffer = await this.getBuffer()
     let { nvim, content } = this
     if (!buffer) {
-      await nvim.command(`belowright vs +setl\\ buftype=nofile [coc ${this.name}]`)
-      await nvim.command('setl bufhidden=hide')
-      await nvim.command('setl noswapfile')
+      await nvim.command(`belowright vs +setl\\ buftype=nofile\\ bufhidden=wipe [coc ${this.name}]`)
+      await nvim.command('setfiletype log')
       buffer = await nvim.buffer
+      await buffer.setOption('swapfile', false)
       await buffer.setLines(content.split('\n'), {
-        start: 1,
+        start: 0,
         end: -1,
         strictIndexing: false
       })
