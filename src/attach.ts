@@ -35,7 +35,8 @@ export default function(opts: Attach): Plugin {
       case 'CocAutocmd':
         (events as any).fire(args[0], args.slice(1)).then(() => {
           resp.send()
-        }, () => {
+        }, e => {
+          logger.error(`Autocmd ${args[0]} error: ` + e.stack)
           resp.send()
         })
         return
@@ -47,7 +48,7 @@ export default function(opts: Attach): Plugin {
         plugin[m].apply(plugin, args).then(res => {
           resp.send(res)
         }, e => {
-          logger.error('Action error: ' + e.stack)
+          logger.error(`Action ${m} error: ` + e.stack)
           resp.send(e.message, true)
         })
     }

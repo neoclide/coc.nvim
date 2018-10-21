@@ -57,6 +57,10 @@ export default class Plugin extends EventEmitter {
     return await services.sendRequest(id, method, params)
   }
 
+  public async commandList(): Promise<string[]> {
+    return commandManager.commandList.map(o => o.id)
+  }
+
   public async cocAction(...args: any[]): Promise<any> {
     if (!this.initialized) return
     let { handler } = this
@@ -177,7 +181,7 @@ export default class Plugin extends EventEmitter {
         case 'uninstallExtension':
           return await extensions.uninstallExtension(args[1])
         default:
-          logger.error(`unknown action ${args[0]}`)
+          workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
     } catch (e) {
       if (!/\btimeout\b/.test(e.message)) {

@@ -585,6 +585,11 @@ COMMANDS 					*coc-commands*
 
 		Update all coc extensions.
 
+:CocCommand {name} [{args}]			*:CocCommand*
+
+		Command to run `:call CocAction('runCommand', name, ...args)`,
+		completion for command name is supported.
+
 ------------------------------------------------------------------------------
 
 AUTOCMD 					*coc-autocmds*

@@ -24,6 +24,12 @@ function! CocActionAsync(...) abort
   return s:AsyncRequest('CocAction', a:000)
 endfunction
 
+function! s:CommandList(...) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  let list = coc#rpc#request('CommandList', a:000)
+  return join(list, "\n")
+endfunction
+
 function! CocRequest(...) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
   return coc#rpc#request('sendRequest', a:000)
@@ -142,6 +148,7 @@ function! s:Enable()
   command! -nargs=0 CocEnable  :call s:Enable()
   command! -nargs=0 CocConfig  :call s:OpenConfig()
   command! -nargs=0 CocErrors  :call coc#rpc#show_error()
+  command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction
 
 hi default CocErrorSign   guifg=#ff0000
