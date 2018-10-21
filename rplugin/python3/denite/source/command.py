@@ -15,6 +15,8 @@ class Source(Base):
 
         self.name = 'coc-command'
         self.kind = Kind(vim)
+        self.matchers = ['matcher_fuzzy']
+        self.sorters = ['sorter_word']
 
     def define_syntax(self):
         self.vim.command('syntax case ignore')
