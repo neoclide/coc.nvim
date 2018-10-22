@@ -11,3 +11,4 @@ build
 coverage
 data
 tslint.json
+tsconfig.json
