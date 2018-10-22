@@ -4,6 +4,7 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { LanguageClient } from './language-client'
 import log4js from 'log4js'
+import { TextDocumentContentProvider } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
@@ -714,6 +715,7 @@ export interface IWorkspace {
   applyEdit(edit: WorkspaceEdit): Promise<boolean>
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
+  registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
   getQuickfixItem(loc: Location): Promise<QuickfixItem>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>

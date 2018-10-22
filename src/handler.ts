@@ -11,6 +11,7 @@ import { disposeAll, wait } from './util'
 import workspace from './workspace'
 import extensions from './extensions'
 import completion from './completion'
+import { TextDocumentContentProvider } from './provider'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -78,20 +79,19 @@ export default class Handler {
         this.codeLensBuffers.delete(bufnr)
       }
     }, null, this.disposables)
-    events.on('BufReadCmd', async () => {
-      await nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap')
-      await nvim.command('setfiletype markdown')
-      let buf = await nvim.buffer
-      await buf.setLines(this.documentLines, {
-        start: 0,
-        end: -1,
-        strictIndexing: false
-      })
-      await buf.setOption('bufhidden', 'wipe')
-      await buf.setOption('readonly', true)
-      await buf.setOption('buflisted', false)
-      await nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`)
-    })
+    let provider: TextDocumentContentProvider = {
+      onDidChange: null,
+      provideTextDocumentContent: async () => {
+        await nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap')
+        await nvim.command('setfiletype markdown')
+        let buf = await nvim.buffer
+        await buf.setOption('bufhidden', 'wipe')
+        await buf.setOption('buflisted', false)
+        await nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`)
+        return this.documentLines.join('\n')
+      }
+    }
+    this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))

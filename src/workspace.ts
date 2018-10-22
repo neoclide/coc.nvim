@@ -5,7 +5,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
-import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
 import Configurations, { ErrorItem } from './model/configurations'
@@ -16,13 +16,14 @@ import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
+import { TextDocumentContentProvider } from './provider'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -40,6 +41,7 @@ export class Workspace implements IWorkspace {
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
+  private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private configurationShape: ConfigurationShape
   private _configurations: Configurations
   private disposables: Disposable[] = []
@@ -92,6 +94,7 @@ export class Workspace implements IWorkspace {
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
+    events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
     events.on('toggle', async enable => {
       if (enable == 1) {
         await this.attach()
@@ -656,6 +659,83 @@ export class Workspace implements IWorkspace {
     return res
   }
 
+  public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
+    this.schemeProviderMap.set(scheme, provider)
+    this.setupDocumentReadAutocmd().catch(_e => {
+      // noop
+    })
+    let disposables: Disposable[] = []
+    if (provider.onDidChange) {
+      provider.onDidChange(async uri => {
+        let doc = this.getDocument(uri.toString())
+        if (doc) {
+          let { buffer } = doc
+          let tokenSource = new CancellationTokenSource()
+          let content = await Promise.resolve(provider.provideTextDocumentContent(uri, tokenSource.token))
+          await buffer.setLines(content.split('\n'), {
+            start: 0,
+            end: -1,
+            strictIndexing: false
+          })
+        }
+      }, null, disposables)
+    }
+    return Disposable.create(() => {
+      this.schemeProviderMap.delete(scheme)
+      disposeAll(disposables)
+      this.setupDocumentReadAutocmd().catch(_e => {
+        // noop
+      })
+    })
+  }
+
+  private async setupDocumentReadAutocmd(): Promise<void> {
+    let schemes = this.schemeProviderMap.keys()
+    let cmds: string[] = []
+    for (let scheme of schemes) {
+      cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}://* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<amatch>')])`)
+    }
+    let content = `
+augroup coc_file_read
+  autocmd!
+  ${cmds.join('\n')}
+augroup end`
+    let file = await createTmpFile(content)
+    await this.nvim.command(`source ${file}`)
+  }
+
+  private async onBufReadCmd(scheme: string, uri: string): Promise<void> {
+    let provider = this.schemeProviderMap.get(scheme)
+    if (!provider) {
+      this.showMessage(`Provider for ${scheme} not found`, 'error')
+      return
+    }
+    let tokenSource = new CancellationTokenSource()
+    let content = await Promise.resolve(provider.provideTextDocumentContent(Uri.parse(uri), tokenSource.token))
+    let buf = await this.nvim.buffer
+    buf.setOption('readonly', true)
+    await buf.setLines(content.split('\n'), {
+      start: 0,
+      end: -1,
+      strictIndexing: false
+    })
+  }
+
+  public dispose(): void {
+    for (let ch of this.outputChannels.values()) {
+      ch.dispose()
+    }
+    for (let doc of this.buffers.values()) {
+      doc.detach().catch(e => {
+        logger.error(e)
+      })
+    }
+    this.buffers.clear()
+    Watchman.dispose()
+    this.terminal.removeAllListeners()
+    disposeAll(this.disposables)
+  }
+
   private async attach(): Promise<void> {
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
@@ -677,21 +757,6 @@ export class Workspace implements IWorkspace {
       doc.clearHighlight()
       await events.fire('BufUnload', [bufnr])
     }
-  }
-
-  public dispose(): void {
-    for (let ch of this.outputChannels.values()) {
-      ch.dispose()
-    }
-    for (let doc of this.buffers.values()) {
-      doc.detach().catch(e => {
-        logger.error(e)
-      })
-    }
-    this.buffers.clear()
-    Watchman.dispose()
-    this.terminal.removeAllListeners()
-    disposeAll(this.disposables)
   }
 
   private fileCount(changes: { [uri: string]: TextEdit[] }): number {

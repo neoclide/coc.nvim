@@ -1,4 +1,5 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, Event } from 'vscode-languageserver-protocol'
+import URI from 'vscode-uri'
 
 /**
  * A provider result represents the values a provider, like the [`HoverProvider`](#HoverProvider),
@@ -11,15 +12,15 @@ import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeL
  * ```ts
  * let a: HoverProvider = {
  *   provideHover(doc, pos, token): ProviderResult<Hover> {
- *     return new Hover('Hello World');
+ *     return new Hover('Hello World')
  *   }
  * }
  *
  * let b: HoverProvider = {
  *   provideHover(doc, pos, token): ProviderResult<Hover> {
  *     return new Promise(resolve => {
- *       resolve(new Hover('Hello World'));
- *      });
+ *       resolve(new Hover('Hello World'))
+ *      })
  *   }
  * }
  *
@@ -572,4 +573,25 @@ export interface DocumentColorProvider {
    * can be signaled by returning `undefined`, `null`, or an empty array.
    */
   provideColorPresentations(color: Color, context: { document: TextDocument, range: Range }, token: CancellationToken): ProviderResult<ColorPresentation[]>
+}
+
+export interface TextDocumentContentProvider {
+
+  /**
+   * An event to signal a resource has changed.
+   */
+  onDidChange?: Event<URI>
+
+  /**
+   * Provide textual content for a given uri.
+   *
+   * The editor will use the returned string-content to create a readonly
+   * [document](#TextDocument). Resources allocated should be released when
+   * the corresponding document has been [closed](#workspace.onDidCloseTextDocument).
+   *
+   * @param uri An uri which scheme matches the scheme this provider was [registered](#workspace.registerTextDocumentContentProvider) for.
+   * @param token A cancellation token.
+   * @return A string or a thenable that resolves to such.
+   */
+  provideTextDocumentContent(uri: URI, token: CancellationToken): ProviderResult<string>
 }
