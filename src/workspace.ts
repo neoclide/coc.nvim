@@ -1043,7 +1043,7 @@ augroup end`
       items.push(item)
     }
     let { nvim } = this
-    await nvim.call('setqflist', [items, ' ', 'coc errors'])
+    await nvim.call('setqflist', [[], ' ', { title: 'coc errors', items }])
     await nvim.command('doautocmd User CocQuickfixChange')
   }
 

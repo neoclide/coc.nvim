@@ -517,7 +517,7 @@ export default class Handler {
       return workspace.getQuickfixItem(loc)
     }))
     let { nvim } = this
-    await nvim.call('setqflist', [items, ' ', 'Results of coc'])
+    await nvim.call('setqflist', [[], ' ', { title: 'Results of coc', items }])
     await nvim.command('doautocmd User CocQuickfixChange')
   }
 

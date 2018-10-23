@@ -62,7 +62,7 @@ export class CommandManager implements Disposable {
         let items = await Promise.all(references.map(loc => {
           return workspace.getQuickfixItem(loc)
         }))
-        await nvim.call('setqflist', [items, ' ', 'Results of references'])
+        await nvim.call('setqflist', [[], ' ', { 'title': 'Results of references', items }])
         await nvim.command('doautocmd User CocQuickfixChange')
       }
     }, true)
