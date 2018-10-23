@@ -168,7 +168,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
   let delCount = end - (startLnum - 1)
-  " TODO strict check
+  " replace
   if delCount == len(replacement)
     call setbufline(a:bufnr, startLnum, replacement)
   elseif delCount > 0
@@ -184,6 +184,9 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
         call appendbufline(a:bufnr, startLnum - 1, replacement)
       endif
     endif
+  elseif len(replacement) > 0
+    " add lines
+    call appendbufline(a:bufnr, startLnum - 1, replacement)
   endif
   redraw
 endfunction
