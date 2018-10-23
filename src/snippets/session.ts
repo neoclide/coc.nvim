@@ -149,6 +149,7 @@ export class SnippetSession {
     snippetLines[0] = this._prefix + snippetLines[0]
     snippetLines[lastIndex] = snippetLines[lastIndex] + this._suffix
 
+    this._changedtick = await this.buffer.getVar('changedtick') as number
     await this.buffer.setLines(snippetLines, {
       start: position.line,
       end: position.line + 1,

@@ -439,7 +439,15 @@ export default class Document {
     if (!o) return
     let { content, changedtick } = o
     this._changedtick = changedtick
-    this.lines = content.split('\n')
+    let newLines: string[] = content.split('\n')
+    if (newLines.length > this.lineCount) {
+      this._lastChange = 'insert'
+    } else if (newLines.length < this.lineCount) {
+      this._lastChange = 'delete'
+    } else {
+      this._lastChange = 'change'
+    }
+    this.lines = newLines
     this.fireContentChanges()
   }
 
@@ -447,6 +455,7 @@ export default class Document {
     let { lines } = this
     let { lnum, line, changedtick } = change
     this._changedtick = changedtick
+    this._lastChange = 'change'
     lines[lnum - 1] = line
     this.fireContentChanges()
   }
