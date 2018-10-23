@@ -302,7 +302,7 @@ export default class Handler {
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context = { diagnostics }
     let codeActions = await languages.getCodeActions(document.textDocument, range, context)
-    if (codeActions.length == 0) {
+    if (!codeActions || codeActions.length == 0) {
       return workspace.showMessage('No action available')
     }
     let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
