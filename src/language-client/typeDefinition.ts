@@ -8,6 +8,7 @@ import { ProviderResult } from '../provider'
 import * as Is from '../util/is'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
 import * as UUID from './utils/uuid'
+import * as cv from './utils/converter'
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -73,9 +74,8 @@ export class TypeDefinitionFeature extends TextDocumentFeature<TextDocumentRegis
   protected registerLanguageProvider(options: TextDocumentRegistrationOptions): Disposable {
     let client = this._client
     let provideTypeDefinition: ProvideTypeDefinitionSignature = (document, position, token) => {
-
-      return client.sendRequest(TypeDefinitionRequest.type, { textDocument: document, position }, token)
-        .then(res => { res }, error => {
+      return client.sendRequest(TypeDefinitionRequest.type, cv.asTextDocumentPositionParams(document, position), token)
+        .then(res => res, error => {
           client.logFailedRequest(TypeDefinitionRequest.type, error)
           return Promise.resolve(null)
         })
