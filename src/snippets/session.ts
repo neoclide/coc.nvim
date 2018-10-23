@@ -127,7 +127,7 @@ export class SnippetSession {
     let position = await workspace.getCursorPosition()
     let document = this._document = await workspace.document
     let formatOptions = await workspace.getFormatOptions(this.document.uri)
-    const currentLine = this.document.getline(position.line)
+    const currentLine = await this.nvim.call('getline', '.')
     this._position = position
 
     const [prefix, suffix] = splitLineAtPosition(currentLine, position.character)

@@ -83,13 +83,13 @@ export class Completion implements Disposable {
       increment.stop()
       return null
     }
-    let line = this.document.getline(lnum - 1)
+    let line: string
+    if (workspace.isVim) {
+      line = await this.nvim.call('getline', '.')
+    } else {
+      line = this.document.getline(lnum - 1)
+    }
     return byteSlice(line, option.col, col - 1)
-  }
-
-  private get isTriggered(): boolean {
-    let { triggerCharacter } = this.option
-    return triggerCharacter && !this.document.isWord(triggerCharacter)
   }
 
   private get bufnr(): number {

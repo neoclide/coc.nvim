@@ -898,8 +898,8 @@ augroup end`
       lastChar = ch
       lastTs = Date.now()
     })
-    events.on('TextChangedI', bufnr => {
-      let doc = this.getDocument(bufnr)
+    events.on(['TextChangedI', 'TextChangedP'], async () => {
+      let doc = await this.document
       if (!doc) return
       if (Date.now() - lastTs < 40 && lastChar) {
         nvim.call('coc#util#get_changeinfo', []).then(res => {
