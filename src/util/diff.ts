@@ -25,6 +25,10 @@ export function diffLines(from: string, to: string): ChangedLines {
     }
   }
   for (let j = oldLen; j >= 0; j--) {
+    if (j < start) {
+      end = start
+      break
+    }
     if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
       end = j
       break
