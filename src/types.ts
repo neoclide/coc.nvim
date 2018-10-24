@@ -15,6 +15,46 @@ export interface ExtensionInfo {
   state: ExtensionState
 }
 
+export interface StatusItemOption {
+  progress?: boolean
+}
+
+export interface StatusBarItem {
+  /**
+   * The priority of this item. Higher value means the item should
+   * be shown more to the left.
+   */
+  readonly priority: number
+
+  readonly isProgress: boolean
+
+  /**
+   * The text to show for the entry. You can embed icons in the text by leveraging the syntax:
+   *
+   * `My text $(icon-name) contains icons like $(icon-name) this one.`
+   *
+   * Where the icon-name is taken from the [octicon](https://octicons.github.com) icon set, e.g.
+   * `light-bulb`, `thumbsup`, `zap` etc.
+   */
+  text: string
+
+  /**
+   * Shows the entry in the status bar.
+   */
+  show(): void
+
+  /**
+   * Hide the entry in the status bar.
+   */
+  hide(): void
+
+  /**
+   * Dispose and free associated resources. Call
+   * [hide](#StatusBarItem.hide).
+   */
+  dispose(): void
+}
+
 export interface Env {
   completeOpt: string
   readonly isVim: boolean
@@ -716,7 +756,7 @@ export interface IWorkspace {
   createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher
   getConfiguration(section?: string, _resource?: string): WorkspaceConfiguration
   registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable
-  getQuickfixItem(loc: Location): Promise<QuickfixItem>
+  getQuickfixItem(loc: Location, text?: string, type?: string): Promise<QuickfixItem>
   getLine(uri: string, line: number): Promise<string>
   readFile(uri: string): Promise<string>
   echoLines(lines: string[], truncate?: boolean): Promise<void>
@@ -734,6 +774,7 @@ export interface IWorkspace {
   requestInput(title: string, defaultValue?: string): Promise<string>
   match(selector: DocumentSelector, document: TextDocument): number
   runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string>
-  runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult>
+  runTerminalCommand(cmd: string, cwd?: string, keepfocus?: boolean): Promise<TerminalResult>
+  createStatusBarItem(priority?: number): StatusBarItem
   dispose(): void
 }

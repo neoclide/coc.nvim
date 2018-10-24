@@ -78,7 +78,7 @@ export default class Terminal extends EventEmitter {
     return await this.resolveModule(mod)
   }
 
-  public async runCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
-    return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd }) as TerminalResult
+  public async runCommand(cmd: string, cwd?: string, keepfocus?: boolean): Promise<TerminalResult> {
+    return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 }

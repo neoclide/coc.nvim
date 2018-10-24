@@ -14,8 +14,9 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
+import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ChangeInfo, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ChangeInfo, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, StatusBarItem, StatusItemOption } from './types'
 import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
@@ -34,6 +35,7 @@ export class Workspace implements IWorkspace {
   public bufnr: number
 
   private willSaveUntilHandler: WillSaveUntilHandler
+  private statusLine: StatusLine
   private _env: Env
   private _cwd = process.cwd()
   private _root = process.cwd()
@@ -81,6 +83,7 @@ export class Workspace implements IWorkspace {
 
   public async init(): Promise<void> {
     this.terminal = new Terminal(this.nvim)
+    this.statusLine = new StatusLine(this.nvim)
     events.on('BufEnter', bufnr => {
       this.bufnr = bufnr
     }, null, this.disposables)
@@ -350,7 +353,7 @@ export class Workspace implements IWorkspace {
     return true
   }
 
-  public async getQuickfixItem(loc: Location, text?: string): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: Location, text?: string, type = ''): Promise<QuickfixItem> {
     let { cwd, nvim } = this
     let { uri, range } = loc
     let { line, character } = range.start
@@ -364,6 +367,7 @@ export class Workspace implements IWorkspace {
       col: character + 1,
       text
     }
+    if (type) item.type = type
     if (bufnr != -1) item.bufnr = bufnr
     return item
   }
@@ -637,9 +641,8 @@ export class Workspace implements IWorkspace {
     return runCommand(cmd, cwd, timeout)
   }
 
-  public async runTerminalCommand(cmd: string, cwd?: string): Promise<TerminalResult> {
-    cwd = cwd || this.root
-    return await this.terminal.runCommand(cmd, cwd)
+  public async runTerminalCommand(cmd: string, cwd = this.cwd, keepfocus = false): Promise<TerminalResult> {
+    return await this.terminal.runCommand(cmd, cwd, keepfocus)
   }
 
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
@@ -705,6 +708,10 @@ export class Workspace implements IWorkspace {
     })
   }
 
+  public createStatusBarItem(priority = 0, opt: StatusItemOption = {}): StatusBarItem {
+    return this.statusLine.createStatusBarItem(priority, opt.progress || false)
+  }
+
   private async setupDocumentReadAutocmd(): Promise<void> {
     let schemes = this.schemeProviderMap.keys()
     let cmds: string[] = []
@@ -749,6 +756,7 @@ augroup end`
     this.buffers.clear()
     Watchman.dispose()
     this.terminal.removeAllListeners()
+    this.statusLine.dispose()
     disposeAll(this.disposables)
   }
 

@@ -62,5 +62,5 @@ function! coc#status()
   if get(info, 'warning', 0)
     call add(msgs, '⚠️ ' . info['warning'])
   endif
-  return join(msgs, ' ')
+  return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
 endfunction
