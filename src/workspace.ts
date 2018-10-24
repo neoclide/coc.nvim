@@ -290,21 +290,22 @@ export class Workspace implements IWorkspace {
     let curpos = await nvim.call('getcurpos')
     let filetype = await nvim.buffer.getOption('filetype') as string
     let encoding = await this.getFileEncoding()
+    let changedFiles = this.getChangedFiles(edit)
+    let len = changedFiles.length
+    if (len > 0) {
+      let c = await nvim.call('coc#util#prompt_change', len)
+      if (c != 1) return false
+    }
     if (changes) {
-      let n = this.fileCount(changes)
-      if (n > 0) {
-        let c = await nvim.call('coc#util#prompt_change', n)
-        if (c != 1) return false
-      }
       for (let uri of Object.keys(changes)) {
         let edits = changes[uri]
-        let filepath = Uri.parse(uri).fsPath
         let document = this.getDocument(uri)
         let doc: TextDocument
         if (document) {
           doc = document.textDocument
           await document.applyEdits(nvim, edits)
         } else {
+          let filepath = Uri.parse(uri).fsPath
           let content = fs.readFileSync(filepath, encoding)
           doc = TextDocument.create(uri, filetype, 0, content)
           let res = TextDocument.applyEdits(doc, edits)
@@ -317,7 +318,7 @@ export class Workspace implements IWorkspace {
       for (let change of documentChanges) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
-          if (textDocument.version) {
+          if (textDocument.version != null) {
             let doc = this.getDocument(textDocument.uri)
             await doc.applyEdits(nvim, edits)
           } else {
@@ -338,6 +339,12 @@ export class Workspace implements IWorkspace {
         }
       }
       this.showMessage(`${n} documents changed!`, 'more')
+    }
+    if (changedFiles.length) {
+      let names = await Promise.all(changedFiles.map(uri => {
+        return this.getbufname(uri)
+      }))
+      await nvim.command(`argadd ${names.join(' ')}`)
     }
     await nvim.call('setpos', ['.', curpos])
     return true
@@ -768,14 +775,27 @@ augroup end`
     }
   }
 
-  private fileCount(changes: { [uri: string]: TextEdit[] }): number {
-    let n = 0
-    for (let uri of Object.keys(changes)) {
-      if (!this.getDocument(uri)) {
-        n = n + 1
+  private getChangedFiles(edit: WorkspaceEdit): string[] {
+    let { documentChanges, changes } = edit
+    let res: string[] = []
+    if (changes) {
+      for (let uri of Object.keys(changes)) {
+        if (uri.startsWith('file') && !this.getDocument(uri)) {
+          res.push(uri)
+        }
       }
     }
-    return n
+    if (documentChanges) {
+      for (let change of documentChanges) {
+        if (TextDocumentEdit.is(change)) {
+          let { textDocument } = change
+          if (textDocument.version == null) {
+            res.push(textDocument.uri)
+          }
+        }
+      }
+    }
+    return res
   }
 
   private onConfigurationChange(): void {
@@ -813,7 +833,7 @@ augroup end`
           this.showMessage(`${uri} changed before apply edit`, 'error')
           return false
         }
-        if (!version) {
+        if (version == null) {
           if (!uri.startsWith('file')) {
             this.showMessage(`Can't apply edits to ${uri}.`, 'error')
             return false
@@ -1083,6 +1103,12 @@ augroup end`
       }
     }
     return null
+  }
+
+  private async getbufname(filepath: string): Promise<string> {
+    let { cwd } = this
+    let bufname = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+    return await this.nvim.call('fnameescape', bufname)
   }
 }
 
