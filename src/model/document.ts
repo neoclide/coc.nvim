@@ -6,7 +6,7 @@ import { WorkspaceConfiguration, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
-import { byteIndex, byteLength } from '../util/string'
+import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import semver from 'semver'
 const logger = require('../util/logger')('model-document')
@@ -31,6 +31,8 @@ export default class Document {
   private lines: string[] = []
   private _changedtick: number
   private _words: string[] = []
+  // ids of matchadd in vim
+  private matchIds: number[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
@@ -480,12 +482,11 @@ export default class Document {
 
   public async setHighlights(highlights: DocumentHighlight[]): Promise<void> {
     let { srcId, buffer } = this
-    if (this.env.isVim) return
-    if (srcId == 0) {
+    if (srcId == 0 && !this.env.isVim) {
       srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
       this.srcId = srcId
     } else {
-      buffer.clearHighlight({ srcId })
+      this.clearHighlight()
     }
     for (let hl of highlights) {
       let hlGroup = hl.kind == DocumentHighlightKind.Text
@@ -498,28 +499,39 @@ export default class Document {
   }
 
   private async highlightRange(range: Range, srcId: number, hlGroup: string): Promise<void> {
-    let { buffer } = this
+    let { buffer, matchIds, nvim } = this
     let { start, end } = range
     for (let i = start.line; i <= end.line; i++) {
       let line = this.getline(i)
       if (!line || !line.length) continue
       let s = i == start.line ? start.character : 0
       let e = i == end.line ? end.character : -1
-      await buffer.addHighlight({
-        srcId,
-        hlGroup,
-        line: i,
-        colStart: s == 0 ? 0 : byteIndex(line, s),
-        colEnd: e == -1 ? -1 : byteIndex(line, e),
-      })
+      if (this.env.isVim) {
+        let pos = [i + 1, s == 0 ? 1 : byteIndex(line, s) + 1, byteSlice(line, start.character, end.character).length]
+        logger.debug('pos:', pos)
+        let id = await nvim.call('matchaddpos', [hlGroup, [pos]])
+        matchIds.push(id)
+      } else {
+        await buffer.addHighlight({
+          srcId,
+          hlGroup,
+          line: i,
+          colStart: s == 0 ? 0 : byteIndex(line, s),
+          colEnd: e == -1 ? -1 : byteIndex(line, e),
+        })
+      }
     }
   }
 
   public clearHighlight(): void {
-    let { srcId, buffer } = this
-    if (this.env.isVim) return
-    if (srcId) {
-      buffer.clearHighlight({ srcId })
+    let { srcId, nvim, buffer, matchIds } = this
+    if (this.env.isVim) {
+      for (let id of matchIds) {
+        nvim.call('matchdelete', id, true)
+      }
+      this.matchIds = []
+    } else {
+      if (srcId) buffer.clearHighlight({ srcId })
     }
   }
 

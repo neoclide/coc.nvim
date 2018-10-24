@@ -280,7 +280,7 @@ endfunction
 autocmd CursorHoldI * silent! call CocAction('showSignatureHelp')
 
 " Highlight symbol under cursor on CursorHold
-autocmd CursorHold * silent call CocActionAsync('highlight')
+autocmd CursorHold * silent call CocAction('highlight')
 
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
@@ -350,3 +350,4 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 [gitter]: https://gitter.im/coc-nvim/Lobby
 [doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
 [doc link]: doc/coc.txt
+
