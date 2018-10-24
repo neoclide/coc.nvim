@@ -1,3 +1,15 @@
+# 2018-10-25
+
+- Fix `implementation` and `typeDefinition` of language client not working.
+- Fix `diffLines` return wrong range.
+- Fix `setqflist` and `setloclist` not works on vim.
+- Fix snippets and `additionalTextEdits` not works on vim.
+- Fix append lines not works on vim.
+- Fix highlight action not works on vim.
+- Fix null version of `TextDocumentIdentifier` not handled.
+- Add `workspace.registerTextDocumentContentProvider` for handle custom uri.
+- Add `workspace.createStatusBarItem` method.
+
 # 2018-10-21
 
 - **Break change**: `triggerAfterInsertEnter` now respect `minTriggerInputLength`.
