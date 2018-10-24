@@ -1,7 +1,7 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import findUp from 'find-up'
-import fs from 'fs'
+import fs, { existsSync } from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
@@ -288,14 +288,14 @@ export class Workspace implements IWorkspace {
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
+    let filetype = await nvim.buffer.getOption('filetype') as string
+    let encoding = await this.getFileEncoding()
     if (changes) {
       let n = this.fileCount(changes)
       if (n > 0) {
         let c = await nvim.call('coc#util#prompt_change', n)
         if (c != 1) return false
       }
-      let filetype = await nvim.buffer.getOption('filetype') as string
-      let encoding = await this.getFileEncoding()
       for (let uri of Object.keys(changes)) {
         let edits = changes[uri]
         let filepath = Uri.parse(uri).fsPath
@@ -317,8 +317,17 @@ export class Workspace implements IWorkspace {
       for (let change of documentChanges) {
         if (TextDocumentEdit.is(change)) {
           let { textDocument, edits } = change
-          let doc = this.getDocument(textDocument.uri)
-          await doc.applyEdits(nvim, edits)
+          if (textDocument.version) {
+            let doc = this.getDocument(textDocument.uri)
+            await doc.applyEdits(nvim, edits)
+          } else {
+            let u = Uri.parse(textDocument.uri)
+            let filepath = u.fsPath
+            let content = fs.readFileSync(filepath, encoding)
+            let doc = TextDocument.create(textDocument.uri, filetype, 0, content)
+            let res = TextDocument.applyEdits(doc, edits)
+            await writeFile(filepath, res)
+          }
         } else if (CreateFile.is(change)) {
           let file = Uri.parse(change.uri).fsPath
           await this.createFile(file, change.options)
@@ -796,13 +805,24 @@ augroup end`
         let { textDocument } = change
         let { uri, version } = textDocument
         let doc = this.getDocument(uri)
-        if (!doc) {
-          this.showMessage(`${uri} not found`, 'error')
+        if (version && !doc) {
+          this.showMessage(`${uri} not opened.`, 'error')
           return false
         }
         if (doc.version != version) {
           this.showMessage(`${uri} changed before apply edit`, 'error')
           return false
+        }
+        if (!version) {
+          if (!uri.startsWith('file')) {
+            this.showMessage(`Can't apply edits to ${uri}.`, 'error')
+            return false
+          }
+          let exists = fs.existsSync(Uri.parse(uri).fsPath)
+          if (!exists) {
+            this.showMessage(`File ${uri} not exists.`, 'error')
+            return false
+          }
         }
       } else if (CreateFile.is(change)) {
         let u = Uri.parse(change.uri)
