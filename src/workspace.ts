@@ -1,7 +1,7 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import findUp from 'find-up'
-import fs, { existsSync } from 'fs'
+import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'

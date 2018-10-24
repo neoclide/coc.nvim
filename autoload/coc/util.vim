@@ -201,7 +201,7 @@ endfunction
 
 function! coc#util#prompt_change(count)
   echohl MoreMsg
-  echom a:count.' files will be changed. Confirm? (y/n)'
+  echom a:count.' files on disk will be changed. Confirm? (y/n)'
   echohl None
   let confirm = nr2char(getchar()) | redraw!
   if !(confirm ==? "y" || confirm ==? "\r")
