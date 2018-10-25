@@ -103,10 +103,10 @@
     lodash "^4.2.0"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@4.3.24":
-  version "4.3.24"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.24.tgz#2c571b3dae6fcdfb81a648d9048db914a9d28f4b"
-  integrity sha512-10DesU4DjTZ/cwoBA8QyJfrn/6smyup5446xwLJBETTampM2JMtOvSKIubSjUbR9xiLyUbpV58COb9uv7PAtZQ==
+"@chemzqm/neovim@4.3.25":
+  version "4.3.25"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.25.tgz#0f9ba82cda143ea0c3af3900a1d400545db46365"
+  integrity sha512-ijR3pukX5SEU7pWlWYvHdA8aEke/HHHUlwfe5whNST9tIeVqCBxFU1Irl7kNHuSfKQNEjbWsh56rIyf5EeDzlg==
   dependencies:
     babel-eslint "^8.2.6"
     msgpack-lite "^0.1.26"
@@ -161,10 +161,10 @@
     "@types/minimatch" "*"
     "@types/node" "*"
 
-"@types/jest@^23.3.5":
-  version "23.3.5"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-23.3.5.tgz#870a1434208b60603745bfd214fc3fc675142364"
-  integrity sha512-3LI+vUC3Wju28vbjIjsTKakhMB8HC4l+tMz+Z8WRzVK+kmvezE5jcOvKtBpznWSI5KDLFo+FouUhpTKoekadCA==
+"@types/jest@^23.3.7":
+  version "23.3.7"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-23.3.7.tgz#77f9a4332ccf8db680a31818ade3ee454c831a79"
+  integrity sha512-N0p6mHrS0RHC3A9hHN4QH1RM2fGSb2E8rt6ONEK5xKSnyKtn/JAhr1VritkCn6cdyDBephVB80THqJGWzK8FAw==
 
 "@types/minimatch@*", "@types/minimatch@^3.0.3":
   version "3.0.3"
@@ -3064,10 +3064,10 @@ pify@^2.0.0:
   resolved "https://registry.yarnpkg.com/pify/-/pify-2.3.0.tgz#ed141a6ac043a849ea588498e7dca8b15330e90c"
   integrity sha1-7RQaasBDqEnqWISY59yosVMw6Qw=
 
-pify@^4.0.0:
-  version "4.0.0"
-  resolved "https://registry.yarnpkg.com/pify/-/pify-4.0.0.tgz#db04c982b632fd0df9090d14aaf1c8413cadb695"
-  integrity sha512-zrSP/KDf9DH3K3VePONoCstgPiYJy9z0SCatZuTpOc7YdnWIqwkWdXOuwlr4uDc7em8QZRsFWsT/685x5InjYg==
+pify@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/pify/-/pify-4.0.1.tgz#4b2cd25c50d598735c50292224fd8c6df41e3231"
+  integrity sha512-uB80kBFb/tfd68bVleG9T5GGsGPjJrLAUpR5PZIrhBnIaRTQRjqdJSsIKkOP6OAIFbj7GOrcudc5pNjZ+geV2g==
 
 pinkie-promise@^2.0.0:
   version "2.0.1"
