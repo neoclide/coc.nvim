@@ -51,6 +51,10 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   For other plugin manager, run command `:call coc#util#install()` to download
   binary after coc is installed.
 
+  **Note:** neovim >= 0.3.0 or vim >= 8.1 is required.
+
+  **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
+
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
   - [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
