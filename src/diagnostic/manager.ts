@@ -3,7 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, LocationListItem, DiagnosticInfo } from '../types'
+import { DiagnosticItem, LocationListItem, DiagnosticInfo, DiagnosticItems } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -36,14 +36,14 @@ function severityName(severity: DiagnosticSeverity): string {
 
 export class DiagnosticManager {
   public config: DiagnosticConfig
-  private enabled = true
+  public enabled = true
   private timer: NodeJS.Timer
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private srcId = 1000
-  private srcIdMap: Map<string, number> = new Map()
+  private _srcId = 1000
   private enableMessage = true
+  public insertMode = false
   constructor() {
 
     workspace.onDidWorkspaceInitialized(() => {
@@ -53,6 +53,11 @@ export class DiagnosticManager {
           logger.error(err.stack)
         })
       }
+      workspace.nvim.mode.then(({ mode }) => {
+        this.insertMode = mode.startsWith('i')
+      }, _e => {
+        // noop
+      })
     }, null, this.disposables)
 
     events.on('CursorMoved', bufnr => {
@@ -62,10 +67,20 @@ export class DiagnosticManager {
       this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
     }, null, this.disposables)
 
-    events.on(['InsertEnter', 'TextChanged'], () => {
+    events.on('InsertEnter', async () => {
+      this.insertMode = true
       if (this.timer) {
         clearTimeout(this.timer)
       }
+    }, null, this.disposables)
+
+    events.on('InsertLeave', async () => {
+      this.insertMode = false
+      let { bufnr } = workspace
+      setTimeout(() => {
+        let buf = this.buffers.find(buf => buf.bufnr == bufnr)
+        if (buf) buf.refresh()
+      }, 200)
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {
@@ -74,22 +89,17 @@ export class DiagnosticManager {
 
     events.on('BufWinEnter', async (bufnr, winid) => {
       if (!this.config.locationlist) return
-      await wait(60)
+      // wait buffer create
+      await wait(100)
       let doc = workspace.getDocument(bufnr)
-      if (!doc) return
+      if (!doc || doc.buftype == 'quickfix' || doc.buftype == 'terminal') return
       let buf = this.buffers.find(buf => buf.uri == doc.uri)
       if (buf) {
-        buf.setLocationlist()
+        buf.refresh()
       } else {
-        let { buftype } = doc
-        if (buftype == 'quickfix') return
-        try {
-          let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
-          if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-            this.nvim.call('setloclist', [winid, [], 'f'], true)
-          }
-        } catch (_e) {
-          // noop
+        let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
+        if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
+          this.nvim.call('setloclist', [winid, [], 'f'], true)
         }
       }
     }, null, this.disposables)
@@ -122,6 +132,10 @@ export class DiagnosticManager {
     }))
   }
 
+  public get srcId(): number {
+    return this._srcId
+  }
+
   private get nvim(): Neovim {
     return workspace.nvim
   }
@@ -129,7 +143,7 @@ export class DiagnosticManager {
   private setConfiguration(): void {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
-    this.srcId = config.get<number>('highlightOffset', 1000)
+    this._srcId = config.get<number>('highlightOffset', 1000)
     this.config = {
       locationlist: config.get<boolean>('locationlist', true),
       signOffset: config.get<number>('signOffset', 1000),
@@ -168,37 +182,12 @@ export class DiagnosticManager {
   public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
-    if (workspace.isNvim) {
-      let { srcId } = this
-      this.srcId = this.srcId + 1
-      this.srcIdMap.set(name, srcId)
-    }
     return collection
-  }
-
-  public getSrcId(name: string): number {
-    return this.srcIdMap.get(name)
   }
 
   public removeCollection(owner: string): void {
     let idx = this.collections.findIndex(c => c.name == owner)
     if (idx !== -1) this.collections.splice(idx, 1)
-  }
-
-  /**
-   * Add diagnostics for owner and uri
-   *
-   * @public
-   * @param {string} owner
-   * @param {string} uri
-   * @param {Diagnostic[]|null} diagnostics
-   * @returns {void}
-   */
-  public add(owner: string, uri: string, diagnostics: Diagnostic[] | null): void {
-    if (!this.enabled) return
-    let buffer = this.getBuffer(uri)
-    if (!buffer) return
-    buffer.set(owner, diagnostics || [])
   }
 
   public getSortedRanges(document: Document): Range[] {
@@ -286,32 +275,24 @@ export class DiagnosticManager {
     this._echoMessage()
   }
 
-  public getLocationList(uri: string, bufnr: number): LocationListItem[] {
-    let res: LocationListItem[] = []
-    for (let collection of this.collections) {
-      collection.forEach((u, diagnostics) => {
-        if (u != uri) return
-        for (let diagnostic of diagnostics) {
-          let { start } = diagnostic.range
-          let msg = diagnostic.message.split('\n')[0]
-          let o: LocationListItem = {
-            bufnr,
-            lnum: start.line + 1,
-            col: start.character + 1,
-            text: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg}`,
-            type: severityName(diagnostic.severity).slice(0, 1).toUpperCase(),
-          }
-          res.push(o)
-        }
-      })
+  public getBufferDiagnostic(uri: string): DiagnosticItems {
+    let res: DiagnosticItems = {}
+    for (let collection of this.getCollections(uri)) {
+      res[collection.name] = collection.get(uri)
     }
-    res.sort((a, b) => {
-      if (a.lnum != b.lnum) {
-        return a.lnum - b.lnum
-      }
-      return a.col - b.col
-    })
     return res
+  }
+
+  public getLocationListItem(owner: string, bufnr: number, diagnostic: Diagnostic): LocationListItem {
+    let { start } = diagnostic.range
+    let msg = diagnostic.message.split('\n')[0]
+    return {
+      bufnr,
+      lnum: start.line + 1,
+      col: start.character + 1,
+      text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg}`,
+      type: severityName(diagnostic.severity).slice(0, 1).toUpperCase(),
+    }
   }
 
   /**
@@ -399,11 +380,6 @@ export class DiagnosticManager {
     return res
   }
 
-  public async clearBuffer(owner: string, uri: string): Promise<void> {
-    let buf = this.getBuffer(uri)
-    if (buf) await buf.clear(owner)
-  }
-
   public async clear(owner: string, uri?: string): Promise<void> {
     let collection = this.collections.find(o => o.name == owner)
     if (!collection) return
@@ -412,6 +388,11 @@ export class DiagnosticManager {
     } else {
       await collection.delete(uri)
     }
+  }
+
+  public refresh(uri: string): void {
+    let buf = this.buffers.find(buf => buf.uri == uri)
+    if (buf) buf.refresh()
   }
 
   public dispose(): void {
@@ -431,18 +412,6 @@ export class DiagnosticManager {
     return this.collections.filter(c => c.has(uri))
   }
 
-  public getDiagnosticInfo(uri: string): DiagnosticInfo {
-    let diagnostics = []
-    let collections = this.getCollections(uri)
-    collections.forEach(collection => {
-      let arr = collection.get(uri)
-      if (arr && arr.length) {
-        diagnostics.push(...arr)
-      }
-    })
-    return getDiagnosticInfo(diagnostics)
-  }
-
   private async onHold(bufnr: number): Promise<void> {
     if (workspace.bufnr != bufnr) return
     let m = await this.nvim.mode
@@ -457,34 +426,6 @@ export class DiagnosticManager {
       })
     }, 100)
   }
-}
-
-function getDiagnosticInfo(diagnostics: Diagnostic[]): DiagnosticInfo {
-  let error = 0
-  let warning = 0
-  let information = 0
-  let hint = 0
-  if (diagnostics && diagnostics.length) {
-    for (let diagnostic of diagnostics) {
-      switch (diagnostic.severity) {
-        case DiagnosticSeverity.Error:
-          error = error + 1
-          break
-        case DiagnosticSeverity.Warning:
-          warning = warning + 1
-          break
-        case DiagnosticSeverity.Information:
-          information = information + 1
-          break
-        case DiagnosticSeverity.Hint:
-          hint = hint + 1
-          break
-        default:
-          error = error + 1
-      }
-    }
-  }
-  return { error, warning, information, hint }
 }
 
 export default new DiagnosticManager()

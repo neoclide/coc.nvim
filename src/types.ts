@@ -15,6 +15,10 @@ export interface ExtensionInfo {
   state: ExtensionState
 }
 
+export interface DiagnosticItems {
+  [owner: string]: Diagnostic[]
+}
+
 export interface StatusItemOption {
   progress?: boolean
 }
