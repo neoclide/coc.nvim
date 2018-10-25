@@ -334,8 +334,6 @@ export interface WorkspaceConfiguration {
    * Readable dictionary that backs this configuration.
    */
   readonly [key: string]: any
-
-  toJSON(): string
 }
 
 export interface ConfigurationInspect<T> {

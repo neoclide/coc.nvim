@@ -44,12 +44,6 @@ export class ConfigurationModel implements IConfigurationModel {
     }
   }
 
-  public toJSON(): IConfigurationModel {
-    return {
-      contents: this.contents
-    }
-  }
-
   // Update methods
 
   public setValue(key: string, value: any): void {

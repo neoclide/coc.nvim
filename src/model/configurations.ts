@@ -169,14 +169,8 @@ export default class Configurations {
           }
         }
         return undefined
-      },
-      toJSON: () => {
-        return JSON.stringify(config)
       }
     }
-    Object.defineProperty(result, 'toJSON', {
-      enumerable: false
-    })
     Object.defineProperty(result, 'has', {
       enumerable: false
     })
