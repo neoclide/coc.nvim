@@ -123,7 +123,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
       newText: item.insertText
     }
   }
-  obj.abbr = item.data && item.data.abbr ? item.data.abbr : obj.filterText
+  obj.abbr = item.data && item.data.abbr ? item.data.abbr : item.label
   if (item.data && item.data.optional) {
     obj.abbr = obj.abbr + '?'
   }
