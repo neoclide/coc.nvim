@@ -54,6 +54,12 @@ export class SnippetManager implements types.SnippetManager {
         this.cancel()
       }
     }, null, this.disposables)
+
+    events.on('CursorHold', () => {
+      if (this._activeSession) {
+        this.cancel()
+      }
+    }, null, this.disposables)
   }
 
   public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
