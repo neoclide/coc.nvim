@@ -102,7 +102,8 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,
-    filterText: validString(item.filterText) ? item.filterText : item.label,
+    // tslint:disable-next-line: deprecation
+    filterText: validString(item.filterText) ? item.filterText : (item.insertText || item.label),
     isSnippet
   }
   if (item.preselect) obj.sortText = '\0' + obj.sortText
