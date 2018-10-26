@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 /*tslint:disable*/
-import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, TextDocumentEdit, ResourceOperationKind, FailureHandlingKind, TraceFormat, TraceOptions } from 'vscode-languageserver-protocol'
+import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceSymbolRequest, TextDocumentEdit, ResourceOperationKind, FailureHandlingKind, TraceFormat, TraceOptions, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Commands from '../commands'
 import languages from '../languages'
@@ -647,6 +647,7 @@ export interface LanguageClientOptions {
   initializationFailedHandler?: InitializationFailedHandler
   errorHandler?: ErrorHandler
   middleware?: Middleware
+  workspaceFolder?: WorkspaceFolder
 }
 
 interface ResolvedClientOptions {
@@ -660,6 +661,7 @@ interface ResolvedClientOptions {
   initializationFailedHandler?: InitializationFailedHandler
   errorHandler: ErrorHandler
   middleware: Middleware
+  workspaceFolder?: WorkspaceFolder
 }
 
 export enum State {
@@ -3131,6 +3133,7 @@ export abstract class BaseLanguageClient {
       errorHandler:
         clientOptions.errorHandler || new DefaultErrorHandler(this._id),
       middleware: clientOptions.middleware || {},
+      workspaceFolder: clientOptions.workspaceFolder
     }
     this._clientOptions.synchronize = this._clientOptions.synchronize || {}
 
@@ -3548,7 +3551,9 @@ export abstract class BaseLanguageClient {
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
     let initOption = this._clientOptions.initializationOptions
-    let rootPath = workspace.rootPath
+    let rootPath = this._clientOptions.workspaceFolder
+      ? Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+      : workspace.rootPath
     let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
