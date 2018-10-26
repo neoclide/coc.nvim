@@ -31,7 +31,6 @@ import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
 const logger = require('./util/logger')('languages')
 
-
 export interface CompletionSource {
   id: string
   source: ISource
@@ -388,18 +387,18 @@ class Languages {
     // track them for resolve
     let completeItems: CompletionItem[] = []
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    let resolving: string
+    let isResolving = false
+    let resolveInput: string
     let option: CompleteOption
     let preferences = workspace.getConfiguration('coc.preferences')
     let priority = preferences.get<number>('languageSourcePriority', 99)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    let cancelTokenSource: CancellationTokenSource = null
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
       let { word } = item
-      return completeItems.find(o => {
-        return word == complete.getWord(o)
-      })
+      return completeItems.find(o => word == complete.getWord(o))
     }
     return {
       name,
@@ -409,47 +408,63 @@ class Languages {
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
-        if (!hasResolve) return
         if (completeItems.length == 0) return
-        if (resolving) {
-          this.cancelTokenSource.cancel()
+        if (isResolving && cancelTokenSource) {
+          cancelTokenSource.cancel()
         }
-        resolving = item.word
-        let resolved: CompletionItem
-        let prevItem = resolveItem(item)
-        if (!prevItem) return
-        prevItem.data = prevItem.data || {}
-        if (!prevItem) return
-        if (prevItem.data.resolved) {
-          resolved = prevItem
-        } else {
-          prevItem.data.resolving = true
-          let token = this.token
-          resolved = await Promise.resolve(provider.resolveCompletionItem(prevItem, this.token))
-          prevItem.data.resolving = false
-          if (!resolved || token.isCancellationRequested) return
-          resolved.data = Object.assign(resolved.data || {}, {
-            resolving: false,
-            resolved: true
-          })
+        resolveInput = item.word
+        let resolving = resolveItem(item)
+        if (!resolving) return
+        resolving.data = resolving.data || {}
+        if (!resolving.data.resolved && hasResolve) {
+          cancelTokenSource = new CancellationTokenSource()
+          let token = cancelTokenSource.token
+          isResolving = true
+          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, token))
+          isResolving = false
+          if (token.isCancellationRequested) return
+          if (resolved) Object.assign(resolving, resolved)
+          resolving.data.resolved = true
         }
+        // use TextEdit for snippet item
+        // tslint:disable-next-line: deprecation
+        if (resolving.insertTextFormat == InsertTextFormat.Snippet && resolving.insertText && !resolving.textEdit) {
+          // fix worng format
+          // tslint:disable-next-line: deprecation
+          if (resolving.insertText.indexOf('$') == -1) {
+            resolving.insertTextFormat = InsertTextFormat.PlainText
+          } else {
+            let { col, colnr } = option
+            let line = option.linenr - 1
+            // use textEdit for snippet
+            resolving.textEdit = {
+              range: Range.create(line, col, line, colnr - 1),
+              // tslint:disable-next-line: deprecation
+              newText: resolving.insertText
+            }
+          }
+        }
+
         let visible = await this.nvim.call('pumvisible')
-        if (visible != 0 && resolving == item.word) {
+        if (visible != 0 && resolveInput == item.word) {
           // vim have no suppport for update complete item
-          let str = resolved.detail ? resolved.detail.trim() : ''
-          echoMessage(this.nvim, str)
-          let doc = complete.getDocumentation(resolved)
+          let str = resolving.detail ? resolving.detail.trim() : ''
+          if (str) echoMessage(this.nvim, str)
+          let doc = complete.getDocumentation(resolving)
           if (doc) str += '\n\n' + doc
           if (str.length) {
             // TODO vim has bug with layout change on pumvisible
             // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
           }
         }
-        resolving = null
+        resolveInput = null
       },
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
+        if (cancelTokenSource) {
+          cancelTokenSource.cancel()
+        }
         let timeout = workspace.isVim ? 100 : 30
         setTimeout(async () => {
           try {
@@ -473,7 +488,7 @@ class Languages {
           }
           option = null
           completeItems = []
-          resolving = ''
+          resolveInput = null
         }, timeout)
         return
       },
@@ -498,7 +513,7 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
           isIncomplete,
-          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, opt))
+          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
@@ -510,12 +525,8 @@ class Languages {
   }
 
   private get token(): CancellationToken {
-    let token = this.cancelTokenSource.token
-    if (token.isCancellationRequested) {
-      this.cancelTokenSource = new CancellationTokenSource()
-      token = this.cancelTokenSource.token
-    }
-    return token
+    this.cancelTokenSource = new CancellationTokenSource()
+    return this.cancelTokenSource.token
   }
 
   private async checkConfirm(item: CompletionItem, option: CompleteOption): Promise<boolean> {

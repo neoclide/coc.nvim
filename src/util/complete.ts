@@ -95,7 +95,7 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
     word: getWord(item),
@@ -113,16 +113,6 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
     // make sure we can find it on CompleteDone
     // tslint:disable-next-line: deprecation
     item.insertText = obj.word
-  }
-  // tslint:disable-next-line: deprecation
-  if (isSnippet && item.insertText && !item.textEdit) {
-    let line = opt.linenr - 1
-    // use textEdit for snippet
-    item.textEdit = {
-      range: Range.create(line, opt.col, line, opt.colnr - 1),
-      // tslint:disable-next-line: deprecation
-      newText: item.insertText
-    }
   }
   obj.abbr = item.data && item.data.abbr ? item.data.abbr : item.label
   if (item.data && item.data.optional) {
