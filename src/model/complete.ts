@@ -98,7 +98,6 @@ export default class Complete {
           } catch (e) { } // tslint:disable-line
         }
         if (filterText.length < input.length) continue
-        if (!cid && item.sortText) delete item.sortText
         if (input.length && !fuzzyMatch(codes, filterText)) continue
         if (cid) {
           data = Object.assign(data, { cid, source })
