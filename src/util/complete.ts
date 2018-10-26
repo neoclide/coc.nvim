@@ -103,7 +103,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
     kind: completionKindString(item.kind),
     sortText: validString(item.sortText) ? item.sortText : item.label,
     // tslint:disable-next-line: deprecation
-    filterText: validString(item.filterText) ? item.filterText : (item.insertText || item.label),
+    filterText: getFilterText(item),
     isSnippet
   }
   if (item.preselect) obj.sortText = '\0' + obj.sortText
@@ -138,4 +138,15 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
 function validString(str: any): boolean {
   if (typeof str !== 'string') return false
   return str.length > 0
+}
+
+function getFilterText(item: CompletionItem): string {
+  if (item.filterText) return item.filterText
+  // tslint:disable-next-line:deprecation
+  let { insertText, textEdit, label, insertTextFormat } = item
+  let text = insertText ? insertText : (textEdit ? textEdit.newText : label)
+  if (insertTextFormat == InsertTextFormat.Snippet) {
+    return text.replace(/\$\d+/g, '')
+  }
+  return text
 }

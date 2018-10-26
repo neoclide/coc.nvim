@@ -124,6 +124,7 @@ class Languages {
             res.push({
               label: snip.prefix,
               detail: snip.body.replace(/(\n|\t)/g, '').slice(0, 50),
+              filterText: snip.prefix,
               documentation: snip.description,
               insertTextFormat: InsertTextFormat.Snippet,
               textEdit: TextEdit.replace(
