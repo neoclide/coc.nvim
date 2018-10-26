@@ -305,6 +305,11 @@ g:rooter_patterns 				*g:rooter_patterns*
 <
 			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
 
+g:coc_status 					*g:coc_status*
+
+			Status string contributed by extensions, used for
+			status line.
+
 ------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
 
