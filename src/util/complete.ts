@@ -101,7 +101,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, o
     word: getWord(item),
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
-    sortText: item.sortText || item.label,
+    sortText: item.sortText || null,
     // tslint:disable-next-line: deprecation
     filterText: item.filterText || item.label,
     isSnippet

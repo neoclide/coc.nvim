@@ -263,6 +263,7 @@ export interface VimCompleteItem {
   sortText?: string
   filterText?: string
   isSnippet?: boolean
+  source?: string
 }
 
 export interface CompleteResult {

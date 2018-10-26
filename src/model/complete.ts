@@ -102,6 +102,7 @@ export default class Complete {
         if (cid) {
           data = Object.assign(data, { cid, source })
           item.user_data = JSON.stringify(data)
+          item.source = source
         }
         let factor = priority / 10000 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
@@ -112,7 +113,7 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (sa && sb) {
+      if (a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa < sb ? -1 : 1
       } else {

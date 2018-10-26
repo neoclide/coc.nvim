@@ -31,6 +31,7 @@ import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
 const logger = require('./util/logger')('languages')
 
+
 export interface CompletionSource {
   id: string
   source: ISource
