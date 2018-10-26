@@ -508,7 +508,6 @@ export default class Document {
       let e = i == end.line ? end.character : -1
       if (this.env.isVim) {
         let pos = [i + 1, s == 0 ? 1 : byteIndex(line, s) + 1, byteSlice(line, start.character, end.character).length]
-        logger.debug('pos:', pos)
         let id = await nvim.call('matchaddpos', [hlGroup, [pos]])
         matchIds.push(id)
       } else {

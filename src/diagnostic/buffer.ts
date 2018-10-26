@@ -5,7 +5,6 @@ import { DiagnosticInfo, DiagnosticItems, LocationListItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticManager } from './manager'
-import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
@@ -35,12 +34,16 @@ export class DiagnosticBuffer {
 
   constructor(public readonly bufnr: number, public readonly uri: string, private manager: DiagnosticManager) {
     this.signId = manager.config.signOffset || 1000
+    let timer: NodeJS.Timer = null
     this.refresh = () => {
-      this.promise = this.promise.then(() => {
-        return this._refresh()
-      }, e => {
-        logger.error(e)
-      })
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => {
+        this.promise = this.promise.then(() => {
+          return this._refresh()
+        }, e => {
+          logger.error(e)
+        })
+      }, 30)
     }
   }
 
@@ -60,10 +63,6 @@ export class DiagnosticBuffer {
     if (!this.manager.enabled) return
     if (this.manager.insertMode) return
     let diagnosticItems = this.manager.getBufferDiagnostic(this.uri)
-    if (equals(this.diagnosticItems, diagnosticItems)) {
-      await this.setLocationlist()
-      return
-    }
     this.diagnosticItems = diagnosticItems
     this.setDiagnosticInfo()
     await this.setLocationlist()
@@ -99,9 +98,11 @@ export class DiagnosticBuffer {
     await nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }])
   }
 
-  public async clearSigns(): Promise<void> {
-    let { document, bufnr } = this
-    if (!document) return
+  private async clearSigns(): Promise<void> {
+    let { nvim, bufnr } = this
+    let buffers = await nvim.buffers
+    let buffer = buffers.find(buf => buf.id == bufnr)
+    if (!buffer) return
     let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
     let lines: string[] = content.split('\n')
     let ids = []
@@ -113,7 +114,7 @@ export class DiagnosticBuffer {
         ids.push(id)
       }
     }
-    this.nvim.call('coc#util#unplace_signs', [bufnr, ids], true)
+    nvim.call('coc#util#unplace_signs', [bufnr, ids], true)
   }
 
   private addSigns(): void {
@@ -147,10 +148,12 @@ export class DiagnosticBuffer {
   }
 
   private async clearHighlight(): Promise<void> {
-    let { bufnr, nvim, document, matchIds } = this
+    let { bufnr, nvim, matchIds } = this
     if (workspace.isNvim) {
       let { srcId } = this.manager
-      if (document && srcId) document.buffer.clearHighlight({ srcId })
+      let buffers = await nvim.buffers
+      let buffer = buffers.find(buf => buf.id == bufnr)
+      if (buffer) buffer.clearHighlight({ srcId })
     } else {
       if (workspace.bufnr != bufnr) return
       await nvim.call('coc#util#matchdelete', [Array.from(matchIds)])
@@ -159,12 +162,14 @@ export class DiagnosticBuffer {
   }
 
   private async addHighlight(): Promise<void> {
-    let { diagnosticItems } = this
+    let { diagnosticItems, nvim } = this
+    let winid = await nvim.call('bufwinid', this.bufnr) as number
+    if (winid == -1) return
     for (let owner of Object.keys(diagnosticItems)) {
       for (let diagnostic of diagnosticItems[owner]) {
         let { range, severity } = diagnostic
         if (workspace.isVim) {
-          await this.addHighlightVim(range, severity)
+          await this.addHighlightVim(winid, range, severity)
         } else {
           await this.addHighlightNvim(range, severity)
         }
@@ -193,10 +198,10 @@ export class DiagnosticBuffer {
     }
   }
 
-  private async addHighlightVim(range: Range, severity: DiagnosticSeverity): Promise<void> {
+  private async addHighlightVim(winid: number, range: Range, severity: DiagnosticSeverity): Promise<void> {
     let { start, end } = range
     let { document, matchIds } = this
-    if (!document || workspace.bufnr != document.bufnr) return
+    if (!document) return
     try {
       let list: any[] = []
       for (let i = start.line; i <= end.line; i++) {
@@ -218,7 +223,7 @@ export class DiagnosticBuffer {
           list.push(i + 1)
         }
       }
-      let id = await workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99])
+      let id = await workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, -1, { window: winid }])
       matchIds.add(id)
     } catch (e) {
       logger.error(e.stack)

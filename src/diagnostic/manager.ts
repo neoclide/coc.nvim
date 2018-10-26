@@ -3,7 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, LocationListItem, DiagnosticInfo, DiagnosticItems } from '../types'
+import { DiagnosticItem, DiagnosticItems, LocationListItem } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -92,7 +92,7 @@ export class DiagnosticManager {
       // wait buffer create
       await wait(100)
       let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.buftype == 'quickfix' || doc.buftype == 'terminal') return
+      if (!doc || doc.buftype == 'quickfix' || doc.buftype == 'help') return
       let buf = this.buffers.find(buf => buf.uri == doc.uri)
       if (buf) {
         buf.refresh()
@@ -111,19 +111,8 @@ export class DiagnosticManager {
       for (let collection of this.collections) {
         await collection.delete(buf.uri)
       }
-      await this.nvim.command(`sign unplace * buffer=${bufnr}`)
       this.buffers.splice(idx, 1)
     }, null, this.disposables)
-
-    workspace.onWillSaveTextDocument(e => {
-      let { uri } = e.document
-      let buf = this.buffers.find(buf => buf.uri == uri)
-      if (buf) {
-        buf.clearSigns().catch(e => {
-          logger.error(e)
-        })
-      }
-    })
 
     this.disposables.push(Disposable.create(() => {
       if (this.timer) {
@@ -388,11 +377,6 @@ export class DiagnosticManager {
     } else {
       await collection.delete(uri)
     }
-  }
-
-  public refresh(uri: string): void {
-    let buf = this.buffers.find(buf => buf.uri == uri)
-    if (buf) buf.refresh()
   }
 
   public dispose(): void {
