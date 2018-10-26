@@ -100,26 +100,41 @@ export default class Handler {
   public async onHover(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let hover = await languages.getHover(document, position)
-    if (!hover) return
-    await this.previewHover(hover)
+    if (hover) {
+      await this.previewHover(hover)
+    } else {
+      workspace.showMessage('Hover not found', 'warning')
+    }
   }
 
   public async gotoDefinition(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDefinition(document, position)
-    await this.handleDefinition(definition)
+    if (definition && definition.length != 0) {
+      await this.handleDefinition(definition)
+    } else {
+      workspace.showMessage('Definition not found', 'warning')
+    }
   }
 
   public async gotoTypeDefinition(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getTypeDefinition(document, position)
-    await this.handleDefinition(definition)
+    if (definition && definition.length != 0) {
+      await this.handleDefinition(definition)
+    } else {
+      workspace.showMessage('Type definition not found', 'warning')
+    }
   }
 
-  public async gotoImplementaion(): Promise<void> {
+  public async gotoImplementation(): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getImplementation(document, position)
-    await this.handleDefinition(definition)
+    if (definition && definition.length != 0) {
+      await this.handleDefinition(definition)
+    } else {
+      workspace.showMessage('Implementation not found', 'warning')
+    }
   }
 
   public async gotoReferences(): Promise<void> {
@@ -128,7 +143,7 @@ export default class Handler {
     if (locs && locs.length) {
       await this.handleDefinition(locs)
     } else {
-      workspace.showMessage('References not found')
+      workspace.showMessage('References not found', 'warning')
     }
   }
 
@@ -303,7 +318,7 @@ export default class Handler {
     let context = { diagnostics }
     let codeActions = await languages.getCodeActions(document.textDocument, range, context)
     if (!codeActions || codeActions.length == 0) {
-      return workspace.showMessage('No action available')
+      return workspace.showMessage('No action available', 'warning')
     }
     let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
     if (idx == -1) return
@@ -346,7 +361,7 @@ export default class Handler {
       return
     }
     let ranges = await languages.provideFoldingRanges(document.textDocument, {})
-    if (!ranges) {
+    if (!ranges || ranges.length == 0) {
       workspace.showMessage('no range found', 'warning')
       return
     }
