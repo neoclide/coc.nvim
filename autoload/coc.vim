@@ -54,7 +54,6 @@ endfunction
 " used for statusline
 function! coc#status()
   let info = get(b:, 'coc_diagnostic_info', {})
-  if empty(info) | return '' | endif
   let msgs = []
   if get(info, 'error', 0)
     call add(msgs, '❌ ' . info['error'])

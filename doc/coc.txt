@@ -538,6 +538,13 @@ coc#refresh()
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
 
+						*coc#status()*
+coc#status()
+
+	Return status string for used in status line, the status
+	including diagnostic infomation from `b:coc_diagnostic_info`
+	and extension contributed status from `g:coc_status`
+
 						*health#coc#check()*
 health#coc#check()
 	
