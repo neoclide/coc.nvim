@@ -1,4 +1,3 @@
-let s:virtualedit = &virtualedit
 let s:is_vim = !has('nvim')
 
 " make a range to select mode
@@ -14,25 +13,21 @@ function! coc#snippet#range_select(lnum, col, len) abort
 endfunction
 
 function! s:start_select(lnum, col, len)
-  noa set virtualedit=onemore
   call cursor(a:lnum, a:col)
   if a:len > 0
     let m = a:len == 1 ? '' : (a:len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
   endif
-  execute 'noa set virtualedit='.s:virtualedit
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort
   let m = mode()
-  noa set virtualedit=onemore
   call cursor(a:lnum, a:col + a:len)
   if m !=# 'i' | startinsert | endif
   let g:coc#_context = {
         \ 'start': a:col - 1,
         \ 'candidates': map(a:values, '{"word": v:val}')
         \}
-  execute 'noa set virtualedit='.s:virtualedit
   call timer_start(20, { -> coc#_do_complete()})
 endfunction
 
