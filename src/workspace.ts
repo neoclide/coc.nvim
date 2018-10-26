@@ -982,17 +982,20 @@ augroup end`
       return
     }
     this.buffers.set(buffer.id, document)
-    let root = this.resolveRoot(document.uri)
-    if (root) {
-      let folder = await findUp('.vim', { cwd: root })
-      if (folder) {
-        let file = path.join(folder, CONFIG_FILE_NAME)
-        if (fs.existsSync(file)) {
-          this._configurations.addFolderFile(file)
+    if (document.buftype == '' && document.schema == 'file') {
+      let root = this.resolveRoot(document.uri)
+      if (root && this._root !== root) {
+        let folder = await findUp('.vim', { cwd: root })
+        if (folder && folder != os.homedir()) {
+          let file = path.join(folder, CONFIG_FILE_NAME)
+          let stat = await statAsync(file)
+          if (stat && stat.isFile()) {
+            this._configurations.addFolderFile(file)
+          }
         }
+        this._root = root
+        this.onConfigurationChange()
       }
-      this._root = root
-      this.onConfigurationChange()
     }
     this._onDidOpenDocument.fire(document.textDocument)
     document.onDocumentChange(({ textDocument, contentChanges }) => {
@@ -1094,20 +1097,17 @@ augroup end`
 
   private resolveRoot(uri: string): string {
     let u = Uri.parse(uri)
-    if (u.scheme == 'file') {
-      let dir = path.dirname(u.fsPath)
-      if (!dir.startsWith(this.root) || this.root == os.homedir()) {
-        let { roots } = this.env
-        let files: string[]
-        if (roots) {
-          files = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
-        } else {
-          files = ['.vim', '.git', '.hg', '.projections.json']
-        }
-        return resolveRoot(dir, files, os.homedir()) || dir
+    let dir = path.dirname(u.fsPath)
+    if (!this._initialized || !dir.startsWith(this.root) || this.root == os.homedir()) {
+      let { roots } = this.env
+      let files: string[]
+      if (roots && roots.length) {
+        files = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
+      } else {
+        files = ['.vim', '.git', '.hg', '.projections.json']
       }
+      return resolveRoot(dir, files, os.homedir()) || this.cwd
     }
-    return null
   }
 
   private async getbufname(filepath: string): Promise<string> {
