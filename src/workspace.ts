@@ -165,10 +165,10 @@ export class Workspace implements IWorkspace {
   }
 
   public get workspaceFolder(): WorkspaceFolder {
-    let { root } = this
+    let { rootPath } = this
     return {
-      uri: Uri.file(root).toString(),
-      name: path.basename(root)
+      uri: Uri.file(rootPath).toString(),
+      name: path.basename(rootPath)
     }
   }
 
