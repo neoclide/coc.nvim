@@ -34,6 +34,7 @@ export class Completion implements Disposable {
   private recentScores: RecentScore = {}
   private option: CompleteOption = null
   private preferences: WorkspaceConfiguration
+  private triggerCharacters: Set<string> = new Set()
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
@@ -147,6 +148,7 @@ export class Completion implements Disposable {
   public startCompletion(option: CompleteOption): void {
     this.option = option
     this.input = option.input
+    this.triggerCharacters = sources.getTriggerCharacters(option.filetype, option.custom)
     if (this.document == null || this.completing) return
     this.completing = true
     this._doComplete(option).then(() => {
@@ -292,6 +294,11 @@ export class Completion implements Disposable {
     }
     if (this.completing) return
     if (increment.isActivted) {
+      if (this.triggerCharacters.has(character)) {
+        this.nvim.call('coc#_hide', [], true)
+        increment.stop()
+        return
+      }
       let { input } = this.option
       if (!this.hasMatch(input + character)) {
         this.nvim.call('coc#_hide', [], true)
