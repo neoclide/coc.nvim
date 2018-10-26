@@ -17,7 +17,7 @@ import Terminal from './model/terminal'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { ChangeInfo, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, StatusBarItem, StatusItemOption } from './types'
-import { mkdirAsync, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
+import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
@@ -374,25 +374,22 @@ export class Workspace implements IWorkspace {
 
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
-    if (document) return document.getline(line)
-    let u = Uri.parse(uri)
-    if (u.scheme === 'file') {
-      let filepath = u.fsPath
-      if (fs.existsSync(filepath)) {
-        let lines = await this.nvim.call('readfile', [u.fsPath, '', line + 1])
-        return lines[line] || ''
-      }
-    }
-    return ''
+    if (document) return document.getline(line) || ''
+    let content = await this.readFile(uri)
+    let lines = content.split('\n', line + 1)
+    return lines[line] || ''
   }
 
   public async readFile(uri: string): Promise<string> {
     let document = this.getDocument(uri)
-    if (document) return document.content
+    if (document) {
+      document.forceSync()
+      return document.content
+    }
     let u = Uri.parse(uri)
     if (u.scheme != 'file') return ''
-    let lines = await this.nvim.call('readfile', u.fsPath)
-    return lines.join('\n')
+    let encoding = await this.getFileEncoding()
+    return await readFile(u.fsPath, encoding)
   }
 
   public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable {
