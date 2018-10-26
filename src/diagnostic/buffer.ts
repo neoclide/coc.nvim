@@ -101,6 +101,7 @@ export class DiagnosticBuffer {
   private async clearSigns(): Promise<void> {
     let { nvim, bufnr } = this
     let buffers = await nvim.buffers
+    if (!buffers) return
     let buffer = buffers.find(buf => buf.id == bufnr)
     if (!buffer) return
     let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
@@ -152,6 +153,7 @@ export class DiagnosticBuffer {
     if (workspace.isNvim) {
       let { srcId } = this.manager
       let buffers = await nvim.buffers
+      if (!buffers) return
       let buffer = buffers.find(buf => buf.id == bufnr)
       if (buffer) buffer.clearHighlight({ srcId })
     } else {
