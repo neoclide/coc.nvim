@@ -483,6 +483,7 @@ export default class Handler {
     let origLine = doc.getline(position.line)
     let { changedtick, dirty } = doc
     if (dirty) {
+      await wait(20)
       doc.forceSync()
       await wait(20)
     }
@@ -490,6 +491,11 @@ export default class Handler {
     let edits = await languages.provideDocumentOntTypeEdits(ch, doc.textDocument, pos)
     // changed by other process
     if (doc.changedtick != changedtick) return
+    if (insertLeave) {
+      edits = edits.filter(edit => {
+        return edit.range.start.line < position.line + 1
+      })
+    }
     if (edits && edits.length) {
       await doc.applyEdits(this.nvim, edits)
     }
