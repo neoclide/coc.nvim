@@ -146,6 +146,9 @@ export class DiagnosticBuffer {
     if (!document) return
     let info = this.getDiagnosticInfo()
     document.buffer.setVar('coc_diagnostic_info', info, true)
+    if (workspace.bufnr == this.bufnr) {
+      this.nvim.command('redraws', true)
+    }
   }
 
   private async clearHighlight(): Promise<void> {
