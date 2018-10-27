@@ -5,6 +5,7 @@ import { DiagnosticInfo, DiagnosticItems, LocationListItem } from '../types'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticManager } from './manager'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
@@ -30,6 +31,7 @@ export class DiagnosticBuffer {
   private signId: number
   private diagnosticItems: DiagnosticItems = {}
   private promise: Promise<void> = Promise.resolve(void 0)
+  private affected = true
   public refresh: () => void
 
   constructor(public readonly bufnr: number, public readonly uri: string, private manager: DiagnosticManager) {
@@ -63,13 +65,22 @@ export class DiagnosticBuffer {
     if (!this.manager.enabled) return
     if (this.manager.insertMode) return
     let diagnosticItems = this.manager.getBufferDiagnostic(this.uri)
+    if (equals(diagnosticItems, this.diagnosticItems) && this.affected) {
+      await this.setLocationlist()
+      return
+    }
     this.diagnosticItems = diagnosticItems
     this.setDiagnosticInfo()
     await this.setLocationlist()
-    await this.clearHighlight()
-    await this.addHighlight()
-    await this.clearSigns()
-    this.addSigns()
+    if (workspace.bufnr == this.bufnr) {
+      this.affected = true
+      await this.clearHighlight()
+      await this.addHighlight()
+      await this.clearSigns()
+      this.addSigns()
+    } else {
+      this.affected = false
+    }
   }
 
   public async setLocationlist(): Promise<void> {

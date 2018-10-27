@@ -87,10 +87,11 @@ export class DiagnosticManager {
       this.setConfiguration()
     }, null, this.disposables)
 
-    events.on('BufWinEnter', async (bufnr, winid) => {
+    events.on('BufEnter', async bufnr => {
       if (!this.config.locationlist) return
+      let winid = await this.nvim.call('win_getid') as number
       // wait buffer create
-      await wait(100)
+      await wait(50)
       let doc = workspace.getDocument(bufnr)
       if (!doc || doc.buftype == 'quickfix' || doc.buftype == 'help') return
       let buf = this.buffers.find(buf => buf.uri == doc.uri)
