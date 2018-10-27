@@ -142,7 +142,7 @@ export class Completion implements Disposable {
 
   public get hasLatestChangedI(): boolean {
     let { lastChangedI } = this
-    return lastChangedI && Date.now() - lastChangedI < 80
+    return lastChangedI && Date.now() - lastChangedI < 100
   }
 
   public startCompletion(option: CompleteOption): void {
@@ -221,6 +221,7 @@ export class Completion implements Disposable {
     if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     let { latestInsert } = this
+    this.lastInsert = null
     let search = await this.getResumeInput()
     if (search == null || input == search) return
     if (latestInsert) {
@@ -235,6 +236,7 @@ export class Completion implements Disposable {
     this.lastChangedI = Date.now()
     if (this.completing) return
     let { nvim, increment, input, latestInsertChar } = this
+    this.lastInsert = null
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
@@ -309,8 +311,7 @@ export class Completion implements Disposable {
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    let d = workspace.isVim ? 100 : 50
-    if (!lastInsert || Date.now() - lastInsert.timestamp > d) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
       return null
     }
     return lastInsert

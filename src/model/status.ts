@@ -71,7 +71,7 @@ export default class StatusLine implements Disposable {
     if (text != this._text) {
       this._text = text
       await this.nvim.setVar('coc_status', text)
-      this.nvim.command('redraws!', true)
+      this.nvim.command('redraws', true)
     }
   }
 }
