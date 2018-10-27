@@ -97,9 +97,9 @@ export default class Document {
 
   public setFiletype(filetype: string): void {
     let { uri, version } = this
-    this._filetype = filetype
+    this._filetype = convertFiletype(filetype)
     version = version ? version + 1 : 1
-    let textDocument = TextDocument.create(uri, filetype, version, this.content)
+    let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
     this.textDocument = textDocument
   }
 
@@ -126,7 +126,8 @@ export default class Document {
     let { buffer } = this
     let buftype = this.buftype = await buffer.getOption('buftype') as string
     let iskeyword = await buffer.getOption('iskeyword') as string
-    let filetype = this._filetype = await buffer.getOption('filetype') as string
+    let filetype = await buffer.getOption('filetype') as string
+    this._filetype = convertFiletype(filetype)
     if (this.shouldAttach) {
       let res = await this.attach()
       if (!res) return false
@@ -141,7 +142,7 @@ export default class Document {
     }
     this.lines = (await buffer.lines) as string[]
     let uri = getUri(bufname, buffer.id, buftype)
-    this.textDocument = TextDocument.create(uri, filetype, 0, this.lines.join('\n'))
+    this.textDocument = TextDocument.create(uri, this.filetype, 0, this.lines.join('\n'))
     this.setIskeyword(iskeyword)
     return true
   }
@@ -539,4 +540,9 @@ export default class Document {
     if (wid == -1) return await this.nvim.call('getcwd')
     return await this.nvim.call('getcwd', wid)
   }
+}
+
+function convertFiletype(filetype: string): string {
+  if (filetype.indexOf('.') == -1) return filetype
+  return filetype.split('.', 2)[0]
 }
