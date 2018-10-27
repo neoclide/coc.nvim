@@ -115,6 +115,11 @@ export class DiagnosticManager {
       this.buffers.splice(idx, 1)
     }, null, this.disposables)
 
+    events.on('BufWritePost', async bufnr => {
+      let buf = this.buffers.find(buf => buf.bufnr == bufnr)
+      if (buf) await buf.checkSigns()
+    }, null, this.disposables)
+
     this.disposables.push(Disposable.create(() => {
       if (this.timer) {
         clearTimeout(this.timer)

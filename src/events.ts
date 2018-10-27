@@ -8,7 +8,7 @@ export type Result = void | Promise<void>
 
 export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
   | 'TextChanged' | 'BufWritePost' | 'CursorMoved' | 'CursorHold'
-  | 'BufCreate' | 'BufUnload' | 'BufWritePre'
+  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI'
 
 export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'TextChangedP' | 'CursorMovedI'
 

@@ -28,6 +28,7 @@ function getNameFromSeverity(severity: DiagnosticSeverity): string {
 // maintains sign and highlightId
 export class DiagnosticBuffer {
   private matchIds: Set<number> = new Set()
+  private signIds: Set<number> = new Set()
   private signId: number
   private diagnosticItems: DiagnosticItems = {}
   private promise: Promise<void> = Promise.resolve(void 0)
@@ -110,7 +111,12 @@ export class DiagnosticBuffer {
   }
 
   private async clearSigns(): Promise<void> {
-    let { nvim, bufnr } = this
+    let { nvim, signIds, bufnr } = this
+    await nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)])
+  }
+
+  public async checkSigns(): Promise<void> {
+    let { nvim, bufnr, signIds } = this
     let buffers = await nvim.buffers
     if (!buffers) return
     let buffer = buffers.find(buf => buf.id == bufnr)
@@ -122,15 +128,16 @@ export class DiagnosticBuffer {
       let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
       if (!ms) continue
       let [, id, name] = ms
-      if (severityNames.indexOf(name) != -1) {
+      if (!signIds.has(Number(id)) && severityNames.indexOf(name) != -1) {
         ids.push(id)
       }
     }
-    nvim.call('coc#util#unplace_signs', [bufnr, ids], true)
+    await nvim.call('coc#util#unplace_signs', [bufnr, ids])
   }
 
   private addSigns(): void {
-    let { diagnosticItems, signId } = this
+    let { diagnosticItems, signId, signIds } = this
+    signIds.clear()
     let lines: Set<number> = new Set()
     for (let owner of Object.keys(diagnosticItems)) {
       for (let diagnostic of diagnosticItems[owner]) {
@@ -139,6 +146,7 @@ export class DiagnosticBuffer {
         if (lines.has(line)) continue
         lines.add(line)
         this.addSign(signId, line, severity)
+        signIds.add(signId)
         signId = signId + 1
       }
     }
