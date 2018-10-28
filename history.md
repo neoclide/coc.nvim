@@ -1,3 +1,27 @@
+# 2018-10-29
+
+- **Break change** diagnostic reworked, no refresh on insert mode.
+- **Break change** keep `sortText` on filter for better result.
+- **Break change** prefer trigger completion than filter, same as VSCode.
+- **Break change** filetype of document would be first part of `&filetype` split by `.`.
+- **Break change** prefer label as abbr for complete item.
+- Fix creating wrong `textEdit` for snippet.
+- Fix `startcol` of `CompleteResult` not working.
+- Fix `workspaceConfiguration.toJSON` return invalid result.
+- Fix `workspace.readFile` not synchronized with buffer.
+- Fix `workspace.rootPath` not resolved as expected.
+- Fix `CompletionItem` resolved multiple times.
+- Fix check of `latestInsert` on completion.
+- Fix `formatOnType` possible add unnecessary indent.
+- Fix document content synchronized on vim.
+- Fix confirm check of completion for all source.
+- Fix document possible register multiple times.
+- Fix completion always stopped when input is empty.
+- Add warning message when definition not found.
+- Add `redraw` after `g:coc_status` changed.
+- Remove change of `virtualedit` option of snippet.
+- Improved performance of filter completion items.
+
 # 2018-10-25
 
 - Fix `implementation` and `typeDefinition` of language client not working.
