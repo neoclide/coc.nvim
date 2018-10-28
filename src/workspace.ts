@@ -42,6 +42,7 @@ export class Workspace implements IWorkspace {
   private _blocking = false
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
+  private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private configurationShape: ConfigurationShape
@@ -429,14 +430,11 @@ export class Workspace implements IWorkspace {
     if (bufnr && this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
     }
-    return this.nvim.buffer.then(buffer => {
-      this.bufnr = buffer.id
-      if (this.buffers.has(buffer.id)) {
-        return this.buffers.get(buffer.id)
-      }
-      return this.onBufCreate(buffer).then(() => {
-        return this.getDocument(this.bufnr)
-      })
+    return new Promise<Document>(resolve => {
+      setTimeout(() => {
+        let { bufnr } = this
+        resolve(this.buffers.get(bufnr))
+      }, 200)
     })
   }
 
@@ -761,7 +759,7 @@ augroup end`
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf, true)
+      return this.onBufCreate(buf)
     }))
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
@@ -958,25 +956,32 @@ augroup end`
     })
   }
 
-  private async onBufCreate(buf: number | Buffer, initial = false): Promise<void> {
+  private async onBufCreate(buf: number | Buffer): Promise<void> {
     this.checkBuffer.clear()
-    if (!initial) this.bufnr = await this.nvim.call('bufnr', '%')
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
+    if (this.creating.has(buffer.id)) return
     let loaded = await this.nvim.call('bufloaded', buffer.id)
     if (!loaded) return
+    let bufnr = this.bufnr = buffer.id
+    this.creating.add(bufnr)
     let document = this.getDocument(buffer.id)
-    if (document) await events.fire('BufUnload', [buffer.id])
-    document = new Document(buffer,
-      this._configurations.getConfiguration('coc.preferences'),
-      this._env)
     try {
-      let attached = await document.init(this.nvim)
-      if (!attached) return
+      if (document) await events.fire('BufUnload', [buffer.id])
+      document = new Document(buffer,
+        this._configurations.getConfiguration('coc.preferences'),
+        this._env)
+      let created = await document.init(this.nvim)
+      if (!created) {
+        this.creating.delete(buffer.id)
+        return
+      }
     } catch (e) {
+      this.creating.delete(buffer.id)
       logger.error(e)
       return
     }
     this.buffers.set(buffer.id, document)
+    this.creating.delete(buffer.id)
     if (document.buftype == '' && document.schema == 'file') {
       let root = this.resolveRoot(document.uri)
       if (root && this._root !== root) {

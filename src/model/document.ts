@@ -2,7 +2,7 @@ import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DidChangeTextDocumentParams, DocumentHighlight, DocumentHighlightKind, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import { WorkspaceConfiguration, ChangeInfo, Env } from '../types'
+import { WorkspaceConfiguration, ChangeInfo, Env, BufferOption } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
@@ -34,9 +34,7 @@ export default class Document {
   // ids of matchadd in vim
   private matchIds: number[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
-  private _onDocumentDetach = new Emitter<TextDocument>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
-  public readonly onDocumentDetach: Event<TextDocument> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
     private configurations: WorkspaceConfiguration,
@@ -69,12 +67,11 @@ export default class Document {
     })
   }
 
-  private get shouldAttach(): boolean {
+  private shouldAttach(buftype: string): boolean {
     let { isVim, version } = this.env
-    if (isVim) return false
     // no need to attach these buffers
-    if (['help', 'quickfix', 'nofile'].indexOf(this.buftype) != -1) return false
-    if (this.buftype == 'terminal') {
+    if (['help', 'quickfix', 'nofile'].indexOf(buftype) != -1) return false
+    if (buftype == 'terminal' && !isVim) {
       if (semver.lt(version, '0.3.2')) return false
     }
     return true
@@ -124,26 +121,24 @@ export default class Document {
   public async init(nvim: Neovim): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
-    let buftype = this.buftype = await buffer.getOption('buftype') as string
-    let iskeyword = await buffer.getOption('iskeyword') as string
-    let filetype = await buffer.getOption('filetype') as string
-    this._filetype = convertFiletype(filetype)
-    if (this.shouldAttach) {
-      let res = await this.attach()
-      if (!res) return false
-    }
-    this.attached = true
-    this._changedtick = await buffer.changedtick
-    let bufname: string
-    if (buftype == 'nofile') {
-      bufname = await nvim.call('bufname', buffer.id)
-    } else {
-      bufname = await buffer.name
-    }
-    this.lines = (await buffer.lines) as string[]
+    let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
+    if (!opts) return false
+    let buftype = this.buftype = opts.buftype
+    this._changedtick = opts.changedtick
+    let bufname = buftype == 'nofile' || opts.bufname == '' ? opts.bufname : opts.fullpath
     let uri = getUri(bufname, buffer.id, buftype)
+    if (this.shouldAttach(buftype)) {
+      if (!this.env.isVim) {
+        let res = await this.attach()
+        if (!res) return false
+      } else {
+        this.lines = (await buffer.lines) as string[]
+      }
+      this.attached = true
+    }
+    this._filetype = convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 0, this.lines.join('\n'))
-    this.setIskeyword(iskeyword)
+    this.setIskeyword(opts.iskeyword)
     return true
   }
 
@@ -173,13 +168,14 @@ export default class Document {
   }
 
   public async attach(): Promise<boolean> {
-    let attached = await this.buffer.attach()
+    if (this.buffer.isAttached) return false
+    let attached = await this.buffer.attach(false)
     if (!attached) return false
+    this.lines = (await this.buffer.lines) as string[]
     this.buffer.listen('lines', (...args) => {
       this.onChange.apply(this, args)
     })
     this.buffer.listen('detach', async () => {
-      this._onDocumentDetach.fire(this.textDocument)
       await wait(30)
       if (!this.attached) return
       // it could be detached by `edit!`
@@ -188,6 +184,9 @@ export default class Document {
     this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
     })
+    if (this.textDocument) {
+      this._fireContentChanges()
+    }
     return true
   }
 
@@ -199,7 +198,7 @@ export default class Document {
     linedata: string[]
     // more:boolean
   ): void {
-    if (buf.id !== this.buffer.id || !tick) return
+    if (buf.id !== this.buffer.id || tick == null) return
     this._changedtick = tick
     let c = lastline - firstline - linedata.length
     if (c > 0) {
@@ -436,6 +435,7 @@ export default class Document {
   }
 
   private async _fetchContent(): Promise<void> {
+    if (!this.env.isVim || !this.attached) return
     let { nvim, buffer } = this
     let { id } = buffer
     let o = (await nvim.call('coc#util#get_content', [id])) as any
@@ -455,7 +455,7 @@ export default class Document {
   }
 
   public async patchChange(): Promise<void> {
-    if (!this.env.isVim) return
+    if (!this.env.isVim || !this.attached) return
     let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
     if (change.changedtick == this._changedtick) return
     let { lines } = this

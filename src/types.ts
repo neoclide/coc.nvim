@@ -175,13 +175,12 @@ export interface ChangeItem {
 }
 
 export interface BufferOption {
+  bufname: string
   fullpath: string
   buftype: string
   filetype: string
   iskeyword: string
   changedtick: number
-  expandtab: boolean
-  tabstop: number
 }
 
 export interface DiagnosticInfo {

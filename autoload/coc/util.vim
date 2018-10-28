@@ -92,8 +92,11 @@ function! coc#util#get_fullpath(bufnr) abort
 endfunction
 
 function! coc#util#get_bufoptions(bufnr) abort
+  if !bufloaded(a:bufnr) | return v:null| endif
+  let bufname = bufname(a:bufnr)
   return {
-        \ 'fullpath': coc#util#get_fullpath(a:bufnr),
+        \ 'bufname': bufname,
+        \ 'fullpath': fnamemodify(bufname, ':p'),
         \ 'buftype': getbufvar(a:bufnr, '&buftype'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),

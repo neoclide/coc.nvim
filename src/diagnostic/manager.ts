@@ -76,11 +76,13 @@ export class DiagnosticManager {
 
     events.on('InsertLeave', async () => {
       this.insertMode = false
+      await wait(200)
       let { bufnr } = workspace
-      setTimeout(() => {
+      let res = await this.nvim.mode
+      if (res.mode == 'n') {
         let buf = this.buffers.find(buf => buf.bufnr == bufnr)
         if (buf) buf.refresh()
-      }, 500)
+      }
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {

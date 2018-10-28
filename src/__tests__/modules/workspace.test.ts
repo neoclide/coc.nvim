@@ -249,7 +249,7 @@ describe('workspace methods', () => {
   })
 
   it('should get current document', async () => {
-    let buf = await nvim.buffer
+    let buf = await helper.edit('foo')
     let doc = await workspace.document
     expect(doc.bufnr).toBe(buf.id)
     buf = await helper.edit('tmp')
@@ -596,11 +596,11 @@ describe('workspace private', () => {
     await buf.detach()
     let attached = buf.isAttached
     expect(attached).toBe(false)
+    let doc = workspace.getDocument(buf.id)
+      ; (doc as any).env.isVim = true
       ; (workspace as any).initVimEvents()
     await nvim.setLine('abc')
     await helper.wait(300)
-    let doc = workspace.getDocument(buf.id)
-      ; (doc as any).env.isVim = true
     expect(doc.content).toMatch('abc')
     await nvim.input('Adef')
     await nvim.call('coc#_hide')
