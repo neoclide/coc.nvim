@@ -937,21 +937,18 @@ augroup end`
   // events for sync buffer of vim
   private initVimEvents(): void {
     let { nvim } = this
-    let lastChar = ''
+    let lastChar = null
     let lastTs = null
     events.on('InsertCharPre', ch => {
       lastChar = ch
       lastTs = Date.now()
     })
-    events.on(['TextChangedI', 'TextChangedP'], async () => {
-      let doc = await this.document
+    events.on('TextChangedI', async bufnr => {
+      let doc = this.getDocument(bufnr)
       if (!doc) return
-      if (Date.now() - lastTs < 40 && lastChar) {
-        nvim.call('coc#util#get_changeinfo', []).then(res => {
-          doc.patchChange(res as ChangeInfo)
-        }, () => {
-          // noop
-        })
+      if (Date.now() - lastTs < 100 && lastChar) {
+        let res = await nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
+        doc.patchChange(res as ChangeInfo)
       } else {
         doc.fetchContent()
       }

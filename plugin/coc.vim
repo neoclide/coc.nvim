@@ -114,7 +114,7 @@ function! s:Enable()
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
-    autocmd TextChangedP        * call s:Autocmd('TextChangedP')
+    autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave')
     autocmd InsertEnter         * call s:Autocmd('InsertEnter')
@@ -131,7 +131,6 @@ function! s:Enable()
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutoCmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
-    "autocmd BufReadCmd,FileReadCmd,SourceCmd coc://* call s:SyncAutoCmd('BufReadCmd', 'coc', expand('<amatch>'))
   augroup end
 
   " same behaviour of ultisnips
@@ -140,9 +139,6 @@ function! s:Enable()
     snoremap <silent> <DEL> <c-g>c
     snoremap <silent> <c-h> <c-g>c
     snoremap <c-r> <c-g>"_c<c-r>
-  endif
-  if s:is_vim
-    set completeopt=menuone,noinsert,noselect
   endif
 
   command! -nargs=0 CocDisable :call s:Disable()

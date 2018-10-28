@@ -154,8 +154,9 @@ export class Completion implements Disposable {
     this._doComplete(option).then(() => {
       this.completing = false
     }).catch(e => {
+      this.increment.stop()
       this.completing = false
-      workspace.showMessage(`Error happens on complete: ${e.message}`)
+      workspace.showMessage(`Error happens on complete: ${e.message}`, 'error')
       logger.error('', e.stack)
     })
   }

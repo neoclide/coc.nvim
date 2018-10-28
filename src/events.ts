@@ -8,9 +8,9 @@ export type Result = void | Promise<void>
 
 export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
   | 'TextChanged' | 'BufWritePost' | 'CursorMoved' | 'CursorHold'
-  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI'
+  | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP'
 
-export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'TextChangedP' | 'CursorMovedI'
+export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'CursorMovedI'
 
 export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' |
   'InsertCharPre' | 'FileType' | 'BufWinEnter' |
