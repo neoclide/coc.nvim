@@ -80,7 +80,7 @@ export class Completion implements Disposable {
   private async getResumeInput(): Promise<string> {
     let { option, increment } = this
     let [, lnum, col] = await this.nvim.call('getcurpos')
-    if (lnum != option.linenr || col <= option.col + 1) {
+    if (lnum != option.linenr || col < option.col + 1) {
       increment.stop()
       return null
     }
