@@ -52,7 +52,7 @@ export default class Complete {
         if (result == null || result.items.length == 0) {
           return done()
         }
-        if (result.startcol && result.startcol != col) {
+        if (result.startcol != null && result.startcol != col) {
           result.engross = true
         }
         result.priority = source.priority

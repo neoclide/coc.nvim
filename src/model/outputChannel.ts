@@ -19,6 +19,7 @@ export default class BufferChannel implements OutputChannel {
   private async getBuffer(): Promise<Buffer> {
     let { nvim, bufname } = this
     let buffers = await nvim.buffers
+    if (!buffers) return null
     for (let buf of buffers) {
       let name = await nvim.call('bufname', buf.id)
       if (name == bufname) {

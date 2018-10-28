@@ -1,10 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
+import { ISource, SourceType, CompleteResult } from '../../types'
 import helper from '../helper'
+import { Sources } from '../../sources'
 
 let nvim: Neovim
+let sources: Sources
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  sources = (await import('../../sources')).default
 })
 
 afterAll(async () => {
@@ -102,5 +106,29 @@ describe('completion', () => {
     let item = items.find(o => o.word == 'foo')
     expect(item).toBeFalsy()
     expect(items[0].word).toBe('bar')
+  })
+
+  it('should fix start column', async () => {
+    let source: ISource = {
+      name: 'test',
+      priority: 10,
+      enable: true,
+      firstMatch: false,
+      sourceType: SourceType.Native,
+      triggerCharacters: [],
+      doComplete: async (): Promise<CompleteResult> => {
+        let result: CompleteResult = {
+          startcol: 0,
+          items: [{ word: 'foo.bar' }]
+        }
+        return Promise.resolve(result)
+      }
+    }
+    sources.addSource(source)
+    await nvim.setLine('foo.')
+    await nvim.input('Ab')
+    await helper.waitPopup()
+    let val = await nvim.getVar('coc#_context') as any
+    expect(val.start).toBe(0)
   })
 })

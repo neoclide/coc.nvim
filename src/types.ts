@@ -233,19 +233,19 @@ export interface CompletionContext {
 
 // option on complete & should_complete
 export interface CompleteOption {
-  bufnr: number
-  line: string
+  readonly bufnr: number
+  readonly line: string
   col: number
   input: string
-  filetype: string
-  filepath: string
-  word: string
+  readonly filetype: string
+  readonly filepath: string
+  readonly word: string
   triggerCharacter: string
   // cursor position
-  colnr: number
-  linenr: number
-  custom: boolean
-  synname: string
+  readonly colnr: number
+  readonly linenr: number
+  readonly custom: boolean
+  readonly synname: string
 }
 
 export interface VimCompleteItem {

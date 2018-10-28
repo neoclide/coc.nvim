@@ -255,7 +255,6 @@ export class Completion implements Disposable {
     if (!shouldTrigger) return
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     if (latestInsertChar) option.triggerCharacter = latestInsertChar
-    Object.freeze(option)
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
