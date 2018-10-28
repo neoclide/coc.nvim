@@ -7,8 +7,6 @@ const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
 
-const WORD_SOURCES = new Set(['word', 'around', 'buffer', 'dictionary', 'tag', 'emoji', 'include'])
-
 export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
@@ -83,24 +81,20 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
-      if (input.length == 0 && WORD_SOURCES.has(source)) {
-        continue
-      }
       for (let item of items) {
-        let { user_data, filterText, word } = item
+        let { word } = item
         if (words.has(word)) continue
-        let data = {} as any
-        filterText = filterText || item.word
-        if (user_data) {
-          try {
-            data = JSON.parse(user_data)
-            filterText = data.filter ? data.filter : filterText
-          } catch (e) { } // tslint:disable-line
-        }
+        let filterText = item.filterText || item.word
         if (filterText.length < input.length) continue
         if (input.length && !fuzzyMatch(codes, filterText)) continue
         if (cid) {
-          data = Object.assign(data, { cid, source })
+          let data = {} as any
+          if (item.user_data) {
+            try {
+              data = JSON.parse(item.user_data)
+            } catch (e) { } // tslint:disable-line
+          }
+          Object.assign(data, { cid, source })
           item.user_data = JSON.stringify(data)
           item.source = source
         }

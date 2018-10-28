@@ -1,5 +1,5 @@
+import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import { CompleteOption, VimCompleteItem } from '../types'
-import { Range, Position, CompletionItem, InsertTextFormat, CompletionItemKind } from 'vscode-languageserver-types'
 import { byteSlice } from './string'
 
 export function isCocItem(item: any): boolean {
