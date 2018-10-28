@@ -81,7 +81,6 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   - [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
     - [Dart](https://github.com/neoclide/coc.nvim/wiki/Language-servers#darto)
-    - [Rust](https://github.com/neoclide/coc.nvim/wiki/Language-servers#rust)
     - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
     - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
     - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
@@ -176,6 +175,12 @@ Extension are powerful than configured language server. Checkout
   then
 
         :CocInstall coc-solargraph
+
+- **[coc-rls](https://github.com/neoclide/coc-rls)**
+
+  Used for `rust` files.
+
+        :CocInstall coc-rls
 
 - **[coc-pyls](https://github.com/neoclide/coc-pyls)**
 
