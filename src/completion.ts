@@ -289,20 +289,23 @@ export class Completion implements Disposable {
   }
 
   private onInsertCharPre(character: string): void {
-    let { increment } = this
+    let { increment, input } = this
     this.lastInsert = {
       character,
       timestamp: Date.now(),
     }
     if (this.completing) return
     if (increment.isActivted) {
-      if (this.triggerCharacters.has(character)) {
-        this.nvim.call('coc#_hide', [], true)
-        increment.stop()
-        return
+      let item = this.completeItems[0]
+      let newInput = input + character
+      // does filter when first item strict match
+      if (item) {
+        let text = item.filterText || item.word
+        if (text.startsWith(newInput)) {
+          return
+        }
       }
-      let { input } = this.option
-      if (!this.hasMatch(input + character)) {
+      if (this.triggerCharacters.has(character) || !this.hasMatch(newInput)) {
         this.nvim.call('coc#_hide', [], true)
         increment.stop()
       }
