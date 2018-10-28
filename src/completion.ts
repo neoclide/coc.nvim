@@ -5,7 +5,7 @@ import Increment from './increment'
 import Complete from './model/complete'
 import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
-import { disposeAll } from './util'
+import { disposeAll, wait } from './util'
 import { isCocItem } from './util/complete'
 import { fuzzyMatch, getCharCodes } from './util/fuzzy'
 import { byteSlice } from './util/string'
@@ -261,11 +261,22 @@ export class Completion implements Disposable {
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
-    if (!isCocItem(item)) return
-    let { increment } = this
+    let { increment, document } = this
+    if (!this.isActivted || !document || !isCocItem(item)) return
+    let { col } = this.option
     try {
       increment.stop()
       this.addRecent(item.word)
+      await wait(10)
+      let mode = await this.nvim.call('mode')
+      if (mode !== 'i') {
+        await document.patchChange()
+        document.forceSync()
+        return
+      }
+      let curcol = await this.nvim.call('col', ['.'])
+      // not confirm
+      if (curcol != col + item.word.length + 1) return
       await sources.doCompleteDone(item)
     } catch (e) {
       logger.error(`error on complete done`, e.message)

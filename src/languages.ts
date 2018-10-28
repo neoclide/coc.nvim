@@ -462,35 +462,15 @@ class Languages {
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
-        if (cancelTokenSource) {
-          cancelTokenSource.cancel()
-        }
-        let timeout = workspace.isVim ? 100 : 30
-        setTimeout(async () => {
-          try {
-            let mode = await this.nvim.call('mode')
-            if (mode !== 'i') {
-              let doc = workspace.getDocument(option.bufnr)
-              if (doc) doc.forceSync()
-              return
-            }
-            let isConfirm = await this.checkConfirm(completeItem, option)
-            if (!isConfirm) return
-            let snippet = await this.applyTextEdit(completeItem, option)
-            let { additionalTextEdits } = completeItem
-            await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
-            // start snippet listener after additionalTextEdits
-            if (snippet) await snippetManager.insertSnippet(snippet)
-            let { command } = completeItem
-            if (command) commands.execute(command)
-          } catch (e) {
-            logger.error(e.stack)
-          }
-          option = null
-          completeItems = []
-          resolveInput = null
-        }, timeout)
-        return
+        let snippet = await this.applyTextEdit(completeItem, option)
+        let { additionalTextEdits } = completeItem
+        await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+        if (snippet) await snippetManager.insertSnippet(snippet)
+        let { command } = completeItem
+        if (command) commands.execute(command)
+        option = null
+        completeItems = []
+        resolveInput = null
       },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         option = opt
@@ -527,15 +507,6 @@ class Languages {
   private get token(): CancellationToken {
     this.cancelTokenSource = new CancellationTokenSource()
     return this.cancelTokenSource.token
-  }
-
-  private async checkConfirm(item: CompletionItem, option: CompleteOption): Promise<boolean> {
-    let { col } = option
-    let { nvim } = this
-    let curcol = await nvim.call('col', ['.'])
-    let label = complete.getWord(item)
-    if (curcol != col + label.length + 1) return false
-    return true
   }
 
   private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<string | null> {

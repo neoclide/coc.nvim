@@ -454,7 +454,10 @@ export default class Document {
     this.fireContentChanges()
   }
 
-  public patchChange(change: ChangeInfo): void {
+  public async patchChange(): Promise<void> {
+    if (!this.env.isVim) return
+    let change = await this.nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
+    if (change.changedtick == this._changedtick) return
     let { lines } = this
     let { lnum, line, changedtick } = change
     this._changedtick = changedtick

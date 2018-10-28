@@ -80,7 +80,7 @@ export class DiagnosticManager {
       setTimeout(() => {
         let buf = this.buffers.find(buf => buf.bufnr == bufnr)
         if (buf) buf.refresh()
-      }, 200)
+      }, 500)
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {

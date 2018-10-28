@@ -16,7 +16,7 @@ import BufferChannel from './model/outputChannel'
 import Terminal from './model/terminal'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ChangeInfo, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, StatusBarItem, StatusItemOption } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, StatusBarItem, StatusItemOption } from './types'
 import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
@@ -936,7 +936,6 @@ augroup end`
 
   // events for sync buffer of vim
   private initVimEvents(): void {
-    let { nvim } = this
     let lastChar = null
     let lastTs = null
     events.on('InsertCharPre', ch => {
@@ -947,8 +946,7 @@ augroup end`
       let doc = this.getDocument(bufnr)
       if (!doc) return
       if (Date.now() - lastTs < 100 && lastChar) {
-        let res = await nvim.call('coc#util#get_changeinfo', []) as ChangeInfo
-        doc.patchChange(res as ChangeInfo)
+        await doc.patchChange()
       } else {
         doc.fetchContent()
       }

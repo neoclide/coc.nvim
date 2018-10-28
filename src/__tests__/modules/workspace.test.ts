@@ -600,20 +600,11 @@ describe('workspace private', () => {
     await nvim.setLine('abc')
     await helper.wait(300)
     let doc = workspace.getDocument(buf.id)
+      ; (doc as any).env.isVim = true
     expect(doc.content).toMatch('abc')
     await nvim.input('Adef')
     await nvim.call('coc#_hide')
     await helper.wait(100)
     expect(doc.getline(0)).toMatch('abcdef')
   })
-
-  it('should detach buffers', async () => {
-    let buf = await helper.edit('foo')
-    expect(buf.isAttached).toBe(true)
-    workspace.dispose()
-    await helper.wait(100)
-    expect(buf.isAttached).toBe(false)
-    await (workspace as any).init()
-  })
-
 })
