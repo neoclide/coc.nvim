@@ -19,7 +19,7 @@ export default abstract class Source implements ISource {
     let { name, optionalFns } = option
     this.name = name
     this.nvim = workspace.nvim
-    this.isSnippet = !!option.snippet
+    this.isSnippet = !!option.isSnippet
     this.optionalFns = optionalFns || []
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native

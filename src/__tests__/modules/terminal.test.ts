@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import Terminal from '../../model/terminal'
-import { createNvim, wait, platform } from '../../util'
+import { createNvim } from '../../util'
 import workspace from '../../workspace'
 
 let nvim: Neovim

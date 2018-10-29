@@ -99,10 +99,10 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string): 
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let obj: VimCompleteItem = {
     word: getWord(item),
+    abbr: item.label,
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: item.sortText || null,
-    // tslint:disable-next-line: deprecation
     filterText: item.filterText || item.label,
     isSnippet
   }
@@ -114,7 +114,6 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string): 
     // tslint:disable-next-line: deprecation
     item.insertText = obj.word
   }
-  obj.abbr = item.data && item.data.abbr ? item.data.abbr : item.label
   if (item.data && item.data.optional) {
     obj.abbr = obj.abbr + '?'
   }

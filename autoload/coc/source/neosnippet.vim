@@ -1,7 +1,7 @@
 let s:cache = {}
 
 function! coc#source#neosnippet#init() abort
-  return {}
+  return {'isSnippet': 1}
 endfunction
 
 function! coc#source#neosnippet#should_complete(opt) abort

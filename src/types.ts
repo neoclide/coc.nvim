@@ -206,7 +206,7 @@ export interface SourceConfig {
   optionalFns?: string[]
   shortcut?: string
   filepath?: string
-  snippet?: boolean
+  isSnippet?: boolean
 }
 
 export interface RecentScore {

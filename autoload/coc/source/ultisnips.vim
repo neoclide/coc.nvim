@@ -1,5 +1,5 @@
 function! coc#source#ultisnips#init() abort
-  return {}
+  return {'isSnippet': 1}
 endfunction
 
 function! coc#source#ultisnips#should_complete(opt) abort

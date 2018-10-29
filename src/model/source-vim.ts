@@ -51,6 +51,7 @@ export default class VimSource extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
     let { col, input, line, colnr } = opt
+    let { isSnippet } = this
     let startcol: number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       if (startcol < 0) return null
@@ -78,6 +79,7 @@ export default class VimSource extends Source {
     for (let item of items) {
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
+      if (isSnippet) item.abbr = `${item.abbr || item.word}~`
     }
     let res: CompleteResult = { items }
     res.startcol = startcol
