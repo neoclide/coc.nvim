@@ -280,18 +280,14 @@ export class Extensions {
       } else if (ev == 'workspaceContains') {
         let check = () => {
           glob(parts[1], { cwd: workspace.root }, (err, files) => {
-            if (err) {
-              workspace.showMessage(`glob error: ${err.message}`, 'error')
-              return
-            }
+            if (err) return
             if (files && files.length) {
-              disposeAll(disposables)
-              this.activate(id)
+              active()
             }
           })
         }
         check()
-        events.on('DirChanged', check, this, disposables)
+        workspace.onDidChangeWorkspaceFolder(check, null, disposables)
       } else if (ev == 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = Uri.parse(doc.uri)

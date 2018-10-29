@@ -56,9 +56,11 @@ export class Workspace implements IWorkspace {
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
   private _onWillSaveDocument = new Emitter<TextDocumentWillSaveEvent>()
   private _onDidSaveDocument = new Emitter<TextDocument>()
+  private _onDidChangeWorkspaceFolder = new Emitter<WorkspaceFolder>()
   private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
 
+  public readonly onDidChangeWorkspaceFolder: Event<WorkspaceFolder> = this._onDidChangeWorkspaceFolder.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidOpenDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidCloseDocument.event
   public readonly onDidChangeTextDocument: Event<DidChangeTextDocumentParams> = this._onDidChangeDocument.event
@@ -996,6 +998,7 @@ augroup end`
         }
         this._root = root
         this.onConfigurationChange()
+        this._onDidChangeWorkspaceFolder.fire(this.workspaceFolder)
       }
     }
     this._onDidOpenDocument.fire(document.textDocument)
