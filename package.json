@@ -10,7 +10,7 @@
     "build": "tsc -p tsconfig.json",
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "jest",
-    "test-build": "jest  --coverage --forceExit",
+    "test-build": "jest -i --coverage --forceExit",
     "prepare": "yarn clean && yarn build",
     "release": "pkg . --out-path ./build"
   },
@@ -105,3 +105,4 @@
     "which": "^1.3.1"
   }
 }
+
