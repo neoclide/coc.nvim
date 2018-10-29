@@ -1,4 +1,3 @@
-// test code of vscode folder
 import Uri from 'vscode-uri'
 
 describe('vscode uri', () => {

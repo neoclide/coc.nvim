@@ -6,7 +6,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["port", "filetypes"],
-      "properties" : {
+      "properties": {
         "port": {
           "type": "integer",
           "description": "Port number of socket server"
@@ -249,7 +249,7 @@
     "coc.preferences.rootPath": {
       "type": "string",
       "default": "",
-      "description": "rootPath of language server, relative to current file, use the directory contains .vim and .git by default."
+      "description": "rootPath of language server, relative to folder of current file, it's workspace only.'"
     },
     "coc.preferences.maxCompleteItemCount": {
       "type": "number",
@@ -460,7 +460,7 @@
     },
     "coc.source.file.triggerCharacters": {
       "type": "array",
-      "default": [ "/" ],
+      "default": ["/"],
       "items": {
         "type": "string"
       }
@@ -507,7 +507,7 @@
     },
     "coc.source.include.trimSameExts": {
       "type": "array",
-      "default": [ ".ts", ".js" ],
+      "default": [".ts", ".js"],
       "items": {
         "type": "string"
       }
@@ -598,14 +598,14 @@
     },
     "coc.source.neco.filetypes": {
       "type": "array",
-      "default": [ "vim" ],
+      "default": ["vim"],
       "items": {
         "type": "string"
       }
     },
     "coc.source.neco.triggerCharacters": {
       "type": "array",
-      "default": [ ":", "&" ],
+      "default": [":", "&"],
       "items": {
         "type": "string"
       }
@@ -661,15 +661,20 @@
       "description": "List of languageservers",
       "patternProperties": {
         "^[_a-zA-Z]+$": {
-          "oneOf": [{
-            "$ref": "#/definitions/languageServerModule"
-          }, {
-          "$ref": "#/definitions/languageServerCommand"
-          }, {
-          "$ref": "#/definitions/languageServerSocket"
-          }]
+          "oneOf": [
+            {
+              "$ref": "#/definitions/languageServerModule"
+            },
+            {
+              "$ref": "#/definitions/languageServerCommand"
+            },
+            {
+              "$ref": "#/definitions/languageServerSocket"
+            }
+          ]
         }
       }
     }
   }
 }
+
