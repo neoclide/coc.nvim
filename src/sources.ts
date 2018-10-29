@@ -184,12 +184,10 @@ export class Sources extends EventEmitter {
     }
   }
 
-  public getCompleteSources(opt: CompleteOption): ISource[] {
+  public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
     let { triggerCharacter, filetype, custom } = opt
-    let sources: ISource[]
-    if (triggerCharacter) {
-      sources = this.getTriggerSources(triggerCharacter, filetype, custom)
-      if (sources.length) return sources
+    if (isTriggered) {
+      return this.getTriggerSources(triggerCharacter, filetype)
     }
     return this.getSourcesForFiletype(filetype, false, custom)
   }
@@ -215,8 +213,8 @@ export class Sources extends EventEmitter {
     return res
   }
 
-  public getTriggerSources(character: string, languageId: string, custom = false): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId, false, custom)
+  public getTriggerSources(character: string, languageId: string): ISource[] {
+    let sources = this.getSourcesForFiletype(languageId, false, false)
     return sources.filter(o => {
       return o.triggerCharacters.indexOf(character) !== -1
     })

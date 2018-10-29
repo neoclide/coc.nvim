@@ -3,14 +3,13 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from './events'
 import Increment from './increment'
 import Complete from './model/complete'
+import Document from './model/document'
 import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
 import { disposeAll, wait } from './util'
 import { isCocItem } from './util/complete'
-import { fuzzyMatch, getCharCodes } from './util/fuzzy'
 import { byteSlice } from './util/string'
 import workspace from './workspace'
-import Document from './model/document'
 const logger = require('./util/logger')('completion')
 
 export interface LastInsert {
@@ -194,9 +193,7 @@ export class Completion implements Disposable {
     let { linenr, line } = option
     let { nvim, increment, document } = this
     increment.start()
-    logger.trace(`options: ${JSON.stringify(option)}`)
-    let arr = sources.getCompleteSources(option)
-    logger.trace(`Activted sources: ${arr.map(o => o.name).join(',')}`)
+    let arr = sources.getCompleteSources(option, this.triggerCharacters.has(option.triggerCharacter))
     let config = this.getCompleteConfig()
     this.complete = new Complete(option, this.recentScores, config)
     let items = await this.complete.doComplete(arr)
@@ -241,9 +238,8 @@ export class Completion implements Disposable {
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
       let search = await this.getResumeInput()
-      if (search == null || search == input) return
-      if (!increment.isActivted) return
-      if (search.length < this.option.input.length) {
+      if (search == input || !increment.isActivted) return
+      if (search == null || search.length < this.option.input.length) {
         increment.stop()
         return
       }
@@ -300,23 +296,14 @@ export class Completion implements Disposable {
   }
 
   private onInsertCharPre(character: string): void {
-    let { increment, input } = this
+    let { increment } = this
     this.lastInsert = {
       character,
       timestamp: Date.now(),
     }
     if (this.completing) return
     if (increment.isActivted) {
-      let item = this.completeItems[0]
-      let newInput = input + character
-      // does filter when first item strict match
-      if (item) {
-        let text = item.filterText || item.word
-        if (text.startsWith(newInput)) {
-          return
-        }
-      }
-      if (this.triggerCharacters.has(character) || !this.hasMatch(newInput)) {
+      if (this.triggerCharacters.has(character)) {
         this.nvim.call('coc#_hide', [], true)
         increment.stop()
       }
@@ -342,6 +329,7 @@ export class Completion implements Disposable {
     let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
     if (autoTrigger == 'none') return false
     let doc = await workspace.document
+
     if (sources.shouldTrigger(character, doc.filetype)) return true
     if (autoTrigger !== 'always') return false
     if (doc.isWord(character)) {
@@ -358,19 +346,6 @@ export class Completion implements Disposable {
       this.increment.stop()
     }
     disposeAll(this.disposables)
-  }
-
-  public hasMatch(search: string): boolean {
-    let { completeItems } = this
-    if (!completeItems) return false
-    let codes = getCharCodes(search)
-    for (let o of completeItems) {
-      let s = o.filterText || o.word
-      if (fuzzyMatch(codes, s)) {
-        return true
-      }
-    }
-    return false
   }
 }
 
