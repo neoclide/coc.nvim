@@ -162,12 +162,16 @@ export class DiagnosticManager {
     nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`, true)
     // create buffers
     for (let doc of documents) {
-      this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
+      }
     }
 
     workspace.onDidOpenTextDocument(textDocument => {
       let doc = workspace.getDocument(textDocument.uri)
-      this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
+      }
     }, null, this.disposables)
 
     workspace.onDidCloseTextDocument(textDocument => {
@@ -409,6 +413,11 @@ export class DiagnosticManager {
     let m = await this.nvim.mode
     if (m.blocking || m.mode != 'n') return
     await this.echoMessage(true)
+  }
+
+  private shouldValidate(doc: Document): boolean {
+    let { buftype } = doc
+    return ['terminal', 'quickfix'].indexOf(buftype) == -1
   }
 
   private _echoMessage(): void {
