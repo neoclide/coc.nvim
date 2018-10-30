@@ -5,7 +5,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
-import { CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
 import Configurations, { ErrorItem } from './model/configurations'
@@ -13,18 +13,18 @@ import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import Terminal from './model/terminal'
 import StatusLine from './model/status'
+import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, StatusBarItem, StatusItemOption } from './types'
-import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, createTmpFile } from './util/fs'
+import { TextDocumentContentProvider } from './provider'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
-import { TextDocumentContentProvider } from './provider'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -170,7 +170,7 @@ export class Workspace implements IWorkspace {
 
   public get workspaceFolder(): WorkspaceFolder {
     let { rootPath } = this
-    if (!this.uri || rootPath == os.homedir()) return null
+    if (rootPath == os.homedir()) return null
     return {
       uri: Uri.file(rootPath).toString(),
       name: path.basename(rootPath)
@@ -752,8 +752,6 @@ augroup end`
         logger.error(e)
       })
     }
-    this._onDidChangeWorkspaceFolder.dispose()
-    this._onDidWorkspaceInitialized.dispose()
     this.buffers.clear()
     Watchman.dispose()
     this.terminal.removeAllListeners()

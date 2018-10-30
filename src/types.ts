@@ -728,8 +728,9 @@ export interface ExtensionContext {
 
 export interface IWorkspace {
   nvim: Neovim
-  // root of current file or cwd
+  cwd: string
   root: string
+  rootPath: string
   isVim: boolean
   isNvim: boolean
   filetypes: Set<string>

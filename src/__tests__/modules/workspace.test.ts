@@ -32,14 +32,14 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, channelNames, workspaceFolder, documents, initialized, textDocuments } = workspace
+    let { nvim, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
     expect(nvim).toBeTruthy()
     expect(initialized).toBe(true)
     expect(channelNames.length).toBe(0)
     expect(documents.length).toBe(1)
     expect(textDocuments.length).toBe(1)
-    let uri = URI.file(process.cwd()).toString()
-    expect(workspaceFolder.uri).toBe(uri)
+    expect(rootPath).toBe(process.cwd())
+    expect(cwd).toBe(process.cwd())
   })
 
   it('should check isVim and isNvim', async () => {

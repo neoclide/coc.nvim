@@ -9,7 +9,6 @@ import workspace from '../workspace'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
 import * as UUID from './utils/uuid'
 
-
 function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | undefined {
   if (target === void 0) {
     return undefined
@@ -84,7 +83,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     }
     if (id) {
       this.register(this.messages, {
-        id: id,
+        id,
         registerOptions: undefined
       })
     }
@@ -128,4 +127,3 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     this._listeners.clear()
   }
 }
-
