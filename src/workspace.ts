@@ -721,8 +721,9 @@ augroup coc_file_read
   autocmd!
   ${cmds.join('\n')}
 augroup end`
-    let file = await createTmpFile(content)
-    await this.nvim.command(`source ${file}`)
+    let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
+    await writeFile(filepath, content)
+    await this.nvim.command(`source ${filepath}`)
   }
 
   private async onBufReadCmd(scheme: string, uri: string): Promise<void> {

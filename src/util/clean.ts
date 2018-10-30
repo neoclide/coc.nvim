@@ -21,6 +21,10 @@ export default async function(): Promise<void> {
     for (let file of files) {
       await pify(fs.unlink)(file)
     }
+    files = glob.sync(path.join(dir, '/coc-*.vim'))
+    for (let file of files) {
+      await pify(fs.unlink)(file)
+    }
   } catch (e) {
     // noop
   }
