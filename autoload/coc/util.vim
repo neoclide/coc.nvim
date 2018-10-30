@@ -417,6 +417,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'roots': get(g:, 'rooter_patterns', []),
         \ 'completeOpt': &completeopt,

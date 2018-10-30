@@ -61,6 +61,7 @@ export interface StatusBarItem {
 
 export interface Env {
   completeOpt: string
+  readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
   readonly version: string
   readonly easymotion: boolean

@@ -94,7 +94,7 @@ export default class Document {
 
   public setFiletype(filetype: string): void {
     let { uri, version } = this
-    this._filetype = convertFiletype(filetype)
+    this._filetype = convertFiletype(filetype, this.env.filetypeMap)
     version = version ? version + 1 : 1
     let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
     this.textDocument = textDocument
@@ -136,7 +136,7 @@ export default class Document {
       }
       this.attached = true
     }
-    this._filetype = convertFiletype(opts.filetype)
+    this._filetype = convertFiletype(opts.filetype, this.env.filetypeMap)
     this.textDocument = TextDocument.create(uri, this.filetype, 0, this.lines.join('\n'))
     this.setIskeyword(opts.iskeyword)
     return true
@@ -545,7 +545,7 @@ export default class Document {
   }
 }
 
-function convertFiletype(filetype: string): string {
-  if (filetype.indexOf('.') == -1) return filetype
-  return filetype.split('.', 2)[0]
+function convertFiletype(filetype: string, map: { [index: string]: string }): string {
+  if (map[filetype]) return map[filetype]
+  return filetype
 }

@@ -240,6 +240,26 @@ g:coc_force_debug  				*g:coc_force_debug*
 
 			Default: 0
 
+g:coc_filetype_map 				*g:coc_filetype_map*
+
+			Map for document filetype so server could handle it as
+			expected, ex: >
+			
+			let g:coc_filetype_map = {
+				\ 'html.swig': 'html',
+				\ 'wxss': 'css',
+				\ }
+<
+			Default: {}
+
+g:rooter_patterns 				*g:rooter_patterns*
+
+			To specify how to identify a project's root directory >
+
+			let g:rooter_patterns = ['Rakefile', '.git/']
+<
+			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
+
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
@@ -296,14 +316,6 @@ g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 			|ch_logfile|. Vim only.
 
 			Default: 0
-
-g:rooter_patterns 				*g:rooter_patterns*
-
-			To specify how to identify a project's root directory >
-
-			let g:rooter_patterns = ['Rakefile', '.git/']
-<
-			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
 
 g:coc_status 					*g:coc_status*
 
