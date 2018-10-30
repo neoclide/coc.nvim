@@ -170,6 +170,7 @@ export class Workspace implements IWorkspace {
 
   public get workspaceFolder(): WorkspaceFolder {
     let { rootPath } = this
+    if (!this.uri || rootPath == os.homedir()) return null
     return {
       uri: Uri.file(rootPath).toString(),
       name: path.basename(rootPath)
@@ -435,7 +436,6 @@ export class Workspace implements IWorkspace {
     }
     return new Promise<Document>(resolve => {
       setTimeout(() => {
-        let { bufnr } = this
         resolve(this.buffers.get(bufnr))
       }, 200)
     })
@@ -751,6 +751,8 @@ augroup end`
         logger.error(e)
       })
     }
+    this._onDidChangeWorkspaceFolder.dispose()
+    this._onDidWorkspaceInitialized.dispose()
     this.buffers.clear()
     Watchman.dispose()
     this.terminal.removeAllListeners()
@@ -1085,7 +1087,7 @@ augroup end`
 
   private async onInsertEnter(): Promise<void> {
     let document = await this.document
-    document.clearHighlight()
+    if (document) document.clearHighlight()
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {

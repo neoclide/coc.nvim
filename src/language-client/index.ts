@@ -14,6 +14,7 @@ import { ConfigurationFeature as PullConfigurationFeature } from './configuratio
 import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
+import { WorkspaceFoldersFeature } from './workspaceFolders'
 import * as electron from './utils/electron'
 import { terminate } from './utils/processes'
 import ChildProcess = cp.ChildProcess
@@ -544,6 +545,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new ImplementationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
+    this.registerFeature(new WorkspaceFoldersFeature(this))
   }
 
   private _getServerWorkingDir(options?: { cwd?: string }): Thenable<string | undefined> {

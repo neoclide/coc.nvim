@@ -19,7 +19,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 - 🚀 **Fast**: instant increment completion, increment buffer sync using buffer update events.
 - 💎 **Reliable**: typed language, tested with CI.
-- 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features) (except workspace Folder and telemetry)
+- 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
 - ❤️ **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ## Table of contents

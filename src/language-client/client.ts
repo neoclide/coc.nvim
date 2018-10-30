@@ -13,6 +13,7 @@ import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenabl
 import * as Is from '../util/is'
 import workspace from '../workspace'
 import { ColorProviderMiddleware } from './colorProvider'
+import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
 import { ConfigurationWorkspaceMiddleware } from './configuration'
 import { FoldingRangeProviderMiddleware } from './foldingRange'
 import { ImplementationMiddleware } from './implementation'
@@ -467,7 +468,7 @@ export interface _WorkspaceMiddleware {
   ) => void
 }
 
-export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware
+export type WorkspaceMiddleware = _WorkspaceMiddleware & ConfigurationWorkspaceMiddleware & WorkspaceFolderWorkspaceMiddleware
 
 /**
  * The Middleware lets extensions intercept the request and notications send and received
