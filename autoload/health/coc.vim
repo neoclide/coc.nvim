@@ -4,10 +4,6 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Neovim version not satisfied, 0.3.0 and above required')
   endif
-  if !has('nvim-0.3.2')
-    let valid = 0
-    call health#report_warn('Neovim version below 0.3.2, some feature would not work.')
-  endif
   if !executable('node')
     let valid = 0
     call health#report_error('Environment node.js not found, install node.js from http://nodejs.org/')
@@ -15,13 +11,14 @@ function! s:checkEnvironment() abort
   if !executable('yarn')
     let valid = 0
     call health#report_error('Environment executable yarn not found, check https://yarnpkg.com/en/docs/install for installation.')
+    call health#report_info('yarn is required for install extensions.')
   endif
-  let output = system('node -v')
+  let output = system('node --version')
   if v:shell_error && output !=# ""
     echohl Error | echon output | echohl None
     return
   endif
-  let ms = matchlist(output, '^v\(\d\+\)')
+  let ms = matchlist(output, 'v\(\d\+\).\d\+.\d\+')
   if empty(ms) || str2nr(ms[1]) < 8
     let valid = 0
     call health#report_error('Node.js version '.output.' too low, consider upgrade node.js')
@@ -48,4 +45,3 @@ function! health#coc#check() abort
     call s:checkEnvironment()
     call s:checkInitailize()
 endfunction
-
