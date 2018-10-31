@@ -276,6 +276,11 @@
       "default": 60,
       "description": "Wait time between trigger characer type and completion start, for sync content to the server"
     },
+    "coc.preferences.acceptSuggestionOnCommitCharacter": {
+      "type": "boolean",
+      "default": false,
+      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character."
+    },
     "coc.preferences.noselect": {
       "type": "boolean",
       "description": "Not make vim select first item on completion start",

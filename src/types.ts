@@ -474,6 +474,8 @@ export interface ISource {
    * @returns {Promise<boolean> }
    */
   shouldComplete?(opt: CompleteOption): Promise<boolean>
+
+  shouldCommit?(item: VimCompleteItem, character: string): boolean
 }
 
 /**

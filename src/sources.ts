@@ -184,6 +184,15 @@ export class Sources extends EventEmitter {
     }
   }
 
+  public shouldCommit(item: VimCompleteItem, commitCharacter: string): boolean {
+    let data = JSON.parse(item.user_data)
+    let source = this.getSource(data.source)
+    if (source && source.sourceType == SourceType.Service && typeof source.shouldCommit === 'function') {
+      return source.shouldCommit(item, commitCharacter)
+    }
+    return false
+  }
+
   public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
     let { triggerCharacter, filetype, custom } = opt
     if (isTriggered) {

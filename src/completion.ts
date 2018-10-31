@@ -27,6 +27,7 @@ export class Completion implements Disposable {
   private insertMode = false
   private nvim: Neovim
   private completing = false
+  private resolving = false
   private disposables: Disposable[] = []
   private completeItems: VimCompleteItem[] = []
   private complete: Complete | null = null
@@ -118,6 +119,7 @@ export class Completion implements Disposable {
     })
     // stop change emit on completion
     increment.on('start', () => {
+      this.resolving = false
       this.completeItems = []
       this.document.paused = true
     })
@@ -227,16 +229,38 @@ export class Completion implements Disposable {
       return
     }
     let item = this.getCompleteItem(search)
-    if (item) await sources.doCompleteResolve(item)
+    if (item) {
+      this.resolving = true
+      await sources.doCompleteResolve(item)
+    }
   }
 
   private async onTextChangedI(bufnr: number): Promise<void> {
     this.lastChangedI = Date.now()
     if (this.completing) return
-    let { nvim, increment, input, latestInsertChar } = this
-    this.lastInsert = null
+    let { nvim, increment, document, input, latestInsertChar } = this
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
+      let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
+      if (checkCommit && latestInsertChar && !document.isWord(latestInsertChar) && !this.resolving) {
+        let item = this.completeItems[0]
+        if (item.word != input && sources.shouldCommit(item, latestInsertChar)) {
+          let { linenr, col, line, colnr } = this.option
+          this.nvim.call('coc#_hide', [], true)
+          increment.stop()
+          let { word } = item
+          let newLine = `${line.slice(0, col)}${word}${latestInsertChar}${line.slice(colnr - 1)}`
+          await nvim.call('coc#util#setline', [linenr, newLine])
+          let curcol = col + word.length + 2
+          await nvim.call('cursor', [linenr, curcol])
+        }
+      }
+      if (latestInsertChar && this.triggerCharacters.has(latestInsertChar)) {
+        this.nvim.call('coc#_hide', [], true)
+        increment.stop()
+        await this.triggerCompletion(latestInsertChar)
+        return
+      }
       let search = await this.getResumeInput()
       if (search == input || !increment.isActivted) return
       if (search == null || search.length < this.option.input.length) {
@@ -246,11 +270,15 @@ export class Completion implements Disposable {
       return await this.resumeCompletion(search)
     }
     if (!latestInsertChar) return
+    await this.triggerCompletion(latestInsertChar)
+  }
+
+  private async triggerCompletion(character: string): Promise<void> {
     // check trigger
-    let shouldTrigger = await this.shouldTrigger(latestInsertChar)
+    let shouldTrigger = await this.shouldTrigger(character)
     if (!shouldTrigger) return
-    let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
-    if (latestInsertChar) option.triggerCharacter = latestInsertChar
+    let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
+    option.triggerCharacter = character
     logger.trace('trigger completion with', option)
     this.startCompletion(option)
   }
@@ -296,17 +324,9 @@ export class Completion implements Disposable {
   }
 
   private onInsertCharPre(character: string): void {
-    let { increment } = this
     this.lastInsert = {
       character,
       timestamp: Date.now(),
-    }
-    if (this.completing) return
-    if (increment.isActivted) {
-      if (this.triggerCharacters.has(character)) {
-        this.nvim.call('coc#_hide', [], true)
-        increment.stop()
-      }
     }
   }
 

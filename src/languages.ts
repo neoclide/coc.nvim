@@ -496,6 +496,15 @@ class Languages {
           option.col = (result as any).startcol
         }
         return res
+      },
+      shouldCommit: (item: VimCompleteItem, character: string): boolean => {
+        let completeItem = resolveItem(item)
+        if (!completeItem) return false
+        let { commitCharacters } = completeItem
+        if (commitCharacters && commitCharacters.indexOf(character) !== -1) {
+          return true
+        }
+        return false
       }
     }
   }
