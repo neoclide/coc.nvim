@@ -329,6 +329,12 @@
       "description": "Set to true to enable format on type",
       "default": false
     },
+    "coc.preferences.diagnostic.level": {
+      "type": "string",
+      "description": "Used for filter diagnostics by diagnostic severity.",
+      "default": "hint",
+      "enum": ["hint", "information", "warning", "error"]
+    },
     "coc.preferences.diagnostic.enable": {
       "type": "boolean",
       "description": "Set to false to disable diagnostic",

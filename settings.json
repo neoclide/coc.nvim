@@ -19,6 +19,7 @@
   "coc.preferences.jumpCommand": "edit",
   "coc.preferences.diagnostic.locationlist": true,
   "coc.preferences.diagnostic.enable": true,
+  "coc.preferences.diagnostic.level": "hint",
   "coc.preferences.diagnostic.enableMessage": true,
   "coc.preferences.diagnostic.highlightOffset": 1000,
   "coc.preferences.diagnostic.signOffset": 1000,

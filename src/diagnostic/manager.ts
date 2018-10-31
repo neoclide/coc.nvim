@@ -11,12 +11,13 @@ import DiagnosticCollection from './collection'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
-  locationlist: boolean,
+  locationlist: boolean
   signOffset: number
   errorSign: string
   warningSign: string
   infoSign: string
   hintSign: string
+  level: number
 }
 
 function severityName(severity: DiagnosticSeverity): string {
@@ -31,6 +32,21 @@ function severityName(severity: DiagnosticSeverity): string {
       return 'Hint'
     default:
       return 'Error'
+  }
+}
+
+function severityLevel(level: string): number {
+  switch (level) {
+    case 'hint':
+      return DiagnosticSeverity.Hint
+    case 'information':
+      return DiagnosticSeverity.Information
+    case 'warning':
+      return DiagnosticSeverity.Warning
+    case 'error':
+      return DiagnosticSeverity.Error
+    default:
+      return DiagnosticSeverity.Hint
   }
 }
 
@@ -141,7 +157,9 @@ export class DiagnosticManager {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this._srcId = config.get<number>('highlightOffset', 1000)
+    let level = config.get<string>('level', 'hint')
     this.config = {
+      level: severityLevel(level),
       locationlist: config.get<boolean>('locationlist', true),
       signOffset: config.get<number>('signOffset', 1000),
       errorSign: config.get<string>('errorSign', '>>'),
@@ -278,8 +296,15 @@ export class DiagnosticManager {
 
   public getBufferDiagnostic(uri: string): DiagnosticItems {
     let res: DiagnosticItems = {}
+    let { level } = this.config
     for (let collection of this.getCollections(uri)) {
-      res[collection.name] = collection.get(uri)
+      let diagnostics = collection.get(uri)
+      if (diagnostics) {
+        if (level != DiagnosticSeverity.Hint) {
+          diagnostics = diagnostics.filter(o => o.severity == null || o.severity <= level)
+        }
+        res[collection.name] = diagnostics
+      }
     }
     return res
   }
