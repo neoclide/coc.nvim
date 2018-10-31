@@ -226,7 +226,14 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
-g:coc_auto_copen  				*g:coc_auto_copen
+g:coc_node_path 				*g:coc_node_path*
+
+			Path to node executable to start coc service. ex: >
+
+			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
+<
+
+g:coc_auto_copen  				*g:coc_auto_copen*
 
 			Open quickfix window after quickfix changed by coc.
 
