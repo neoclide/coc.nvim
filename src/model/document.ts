@@ -137,7 +137,7 @@ export default class Document {
       this.attached = true
     }
     this._filetype = convertFiletype(opts.filetype, this.env.filetypeMap)
-    this.textDocument = TextDocument.create(uri, this.filetype, 0, this.lines.join('\n'))
+    this.textDocument = TextDocument.create(uri, this.filetype, 1, this.lines.join('\n'))
     this.setIskeyword(opts.iskeyword)
     return true
   }
