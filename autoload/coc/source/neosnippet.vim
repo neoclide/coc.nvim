@@ -30,6 +30,10 @@ function! coc#source#neosnippet#on_enter(info) abort
 endfunction
 
 function! coc#source#neosnippet#complete(opt, cb) abort
+  if len(get(a:opt, 'input', '')) == 0
+    call a:cb([])
+    return
+  endif
   let filetype = a:opt['filetype']
   if empty(filetype)
     let items = s:get_snippets()

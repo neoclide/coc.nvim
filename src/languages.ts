@@ -109,13 +109,9 @@ class Languages {
           _token: CancellationToken,
           context: CompletionContext
         ): Promise<CompletionItem[]> => {
-          if (context && context.triggerCharacter) return []
           let { languageId } = document
-          if (languageId == 'typescript.tsx' || languageId == 'typescript.jsx') {
-            languageId = 'typescriptreact'
-          }
-          let { synname } = context.option!
-          if (/string/i.test(synname) || /comment/i.test(synname)) {
+          let { synname, input } = context.option!
+          if (input.length == 0 || /string/i.test(synname) || /comment/i.test(synname)) {
             return []
           }
           let snippets = await snippetManager.getSnippetsForLanguage(languageId)
@@ -156,7 +152,7 @@ class Languages {
     shortcut: string,
     languageIds: string | string[] | null,
     provider: CompletionItemProvider,
-    triggerCharacters?: string[]
+    triggerCharacters: string[] = []
   ): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
     let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters)

@@ -8,6 +8,10 @@ function! coc#source#ultisnips#should_complete(opt) abort
 endfunction
 
 function! coc#source#ultisnips#complete(opt, cb) abort
+  if len(get(a:opt, 'input', '')) == 0
+    call a:cb([])
+    return
+  endif
   let snips = UltiSnips#SnippetsInCurrentScope()
   if type(snips) == 3
     let items = map(snips, {idx, val -> {'word': val['key'], 'dup': 1, 'menu': val['description']}})
