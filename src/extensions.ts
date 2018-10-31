@@ -52,6 +52,7 @@ export class Extensions {
     let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
     this.version = version
     let stats = this.globalExtensionStats()
+    if (global.hasOwnProperty('__TEST__')) return
     Promise.all(stats.map(state => {
       let folder = state.root
       let id = path.dirname(folder)
@@ -63,7 +64,6 @@ export class Extensions {
     let now = new Date()
     let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     this.onDidActiveExtension(async extension => {
-      if (global.hasOwnProperty('__TEST__')) return
       let { id, packageJSON } = extension
       if (!this.isGlobalExtension(id) || this.isExoticExtension(id)) return
       let key = `/extension/${id}/ts`

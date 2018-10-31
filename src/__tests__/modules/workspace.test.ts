@@ -553,18 +553,19 @@ describe('workspace events', () => {
     workspace.onWillSaveTextDocument(fn1, null, disposables)
     workspace.onDidSaveTextDocument(fn2, null, disposables)
     await nvim.command('w')
-    await helper.wait(100)
+    await helper.wait(200)
     expect(fn1).toHaveBeenCalledTimes(1)
     expect(fn2).toHaveBeenCalledTimes(1)
   })
 
   it('should fire onDidChangeConfiguration', async () => {
+    await helper.createDocument('onDidChangeConfiguration')
     let fn = jest.fn()
     workspace.onDidChangeConfiguration(e => {
       expect(e.affectsConfiguration('tsserver')).toBe(true)
       expect(e.affectsConfiguration('tslint')).toBe(false)
       fn()
-    }, null, disposables)
+    })
     let config = workspace.getConfiguration('tsserver')
     config.update('enable', false)
     await helper.wait(2000)
@@ -573,6 +574,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onWillSaveUntil', async () => {
+    await helper.createDocument('willSaveHandler')
     let fn = jest.fn()
     workspace.onWillSaveUntil(event => {
       let promise = new Promise<void>(resolve => {
