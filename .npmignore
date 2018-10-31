@@ -6,7 +6,6 @@ autoload
 rplugin
 src
 .github
-bin
 build
 coverage
 data
