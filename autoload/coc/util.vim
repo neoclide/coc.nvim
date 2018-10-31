@@ -621,6 +621,16 @@ function! s:extension_installed(status, name)
   endif
 endfunction
 
+function! coc#util#rebuild()
+  let dir = coc#util#extension_root()
+  if !isdirectory(dir) | return | endif
+  call coc#util#open_terminal({
+        \ 'cwd': dir,
+        \ 'cmd': 'npm rebuild',
+        \ 'keepfocus': 1,
+        \})
+endfunction
+
 function! coc#util#update()
   if !executable('yarn')
     echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None

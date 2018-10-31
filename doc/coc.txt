@@ -609,6 +609,12 @@ COMMANDS 					*coc-commands*
 
 		Update all coc extensions.
 
+:CocRebuild 					*:CocRebuild*
+
+		Run `npm rebuild` with coc extensions.
+		Required after upgrade nodejs, when using coc from source
+		code.
+
 :CocCommand {name} [{args}]			*:CocCommand*
 
 		Command to run `:call CocAction('runCommand', name, ...args)`,
