@@ -87,7 +87,7 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     this.terminal = new Terminal(this.nvim)
     this.statusLine = new StatusLine(this.nvim)
-    events.on('BufEnter', bufnr => {
+    events.on('BufEnter', async bufnr => {
       this.bufnr = bufnr
     }, null, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -438,6 +438,11 @@ export class Workspace implements IWorkspace {
       let { id } = buffer
       let doc = this.buffers.get(id)
       if (doc) return doc
+      if (!this.creating.has(id)) {
+        return this.onBufCreate(id).then(() => {
+          return this.getDocument(id)
+        })
+      }
       return new Promise<Document>(resolve => {
         let disposable = this.onDidOpenTextDocument(doc => {
           disposable.dispose()
@@ -970,10 +975,13 @@ augroup end`
     this.checkBuffer.clear()
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     if (this.creating.has(buffer.id)) return
+    this.creating.add(buffer.id)
     let loaded = await this.nvim.call('bufloaded', buffer.id)
-    if (!loaded) return
-    let bufnr = this.bufnr = buffer.id
-    this.creating.add(bufnr)
+    if (!loaded) {
+      this.creating.delete(buffer.id)
+      return
+    }
+    this.bufnr = buffer.id
     let document = this.getDocument(buffer.id)
     try {
       if (document) await events.fire('BufUnload', [buffer.id])
