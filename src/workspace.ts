@@ -434,10 +434,16 @@ export class Workspace implements IWorkspace {
     if (bufnr && this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
     }
-    return new Promise<Document>(resolve => {
-      setTimeout(() => {
-        resolve(this.buffers.get(bufnr))
-      }, 200)
+    return this.nvim.buffer.then(buffer => {
+      let { id } = buffer
+      let doc = this.buffers.get(id)
+      if (doc) return doc
+      return new Promise<Document>(resolve => {
+        let disposable = this.onDidOpenTextDocument(doc => {
+          disposable.dispose()
+          resolve(this.getDocument(doc.uri))
+        })
+      })
     })
   }
 
