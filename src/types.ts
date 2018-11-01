@@ -176,6 +176,7 @@ export interface ChangeItem {
 }
 
 export interface BufferOption {
+  eol: number
   bufname: string
   fullpath: string
   buftype: string

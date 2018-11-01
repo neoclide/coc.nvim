@@ -24,6 +24,7 @@ export default class Document {
   private nvim: Neovim
   private _lastChange: LastChangeType = 'insert'
   private srcId = 0
+  private eol = true
   private _fireContentChanges: Function & { clear(): void }
   private _filetype: string
   private attached = false
@@ -125,6 +126,7 @@ export default class Document {
     if (!opts) return false
     let buftype = this.buftype = opts.buftype
     this._changedtick = opts.changedtick
+    this.eol = opts.eol == 1
     let bufname = buftype == 'nofile' || opts.bufname == '' ? opts.bufname : opts.fullpath
     let uri = getUri(bufname, buffer.id, buftype)
     if (this.shouldAttach(buftype)) {
@@ -137,7 +139,7 @@ export default class Document {
       this.attached = true
     }
     this._filetype = convertFiletype(opts.filetype, this.env.filetypeMap)
-    this.textDocument = TextDocument.create(uri, this.filetype, 1, this.lines.join('\n'))
+    this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
     return true
   }
@@ -430,7 +432,7 @@ export default class Document {
       uri,
       filetype,
       version,
-      this.lines.join('\n')
+      this.getDocumentContent()
     )
   }
 
@@ -542,6 +544,11 @@ export default class Document {
     let wid = await this.nvim.call('bufwinid', this.buffer.id)
     if (wid == -1) return await this.nvim.call('getcwd')
     return await this.nvim.call('getcwd', wid)
+  }
+
+  private getDocumentContent(): string {
+    let content = this.lines.join('\n')
+    return this.eol ? content + '\n' : content
   }
 }
 
