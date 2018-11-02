@@ -5,7 +5,7 @@ import Uri from 'vscode-uri'
 import { WorkspaceConfiguration, ChangeInfo, Env, BufferOption } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { getUri, wait } from '../util/index'
+import { getUri, wait, convertFiletype } from '../util/index'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import semver from 'semver'
@@ -550,11 +550,4 @@ export default class Document {
     let content = this.lines.join('\n')
     return this.eol ? content + '\n' : content
   }
-}
-
-function convertFiletype(filetype: string, map: { [index: string]: string }): string {
-  if (filetype == 'javascript.jsx') return 'javascriptreact'
-  if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
-  if (map[filetype]) return map[filetype]
-  return filetype
 }

@@ -6,7 +6,7 @@ import Complete from './model/complete'
 import Document from './model/document'
 import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
-import { disposeAll, wait } from './util'
+import { disposeAll, wait, convertFiletype } from './util'
 import { isCocItem } from './util/complete'
 import { byteSlice } from './util/string'
 import workspace from './workspace'
@@ -147,6 +147,7 @@ export class Completion implements Disposable {
   }
 
   public startCompletion(option: CompleteOption): void {
+    option.filetype = convertFiletype(option.filetype, workspace.env.filetypeMap)
     this.option = option
     this.input = option.input
     this.triggerCharacters = sources.getTriggerCharacters(option.filetype, option.custom)

@@ -238,7 +238,7 @@ export interface CompleteOption {
   readonly line: string
   col: number
   input: string
-  readonly filetype: string
+  filetype: string
   readonly filepath: string
   readonly word: string
   triggerCharacter: string
