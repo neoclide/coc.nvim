@@ -312,7 +312,7 @@
     "coc.preferences.customSources": {
       "type": "array",
       "description": "Source names used for coc-complete-custom",
-      "default": ["word", "emoji", "include"],
+      "default": ["emoji", "include"],
       "items": {
         "type": "string"
       }

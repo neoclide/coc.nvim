@@ -53,6 +53,7 @@ export default class Complete {
         if (result.startcol != null && result.startcol != col) {
           result.engross = true
         }
+        result.isFallback = source.isFallback
         result.priority = source.priority
         result.source = source.name
         ctx.result = result
@@ -99,7 +100,7 @@ export default class Complete {
           item.source = source
         }
         let factor = priority / 10000 + this.getBonusScore(input, item)
-        item.score = score(filterText, input) + factor
+        item.score = score(filterText, input) + factor - (res.isFallback ? 1 : 0)
         words.add(word)
         arr.push(item)
       }
@@ -122,10 +123,7 @@ export default class Complete {
     let { line, colnr } = opts
     sources.sort((a, b) => b.priority - a.priority)
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
-    results = results.filter(r => {
-      // error/empty result
-      return r != null
-    })
+    results = results.filter(r => r != null && r.items && r.items.length > 0)
     if (results.length == 0) return []
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {

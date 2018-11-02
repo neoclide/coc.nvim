@@ -10,7 +10,7 @@
   "coc.preferences.triggerAfterInsertEnter": false,
   "coc.preferences.minTriggerInputLength": 1,
   "coc.preferences.acceptSuggestionOnCommitCharacter": false,
-  "coc.preferences.customSources": ["word", "emoji", "include"],
+  "coc.preferences.customSources": ["emoji", "include"],
   "coc.preferences.timeout": 500,
   "coc.preferences.noselect": true,
   "coc.preferences.formatOnType": false,

@@ -13,6 +13,7 @@ export default abstract class Source implements ISource {
   // exists opitonnal function names for remote source
   public readonly optionalFns: string[]
   public readonly isSnippet: boolean
+  public readonly isFallback: boolean
   protected readonly nvim: Neovim
   private _disabled = false
   constructor(option: SourceConfig) {
@@ -20,6 +21,7 @@ export default abstract class Source implements ISource {
     this.name = name
     this.nvim = workspace.nvim
     this.isSnippet = !!option.isSnippet
+    this.isFallback = !!option.isFallback
     this.optionalFns = optionalFns || []
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native
