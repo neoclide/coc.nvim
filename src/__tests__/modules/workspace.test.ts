@@ -239,7 +239,7 @@ describe('workspace methods', () => {
     await nvim.setLine('foo')
     await helper.wait(100)
     let line = await workspace.readFile(doc.uri)
-    expect(line).toBe('foo')
+    expect(line).toBe('foo\n')
   })
 
   it('should read content from file', async () => {
