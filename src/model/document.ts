@@ -230,14 +230,14 @@ export default class Document {
   }
 
   public get dirty(): boolean {
-    return this.content != this.lines.join('\n')
+    return this.content != this.getDocumentContent()
   }
 
   private fireContentChanges(): void {
     let { paused, textDocument } = this
     if (paused) return
     try {
-      let content = this.lines.join('\n')
+      let content = this.getDocumentContent()
       if (content == this.content) return
       let change = getChange(this.content, content)
       this.createDocument()

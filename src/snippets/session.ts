@@ -126,6 +126,7 @@ export class SnippetSession {
   public async start(): Promise<void> {
     let position = await workspace.getCursorPosition()
     let document = this._document = await workspace.document
+    document.forceSync()
     let formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = await this.nvim.call('getline', '.')
     this._position = position
