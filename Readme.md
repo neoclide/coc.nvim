@@ -286,10 +286,10 @@ function! s:show_documentation()
 endfunction
 
 " Show signature help while editing
-autocmd CursorHoldI * silent! call CocAction('showSignatureHelp')
+autocmd CursorHoldI * silent! call CocActionAsync('showSignatureHelp')
 
 " Highlight symbol under cursor on CursorHold
-autocmd CursorHold * silent call CocAction('highlight')
+autocmd CursorHold * silent call CocActionAsync('highlight')
 
 " Remap for rename current word
 nmap <leader>rn <Plug>(coc-rename)
