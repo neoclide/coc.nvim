@@ -1,3 +1,21 @@
+# 2018-11-02
+
+- **Break change** no items from snippets source when input is empty.
+- **Break change** `javascript.jsx` would changed to `javascriptreact` as languageId.
+- **Break change** `typescript.tsx` would changed to `typescriptreact` as languageId.
+- Add support for `commitCharacters` and `coc.preferences.acceptSuggestionOnCommitCharacter`.
+- Add setting: `coc.preferences.diagnostic.level`.
+- Add `g:coc_filetype_map` for customize mapping between filetype and languageId.
+- Add `g:coc_node_path` for custom node executable.
+- Add `workspaceFolders` feature to language client.
+- Add `~` to complete item of snippet source.
+- Add `onDidChangeWorkspaceFolder` event
+- Fix `eol` issue by check `eol` option.
+- Fix `workspace.document` could be null.
+- Fix `workspaceFolder` could be null.
+- Fix diagnostic for quickfix buffer.
+- Fix resolve of `coc.preferences.rootPath`
+
 # 2018-10-29
 
 - **Break change** diagnostic reworked, no refresh on insert mode.
