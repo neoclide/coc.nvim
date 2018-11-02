@@ -553,7 +553,7 @@ describe('workspace events', () => {
     workspace.onWillSaveTextDocument(fn1, null, disposables)
     workspace.onDidSaveTextDocument(fn2, null, disposables)
     await nvim.command('w')
-    await helper.wait(200)
+    await helper.wait(300)
     expect(fn1).toHaveBeenCalledTimes(1)
     expect(fn2).toHaveBeenCalledTimes(1)
   })

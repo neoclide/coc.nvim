@@ -27,6 +27,15 @@ describe('native sources', () => {
     expect(res).toBe(true)
   })
 
+  it('should works for word source', async () => {
+    await helper.edit('word')
+    await nvim.setLine('foo')
+    await nvim.input('At')
+    await helper.wait(30)
+    let res = await helper.visible('football', 'word')
+    expect(res).toBe(true)
+  })
+
   it('should works for dictionary source', async () => {
     await helper.edit('dictionary')
     await nvim.call('SetDictionary')
@@ -91,16 +100,6 @@ describe('native sources', () => {
     await helper.wait(100)
     await nvim.input('<C-x><C-u>')
     let res = await helper.visible('😄', 'emoji')
-    expect(res).toBe(true)
-  })
-
-  it('should works for word source', async () => {
-    let s = 'strengthening'
-    await helper.edit('word')
-    await nvim.input('i' + s.slice(0, -2))
-    await helper.wait(100)
-    await nvim.input('<C-x><C-u>')
-    let res = await helper.visible(s, 'word')
     expect(res).toBe(true)
   })
 
