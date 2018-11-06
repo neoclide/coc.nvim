@@ -62,6 +62,7 @@
   "coc.source.word.enable": true,
   "coc.source.word.shortcut": "10k",
   "coc.source.word.priority": 1,
+  "coc.source.word.filetypes": ["markdown"],
   "coc.source.ultisnips.enable": true,
   "coc.source.ultisnips.priority": 99,
   "coc.source.ultisnips.shortcut": "US",
