@@ -1,4 +1,4 @@
-import { score } from 'fuzzaldrin'
+import { score } from 'fuzzaldrin-plus'
 import Serial from 'node-serial'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
@@ -99,8 +99,8 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        let factor = priority / 10000 + this.getBonusScore(input, item)
-        item.score = score(filterText, input) + factor - (res.isFallback ? 1 : 0)
+        let factor = priority + this.getBonusScore(input, item)
+        item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)
       }

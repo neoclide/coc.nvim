@@ -147,10 +147,10 @@
   resolved "https://registry.yarnpkg.com/@types/find-up/-/find-up-2.1.1.tgz#1cd2d240f1ad1f48d32346074724dc3107248a11"
   integrity sha512-60LC501bQRN9/3yfVaEEMd7IndaufffL56PBRAejPpUrY304Ps1jfnjNqPw5jmM5R8JHWiKBAe5IHzNcPV41AA==
 
-"@types/fuzzaldrin@^2.1.1":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@types/fuzzaldrin/-/fuzzaldrin-2.1.1.tgz#f2c18783d8404766f59e645e8168ff129d170cbe"
-  integrity sha512-KHKQApfuxY67bNVCvRYXEJA/8krvf27T4aA5dTQV8GBx19FKOhcvznbHBVqR7pFJhXZk/yYMWiPEPJ/JVdQ0jQ==
+"@types/fuzzaldrin-plus@^0.6.0":
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/@types/fuzzaldrin-plus/-/fuzzaldrin-plus-0.6.0.tgz#7bdb91a6a50dea787e7f735ecac48c43a8965674"
+  integrity sha512-SSQi/XZ4d+x1xqmabEVrsTkPuiUFx02zne+Y90I9XyCOQxdnyIzRJBRlLRWjJazi7Wls8JVkfdYZ+zbktqDvzA==
 
 "@types/glob@^7.1.1":
   version "7.1.1"
@@ -1378,6 +1378,11 @@ function-bind@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
   integrity sha512-yIovAzMX49sF8Yl58fSCWJ5svSLuaibPxXQJFLmBObTuCr0Mf1KiPopGM9NiFjiYBCbfaa2Fh6breQ6ANVTI0A==
+
+fuzzaldrin-plus@^0.6.0:
+  version "0.6.0"
+  resolved "https://registry.yarnpkg.com/fuzzaldrin-plus/-/fuzzaldrin-plus-0.6.0.tgz#832f6489fbe876769459599c914a670ec22947ee"
+  integrity sha1-gy9kifvodnaUWVmckUpnDsIpR+4=
 
 fuzzaldrin@^2.1.0:
   version "2.1.0"
