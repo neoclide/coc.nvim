@@ -1,52 +1,46 @@
-import { diffLines } from '../../util/diff'
+import { getContentChanges } from '../../util/diff'
+import { TextDocument } from 'vscode-languageserver-types'
 
-describe('should get diffLines', () => {
+describe('should get text edits', () => {
+
+  function applyEdits(oldStr: string, newStr: string): void {
+    let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
+    let changes = getContentChanges(doc, newStr)
+    let res = TextDocument.applyEdits(doc, changes.map(o => {
+      return { range: o.range, newText: o.text }
+    }))
+    expect(res).toBe(newStr)
+  }
+
   it('should get diff for added', () => {
-    let d = diffLines('1\n2', '1\n2\n3\n4')
-    expect(d.start).toBe(2)
-    expect(d.end).toBe(2)
-    expect(d.replacement).toEqual(['3', '4'])
+    applyEdits('1\n2', '1\n2\n3\n4')
   })
 
   it('should get diff for added #1', () => {
-    let d = diffLines('1\n2\n3', '5\n1\n2\n3')
-    expect(d.start).toBe(0)
-    expect(d.end).toBe(0)
-    expect(d.replacement).toEqual(['5'])
+    applyEdits('1\n2\n3', '5\n1\n2\n3')
   })
 
   it('should get diff for added #2', () => {
-    let d = diffLines('1\n2\n3', '1\n2\n4\n3')
-    expect(d.start).toBe(2)
-    expect(d.end).toBe(2)
-    expect(d.replacement).toEqual(['4'])
+    applyEdits('1\n2\n3', '1\n2\n4\n3')
   })
 
   it('should get diff for added #3', () => {
-    let d = diffLines('1\n2\n3', '4\n1\n2\n3\n5')
-    expect(d.start).toBe(0)
-    expect(d.end).toBe(3)
-    expect(d.replacement).toEqual(['4', '1', '2', '3', '5'])
+    applyEdits('1\n2\n3', '4\n1\n2\n3\n5')
   })
 
   it('should get diff for replace', () => {
-    let d = diffLines('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
-    expect(d.start).toBe(1)
-    expect(d.end).toBe(5)
-    expect(d.replacement).toEqual(['5', '3', '6', '7'])
+    applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
+  })
+
+  it('should get diff for replace #1', () => {
+    applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
   })
 
   it('should get diff for remove', () => {
-    let d = diffLines('1\n2\n3\n4', '1\n4')
-    expect(d.start).toBe(1)
-    expect(d.end).toBe(3)
-    expect(d.replacement).toEqual([])
+    applyEdits('1\n2\n3\n4', '1\n4')
   })
 
   it('should get diff for remove #1', () => {
-    let d = diffLines('1\n2\n3\n4', '1')
-    expect(d.start).toBe(1)
-    expect(d.end).toBe(4)
-    expect(d.replacement).toEqual([])
+    applyEdits('1\n2\n3\n4', '1')
   })
 })

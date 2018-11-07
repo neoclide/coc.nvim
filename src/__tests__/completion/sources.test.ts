@@ -28,7 +28,8 @@ describe('native sources', () => {
   })
 
   it('should works for word source', async () => {
-    await helper.edit('word')
+    await helper.edit('word.md')
+    await nvim.command('setfiletype markdown')
     await nvim.setLine('foo')
     await nvim.input('At')
     await helper.wait(30)
@@ -41,9 +42,8 @@ describe('native sources', () => {
     await nvim.call('SetDictionary')
     let buf = await nvim.buffer
     let dict = await buf.getOption('dictionary') as string
-    expect(dict.indexOf('test.dict') !== -1).toBeTruthy()
-    await helper.wait(30)
-    await nvim.input('id')
+    expect(dict).toContain('test.dict')
+    await nvim.input('idiction')
     let res = await helper.visible('dictionary', 'dictionary')
     expect(res).toBe(true)
   })

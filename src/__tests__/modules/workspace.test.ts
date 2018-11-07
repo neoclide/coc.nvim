@@ -1,13 +1,25 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
+import pify from 'pify'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { Location, Position, Range, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import URI from 'vscode-uri'
 import { ConfigurationTarget, IWorkspace } from '../../types'
 import { disposeAll } from '../../util'
-import { createTmpFile, readFile } from '../../util/fs'
+import { readFile } from '../../util/fs'
 import helper from '../helper'
+
+async function createTmpFile(content: string): Promise<string> {
+  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
+  if (!fs.existsSync(tmpFolder)) {
+    fs.mkdirSync(tmpFolder)
+  }
+  let filename = path.join(tmpFolder, Date.now().toString(26).slice(4))
+  await pify(fs.writeFile)(filename, content, 'utf8')
+  return filename
+}
 
 let nvim: Neovim
 let workspace: IWorkspace
@@ -552,6 +564,7 @@ describe('workspace events', () => {
     await helper.edit(filepath)
     workspace.onWillSaveTextDocument(fn1, null, disposables)
     workspace.onDidSaveTextDocument(fn2, null, disposables)
+    await nvim.setLine('foo')
     await nvim.command('w')
     await helper.wait(300)
     expect(fn1).toHaveBeenCalledTimes(1)

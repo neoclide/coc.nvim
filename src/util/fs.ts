@@ -118,16 +118,6 @@ export async function writeFile(fullpath, content: string): Promise<void> {
   await pify(fs.writeFile)(fullpath, content, 'utf8')
 }
 
-export async function createTmpFile(content: string): Promise<string> {
-  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
-  if (!fs.existsSync(tmpFolder)) {
-    fs.mkdirSync(tmpFolder)
-  }
-  let filename = path.join(tmpFolder, Date.now().toString(26).slice(4))
-  await pify(fs.writeFile)(filename, content, 'utf8')
-  return filename
-}
-
 export function validSocket(path: string): Promise<boolean> {
   let clientSocket = new net.Socket()
   return new Promise(resolve => {

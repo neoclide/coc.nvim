@@ -1,12 +1,10 @@
 /* tslint:disable:no-console */
 import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
-import { getChange } from '../../util/diff'
-import { createTmpFile, isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
+import { isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score } from '../../util/match'
 import Uri from 'vscode-uri'
-import path = require('path')
-import fs = require('fs')
+import path from 'path'
 
 describe('score test', () => {
   test('should match schema', () => {
@@ -68,40 +66,5 @@ describe('fs test', () => {
       lines.push(line)
     })
     expect(lines.length > 0).toBeTruthy
-  })
-
-  test('should create tmp file', async () => {
-    let filename = await createTmpFile('coc test')
-    expect(typeof filename).toBe('string')
-    let stat = fs.statSync(filename)
-    expect(stat.isFile()).toBeTruthy
-  })
-})
-
-describe('diff test', () => {
-
-  function expectChange(from: string, to: string): void {
-    let doc = TextDocument.create('/coc', 'text', 0, from)
-    let change = getChange(from, to)
-    let { newText } = change
-    let start = doc.positionAt(change.start)
-    let end = doc.positionAt(change.end)
-    let edit: TextEdit = {
-      range: { start, end },
-      newText
-    }
-    let newContent = TextDocument.applyEdits(doc, [edit])
-    expect(newContent).toBe(to)
-  }
-
-  test('should get change', () => {
-    expectChange('a', 'b')
-    expectChange('a', 'bb')
-    expectChange('abc\ndef', 'abbc\ndf')
-    let arr = new Array(100000)
-    let content = arr.fill('a').join('\n')
-    expectChange(content, '')
-    expectChange('', content)
-    expectChange('abc', 'abbc\ndf')
   })
 })
