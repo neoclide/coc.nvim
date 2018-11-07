@@ -29,6 +29,7 @@ import * as complete from './util/complete'
 import workspace from './workspace'
 import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
+import { mixin } from './util/object'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -83,6 +84,7 @@ class Languages {
   private implementatioinManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
+  private resolveTokenSource: CancellationTokenSource
 
   constructor() {
     workspace.onWillSaveUntil(event => {
@@ -382,14 +384,11 @@ class Languages {
   ): ISource {
     // track them for resolve
     let completeItems: CompletionItem[] = []
-    let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    let isResolving = false
     let resolveInput: string
     let option: CompleteOption
     let preferences = workspace.getConfiguration('coc.preferences')
     let priority = preferences.get<number>('languageSourcePriority', 99)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    let cancelTokenSource: CancellationTokenSource = null
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
@@ -405,42 +404,10 @@ class Languages {
       triggerCharacters: triggerCharacters || [],
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         if (completeItems.length == 0) return
-        if (isResolving && cancelTokenSource) {
-          cancelTokenSource.cancel()
-        }
         resolveInput = item.word
         let resolving = resolveItem(item)
         if (!resolving) return
-        resolving.data = resolving.data || {}
-        if (!resolving.data.resolved && hasResolve) {
-          cancelTokenSource = new CancellationTokenSource()
-          let token = cancelTokenSource.token
-          isResolving = true
-          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, token))
-          isResolving = false
-          if (token.isCancellationRequested) return
-          if (resolved) Object.assign(resolving, resolved)
-          resolving.data.resolved = true
-        }
-        // use TextEdit for snippet item
-        // tslint:disable-next-line: deprecation
-        if (resolving.insertTextFormat == InsertTextFormat.Snippet && resolving.insertText && !resolving.textEdit) {
-          // fix worng format
-          // tslint:disable-next-line: deprecation
-          if (resolving.insertText.indexOf('$') == -1) {
-            resolving.insertTextFormat = InsertTextFormat.PlainText
-          } else {
-            let { col, colnr } = option
-            let line = option.linenr - 1
-            // use textEdit for snippet
-            resolving.textEdit = {
-              range: Range.create(line, col, line, colnr - 1),
-              // tslint:disable-next-line: deprecation
-              newText: resolving.insertText
-            }
-          }
-        }
-
+        await this.resolveCompletionItem(resolving, provider)
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolveInput == item.word) {
           // vim have no suppport for update complete item
@@ -458,6 +425,24 @@ class Languages {
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
+        await this.resolveCompletionItem(completeItem, provider)
+        // use TextEdit for snippet item
+        // tslint:disable-next-line: deprecation
+        if (completeItem.insertTextFormat == InsertTextFormat.Snippet && completeItem.insertText && !completeItem.textEdit) {
+          // tslint:disable-next-line: deprecation
+          if (completeItem.insertText.indexOf('$') == -1) {
+            completeItem.insertTextFormat = InsertTextFormat.PlainText
+          } else {
+            let { col, colnr } = option
+            let line = option.linenr - 1
+            // use textEdit for snippet
+            completeItem.textEdit = {
+              range: Range.create(line, col, line, colnr - 1),
+              // tslint:disable-next-line: deprecation
+              newText: completeItem.insertText
+            }
+          }
+        }
         let snippet = await this.applyTextEdit(completeItem, option)
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
@@ -552,6 +537,24 @@ class Languages {
     let document = workspace.getDocument(bufnr)
     if (!document) return
     await document.applyEdits(this.nvim, textEdits)
+  }
+
+  private async resolveCompletionItem(item: CompletionItem, provider: CompletionItemProvider): Promise<CompletionItem> {
+    item.data = item.data || {}
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+    }
+    let hasResolve = typeof provider.resolveCompletionItem === 'function'
+    if (hasResolve && !item.data.resolved) {
+      let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
+      let token = cancelTokenSource.token
+      let resolved = await Promise.resolve(provider.resolveCompletionItem(item, token))
+      if (token.isCancellationRequested) return
+      this.resolveTokenSource = null
+      if (resolved) mixin(item, resolved)
+      item.data.resolved = true
+    }
+    return item
   }
 }
 

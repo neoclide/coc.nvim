@@ -2,6 +2,7 @@
 import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { mixin } from '../../util/object'
 import { score } from '../../util/match'
 import Uri from 'vscode-uri'
 import path from 'path'
@@ -66,5 +67,14 @@ describe('fs test', () => {
       lines.push(line)
     })
     expect(lines.length > 0).toBeTruthy
+  })
+})
+
+describe('object test', () => {
+  test('mixin should recursive', () => {
+    let res = mixin({ a: { b: 1 } }, { a: { c: 2 }, d: 3 })
+    expect(res.a.b).toBe(1)
+    expect(res.a.c).toBe(2)
+    expect(res.d).toBe(3)
   })
 })
