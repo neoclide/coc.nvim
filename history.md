@@ -1,3 +1,15 @@
+# 2018-11-07
+
+- **Break change** word source removed from custom sources, enabled for markdown
+  by default.
+- **Break change** ignore sortText when input.length > 3.
+- **Break change** show prompt for install `coc-json` when not found.
+- Fix document content synchronize could be wrong.
+- Fix filetype not converted on completion.
+- Fix complete item possible not resolved.
+- Improve document highlight, no highlight when cursor moved.
+- Improve completion score, use fuzzaldrin-plus replace fuzzaldrin.
+
 # 2018-11-02
 
 - **Break change** no items from snippets source when input is empty.
@@ -529,4 +541,3 @@
 
 - Fix restart of tsserver not working.
 - Fix edit of current buffer change jumplist by using `:keepjumps`.
-
