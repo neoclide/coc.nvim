@@ -185,8 +185,8 @@ export class Sources extends EventEmitter {
   }
 
   public shouldCommit(item: VimCompleteItem, commitCharacter: string): boolean {
-    let data = JSON.parse(item.user_data)
-    let source = this.getSource(data.source)
+    if (!item || !item.source) return false
+    let source = this.getSource(item.source)
     if (source && source.sourceType == SourceType.Service && typeof source.shouldCommit === 'function') {
       return source.shouldCommit(item, commitCharacter)
     }
