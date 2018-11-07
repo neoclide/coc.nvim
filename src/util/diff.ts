@@ -1,5 +1,6 @@
 import fastDiff from 'fast-diff'
 import { ChangedLines, ChangeItem } from '../types'
+import { TextEdit, TextDocument, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -44,17 +45,6 @@ export function diffLines(from: string, to: string): ChangedLines {
   }
 }
 
-export function getChangeItem(oldStr: string, newStr: string): ChangeItem {
-  let change = getChange(oldStr, newStr)
-  if (!change) return null
-  let { start, end } = change
-  return {
-    offset: change.start,
-    added: change.newText,
-    removed: oldStr.slice(start, end)
-  }
-}
-
 export function getChange(oldStr: string, newStr: string): Change {
   let result = fastDiff(oldStr, newStr, 1)
   let curr = 0
@@ -82,4 +72,53 @@ export function getChange(oldStr: string, newStr: string): Change {
     }
   }
   return { start, end, newText }
+}
+
+export function getContentChanges(document: TextDocument, content: string): TextDocumentContentChangeEvent[] {
+  let result = fastDiff(document.getText(), content)
+  let curr = 0
+  let edits: TextDocumentContentChangeEvent[] = []
+  for (let i = 0; i < result.length; i++) {
+    let item = result[i]
+    let [type, content] = item
+    if (type == fastDiff.EQUAL) {
+      curr += content.length
+      continue
+    }
+    if (type == fastDiff.DELETE) {
+      let next = result[i + 1]
+      let range: Range = {
+        start: document.positionAt(curr),
+        end: document.positionAt(curr + content.length)
+      }
+      curr += content.length
+      if (!next || next[0] == fastDiff.EQUAL) {
+        edits.push({
+          range,
+          rangeLength: content.length,
+          text: ''
+        })
+      } else {
+        // replace
+        i = i + 1
+        edits.push({
+          range,
+          rangeLength: content.length,
+          text: next[1]
+        })
+      }
+    } else {
+      // add
+      let range: Range = {
+        start: document.positionAt(curr),
+        end: document.positionAt(curr)
+      }
+      edits.push({
+        range,
+        rangeLength: 0,
+        text: content
+      })
+    }
+  }
+  return edits
 }

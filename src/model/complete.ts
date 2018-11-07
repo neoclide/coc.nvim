@@ -82,6 +82,7 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
+      if (res.isFallback && input.length < 3) continue
       for (let item of items) {
         let { word } = item
         if (words.has(word)) continue
