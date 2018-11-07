@@ -99,7 +99,7 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        let factor = priority + this.getBonusScore(input, item)
+        let factor = priority * 100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
         arr.push(item)
@@ -144,9 +144,9 @@ export default class Complete {
     let score = input.length
       ? this.recentScores[`${input.slice(0, 1)}|${word}`] || 0
       : 0
-    score += kind ? 0.001 : 0
-    score += abbr ? 0.001 : 0
-    score += info ? 0.001 : 0
+    score += kind ? 1 : 0
+    score += abbr ? 1 : 0
+    score += info ? 1 : 0
     return score
   }
 }
