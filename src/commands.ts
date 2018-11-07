@@ -70,7 +70,13 @@ export class CommandManager implements Disposable {
       id: 'editor.action.rename',
       execute: async (uri: string, position: Position) => {
         await workspace.jumpTo(uri, position)
-        await plugin.cocAction(['rename'])
+        await plugin.cocAction('rename')
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.format',
+      execute: async () => {
+        await plugin.cocAction('format')
       }
     }, true)
     this.register({
@@ -87,7 +93,7 @@ export class CommandManager implements Disposable {
         let lines = document.content.split('\n')
         await nvim.call('coc#util#diff_content', [lines])
       }
-    })
+    }, true)
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
