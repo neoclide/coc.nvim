@@ -80,7 +80,7 @@
     "typescript": "^3.1.6"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.25",
+    "@chemzqm/neovim": "4.3.26",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
