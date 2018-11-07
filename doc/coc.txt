@@ -111,7 +111,7 @@ Use `<cr>` for confirm completion, use: >
 Note: snippet and `additionalTextEdit` only work after completion is
 confirmed.
 
-Use <C-x><C-u> to complete custom sources, including `word`, `emoji` and
+Use <C-x><C-u> to complete custom sources, including  `emoji` and
 `include` >
 
 	imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
@@ -147,7 +147,7 @@ mode, 'v_' works for visual mode.
 
 			Trigger completion for custom sources.
 
-  			Default customs sources: `emoji`, `include` and `word`
+  			Default customs sources: `emoji` and `include`
 
 			Use `coc.preferences.customSources` to configure.
 

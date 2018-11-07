@@ -571,6 +571,13 @@
       "type": "integer",
       "default": 0
     },
+    "coc.source.word.filetypes": {
+      "type": "array",
+      "default": ["markdown"],
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.source.neosnippet.enable": {
       "type": "boolean",
       "default": true
