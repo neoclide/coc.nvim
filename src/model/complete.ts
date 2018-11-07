@@ -106,10 +106,11 @@ export default class Complete {
         arr.push(item)
       }
     }
+    let ignoreSortText = !cid && input.length > 3
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (a.source == b.source && sa && sb) {
+      if (!ignoreSortText && a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa < sb ? -1 : 1
       } else {
