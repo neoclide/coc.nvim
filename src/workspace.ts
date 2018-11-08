@@ -1104,6 +1104,14 @@ augroup end`
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {
+    if (!this.nvim) {
+      this.onDidWorkspaceInitialized(() => {
+        this.showErrors(errors).catch(_e => {
+          // noop
+        })
+      })
+      return
+    }
     let items: QuickfixItem[] = []
     for (let err of errors) {
       let item = await this.getQuickfixItem(err.location, err.message)
