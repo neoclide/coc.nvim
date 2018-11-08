@@ -1,8 +1,9 @@
 import { score } from 'fuzzaldrin-plus'
-import Serial from 'node-serial'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
+import { echoWarning, echoErr } from '../util'
+import { Neovim } from '@chemzqm/neovim'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -13,7 +14,8 @@ export default class Complete {
   public readonly recentScores: RecentScore
   constructor(private option: CompleteOption,
     recentScores: RecentScore | null,
-    private config: CompleteConfig) {
+    private config: CompleteConfig,
+    private nvim: Neovim) {
     Object.defineProperty(this, 'recentScores', {
       get: (): RecentScore => {
         return recentScores || {}
@@ -25,52 +27,47 @@ export default class Complete {
     return this.option.col || 0
   }
 
-  private completeSource(source: ISource): Promise<CompleteResult | null> {
-    let start = Date.now()
-    let s = new Serial()
+  private async completeSource(source: ISource): Promise<CompleteResult | null> {
     let { col } = this.option
     // new option for each source
     let option = Object.assign({}, this.option)
     let timeout = this.config.timeout
-    s.timeout(Math.min(timeout, 3000))
-    s.add((done, ctx) => {
-      if (typeof source.shouldComplete === 'function') {
-        source.shouldComplete(option).then(res => {
-          ctx.shouldRun = res
-          done()
-        }, done)
-      } else {
-        ctx.shouldRun = true
-        done()
-      }
-    })
-    s.add((done, ctx) => {
-      if (!ctx.shouldRun) return done()
-      source.doComplete(option).then(result => {
-        if (result == null || result.items.length == 0) {
-          return done()
-        }
-        if (result.startcol != null && result.startcol != col) {
-          result.engross = true
-        }
-        result.isFallback = source.isFallback
-        result.priority = source.priority
-        result.source = source.name
-        ctx.result = result
-        done()
-      }, done)
-    })
-    return new Promise(resolve => {
-      s.done((err, ctx) => {
-        if (err) {
-          logger.error('Complete error:', source.name, err)
+    timeout = Math.min(timeout, 5000)
+    if (typeof source.shouldComplete === 'function') {
+      let shouldRun = await Promise.resolve(source.shouldComplete(option))
+      if (!shouldRun) return null
+    }
+    try {
+      let start = Date.now()
+      let result = await new Promise<CompleteResult>((resolve, reject) => {
+        let timer = setTimeout(() => {
+          echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
           resolve(null)
-          return
-        }
-        logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
-        resolve(ctx.result || null)
+        }, timeout)
+        source.doComplete(option).then(result => {
+          clearTimeout(timer)
+          resolve(result)
+        }, err => {
+          clearTimeout(timer)
+          reject(err)
+        })
       })
-    })
+      if (result == null || result.items.length == 0) {
+        return null
+      }
+      if (result.startcol != null && result.startcol != col) {
+        result.engross = true
+      }
+      result.isFallback = source.isFallback
+      result.priority = source.priority
+      result.source = source.name
+      logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
+      return result
+    } catch (err) {
+      echoErr(this.nvim, `${source.name} complete error: ${err.message}`)
+      logger.error('Complete error:', source.name, err)
+      return null
+    }
   }
 
   public filterResults(input: string, cid?: number): VimCompleteItem[] {

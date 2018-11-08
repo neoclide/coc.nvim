@@ -200,7 +200,7 @@ export class Completion implements Disposable {
     increment.start()
     let arr = sources.getCompleteSources(option, this.triggerCharacters.has(option.triggerCharacter))
     let config = this.getCompleteConfig()
-    this.complete = new Complete(option, this.recentScores, config)
+    this.complete = new Complete(option, this.recentScores, config, nvim)
     let items = await this.complete.doComplete(arr)
     if (items.length == 0 || !this.insertMode) {
       increment.stop()
