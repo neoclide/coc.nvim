@@ -61,8 +61,8 @@ function! coc#util#job_command()
     return [binary]
   endif
   let file = s:root.'/lib/attach.js'
-  if get(g:, 'coc_node_path', 0)
-    return [get(g:, 'coc_node_path', 'node'), s:root.'/bin/server.js']
+  if exists('g:coc_node_path')
+    return [g:coc_node_path, s:root.'/bin/server.js']
   endif
   if filereadable(file)
     if executable('node')
