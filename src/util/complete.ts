@@ -26,7 +26,7 @@ export function getWord(item: CompletionItem): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText } = item
   if (insertTextFormat == InsertTextFormat.Snippet) {
-    return label
+    return label.trim().split(/(\s|\()/)[0]
   }
   return insertText || label
 }
