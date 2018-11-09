@@ -78,7 +78,8 @@ export class Completion implements Disposable {
   }
 
   private async getResumeInput(): Promise<string> {
-    let { option, increment } = this
+    let { option, increment, document } = this
+    if (!document) return null
     let [, lnum, col] = await this.nvim.call('getcurpos')
     if (lnum != option.linenr || col < option.col + 1) {
       increment.stop()
@@ -88,7 +89,7 @@ export class Completion implements Disposable {
     if (workspace.isVim) {
       line = await this.nvim.call('getline', '.')
     } else {
-      line = this.document.getline(lnum - 1)
+      line = document.getline(lnum - 1)
     }
     return byteSlice(line, option.col, col - 1)
   }

@@ -4,6 +4,7 @@ import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
+import { omit } from '../util/lodash'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -76,6 +77,7 @@ export default class Complete {
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
+    let filtering = input.length > 2
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
@@ -100,14 +102,17 @@ export default class Complete {
         let factor = priority * 100 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
-        arr.push(item)
+        if (filtering && item.word.startsWith(input)) {
+          arr.push(omit(item, ['sortText']))
+        } else {
+          arr.push(item)
+        }
       }
     }
-    let ignoreSortText = !cid && input.length > 3
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (!ignoreSortText && a.source == b.source && sa && sb) {
+      if (a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa < sb ? -1 : 1
       } else {
