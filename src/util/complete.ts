@@ -26,7 +26,7 @@ export function getWord(item: CompletionItem): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText } = item
   if (insertTextFormat == InsertTextFormat.Snippet) {
-    return label.trim().split(/(\s|\()/)[0]
+    return label.trim()
   }
   return insertText || label
 }
@@ -97,13 +97,14 @@ export function completionKindString(kind: CompletionItemKind): string {
 
 export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+  let label = item.label.trim()
   let obj: VimCompleteItem = {
     word: getWord(item),
-    abbr: item.label,
+    abbr: label,
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: item.sortText || null,
-    filterText: item.filterText || item.label,
+    filterText: item.filterText || label,
     isSnippet
   }
   if (item.preselect) obj.sortText = '\0' + obj.sortText
