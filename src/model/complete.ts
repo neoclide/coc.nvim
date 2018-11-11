@@ -28,6 +28,10 @@ export default class Complete {
     return this.option.col || 0
   }
 
+  public get input(): string {
+    return this.option.input
+  }
+
   private async completeSource(source: ISource): Promise<CompleteResult | null> {
     let { col } = this.option
     // new option for each source
@@ -78,7 +82,7 @@ export default class Complete {
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let filtering = !cid && input.length > 0
+    let filtering = input.length > this.input.length
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority, duplicate } = res
@@ -100,10 +104,10 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        let factor = priority * 100 + this.getBonusScore(input, item)
+        let factor = priority + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         words.add(word)
-        if (filtering && item.word.startsWith(input)) {
+        if (filtering && (item.word.startsWith(input) || item.score > 40000)) {
           arr.push(omit(item, ['sortText']))
         } else {
           arr.push(item)
