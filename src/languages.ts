@@ -238,6 +238,10 @@ class Languages {
     return this.formatRangeManager.register(selector, provider)
   }
 
+  public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {
+    return this.signatureManager.shouldTrigger(document, triggerCharacter)
+  }
+
   @check
   public async getHover(document: TextDocument, position: Position): Promise<Hover> {
     return await this.hoverManager.provideHover(document, position, this.token)

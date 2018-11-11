@@ -296,6 +296,11 @@
       "description": "Always consider `-` as keyword characer when parsing buffer for keywords.",
       "default": true
     },
+    "coc.preferences.triggerSignatureHelp": {
+      "type": "boolean",
+      "description": "Show signature help when trigger characer typed.",
+      "default": true
+    },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": "array",
       "default": [],

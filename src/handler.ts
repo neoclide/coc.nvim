@@ -55,14 +55,18 @@ export default class Handler {
     events.on('TextChangedI', async bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
-      let line: string = await nvim.call('getline', '.')
-      let isEmpty = line.trim().length == 0
-      if (Date.now() - lastTs < 40 && lastChar
-        || (isEmpty && doc.lastChange == 'insert')) {
-        let character = (isEmpty && doc.lastChange == 'insert') ? '\n' : lastChar
-        lastChar = null
-        await this.onCharacterType(character, bufnr)
+      if (Date.now() - lastTs < 40 && lastChar) {
+        if (languages.shouldTriggerSignatureHelp(doc.textDocument, lastChar)) {
+          let config = workspace.getConfiguration('coc.preferences')
+          let triggerSignatureHelp = config.get<boolean>('triggerSignatureHelp')
+          if (triggerSignatureHelp) this.showSignatureHelp()
+        }
+        await this.onCharacterType(lastChar, bufnr)
+      } else if (doc.lastChange == 'insert') {
+        let line: string = await nvim.call('getline', '.')
+        if (line.trim() == '') await this.onCharacterType('\n', bufnr)
       }
+      lastChar = null
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer

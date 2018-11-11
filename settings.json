@@ -10,6 +10,7 @@
   "coc.preferences.triggerAfterInsertEnter": false,
   "coc.preferences.minTriggerInputLength": 1,
   "coc.preferences.acceptSuggestionOnCommitCharacter": false,
+  "coc.preferences.triggerSignatureHelp": true,
   "coc.preferences.customSources": ["emoji", "include"],
   "coc.preferences.timeout": 2000,
   "coc.preferences.noselect": true,

@@ -18,12 +18,11 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> imp
     })
   }
 
-  public async shouldTrigger(document: TextDocument, triggerCharacter: string): Promise<boolean> {
-    let providers = this.getProviders(document)
-    if (!providers.length) return false
-    return providers.some(item => {
-      return Array.isArray(item.triggerCharacters) && item.triggerCharacters.indexOf(triggerCharacter) != -1
-    })
+  public shouldTrigger(document: TextDocument, triggerCharacter: string): boolean {
+    let item = this.getProvider(document)
+    if (!item) return false
+    let { triggerCharacters } = item
+    return triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
   }
 
   public async provideSignatureHelp(
@@ -31,13 +30,10 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> imp
     position: Position,
     token: CancellationToken
   ): Promise<SignatureHelp | null> {
-    let providers = this.getProviders(document)
-    if (!providers.length) return null
-    for (let item of providers) {
-      let { provider } = item
-      let res = await Promise.resolve(provider.provideSignatureHelp(document, position, token))
-      if (res) return res
-    }
+    let item = this.getProvider(document)
+    if (!item) return null
+    let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token))
+    if (res) return res
     return null
   }
 
