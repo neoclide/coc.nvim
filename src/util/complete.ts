@@ -110,6 +110,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
     filterText: item.filterText || label,
     isSnippet
   }
+  if (splitLabel) obj.dup = 1
   if (item.preselect) obj.sortText = '\0' + obj.sortText
   // tslint:disable-next-line: deprecation
   if (!isSnippet && !item.insertText && item.textEdit) {
