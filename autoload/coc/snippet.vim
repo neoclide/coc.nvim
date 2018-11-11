@@ -1,4 +1,5 @@
 let s:is_vim = !has('nvim')
+let s:bufnr = 0
 
 " make a range to select mode
 function! coc#snippet#range_select(lnum, col, len) abort
@@ -32,8 +33,10 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
 endfunction
 
 function! coc#snippet#enable()
+  let s:bufnr = bufnr('%')
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
+  nnoremap <buffer> <esc> :call CocActionAsync('snippetCancel')<cr>
   execute 'imap <buffer> <nowait> <silent>'.prevkey." <C-o>:call CocActionAsync('snippetPrev')<cr>"
   execute 'smap <buffer> <nowait> <silent>'.prevkey." <Esc>:call CocActionAsync('snippetPrev')<cr>"
   execute 'imap <buffer> <nowait> <silent>'.nextkey." <C-o>:call CocActionAsync('snippetNext')<cr>"
@@ -41,8 +44,12 @@ function! coc#snippet#enable()
 endfunction
 
 function! coc#snippet#disable()
+  if bufnr('%') != s:bufnr
+    return
+  endif
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
+  silent! nunmap <buffer> <esc>
   silent! execute 'iunmap <buffer> <silent> '.prevkey
   silent! execute 'sunmap <buffer> <silent> '.prevkey
   silent! execute 'iunmap <buffer> <silent> '.nextkey

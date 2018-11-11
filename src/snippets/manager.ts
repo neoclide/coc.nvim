@@ -47,19 +47,6 @@ export class SnippetManager implements types.SnippetManager {
         })
       }
     }, null, this.disposables)
-
-    events.on(['InsertLeave', 'TextChanged'], async () => {
-      let { mode } = await workspace.nvim.mode
-      if (mode == 'n') {
-        this.cancel()
-      }
-    }, null, this.disposables)
-
-    events.on('CursorHold', () => {
-      if (this._activeSession) {
-        this.cancel()
-      }
-    }, null, this.disposables)
   }
 
   public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
