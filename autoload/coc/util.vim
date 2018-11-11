@@ -527,12 +527,23 @@ function! coc#util#install_node_rpc() abort
   let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
   if res !=? 'y' | return | endif
   let cmd = ''
-  let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') ==# 'Linux'
-  if executable('npm')
-    let cmd = (isLinux ? 'sudo ' : ' ').'npm i -g vim-node-rpc'
+  let idx = inputlist(['Select package manager:', '1. npm', '2. yarn'])
+  if idx <= 0 | return | endif
+  if idx == 1
+    let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') ==# 'Linux'
+    if executable('npm')
+      let cmd = (isLinux ? 'sudo ' : ' ').'npm i -g vim-node-rpc'
+    else
+      echohl Error | echon '[coc.nvim] executable "npm" not find in $PATH' | echohl None
+      return
+    endif
   else
-    echohl Error | echon '[coc.nvim] executable "npm" not find in $PATH' | echohl None
-    return
+    if executable('yarn')
+      let cmd = 'yarn global add vim-node-rpc'
+    else
+      echohl Error | echon '[coc.nvim] executable "yarn" not find in $PATH' | echohl None
+      return
+    endif
   endif
   call coc#util#open_terminal({
         \ 'cmd': cmd,
