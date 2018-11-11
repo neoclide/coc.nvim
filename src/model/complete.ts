@@ -78,7 +78,7 @@ export default class Complete {
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
-    let filtering = input.length > 2
+    let filtering = !cid && input.length > 0
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority, duplicate } = res
