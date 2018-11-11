@@ -22,13 +22,16 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem): string {
+export function getWord(item: CompletionItem, splitLabel: boolean): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText } = item
+  let word: string
   if (insertTextFormat == InsertTextFormat.Snippet) {
-    return label.trim()
+    word = label.trim()
+  } else {
+    word = insertText || label
   }
-  return insertText || label
+  return splitLabel ? word.split(/(\s|\()/, 2)[0] : word
 }
 
 export function getDocumentation(item: CompletionItem): string | null {
@@ -95,11 +98,11 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string, splitLabel: boolean): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   let obj: VimCompleteItem = {
-    word: getWord(item),
+    word: getWord(item, splitLabel),
     abbr: label,
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
@@ -115,12 +118,14 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string): 
     // tslint:disable-next-line: deprecation
     item.insertText = obj.word
   }
-  if (item.data && item.data.optional) {
+  item.data = item.data || {}
+  if (item.data.optional) {
     obj.abbr = obj.abbr + '?'
   }
   if (isSnippet) obj.abbr = obj.abbr + '~'
   let document = getDocumentation(item)
   if (document) obj.info = document
+  item.data.abbr = obj.abbr
   // item.commitCharacters not necessary for vim
   return obj
 }

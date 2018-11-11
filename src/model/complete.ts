@@ -62,6 +62,7 @@ export default class Complete {
       result.isFallback = source.isFallback
       result.priority = source.priority
       result.source = source.name
+      result.duplicate = !!source.duplicate
       logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
       return result
     } catch (err) {
@@ -80,11 +81,11 @@ export default class Complete {
     let filtering = input.length > 2
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
-      let { items, source, priority } = res
+      let { items, source, priority, duplicate } = res
       if (res.isFallback && input.length < 3) continue
       for (let item of items) {
         let { word } = item
-        if (words.has(word)) continue
+        if (words.has(word) && !duplicate) continue
         let filterText = item.filterText || item.word
         if (filterText.length < input.length) continue
         if (input.length && !fuzzyMatch(codes, filterText)) continue

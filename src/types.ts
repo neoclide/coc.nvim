@@ -271,6 +271,7 @@ export interface VimCompleteItem {
 export interface CompleteResult {
   items: VimCompleteItem[]
   isFallback?: boolean
+  duplicate?: boolean
   isIncomplete?: boolean
   engross?: boolean
   startcol?: number
@@ -421,6 +422,7 @@ export interface ISource {
   priority: number
   sourceType: SourceType
   triggerCharacters: string[]
+  duplicate?: boolean
   isSnippet?: boolean
   isFallback?: boolean
   filetypes?: string[]

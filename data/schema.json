@@ -301,6 +301,11 @@
       "description": "Show signature help when trigger characer typed.",
       "default": true
     },
+    "coc.preferences.splitLabelForWord": {
+      "type": "boolean",
+      "description": "Split label of language server to get word of vim's completion item, which also add `dup:1` to complete item and disable completion resolve on complete item change.",
+      "default": false
+    },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": "array",
       "default": [],
