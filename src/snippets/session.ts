@@ -284,13 +284,15 @@ export class SnippetSession {
       range: change.range,
       newText: change.text
     }
-    if (this.document.lastChange != 'change') {
+    if (!this._currentPlaceholder || this.document.lastChange != 'change') {
       logger.info('Change outside snippet, cancelling snippet session')
       this._onCancelEvent.fire(void 0)
       return
     }
 
-    if (!this._currentPlaceholder) {
+    if (this._currentPlaceholder.isFinalTabstop) {
+      logger.info('Change of final tabstop, cancelling snippet session')
+      this._onCancelEvent.fire(void 0)
       return
     }
 
@@ -308,7 +310,8 @@ export class SnippetSession {
     let { start, end } = edit.range
     if (start.line != bounds.line
       || end.line != bounds.line
-      || start.character < startPosition) {
+      || start.character < startPosition
+      || start.character > bounds.start + bounds.length) {
       logger.info('Change outside snippet, cancelling snippet session')
       this._onCancelEvent.fire(void 0)
       return
