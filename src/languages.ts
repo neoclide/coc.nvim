@@ -393,7 +393,6 @@ class Languages {
     let preferences = workspace.getConfiguration('coc.preferences')
     let priority = preferences.get<number>('languageSourcePriority', 99)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    let splitLabel = preferences.get<boolean>('splitLabelForWord', false)
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
@@ -404,12 +403,12 @@ class Languages {
       name,
       enable: true,
       priority,
-      duplicate: splitLabel == true,
+      duplicate: false,
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
-        if (completeItems.length == 0 || splitLabel) return
+        if (completeItems.length == 0) return
         resolveInput = item.word
         let resolving = resolveItem(item)
         if (!resolving) return
@@ -482,7 +481,7 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
           isIncomplete: !!(result as CompletionList).isIncomplete,
-          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, splitLabel))
+          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol

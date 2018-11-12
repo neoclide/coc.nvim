@@ -22,7 +22,7 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem, splitLabel: boolean): string {
+export function getWord(item: CompletionItem): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText } = item
   let word: string
@@ -31,7 +31,7 @@ export function getWord(item: CompletionItem, splitLabel: boolean): string {
   } else {
     word = insertText || label
   }
-  return splitLabel ? word.split(/(\s|\()/, 2)[0] : word
+  return word
 }
 
 export function getDocumentation(item: CompletionItem): string | null {
@@ -98,11 +98,11 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, splitLabel: boolean): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   let obj: VimCompleteItem = {
-    word: getWord(item, splitLabel),
+    word: getWord(item),
     abbr: label,
     menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
@@ -110,7 +110,6 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
     filterText: item.filterText || label,
     isSnippet
   }
-  if (splitLabel) obj.dup = 1
   if (item.preselect) obj.sortText = '\0' + obj.sortText
   // tslint:disable-next-line: deprecation
   if (!isSnippet && !item.insertText && item.textEdit) {

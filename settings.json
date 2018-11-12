@@ -10,7 +10,6 @@
   "coc.preferences.triggerAfterInsertEnter": false,
   "coc.preferences.minTriggerInputLength": 1,
   "coc.preferences.acceptSuggestionOnCommitCharacter": false,
-  "coc.preferences.splitLabelForWord": false,
   "coc.preferences.triggerSignatureHelp": true,
   "coc.preferences.customSources": ["emoji", "include"],
   "coc.preferences.timeout": 2000,
@@ -82,9 +81,9 @@
   "coc.source.gocode.filetypes": ["go"],
   "coc.source.gocode.priority": 99,
   "coc.source.gocode.shortcut": "GOC",
-  "coc.source.gocode.triggerCharacters": [".",":"],
+  "coc.source.gocode.triggerCharacters": [".", ":"],
   "http.proxy": "",
   "http.proxyStrictSSL": true,
   "languageserver": {}
+  // vim:ft=jsonc
 }
-// vim:ft=jsonc

@@ -8,7 +8,7 @@ import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
 import { disposeAll, wait } from './util'
 import { isCocItem } from './util/complete'
-import { byteSlice } from './util/string'
+import { byteSlice, byteLength } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('completion')
 
@@ -35,6 +35,7 @@ export class Completion implements Disposable {
   private recentScores: RecentScore = {}
   private preferences: WorkspaceConfiguration
   private triggerCharacters: Set<string> = new Set()
+  private changedTick = 0
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
@@ -120,6 +121,7 @@ export class Completion implements Disposable {
     // stop change emit on completion
     increment.on('start', () => {
       this.resolving = false
+      this.changedTick = 0
       this.completeItems = []
       this.document.paused = true
     })
@@ -227,13 +229,19 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedP(): Promise<void> {
-    let { increment, input } = this
+    let { increment, option, document } = this
     if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
+    if (document.changedtick - this.changedTick == 1) return
     let { latestInsert } = this
     this.lastInsert = null
-    let search = await this.getResumeInput()
-    if (search == null || input == search) return
+    let col = await this.nvim.call('col', ['.'])
+    if (col < option.colnr) {
+      increment.stop()
+      return null
+    }
+    let line = await this.line
+    let search = byteSlice(line, option.col, col - 1)
     if (latestInsert) {
       await this.resumeCompletion(search, true)
       return
@@ -241,8 +249,31 @@ export class Completion implements Disposable {
     let item = this.getCompleteItem(search)
     if (item) {
       this.resolving = true
+      if (item.isSnippet) {
+        let { word } = item
+        let text = word.split(/(\s|\()/, 2)[0]
+        if (word != text) {
+          let before = byteSlice(line, 0, option.col)
+          let after = byteSlice(line, option.col + byteLength(word))
+          line = `${before}${text}${after}`
+          this.changedTick = document.changedtick
+          await this.nvim.setLine(line)
+          if (after.length) {
+            await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
+          }
+          if (workspace.isVim) this.nvim.command('redraw', true)
+        }
+      }
       await sources.doCompleteResolve(item)
     }
+  }
+
+  private get line(): Promise<string> {
+    let idx = this.option.linenr - 1
+    if (workspace.isVim) {
+      return this.nvim.getLine()
+    }
+    return Promise.resolve(this.document.getline(idx))
   }
 
   private async onTextChangedI(bufnr: number): Promise<void> {
@@ -296,7 +327,7 @@ export class Completion implements Disposable {
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { increment, document } = this
     if (!this.isActivted || !document || !isCocItem(item)) return
-    let { col } = this.option
+    let { changedtick } = document
     try {
       increment.stop()
       this.addRecent(item.word)
@@ -307,9 +338,7 @@ export class Completion implements Disposable {
         document.forceSync()
         return
       }
-      let curcol = await this.nvim.call('col', ['.'])
-      // not confirm
-      if (curcol != col + item.word.length + 1) return
+      if (document.changedtick != changedtick) return
       await sources.doCompleteDone(item)
     } catch (e) {
       logger.error(`error on complete done`, e.message)

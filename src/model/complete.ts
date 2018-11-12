@@ -73,7 +73,7 @@ export default class Complete {
       result.isFallback = source.isFallback
       result.priority = source.priority
       result.source = source.name
-      result.duplicate = !!source.duplicate
+      result.duplicate = source.duplicate
       logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
       return result
     } catch (err) {
@@ -160,7 +160,7 @@ export default class Complete {
       }
     })
     let items = arr.slice(0, this.config.maxItemCount)
-    return items.map(o => omit(o, ['sortText', 'filterText', 'isSnippet', 'source', 'strictMatch', 'score']))
+    return items.map(o => omit(o, ['sortText', 'filterText', 'source', 'strictMatch', 'score']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
