@@ -464,22 +464,24 @@ class Languages {
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
-        if (triggerCharacter) await wait(waitTime)
+        if (triggerCharacter || opt.triggerForInComplete) await wait(waitTime)
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
+        let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
+        if (opt.triggerForInComplete) {
+          triggerKind = CompletionTriggerKind.TriggerForIncompleteCompletions
+        } else if (isTrigger) {
+          triggerKind = CompletionTriggerKind.TriggerCharacter
+        }
         let document = doc.textDocument
         let position = complete.getPosition(opt)
-        let context: CompletionContext = {
-          triggerKind: isTrigger ? CompletionTriggerKind.TriggerCharacter : CompletionTriggerKind.Invoked,
-          option: opt
-        }
+        let context: CompletionContext = { triggerKind, option: opt }
         if (isTrigger) context.triggerCharacter = triggerCharacter
         let cancellSource = new CancellationTokenSource()
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
-        let isIncomplete = (result as CompletionList).isIncomplete || false
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
-          isIncomplete,
+          isIncomplete: !!(result as CompletionList).isIncomplete,
           items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, splitLabel))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {

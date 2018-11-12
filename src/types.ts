@@ -248,6 +248,7 @@ export interface CompleteOption {
   readonly linenr: number
   readonly custom: boolean
   readonly synname: string
+  triggerForInComplete?: boolean
 }
 
 export interface VimCompleteItem {

@@ -5,6 +5,7 @@ import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
+import Document from './document'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -13,7 +14,10 @@ export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
   public readonly recentScores: RecentScore
+  private sources: ISource[]
+  private inCompleteSources: string[]
   constructor(private option: CompleteOption,
+    private document: Document,
     recentScores: RecentScore | null,
     private config: CompleteConfig,
     private nvim: Neovim) {
@@ -32,14 +36,14 @@ export default class Complete {
     return this.option.input
   }
 
-  private async completeSource(source: ISource): Promise<CompleteResult | null> {
-    let { col } = this.option
+  private async completeSource(source: ISource, option: CompleteOption): Promise<CompleteResult | null> {
+    let { col } = option
     // new option for each source
-    let option = Object.assign({}, this.option)
+    let opt = Object.assign({}, option)
     let timeout = this.config.timeout
     timeout = Math.min(timeout, 5000)
     if (typeof source.shouldComplete === 'function') {
-      let shouldRun = await Promise.resolve(source.shouldComplete(option))
+      let shouldRun = await Promise.resolve(source.shouldComplete(opt))
       if (!shouldRun) return null
     }
     try {
@@ -49,7 +53,7 @@ export default class Complete {
           echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
           resolve(null)
         }, timeout)
-        source.doComplete(option).then(result => {
+        source.doComplete(opt).then(result => {
           clearTimeout(timer)
           resolve(result)
         }, err => {
@@ -74,6 +78,20 @@ export default class Complete {
       logger.error('Complete error:', source.name, err)
       return null
     }
+  }
+
+  public async completeInComplete(): Promise<void> {
+    let { results, inCompleteSources } = this
+    if (!inCompleteSources || inCompleteSources.length == 0) return
+    this.document.forceSync()
+    let remains = results.filter(res => inCompleteSources.indexOf(res.source) == -1)
+    let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
+    option.triggerForInComplete = true
+    let sources = this.sources.filter(s => inCompleteSources.indexOf(s.name) !== -1)
+    results = await Promise.all(sources.map(s => this.completeSource(s, option)))
+    results = results.concat(remains)
+    results = results.filter(r => r != null && r.items && r.items.length > 0)
+    this.results = results
   }
 
   public filterResults(input: string, cid?: number): VimCompleteItem[] {
@@ -131,7 +149,8 @@ export default class Complete {
     let opts = this.option
     let { line, colnr } = opts
     sources.sort((a, b) => b.priority - a.priority)
-    let results = await Promise.all(sources.map(s => this.completeSource(s)))
+    this.sources = sources
+    let results = await Promise.all(sources.map(s => this.completeSource(s, opts)))
     results = results.filter(r => r != null && r.items && r.items.length > 0)
     if (results.length == 0) return []
     let engrossResult = results.find(r => r.engross === true)
@@ -144,6 +163,8 @@ export default class Complete {
       results = [engrossResult]
     }
     this.results = results
+    let inCompletes = results.filter(o => o.isIncomplete == true)
+    this.inCompleteSources = inCompletes.map(o => o.source)
     logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
