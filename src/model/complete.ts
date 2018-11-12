@@ -15,8 +15,7 @@ export default class Complete {
   public results: CompleteResult[] | null
   public readonly recentScores: RecentScore
   private sources: ISource[]
-  private inCompleteSources: string[]
-  constructor(private option: CompleteOption,
+  constructor(public option: CompleteOption,
     private document: Document,
     recentScores: RecentScore | null,
     private config: CompleteConfig,
@@ -36,10 +35,14 @@ export default class Complete {
     return this.option.input
   }
 
-  private async completeSource(source: ISource, option: CompleteOption): Promise<CompleteResult | null> {
-    let { col } = option
+  public get isIncomplete(): boolean {
+    return this.results && this.results.findIndex(o => o.isIncomplete == true) !== -1
+  }
+
+  private async completeSource(source: ISource): Promise<CompleteResult | null> {
+    let { col } = this.option
     // new option for each source
-    let opt = Object.assign({}, option)
+    let opt = Object.assign({}, this.option)
     let timeout = this.config.timeout
     timeout = Math.min(timeout, 5000)
     if (typeof source.shouldComplete === 'function') {
@@ -80,18 +83,28 @@ export default class Complete {
     }
   }
 
-  public async completeInComplete(): Promise<void> {
-    let { results, inCompleteSources } = this
-    if (!inCompleteSources || inCompleteSources.length == 0) return
-    this.document.forceSync()
-    let remains = results.filter(res => inCompleteSources.indexOf(res.source) == -1)
-    let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
-    option.triggerForInComplete = true
-    let sources = this.sources.filter(s => inCompleteSources.indexOf(s.name) !== -1)
-    results = await Promise.all(sources.map(s => this.completeSource(s, option)))
+  public async completeInComplete(resumeInput: string): Promise<VimCompleteItem[]> {
+    let { results, document } = this
+    await document.patchChange()
+    document.forceSync()
+    let remains = results.filter(res => !res.isIncomplete)
+    let arr = results.filter(res => res.isIncomplete == true)
+    let names = arr.map(o => o.source)
+    let { input, colnr, linenr } = this.option
+    Object.assign(this.option, {
+      input: resumeInput,
+      line: document.getline(linenr - 1),
+      colnr: colnr + (resumeInput.length - input.length),
+      triggerCharacter: null,
+      triggerForInComplete: true
+    })
+    let sources = this.sources.filter(s => names.indexOf(s.name) !== -1)
+    results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.concat(remains)
     results = results.filter(r => r != null && r.items && r.items.length > 0)
+    let cid = Math.floor(Date.now() / 1000)
     this.results = results
+    return this.filterResults(resumeInput, cid)
   }
 
   public filterResults(input: string, cid?: number): VimCompleteItem[] {
@@ -150,7 +163,7 @@ export default class Complete {
     let { line, colnr } = opts
     sources.sort((a, b) => b.priority - a.priority)
     this.sources = sources
-    let results = await Promise.all(sources.map(s => this.completeSource(s, opts)))
+    let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => r != null && r.items && r.items.length > 0)
     if (results.length == 0) return []
     let engrossResult = results.find(r => r.engross === true)
@@ -163,8 +176,6 @@ export default class Complete {
       results = [engrossResult]
     }
     this.results = results
-    let inCompletes = results.filter(o => o.isIncomplete == true)
-    this.inCompleteSources = inCompletes.map(o => o.source)
     logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }

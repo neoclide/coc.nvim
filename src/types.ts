@@ -244,7 +244,7 @@ export interface CompleteOption {
   readonly word: string
   triggerCharacter: string
   // cursor position
-  readonly colnr: number
+  colnr: number
   readonly linenr: number
   readonly custom: boolean
   readonly synname: string
