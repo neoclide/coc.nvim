@@ -303,6 +303,7 @@ export default class Document {
 
   public async applyEdits(nvim: Neovim, edits: TextEdit[]): Promise<void> {
     if (edits.length == 0) return
+    this.forceSync()
     let orig = this.content
     let content = TextDocument.applyEdits(this.textDocument, edits)
     // could be equal
