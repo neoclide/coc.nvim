@@ -10,13 +10,14 @@ import { ConfigurationTarget, IWorkspace } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
 import helper from '../helper'
+import uuid = require('uuid/v4')
 
 async function createTmpFile(content: string): Promise<string> {
   let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
   if (!fs.existsSync(tmpFolder)) {
     fs.mkdirSync(tmpFolder)
   }
-  let filename = path.join(tmpFolder, Date.now().toString(26).slice(4))
+  let filename = path.join(tmpFolder, uuid())
   await pify(fs.writeFile)(filename, content, 'utf8')
   return filename
 }
