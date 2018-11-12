@@ -11,13 +11,14 @@ export class SnippetManager implements types.SnippetManager {
   private _disposables: Disposable[] = []
   private disposables: Disposable[] = []
   private _snippetProvider: CompositeSnippetProvider
-
-  public get isSnippetActive(): boolean {
-    return !!this._activeSession
-  }
+  private statusItem: types.StatusBarItem
 
   constructor() {
     this._snippetProvider = new CompositeSnippetProvider()
+    workspace.onDidWorkspaceInitialized(() => {
+      this.statusItem = workspace.createStatusBarItem(0)
+      this.statusItem.text = 'SNIP'
+    }, null, this.disposables)
 
     workspace.onDidChangeTextDocument((e: DidChangeTextDocumentParams) => {
       let { uri } = e.textDocument
@@ -49,6 +50,10 @@ export class SnippetManager implements types.SnippetManager {
     }, null, this.disposables)
   }
 
+  public get isSnippetActive(): boolean {
+    return !!this._activeSession
+  }
+
   public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
     return this._snippetProvider.getSnippets(language)
   }
@@ -65,6 +70,7 @@ export class SnippetManager implements types.SnippetManager {
     const snippetSession = new SnippetSession(workspace.nvim, snippet)
     await snippetSession.start()
     await workspace.nvim.call('coc#snippet#enable')
+    this.statusItem.show()
     snippetSession.onCancel(() => {
       this.cancel()
     }, null, this._disposables)
@@ -88,6 +94,7 @@ export class SnippetManager implements types.SnippetManager {
 
   public cancel(): void {
     if (this._activeSession) {
+      this.statusItem.hide()
       workspace.nvim.call('coc#snippet#disable', [], true)
       logger.debug("[SnippetManager::cancel]")
       this._disposables.forEach(d => d.dispose())

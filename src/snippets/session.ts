@@ -311,7 +311,7 @@ export class SnippetSession {
     if (start.line != bounds.line
       || end.line != bounds.line
       || start.character < startPosition
-      || start.character > bounds.start + bounds.length) {
+      || end.character > bounds.start + bounds.length) {
       logger.info('Change outside snippet, cancelling snippet session')
       this._onCancelEvent.fire(void 0)
       return
