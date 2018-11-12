@@ -63,10 +63,6 @@ else
 fi
 
 download() {
-  if ! command -v node > /dev/null; then
-    info "Node not found, installing nodejs v8.9.0"
-    fetch install-node.now.sh/v8.9.0 | sh
-  fi
   mkdir -p build
   cd build
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
