@@ -106,6 +106,7 @@ export default class File extends Source {
     } else {
       root = cwd
     }
+    if (!root) return null
     let items = await this.getItemsFromRoot(pathstr, root)
     let trimExt = this.trimSameExts.indexOf(ext) != -1
     let startcol = this.fixStartcol(opt, ['-', '@'])
