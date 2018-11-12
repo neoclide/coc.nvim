@@ -137,8 +137,10 @@ export default class Complete {
         }
         let factor = priority + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
+        item.icase = 1
+        item.strictMatch = item.word.startsWith(input)
         words.add(word)
-        if (filtering && (item.word.startsWith(input) || item.score > 40000)) {
+        if (filtering && item.sortText && item.score > 40000) {
           arr.push(omit(item, ['sortText']))
         } else {
           arr.push(item)
@@ -148,6 +150,8 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
+      if (a.strictMatch && !b.strictMatch) return -1
+      if (b.strictMatch && !a.strictMatch) return 1
       if (a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa < sb ? -1 : 1
@@ -155,7 +159,8 @@ export default class Complete {
         return b.score - a.score
       }
     })
-    return arr.slice(0, this.config.maxItemCount)
+    let items = arr.slice(0, this.config.maxItemCount)
+    return items.map(o => omit(o, ['sortText', 'filterText', 'isSnippet', 'source', 'strictMatch', 'score']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {

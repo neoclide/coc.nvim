@@ -261,12 +261,13 @@ export interface VimCompleteItem {
   dup?: number
   empty?: number
   user_data?: string
-  score?: number
   // it's not saved by vim, for temporarily usage
+  score?: number
   sortText?: string
   filterText?: string
   isSnippet?: boolean
   source?: string
+  strictMatch?: boolean
 }
 
 export interface CompleteResult {
