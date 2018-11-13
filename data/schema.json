@@ -251,6 +251,11 @@
       "default": "",
       "description": "rootPath of language server, relative to folder of current file, it's workspace only.'"
     },
+    "coc.preferences.snippetIndicator": {
+      "type": "string",
+      "default": "~",
+      "description": "The characer used in abbr of complete item to indicate the item could be expand as snippet."
+    },
     "coc.preferences.maxCompleteItemCount": {
       "type": "number",
       "default": 50,

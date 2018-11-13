@@ -393,6 +393,7 @@ class Languages {
     let preferences = workspace.getConfiguration('coc.preferences')
     let priority = preferences.get<number>('languageSourcePriority', 99)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    let snippetIndicator = preferences.get<string>('snippetIndicator', '~')
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       if (!completeItems || completeItems.length == 0) return null
@@ -481,7 +482,7 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let res = {
           isIncomplete: !!(result as CompletionList).isIncomplete,
-          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut))
+          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, snippetIndicator))
         }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol

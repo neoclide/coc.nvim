@@ -98,7 +98,7 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string, snippetIndicator: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   let obj: VimCompleteItem = {
@@ -122,7 +122,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string): 
   if (item.data.optional) {
     obj.abbr = obj.abbr + '?'
   }
-  if (isSnippet) obj.abbr = obj.abbr + '~'
+  if (isSnippet) obj.abbr = obj.abbr + snippetIndicator
   let document = getDocumentation(item)
   if (document) obj.info = document
   item.data.abbr = obj.abbr
