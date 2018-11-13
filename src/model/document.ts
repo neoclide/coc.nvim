@@ -6,7 +6,7 @@ import { WorkspaceConfiguration, ChangeInfo, Env, BufferOption } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait, convertFiletype } from '../util/index'
-import { byteIndex, byteLength, byteSlice } from '../util/string'
+import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
 import semver from 'semver'
 const logger = require('../util/logger')('model-document')
@@ -23,7 +23,6 @@ export default class Document {
   public fetchContent: Function & { clear(): void }
   private nvim: Neovim
   private _lastChange: LastChangeType = 'insert'
-  private srcId = 0
   private eol = true
   private _fireContentChanges: Function & { clear(): void }
   private _filetype: string
@@ -33,7 +32,7 @@ export default class Document {
   private _changedtick: number
   private _words: string[] = []
   // ids of matchadd in vim
-  private matchIds: number[] = []
+  private matchIds: Set<number> = new Set()
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
   constructor(
@@ -333,7 +332,6 @@ export default class Document {
   }
 
   public forceSync(): void {
-    this.paused = false
     this._fireContentChanges.clear()
     this.fireContentChanges()
   }
@@ -488,57 +486,78 @@ export default class Document {
   }
 
   public async setHighlights(highlights: DocumentHighlight[]): Promise<void> {
-    let { srcId, buffer } = this
-    if (srcId == 0 && !this.env.isVim) {
-      srcId = await buffer.addHighlight({ srcId, hlGroup: '', line: 0, colStart: 0, colEnd: 0 })
-      this.srcId = srcId
-    } else {
-      this.clearHighlight()
-    }
+    await this.clearHighlight()
+    let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       let hlGroup = hl.kind == DocumentHighlightKind.Text
         ? 'CocHighlightText'
         : hl.kind == DocumentHighlightKind.Read
           ? 'CocHighlightRead'
           : 'CocHighlightWrite'
-      await this.highlightRange(hl.range, srcId, hlGroup)
+      groups[hlGroup] = groups[hlGroup] || []
+      groups[hlGroup].push(hl.range)
     }
-  }
-
-  private async highlightRange(range: Range, srcId: number, hlGroup: string): Promise<void> {
-    let { buffer, matchIds, nvim } = this
-    let { start, end } = range
-    for (let i = start.line; i <= end.line; i++) {
-      let line = this.getline(i)
-      if (!line || !line.length) continue
-      let s = i == start.line ? start.character : 0
-      let e = i == end.line ? end.character : -1
-      if (this.env.isVim) {
-        let pos = [i + 1, s == 0 ? 1 : byteIndex(line, s) + 1, byteSlice(line, start.character, end.character).length]
-        let id = await nvim.call('matchaddpos', [hlGroup, [pos]])
-        matchIds.push(id)
-      } else {
-        await buffer.addHighlight({
-          srcId,
-          hlGroup,
-          line: i,
-          colStart: s == 0 ? 0 : byteIndex(line, s),
-          colEnd: e == -1 ? -1 : byteIndex(line, e),
-        })
+    for (let hlGroup of Object.keys(groups)) {
+      let ranges = groups[hlGroup]
+      let ids = await this.highlightRanges(ranges, hlGroup)
+      for (let id of ids) {
+        this.matchIds.add(id)
       }
     }
   }
 
-  public clearHighlight(): void {
-    let { srcId, nvim, buffer, matchIds } = this
+  public async highlightRanges(ranges: Range[], hlGroup: string): Promise<number[]> {
+    let { nvim } = this
+    let res: number[] = []
     if (this.env.isVim) {
-      for (let id of matchIds) {
-        nvim.call('matchdelete', id, true)
+      let group: Range[] = []
+      for (let i = 0, l = ranges.length; i < l; i++) {
+        if (group.length < 8) {
+          group.push(ranges[i])
+        } else {
+          group = []
+          group.push(ranges[i])
+        }
+        if (group.length == 8 || i == l - 1) {
+          let arr: [number, number, number][] = []
+          for (let range of group) {
+            let { start, end } = range
+            let line = this.getline(start.line)
+            arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
+          }
+          let id = await nvim.call('matchaddpos', [hlGroup, arr])
+          res.push(id)
+        }
       }
-      this.matchIds = []
     } else {
-      if (srcId) buffer.clearHighlight({ srcId })
+      let srcId = await this.buffer.addHighlight({ hlGroup: '', srcId: 0, line: 0, colStart: 0, colEnd: 0 })
+      if (srcId) {
+        for (let range of ranges) {
+          let { start, end } = range
+          let line = this.getline(start.line)
+          await this.buffer.addHighlight({
+            hlGroup,
+            srcId,
+            line: start.line,
+            colStart: byteIndex(line, start.character),
+            colEnd: byteIndex(line, end.character)
+          })
+        }
+        res.push(srcId)
+      }
     }
+    return res
+  }
+
+  public async clearHighlight(): Promise<void> {
+    for (let id of this.matchIds) {
+      if (this.env.isVim) {
+        await this.nvim.call('matchdelete', id, true)
+      } else {
+        await this.buffer.clearHighlight({ srcId: id })
+      }
+    }
+    this.matchIds = new Set()
   }
 
   public async getcwd(): Promise<string> {

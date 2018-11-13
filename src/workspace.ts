@@ -787,8 +787,6 @@ augroup end`
 
   private async detach(): Promise<void> {
     for (let bufnr of this.buffers.keys()) {
-      let doc = this.getDocument(bufnr)
-      doc.clearHighlight()
       await events.fire('BufUnload', [bufnr])
     }
   }
