@@ -118,7 +118,7 @@ export default class Colors {
   }
 
   private isDark(color: Color): boolean {
-    let { red, green, blue } = color
+    let { red, green, blue } = toHexColor(color)
     let luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
     return luma < 40
   }
