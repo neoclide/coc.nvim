@@ -232,9 +232,9 @@ export default class Document {
     return this.content != this.getDocumentContent()
   }
 
-  private fireContentChanges(): void {
+  private fireContentChanges(force = false): void {
     let { paused, textDocument } = this
-    if (paused) return
+    if (paused && !force) return
     try {
       let content = this.getDocumentContent()
       if (content == this.content) return
@@ -333,7 +333,7 @@ export default class Document {
 
   public forceSync(): void {
     this._fireContentChanges.clear()
-    this.fireContentChanges()
+    this.fireContentChanges(true)
   }
 
   public getOffset(lnum: number, col: number): number {
