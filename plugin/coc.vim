@@ -160,7 +160,7 @@ hi default link CocHintHighlight    CocUnderline
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText
-hi default link CocHighlightRead  CocHighlightText
+hi default link CocHighlightWrite CocHighlightText
 
 function! s:FormatFromSelected(type)
   call CocAction('formatSelected', a:type)
