@@ -16,8 +16,7 @@ export interface ColorRanges {
 
 export default class Colors {
   private enabled: boolean
-  // used colors
-  private colors: Color[] = []
+  private colors: Set<string> = new Set()
   private insertMode = false
   private disposables: Disposable[] = []
   private colorInfomation: Map<number, ColorInformation[]> = new Map()
@@ -111,12 +110,6 @@ export default class Colors {
     }
   }
 
-  private colorExists(color: Color): boolean {
-    return this.colors.findIndex(c => {
-      return c.red == color.red && c.green == color.green && c.blue == color.blue
-    }) != -1
-  }
-
   private isDark(color: Color): boolean {
     let { red, green, blue } = toHexColor(color)
     let luma = 0.2126 * red + 0.7152 * green + 0.0722 * blue
@@ -125,8 +118,8 @@ export default class Colors {
 
   private async addColor(color: Color): Promise<void> {
     let hex = this.toHexString(color)
-    if (this.colorExists(color)) return
-    this.colors.push(color)
+    if (this.colors.has(hex)) return
+    this.colors.add(hex)
     await this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${this.isDark(color) ? 'ffffff' : '000000'}`)
   }
 
@@ -188,6 +181,66 @@ export default class Colors {
     let green = Math.round(color.green * 255).toString(16)
     let blue = Math.round(color.blue * 255).toString(16)
     return `${pad(red)}${pad(green)}${pad(blue)}`
+  }
+
+  private async currentColorInfomation(): Promise<ColorInformation | null> {
+    let { document, position } = await workspace.getCurrentState()
+    let doc = workspace.getDocument(document.uri)
+    if (!doc) return
+    let colorInfos = this.colorInfomation.get(doc.bufnr)
+    for (let info of colorInfos) {
+      let { range } = info
+      let { start, end } = range
+      if (position.line == start.line
+        && position.character >= start.character
+        && position.character <= end.character) {
+        return info
+      }
+    }
+    return null
+  }
+
+  public async pickPresentation(): Promise<void> {
+    let info = await this.currentColorInfomation()
+    if (!info) return workspace.showMessage('Color not found at current position', 'warning')
+    let document = await workspace.document
+    let presentations = await languages.provideColorPresentations(info, document.textDocument)
+    if (!presentations || presentations.length == 0) {
+      workspace.showMessage('Language server failed to get color presentations', 'warning')
+      return
+    }
+    let res = await workspace.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:')
+    if (res == -1) return
+    let presentation = presentations[res]
+    let { textEdit, additionalTextEdits, label } = presentation
+    if (!textEdit) textEdit = { range: info.range, newText: label }
+    await document.applyEdits(this.nvim, [textEdit])
+    if (additionalTextEdits) {
+      await document.applyEdits(this.nvim, additionalTextEdits)
+    }
+  }
+
+  public async pickColor(): Promise<void> {
+    let info = await this.currentColorInfomation()
+    if (!info) return workspace.showMessage('Color not found at current position', 'warning')
+    let { color } = info
+    let colorArr = [(color.red * 256).toFixed(0), (color.green * 256).toFixed(0), (color.blue * 256).toFixed(0)]
+    let res = await this.nvim.call('coc#util#pick_color', [colorArr])
+    if (!res || res.length != 3) {
+      workspace.showMessage('Failed to get color', 'warning')
+      return
+    }
+    let hex = this.toHexString({
+      red: (res[0] / 65536),
+      green: (res[1] / 65536),
+      blue: (res[2] / 65536),
+      alpha: 1
+    })
+    let document = await workspace.document
+    await document.applyEdits(this.nvim, [{
+      range: info.range,
+      newText: `#${hex}`
+    }])
   }
 
   public dispose(): void {

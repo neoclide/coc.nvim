@@ -546,6 +546,18 @@ Available Actions ~
 
 	Deactivate extension of {id}.
 
+"pickColor" 					*coc-action-pickColor*
+
+	Change color at current color position.
+
+	Requires language server support document color request.
+
+"colorPresentation"  				*coc-action-colorPresentation*
+
+	Change color presentation at current color position.
+
+	Requires language server support color representation request.
+
 ------------------------------------------------------------------------------
 
 						*coc#refresh()*

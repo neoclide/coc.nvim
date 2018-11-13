@@ -699,7 +699,7 @@ function! coc#util#cc(index)
   call timer_start(60, { -> execute('cc! '.a:index)})
 endfunction
 
-" [r, g, b]
+" [r, g, b] ['255', '255', '255']
 function! coc#util#pick_color(default_color)
   if has('mac')
     " This is the AppleScript magic:
@@ -710,8 +710,8 @@ function! coc#util#pick_color(default_color)
           \ '-e "' . s:quit . '"',
           \ '-e "end tell"',
           \ '-e "return theColor"']
-
-    return split(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"), ',')
+    let res = system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null")
+    return split(trim(res), ',')
   endif
   let default_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
   let rgb = []

@@ -76,6 +76,12 @@ export default class Plugin extends EventEmitter {
         case 'openLink': {
           return await handler.openLink()
         }
+        case 'pickColor': {
+          return await handler.pickColor()
+        }
+        case 'colorPresentation': {
+          return await handler.pickPresentation()
+        }
         case 'highlight': {
           await handler.highlight()
           break

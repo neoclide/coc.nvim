@@ -385,6 +385,14 @@ export default class Handler {
     }
   }
 
+  public async pickColor(): Promise<void> {
+    await this.colors.pickColor()
+  }
+
+  public async pickPresentation(): Promise<void> {
+    await this.colors.pickPresentation()
+  }
+
   public async highlight(): Promise<void> {
     let document = await workspace.document
     if (!document) return
