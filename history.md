@@ -1,3 +1,25 @@
+# 2018-11-13
+
+- **Break change** default completion timeout changed to 2s.
+- **Break change** snippet session not canceled on `InsertLeave`, use
+  `<esc>` in normal mode to cancel.
+- Add document color support.
+- Add CocAction 'pickColor' and 'colorPresentation'.
+- Add prompt for install vim-node-rpc module.
+- Add support for `inComplete` completion result.
+- Add status item for snippet session.
+- Add support for fix inserted text of snippet completion item.
+- Fix document highlight not cleared.
+- Fix cancel behavior of snippet.
+- Fix range check of edit on snippet session.
+- Fix check of completion confirm.
+- Fix highlight group 'CocHighlightWrite' not work.
+- Fix command `editor.action.rename` not works.
+- Fix throw error before initialize.
+- Fix `g:coc_node_path` not working.
+- Fix file source throw undefined error.
+- Improve logic of sorting completion items, strict match items comes first.
+
 # 2018-11-07
 
 - **Break change** word source removed from custom sources, enabled for markdown
