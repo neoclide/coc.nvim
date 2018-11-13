@@ -135,12 +135,12 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        let factor = priority + this.getBonusScore(input, item)
+        let factor = priority * 10 + this.getBonusScore(input, item)
         item.score = score(filterText, input) + factor
         item.icase = 1
         item.strictMatch = item.word.startsWith(input)
         words.add(word)
-        if (filtering && item.sortText && item.score > 40000) {
+        if (filtering && item.sortText && item.score > 50000) {
           arr.push(omit(item, ['sortText']))
         } else {
           arr.push(item)

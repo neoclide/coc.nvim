@@ -230,6 +230,8 @@ export class Completion implements Disposable {
 
   private async onTextChangedP(): Promise<void> {
     let { increment, option, document } = this
+    await document.patchChange()
+    // filtered by remove character
     if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     if (document.changedtick - this.changedTick == 1) return
@@ -257,10 +259,8 @@ export class Completion implements Disposable {
           let after = byteSlice(line, option.col + byteLength(word))
           line = `${before}${text}${after}`
           this.changedTick = document.changedtick
-          await this.nvim.setLine(line)
-          if (after.length) {
-            await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
-          }
+          await this.nvim.call('coc#util#setline', [option.linenr, line])
+          await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
           if (workspace.isVim) this.nvim.command('redraw', true)
         }
       }
@@ -325,20 +325,24 @@ export class Completion implements Disposable {
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
-    let { increment, document } = this
+    let { increment, document, nvim } = this
     if (!this.isActivted || !document || !isCocItem(item)) return
     let { changedtick } = document
     try {
       increment.stop()
       this.addRecent(item.word)
-      await wait(10)
-      let mode = await this.nvim.call('mode')
+      await wait(20)
+      let mode = await nvim.call('mode')
       if (mode !== 'i') {
         await document.patchChange()
         document.forceSync()
         return
       }
-      if (document.changedtick != changedtick) return
+      if (workspace.isNvim && changedtick != document.changedtick) return
+      if (workspace.isVim) {
+        let curr = await nvim.eval('b:changedtick') as number
+        if (curr - changedtick != 1) return
+      }
       await sources.doCompleteDone(item)
     } catch (e) {
       logger.error(`error on complete done`, e.message)
