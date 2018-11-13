@@ -5,6 +5,20 @@ let s:install_yarn = 0
 let s:package_file = s:root.'/package.json'
 let g:coc_local_extensions = []
 
+let s:activate = ""
+let s:quit = ""
+if has("gui_macvim") && has('gui_running')
+  let s:app = "MacVim"
+elseif $TERM_PROGRAM ==# "Apple_Terminal"
+  let s:app = "Terminal"
+elseif $TERM_PROGRAM ==# "iTerm.app"
+  let s:app = "iTerm"
+elseif has('mac')
+  let s:app = "System Events"
+  let s:quit = "quit"
+  let s:activate = 'activate'
+endif
+
 function! coc#util#version()
   let c = execute('version')
   return matchstr(c, 'NVIM v\zs[^\n-]*')
@@ -77,7 +91,12 @@ endfunction
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   execute 'echohl '.a:hl
-  for msg in a:msgs
+  let height = &cmdheight
+  let msgs = copy(a:msgs)
+  if pumvisible()
+    let msgs = msgs[0: 0]
+  endif
+  for msg in msgs
     echom msg
   endfor
   echohl None
@@ -493,6 +512,14 @@ function! coc#util#matchdelete(ids)
   endfor
 endfunction
 
+function! coc#util#clearmatches(bufnr, ids)
+  if bufnr('%') == a:bufnr
+    for id in a:ids
+      silent! call matchdelete(id)
+    endfor
+  endif
+endfunction
+
 function! coc#util#open_url(url)
   if has('mac') && executable('open')
     call system('open '.a:url)
@@ -670,4 +697,49 @@ endfunction
 
 function! coc#util#cc(index)
   call timer_start(60, { -> execute('cc! '.a:index)})
+endfunction
+
+" [r, g, b]
+function! coc#util#pick_color(default_color)
+  if has('mac')
+    " This is the AppleScript magic:
+    let s:ascrpt = ['-e "tell application \"' . s:app . '\""',
+          \ '-e "' . s:activate . '"',
+          \ "-e \"set AppleScript's text item delimiters to {\\\",\\\"}\"",
+          \ '-e "set theColor to (choose color default color {' . str2nr(a:default_color[0])*256 . ", " . str2nr(a:default_color[1])*256 . ", " . str2nr(a:default_color[2])*256 . '}) as text"',
+          \ '-e "' . s:quit . '"',
+          \ '-e "end tell"',
+          \ '-e "return theColor"']
+
+    return split(system("osascript " . join(s:ascrpt, ' ') . " 2>/dev/null"), ',')
+  endif
+  let default_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
+  let rgb = []
+python << endpython
+
+import vim
+import gtk, sys
+
+# message strings
+wnd_title_insert = "Insert a color"
+
+csd = gtk.ColorSelectionDialog(wnd_title_insert)
+cs = csd.colorsel
+
+cs.set_current_color(gtk.gdk.color_parse(vim.eval("default_color")))
+
+cs.set_current_alpha(65536)
+cs.set_has_opacity_control(False)
+cs.set_has_palette(int(vim.eval("s:display_palette")))
+
+if csd.run()==gtk.RESPONSE_OK:
+    c = cs.get_current_color()
+    s = [str(int(c.red)),',',str(int(c.green)),',',str(int(c.blue))]
+    thecolor = ''.join(s)
+    vim.command(":let rgb = split('%s',',')" % thecolor)
+
+csd.destroy()
+
+endpython
+  return rgb
 endfunction

@@ -180,7 +180,7 @@ export class DiagnosticBuffer {
       if (buffer) buffer.clearHighlight({ srcId })
     } else {
       if (workspace.bufnr != bufnr) return
-      await nvim.call('coc#util#matchdelete', [Array.from(matchIds)])
+      await nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)])
       this.matchIds = new Set()
     }
   }

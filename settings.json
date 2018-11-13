@@ -5,8 +5,9 @@
   */
   "$schema": "./data/schema.json",
   "coc.preferences.autoTrigger": "always",
-  "coc.preferences.snippets.enable": true,
   "coc.preferences.snippetIndicator": "~",
+  "coc.preferences.snippets.enable": true,
+  "coc.preferences.colorSupport": true,
   // only used when autoTrigger is always
   "coc.preferences.triggerAfterInsertEnter": false,
   "coc.preferences.minTriggerInputLength": 1,

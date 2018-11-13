@@ -234,6 +234,7 @@ export class Completion implements Disposable {
     // filtered by remove character
     if (Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
+    // neovim would trigger TextChangedP after fix of word
     if (document.changedtick - this.changedTick == 1) return
     let { latestInsert } = this
     this.lastInsert = null

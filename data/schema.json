@@ -261,6 +261,11 @@
       "default": 50,
       "description": "Maxmium number of complete items shown in vim"
     },
+    "coc.preferences.colorSupport": {
+      "type": "boolean",
+      "description": "Enable color highlight if language server support it.",
+      "default": true
+    },
     "coc.preferences.triggerAfterInsertEnter": {
       "type": "boolean",
       "description": "Trigger completion after InsertEnter, auto trigger should be always to enable this option",

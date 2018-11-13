@@ -1098,7 +1098,7 @@ augroup end`
 
   private async onInsertEnter(): Promise<void> {
     let document = await this.document
-    if (document) document.clearHighlight()
+    if (document) await document.clearHighlight()
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {

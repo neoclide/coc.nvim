@@ -11,6 +11,7 @@ import { disposeAll, wait } from './util'
 import workspace from './workspace'
 import extensions from './extensions'
 import completion from './completion'
+import Colors from './colors'
 import { TextDocumentContentProvider } from './provider'
 const logger = require('./util/logger')('Handler')
 
@@ -33,6 +34,7 @@ interface CommandItem {
 
 export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
+  private colors: Colors
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
   private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
@@ -99,6 +101,7 @@ export default class Handler {
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
+    this.colors = new Colors(nvim)
   }
 
   public async onHover(): Promise<void> {
@@ -389,7 +392,7 @@ export default class Handler {
     let line = document.getline(position.line)
     let ch = line[position.character]
     if (!ch || !document.isWord(ch)) {
-      document.clearHighlight()
+      await document.clearHighlight()
       return
     }
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
@@ -398,7 +401,7 @@ export default class Handler {
       return
     }
     if (!highlights || highlights.length == 0) {
-      document.clearHighlight()
+      await document.clearHighlight()
       return
     }
     await document.setHighlights(highlights)
@@ -477,6 +480,7 @@ export default class Handler {
   }
 
   public dispose(): void {
+    this.colors.dispose()
     disposeAll(this.disposables)
   }
 

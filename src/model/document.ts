@@ -507,7 +507,7 @@ export default class Document {
   }
 
   public async highlightRanges(ranges: Range[], hlGroup: string): Promise<number[]> {
-    let { nvim } = this
+    let { nvim, bufnr } = this
     let res: number[] = []
     if (this.env.isVim) {
       let group: Range[] = []
@@ -525,8 +525,11 @@ export default class Document {
             let line = this.getline(start.line)
             arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
           }
-          let id = await nvim.call('matchaddpos', [hlGroup, arr])
-          res.push(id)
+          let curr = await nvim.call('bufnr', '%') as number
+          if (bufnr == curr) {
+            let id = await nvim.call('matchaddpos', [hlGroup, arr, 9])
+            res.push(id)
+          }
         }
       }
     } else {
@@ -550,14 +553,18 @@ export default class Document {
   }
 
   public async clearHighlight(): Promise<void> {
-    for (let id of this.matchIds) {
-      if (this.env.isVim) {
-        await this.nvim.call('matchdelete', id, true)
-      } else {
-        await this.buffer.clearHighlight({ srcId: id })
+    await this.clearMatchIds(this.matchIds)
+    this.matchIds = new Set()
+  }
+
+  public async clearMatchIds(ids: Set<number> | number[]): Promise<void> {
+    if (this.env.isVim) {
+      await this.nvim.call('coc#util#clearmatches', [this.bufnr, Array.from(ids)])
+    } else {
+      for (let id of ids) {
+        this.buffer.clearHighlight({ srcId: id })
       }
     }
-    this.matchIds = new Set()
   }
 
   public async getcwd(): Promise<string> {
