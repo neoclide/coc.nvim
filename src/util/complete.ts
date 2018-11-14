@@ -35,7 +35,11 @@ export function getWord(item: CompletionItem): string {
       word = label
     }
   } else {
-    word = insertText || label
+    if (textEdit) {
+      word = textEdit.newText
+    } else {
+      word = insertText || label
+    }
   }
   return word
 }
@@ -116,14 +120,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
     filterText: item.filterText || label,
     isSnippet
   }
-  if (item.preselect) obj.sortText = '\0' + obj.sortText
-  // tslint:disable-next-line: deprecation
-  if (!isSnippet && !item.insertText && item.textEdit) {
-    obj.word = item.textEdit.newText
-    // make sure we can find it on CompleteDone
-    // tslint:disable-next-line: deprecation
-    item.insertText = obj.word
-  }
+  if (item.preselect) obj.preselect = true
   item.data = item.data || {}
   if (item.data.optional) {
     obj.abbr = obj.abbr + '?'

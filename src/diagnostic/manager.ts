@@ -3,7 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, DiagnosticItems, LocationListItem } from '../types'
+import { DiagnosticItem, DiagnosticItems } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'

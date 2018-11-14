@@ -482,10 +482,19 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
-        let res = {
-          isIncomplete: !!(result as CompletionList).isIncomplete,
-          items: completeItems.map(o => complete.convertVimCompleteItem(o, shortcut, snippetIndicator))
+        let items: VimCompleteItem[] = []
+        let abbrs: Set<string> = new Set()
+        for (let item of completeItems) {
+          let vimItem = complete.convertVimCompleteItem(item, shortcut, snippetIndicator)
+          if (abbrs.has(vimItem.abbr)) {
+            // server return items with duplicate label
+            vimItem.abbr = vimItem.abbr + ' '
+            item.data.abbr = vimItem.abbr
+          }
+          abbrs.add(vimItem.abbr)
+          items.push(vimItem)
         }
+        let res = { isIncomplete: !!(result as CompletionList).isIncomplete, items }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
           option.col = (result as any).startcol

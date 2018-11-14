@@ -269,6 +269,7 @@ export interface VimCompleteItem {
   source?: string
   strictMatch?: boolean
   priority?: number
+  preselect?: boolean
 }
 
 export interface CompleteResult {

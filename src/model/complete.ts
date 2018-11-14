@@ -6,6 +6,7 @@ import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
 import Document from './document'
+import attach from '../attach'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -114,6 +115,7 @@ export default class Complete {
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
     let filtering = input.length > this.input.length
+    let preselect: VimCompleteItem = null
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority, duplicate } = res
@@ -140,6 +142,10 @@ export default class Complete {
         item.icase = 1
         item.strictMatch = item.word.startsWith(input)
         words.add(word)
+        if (!filtering && item.preselect) {
+          preselect = item
+          continue
+        }
         if (filtering && item.sortText && item.score > 50000) {
           arr.push(omit(item, ['sortText']))
         } else {
@@ -165,6 +171,7 @@ export default class Complete {
       }
     })
     let items = arr.slice(0, this.config.maxItemCount)
+    if (preselect) items.unshift(preselect)
     return items.map(o => omit(o, ['sortText', 'priority', 'filterText', 'source', 'strictMatch', 'score']))
   }
 
