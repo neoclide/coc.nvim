@@ -148,11 +148,11 @@ function! s:Enable()
   command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction
 
-hi default CocErrorSign   guifg=#ff0000
-hi default CocWarningSign guifg=#ff922b
-hi default CocInfoSign    guifg=#fab005
-hi default CocHintSign    guifg=#15aabf
 hi default CocUnderline   cterm=underline gui=underline
+hi default CocErrorSign   ctermfg=Red     guifg=#ff0000
+hi default CocWarningSign ctermfg=Brown   guifg=#ff922b
+hi default CocInfoSign    ctermfg=Yellow  guifg=#fab005
+hi default CocHintSign    ctermfg=Blue    guifg=#15aabf
 hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline

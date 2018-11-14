@@ -1,6 +1,6 @@
-*coc-nvim.txt*				Completion framework for neovim
+*coc-nvim.txt*				LSP support for vim & neovim.
 
-Version: 0.0.18
+Version: 0.0.32
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -18,6 +18,7 @@ Interface					|coc-interface|
   Functions					  |coc-functions|
   Commands					  |coc-commands|
   Autocmds 					  |coc-autocmds|
+  Highlights 					  |coc-highlights|
 Denite support 					|coc-denite|
   Denite extension  				|coc-denite-extension|
   Denite source  				|coc-denite-source|
@@ -70,8 +71,10 @@ The same as VSCode, Coc use jsonc formated file named `coc-settings.json` for
 configuration.
 
 Use command |:CocConfig| to open user configuration file, or create
-`.vim/coc-settings.json` for workspace configuration.  Autocompletion would be
-enabled after `coc-json` extension installed.
+`.vim/coc-settings.json` for workspace configuration.
+
+Autocompletion of json file would be enabled after `coc-json` extension
+installed.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for detail.
@@ -86,9 +89,9 @@ To disable automatic trigger, use: >
 
 	"coc.preferences.autoTrigger": "none",
 <
-To disable trigger after insert enter, use: >
+To enable trigger after insert enter, use: >
 
-	"coc.preferences.triggerAfterInsertEnter": false,
+	"coc.preferences.triggerAfterInsertEnter": true,
 
 To change the timeout of completion, use: >
 
@@ -98,7 +101,19 @@ To make the first complete item selected automatically, use: >
 
 	"coc.preferences.noselect": false,
 <
-Coc also provide some vim interface to make it easier to work with vim.
+To make completion triggered with two input characters, use: >
+
+	"coc.preferences.minTriggerInputLength": 2
+<
+To enable commit characters feature, use: >
+
+	"coc.preferences.acceptSuggestionOnCommitCharacter": 2
+<
+To change the indicator of snippet item, use: >
+
+	"coc.preferences.snippetIndicator": "⭐︎"
+
+Coc also provide vim interface to make it easier to work with vim.
 
 Setup kepmap for trigger completion, use: >
 
@@ -106,7 +121,7 @@ Setup kepmap for trigger completion, use: >
 <
 Use `<cr>` for confirm completion, use: >
 
-	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
+	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
 <
 Note: snippet and `additionalTextEdit` only work after completion is
 confirmed.
@@ -670,6 +685,107 @@ AUTOCMD 					*coc-autocmds*
 		autocmd should be used because coc started in async.
 
 
+------------------------------------------------------------------------------
+
+HIGHLIGHTS 					*coc-highlights*
+
+CocErrorSign 					*CocErrorSign*
+
+  Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`
+
+  The highlight used for error signs.
+
+CocWarningSign 					*CocWarningSign*
+
+  Default: `hi CocWarningSign  ctermfg=Brown guifg=#ff922b`
+
+  The highlight used for warning signs.
+
+CocInfoSign 					*CocInfoSign*
+
+  Default: `hi CocInfoSign  ctermfg=Yellow guifg=#fab005`
+
+  The highlight used for infomation signs.
+
+CocHintSign 					*CocHintSign*
+
+  Default: `hi CocHintSign  ctermfg=Blue guifg=#15aabf`
+
+  The highlight used for hint signs.
+
+CocErrorHighlight 				*CocErrorHighlight*
+
+  Default: `hi default link CocErrorHighlight   CocUnderline`
+
+  The highlight used for error text.
+
+CocWarningHighlight 				*CocWarningHighlight*
+
+  Default: `hi default link CocWarningHighlight   CocUnderline`
+
+  The highlight used for warning text.
+
+CocInfoHighlight 				*CocInfoHighlight*
+
+  Default: `hi default link CocInfoHighlight   CocUnderline`
+
+  The highlight used for infomation text.
+
+CocHintHighlight 				*CocHintHighlight*
+
+  Default: `hi default link CocHintHighlight   CocUnderline`
+
+  The highlight used for hint text.
+
+CocHighlightText 				*CocHighlightText*
+
+  Default `hi default CocHighlightText  guibg=#111111 ctermbg=223`
+
+  The highlight used for document highlight feature, normally used for
+  highlight same symbols of buffer at current cursor position.
+
+CocHighlightTextRead 				*CocHighlightTextRead*
+
+  Default `hi default link CocHighlightRead  CocHighlightText`
+
+  Highlight for `Read` kind of document symbol.
+
+CocHighlightTextWrite 				*CocHighlightTextWrite*
+
+  Default `hi default link CocHighlightWrite  CocHighlightText`
+
+  Highlight for `Write` kind of document symbol.
+
+CocErrorLine 					*CocErrorLine*
+
+  Default `undefined`
+
+  Highlight for line with diagnostic error.
+
+CocWarningLine 					*CocWarningLine*
+
+  Default `undefined`
+
+  Highlight for line with diagnostic warning.
+
+CocInfoLine 					*CocInfoLine*
+
+  Default `undefined`
+
+  Highlight for line with diagnostic infomation.
+
+CocHintLine 					*CocHintLine*
+
+  Default `undefined`
+
+  Highlight for line with diagnostic hint.
+
+To customize the highlight, simply use |:highlight| command of vim in your
+vimrc, like: >
+	
+	" make error text to red color
+	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
+<
 
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
