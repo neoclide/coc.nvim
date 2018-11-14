@@ -85,6 +85,10 @@ export default class Handler {
         this.codeLensBuffers.delete(bufnr)
       }
     }, null, this.disposables)
+    events.on('BufWinLeave', async bufnr => {
+      let document = workspace.getDocument(bufnr)
+      if (document) await document.clearHighlight()
+    }, null, this.disposables)
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {

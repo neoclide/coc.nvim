@@ -13,7 +13,7 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
 export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'CursorMovedI'
 
 export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' |
-  'InsertCharPre' | 'FileType' | 'BufWinEnter' |
+  'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' |
   'DirChanged' | 'OptionSet' | 'Command' | 'toggle' | 'BufReadCmd'
 
 export type OptionValue = string | number | boolean
@@ -46,6 +46,7 @@ class Events {
   public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'DirChanged', handler: (cwd: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'OptionSet', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
