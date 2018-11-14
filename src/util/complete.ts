@@ -104,7 +104,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
   let obj: VimCompleteItem = {
     word: getWord(item),
     abbr: label,
-    menu: item.detail ? `${item.detail.replace(/\n/, ' ')} [${shortcut}]` : `[${shortcut}]`,
+    menu: item.detail ? `${item.detail.replace(/(\n|\t)/g, '').slice(0, 30)} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: item.sortText || null,
     filterText: item.filterText || label,

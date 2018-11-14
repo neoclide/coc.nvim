@@ -121,9 +121,9 @@ class Languages {
           for (let snip of snippets) {
             res.push({
               label: snip.prefix,
-              detail: snip.body.replace(/(\n|\t)/g, '').slice(0, 50),
+              detail: snip.description,
               filterText: snip.prefix,
-              documentation: snip.description,
+              documentation: snip.body.replace(/\$\d+/g, '').replace(/\$\{[^}]+\}/g, ''),
               insertTextFormat: InsertTextFormat.Snippet,
               textEdit: TextEdit.replace(
                 Range.create({ line: position.line, character: context.option!.col }, position), snip.body
@@ -133,7 +133,7 @@ class Languages {
           return res
         }
       }
-      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider)
+      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 100)
     })
   }
 
@@ -154,10 +154,11 @@ class Languages {
     shortcut: string,
     languageIds: string | string[] | null,
     provider: CompletionItemProvider,
-    triggerCharacters: string[] = []
+    triggerCharacters: string[] = [],
+    priority?: number
   ): Disposable {
     languageIds = typeof languageIds == 'string' ? [languageIds] : languageIds
-    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters)
+    let source = this.createCompleteSource(name, shortcut, provider, languageIds, triggerCharacters, priority)
     sources.addSource(source)
     logger.debug('created service source', name)
     return {
@@ -385,13 +386,14 @@ class Languages {
     provider: CompletionItemProvider,
     languageIds: string[] | null,
     triggerCharacters: string[],
+    priority?: number
   ): ISource {
     // track them for resolve
     let completeItems: CompletionItem[] = []
     let resolveInput: string
     let option: CompleteOption
     let preferences = workspace.getConfiguration('coc.preferences')
-    let priority = preferences.get<number>('languageSourcePriority', 99)
+    priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
     let snippetIndicator = preferences.get<string>('snippetIndicator', '~')
 
