@@ -254,7 +254,10 @@ export class Completion implements Disposable {
           this.changedTick = document.changedtick
           await this.nvim.call('coc#util#setline', [option.linenr, line])
           await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
-          if (workspace.isVim) this.nvim.command('redraw', true)
+          if (workspace.isVim) {
+            this.nvim.command('redraw', true)
+            await document.patchChange()
+          }
         }
       }
       await sources.doCompleteResolve(item)
@@ -331,13 +334,11 @@ export class Completion implements Disposable {
         document.forceSync()
         return
       }
-      if (workspace.isNvim && changedtick != document.changedtick) return
-      if (workspace.isVim) {
-        let curr = await nvim.eval('b:changedtick') as number
-        if (curr - changedtick != 1) return
-      }
+      if (changedtick != document.changedtick) return
       await sources.doCompleteDone(item)
     } catch (e) {
+      // tslint:disable-next-line:no-console
+      console.error(e.stack)
       logger.error(`error on complete done`, e.message)
     }
   }
