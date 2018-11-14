@@ -20,21 +20,6 @@ export interface DiagnosticConfig {
   level: number
 }
 
-function severityName(severity: DiagnosticSeverity): string {
-  switch (severity) {
-    case DiagnosticSeverity.Error:
-      return 'Error'
-    case DiagnosticSeverity.Warning:
-      return 'Warning'
-    case DiagnosticSeverity.Information:
-      return 'Information'
-    case DiagnosticSeverity.Hint:
-      return 'Hint'
-    default:
-      return 'Error'
-  }
-}
-
 function severityLevel(level: string): number {
   switch (level) {
     case 'hint':
@@ -54,7 +39,6 @@ export class DiagnosticManager {
   public config: DiagnosticConfig
   public enabled = true
   public insertMode = false
-  public lineHighlighs: Set<DiagnosticSeverity> = new Set()
   private timer: NodeJS.Timer
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
@@ -174,10 +158,10 @@ export class DiagnosticManager {
     let { nvim } = workspace
     let { documents } = workspace
     let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.command(`sign define CocError   text=${errorSign}   texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} texthl=CocWarningSign`, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    texthl=CocHintSign`, true)
+    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
     // create buffers
     for (let doc of documents) {
       if (this.shouldValidate(doc)) {
@@ -194,32 +178,6 @@ export class DiagnosticManager {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
     }, null, this.disposables)
-
-    let severities = [DiagnosticSeverity.Error, DiagnosticSeverity.Warning, DiagnosticSeverity.Information, DiagnosticSeverity.Hint]
-    for (let severity of severities) {
-      let name = this.getlineHighlightName(severity)
-      let exists = await this.nvim.call('hlexists', name)
-      if (exists) this.lineHighlighs.add(severity)
-    }
-  }
-
-  public getlineHighlightName(severity: DiagnosticSeverity): string {
-    let name: string
-    switch (severity) {
-      case DiagnosticSeverity.Error:
-        name = 'CocErrorLine'
-        break
-      case DiagnosticSeverity.Warning:
-        name = 'CocWarningLine'
-        break
-      case DiagnosticSeverity.Information:
-        name = 'CocInfoLine'
-        break
-      case DiagnosticSeverity.Hint:
-        name = 'CocHintLine'
-        break
-    }
-    return name
   }
 
   public create(name: string): DiagnosticCollection {
@@ -333,18 +291,6 @@ export class DiagnosticManager {
     return res
   }
 
-  public getLocationListItem(owner: string, bufnr: number, diagnostic: Diagnostic): LocationListItem {
-    let { start } = diagnostic.range
-    let msg = diagnostic.message.split('\n')[0]
-    return {
-      bufnr,
-      lnum: start.line + 1,
-      col: start.character + 1,
-      text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg}`,
-      type: severityName(diagnostic.severity).slice(0, 1).toUpperCase(),
-    }
-  }
-
   /**
    * All diagnostic of current files
    *
@@ -363,7 +309,7 @@ export class DiagnosticManager {
             lnum: start.line + 1,
             col: start.character + 1,
             message: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
-            severity: severityName(diagnostic.severity),
+            severity: this.getSeverityName(diagnostic.severity),
           }
           res.push(o)
         }
@@ -404,7 +350,7 @@ export class DiagnosticManager {
     let lines: string[] = []
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
-      let s = severityName(severity)[0]
+      let s = this.getSeverityName(severity)[0]
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       lines.push(...str.split('\n'))
     })
@@ -475,6 +421,21 @@ export class DiagnosticManager {
         logger.error(e)
       })
     }, 100)
+  }
+
+  public getSeverityName(severity: DiagnosticSeverity): string {
+    switch (severity) {
+      case DiagnosticSeverity.Error:
+        return 'Error'
+      case DiagnosticSeverity.Warning:
+        return 'Warning'
+      case DiagnosticSeverity.Information:
+        return 'Information'
+      case DiagnosticSeverity.Hint:
+        return 'Hint'
+      default:
+        return 'Error'
+    }
   }
 }
 

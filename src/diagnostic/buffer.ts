@@ -1,11 +1,11 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { DiagnosticSeverity, Range, Diagnostic } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { DiagnosticInfo, DiagnosticItems, LocationListItem } from '../types'
+import { DiagnosticItems, LocationListItem } from '../types'
+import { equals } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticManager } from './manager'
-import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-buffer')
 
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
@@ -65,40 +65,31 @@ export class DiagnosticBuffer {
     if (!this.manager.enabled) return
     if (this.manager.insertMode) return
     let diagnosticItems = this.manager.getBufferDiagnostic(this.uri)
+    let diagnostics = this.getDiagnostics(diagnosticItems)
     if (equals(diagnosticItems, this.diagnosticItems)) {
-      await this.setLocationlist()
+      await this.setLocationlist(diagnostics)
       return
     }
     this.diagnosticItems = diagnosticItems
-    this.setDiagnosticInfo()
-    await this.setLocationlist()
-    await this.clearHighlight()
-    await this.addHighlight()
-    await this.clearSigns()
-    this.addSigns()
+    this.setDiagnosticInfo(diagnostics)
+    await this.setLocationlist(diagnostics)
+    await this.addHighlight(diagnostics)
+    await this.addSigns(diagnostics)
   }
 
-  public async setLocationlist(): Promise<void> {
+  public async setLocationlist(diagnostics: Diagnostic[]): Promise<void> {
     if (!this.enableLoclist) return
-    let { nvim, document, diagnosticItems } = this
+    let { nvim, document } = this
     if (!document) return
     let { bufnr } = document
     let winid = await nvim.call('bufwinid', bufnr) as number
     // not shown
     if (winid == -1) return
     let items: LocationListItem[] = []
-    for (let name of Object.keys(diagnosticItems)) {
-      for (let diagnostic of diagnosticItems[name]) {
-        let item = this.manager.getLocationListItem(name, bufnr, diagnostic)
-        items.push(item)
-      }
+    for (let diagnostic of diagnostics) {
+      let item = this.getLocationListItem(diagnostic.source, bufnr, diagnostic)
+      items.push(item)
     }
-    items.sort((a, b) => {
-      if (a.lnum != b.lnum) {
-        return a.lnum - b.lnum
-      }
-      return a.col - b.col
-    })
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
     let action = (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) ? 'r' : ' '
     await nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }])
@@ -129,20 +120,19 @@ export class DiagnosticBuffer {
     await nvim.call('coc#util#unplace_signs', [bufnr, ids])
   }
 
-  private addSigns(): void {
-    let { diagnosticItems, signId, signIds } = this
+  private async addSigns(diagnostics: Diagnostic[]): Promise<void> {
+    await this.clearSigns()
+    let { signId, signIds } = this
     signIds.clear()
     let lines: Set<number> = new Set()
-    for (let owner of Object.keys(diagnosticItems)) {
-      for (let diagnostic of diagnosticItems[owner]) {
-        let { range, severity } = diagnostic
-        let line = range.start.line
-        if (lines.has(line)) continue
-        lines.add(line)
-        this.addSign(signId, line, severity)
-        signIds.add(signId)
-        signId = signId + 1
-      }
+    for (let diagnostic of diagnostics) {
+      let { range, severity } = diagnostic
+      let line = range.start.line
+      if (lines.has(line)) continue
+      lines.add(line)
+      this.addSign(signId, line, severity)
+      signIds.add(signId)
+      signId = signId + 1
     }
   }
 
@@ -154,10 +144,25 @@ export class DiagnosticBuffer {
     nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${buffer.id}`, true)
   }
 
-  private setDiagnosticInfo(): void {
+  private setDiagnosticInfo(diagnostics: Diagnostic[]): void {
     let { document } = this
     if (!document) return
-    let info = this.getDiagnosticInfo()
+    let info = { error: 0, warning: 0, information: 0, hint: 0 }
+    for (let diagnostic of diagnostics) {
+      switch (diagnostic.severity) {
+        case DiagnosticSeverity.Warning:
+          info.warning = info.warning + 1
+          break
+        case DiagnosticSeverity.Information:
+          info.information = info.information + 1
+          break
+        case DiagnosticSeverity.Hint:
+          info.hint = info.hint + 1
+          break
+        default:
+          info.error = info.error + 1
+      }
+    }
     document.buffer.setVar('coc_diagnostic_info', info, true)
     if (workspace.bufnr == this.bufnr) {
       this.nvim.command('redraws', true)
@@ -177,24 +182,18 @@ export class DiagnosticBuffer {
     this.matchIds.clear()
   }
 
-  private async addHighlight(): Promise<void> {
-    let { diagnosticItems, nvim } = this
-    let winid = await nvim.call('bufwinid', this.bufnr) as number
+  private async addHighlight(diagnostics: Diagnostic[]): Promise<void> {
+    await this.clearHighlight()
+    let winid = await this.nvim.call('bufwinid', this.bufnr) as number
     if (winid == -1) return
-    let diagnostics: Diagnostic[] = []
-    for (let owner of Object.keys(diagnosticItems)) {
-      for (let diagnostic of diagnosticItems[owner]) {
-        let { range, severity } = diagnostic
-        diagnostics.push(diagnostic)
-        if (workspace.isVim) {
-          await this.addHighlightVim(winid, range, severity)
-        } else {
-          await this.addHighlightNvim(range, severity)
-        }
+    for (let diagnostic of diagnostics.reverse()) {
+      let { range, severity } = diagnostic
+      if (workspace.isVim) {
+        await this.addHighlightVim(winid, range, severity)
+      } else {
+        await this.addHighlightNvim(range, severity)
       }
     }
-    if (this.manager.lineHighlighs.size == 0) return
-    await this.highlightLines(diagnostics)
   }
 
   private async addHighlightNvim(range: Range, severity: DiagnosticSeverity): Promise<void> {
@@ -251,69 +250,32 @@ export class DiagnosticBuffer {
     }
   }
 
-  private getDiagnosticInfo(): DiagnosticInfo {
-    let { diagnosticItems } = this
-    let error = 0
-    let warning = 0
-    let information = 0
-    let hint = 0
+  private getDiagnostics(diagnosticItems: DiagnosticItems): Diagnostic[] {
+    let res: Diagnostic[] = []
     for (let owner of Object.keys(diagnosticItems)) {
-      let diagnostics = diagnosticItems[owner]
-      for (let diagnostic of diagnostics) {
-        switch (diagnostic.severity) {
-          case DiagnosticSeverity.Error:
-            error = error + 1
-            break
-          case DiagnosticSeverity.Warning:
-            warning = warning + 1
-            break
-          case DiagnosticSeverity.Information:
-            information = information + 1
-            break
-          case DiagnosticSeverity.Hint:
-            hint = hint + 1
-            break
-          default:
-            error = error + 1
-        }
+      for (let diagnostic of diagnosticItems[owner]) {
+        res.push(diagnostic)
       }
     }
-    return { error, warning, information, hint }
-  }
-
-  private async highlightLines(diagnostics: Diagnostic[]): Promise<void> {
-    let { lineHighlighs } = this.manager
-    let { matchIds, bufnr } = this
-    let document = workspace.getDocument(bufnr)
-    if (!document) return
-    let lines: Set<number> = new Set()
-    let linesMap: Map<DiagnosticSeverity, number[]> = new Map()
-    diagnostics.sort((a, b) => {
+    res.sort((a, b) => {
+      if (a.severity == b.severity) {
+        return a.range.start.line - b.range.start.line
+      }
       return a.severity - b.severity
     })
-    for (let diagnostic of diagnostics) {
-      let { range, severity } = diagnostic
-      let { start, end } = range
-      for (let i = start.line; i <= end.line; i++) {
-        if (i == end.line && end.character == 0) break
-        if (lines.has(i)) continue
-        lines.add(i)
-        let s = linesMap.get(severity) || []
-        s.push(i)
-        linesMap.set(severity, s)
-      }
-    }
-    for (let severity of lineHighlighs) {
-      let lines = linesMap.get(severity)
-      if (!lines || lines.length == 0) continue
-      let ranges: Range[] = lines.map(line => {
-        return Range.create(line, 0, line + 1, 0)
-      })
-      let hlGroup = this.manager.getlineHighlightName(severity)
-      let ids = await document.highlightRanges(ranges, hlGroup)
-      for (let id of ids) {
-        matchIds.add(id)
-      }
+    return res
+  }
+
+  public getLocationListItem(owner: string, bufnr: number, diagnostic: Diagnostic): LocationListItem {
+    let { start } = diagnostic.range
+    let msg = diagnostic.message.split('\n')[0]
+    let type = this.manager.getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase()
+    return {
+      bufnr,
+      lnum: start.line + 1,
+      col: start.character + 1,
+      text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg} [${type}]`,
+      type
     }
   }
 }
