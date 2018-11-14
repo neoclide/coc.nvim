@@ -53,15 +53,15 @@ function severityLevel(level: string): number {
 export class DiagnosticManager {
   public config: DiagnosticConfig
   public enabled = true
+  public insertMode = false
+  public lineHighlighs: Set<DiagnosticSeverity> = new Set()
   private timer: NodeJS.Timer
   private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private _srcId = 1000
   private enableMessage = true
-  public insertMode = false
   constructor() {
-
     workspace.onDidWorkspaceInitialized(() => {
       this.setConfiguration()
       if (this.enabled) {
@@ -184,18 +184,42 @@ export class DiagnosticManager {
         this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
       }
     }
-
     workspace.onDidOpenTextDocument(textDocument => {
       let doc = workspace.getDocument(textDocument.uri)
       if (this.shouldValidate(doc)) {
         this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
       }
     }, null, this.disposables)
-
     workspace.onDidCloseTextDocument(textDocument => {
       let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
       if (idx !== -1) this.buffers.splice(idx, 1)
     }, null, this.disposables)
+
+    let severities = [DiagnosticSeverity.Error, DiagnosticSeverity.Warning, DiagnosticSeverity.Information, DiagnosticSeverity.Hint]
+    for (let severity of severities) {
+      let name = this.getlineHighlightName(severity)
+      let exists = await this.nvim.call('hlexists', name)
+      if (exists) this.lineHighlighs.add(severity)
+    }
+  }
+
+  public getlineHighlightName(severity: DiagnosticSeverity): string {
+    let name: string
+    switch (severity) {
+      case DiagnosticSeverity.Error:
+        name = 'CocErrorLine'
+        break
+      case DiagnosticSeverity.Warning:
+        name = 'CocWarningLine'
+        break
+      case DiagnosticSeverity.Information:
+        name = 'CocInfoLine'
+        break
+      case DiagnosticSeverity.Hint:
+        name = 'CocHintLine'
+        break
+    }
+    return name
   }
 
   public create(name: string): DiagnosticCollection {

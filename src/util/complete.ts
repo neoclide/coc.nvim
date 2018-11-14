@@ -129,3 +129,10 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
   // item.commitCharacters not necessary for vim
   return obj
 }
+
+export function getSnippetDocumentation(languageId: string, body: string): string {
+  languageId = languageId.replace(/react$/, '')
+  let str = body.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1')
+  str = '``` ' + languageId + '\n' + str + '\n' + '```'
+  return str
+}

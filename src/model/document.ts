@@ -519,11 +519,15 @@ export default class Document {
           group.push(ranges[i])
         }
         if (group.length == 8 || i == l - 1) {
-          let arr: [number, number, number][] = []
+          let arr: number[][] = []
           for (let range of group) {
             let { start, end } = range
             let line = this.getline(start.line)
-            arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
+            if (end.line - start.line == 1 && end.character == 0) {
+              arr.push([start.line + 1])
+            } else {
+              arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
+            }
           }
           let curr = await nvim.call('bufnr', '%') as number
           if (bufnr == curr) {
@@ -543,7 +547,7 @@ export default class Document {
             srcId,
             line: start.line,
             colStart: byteIndex(line, start.character),
-            colEnd: byteIndex(line, end.character)
+            colEnd: end.line - start.line == 1 && end.character == 0 ? byteLength(line) : byteIndex(line, end.character)
           })
         }
         res.push(srcId)

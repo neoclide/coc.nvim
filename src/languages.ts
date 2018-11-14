@@ -123,7 +123,7 @@ class Languages {
               label: snip.prefix,
               detail: snip.description,
               filterText: snip.prefix,
-              documentation: snip.body.replace(/\$\d+/g, '').replace(/\$\{[^}]+\}/g, ''),
+              documentation: complete.getSnippetDocumentation(document.languageId, snip.body),
               insertTextFormat: InsertTextFormat.Snippet,
               textEdit: TextEdit.replace(
                 Range.create({ line: position.line, character: context.option!.col }, position), snip.body
