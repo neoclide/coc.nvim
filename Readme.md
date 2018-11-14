@@ -29,7 +29,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
   For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
 
   ```vim
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
   ```
 
   Or build from source code by install [nodejs](https://nodejs.org/en/download/)
