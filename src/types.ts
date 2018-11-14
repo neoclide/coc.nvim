@@ -270,6 +270,7 @@ export interface VimCompleteItem {
   strictMatch?: boolean
   priority?: number
   preselect?: boolean
+  recentScore?: number
 }
 
 export interface CompleteResult {

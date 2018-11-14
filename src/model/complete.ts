@@ -6,7 +6,6 @@ import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
 import Document from './document'
-import attach from '../attach'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -110,6 +109,7 @@ export default class Complete {
 
   public filterResults(input: string, cid?: number): VimCompleteItem[] {
     let { results } = this
+    let { bufnr } = this.option
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
@@ -137,7 +137,8 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        item.score = score(filterText, input) + this.getBonusScore(input, item)
+        item.score = score(filterText, input) + this.getBonusScore(item)
+        item.recentScore = this.recentScores[`${bufnr}|${word}`] || 0
         item.priority = priority
         item.icase = 1
         item.strictMatch = item.word.startsWith(input)
@@ -156,11 +157,12 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (input.length > 1) {
+      if (input.length) {
         if (a.strictMatch && !b.strictMatch) return -1
         if (b.strictMatch && !a.strictMatch) return 1
-        if (a.strictMatch && b.strictMatch && (a.priority != b.priority)) {
-          return b.priority - a.priority
+        if (a.strictMatch && b.strictMatch) {
+          if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+          if (a.priority != b.priority) return b.priority - a.priority
         }
       }
       if (a.source == b.source && sa && sb) {
@@ -172,7 +174,7 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'priority', 'filterText', 'source', 'strictMatch', 'score']))
+    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'source', 'strictMatch', 'score']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
@@ -197,11 +199,9 @@ export default class Complete {
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
 
-  private getBonusScore(input: string, item: VimCompleteItem): number {
-    let { word, abbr, kind, info } = item
-    let score = input.length
-      ? this.recentScores[`${input.slice(0, 1)}|${word}`] || 0
-      : 0
+  private getBonusScore(item: VimCompleteItem): number {
+    let { abbr, kind, info } = item
+    let score = 0
     score += kind ? 1 : 0
     score += abbr ? 1 : 0
     score += info ? 1 : 0

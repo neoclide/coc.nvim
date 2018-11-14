@@ -64,17 +64,9 @@ export class Completion implements Disposable {
     return completeItems.find(o => o.word == word)
   }
 
-  private addRecent(word: string): void {
-    if (!word || !this.option) return
-    let { input } = this.option
-    if (!input.length) return
-    let key = `${input.slice(0, 1)}|${word}`
-    let val = this.recentScores[key]
-    if (!val) {
-      this.recentScores[key] = 0.01
-    } else {
-      this.recentScores[key] = Math.min(val + 0.01, 0.1)
-    }
+  private addRecent(word: string, bufnr: number): void {
+    if (!word) return
+    this.recentScores[`${bufnr}|${word}`] = Date.now()
   }
 
   private async getResumeInput(): Promise<string> {
@@ -331,7 +323,7 @@ export class Completion implements Disposable {
     let { changedtick } = document
     try {
       increment.stop()
-      this.addRecent(item.word)
+      this.addRecent(item.word, document.bufnr)
       await wait(20)
       let mode = await nvim.call('mode')
       if (mode !== 'i') {
