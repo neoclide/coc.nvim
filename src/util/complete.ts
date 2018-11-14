@@ -24,10 +24,16 @@ export function getPosition(opt: CompleteOption): Position {
 
 export function getWord(item: CompletionItem): string {
   // tslint:disable-next-line: deprecation
-  let { label, insertTextFormat, insertText } = item
+  let { label, insertTextFormat, insertText, textEdit } = item
   let word: string
   if (insertTextFormat == InsertTextFormat.Snippet) {
-    word = label.trim()
+    let snippet = textEdit ? textEdit.newText : insertText
+    if (snippet) {
+      let line = snippet.split('\n', 2)[0]
+      word = line.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1')
+    } else {
+      word = label
+    }
   } else {
     word = insertText || label
   }
