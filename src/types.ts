@@ -268,6 +268,7 @@ export interface VimCompleteItem {
   isSnippet?: boolean
   source?: string
   strictMatch?: boolean
+  priority?: number
 }
 
 export interface CompleteResult {

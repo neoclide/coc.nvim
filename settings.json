@@ -64,7 +64,7 @@
   "coc.source.tag.priority": 3,
   "coc.source.word.enable": true,
   "coc.source.word.shortcut": "10k",
-  "coc.source.word.priority": 1,
+  "coc.source.word.priority": 0,
   "coc.source.word.filetypes": ["markdown"],
   "coc.source.ultisnips.enable": true,
   "coc.source.ultisnips.priority": 99,

@@ -135,8 +135,8 @@ export default class Complete {
           item.user_data = JSON.stringify(data)
           item.source = source
         }
-        let factor = priority * 10 + this.getBonusScore(input, item)
-        item.score = score(filterText, input) + factor
+        item.score = score(filterText, input) + this.getBonusScore(input, item)
+        item.priority = priority
         item.icase = 1
         item.strictMatch = item.word.startsWith(input)
         words.add(word)
@@ -150,8 +150,13 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (a.strictMatch && !b.strictMatch) return -1
-      if (b.strictMatch && !a.strictMatch) return 1
+      if (input.length > 1) {
+        if (a.strictMatch && !b.strictMatch) return -1
+        if (b.strictMatch && !a.strictMatch) return 1
+        if (a.strictMatch && b.strictMatch && (a.priority != b.priority)) {
+          return b.priority - a.priority
+        }
+      }
       if (a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
         return sa < sb ? -1 : 1
@@ -160,7 +165,7 @@ export default class Complete {
       }
     })
     let items = arr.slice(0, this.config.maxItemCount)
-    return items.map(o => omit(o, ['sortText', 'filterText', 'source', 'strictMatch', 'score']))
+    return items.map(o => omit(o, ['sortText', 'priority', 'filterText', 'source', 'strictMatch', 'score']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
