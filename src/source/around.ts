@@ -22,8 +22,8 @@ export default class Around extends Source {
     let { bufnr } = opt
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    let words = document!.words
-    let moreWords = document!.getMoreWords()
+    let words = document.words
+    let moreWords = document.getMoreWords()
     words.push(...moreWords)
     words = this.filterWords(words, opt)
     return {

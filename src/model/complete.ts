@@ -161,9 +161,11 @@ export default class Complete {
         if (a.strictMatch && !b.strictMatch) return -1
         if (b.strictMatch && !a.strictMatch) return 1
         if (a.strictMatch && b.strictMatch) {
-          if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
           if (a.priority != b.priority) return b.priority - a.priority
+          if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
         }
+      } else if (a.recentScore != b.recentScore) {
+        return b.recentScore - a.recentScore
       }
       if (a.source == b.source && sa && sb) {
         if (sa === sb) return b.score - a.score
