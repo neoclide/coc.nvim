@@ -341,7 +341,7 @@ function normalizeSnippetString(snippet: string, indent: string, opts: Formattin
   let lines = snippet.split(/\r?\n/)
   let ind = (new Array(opts.tabSize || 2)).fill(opts.insertSpaces ? ' ' : '\t').join('')
   lines = lines.map((line, idx) => {
-    return (idx == 0 ? '' : indent) + line.split('\t').join(ind)
+    return (idx == 0 || line.length == 0 ? '' : indent) + line.split('\t').join(ind)
   })
   return lines.join('\n')
 }

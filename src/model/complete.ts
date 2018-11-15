@@ -141,7 +141,7 @@ export default class Complete {
         item.recentScore = this.recentScores[`${bufnr}|${word}`] || 0
         item.priority = priority
         item.icase = 1
-        item.strictMatch = item.word.startsWith(input)
+        item.strictMatch = filterText.startsWith(input)
         words.add(word)
         if (!filtering && item.preselect) {
           preselect = item

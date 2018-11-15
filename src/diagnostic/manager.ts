@@ -90,7 +90,7 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
-      if (!this.config.locationlist) return
+      if (!this.config || !this.config.locationlist) return
       let winid = await this.nvim.call('win_getid') as number
       // wait buffer create
       await wait(50)

@@ -1,6 +1,7 @@
 import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import { CompleteOption, VimCompleteItem } from '../types'
 import { byteSlice } from './string'
+const logger = require('./logger')('util-complete')
 
 export function isCocItem(item: any): boolean {
   if (!item || !item.hasOwnProperty('user_data')) return false
@@ -29,7 +30,8 @@ export function getWord(item: CompletionItem): string {
   if (insertTextFormat == InsertTextFormat.Snippet) {
     let snippet = textEdit ? textEdit.newText : insertText
     if (snippet) {
-      let line = snippet.split('\n', 2)[0]
+      let lines = snippet.split('\n')
+      let line = lines.find(s => s.trim().length > 0)
       word = line.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1')
     } else {
       word = label
