@@ -327,8 +327,7 @@ export default class Document {
         strictIndexing: false
       })
     }
-    this._fireContentChanges.clear()
-    this.fireContentChanges()
+    this.forceSync()
   }
 
   public forceSync(): void {

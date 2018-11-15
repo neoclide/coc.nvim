@@ -7,51 +7,55 @@ import { SnippetSession } from './session'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
-  private _activeSession: SnippetSession
-  private _disposables: Disposable[] = []
+  private session: SnippetSession
   private disposables: Disposable[] = []
   private _snippetProvider: CompositeSnippetProvider
-  private statusItem: types.StatusBarItem
 
   constructor() {
     this._snippetProvider = new CompositeSnippetProvider()
     workspace.onDidWorkspaceInitialized(() => {
-      this.statusItem = workspace.createStatusBarItem(0)
-      this.statusItem.text = 'SNIP'
+      this.session = new SnippetSession(workspace.nvim)
     }, null, this.disposables)
 
     workspace.onDidChangeTextDocument((e: DidChangeTextDocumentParams) => {
       let { uri } = e.textDocument
-      const activeSession = this._activeSession
-      if (activeSession) {
-        if (activeSession.document.uri == uri) {
-          activeSession.synchronizeUpdatedPlaceholders(e.contentChanges[0]).catch(e => {
-            logger.error(e)
-          })
-        }
-      }
-    }, null, this.disposables)
-
-    workspace.onDidCloseTextDocument(textDocument => {
-      const activeSession = this._activeSession
-      if (activeSession) {
-        if (activeSession.document.uri == textDocument.uri) {
-          this.cancel()
-        }
-      }
-    }, null, this.disposables)
-
-    events.on(['CursorMoved', 'CursorMovedI'], () => {
-      if (this.isSnippetActive) {
-        this._activeSession.updateCursorPosition().catch(e => {
+      let { session } = this
+      if (session && session.uri == uri) {
+        session.synchronizeUpdatedPlaceholders(e.contentChanges[0]).catch(e => {
           logger.error(e)
         })
       }
     }, null, this.disposables)
+
+    workspace.onDidCloseTextDocument(textDocument => {
+      const { session } = this
+      if (session && session.uri == textDocument.uri) {
+        this.cancel()
+      }
+    }, null, this.disposables)
+
+    let timer: NodeJS.Timer = null
+    events.on(['CursorMoved', 'CursorMovedI'], () => {
+      if (this.isSnippetActive) {
+        timer = setTimeout(() => {
+          if (!this.session) return
+          this.session.onCursorMoved().catch(e => {
+            logger.error(e)
+          })
+        }, 20)
+      }
+    }, null, this.disposables)
+    events.on(['TextChanged', 'TextChangedI'], () => {
+      if (timer) clearTimeout(timer)
+    }, null, this.disposables)
+
+    events.on('BufEnter', () => {
+      this.cancel()
+    }, null, this.disposables)
   }
 
   public get isSnippetActive(): boolean {
-    return !!this._activeSession
+    return this.session && this.session.isActive
   }
 
   public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
@@ -66,40 +70,23 @@ export class SnippetManager implements types.SnippetManager {
    * Inserts snippet in the active editor, at current cursor position
    */
   public async insertSnippet(snippet: string): Promise<void> {
-    this.cancel()
-    const snippetSession = new SnippetSession(workspace.nvim, snippet)
-    await snippetSession.start()
-    await workspace.nvim.call('coc#snippet#enable')
-    this.statusItem.show()
-    snippetSession.onCancel(() => {
-      this.cancel()
-    }, null, this._disposables)
-    snippetSession.onCursorMoved(event => {
-      this.drawCursors(event.mode, event.cursors)
-    }, null, this._disposables)
-    this._activeSession = snippetSession
+    if (!this.session) return
+    await this.session.start(snippet)
   }
 
   public async nextPlaceholder(): Promise<void> {
-    if (this.isSnippetActive) {
-      return this._activeSession.nextPlaceholder()
-    }
+    if (!this.session) return
+    return this.session.nextPlaceholder()
   }
 
   public async previousPlaceholder(): Promise<void> {
-    if (this.isSnippetActive) {
-      return this._activeSession.previousPlaceholder()
-    }
+    if (!this.session) return
+    return this.session.previousPlaceholder()
   }
 
   public cancel(): void {
-    if (this._activeSession) {
-      this.statusItem.hide()
-      workspace.nvim.call('coc#snippet#disable', [], true)
-      logger.debug("[SnippetManager::cancel]")
-      this._disposables.forEach(d => d.dispose())
-      this._disposables = []
-      this._activeSession = null
+    if (this.session) {
+      this.session.finish()
     }
   }
 

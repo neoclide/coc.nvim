@@ -6,7 +6,7 @@
 
 import * as path from "path"
 
-import { Variable, VariableResolver } from "./snippet"
+import { Variable, VariableResolver } from "./parser"
 
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
@@ -17,9 +17,9 @@ export class SnippetVariableResolver implements VariableResolver {
     this._variableToValue = {
       CURRENT_YEAR: currentDate.getFullYear().toString(),
       CURRENT_YEAR_SHORT: currentDate
-      .getFullYear()
-      .toString()
-      .slice(-2),
+        .getFullYear()
+        .toString()
+        .slice(-2),
       CURRENT_MONTH: (currentDate.getMonth() + 1).toString(),
       CURRENT_DATE: currentDate.getDate().toString(),
       CURRENT_HOUR: currentDate.getHours().toString(),

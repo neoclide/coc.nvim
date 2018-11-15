@@ -4,9 +4,6 @@ let s:bufnr = 0
 " make a range to select mode
 function! coc#snippet#range_select(lnum, col, len) abort
   let m = mode()
-  if a:len == 0 && m !=# 'i'
-    startinsert
-  endif
   if a:len > 0 && m ==# 'i'
     stopinsert
   endif
@@ -14,11 +11,17 @@ function! coc#snippet#range_select(lnum, col, len) abort
 endfunction
 
 function! s:start_select(lnum, col, len)
+  let virtualedit = &virtualedit
+  let &virtualedit = 'onemore'
   call cursor(a:lnum, a:col)
   if a:len > 0
     let m = a:len == 1 ? '' : (a:len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
   endif
+  if a:len == 0 && mode() !=# 'i'
+    call feedkeys('i', 'in')
+  endif
+  let &virtualedit = virtualedit
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort
