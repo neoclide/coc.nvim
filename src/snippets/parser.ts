@@ -319,7 +319,7 @@ export class Transform extends Marker {
   public resolve(value: string): string {
     const _this = this
     let didMatch = false
-    let ret = value.replace(this.regexp, () => {
+    let ret = value.replace(this.regexp, function() { // tslint:disable-line
       didMatch = true
       return _this._replace(Array.prototype.slice.call(arguments, 0, -2))
     })
