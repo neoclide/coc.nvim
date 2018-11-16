@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import events from './events'
 import Increment from './increment'
 import Complete from './model/complete'
@@ -132,7 +132,8 @@ export class Completion implements Disposable {
     return {
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
       timeout: config.get<number>('timeout', 500),
-      snippetIndicator: config.get<string>('snippetIndicator', '~')
+      snippetIndicator: config.get<string>('snippetIndicator', '~'),
+      fixInsertedWord: config.get<boolean>('fixInsertedWord', true)
     }
   }
 
@@ -324,6 +325,9 @@ export class Completion implements Disposable {
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { increment, document, nvim } = this
     if (!this.isActivted || !document || !isCocItem(item)) return
+    item = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
+    if (!item) return
+    let { line, linenr } = this.option
     let { changedtick } = document
     try {
       increment.stop()
@@ -336,7 +340,17 @@ export class Completion implements Disposable {
         return
       }
       if (changedtick != document.changedtick) return
-      await sources.doCompleteDone(item)
+      let handled = await sources.doCompleteDone(item)
+      if (!handled) {
+        let user_data = JSON.parse(item.user_data)
+        if (user_data.textEdit) {
+          let { range, newText } = user_data.textEdit as TextEdit
+          let start = line.substr(0, range.start.character)
+          let end = line.substr(range.end.character)
+          await nvim.call('coc#util#setline', [linenr, `${start}${newText}${end}`])
+          await nvim.call('cursor', [linenr, byteLength(start + newText) + 1])
+        }
+      }
     } catch (e) {
       // tslint:disable-next-line:no-console
       console.error(e.stack)

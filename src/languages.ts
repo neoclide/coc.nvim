@@ -3,6 +3,7 @@ import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionConte
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { Chars } from './model/chars'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
 import DefinitionManager from './provider/definitionManager'
@@ -395,6 +396,7 @@ class Languages {
     let endColnr: number
     let preferences = workspace.getConfiguration('coc.preferences')
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
+    let fixInsertedWord = preferences.get<boolean>('fixInsertedWord', true)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
@@ -434,7 +436,7 @@ class Languages {
         if (!completeItem) return
         await this.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
-        if (completeItem.insertTextFormat == InsertTextFormat.Snippet && !completeItem.textEdit) {
+        if (item.isSnippet && !completeItem.textEdit) {
           let line = option.linenr - 1
           completeItem.textEdit = {
             range: Range.create(line, option.col, line, endColnr - 1),
@@ -458,9 +460,10 @@ class Languages {
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
         endColnr = option.colnr
-        let word = doc.getWordAfterPosition({ line: opt.linenr - 1, character: endColnr - 1 })
-        endColnr = endColnr + word.length
-        if (triggerCharacter || opt.triggerForInComplete) await wait(waitTime)
+        if (fixInsertedWord) {
+          let word = Chars.getWordAfterCharacter(opt.line, endColnr - 1)
+          endColnr = endColnr + word.length
+        }
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
         if (opt.triggerForInComplete) {
@@ -468,6 +471,7 @@ class Languages {
         } else if (isTrigger) {
           triggerKind = CompletionTriggerKind.TriggerCharacter
         }
+        if (triggerKind != CompletionTriggerKind.Invoked) await wait(waitTime)
         let document = doc.textDocument
         let position = complete.getPosition(opt)
         let context: CompletionContext = { triggerKind, option: opt }
@@ -476,7 +480,11 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
-        let items: VimCompleteItem[] = completeItems.map(o => complete.convertVimCompleteItem(o, shortcut))
+        let items: VimCompleteItem[] = completeItems.map(o => {
+          let item = complete.convertVimCompleteItem(o, shortcut)
+          if (endColnr != option.colnr) item.isSnippet = true
+          return item
+        })
         let res = { isIncomplete: !!(result as CompletionList).isIncomplete, items }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
@@ -508,9 +516,8 @@ class Languages {
     let { line, bufnr, linenr } = option
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    let character = range.start.character
     // replace inserted word
-    let start = line.substr(0, character)
+    let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
       await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])

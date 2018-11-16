@@ -296,6 +296,7 @@ export interface CompleteConfig {
   maxItemCount: number
   timeout: number
   snippetIndicator: string
+  fixInsertedWord: boolean
 }
 
 export interface WorkspaceConfiguration {

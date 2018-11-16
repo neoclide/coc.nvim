@@ -6,6 +6,8 @@ import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
 import Document from './document'
+import { Chars } from './chars'
+import { Range } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -89,6 +91,9 @@ export default class Complete {
     await document.patchChange()
     document.forceSync()
     let remains = results.filter(res => !res.isIncomplete)
+    remains.forEach(res => {
+      res.items.forEach(item => delete item.user_data)
+    })
     let arr = results.filter(res => res.isIncomplete == true)
     let names = arr.map(o => o.source)
     let { input, colnr, linenr } = this.option
@@ -109,8 +114,9 @@ export default class Complete {
 
   public filterResults(input: string, cid = 0): VimCompleteItem[] {
     let { results } = this
-    let { bufnr } = this.option
-    let { snippetIndicator } = this.config
+    let { bufnr, colnr, linenr } = this.option
+    let { snippetIndicator, fixInsertedWord } = this.config
+    let endColnr = this.getEndColnr()
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
@@ -128,9 +134,18 @@ export default class Complete {
         if (filterText.length < input.length) continue
         if (input.length && !fuzzyMatch(codes, filterText)) continue
         if (!item.user_data) {
+          let user_data: any = { cid, source }
+          if (!item.isSnippet && fixInsertedWord && endColnr != colnr) {
+            item.isSnippet = true
+            let line = linenr - 1
+            user_data.textEdit = {
+              range: Range.create(line, this.option.col, line, endColnr - 1),
+              newText: item.word
+            }
+          }
           // first time
           if (item.isSnippet) item.abbr = `${item.abbr || item.word}${snippetIndicator}`
-          item.user_data = JSON.stringify({ cid, source })
+          item.user_data = JSON.stringify(user_data)
           item.source = source
         }
         item.score = score(filterText, input) + this.getBonusScore(item)
@@ -204,5 +219,13 @@ export default class Complete {
     score += abbr ? 1 : 0
     score += info ? 1 : 0
     return score
+  }
+
+  private getEndColnr(): number {
+    let { fixInsertedWord } = this.config
+    let { colnr, line } = this.option
+    if (!fixInsertedWord) return colnr
+    let word = Chars.getWordAfterCharacter(line, colnr - 1)
+    return colnr + word.length
   }
 }
