@@ -43,9 +43,9 @@ export class Range {
 }
 
 export class Chars {
-  public ranges: Range[]
-  constructor(keywordOption: string) {
-    this.ranges = Range.fromKeywordOption(keywordOption)
+  public ranges: Range[] = []
+  constructor(keywordOption?: string) {
+    if (keywordOption) this.ranges = Range.fromKeywordOption(keywordOption)
   }
 
   public addKeyword(ch: string): void {
@@ -54,6 +54,12 @@ export class Chars {
     if (!ranges.some(o => o.contains(c))) {
       ranges.push(new Range(c))
     }
+  }
+
+  public clone(): Chars {
+    let chars = new Chars()
+    chars.ranges = this.ranges.slice()
+    return chars
   }
 
   public setKeywordOption(keywordOption: string): void {

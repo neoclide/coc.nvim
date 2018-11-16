@@ -157,17 +157,6 @@ export default class Document {
     })
   }
 
-  /**
-   * Real current line
-   *
-   * @public
-   * @param {number} line - zero based line number
-   * @returns {string}
-   */
-  public getline(line: number): string {
-    return this.lines[line] || ''
-  }
-
   public async attach(): Promise<boolean> {
     if (this.buffer.isAttached) return false
     let attached = await this.buffer.attach(false)
@@ -369,51 +358,41 @@ export default class Document {
   }
 
   /**
-   * Current word for replacement, used by completion
-   * For increment completion, the document is initialized document
+   * Current word for replacement
    *
    * @public
    * @param {Position} position
    * @param {string} extraChars?
+   * @param {boolean} current? - use current line
    * @returns {Range}
    */
-  public getWordRangeAtPosition(
-    position: Position,
-    extraChars?: string
-  ): Range {
-    let { chars, textDocument } = this
-    let content = textDocument.getText()
+  public getWordRangeAtPosition(position: Position, extraChars?: string, current = false): Range | null {
+    let { chars } = this
     if (extraChars && extraChars.length) {
-      let codes = []
-      let keywordOption = '@,'
-      for (let i = 0; i < extraChars.length; i++) {
-        codes.push(String(extraChars.charCodeAt(i)))
-      }
-      keywordOption += codes.join(',')
-      chars = new Chars(keywordOption)
-    }
-    let start = position
-    let end = position
-    let offset = textDocument.offsetAt(position)
-    for (let i = offset - 1; i >= 0; i--) {
-      if (i == 0) {
-        start = textDocument.positionAt(0)
-        break
-      } else if (!chars.isKeywordChar(content[i])) {
-        start = textDocument.positionAt(i + 1)
-        break
+      chars = this.chars.clone()
+      for (let ch of extraChars) {
+        chars.addKeyword(ch)
       }
     }
-    for (let i = offset; i <= content.length; i++) {
-      if (i === content.length) {
-        end = textDocument.positionAt(i)
-        break
-      } else if (!chars.isKeywordChar(content[i])) {
-        end = textDocument.positionAt(i)
-        break
-      }
+    let line = this.getline(position.line, current)
+    if (line.length == 0 || position.character >= line.length) return null
+    if (!chars.isKeywordChar(line[position.character])) return null
+    let start = position.character
+    let end = position.character + 1
+    if (!chars.isKeywordChar(line[start])) {
+      return Range.create(position, { line: position.line, character: position.character + 1 })
     }
-    return { start, end }
+    while (start >= 0) {
+      let ch = line[start - 1]
+      if (!ch || !chars.isKeyword(ch)) break
+      start = start - 1
+    }
+    while (end <= line.length) {
+      let ch = line[end]
+      if (!ch || !chars.isKeywordChar(ch)) break
+      end = end + 1
+    }
+    return Range.create(position.line, start, position.line, end)
   }
 
   private async gitCheck(): Promise<void> {
@@ -574,6 +553,20 @@ export default class Document {
     let wid = await this.nvim.call('bufwinid', this.buffer.id)
     if (wid == -1) return await this.nvim.call('getcwd')
     return await this.nvim.call('getcwd', wid)
+  }
+
+  /**
+   * Real current line
+   *
+   * @public
+   * @param {number} line - zero based line number
+   * @param {boolean} current - use current line
+   * @returns {string}
+   */
+  public getline(line: number, current = true): string {
+    if (current) return this.lines[line] || ''
+    let lines = this.textDocument.getText().split('\n')
+    return lines[line] || ''
   }
 
   private getDocumentContent(): string {

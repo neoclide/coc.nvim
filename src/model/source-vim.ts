@@ -51,7 +51,6 @@ export default class VimSource extends Source {
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
     let { col, input, line, colnr } = opt
-    let { isSnippet } = this
     let startcol: number | null = await this.callOptinalFunc('get_startcol', [opt])
     if (startcol) {
       if (startcol < 0) return null
@@ -67,7 +66,7 @@ export default class VimSource extends Source {
         })
       }
     }
-    let items = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
+    let items: VimCompleteItem[] = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt])
     if (!items || items.length == 0) return null
     if (this.firstMatch && input.length) {
       let ch = input[0]
@@ -76,13 +75,11 @@ export default class VimSource extends Source {
         return fuzzyChar(ch, cfirst)
       })
     }
-
-    let config = workspace.getConfiguration('coc.preferences')
-    let snippetIndicator = config.get<string>('snippetIndicator', '~')
     for (let item of items) {
       let menu = item.menu ? item.menu + ' ' : ''
       item.menu = `${menu}${this.menu}`
-      if (isSnippet) item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+      item.isSnippet = this.isSnippet
+      delete item.user_data
     }
     let res: CompleteResult = { items }
     res.startcol = startcol

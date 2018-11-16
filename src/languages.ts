@@ -395,17 +395,15 @@ class Languages {
     let preferences = workspace.getConfiguration('coc.preferences')
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    let snippetIndicator = preferences.get<string>('snippetIndicator', '~')
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
-      if (!completeItems || completeItems.length == 0) return null
-      let { abbr } = item
-      return completeItems.find(o => o.data && o.data.abbr == abbr)
+      let { word } = item
+      return completeItems.find(o => o.data && o.data.word == word)
     }
     return {
       name,
-      enable: true,
       priority,
+      enable: true,
       duplicate: false,
       sourceType: SourceType.Service,
       filetypes: languageIds,
@@ -432,23 +430,19 @@ class Languages {
       },
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
-        if (!completeItem) return
+        if (!completeItem) {
+          logger.error('item not found', item)
+          return
+        }
         await this.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
-        // tslint:disable-next-line: deprecation
-        if (completeItem.insertTextFormat == InsertTextFormat.Snippet && completeItem.insertText && !completeItem.textEdit) {
-          // tslint:disable-next-line: deprecation
-          if (completeItem.insertText.indexOf('$') == -1) {
-            completeItem.insertTextFormat = InsertTextFormat.PlainText
-          } else {
-            let { col, colnr } = option
-            let line = option.linenr - 1
-            // use textEdit for snippet
-            completeItem.textEdit = {
-              range: Range.create(line, col, line, colnr - 1),
-              // tslint:disable-next-line: deprecation
-              newText: completeItem.insertText
-            }
+        if (completeItem.insertTextFormat == InsertTextFormat.Snippet && !completeItem.textEdit) {
+          let { col, colnr } = option
+          let line = option.linenr - 1
+          completeItem.textEdit = {
+            range: Range.create(line, col, line, colnr - 1),
+            // tslint:disable-next-line: deprecation
+            newText: completeItem.insertText || completeItem.label
           }
         }
         let snippet = await this.applyTextEdit(completeItem, option)
@@ -482,18 +476,7 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
-        let items: VimCompleteItem[] = []
-        let abbrs: Set<string> = new Set()
-        for (let item of completeItems) {
-          let vimItem = complete.convertVimCompleteItem(item, shortcut, snippetIndicator)
-          if (abbrs.has(vimItem.abbr)) {
-            // server return items with duplicate label
-            vimItem.abbr = vimItem.abbr + ' '
-            item.data.abbr = vimItem.abbr
-          }
-          abbrs.add(vimItem.abbr)
-          items.push(vimItem)
-        }
+        let items: VimCompleteItem[] = completeItems.map(o => complete.convertVimCompleteItem(o, shortcut))
         let res = { isIncomplete: !!(result as CompletionList).isIncomplete, items }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol

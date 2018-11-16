@@ -131,7 +131,8 @@ export class Completion implements Disposable {
     let config = workspace.getConfiguration('coc.preferences')
     return {
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
-      timeout: config.get<number>('timeout', 500)
+      timeout: config.get<number>('timeout', 500),
+      snippetIndicator: config.get<string>('snippetIndicator', '~')
     }
   }
 

@@ -110,9 +110,15 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, snippetIndicator: string): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
+  // tslint:disable-next-line:deprecation
+  if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1) {
+    // fix wrong insert format
+    isSnippet = false
+    item.insertTextFormat = InsertTextFormat.PlainText
+  }
   let obj: VimCompleteItem = {
     word: getWord(item),
     abbr: label,
@@ -124,14 +130,10 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, s
   }
   if (item.preselect) obj.preselect = true
   item.data = item.data || {}
-  if (item.data.optional) {
-    obj.abbr = obj.abbr + '?'
-  }
-  if (isSnippet) obj.abbr = obj.abbr + snippetIndicator
+  if (item.data.optional) obj.abbr = obj.abbr + '?'
+  item.data.word = obj.word
   let document = getDocumentation(item)
   if (document) obj.info = document
-  item.data.abbr = obj.abbr
-  // item.commitCharacters not necessary for vim
   return obj
 }
 

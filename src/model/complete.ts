@@ -39,7 +39,7 @@ export default class Complete {
     return this.results && this.results.findIndex(o => o.isIncomplete == true) !== -1
   }
 
-  private async completeSource(source: ISource): Promise<CompleteResult | null> {
+  private async completeSource(source: ISource, completeInComplete = false): Promise<CompleteResult | null> {
     let { col } = this.option
     // new option for each source
     let opt = Object.assign({}, this.option)
@@ -73,6 +73,7 @@ export default class Complete {
       result.isFallback = source.isFallback
       result.priority = source.priority
       result.source = source.name
+      result.completeInComplete = completeInComplete
       result.duplicate = source.duplicate
       logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
       return result
@@ -99,17 +100,17 @@ export default class Complete {
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.indexOf(s.name) !== -1)
-    results = await Promise.all(sources.map(s => this.completeSource(s)))
+    results = await Promise.all(sources.map(s => this.completeSource(s, true)))
     results = results.concat(remains)
     results = results.filter(r => r != null && r.items && r.items.length > 0)
-    let cid = Math.floor(Date.now() / 1000)
     this.results = results
-    return this.filterResults(resumeInput, cid)
+    return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
   }
 
-  public filterResults(input: string, cid?: number): VimCompleteItem[] {
+  public filterResults(input: string, cid = 0): VimCompleteItem[] {
     let { results } = this
     let { bufnr } = this.option
+    let { snippetIndicator } = this.config
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
@@ -126,15 +127,10 @@ export default class Complete {
         let filterText = item.filterText || item.word
         if (filterText.length < input.length) continue
         if (input.length && !fuzzyMatch(codes, filterText)) continue
-        if (cid) {
-          let data = {} as any
-          if (item.user_data) {
-            try {
-              data = JSON.parse(item.user_data)
-            } catch (e) { } // tslint:disable-line
-          }
-          Object.assign(data, { cid, source })
-          item.user_data = JSON.stringify(data)
+        if (!item.user_data) {
+          // first time
+          if (item.isSnippet) item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+          item.user_data = JSON.stringify({ cid, source })
           item.source = source
         }
         item.score = score(filterText, input) + this.getBonusScore(item)

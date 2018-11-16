@@ -275,6 +275,7 @@ export interface VimCompleteItem {
 
 export interface CompleteResult {
   items: VimCompleteItem[]
+  completeInComplete?: boolean
   isFallback?: boolean
   duplicate?: boolean
   isIncomplete?: boolean
@@ -294,6 +295,7 @@ export interface SourceStat {
 export interface CompleteConfig {
   maxItemCount: number
   timeout: number
+  snippetIndicator: string
 }
 
 export interface WorkspaceConfiguration {
