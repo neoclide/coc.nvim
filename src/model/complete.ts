@@ -144,7 +144,12 @@ export default class Complete {
             }
           }
           // first time
-          if (item.isSnippet) item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+          if (item.isSnippet) {
+            let abbr = item.abbr || item.word
+            if (!abbr.endsWith(snippetIndicator)) {
+              item.abbr = `${item.abbr || item.word}${snippetIndicator}`
+            }
+          }
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
