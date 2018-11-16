@@ -392,6 +392,7 @@ class Languages {
     let completeItems: CompletionItem[] = []
     let resolveInput: string
     let option: CompleteOption
+    let endColnr: number
     let preferences = workspace.getConfiguration('coc.preferences')
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
@@ -430,17 +431,13 @@ class Languages {
       },
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
-        if (!completeItem) {
-          logger.error('item not found', item)
-          return
-        }
+        if (!completeItem) return
         await this.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
         if (completeItem.insertTextFormat == InsertTextFormat.Snippet && !completeItem.textEdit) {
-          let { col, colnr } = option
           let line = option.linenr - 1
           completeItem.textEdit = {
-            range: Range.create(line, col, line, colnr - 1),
+            range: Range.create(line, option.col, line, endColnr - 1),
             // tslint:disable-next-line: deprecation
             newText: completeItem.insertText || completeItem.label
           }
@@ -460,6 +457,9 @@ class Languages {
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
         if (!doc) return null
+        endColnr = option.colnr
+        let word = doc.getWordAfterPosition({ line: opt.linenr - 1, character: endColnr - 1 })
+        endColnr = endColnr + word.length
         if (triggerCharacter || opt.triggerForInComplete) await wait(waitTime)
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked

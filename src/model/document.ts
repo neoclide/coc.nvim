@@ -367,9 +367,8 @@ export default class Document {
    * @returns {Range}
    */
   public getWordRangeAtPosition(position: Position, extraChars?: string, current = false): Range | null {
-    let { chars } = this
+    let chars = new Chars('@')
     if (extraChars && extraChars.length) {
-      chars = this.chars.clone()
       for (let ch of extraChars) {
         chars.addKeyword(ch)
       }
@@ -567,6 +566,13 @@ export default class Document {
     if (current) return this.lines[line] || ''
     let lines = this.textDocument.getText().split('\n')
     return lines[line] || ''
+  }
+
+  public getWordAfterPosition(position: Position, current = true): string {
+    let range = this.getWordRangeAtPosition(position, '', current)
+    if (!range || range.end.character <= position.character) return ''
+    let line = this.getline(position.line, current)
+    return line.slice(position.character, range.end.character)
   }
 
   private getDocumentContent(): string {
