@@ -34,6 +34,15 @@ export class SnippetManager implements types.SnippetManager {
       }
     }, null, this.disposables)
 
+    events.on('BufWinLeave', bufnr => {
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return
+      let { session } = this
+      if (session && session.uri == doc.uri) {
+        this.cancel()
+      }
+    }, null, this.disposables)
+
     let timer: NodeJS.Timer = null
     events.on(['CursorMoved', 'CursorMovedI'], () => {
       if (this.isSnippetActive) {
@@ -45,12 +54,19 @@ export class SnippetManager implements types.SnippetManager {
         }, 20)
       }
     }, null, this.disposables)
+
     events.on(['TextChanged', 'TextChangedI'], () => {
       if (timer) clearTimeout(timer)
     }, null, this.disposables)
 
-    events.on('BufEnter', () => {
-      this.cancel()
+    events.on('BufEnter', async () => {
+      let { session } = this
+      if (session && !session.isActive) {
+        session.disable()
+        return
+      }
+      let document = await workspace.document
+      session.onDocumentChange(document.uri)
     }, null, this.disposables)
   }
 

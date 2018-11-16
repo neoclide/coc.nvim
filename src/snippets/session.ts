@@ -69,11 +69,12 @@ export class SnippetSession {
   }
 
   public async nextPlaceholder(): Promise<void> {
-    if (!this.currentPlaceholder) return
+    if (!this.isActive) return this.disable()
     await this.forceSync()
+    if (!this.currentPlaceholder) return
+    let range = this.currentPlaceholder.range
     let placeholders = this.getSortedPlaceholders()
     let next: CocSnippetPlaceholder = null
-    let range = this.currentPlaceholder.range
     for (let i = 0; i < placeholders.length; i++) {
       const p = placeholders[i]
       if (equals(p.range, range)) {
@@ -93,11 +94,12 @@ export class SnippetSession {
   }
 
   public async previousPlaceholder(): Promise<void> {
-    if (!this.currentPlaceholder) return
+    if (!this.isActive) return this.disable()
     await this.forceSync()
+    if (!this.currentPlaceholder) return
+    let range = this.currentPlaceholder.range
     let placeholders = this.getSortedPlaceholders()
     let prev: CocSnippetPlaceholder = null
-    let range = this.currentPlaceholder.range
     for (let i = placeholders.length - 1; i >= 0; i--) {
       const p = placeholders[i]
       if (equals(p.range, range)) {
@@ -211,7 +213,10 @@ export class SnippetSession {
   }
 
   public finish(): void {
-    if (!this.isActive) return
+    if (!this.isActive) {
+      this.disable()
+      return
+    }
     let snippets = this.getSnippets()
     for (let snip of snippets) {
       snip.disconnect()
@@ -222,6 +227,14 @@ export class SnippetSession {
     this.statusItem.hide()
     this.nvim.call('coc#snippet#disable', [], true)
     logger.debug("[SnippetManager::cancel]")
+  }
+
+  public onDocumentChange(uri: string): void {
+    if (this.uri != uri) {
+      this.statusItem.hide()
+    } else {
+      this.statusItem.show()
+    }
   }
 
   public get isActive(): boolean {
@@ -320,6 +333,10 @@ export class SnippetSession {
     }
     fn(root)
     return Array.from(res)
+  }
+
+  public disable(): void {
+    this.nvim.call('coc#snippet#disable', [], true)
   }
 }
 

@@ -1,5 +1,6 @@
 let s:is_vim = !has('nvim')
-let s:bufnr = 0
+" bufnr => 1 | 0
+let s:buffers = {}
 
 " make a range to select mode
 function! coc#snippet#range_select(lnum, col, len) abort
@@ -36,7 +37,7 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
 endfunction
 
 function! coc#snippet#enable()
-  let s:bufnr = bufnr('%')
+  let s:buffers[bufnr('%')] = 1
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   nnoremap <buffer> <esc> :call CocActionAsync('snippetCancel')<cr>
@@ -47,9 +48,11 @@ function! coc#snippet#enable()
 endfunction
 
 function! coc#snippet#disable()
-  if bufnr('%') != s:bufnr
+  let nr = bufnr('%')
+  if get(s:buffers, nr, 0) == 0
     return
   endif
+  let s:buffers[nr] = 0
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   silent! nunmap <buffer> <esc>
