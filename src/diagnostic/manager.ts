@@ -297,7 +297,7 @@ export class DiagnosticManager {
    * @returns {any}
    */
   public diagnosticList(): DiagnosticItem[] {
-    let res = []
+    let res: DiagnosticItem[] = []
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
         let file = Uri.parse(uri).fsPath
@@ -309,12 +309,16 @@ export class DiagnosticManager {
             col: start.character + 1,
             message: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
             severity: this.getSeverityName(diagnostic.severity),
+            level: diagnostic.severity || 0
           }
           res.push(o)
         }
       })
     }
     res.sort((a, b) => {
+      if (a.level !== b.level) {
+        return a.level - b.level
+      }
       if (a.file !== b.file) {
         return a.file > b.file ? 1 : -1
       } else {
