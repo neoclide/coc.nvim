@@ -1,5 +1,7 @@
-import * as Snippets from "./parser"
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { equals } from '../util/object'
+import { comparePosition, emptyRange, isSingleLine, rangeInRange } from '../util/position'
+import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
 
@@ -18,30 +20,17 @@ export interface CocSnippetPlaceholder {
 export class CocSnippet {
   private _parser: Snippets.SnippetParser = new Snippets.SnippetParser()
   private _placeholders: CocSnippetPlaceholder[]
-  private _parentSnippet: CocSnippet
-  private _parentPlaceholderId: number
-  private childSnippetsMap: Map<number, CocSnippet> = new Map()
-  private singLine: boolean
   private tmSnippet: Snippets.TextmateSnippet
 
   constructor(private _snippetString: string,
     private position: Position,
     private _variableResolver?: VariableResolver) {
-    const snippet = this._parser.parse(this._snippetString, true, true)
+    const snippet = this._parser.parse(this._snippetString, true)
     if (this._variableResolver) {
       snippet.resolveVariables(this._variableResolver)
     }
     this.tmSnippet = snippet
-    this._placeholders = this.getPlaceholders()
-    this.singLine = _snippetString.indexOf('\n') == -1
-  }
-
-  public setChildSnippet(id: number, snippet: CocSnippet | null): void {
-    if (snippet) {
-      this.childSnippetsMap.set(id, snippet)
-    } else {
-      this.childSnippetsMap.delete(id)
-    }
+    this.update()
   }
 
   public get offset(): Position {
@@ -54,20 +43,54 @@ export class CocSnippet {
       line: line + lineCount,
       character: character + characterCount
     }
-    this._placeholders = this.getPlaceholders()
+    this.update()
   }
 
-  public get children(): CocSnippet[] {
-    return Array.from(this.childSnippetsMap.values())
+  public adjustTextEdit(edit: TextEdit): boolean {
+    let { range, newText } = edit
+    let { start } = this.range
+    if (comparePosition(range.end, start) <= 0) {
+      let lines = newText.split('\n')
+      let lineCount = lines.length - (range.end.line - range.start.line) - 1
+      let characterCount = 0
+      if (range.end.line == start.line) {
+        let single = isSingleLine(range) && lineCount == 0
+        let removed = single ? range.end.character - range.start.character : range.end.character
+        let added = single ? newText.length : lines[lines.length - 1].length
+        characterCount = added - removed
+      }
+      this.adjustPosition(characterCount, lineCount)
+      return true
+    }
+    return false
+  }
+
+  public contains(range: Range): boolean {
+    return rangeInRange(range, this.range)
+  }
+
+  public get isPlainText(): boolean {
+    return this._placeholders.every(p => p.isFinalTabstop)
+  }
+
+  public toString(): string {
+    return this.tmSnippet.toString()
+  }
+
+  public get range(): Range {
+    let end = this._placeholders.reduce((pos, p) => {
+      return comparePosition(p.range.end, pos) > 0 ? p.range.end : pos
+    }, this.position)
+    return Range.create(this.position, end)
   }
 
   // get placeholders for jump, including finalPlaceholder
   public getJumpPlaceholders(): CocSnippetPlaceholder[] {
     return this._placeholders.reduce((arr, curr) => {
       let idx = arr.findIndex(o => o.index == curr.index)
-      if (idx == -1 && this.childSnippetsMap.get(curr.id) == null) arr.push(curr)
+      if (idx == -1) arr.push(curr)
       return arr
-    }, [] as CocSnippetPlaceholder[])
+    }, [])
   }
 
   public get line(): number {
@@ -75,15 +98,31 @@ export class CocSnippet {
   }
 
   public get firstPlaceholder(): CocSnippetPlaceholder | null {
-    return this._placeholders.find(o => o.id == 0)
+    return this.getPlaceholder(this.tmSnippet.minIndexNumber)
   }
 
-  public get lastIndex(): number {
-    return this._placeholders.reduce((n, cur) => Math.max(n, cur.index), 0)
+  public findNextPlaceholder(position: Position): CocSnippetPlaceholder {
+    let placeholders = this.getJumpPlaceholders()
+    for (let p of placeholders) {
+      if (comparePosition(p.range.start, position) > 0) {
+        return p
+      }
+    }
+    return this.finalPlaceholder
   }
 
-  public get lastPlaceholder(): CocSnippetPlaceholder | null {
-    return this.getPlaceholder(this.lastIndex)
+  public findPrevPlaceholder(position: Position): CocSnippetPlaceholder {
+    let placeholders = this.getJumpPlaceholders()
+    for (let p of placeholders) {
+      if (comparePosition(p.range.end, position) < 0) {
+        return p
+      }
+    }
+    return this.firstPlaceholder
+  }
+
+  public get lastPlaceholder(): CocSnippetPlaceholder {
+    return this.getPlaceholder(this.tmSnippet.maxIndexNumber) || this.finalPlaceholder
   }
 
   public getPlaceholderById(id: number): CocSnippetPlaceholder {
@@ -91,30 +130,80 @@ export class CocSnippet {
   }
 
   public getPlaceholder(index: number): CocSnippetPlaceholder {
-    if (index == -1) return this.finalPlaceholder
     return this._placeholders.find(o => o.index == index)
+  }
+
+  public getPrevPlaceholder(index: number): CocSnippetPlaceholder {
+    if (index == 0) return this.lastPlaceholder
+    if (index < 0) return null
+    let prev = this.getPlaceholder(index - 1)
+    if (!prev) return this.getPrevPlaceholder(index - 1)
+    return prev
+  }
+
+  public getNextPlaceholder(index: number): CocSnippetPlaceholder {
+    let max = this.tmSnippet.maxIndexNumber
+    if (index == max) return this.finalPlaceholder
+    let next = this.getPlaceholder(index + 1)
+    if (!next) return this.getNextPlaceholder(index + 1)
+    return next
   }
 
   public get finalPlaceholder(): CocSnippetPlaceholder {
     return this._placeholders.find(o => o.isFinalTabstop)
   }
 
+  public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
+    let placeholders = this._placeholders.filter(o => rangeInRange(range, o.range))
+    return this.selectPlaceholder(placeholders)
+  }
+
+  public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, position: Position): number {
+    let { start } = placeholder.range
+    let offset = position.character - start.character
+    let insertFinal = true
+    let next = this._placeholders[placeholder.id + 1]
+    if (next && equals(next.range.start, position)) {
+      insertFinal = false
+    }
+    let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, offset, insertFinal)
+    this.update()
+    return first
+  }
+
+  // Use inner most and previous if adjacent
+  private selectPlaceholder(placeholders: CocSnippetPlaceholder[]): CocSnippetPlaceholder {
+    if (placeholders.length <= 1) return placeholders[0] || null
+    placeholders.sort((a, b) => {
+      let d = a.range.start.character - b.range.start.character
+      if (d != 0) return d
+      return b.range.end.character - a.range.end.character
+    })
+    let placeholder: CocSnippetPlaceholder
+    // = placeholders[0]
+    for (let p of placeholders) {
+      if (placeholder && rangeInRange(p.range, placeholder.range)) {
+        if (emptyRange(p.range) && equals(p.range.start, placeholder.range.end)) {
+          break
+        }
+        placeholder = p
+      }
+      if (!placeholder) placeholder = p
+    }
+    return placeholder
+  }
+
   // update internal positions, no change of buffer
   // return TextEdit list when needed
-  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] | false {
+  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] {
     let { range } = edit
     let { start, end } = range
     let pRange = placeholder.range
-    if (start.character < pRange.start.character || end.character > pRange.end.character) {
-      logger.error('Edit range miss match', edit.range)
-      return false
-    }
     let { value, index, id } = placeholder
     let endPart = pRange.end.character > end.character ? value.slice(end.character - pRange.end.character) : ''
     let newText = `${value.slice(0, start.character - pRange.start.character)}${edit.newText}${endPart}`
     // update with current change
-    this._setPlaceholderValue(id, newText)
-    this._placeholders = this.getPlaceholders()
+    this.setPlaceholderValue(id, newText)
     let placeholders = this._placeholders.filter(o => o.index == index && o.id != id)
     if (!placeholders.length) return []
     let edits: TextEdit[] = placeholders.map(p => {
@@ -125,19 +214,19 @@ export class CocSnippet {
     })
     // update with others
     placeholders.forEach(p => {
-      this._setPlaceholderValue(p.id, newText)
+      this.tmSnippet.updatePlaceholder(p.id, newText)
     })
-    this._placeholders = this.getPlaceholders()
+    this.update()
     return edits
   }
 
-  private getPlaceholders(): CocSnippetPlaceholder[] {
+  private update(): void {
     const snippet = this.tmSnippet
     const placeholders = snippet.placeholders
     const { line, character } = this.position
     const document = TextDocument.create('untitled://1', 'snippet', 0, snippet.toString())
 
-    const cocPlaceholders = placeholders.map((p, idx) => {
+    this._placeholders = placeholders.map((p, idx) => {
       const offset = snippet.offset(p)
       const position = document.positionAt(offset)
       const start: Position = {
@@ -168,52 +257,10 @@ export class CocSnippet {
       }
       return res
     })
-    // sort by index
-    cocPlaceholders.sort((a, b) => {
-      if (a.isFinalTabstop) return 1
-      if (b.isFinalTabstop) return -1
-      return a.index - b.index
-    })
-    return cocPlaceholders
   }
 
-  public toString(): string {
-    return this.tmSnippet.toString()
-  }
-
-  private _setPlaceholderValue(id: number, val: string): void {
-    const snip = this._parser.parse(val, false, false)
-    const rep = this.tmSnippet.placeholders[id]
-    const placeholder = new Snippets.Placeholder(rep.index)
-    placeholder.appendChild(snip)
-    this.tmSnippet.replace(rep, [placeholder])
-  }
-
-  public getParent(): CocSnippet | null {
-    return this._parentSnippet
-  }
-
-  public connect(placeholder: CocSnippetPlaceholder): void {
-    if (!this.singLine) return
-    this._parentSnippet = placeholder.snippet
-    this._parentPlaceholderId = placeholder.id
-    this._parentSnippet.setChildSnippet(placeholder.id, this)
-  }
-
-  public disconnect(): void {
-    if (!this._parentSnippet) return
-    let snippet = this._parentSnippet
-    snippet.setChildSnippet(this._parentPlaceholderId, null)
-    this._parentSnippet = null
-  }
-
-  public get range(): Range {
-    let finalPlaceholder = this.finalPlaceholder
-    return Range.create(this.position, finalPlaceholder.range.end)
-  }
-
-  public get parentPlaceholder(): CocSnippetPlaceholder | null {
-    if (!this._parentSnippet) return null
-    return this._parentSnippet.getPlaceholderById(this._parentPlaceholderId)
+  private setPlaceholderValue(id: number, val: string): void {
+    this.tmSnippet.updatePlaceholder(id, val)
+    this.update()
   }
 }

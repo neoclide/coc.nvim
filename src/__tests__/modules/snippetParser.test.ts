@@ -610,6 +610,25 @@ describe('SnippetParser', () => {
     assert.equal(snippet.placeholders.length, 3)
   })
 
+  test('TextmateSnippet#insertSnippet', function() {
+    let snippet = new SnippetParser().parse('${1:aaa} ${1:aaa} bbb ${2:ccc}}$0', true)
+    snippet.insertSnippet('|${1:dd} ${2:ff}|', 1, 0, false)
+    const [one, two, three] = snippet.placeholders
+    assert.equal(one.index, 1)
+    assert.equal(one.toString(), 'aaa')
+    assert.equal(two.index, 2)
+    assert.equal(two.toString(), 'dd')
+    assert.equal(three.index, 3)
+    assert.equal(three.toString(), 'ff')
+  })
+
+  test('TextmateSnippet#updatePlaceholder', function() {
+    let snippet = new SnippetParser().parse('aaa${1:bbb} ${1:bbb}', true)
+    snippet.updatePlaceholder(0, 'ccc')
+    let p = snippet.placeholders[0]
+    assert.equal(p.toString(), 'ccc')
+  })
+
   test('Snippet order for placeholders, #28185', function() {
 
     const _10 = new Placeholder(10)

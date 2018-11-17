@@ -429,7 +429,6 @@ class Languages {
             // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
           }
         }
-        resolveInput = null
       },
       onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
         let completeItem = resolveItem(item)
@@ -447,12 +446,12 @@ class Languages {
         let snippet = await this.applyTextEdit(completeItem, option)
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+        // vim is slow on synchronize
+        if (workspace.isVim) await wait(100)
         if (snippet) await snippetManager.insertSnippet(snippet)
         let { command } = completeItem
         if (command) commands.execute(command)
-        option = null
         completeItems = []
-        resolveInput = null
       },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         option = opt
@@ -482,13 +481,12 @@ class Languages {
         completeItems = Array.isArray(result) ? result : result.items
         let items: VimCompleteItem[] = completeItems.map(o => {
           let item = complete.convertVimCompleteItem(o, shortcut)
-          if (endColnr != option.colnr) item.isSnippet = true
+          if (endColnr != opt.colnr) item.isSnippet = true
           return item
         })
         let res = { isIncomplete: !!(result as CompletionList).isIncomplete, items }
         if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
           (res as any).startcol = (result as any).startcol
-          option.col = (result as any).startcol
         }
         return res
       },
@@ -522,6 +520,10 @@ class Languages {
     if (isSnippet) {
       await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])
       await nvim.call('cursor', [linenr, byteLength(start) + 1])
+      if (workspace.isVim) {
+        let doc = workspace.getDocument(bufnr)
+        await doc.patchChange()
+      }
       return newText
     }
     let newLines = `${start}${newText}${end}`.split('\n')

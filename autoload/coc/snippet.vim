@@ -1,28 +1,34 @@
 let s:is_vim = !has('nvim')
-" bufnr => 1 | 0
-let s:buffers = {}
 
 " make a range to select mode
 function! coc#snippet#range_select(lnum, col, len) abort
   let m = mode()
-  if a:len > 0 && m ==# 'i'
-    stopinsert
+  if s:is_vim
+    if a:len > 0 && m =~# 'i'
+      stopinsert
+    elseif a:len == 0 && m !~# 'i'
+      startinsert
+    endif
+  else
+    if m !~# '^n'
+      call feedkeys("\<esc>", 'in')
+    endif
   endif
   call timer_start(20, { -> s:start_select(a:lnum, a:col, a:len)})
 endfunction
 
 function! s:start_select(lnum, col, len)
-  let virtualedit = &virtualedit
-  let &virtualedit = 'onemore'
   call cursor(a:lnum, a:col)
   if a:len > 0
     let m = a:len == 1 ? '' : (a:len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
+  elseif mode() !=# 'i'
+    if strlen(getline('.')) + 1 == a:col
+      call feedkeys("a", 'int')
+    else
+      call feedkeys("i", 'int')
+    endif
   endif
-  if a:len == 0 && mode() !=# 'i'
-    call feedkeys('i', 'in')
-  endif
-  let &virtualedit = virtualedit
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort
@@ -37,7 +43,7 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
 endfunction
 
 function! coc#snippet#enable()
-  let s:buffers[bufnr('%')] = 1
+  let b:coc_snippet_active = 1
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   nnoremap <buffer> <esc> :call CocActionAsync('snippetCancel')<cr>
@@ -48,11 +54,10 @@ function! coc#snippet#enable()
 endfunction
 
 function! coc#snippet#disable()
-  let nr = bufnr('%')
-  if get(s:buffers, nr, 0) == 0
+  if get(b:, 'coc_snippet_active', 0) == 0
     return
   endif
-  let s:buffers[nr] = 0
+  let b:coc_snippet_active = 0
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   silent! nunmap <buffer> <esc>

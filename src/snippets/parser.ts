@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from './charCode'
+const logger = require('../util/logger')('snippets-parser')
 
 export const enum TokenType {
   Dollar,
@@ -187,6 +188,13 @@ export abstract class Marker {
 
   public len(): number {
     return 0
+  }
+
+  public get next(): Marker | null {
+    let { parent } = this
+    let { children } = parent
+    let idx = children.indexOf(this)
+    return children[idx + 1]
   }
 
   public abstract clone(): Marker
@@ -508,6 +516,56 @@ export class TextmateSnippet extends Marker {
     return all
   }
 
+  public get maxIndexNumber(): number {
+    let { placeholders } = this
+    return placeholders.reduce((curr, p) => {
+      return Math.max(curr, p.index)
+    }, 0)
+  }
+
+  public get minIndexNumber(): number {
+    let { placeholders } = this
+    let nums = placeholders.map(p => p.index)
+    nums.sort((a, b) => a - b)
+    if (nums.length > 1 && nums[0] == 0) return nums[1]
+    return nums[0] || 0
+  }
+
+  public insertSnippet(snippet: string, id: number, offset: number, insertFinal: boolean): number {
+    let placeholder = this.placeholders[id]
+    if (!placeholder) return
+    let { index } = placeholder
+    let str = placeholder.toString()
+    if (!insertFinal) snippet = snippet.replace(/\$0$/, '')
+    snippet = `${str.slice(0, offset)}${snippet}${offset == str.length ? '' : str.slice(offset - str.length)}`
+    let nested = new SnippetParser().parse(snippet, insertFinal)
+    let maxIndexAdded = nested.maxIndexNumber
+    let totalAdd = maxIndexAdded + (insertFinal ? 1 : 0) - 1
+    for (let p of nested.placeholders) {
+      if (p.isFinalTabstop) {
+        p.index = maxIndexAdded + index + 1
+      } else {
+        p.index = p.index + index
+      }
+    }
+    this.walk(m => {
+      if (m instanceof Placeholder && m.index > index) {
+        m.index = m.index + totalAdd + 1
+      }
+      return true
+    })
+    this.replace(placeholder, nested.children)
+    return index + 1
+  }
+
+  public updatePlaceholder(id: number, val: string): void {
+    const rep = this.placeholders[id]
+    const placeholder = new Placeholder(rep.index)
+    const text = new Text(val)
+    placeholder.appendChild(text)
+    this.replace(rep, [placeholder])
+  }
+
   public offset(marker: Marker): number {
     let pos = 0
     let found = false
@@ -597,7 +655,7 @@ export class SnippetParser {
     return this.parse(value).toString()
   }
 
-  public parse(value: string, insertFinalTabstop?: boolean, enforceFinalTabstop?: boolean): TextmateSnippet {
+  public parse(value: string, insertFinalTabstop?: boolean): TextmateSnippet {
 
     this._scanner.text(value)
     this._token = this._scanner.next()
@@ -636,11 +694,9 @@ export class SnippetParser {
       }
     }
 
-    if (!enforceFinalTabstop) {
-      enforceFinalTabstop = placeholderCount > 0 && insertFinalTabstop
-    }
+    insertFinalTabstop = placeholderCount > 0 && insertFinalTabstop
 
-    if (!placeholderDefaultValues.has(0) && enforceFinalTabstop) {
+    if (!placeholderDefaultValues.has(0) && insertFinalTabstop) {
       // the snippet uses placeholders but has no
       // final tabstop defined -> insert at the end
       snippet.appendChild(new Placeholder(0))

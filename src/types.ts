@@ -85,7 +85,6 @@ export interface SnippetProvider {
 }
 
 export interface SnippetManager {
-  isSnippetActive: boolean
   insertSnippet(snippet: string): Promise<void>
   cancel(): void
   nextPlaceholder(): Promise<void>
@@ -198,6 +197,7 @@ export interface DiagnosticItem {
   col: number
   message: string
   severity: string
+  level: number
 }
 
 // Config property of source
@@ -781,6 +781,7 @@ export interface IWorkspace {
   readFile(uri: string): Promise<string>
   echoLines(lines: string[], truncate?: boolean): Promise<void>
   getCurrentState(): Promise<EditerState>
+  getCursorPosition(): Promise<Position>
   jumpTo(uri: string, position: Position): Promise<void>
   createFile(filepath: string, opts?: CreateFileOptions): Promise<void>
   renameFile(oldPath: string, newPath: string, opts?: RenameFileOptions): Promise<void>

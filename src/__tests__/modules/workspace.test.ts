@@ -558,21 +558,6 @@ describe('workspace events', () => {
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
-  it('should fire onWillSaveTextDocument & onDidSaveTextDocument', async () => {
-    let fn1 = jest.fn()
-    let fn2 = jest.fn()
-    let filepath = await createTmpFile('bar')
-    await helper.edit(filepath)
-    await helper.wait(100)
-    workspace.onWillSaveTextDocument(fn1, null, disposables)
-    workspace.onDidSaveTextDocument(fn2, null, disposables)
-    await nvim.setLine('foo')
-    await nvim.command('w')
-    await helper.wait(100)
-    expect(fn1).toHaveBeenCalledTimes(1)
-    expect(fn2).toHaveBeenCalledTimes(1)
-  })
-
   it('should fire onDidChangeConfiguration', async () => {
     await helper.createDocument('onDidChangeConfiguration')
     let fn = jest.fn()

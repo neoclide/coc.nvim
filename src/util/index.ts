@@ -2,7 +2,6 @@ import { attach, Neovim } from '@chemzqm/neovim'
 import cp, { exec } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
-import net from 'net'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
@@ -50,28 +49,6 @@ export function wait(ms: number): Promise<any> {
 
 function echoMsg(nvim: Neovim, msg: string, hl: string): void {
   nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
-}
-
-function getValidPort(port: number, cb: (port: number) => void): void {
-  let server = net.createServer()
-  server.listen(port, () => {
-    server.once('close', () => {
-      cb(port)
-    })
-    server.close()
-  })
-  server.on('error', () => {
-    port += 1
-    getValidPort(port, cb)
-  })
-}
-
-export function getPort(port = 44877): Promise<number> {
-  return new Promise(resolve => {
-    getValidPort(port, result => {
-      resolve(result)
-    })
-  })
 }
 
 export function getUri(bufname: string, id: number, buftype: string): string {

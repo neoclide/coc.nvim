@@ -367,7 +367,7 @@ export default class Document {
    * @returns {Range}
    */
   public getWordRangeAtPosition(position: Position, extraChars?: string, current = false): Range | null {
-    let chars = new Chars('@,48-57')
+    let chars = new Chars('@,48-57,_')
     if (extraChars && extraChars.length) {
       for (let ch of extraChars) {
         chars.addKeyword(ch)

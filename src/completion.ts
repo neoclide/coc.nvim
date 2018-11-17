@@ -332,14 +332,11 @@ export class Completion implements Disposable {
     try {
       increment.stop()
       this.addRecent(item.word, document.bufnr)
-      await wait(20)
+      await wait(30)
       let mode = await nvim.call('mode')
-      if (mode !== 'i') {
-        await document.patchChange()
-        document.forceSync()
-        return
-      }
-      if (changedtick != document.changedtick) return
+      await document.patchChange()
+      document.forceSync()
+      if (mode !== 'i' || changedtick != document.changedtick) return
       let handled = await sources.doCompleteDone(item)
       if (!handled) {
         let user_data = JSON.parse(item.user_data)

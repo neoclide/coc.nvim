@@ -5,11 +5,25 @@
  */
 
 import * as path from "path"
+import workspace from '../workspace'
 
 import { Variable, VariableResolver } from "./parser"
+import { Neovim } from '@chemzqm/neovim'
 
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
+
+  private get nvim(): Neovim {
+    return workspace.nvim
+  }
+
+  private async init(): Promise<void> {
+    let { nvim } = this
+    let line = await nvim.call('getline', '.')
+    this._variableToValue['TM_CURRENT_LINE'] = line
+    let cword = await this.nvim.call('expand', '<cword>')
+    this._variableToValue['TM_CURRENT_WORD'] = cword
+  }
 
   constructor(line: number, filePath: string) {
     const currentDate = new Date()
@@ -29,11 +43,7 @@ export class SnippetVariableResolver implements VariableResolver {
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
       CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
-      // SELECTION: "",
-      // CLIPBOARD: "",
       // TM_SELECTED_TEXT: "",
-      // TM_CURRENT_LINE: "",
-      // TM_CURRENT_WORD: "",
       TM_LINE_INDEX: line.toString(),
       TM_LINE_NUMBER: (line + 1).toString(),
       TM_FILENAME: path.basename(filePath),
@@ -41,6 +51,7 @@ export class SnippetVariableResolver implements VariableResolver {
       TM_DIRECTORY: path.dirname(filePath),
       TM_FILEPATH: filePath,
     }
+    this.init() // tslint:disable-line
   }
 
   public resolve(variable: Variable): string {
