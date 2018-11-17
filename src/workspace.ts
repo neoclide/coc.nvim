@@ -1034,9 +1034,9 @@ augroup end`
   private async onBufUnload(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (doc) {
+      this._onDidCloseDocument.fire(doc.textDocument)
       this.buffers.delete(bufnr)
       await doc.detach()
-      this._onDidCloseDocument.fire(doc.textDocument)
     }
     logger.debug('buffer unload', bufnr)
   }
