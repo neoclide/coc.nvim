@@ -1,26 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import os from 'os'
 import path from 'path'
-import pify from 'pify'
 import { Disposable } from 'vscode-languageserver-protocol'
 import { Location, Position, Range, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import URI from 'vscode-uri'
 import { ConfigurationTarget, IWorkspace } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile } from '../../util/fs'
-import helper from '../helper'
-import uuid = require('uuid/v4')
-
-async function createTmpFile(content: string): Promise<string> {
-  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
-  if (!fs.existsSync(tmpFolder)) {
-    fs.mkdirSync(tmpFolder)
-  }
-  let filename = path.join(tmpFolder, uuid())
-  await pify(fs.writeFile)(filename, content, 'utf8')
-  return filename
-}
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let workspace: IWorkspace
@@ -561,7 +548,8 @@ describe('workspace events', () => {
   it('should fire onDidChangeConfiguration', async () => {
     await helper.createDocument('onDidChangeConfiguration')
     let fn = jest.fn()
-    workspace.onDidChangeConfiguration(e => {
+    let disposable = workspace.onDidChangeConfiguration(e => {
+      disposable.dispose()
       expect(e.affectsConfiguration('tsserver')).toBe(true)
       expect(e.affectsConfiguration('tslint')).toBe(false)
       fn()

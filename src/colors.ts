@@ -7,6 +7,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { equals } from './util/object'
 import { disposeAll, wait } from './util'
 import services from './services'
+
 const logger = require('./util/logger')('colors')
 
 export interface ColorRanges {
@@ -15,7 +16,7 @@ export interface ColorRanges {
 }
 
 export default class Colors {
-  private enabled: boolean
+  private _enabled: boolean
   private colors: Set<string> = new Set()
   private insertMode = false
   private disposables: Disposable[] = []
@@ -24,14 +25,14 @@ export default class Colors {
 
   constructor(private nvim: Neovim) {
     let config = workspace.getConfiguration('coc.preferences')
-    this.enabled = config.get<boolean>('colorSupport', true)
+    this._enabled = config.get<boolean>('colorSupport', true)
     events.on('InsertEnter', () => {
       this.insertMode = true
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
       this.insertMode = false
-      if (!this.enabled) return
+      if (!this._enabled) return
       let doc = await workspace.document
       await this.highlightColors(doc)
     }, null, this.disposables)
@@ -62,18 +63,21 @@ export default class Colors {
       if (doc) await this.highlightColors(doc)
     }, null, this.disposables)
 
+    let timer: NodeJS.Timer
     workspace.onDidChangeTextDocument(async e => {
-      await wait(100)
-      let doc = workspace.getDocument(e.textDocument.uri)
-      if (!doc || this.insertMode) return
-      await this.highlightColors(doc)
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(async () => {
+        let doc = workspace.getDocument(e.textDocument.uri)
+        if (!doc || this.insertMode) return
+        await this.highlightColors(doc)
+      }, 100)
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {
       if (e.affectsConfiguration('coc.preferences.colorSupport')) {
         let config = workspace.getConfiguration('coc.preferences')
-        this.enabled = config.get<boolean>('colorSupport', true)
-        if (this.enabled) {
+        this._enabled = config.get<boolean>('colorSupport', true)
+        if (this._enabled) {
           workspace.documents.forEach(async document => {
             await this.highlightColors(document)
           })
@@ -86,9 +90,9 @@ export default class Colors {
     })
   }
 
-  private async highlightColors(document: Document): Promise<void> {
+  public async highlightColors(document: Document): Promise<void> {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
-    if (!this.enabled) return
+    if (!this._enabled) return
     try {
       let colors: ColorInformation[] = await languages.provideDocumentColors(document.textDocument)
       let old = this.colorInfomation.get(document.bufnr)
@@ -123,7 +127,7 @@ export default class Colors {
     await this.nvim.command(`hi BG${hex} guibg=#${hex} guifg=#${this.isDark(color) ? 'ffffff' : '000000'}`)
   }
 
-  private async clearHighlight(bufnr: number): Promise<void> {
+  public async clearHighlight(bufnr: number): Promise<void> {
     this.colorInfomation.delete(bufnr)
     let ids = this.matchIds.get(bufnr)
     if (!ids || ids.length == 0) return
@@ -176,11 +180,9 @@ export default class Colors {
     return res
   }
 
-  private toHexString(color: Color): string {
-    let red = Math.round(color.red * 255).toString(16)
-    let green = Math.round(color.green * 255).toString(16)
-    let blue = Math.round(color.blue * 255).toString(16)
-    return `${pad(red)}${pad(green)}${pad(blue)}`
+  public toHexString(color: Color): string {
+    let c = toHexColor(color)
+    return `${pad(c.red.toString(16))}${pad(c.green.toString(16))}${pad(c.blue.toString(16))}`
   }
 
   private async currentColorInfomation(): Promise<ColorInformation | null> {
@@ -245,6 +247,10 @@ export default class Colors {
 
   public dispose(): void {
     disposeAll(this.disposables)
+  }
+
+  public get enabled(): boolean {
+    return this._enabled
   }
 }
 

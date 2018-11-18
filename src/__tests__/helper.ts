@@ -1,4 +1,8 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
+import os from 'os'
+import pify from 'pify'
+import uuid = require('uuid/v4')
 import * as cp from 'child_process'
 import Emitter from 'events'
 import path from 'path'
@@ -19,6 +23,11 @@ export class Helper extends Emitter {
   public proc: cp.ChildProcess
   public plugin: Plugin
 
+  constructor() {
+    super()
+    this.setMaxListeners(99)
+  }
+
   public setup(uiAttach = true): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
@@ -36,13 +45,9 @@ export class Helper extends Emitter {
     })
     this.nvim.on('notification', (method, args) => {
       if (method == 'redraw') {
-        try {
-          let event = args[0][0]
-          if (event) {
-            this.emit(event, args[0])
-          }
-        } catch (e) {
-          console.error(e.message) // tslint:disable-line
+        for (let arg of args) {
+          let event = arg[0]
+          this.emit(event, arg.slice(1))
         }
       }
     })
@@ -197,5 +202,36 @@ export class Helper extends Emitter {
     }
     return str.trim()
   }
+
+  public updateDefaults(key: string, value: any): void {
+    let workspace = this.workspace as any
+    workspace._configurations.updateDefaults(key, value)
+    workspace._onDidChangeConfiguration.fire({
+      affectsConfiguration: (): boolean => {
+        return true
+      }
+    })
+  }
+
+  public async mockFunction(name: string, result: string | number | any): Promise<void> {
+    let content = `
+    function! ${name}(...)
+      return ${JSON.stringify(result)}
+    endfunction
+    `
+    let file = await createTmpFile(content)
+    await this.nvim.command(`source ${file}`)
+  }
 }
+
+export async function createTmpFile(content: string): Promise<string> {
+  let tmpFolder = path.join(os.tmpdir(), `coc-${process.pid}`)
+  if (!fs.existsSync(tmpFolder)) {
+    fs.mkdirSync(tmpFolder)
+  }
+  let filename = path.join(tmpFolder, uuid())
+  await pify(fs.writeFile)(filename, content, 'utf8')
+  return filename
+}
+
 export default new Helper()
