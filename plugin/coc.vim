@@ -178,7 +178,7 @@ endfunction
 function! s:OnVimEnter()
   " it's possible that client is not ready
   call coc#rpc#notify('VimEnter', [])
-  if s:is_vim && empty(nvim#rpc#get_script())
+  if s:is_vim && !executable('vim-node-rpc')
     call coc#util#install_node_rpc()
   endif
 endfunction

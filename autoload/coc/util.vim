@@ -591,7 +591,7 @@ endfunction
 
 function! s:coc_installed(status, ...)
   if a:status != 0 | return | endif
-  if s:is_vim
+  if s:is_vim && !executable('vim-node-rpc')
     call coc#util#install_node_rpc()
   else
     call coc#rpc#restart()
