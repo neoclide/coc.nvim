@@ -118,7 +118,7 @@ export class SnippetSession {
     // change outside range
     let adjusted = snippet.adjustTextEdit(edit)
     if (adjusted) return
-    if (comparePosition(edit.range.start, snippet.range.end) >= 0) {
+    if (comparePosition(edit.range.start, snippet.range.end) > 0) {
       if (!edit.newText) return
       logger.info('Content add after snippet, cancelling snippet session')
       this.deactivate()
