@@ -302,7 +302,9 @@ export class Completion implements Disposable {
       }
       let search = await this.getResumeInput()
       if (search == input || !increment.isActivted) return
-      if (search == null || search.length < this.option.input.length) {
+      if (search == null
+        || search.endsWith(' ')
+        || search.length < this.option.input.length) {
         increment.stop()
         return
       }
