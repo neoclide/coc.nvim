@@ -382,7 +382,7 @@ CocRequest({id}, {type}, [{params}])
 	vim error would raise when request response with error.
 
 						*CocRequestAsync()*
-CocRequest({id}, {type}, [{params}, {callback}])
+CocRequestAsync({id}, {type}, [{params}, {callback}])
 
 	Async request for remote language client. {callback} is called with
 	error and response.
@@ -598,7 +598,7 @@ health#coc#check()
 
 						*nvim#rpc#open_log*
 
-nvim#rpc#open_log
+nvim#rpc#open_log()
 
 	Open log of channel, vim only. Set |g:coc_node_rpc_debug| to 1 to
 	enable log.
@@ -639,7 +639,7 @@ COMMANDS 					*coc-commands*
 		https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions
 		for available extensions.
 
-:CocInstall {name} 				*:CocUnInstall*
+:CocUninstall {name} 				*:CocUnInstall*
 
 		Uninstall an extension, use <tab> to complete extension name.
 
