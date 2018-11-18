@@ -220,6 +220,7 @@ export default class Complete {
   private getBonusScore(item: VimCompleteItem): number {
     let { abbr, kind, info } = item
     let score = 0
+    score += item.priority ? item.priority * 10 : 0
     score += kind ? 1 : 0
     score += abbr ? 1 : 0
     score += info ? 1 : 0
