@@ -410,7 +410,7 @@ export class Extensions {
         } catch (e) {
           isActive = false
           logger.error(e)
-          workspace.showMessage(`Error on active extension ${id}: `, e.message)
+          workspace.showMessage(`Error on active extension ${id}: ${e.message}`, 'error')
         }
         return exports as API
       }
