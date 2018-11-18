@@ -30,6 +30,12 @@ function! s:CommandList(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:ExtensionList(...) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  let list = map(CocAction('extensionStats'), 'v:val["id"]')
+  return join(list, "\n")
+endfunction
+
 function! CocRequest(...) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
   return coc#rpc#request('sendRequest', a:000)
@@ -199,10 +205,11 @@ augroup coc_init
   endif
 augroup end
 
-command! -nargs=0 CocRestart  :call coc#rpc#restart()
-command! -nargs=+ CocInstall  :call coc#util#install_extension(<q-args>)
-command! -nargs=0 CocUpdate   :call coc#util#update()
-command! -nargs=0 CocRebuild  :call coc#util#rebuild()
+command! -nargs=0 CocRestart   :call coc#rpc#restart()
+command! -nargs=+ CocInstall   :call coc#util#install_extension(<q-args>)
+command! -nargs=0 CocUpdate    :call coc#util#update()
+command! -nargs=0 CocRebuild   :call coc#util#rebuild()
+command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocAction('uninstallExtension', <f-args>)
 
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>

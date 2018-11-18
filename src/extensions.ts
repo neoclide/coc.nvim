@@ -157,12 +157,17 @@ export class Extensions {
 
   public async uninstallExtension(id: string): Promise<void> {
     if (!this.isGlobalExtension(id)) {
-      workspace.showMessage(`${id} not global extension, uninstall not supported.`, 'error')
+      workspace.showMessage(`Global extension '${id}' not found.`, 'error')
       return
     }
     this.deactivate(id)
     await wait(200)
-    await workspace.runCommand(`yarn remove ${id}`, this.root)
+    try {
+      await workspace.runCommand(`yarn remove ${id}`, this.root)
+      workspace.showMessage(`Extension ${id} removed`)
+    } catch (e) {
+      workspace.showMessage(`Uninstall failed: ${e.message}`, 'error')
+    }
   }
 
   public isDisabled(id: string): boolean {

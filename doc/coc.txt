@@ -639,6 +639,10 @@ COMMANDS 					*coc-commands*
 		https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions
 		for available extensions.
 
+:CocInstall {name} 				*:CocUnInstall*
+
+		Uninstall an extension, use <tab> to complete extension name.
+
 :CocUpdate 					*:CocUpdate*
 
 		Update all coc extensions.
