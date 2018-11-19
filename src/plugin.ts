@@ -44,7 +44,7 @@ export default class Plugin extends EventEmitter {
       }
     })
     await nvim.command('doautocmd User CocNvimInit')
-    logger.info('coc initialized')
+    logger.info(`coc initialized with node: ${process.version}`)
     this.emit('ready')
     if (global.hasOwnProperty('__TEST__')) return
     workspace.onDidOpenTextDocument(async doc => {
