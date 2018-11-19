@@ -74,9 +74,15 @@ export class ServiceManager extends EventEmitter implements Disposable {
     if (this.shouldStart(service)) {
       service.start() // tslint:disable-line
     }
-    service.onServiceReady(() => {
-      workspace.showMessage(`service ${id} started`, 'more')
+    const onStarted = (notify = true): void => {
+      if (notify) workspace.showMessage(`service ${id} started`, 'more')
       this.emit('ready', id)
+    }
+    if (service.state == ServiceStat.Running) {
+      onStarted(false)
+    }
+    service.onServiceReady(() => {
+      onStarted(true)
     }, null, this.disposables)
     return Disposable.create(() => {
       service.stop()
