@@ -1,6 +1,9 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
+import os from 'os'
+import path from 'path'
 import commandManager from './commands'
+import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
 import extensions from './extensions'
@@ -10,7 +13,6 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
-import completion from './completion'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -55,6 +57,12 @@ export default class Plugin extends EventEmitter {
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
     return await services.sendRequest(id, method, params)
+  }
+
+  public async openLog(): Promise<void> {
+    let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
+    let escaped = await this.nvim.call('fnameescape', file)
+    await this.nvim.command(`edit ${escaped}`)
   }
 
   public async commandList(): Promise<string[]> {

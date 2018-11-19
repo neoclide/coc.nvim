@@ -24,18 +24,6 @@ function! CocActionAsync(...) abort
   return s:AsyncRequest('CocAction', a:000)
 endfunction
 
-function! s:CommandList(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
-  let list = coc#rpc#request('CommandList', a:000)
-  return join(list, "\n")
-endfunction
-
-function! s:ExtensionList(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
-  let list = map(CocAction('extensionStats'), 'v:val["id"]')
-  return join(list, "\n")
-endfunction
-
 function! CocRequest(...) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
   return coc#rpc#request('sendRequest', a:000)
@@ -56,6 +44,18 @@ function! s:AsyncRequest(name, args) abort
   endif
   call coc#rpc#request_async(a:name, args, Cb)
   return ''
+endfunction
+
+function! s:CommandList(...) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  let list = coc#rpc#request('CommandList', a:000)
+  return join(list, "\n")
+endfunction
+
+function! s:ExtensionList(...) abort
+  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  let list = map(CocAction('extensionStats'), 'v:val["id"]')
+  return join(list, "\n")
 endfunction
 
 function! s:OpenConfig()
@@ -84,20 +84,6 @@ function! s:Disable() abort
     echom '[coc.nvim] Disabled'
   echohl None
   let g:coc_enabled = 0
-endfunction
-
-function! s:CocSourceNames(A, L, P) abort
-  if !s:CheckState() | return | endif
-  let items = CocAction('sourceStat')
-  return filter(map(items, 'v:val["name"]'), 'v:val =~ "^'.a:A.'"')
-endfunction
-
-function! s:CheckState() abort
-  let enabled = get(g:, 'coc_enabled', 0)
-  if !enabled
-    call coc#util#on_error('Service disabled')
-  endif
-  return enabled
 endfunction
 
 function! s:Enable()
@@ -152,6 +138,7 @@ function! s:Enable()
   command! -nargs=0 CocEnable  :call s:Enable()
   command! -nargs=0 CocConfig  :call s:OpenConfig()
   command! -nargs=0 CocErrors  :call coc#rpc#show_error()
+  command! -nargs=0 CocOpenLog :call coc#rpc#request('openLog', [])
   command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction
 
