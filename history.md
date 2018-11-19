@@ -1,3 +1,20 @@
+# 2018-11-19
+
+- **Break change** snippet support reworked: support nest snippets, independent
+  session in each buffer and lots of fixes.
+- **Break change** diagnostic list now sort by severity first.
+- Add commands: `:CocUnInstall` and `:CocOpenLog`
+- Add cterm color for highlights.
+- Add line highlight support for diagnostic.
+- Add `coc.preferences.fixInsertedWord` to make complete item replace current word.
+- Fix check confirm not works on vim sometimes.
+- Fix check of `vim-node-rpc`.
+- Fix preselect complete item not first sometimes.
+- Improve completion sort result by consider more abort priority and recent
+  selected.
+- Improve colors module, only highlight current buffer and when buffer changed.
+- Improve `doc/coc.txt`
+
 # 2018-11-13
 
 - **Break change** default completion timeout changed to 2s.
@@ -412,7 +429,7 @@
 # 2018-08-04
 
 - Fix order of document symbols.
-- Fix completion snippet with $variable.
+- Fix completion snippet with `$variable`.
 - Add feature: expand snippet on confirm.
 - Add feature: `<Plug>(coc-complete-custom)` for complete custom sources.
 
@@ -555,7 +572,7 @@
 - **Break change:** `diagnostic` in setting.json changed to `diagnostic`.
 - Fix clearHighlight arguments.
 - Add eslint extension https://github.com/Microsoft/vscode-eslint.
-- Fix snippet break with line have $variable.
+- Fix snippet break with line have \$variable.
 - Use jsonc-parser replace json5.
 - Add `data/schema.json` for coc-settings.json.
 
