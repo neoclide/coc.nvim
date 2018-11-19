@@ -163,7 +163,7 @@ export class SnippetSession {
   public async checkPosition(): Promise<void> {
     if (!this.isActive) return
     let position = await workspace.getCursorPosition()
-    if (positionInRange(position, this.snippet.range) != 0) {
+    if (this.snippet && positionInRange(position, this.snippet.range) != 0) {
       logger.info('Cursor insert out of range, cancelling snippet session')
       this.deactivate()
     }
