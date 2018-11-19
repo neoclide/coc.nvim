@@ -271,6 +271,11 @@
       "description": "Enable color highlight if language server support it.",
       "default": true
     },
+    "coc.preferences.maxColorCount": {
+      "type": "number",
+      "default": 1000,
+      "description": "Maxmium number of color range to highlight vim, default 1000"
+    },
     "coc.preferences.triggerAfterInsertEnter": {
       "type": "boolean",
       "description": "Trigger completion after InsertEnter, auto trigger should be always to enable this option",
