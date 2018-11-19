@@ -38,7 +38,8 @@ Changelog					|coc-changelog|
 ==============================================================================
 INTRODUCTION					*coc-introduction*
 
-Coc tries to make best experience of LSP features, especially for completion.
+Coc.nvim tries to provide best experience of LSP features, especially for
+completion.
 
 It works with extensions featured as extensions of VSCode, and
 you can configure coc to work with custom language server as well.
@@ -107,13 +108,15 @@ To make completion triggered with two input characters, use: >
 <
 To enable commit characters feature, use: >
 
-	"coc.preferences.acceptSuggestionOnCommitCharacter": 2
+	"coc.preferences.acceptSuggestionOnCommitCharacter": true
 <
 To change the indicator of snippet item, use: >
 
 	"coc.preferences.snippetIndicator": "⭐︎"
 
-Coc also provide vim interface to make it easier to work with vim.
+------------------------------------------------------------------------------
+
+Configure your vim to improve completion experience:
 
 Setup kepmap for trigger completion, use: >
 
@@ -123,7 +126,7 @@ Use `<cr>` for confirm completion, use: >
 
 	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
 <
-Note: snippet and `additionalTextEdit` only work after completion is
+Note: `snippet` and `additionalTextEdit` feature only work after completion is
 confirmed.
 
 Use <C-x><C-u> to complete custom sources, including  `emoji` and
@@ -142,8 +145,8 @@ for more tips.
 ==============================================================================
 LANGUAGESERVER					*coc-languageserver*
 
-Coc have support for almost every language server features except
-workspaceFolder related and telemetry , checkout
+Coc have support for every language server features in the LSP specification,
+checkout
 
 https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features
 
@@ -153,6 +156,9 @@ for a complete list.
 INTERFACE					*coc-interface*
 
 ------------------------------------------------------------------------------
+
+Coc doesn't comes with any default keymap, you need to configure yourself.
+
 Keymapings 					*coc-keymapings*
 
 Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
@@ -241,38 +247,11 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
-g:coc_node_path 				*g:coc_node_path*
-
-			Path to node executable to start coc service. ex: >
-
-			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
-<
-
 g:coc_auto_copen  				*g:coc_auto_copen*
 
 			Open quickfix window after quickfix changed by coc.
 
 			Default: 1
-
-g:coc_force_debug  				*g:coc_force_debug*
-
-			Coc would use precompiled binary when the binary file
-			exists, set this to 1 to use compiled code instead of
-			prebuild binary.
-
-			Default: 0
-
-g:coc_filetype_map 				*g:coc_filetype_map*
-
-			Map for document filetype so server could handle it as
-			expected, ex: >
-			
-			let g:coc_filetype_map = {
-				\ 'html.swig': 'html',
-				\ 'wxss': 'css',
-				\ }
-<
-			Default: {}
 
 g:rooter_patterns 				*g:rooter_patterns*
 
@@ -297,6 +276,18 @@ g:coc_snippet_prev                            	*g:coc_snippet_prev*
 
 			Default: <C-k>
 
+g:coc_filetype_map 				*g:coc_filetype_map*
+
+			Map for document filetype so server could handle it as
+			expected, ex: >
+			
+			let g:coc_filetype_map = {
+				\ 'html.swig': 'html',
+				\ 'wxss': 'css',
+				\ }
+<
+			Default: {}
+
 g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 
 			Add key mappings for make snippet select mode easier.  >
@@ -308,20 +299,35 @@ g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 <
 			Default: 1
 
-g:coc_codelen_jump_key 				*g:coc_codelen_jump_key*
+g:coc_node_path 				*g:coc_node_path*
 
-			Jump key for jump to original position in codeLens
-			buffer.
+			Path to node executable to start coc service. ex: >
 
-			Default: <CR>
+			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
+<
+			Use this when coc have problem with your system node,
+			it doen't take effect if coc service started by binary
+			build of coc.
 
-g:coc_codelen_action_key 			*g:coc_codelen_action_key*
+g:coc_force_debug  				*g:coc_force_debug*
 
-			Do command of codeLens in codeLens buffer, a prompt
-			would be shown if multiple codeLens found at the
-			same line.
+			Coc would use precompiled binary when the binary file
+			exists, set this to 1 to use compiled code instead of
+			prebuild binary.
 
-			Default: <d>
+			Default: 0
+
+g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
+
+			If truthy, log channel communication by using
+			|ch_logfile|. Vim only.
+
+			Default: 0
+
+------------------------------------------------------------------------------
+
+Some variables are provided by coc.nvim so your can use them in your
+statusline. See |coc-status| for detail.
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 
@@ -331,13 +337,6 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 			`{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
 
 			can be used for customize statusline. See |coc-status|.
-
-g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
-
-			If truthy, log channel communication by using
-			|ch_logfile|. Vim only.
-
-			Default: 0
 
 g:coc_status 					*g:coc_status*
 
@@ -583,18 +582,19 @@ coc#refresh()
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
-
 						*coc#status()*
 coc#status()
 
 	Return status string for used in status line, the status
 	including diagnostic infomation from `b:coc_diagnostic_info`
-	and extension contributed status from `g:coc_status`
+	and extension contributed status from `g:coc_status`,
+	for statusline integration, see |coc-status|
 
 						*health#coc#check()*
 health#coc#check()
 	
-	Run health check, triggered by ':checkhealth' command.
+	Neovim only, run health check, triggered by ':checkhealth'
+	command.
 
 						*nvim#rpc#open_log*
 
@@ -618,26 +618,26 @@ COMMANDS 					*coc-commands*
 
 		Restart coc service.
 
-		Use this command when you find something goes wrong.
+		Use this command when you want coc start all over again.
 
 :CocConfig 					*:CocConfig*
 
-		Edit config file `coc-setting.json`
+		Edit user config file `coc-setting.json`
 
 :CocErrors 					*:CocErrors*
 
-		Show error messages of coc.
+		Show error messages from `stderr` of coc server, use this to
+		get messages when coc unexpected exited.
 
-		Use 'let $NODE_DEBUG=nvim*' to debug communication between
+		Use `let $NODE_DEBUG=nvim*` to debug communication between
 		node-client and neovim.
 
 :CocInstall {names} 				*:CocInstall*
 
 		Install one or more coc extensions.
 
-		Checkout
-		https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions
-		for available extensions.
+		Checkout https://www.npmjs.com/search?q=keywords%3Acoc.nvim for
+		available extensions.
 
 :CocUninstall {name} 				*:CocUnInstall*
 
@@ -645,19 +645,38 @@ COMMANDS 					*coc-commands*
 
 :CocUpdate 					*:CocUpdate*
 
-		Update all coc extensions.
+		Update all coc extensions to latest version.
 
 :CocRebuild 					*:CocRebuild*
 
-		Run `npm rebuild` with coc extensions.
-		Required after upgrade nodejs, when using coc from source
-		code.
+		Run `npm rebuild` for coc extensions.
+
+		May required if coc not started by binary and nodejs get
+		upgraded.
 
 :CocCommand {name} [{args}]			*:CocCommand*
 
-		Command to run `:call CocAction('runCommand', name, ...args)`,
-		completion for command name is supported.
+		Run command contributed by extensions, use `<tab>` for name
+		completion.
 
+:CocOpenLog 					*:CocOpenLog*
+
+		Open log file of coc.nvim, to change log level (default `info`),
+		use environment variable `NVIM_COC_LOG_LEVEL`. ex: >
+		
+		export NVIM_COC_LOG_LEVEL=debug
+<
+		or add: >
+		
+		let $NVIM_COC_LOG_LEVEL='debug'
+<
+		at the beggining of your `.vimrc` (before plugin loaded).
+
+		The log file is cleared after vim started, to get the log file
+		in your terminal, run command: >
+
+		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
+<
 ------------------------------------------------------------------------------
 
 AUTOCMD 					*coc-autocmds*
@@ -686,8 +705,7 @@ AUTOCMD 					*coc-autocmds*
 		Triggered after coc services started.
 
 		If you want trigger action of coc after vim started, this
-		autocmd should be used because coc started in async.
-
+		autocmd should be used because coc always start in async.
 
 ------------------------------------------------------------------------------
 
@@ -794,8 +812,8 @@ vimrc, like: >
 ==============================================================================
 DENITE SUPPORT 					*coc-denite*
 
-Coc provide some sources of |denite.nvim| for better filter & sort experience
-and advance actions.
+Coc provide some |denite.nvim| sources for better list filter & sort experience
+and actions.
 
 ------------------------------------------------------------------------------
 						*coc-denite-extension*
@@ -834,8 +852,7 @@ and advance actions.
 
 	Show all diagnostics of current vim sesion.
 
-	Actions: same as file kind, use `tab` in denite buffer to get the
-	list.
+	Actions: same as file kind.
 
 ------------------------------------------------------------------------------
 :Denite coc-workspace 				*coc-denite-workspace*
@@ -850,8 +867,7 @@ and advance actions.
 
 	Show symbols of current buffer.
 
-	Actions: same as file kind, use `tab` in denite buffer to get the
-	list.
+	Actions: same as file kind.
 
 ------------------------------------------------------------------------------
 						*coc-denite-service*
@@ -859,7 +875,7 @@ and advance actions.
 
 	Manage coc services.
 
-	Actions: 
+	Actions:
 
 	- 'toggle' : default action for start/stop service.
 
@@ -867,23 +883,23 @@ and advance actions.
 						*coc-denite-command*
 :Denite coc-command
 
-	Find and run command of current buffer.
+	Find and run commands contributed by extensions.
 
-	Actions: 
+	Actions:
 
 	- 'run' : default action.
 
 ==============================================================================
 STATUSLINE SUPPORT 				*coc-status*
 
-Show diagnostic info of current buffer in your statusline.
+Diagnostic info and other status info contributed by extensions could be shown
+in statusline of your vim.
 
 ------------------------------------------------------------------------------
 
 						*coc-status-manual*
 
 Create function:
->
 >
 	function! StatusDiagnostic() abort
 	  let info = get(b:, 'coc_diagnostic_info', {})
@@ -895,7 +911,7 @@ Create function:
 	  if get(info, 'warning', 0)
 	    call add(msgs, 'W' . info['warning'])
 	  endif
-	  return join(msgs, ' ')
+	  return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
 	endfunction
 <
 Add `%{StatusDiagnostic()}` to your 'statusline' option.
@@ -966,7 +982,7 @@ Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
 ==============================================================================
 CHANGELOG					*coc-changelog*
 
-Check out https://github.com/neoclide/coc.nvim/blob/master/history.md
+Check out ../history.md
 
 ==============================================================================
 vim:tw=78:nosta:noet:ts=8:sts=0:ft=help:noet:fen:fdm=marker:
