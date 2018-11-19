@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
-import { byteSlice } from '../util/string'
+import { byteSlice, byteLength } from '../util/string'
 import workspace from '../workspace'
+import { TextEdit } from 'vscode-languageserver-types'
 const logger = require('../util/logger')('model-source')
 
 export default abstract class Source implements ISource {
@@ -114,8 +115,18 @@ export default abstract class Source implements ISource {
     // do nothing
   }
 
-  public async onCompleteDone(_item: VimCompleteItem): Promise<void> {
+  public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+    let { nvim } = this
     // do nothing
+    let user_data = JSON.parse(item.user_data)
+    if (user_data.textEdit) {
+      let { line, linenr } = opt
+      let { range, newText } = user_data.textEdit as TextEdit
+      let start = line.substr(0, range.start.character)
+      let end = line.substr(range.end.character)
+      await nvim.call('coc#util#setline', [linenr, `${start}${newText}${end}`])
+      await nvim.call('cursor', [linenr, byteLength(start + newText) + 1])
+    }
   }
 
   public abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>

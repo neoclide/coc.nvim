@@ -31,7 +31,8 @@ export default class VimSource extends Source {
     await this.callOptinalFunc('refresh', [])
   }
 
-  public async onCompleteDone(item: VimCompleteItem): Promise<void> {
+  public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+    await super.onCompleteDone(item, opt)
     if (this.optionalFns.indexOf('on_complete') === -1) return
     this.callOptinalFunc('on_complete', [item]) // tslint:disable-line
   }

@@ -478,7 +478,7 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteDone?(item: VimCompleteItem): Promise<void>
+  onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): Promise<void>
 
   /**
    * Check if this source should work

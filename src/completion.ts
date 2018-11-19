@@ -329,6 +329,7 @@ export class Completion implements Disposable {
     if (!this.isActivted || !document || !isCocItem(item)) return
     item = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     if (!item) return
+    let opt = Object.assign({}, this.option)
     let { line, linenr } = this.option
     let { changedtick } = document
     try {
@@ -339,17 +340,7 @@ export class Completion implements Disposable {
       await document.patchChange()
       document.forceSync()
       if (mode !== 'i' || changedtick != document.changedtick) return
-      let handled = await sources.doCompleteDone(item)
-      if (!handled) {
-        let user_data = JSON.parse(item.user_data)
-        if (user_data.textEdit) {
-          let { range, newText } = user_data.textEdit as TextEdit
-          let start = line.substr(0, range.start.character)
-          let end = line.substr(range.end.character)
-          await nvim.call('coc#util#setline', [linenr, `${start}${newText}${end}`])
-          await nvim.call('cursor', [linenr, byteLength(start + newText) + 1])
-        }
-      }
+      await sources.doCompleteDone(item, opt)
     } catch (e) {
       // tslint:disable-next-line:no-console
       console.error(e.stack)

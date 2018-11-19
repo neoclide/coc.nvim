@@ -430,22 +430,22 @@ class Languages {
           }
         }
       },
-      onCompleteDone: async (item: VimCompleteItem): Promise<void> => {
+      onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
         let completeItem = resolveItem(item)
         if (!completeItem) return
         await this.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
         if (item.isSnippet && !completeItem.textEdit) {
-          let line = option.linenr - 1
+          let line = opt.linenr - 1
           completeItem.textEdit = {
-            range: Range.create(line, option.col, line, endColnr - 1),
+            range: Range.create(line, opt.col, line, endColnr - 1),
             // tslint:disable-next-line: deprecation
             newText: completeItem.insertText || completeItem.label
           }
         }
-        let snippet = await this.applyTextEdit(completeItem, option)
+        let snippet = await this.applyTextEdit(completeItem, opt)
         let { additionalTextEdits } = completeItem
-        await this.applyAdditionaLEdits(additionalTextEdits, option.bufnr)
+        await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
         // vim is slow on synchronize
         if (workspace.isVim) await wait(100)
         if (snippet) await snippetManager.insertSnippet(snippet)
