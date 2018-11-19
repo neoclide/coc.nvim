@@ -648,7 +648,7 @@ function! coc#util#install_extension(names)
   let l:Cb = {status -> s:extension_installed(status, a:names)}
   call coc#util#open_terminal({
         \ 'cwd': dir,
-        \ 'cmd': 'yarn add '.a:names,
+        \ 'cmd': 'yarn add '.a:names.' --no-default-rc',
         \ 'keepfocus': 1,
         \ 'Callback': l:Cb,
         \})
