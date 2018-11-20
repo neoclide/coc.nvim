@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { comparePosition, emptyRange, isSingleLine, rangeInRange } from '../util/position'
+import { comparePosition, isSingleLine } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -33,10 +33,6 @@ export class CocSnippet {
     this.update()
   }
 
-  public get offset(): Position {
-    return this.position
-  }
-
   public adjustPosition(characterCount: number, lineCount: number): void {
     let { line, character } = this.position
     this.position = {
@@ -65,10 +61,6 @@ export class CocSnippet {
     return false
   }
 
-  public contains(range: Range): boolean {
-    return rangeInRange(range, this.range)
-  }
-
   public get isPlainText(): boolean {
     return this._placeholders.every(p => p.isFinalTabstop)
   }
@@ -84,45 +76,12 @@ export class CocSnippet {
     return Range.create(this.position, end)
   }
 
-  // get placeholders for jump, including finalPlaceholder
-  public getJumpPlaceholders(): CocSnippetPlaceholder[] {
-    return this._placeholders.reduce((arr, curr) => {
-      let idx = arr.findIndex(o => o.index == curr.index)
-      if (idx == -1) arr.push(curr)
-      return arr
-    }, [])
-  }
-
-  public get line(): number {
-    return this.position.line
-  }
-
   public get firstPlaceholder(): CocSnippetPlaceholder | null {
     return this.getPlaceholder(this.tmSnippet.minIndexNumber)
   }
 
-  public findNextPlaceholder(position: Position): CocSnippetPlaceholder {
-    let placeholders = this.getJumpPlaceholders()
-    for (let p of placeholders) {
-      if (comparePosition(p.range.start, position) > 0) {
-        return p
-      }
-    }
-    return this.finalPlaceholder
-  }
-
-  public findPrevPlaceholder(position: Position): CocSnippetPlaceholder {
-    let placeholders = this.getJumpPlaceholders()
-    for (let p of placeholders) {
-      if (comparePosition(p.range.end, position) < 0) {
-        return p
-      }
-    }
-    return this.firstPlaceholder
-  }
-
   public get lastPlaceholder(): CocSnippetPlaceholder {
-    return this.getPlaceholder(this.tmSnippet.maxIndexNumber) || this.finalPlaceholder
+    return this.getPlaceholder(this.tmSnippet.maxIndexNumber)
   }
 
   public getPlaceholderById(id: number): CocSnippetPlaceholder {
@@ -135,7 +94,6 @@ export class CocSnippet {
 
   public getPrevPlaceholder(index: number): CocSnippetPlaceholder {
     if (index == 0) return this.lastPlaceholder
-    if (index < 0) return null
     let prev = this.getPlaceholder(index - 1)
     if (!prev) return this.getPrevPlaceholder(index - 1)
     return prev
@@ -153,11 +111,6 @@ export class CocSnippet {
     return this._placeholders.find(o => o.isFinalTabstop)
   }
 
-  public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
-    let placeholders = this._placeholders.filter(o => rangeInRange(range, o.range))
-    return this.selectPlaceholder(placeholders)
-  }
-
   public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, position: Position): number {
     let { start } = placeholder.range
     let offset = position.character - start.character
@@ -169,28 +122,6 @@ export class CocSnippet {
     let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, offset, insertFinal)
     this.update()
     return first
-  }
-
-  // Use inner most and previous if adjacent
-  private selectPlaceholder(placeholders: CocSnippetPlaceholder[]): CocSnippetPlaceholder {
-    if (placeholders.length <= 1) return placeholders[0] || null
-    placeholders.sort((a, b) => {
-      let d = a.range.start.character - b.range.start.character
-      if (d != 0) return d
-      return b.range.end.character - a.range.end.character
-    })
-    let placeholder: CocSnippetPlaceholder
-    // = placeholders[0]
-    for (let p of placeholders) {
-      if (placeholder && rangeInRange(p.range, placeholder.range)) {
-        if (emptyRange(p.range) && equals(p.range.start, placeholder.range.end)) {
-          break
-        }
-        placeholder = p
-      }
-      if (!placeholder) placeholder = p
-    }
-    return placeholder
   }
 
   // update internal positions, no change of buffer
@@ -224,7 +155,7 @@ export class CocSnippet {
     const snippet = this.tmSnippet
     const placeholders = snippet.placeholders
     const { line, character } = this.position
-    const document = TextDocument.create('untitled://1', 'snippet', 0, snippet.toString())
+    const document = TextDocument.create('untitled:/1', 'snippet', 0, snippet.toString())
 
     this._placeholders = placeholders.map((p, idx) => {
       const offset = snippet.offset(p)

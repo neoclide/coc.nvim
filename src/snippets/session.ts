@@ -41,20 +41,21 @@ export class SnippetSession {
       this.nvim.call('coc#snippet#range_select', [end.line + 1, end.character + 1, 0], true)
       return this._isActive
     }
-    let placeholder = this.findPlaceholder(Range.create(position, position))
-    // insert to placeholder
-    if (placeholder && !placeholder.isFinalTabstop) {
-      // don't repeat snippet insert
-      this._changedtick = document.changedtick
-      await document.applyEdits(this.nvim, [edit])
-      let index = this.snippet.insertSnippet(placeholder, inserted, position)
-      let p = this.snippet.getPlaceholder(index)
-      await this.selectPlaceholder(p)
-      return true
-    }
-    // new snippet
     this._changedtick = document.changedtick
     await document.applyEdits(this.nvim, [edit])
+    if (this._isActive) {
+      // insert check
+      let placeholder = this.findPlaceholder(Range.create(position, position))
+      // insert to placeholder
+      if (placeholder && !placeholder.isFinalTabstop) {
+        // don't repeat snippet insert
+        let index = this.snippet.insertSnippet(placeholder, inserted, position)
+        let p = this.snippet.getPlaceholder(index)
+        await this.selectPlaceholder(p)
+        return true
+      }
+    }
+    // new snippet
     this._snippet = snippet
     await this.selectPlaceholder(snippet.firstPlaceholder)
     await wait(100)
@@ -85,28 +86,16 @@ export class SnippetSession {
   public async nextPlaceholder(): Promise<void> {
     if (!this.isActive) return
     await this.documentSynchronize()
-    let position = await workspace.getCursorPosition()
-    let curr = this.findPlaceholder(Range.create(position, position))
-    let next: CocSnippetPlaceholder = null
-    if (curr) {
-      next = this.snippet.getNextPlaceholder(curr.index)
-    } else {
-      next = this.snippet.findNextPlaceholder(position)
-    }
+    let curr = this.placeholder
+    let next = this.snippet.getNextPlaceholder(curr.index)
     await this.selectPlaceholder(next)
   }
 
   public async previousPlaceholder(): Promise<void> {
     if (!this.isActive) return
     await this.documentSynchronize()
-    let position = await workspace.getCursorPosition()
-    let curr = this.findPlaceholder(Range.create(position, position))
-    let prev: CocSnippetPlaceholder = null
-    if (curr) {
-      prev = this.snippet.getPrevPlaceholder(curr.index)
-    } else {
-      prev = this.snippet.findPrevPlaceholder(position)
-    }
+    let curr = this.placeholder
+    let prev = this.snippet.getPrevPlaceholder(curr.index)
     await this.selectPlaceholder(prev)
   }
 
@@ -135,6 +124,7 @@ export class SnippetSession {
       this.deactivate()
       return
     }
+    this._currId = placeholder.id
     let edits = snippet.updatePlaceholder(placeholder, edit)
     if (!edits.length) return
     this._changedtick = this.document.changedtick
@@ -172,10 +162,8 @@ export class SnippetSession {
   public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
     if (!this.snippet) return null
     let { placeholder } = this
-    if (placeholder && rangeInRange(range, placeholder.range)) {
-      return placeholder
-    }
-    return this.snippet.findPlaceholder(range)
+    if (!placeholder || !rangeInRange(range, placeholder.range)) return null
+    return placeholder
   }
 
   public get placeholder(): CocSnippetPlaceholder {

@@ -9,11 +9,11 @@ const logger = require('../util/logger')('snippets-manager')
 export class SnippetManager implements types.SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
-  private _snippetProvider: CompositeSnippetProvider
+  private snippetProvider: CompositeSnippetProvider
   private statusItem: types.StatusBarItem
 
   constructor() {
-    this._snippetProvider = new CompositeSnippetProvider()
+    this.snippetProvider = new CompositeSnippetProvider()
     workspace.onDidWorkspaceInitialized(() => {
       this.statusItem = workspace.createStatusBarItem(0)
       this.statusItem.text = 'SNIP'
@@ -51,34 +51,38 @@ export class SnippetManager implements types.SnippetManager {
     }, null, this.disposables)
   }
 
-  public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
-    return this._snippetProvider.getSnippets(language)
+  public registerSnippetProvider(snippetProvider: types.SnippetProvider): Disposable {
+    return this.snippetProvider.registerProvider(snippetProvider)
   }
 
-  public registerSnippetProvider(snippetProvider: types.SnippetProvider): void {
-    this._snippetProvider.registerProvider(snippetProvider)
+  public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
+    return this.snippetProvider.getSnippets(language)
   }
 
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string): Promise<void> {
+  public async insertSnippet(snippet: string): Promise<boolean> {
     let bufnr = await workspace.nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
+    let disposable: Disposable
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
-      session.onCancel(() => {
+      disposable = session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         if (workspace.bufnr == bufnr) {
           this.statusItem.hide()
         }
-      }, null, this.disposables)
+      })
     }
     let isActive = await session.start(snippet)
     if (isActive) {
       this.sessionMap.set(bufnr, session)
       this.statusItem.show()
+    } else if (disposable) {
+      disposable.dispose()
     }
+    return isActive
   }
 
   public async nextPlaceholder(): Promise<void> {
@@ -102,18 +106,20 @@ export class SnippetManager implements types.SnippetManager {
     this.statusItem.hide()
   }
 
-  public dispose(): void {
-    this.cancel()
-    this.disposables.forEach(d => d.dispose())
-  }
-
-  private get session(): SnippetSession {
+  public get session(): SnippetSession {
     let session = this.getSession(workspace.bufnr)
     return session && session.isActive ? session : null
   }
 
-  private getSession(bufnr: number): SnippetSession {
+  public getSession(bufnr: number): SnippetSession {
     return this.sessionMap.get(bufnr)
+  }
+
+  public dispose(): void {
+    this.cancel()
+    for (let d of this.disposables) {
+      d.dispose()
+    }
   }
 }
 

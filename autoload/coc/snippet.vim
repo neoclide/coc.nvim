@@ -35,10 +35,7 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
   let m = mode()
   call cursor(a:lnum, a:col + a:len)
   if m !=# 'i' | startinsert | endif
-  let g:coc#_context = {
-        \ 'start': a:col - 1,
-        \ 'candidates': map(a:values, '{"word": v:val}')
-        \}
+  call coc#_set_context(a:col - 1, a:values)
   call timer_start(20, { -> coc#_do_complete()})
 endfunction
 

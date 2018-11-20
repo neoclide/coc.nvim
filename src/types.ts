@@ -80,12 +80,11 @@ export interface Snippet {
 }
 
 export interface SnippetProvider {
-  getSnippets(language: string): Promise<Snippet[]>
-  refresh?(): void
+  getSnippets(language: string): Promise<Snippet[]> | Snippet[]
 }
 
 export interface SnippetManager {
-  insertSnippet(snippet: string): Promise<void>
+  insertSnippet(snippet: string): Promise<boolean>
   cancel(): void
   nextPlaceholder(): Promise<void>
   previousPlaceholder(): Promise<void>
