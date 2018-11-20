@@ -23,16 +23,15 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem): string {
+export function getWord(item: CompletionItem, parse: (text: string) => string): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText, textEdit } = item
   let word: string
   if (insertTextFormat == InsertTextFormat.Snippet) {
     let snippet = textEdit ? textEdit.newText : insertText
     if (snippet) {
-      let lines = snippet.split('\n')
-      let line = lines.find(s => s.trim().length > 0)
-      word = line.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1')
+      let lines = parse(snippet.trim()).split('\n')
+      word = lines[0] || label
     } else {
       word = label
     }
@@ -110,7 +109,7 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string, parse: (text: string) => string): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   // tslint:disable-next-line:deprecation
@@ -120,7 +119,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string): 
     item.insertTextFormat = InsertTextFormat.PlainText
   }
   let obj: VimCompleteItem = {
-    word: getWord(item),
+    word: getWord(item, parse),
     abbr: label,
     menu: item.detail ? `${item.detail.replace(/(\n|\t)/g, '').slice(0, 30)} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),

@@ -31,6 +31,7 @@ import workspace from './workspace'
 import { byteLength } from './util/string'
 import { ExtensionSnippetProvider } from './snippets/provider'
 import { mixin } from './util/object'
+import { SnippetParser } from './snippets/parser'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -398,6 +399,7 @@ class Languages {
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let fixInsertedWord = preferences.get<boolean>('fixInsertedWord', true)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    let snipperParser = new SnippetParser()
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       let { word } = item
@@ -480,7 +482,7 @@ class Languages {
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
         let items: VimCompleteItem[] = completeItems.map(o => {
-          let item = complete.convertVimCompleteItem(o, shortcut)
+          let item = complete.convertVimCompleteItem(o, shortcut, text => snipperParser.parse(text).toString())
           if (endColnr != opt.colnr) item.isSnippet = true
           return item
         })
