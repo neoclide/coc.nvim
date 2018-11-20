@@ -1,22 +1,23 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import { Disposable } from 'vscode-languageserver-protocol'
-import { Location, Position, Range, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
+import { Disposable, Emitter } from 'vscode-languageserver-protocol'
+import { Location, Position, Range, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit, CreateFile, DeleteFile, RenameFile } from 'vscode-languageserver-types'
 import URI from 'vscode-uri'
-import { ConfigurationTarget, IWorkspace } from '../../types'
+import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
-import { readFile } from '../../util/fs'
+import { readFile, writeFile } from '../../util/fs'
 import helper, { createTmpFile } from '../helper'
+import { ErrorItem } from '../../model/configurations'
+import workspace from '../../workspace'
+import { TextDocumentContentProvider } from '../../provider'
 
 let nvim: Neovim
-let workspace: IWorkspace
 let disposables: Disposable[] = []
 
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  workspace = helper.workspace
 })
 
 afterAll(async () => {
@@ -48,9 +49,30 @@ describe('workspace properties', () => {
     expect(isNvim).toBe(true)
   })
 
+  it('should find rootPath from workspace folder', async () => {
+    let file = path.resolve(__dirname, '../sample/foo.js')
+    await nvim.command(`edit ${file}`)
+    await helper.wait(100)
+    expect(workspace.rootPath).toBe(path.resolve(file, '../.vim/src'))
+  })
+
   it('should return plugin root', () => {
     let { pluginRoot } = workspace
     expect(pluginRoot).toBe(process.cwd())
+  })
+
+  it('should ready', async () => {
+    (workspace as any)._initialized = false
+    let p = workspace.ready
+      ; (workspace as any)._initialized = true
+      ; (workspace as any)._onDidWorkspaceInitialized.fire(void 0)
+    await p
+  })
+
+  it('should get filetyps', async () => {
+    await helper.edit('foo.js')
+    let filetypes = workspace.filetypes
+    expect(filetypes.has('javascript')).toBe(true)
   })
 })
 
@@ -137,6 +159,83 @@ describe('workspace applyEdits', () => {
     }
     let res = await workspace.applyEdit({ changes })
     expect(res).toBe(false)
+    let versioned = VersionedTextDocumentIdentifier.create('test://', null)
+    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
+    let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
+    res = await workspace.applyEdit({ documentChanges })
+    expect(res).toBe(false)
+  })
+
+  it('should return false for change to file not exists', async () => {
+    let uri = URI.file('/tmp/not_exists').toString()
+    let versioned = VersionedTextDocumentIdentifier.create(uri, null)
+    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
+    let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
+    let res = await workspace.applyEdit({ documentChanges })
+    expect(res).toBe(false)
+  })
+
+  it('should support null version of documentChanges', async () => {
+    let file = path.join(__dirname, 'foo')
+    await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
+    let uri = URI.file(file).toString()
+    let versioned = VersionedTextDocumentIdentifier.create(uri, null)
+    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
+    let change = TextDocumentEdit.create(versioned, [edit])
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [change]
+    }
+    let p = workspace.applyEdit(workspaceEdit)
+    await helper.wait(50)
+    await nvim.input('y<enter>')
+    let res = await p
+    expect(res).toBe(true)
+    let content = await readFile(file, 'utf8')
+    expect(content).toBe('bar')
+    await workspace.deleteFile(file, { ignoreIfNotExists: true })
+  })
+
+  it('should support CreateFile edit', async () => {
+    let file = path.join(__dirname, 'foo')
+    let uri = URI.file(file).toString()
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [CreateFile.create(uri, { overwrite: true })]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+    await workspace.deleteFile(file, { ignoreIfNotExists: true })
+  })
+
+  it('should support DeleteFile edit', async () => {
+    let file = path.join(__dirname, 'foo')
+    await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
+    let uri = URI.file(file).toString()
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [DeleteFile.create(uri)]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+  })
+
+  it('should check uri for CreateFile edit', async () => {
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [CreateFile.create('term://.', { overwrite: true })]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(false)
+  })
+
+  it('should support RenameFile edit', async () => {
+    let file = path.join(__dirname, 'foo')
+    await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })
+    let newFile = path.join(__dirname, 'bar')
+    let uri = URI.file(file).toString()
+    let workspaceEdit: WorkspaceEdit = {
+      documentChanges: [RenameFile.create(uri, URI.file(newFile).toString())]
+    }
+    let res = await workspace.applyEdit(workspaceEdit)
+    expect(res).toBe(true)
+    await workspace.deleteFile(newFile, { ignoreIfNotExists: true })
   })
 })
 
@@ -187,8 +286,6 @@ describe('workspace methods', () => {
     expect(file).toBeTruthy()
     file = workspace.getConfigFile(ConfigurationTarget.User)
     expect(file).toBeTruthy()
-    file = workspace.getConfigFile(ConfigurationTarget.Workspace)
-    expect(file).toBeFalsy()
   })
 
   it('should create file watcher', async () => {
@@ -305,6 +402,11 @@ describe('workspace methods', () => {
     expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
+
+  it('should get vim settings', () => {
+    let version = workspace.getVimSetting('version')
+    expect(typeof version).toBe('string')
+  })
 })
 
 describe('workspace utility', () => {
@@ -357,6 +459,25 @@ describe('workspace utility', () => {
     fs.unlinkSync(newPath)
   })
 
+  it('should rename buffer if rename file loaded', async () => {
+    let filepath = path.join(__dirname, 'old')
+    await workspace.createFile(filepath, { overwrite: true })
+    await writeFile(filepath, 'bar')
+    let uri = URI.file(filepath).toString()
+    await workspace.openResource(uri)
+    await helper.wait(200)
+    let line = await nvim.line
+    expect(line).toBe('bar')
+    let newFile = path.join(__dirname, 'bar')
+    let newUri = URI.file(newFile).toString()
+    await workspace.renameFile(filepath, newFile, { overwrite: true })
+    await helper.wait(100)
+    let old = workspace.getDocument(uri)
+    expect(old).toBeFalsy()
+    let doc = workspace.getDocument(newUri)
+    expect(doc.uri).toBe(newUri)
+  })
+
   it('should overwrite if file exists', async () => {
     let filepath = path.join(__dirname, 'foo')
     let newPath = path.join(__dirname, 'bar')
@@ -398,6 +519,25 @@ describe('workspace utility', () => {
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toBe('jdi://abc')
+  })
+
+  it('should open opened buffer', async () => {
+    let buf = await helper.edit('foo')
+    let doc = workspace.getDocument(buf.id)
+    await workspace.openResource(doc.uri)
+    await helper.wait(30)
+    let bufnr = await nvim.call('bufnr', '%')
+    expect(bufnr).toBe(buf.id)
+  })
+
+  it('should open url', async () => {
+    await helper.mockFunction('coc#util#open_url', 0)
+    let buf = await helper.edit('foo')
+    let uri = 'http://example.com'
+    await workspace.openResource(uri)
+    await helper.wait(30)
+    let bufnr = await nvim.call('bufnr', '%')
+    expect(bufnr).toBe(buf.id)
   })
 
   it('should create outputChannel', () => {
@@ -454,7 +594,13 @@ describe('workspace utility', () => {
     expect(name).toBe(uri)
   })
 
-  it('should findUp to tsconfig.json', async () => {
+  it('should findUp to tsconfig.json from cwd', async () => {
+    let filepath = await workspace.findUp('tsconfig.json')
+    expect(filepath).toMatch('tsconfig.json')
+  })
+
+  it('should findUp from current file ', async () => {
+    await helper.edit('foo')
     let filepath = await workspace.findUp('tsconfig.json')
     expect(filepath).toMatch('tsconfig.json')
   })
@@ -495,6 +641,14 @@ describe('workspace utility', () => {
     await nvim.input('bar<enter>')
     let res = await p
     expect(res).toBe('bar')
+  })
+
+  it('should return null when input empty', async () => {
+    let p = workspace.requestInput('name')
+    await helper.wait(100)
+    await nvim.input('<enter>')
+    let res = await p
+    expect(res).toBeNull()
   })
 })
 
@@ -577,6 +731,18 @@ describe('workspace events', () => {
     expect(fn).toHaveBeenCalledTimes(1)
     fs.unlinkSync(file)
   })
+
+  it('should attach & detach', async () => {
+    let buf = await helper.edit('foo')
+    await nvim.command('CocDisable')
+    await helper.wait(100)
+    let doc = workspace.getDocument(buf.id)
+    expect(doc).toBeUndefined()
+    await nvim.command('CocEnable')
+    await helper.wait(100)
+    doc = workspace.getDocument(buf.id)
+    expect(doc.bufnr).toBe(buf.id)
+  })
 })
 
 describe('workspace private', () => {
@@ -596,5 +762,55 @@ describe('workspace private', () => {
     await nvim.call('coc#_hide')
     await helper.wait(100)
     expect(doc.getline(0)).toMatch('abcdef')
+  })
+
+  it('should show errors', async () => {
+    let errors: ErrorItem[] = []
+    errors.push({
+      location: Location.create('/tmp/foo', Range.create(0, 0, 0, 0)),
+      message: 'error'
+    })
+    await (workspace as any).showErrors(errors)
+    let res = await nvim.call('getqflist') as any
+    expect(res.length).toBe(1)
+  })
+})
+
+describe('workspace textDocument content provider', () => {
+
+  it('should regist document content provider', async () => {
+    let provider: TextDocumentContentProvider = {
+      provideTextDocumentContent: (_uri, _token): string => {
+        return 'sample text'
+      }
+    }
+    workspace.registerTextDocumentContentProvider('test', provider)
+    await helper.wait(80)
+    await nvim.command('edit test://1')
+    let buf = await nvim.buffer
+    let lines = await buf.lines
+    expect(lines).toEqual(['sample text'])
+  })
+
+  it('should react onChagne event of document content provider', async () => {
+    let text = 'foo'
+    let emitter = new Emitter<URI>()
+    let event = emitter.event
+    let provider: TextDocumentContentProvider = {
+      onDidChange: event,
+      provideTextDocumentContent: (_uri, _token): string => {
+        return text
+      }
+    }
+    workspace.registerTextDocumentContentProvider('jdk', provider)
+    await helper.wait(80)
+    await nvim.command('edit jdk://1')
+    await helper.wait(100)
+    text = 'bar'
+    emitter.fire(URI.parse('jdk://1'))
+    await helper.wait(200)
+    let buf = await nvim.buffer
+    let lines = await buf.lines
+    expect(lines).toEqual(['bar'])
   })
 })

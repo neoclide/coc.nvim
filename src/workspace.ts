@@ -18,7 +18,7 @@ import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, isFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
 import { equals } from './util/object'
@@ -549,8 +549,6 @@ export class Workspace implements IWorkspace {
         let uri = Uri.file(oldPath).toString()
         let doc = this.getDocument(uri)
         if (doc) {
-          let { cwd } = this
-          if (newPath.startsWith(cwd)) newPath = path.relative(cwd, newPath)
           await doc.buffer.setName(newPath)
           await this.onBufCreate(doc.bufnr)
         }
@@ -564,7 +562,7 @@ export class Workspace implements IWorkspace {
   public async deleteFile(filepath: string, opts: DeleteFileOptions = {}): Promise<void> {
     let { ignoreIfNotExists, recursive } = opts
     let stat = await statAsync(filepath.replace(/\/$/, ''))
-    let isDir = stat.isDirectory() || filepath.endsWith('/')
+    let isDir = stat && stat.isDirectory() || filepath.endsWith('/')
     if (!stat && !ignoreIfNotExists) {
       this.showMessage(`${filepath} not exists`, 'error')
       return
@@ -590,7 +588,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async openResource(uri: string): Promise<void> {
-    let { nvim, cwd } = this
+    let { nvim } = this
     // not supported
     if (uri.startsWith('http')) {
       await nvim.call('coc#util#open_url', uri)
@@ -613,10 +611,9 @@ export class Workspace implements IWorkspace {
     if (u.scheme != 'file') {
       bufname = uri
     } else {
-      let filepath = u.fsPath
-      bufname = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
+      bufname = u.fsPath
     }
-    bufname = await nvim.call('fnameescape', bufname)
+    // bufname = await nvim.call('fnameescape', bufname)
     let wildignore = await nvim.getOption('wildignore')
     await nvim.setOption('wildignore', '')
     await nvim.command(`${cmd} ${bufname}`)
@@ -689,9 +686,7 @@ export class Workspace implements IWorkspace {
 
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
     this.schemeProviderMap.set(scheme, provider)
-    this.setupDocumentReadAutocmd().catch(_e => {
-      // noop
-    })
+    this.setupDocumentReadAutocmd() // tslint:disable-line
     let disposables: Disposable[] = []
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
@@ -732,9 +727,13 @@ augroup coc_file_read
   autocmd!
   ${cmds.join('\n')}
 augroup end`
-    let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
-    await writeFile(filepath, content)
-    await this.nvim.command(`source ${filepath}`)
+    try {
+      let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
+      await writeFile(filepath, content)
+      await this.nvim.command(`source ${filepath}`)
+    } catch (e) {
+      this.showMessage(`Can't create tmp file: ${e.message}`, 'error')
+    }
   }
 
   private async onBufReadCmd(scheme: string, uri: string): Promise<void> {
@@ -752,6 +751,9 @@ augroup end`
       end: -1,
       strictIndexing: false
     })
+    setTimeout(async () => {
+      await events.fire('BufCreate', [buf.id])
+    }, 30)
   }
 
   public dispose(): void {
@@ -831,21 +833,16 @@ augroup end`
 
   private validteDocumentChanges(documentChanges: any[] | null): boolean {
     if (!documentChanges) return true
-    if (!Array.isArray(documentChanges)) {
-      this.showMessage(`Invalid documentChanges of WorkspaceEdit`, 'error')
-      logger.error('documentChanges: ', documentChanges)
-      return false
-    }
     for (let change of documentChanges) {
       if (TextDocumentEdit.is(change)) {
         let { textDocument } = change
         let { uri, version } = textDocument
         let doc = this.getDocument(uri)
-        if (version && !doc) {
+        if (!doc && version) {
           this.showMessage(`${uri} not opened.`, 'error')
           return false
         }
-        if (doc.version != version) {
+        if (doc && doc.version != version) {
           this.showMessage(`${uri} changed before apply edit`, 'error')
           return false
         }
@@ -860,37 +857,12 @@ augroup end`
             return false
           }
         }
-      } else if (CreateFile.is(change)) {
-        let u = Uri.parse(change.uri)
-        if (u.scheme === 'file') {
-          this.showMessage(`scheme of ${change.uri} should be file`, 'error')
+      }
+      else if (CreateFile.is(change) || DeleteFile.is(change)) {
+        if (!isFile(change.uri)) {
+          this.showMessage(`Chagne of scheme ${change.uri} not supported`, 'error')
           return false
         }
-        let exists = fs.existsSync(u.fsPath)
-        let opts = change.options || {}
-        if (!opts.ignoreIfExists && !opts.overwrite && exists) {
-          this.showMessage(`${change.uri} already exists.`)
-          return false
-        }
-      } else if (RenameFile.is(change)) {
-        let { newUri, options } = change
-        options = options || {}
-        let exists = fs.existsSync(Uri.parse(newUri).fsPath)
-        if (!options.overwrite && !options.ignoreIfExists && exists) {
-          this.showMessage(`${newUri} already exists.`)
-          return false
-        }
-      } else if (DeleteFile.is(change)) {
-        let { uri, options } = change
-        options = options || {}
-        let exists = fs.existsSync(Uri.parse(uri).fsPath)
-        if (!exists && !(options as DeleteFileOptions).ignoreIfNotExists) {
-          this.showMessage(`${uri} not exists.`)
-          return false
-        }
-      } else {
-        this.showMessage(`document change ${JSON.stringify(change)} not supported`, 'error')
-        return false
       }
     }
     return true
@@ -1102,14 +1074,7 @@ augroup end`
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {
-    if (!this.nvim) {
-      this.onDidWorkspaceInitialized(() => {
-        this.showErrors(errors).catch(_e => {
-          // noop
-        })
-      })
-      return
-    }
+    await this.ready
     let items: QuickfixItem[] = []
     for (let err of errors) {
       let item = await this.getQuickfixItem(err.location, err.message)
@@ -1123,7 +1088,7 @@ augroup end`
   private resolveRoot(uri: string): string {
     let u = Uri.parse(uri)
     let dir = path.dirname(u.fsPath)
-    if (!this._initialized || !dir.startsWith(this.root) || this.root == os.homedir()) {
+    if (this._initialized && dir != os.homedir()) {
       let { roots } = this.env
       let files: string[]
       if (roots && roots.length) {

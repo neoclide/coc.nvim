@@ -134,3 +134,7 @@ export function validSocket(path: string): Promise<boolean> {
 export async function readdirAsync(path: string): Promise<string[]> {
   return await pify(fs.readdir)(path)
 }
+
+export function isFile(uri: string): boolean {
+  return uri.startsWith('file:')
+}
