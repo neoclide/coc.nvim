@@ -356,8 +356,7 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 [build status]: https://travis-ci.org/neoclide/coc.nvim
 [coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
 [coverage report]: https://codecov.io/gh/neoclide/coc.nvim
-[gitter badge]: https://badges.gitter.im/coc-nvim/Lobby.svg
-[gitter]: https://gitter.im/coc-nvim/Lobby
+[gitter badge]: https://badges.gitter.im/neoclide/coc.nvim.svg
+[gitter]: https://gitter.im/neoclide/coc.nvim
 [doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
 [doc link]: doc/coc.txt
-
