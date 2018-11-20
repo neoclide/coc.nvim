@@ -43,8 +43,10 @@ export class Extensions {
 
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
+  private _onDidUnloadExtension = new Emitter<string>()
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
+  public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   public async init(nvim: Neovim): Promise<void> {
     let root = this.root = await nvim.call('coc#util#extension_root')
@@ -163,7 +165,8 @@ export class Extensions {
     this.deactivate(id)
     await wait(200)
     try {
-      await workspace.runCommand(`yarn remove ${id}`, this.root)
+      await workspace.runCommand(`yarn remove ${id} --no-default-rc`, this.root)
+      this._onDidUnloadExtension.fire(id)
       workspace.showMessage(`Extension ${id} removed`)
     } catch (e) {
       workspace.showMessage(`Uninstall failed: ${e.message}`, 'error')
