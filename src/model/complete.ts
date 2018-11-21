@@ -47,11 +47,11 @@ export default class Complete {
     let opt = Object.assign({}, this.option)
     let timeout = this.config.timeout
     timeout = Math.min(timeout, 5000)
-    if (typeof source.shouldComplete === 'function') {
-      let shouldRun = await Promise.resolve(source.shouldComplete(opt))
-      if (!shouldRun) return null
-    }
     try {
+      if (typeof source.shouldComplete === 'function') {
+        let shouldRun = await Promise.resolve(source.shouldComplete(opt))
+        if (!shouldRun) return null
+      }
       let start = Date.now()
       let result = await new Promise<CompleteResult>((resolve, reject) => {
         let timer = setTimeout(() => {
@@ -156,7 +156,6 @@ export default class Complete {
         item.score = score(filterText, input) + this.getBonusScore(item)
         item.recentScore = this.recentScores[`${bufnr}|${word}`] || 0
         item.priority = priority
-        item.icase = 1
         item.strictMatch = filterText.startsWith(input)
         words.add(word)
         if (!filtering && item.preselect) {
@@ -192,7 +191,7 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'source', 'strictMatch', 'score']))
+    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {

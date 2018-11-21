@@ -111,7 +111,7 @@ export default class Plugin extends EventEmitter {
           break
         }
         case 'startCompletion':
-          completion.startCompletion(args[1])
+          await completion.startCompletion(args[1])
           break
         case 'sourceStat':
           return sources.sourceStat()
