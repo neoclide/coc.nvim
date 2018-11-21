@@ -3,11 +3,15 @@ import { Neovim } from '@chemzqm/neovim'
 import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation } from 'vscode-languageserver-protocol'
 import Colors from '../../colors'
 import languages from '../../languages'
+import { ProviderResult } from '../../provider'
 
 let nvim: Neovim
+let state = 'normal'
+let colors: Colors
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  colors = (helper.plugin as any).handler.colors
 
   languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
@@ -20,7 +24,9 @@ beforeAll(async () => {
     provideDocumentColors: (
       _document: TextDocument,
       _token: CancellationToken
-    ): ColorInformation[] => {
+    ): ProviderResult<ColorInformation[]> => {
+      if (state == 'empty') return []
+      if (state == 'error') return Promise.reject(new Error('no color'))
       return [{
         range: Range.create(0, 0, 0, 7),
         color: getColor(255, 255, 255)
@@ -45,23 +51,56 @@ describe('Colors', () => {
 
   it('should get hex string', () => {
     let color = getColor(255, 255, 255)
-    let colors = new Colors(nvim)
     let hex = colors.toHexString(color)
     expect(hex).toBe('ffffff')
   })
 
   it('should toggle enable state on configuration change', () => {
     helper.updateDefaults('coc.preferences.colorSupport', false)
-    let colors = new Colors(nvim)
     expect(colors.enabled).toBe(false)
     helper.updateDefaults('coc.preferences.colorSupport', true)
     expect(colors.enabled).toBe(true)
   })
 
+  it('should highlight on CursorHold', async () => {
+    let buf = await helper.edit('tmp')
+    await nvim.setLine('#ffffff')
+    await helper.wait(600)
+    expect(colors.hasColor(buf.id)).toBe(true)
+  })
+
+  it('should clearHighlight on empty result', async () => {
+    let doc = await helper.createDocument('tmp')
+    await nvim.setLine('#ffffff')
+    state = 'empty'
+    await colors.highlightColors(doc)
+    let res = colors.hasColor(doc.bufnr)
+    expect(res).toBe(false)
+    state = 'normal'
+  })
+
+  it('should clearHighlight on error result', async () => {
+    let doc = await helper.createDocument('tmp')
+    await nvim.setLine('#ffffff')
+    state = 'error'
+    await colors.highlightColors(doc)
+    let res = colors.hasColor(doc.bufnr)
+    expect(res).toBe(false)
+    state = 'normal'
+  })
+
+  it('should clearHighlight on clearHighlight', async () => {
+    let doc = await helper.createDocument('tmp')
+    await nvim.setLine('#ffffff')
+    await colors.highlightColors(doc)
+    expect(colors.hasColor(doc.bufnr)).toBe(true)
+    await colors.clearHighlight(doc.bufnr)
+    expect(colors.hasColor(doc.bufnr)).toBe(false)
+  })
+
   it('should highlight colors', async () => {
     let doc = await helper.createDocument('test')
     await nvim.setLine('#ffffff')
-    let colors = new Colors(nvim)
     let colorSet = false
     helper.on('highlight_set', args => {
       let color = args[0][0]
@@ -78,7 +117,6 @@ describe('Colors', () => {
   it('should pick presentations', async () => {
     let doc = await helper.createDocument('test')
     await nvim.setLine('#ffffff')
-    let colors = new Colors(nvim)
     await colors.highlightColors(doc)
     let p = colors.pickPresentation()
     await helper.wait(100)
@@ -94,22 +132,9 @@ describe('Colors', () => {
     await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
     let doc = await helper.createDocument('test')
     await nvim.setLine('#ffffff')
-    let colors = new Colors(nvim)
     await colors.highlightColors(doc)
     await colors.pickColor()
     let line = await nvim.getLine()
     expect(line).toBe('#000000')
-  })
-
-  it('should dispose', async () => {
-    await helper.createDocument('test')
-    let colors = new Colors(nvim)
-    let err = null
-    try {
-      colors.dispose()
-    } catch (e) {
-      err = e
-    }
-    expect(err).toBeNull()
   })
 })

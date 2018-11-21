@@ -7,6 +7,7 @@ set nobackup
 set completeopt=menuone,noinsert,noselect
 set tabstop=2
 set cmdheight=2
+set updatetime=300
 set et
 set noshowmode
 

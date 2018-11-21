@@ -103,7 +103,7 @@ export class SnippetManager implements types.SnippetManager {
     let session = this.getSession(workspace.bufnr)
     if (session) return session.deactivate()
     workspace.nvim.call('coc#snippet#disable', [], true)
-    this.statusItem.hide()
+    if (this.statusItem) this.statusItem.hide()
   }
 
   public get session(): SnippetSession {

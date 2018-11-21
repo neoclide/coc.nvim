@@ -36,7 +36,7 @@ export default class Colors {
 
     events.on(['CursorHold', 'CursorHoldI'], async () => {
       let doc = await workspace.document
-      if (!doc) return
+      if (!doc || !this.enabled) return
       await this.highlightColors(doc)
     }, null, this.disposables)
 
@@ -48,18 +48,12 @@ export default class Colors {
       if (e.affectsConfiguration('coc.preferences.colorSupport')) {
         let config = workspace.getConfiguration('coc.preferences')
         this._enabled = config.get<boolean>('colorSupport', true)
-        if (!this._enabled) {
-          workspace.documents.forEach(async document => {
-            await this.clearHighlight(document.bufnr)
-          })
-        }
       }
     })
   }
 
   public async highlightColors(document: Document): Promise<void> {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
-    if (!this._enabled) return
     let { bufnr, version } = document
     let curr = this.documentVersions.get(bufnr)
     if (curr == version) return
@@ -82,8 +76,6 @@ export default class Colors {
       }
     } catch (e) {
       this.documentVersions.delete(bufnr)
-      // tslint:disable-next-line:no-console
-      console.error(`error on highlight: ${e.message}`)
       logger.error('error on highlight:', e.stack)
     }
   }
@@ -185,10 +177,7 @@ export default class Colors {
     if (!info) return workspace.showMessage('Color not found at current position', 'warning')
     let document = await workspace.document
     let presentations = await languages.provideColorPresentations(info, document.textDocument)
-    if (!presentations || presentations.length == 0) {
-      workspace.showMessage('Language server failed to get color presentations', 'warning')
-      return
-    }
+    if (!presentations || presentations.length == 0) return
     let res = await workspace.showQuickpick(presentations.map(o => o.label), 'choose a color presentation:')
     if (res == -1) return
     let presentation = presentations[res]
@@ -229,6 +218,10 @@ export default class Colors {
 
   public get enabled(): boolean {
     return this._enabled
+  }
+
+  public hasColor(bufnr: number): boolean {
+    return this.colorInfomation.has(bufnr)
   }
 }
 

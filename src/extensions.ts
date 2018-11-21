@@ -183,9 +183,7 @@ export class Extensions {
     if (/^\w+:/.test(id)) id = this.packageNameFromUrl(id)
     if (!id || /^-/.test(id)) return
     let item = this.list.find(o => o.id == id)
-    if (item) {
-      item.deactivate()
-    }
+    if (item) item.deactivate()
     let folder = path.join(this.root, 'node_modules', id)
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {

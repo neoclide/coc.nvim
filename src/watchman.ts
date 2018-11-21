@@ -106,7 +106,7 @@ export default class Watchman {
     return subscribe
   }
 
-  public unsubscribe(subscription): Promise<void> {
+  public unsubscribe(subscription: string): Promise<void> {
     if (this._disposed) return Promise.resolve()
     return this.command(['unsubscribe', this.relative_path, subscription]).catch(e => {
       logger.error(e)

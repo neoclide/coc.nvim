@@ -33,10 +33,8 @@ export default function(opts: Attach): Plugin {
   nvim.on('request', (method: string, args, resp) => {
     switch (method) {
       case 'CocAutocmd':
-        (events as any).fire(args[0], args.slice(1)).then(() => {
-          resp.send()
-        }, e => {
-          logger.error(`Autocmd ${args[0]} error: ` + e.stack)
+        // tslint:disable-next-line:no-floating-promises
+        events.fire(args[0], args.slice(1)).then(() => {
           resp.send()
         })
         return
@@ -61,7 +59,7 @@ export default function(opts: Attach): Plugin {
       logger.error(e)
     })
   }).catch(e => {
-    logger.error(e)
+    console.error(`Channel create error: ${e.message}`) // tslint:disable-line
   })
   return plugin
 }

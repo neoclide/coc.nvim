@@ -35,17 +35,22 @@ export default class Plugin extends EventEmitter {
     if (this.initialized) return
     this.initialized = true
     let { nvim } = this
-    await workspace.init()
-    this.handler = new Handler(nvim)
-    await extensions.init(nvim)
-    this.on('registExtensions', async args => {
-      for (let folder of args as string[]) {
-        await extensions.loadExtension(folder)
-      }
-    })
-    await nvim.command('doautocmd User CocNvimInit')
-    logger.info(`coc initialized with node: ${process.version}`)
-    this.emit('ready')
+    try {
+      await workspace.init()
+      this.handler = new Handler(nvim)
+      await extensions.init(nvim)
+      this.on('registExtensions', async args => {
+        for (let folder of args as string[]) {
+          await extensions.loadExtension(folder)
+        }
+      })
+      await nvim.command('doautocmd User CocNvimInit')
+      logger.info(`coc initialized with node: ${process.version}`)
+      this.emit('ready')
+    } catch (e) {
+      this.initialized = false
+      console.error(`Plugin initialized error: ${e.message}`) // tslint:disable-line
+    }
     if (global.hasOwnProperty('__TEST__')) return
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return

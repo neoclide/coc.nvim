@@ -765,10 +765,10 @@ augroup end`
         logger.error(e)
       })
     }
-    this.buffers.clear()
     Watchman.dispose()
-    this.terminal.removeAllListeners()
-    this.statusLine.dispose()
+    this.buffers.clear()
+    if (this.terminal) this.terminal.removeAllListeners()
+    if (this.statusLine) this.statusLine.dispose()
     disposeAll(this.disposables)
   }
 
