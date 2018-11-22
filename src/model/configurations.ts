@@ -3,7 +3,7 @@ import Uri from 'vscode-uri'
 import { emptyObject, objectLiteral } from '../util/is'
 import { Configuration, ConfigurationModel } from './configuration'
 import { ConfigurationInspect, ConfigurationShape, ConfigurationTarget, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
-import { mixin } from '../util/object'
+import { mixin, deepFreeze } from '../util/object'
 import { Location, TextDocument, Range } from 'vscode-languageserver-protocol'
 import { parse, ParseError } from 'jsonc-parser'
 const logger = require('../util/logger')('configurations')
@@ -187,7 +187,7 @@ export default class Configurations {
     if (typeof config === 'object') {
       mixin(result, config, false)
     }
-    return Object.freeze(result) as WorkspaceConfiguration
+    return deepFreeze(result) as WorkspaceConfiguration
   }
 
   private getFolderConfiguration(uri: string): ConfigurationModel {

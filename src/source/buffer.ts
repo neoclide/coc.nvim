@@ -18,13 +18,6 @@ export default class Buffer extends Source {
     return true
   }
 
-  public async refresh(): Promise<void> {
-    let docs = workspace.documents
-    for (let doc of docs) {
-      await doc.checkDocument()
-    }
-  }
-
   public get ignoreGitignore(): boolean {
     return this.getConfig('ignoreGitignore', true)
   }

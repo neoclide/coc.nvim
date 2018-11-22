@@ -61,7 +61,8 @@ export default class Dictionary extends Source {
       let content = await pify(fs.readFile)(file, 'utf8')
       words = content.split('\n')
     } catch (e) {
-      logger.error(`Can't read file: ${file}`)
+      // tslint:disable-next-line:no-console
+      console.error(`Can't read file: ${file}`)
     }
     dicts[file] = words
     return words

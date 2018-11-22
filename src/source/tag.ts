@@ -41,10 +41,6 @@ export default class Tag extends Source {
     return tagfiles
   }
 
-  public async refresh(): Promise<void> {
-    TAG_CACHE = {}
-  }
-
   private async loadTags(fullpath: string, mtime: Date): Promise<Set<string>> {
     let item: CacheItem = TAG_CACHE[fullpath]
     if (item && item.mtime >= mtime) return item.words

@@ -13,7 +13,6 @@ const isLinux = process.platform === 'linux'
 export default class Terminal extends EventEmitter {
   private _npmFolder: string | undefined
   private _yarnFolder: string | undefined
-  private installing: Set<string> = new Set()
 
   constructor(private nvim: Neovim) {
     super()
@@ -47,35 +46,6 @@ export default class Terminal extends EventEmitter {
       if (s && s.isFile()) return path.join(yarnFolder, mod)
     }
     return null
-  }
-
-  public async installModule(mod: string): Promise<string> {
-    if (this.installing.has(mod)) return
-    let items = [
-      'Use npm to install',
-      'Use yarn to install'
-    ]
-    let idx = await workspace.showQuickpick(items, `${mod} not found, choose action by number`)
-    // cancel
-    if (idx == -1) return
-    this.installing.add(mod)
-    let pre = isLinux ? 'sudo ' : ''
-    let cmd = idx == 0 ? `${pre} npm install -g ${mod}` : `yarn global add ${mod}`
-    if (idx == 1 && !executable('yarn')) {
-      try {
-        await runCommand('curl --compressed -o- -L https://yarnpkg.com/install.sh | bash', process.cwd())
-      } catch (e) {
-        workspace.showMessage(e.message, 'error')
-        return
-      }
-    }
-    try {
-      await runCommand(cmd, process.cwd())
-    } catch (e) {
-      workspace.showMessage(e.message, 'error')
-      return
-    }
-    return await this.resolveModule(mod)
   }
 
   public async runCommand(cmd: string, cwd?: string, keepfocus?: boolean): Promise<TerminalResult> {

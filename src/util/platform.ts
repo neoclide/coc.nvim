@@ -22,7 +22,6 @@ interface INavigator {
   userAgent: string
   language: string
 }
-declare let navigator: INavigator
 declare let self: any
 
 export const language = 'en'
@@ -37,12 +36,6 @@ if (
   _isMacintosh = process.platform === 'darwin'
   _isLinux = process.platform === 'linux'
   _isNative = true
-} else if (typeof navigator === 'object') {
-  const userAgent = navigator.userAgent
-  _isWindows = userAgent.indexOf('Windows') >= 0
-  _isMacintosh = userAgent.indexOf('Macintosh') >= 0
-  _isLinux = userAgent.indexOf('Linux') >= 0
-  _isWeb = true
 }
 
 export enum Platform {
