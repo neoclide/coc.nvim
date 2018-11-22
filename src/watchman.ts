@@ -1,5 +1,5 @@
-import { Client } from 'fb-watchman'
-import watchman = require('fb-watchman')
+import path from 'path'
+import watchman, { Client } from 'fb-watchman'
 import fs from 'fs'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
@@ -17,9 +17,9 @@ export interface FileChangeItem {
   size: number
   name: string
   exists: boolean
-  type: string
+  type: 'f' | 'd'
   mtime_ms: number
-  ['content.sha1hex']: string
+  ['content.sha1hex']?: string
 }
 
 export interface FileChange {
@@ -30,15 +30,13 @@ export interface FileChange {
 
 export type ChangeCallback = (FileChange) => void
 
-let client: Watchman
-let validClient: boolean | undefined
+const clientsMap: Map<string, Watchman> = new Map()
 /**
  * Watchman wrapper for fb-watchman client
  *
  * @public
  */
 export default class Watchman {
-  private static watched: Set<string> = new Set()
   private client: Client
   private relative_path: string | null
   private clock: string | null
@@ -50,7 +48,7 @@ export default class Watchman {
     })
   }
 
-  private checkCapability(): Promise<boolean> {
+  public checkCapability(): Promise<boolean> {
     let { client } = this
     return new Promise((resolve, reject) => {
       client.capabilityCheck({
@@ -67,13 +65,17 @@ export default class Watchman {
     })
   }
 
-  private async watchProject(root: string): Promise<boolean> {
-    let resp = await this.command(['watch-project', root])
-    let { watch, warning } = (resp as WatchResponse)
-    if (warning) logger.warn(warning)
-    this.relative_path = watch
-    resp = await this.command(['clock', watch])
-    this.clock = resp.clock
+  public async watchProject(root: string): Promise<boolean> {
+    try {
+      let resp = await this.command(['watch-project', root])
+      let { watch, warning } = (resp as WatchResponse)
+      if (warning) logger.warn(warning)
+      this.relative_path = watch
+      resp = await this.command(['clock', watch])
+      this.clock = resp.clock
+    } catch (e) {
+      return false
+    }
     logger.info(`watchman watching project ${root}`)
     return true
   }
@@ -98,7 +100,7 @@ export default class Watchman {
     }
     let { subscribe } = await this.command(['subscribe', relative_path, uid, sub])
     this.client.on('subscription', resp => {
-      if (resp.subscription != uid || !resp) return
+      if (!resp || resp.subscription != uid) return
       let { files } = resp
       files.map(f => f.mtime_ms = +f.mtime_ms)
       cb(resp)
@@ -106,7 +108,7 @@ export default class Watchman {
     return subscribe
   }
 
-  public unsubscribe(subscription: string): Promise<void> {
+  public unsubscribe(subscription: string): Promise<any> {
     if (this._disposed) return Promise.resolve()
     return this.command(['unsubscribe', this.relative_path, subscription]).catch(e => {
       logger.error(e)
@@ -120,21 +122,22 @@ export default class Watchman {
   }
 
   public static dispose(): void {
-    if (client) {
+    for (let client of clientsMap.values()) {
       client.dispose()
     }
   }
 
   public static async createClient(binaryPath: string, root: string): Promise<Watchman | null> {
-    if (root == os.homedir() || root == '/' || validClient === false) return null
-    if (!client) client = new Watchman(binaryPath)
-    let watching = Watchman.watched.has(root)
-    if (watching) return client
-    Watchman.watched.add(root)
-    if (validClient == null) validClient = await client.checkCapability()
-    if (!validClient) return null
-    watching = await client.watchProject(root)
-    return watching ? client : null
+    if (root == os.homedir() || root == '/' || path.parse(root).base == root) return null
+    let client = clientsMap.get(root)
+    if (client) return client
+    client = new Watchman(binaryPath)
+    let valid = await client.checkCapability()
+    if (!valid) return null
+    let watching = await client.watchProject(root)
+    if (!watching) return null
+    clientsMap.set(root, client)
+    return client
   }
 
   public static getBinaryPath(path: string): string | null {

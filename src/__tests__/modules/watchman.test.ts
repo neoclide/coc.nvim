@@ -1,0 +1,151 @@
+// import watchman from 'fb-watchman'
+import net from 'net'
+import fs from 'fs'
+import bser from 'bser'
+import Watchman, { FileChangeItem } from '../../watchman'
+import helper from '../helper'
+
+let server: net.Server
+let client: net.Socket
+
+function sendResponse(data: any): void {
+  client.write(bser.dumpToBuffer(data))
+}
+
+function createFileChange(file: string, exists = true): FileChangeItem {
+  return {
+    size: 1,
+    name: file,
+    exists,
+    type: 'f',
+    mtime_ms: Date.now()
+  }
+}
+
+function sendSubscription(uid: string, root: string, files: FileChangeItem[]): void {
+  client.write(bser.dumpToBuffer({
+    subscription: uid,
+    root,
+    files
+  }))
+}
+
+beforeAll(done => {
+  // create a mock sever for watchman
+  server = net.createServer(c => {
+    client = c
+    c.on('data', data => {
+      let obj = bser.loadFromBuffer(data)
+      if (obj[0] == 'watch-project') {
+        sendResponse({ watch: obj[1] })
+      } else if (obj[0] == 'unsubscribe') {
+        sendResponse({ path: obj[1] })
+      } else if (obj[0] == 'clock') {
+        sendResponse({ clock: 'clock' })
+      } else if (obj[0] == 'version') {
+        let { optional, required } = obj[1]
+        let res = {}
+        for (let key of Object.keys(optional)) {
+          res[key] = true
+        }
+        for (let key of Object.keys(required)) {
+          res[key] = true
+        }
+        sendResponse({ capabilities: res })
+      } else if (obj[0] == 'subscribe') {
+        sendResponse({ subscribe: obj[2] })
+      } else {
+        sendResponse({})
+      }
+    })
+  })
+  server.on('error', err => {
+    throw err
+  })
+  const sockPath = '/tmp/coc-watchman'
+  if (fs.existsSync(sockPath)) {
+    fs.unlinkSync(sockPath)
+  }
+  process.env.WATCHMAN_SOCK = sockPath
+  server.listen(sockPath, () => {
+    done()
+  })
+})
+
+afterAll(() => {
+  server.close()
+})
+
+describe('watchman', () => {
+  it('should checkCapability', async () => {
+    let client = new Watchman(null)
+    let res = await client.checkCapability()
+    expect(res).toBe(true)
+    client.dispose()
+  })
+
+  it('should watchProject', async () => {
+    let client = new Watchman(null)
+    let res = await client.watchProject('/tmp/coc')
+    expect(res).toBe(true)
+    client.dispose()
+  })
+
+  it('should subscribe', async () => {
+    let client = new Watchman(null)
+    await client.watchProject('/tmp')
+    let fn = jest.fn()
+    let uid = await client.subscribe('/tmp/*', fn)
+    expect(uid).toBeDefined()
+    let changes: FileChangeItem[] = [createFileChange('/tmp/a')]
+    sendSubscription(uid, '/tmp', changes)
+    await helper.wait(100)
+    expect(fn).toBeCalled()
+    let call = fn.mock.calls[0][0]
+    expect(call).toEqual({
+      subscription: uid,
+      root: '/tmp',
+      files: changes
+    })
+    client.dispose()
+  })
+
+  it('should unsubscribe', async () => {
+    let client = new Watchman(null)
+    await client.watchProject('/tmp')
+    let fn = jest.fn()
+    let uid = await client.subscribe('/tmp/*', fn)
+    let res = await client.unsubscribe(uid)
+    expect(res).toEqual({ path: '/tmp' })
+    client.dispose()
+  })
+})
+
+describe('Watchman#createClient', () => {
+  it('should create client', async () => {
+    let client = await Watchman.createClient(null, '/tmp')
+    expect(client).toBeDefined()
+    client.dispose()
+  })
+
+  it('should resue client for same root', async () => {
+    let client = await Watchman.createClient(null, '/tmp')
+    expect(client).toBeDefined()
+    let other = await Watchman.createClient(null, '/tmp')
+    expect(client).toBe(other)
+    client.dispose()
+  })
+
+  it('should not create client for root', async () => {
+    let client = await Watchman.createClient(null, '/')
+    expect(client).toBeNull()
+  })
+})
+
+describe('Watchman#getBinaryPath', () => {
+  it('should use path is exists', () => {
+    let p = __filename
+    let res = Watchman.getBinaryPath(p)
+    expect(res).toBe(p)
+  })
+})
