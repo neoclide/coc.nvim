@@ -18,38 +18,41 @@ export class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
   private customs: string[]
-  private _ready = false
 
   private get nvim(): Neovim {
     return workspace.nvim
   }
 
   private async createNativeSources(): Promise<void> {
-    this.disposables.push((await import('./source/around')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/dictionary')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/emoji')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/file')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/include')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/tag')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/gocode')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/word')).regist(this.sourceMap))
-    this.disposables.push((await import('./source/omni')).regist(this.sourceMap))
+    try {
+      this.disposables.push((await import('./source/around')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/dictionary')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/emoji')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/file')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/include')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/tag')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/gocode')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/word')).regist(this.sourceMap))
+      this.disposables.push((await import('./source/omni')).regist(this.sourceMap))
+    } catch (e) {
+      console.error(e.message) // tslint:disable-line
+    }
   }
 
   private async createVimSourceFromPath(nvim: Neovim, filepath: string): Promise<void> {
     let name = path.basename(filepath, '.vim')
-    await nvim.command(`source ${filepath}`)
-    let fns = await nvim.call('coc#util#remote_fns', name) as string[]
-    for (let fn of ['init', 'complete']) {
-      if (fns.indexOf(fn) == -1) {
-        workspace.showMessage(`${fn} not found for source ${name}`, 'error')
-        return null
-      }
-    }
-    let config: SourceConfig | null
-    let source
     try {
+      await nvim.command(`source ${filepath}`)
+      let fns = await nvim.call('coc#util#remote_fns', name) as string[]
+      for (let fn of ['init', 'complete']) {
+        if (fns.indexOf(fn) == -1) {
+          workspace.showMessage(`${fn} not found for source ${name}`, 'error')
+          return null
+        }
+      }
+      let config: SourceConfig | null
+      let source
       config = await nvim.call(`coc#source#${name}#init`, [])
       config = Object.assign(config, {
         name,
@@ -109,42 +112,20 @@ export class Sources extends EventEmitter {
   }
 
   private onDocumentEnter(bufnr: number): void {
-    this.ready.then(() => { // tslint:disable-line
-      if (bufnr != workspace.bufnr) return
-      let { sources } = this
-      for (let s of sources) {
-        if (!s.enable) continue
-        if (typeof s.onEnter == 'function') {
-          s.onEnter(bufnr)
-        }
+    let { sources } = this
+    for (let s of sources) {
+      if (!s.enable) continue
+      if (typeof s.onEnter == 'function') {
+        s.onEnter(bufnr)
       }
-    })
+    }
   }
 
   public init(): void {
-    Promise.all([
-      this.createNativeSources(),
-      this.createRemoteSources(),
-    ]).then(() => {
-      this._ready = true
-      this.emit('ready')
-      logger.debug(`Created sources ${this.names}`)
-    }, e => {
-      this._ready = true
-      this.emit('ready')
-      workspace.showMessage(`Error on source create ${e.message}`, 'error')
-    })
+    this.createNativeSources() // tslint:disable-line
+    this.createRemoteSources() // tslint:disable-line
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
     this.customs = workspace.getConfiguration('coc.preferences').get<string[]>('customSources', [])
-  }
-
-  public get ready(): Promise<void> {
-    if (this._ready) {
-      return Promise.resolve()
-    }
-    return new Promise(resolve => {
-      this.once('ready', resolve)
-    })
   }
 
   public get names(): string[] {
@@ -262,11 +243,7 @@ export class Sources extends EventEmitter {
     for (let source of this.sources) {
       if (!name || source.name == name) {
         if (typeof source.refresh === 'function') {
-          try {
-            await Promise.resolve(source.refresh())
-          } catch (e) {
-            workspace.showMessage(`Refresh ${name} error: ${e.message}`, 'error')
-          }
+          await Promise.resolve(source.refresh())
         }
       }
     }
@@ -281,7 +258,7 @@ export class Sources extends EventEmitter {
     }
   }
 
-  public sourceStat(): SourceStat[] {
+  public sourceStats(): SourceStat[] {
     let res: SourceStat[] = []
     let items = this.sources
     for (let item of items) {

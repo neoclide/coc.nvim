@@ -428,7 +428,7 @@ export interface ISource {
   enable: boolean
   priority: number
   sourceType: SourceType
-  triggerCharacters: string[]
+  triggerCharacters?: string[]
   duplicate?: boolean
   isSnippet?: boolean
   isFallback?: boolean
