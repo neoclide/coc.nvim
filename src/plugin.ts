@@ -24,7 +24,6 @@ export default class Plugin extends EventEmitter {
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
-    sources.init()
     services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
@@ -34,16 +33,12 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     if (this.initialized) return
     this.initialized = true
+    sources.init()
     let { nvim } = this
     try {
       await workspace.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
-      this.on('registExtensions', async args => {
-        for (let folder of args as string[]) {
-          await extensions.loadExtension(folder)
-        }
-      })
       await nvim.command('doautocmd User CocNvimInit')
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
@@ -51,7 +46,6 @@ export default class Plugin extends EventEmitter {
       this.initialized = false
       console.error(`Plugin initialized error: ${e.message}`) // tslint:disable-line
     }
-    if (global.hasOwnProperty('__TEST__')) return
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
@@ -70,8 +64,20 @@ export default class Plugin extends EventEmitter {
     await this.nvim.command(`edit ${escaped}`)
   }
 
+  public async registExtensions(...folders: string[]): Promise<void> {
+    for (let folder of folders) {
+      await extensions.loadExtension(folder)
+    }
+  }
+
   public async commandList(): Promise<string[]> {
     return commandManager.commandList.map(o => o.id)
+  }
+
+  public async cocInstalled(...names: string[]): Promise<void> {
+    for (let name of names) {
+      await extensions.onExtensionInstall(name)
+    }
   }
 
   public async cocAction(...args: any[]): Promise<any> {
@@ -119,7 +125,7 @@ export default class Plugin extends EventEmitter {
           await completion.startCompletion(args[1])
           break
         case 'sourceStat':
-          return sources.sourceStat()
+          return sources.sourceStats()
         case 'refreshSource':
           await sources.refresh(args[1])
           break
@@ -225,3 +231,4 @@ export default class Plugin extends EventEmitter {
     diagnosticManager.dispose()
   }
 }
+

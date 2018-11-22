@@ -2,31 +2,29 @@ import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
-import extensions from './extensions'
 const logger = require('./util/logger')('attach')
 
 export default function(opts: Attach): Plugin {
   const nvim: NeovimClient = attach(opts)
   const plugin = new Plugin(nvim)
-  nvim.on('notification', (method, args) => {
+  nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter':
-        plugin.init().catch(e => {
-          logger.error(e)
-        })
+        await plugin.init()
         return
       case 'CocAutocmd':
-        (events as any).fire(args[0], args.slice(1))
-        return
-      case 'CocInstalled':
-        for (let name of args) {
-          extensions.onExtensionInstall(name).catch(e => {
-            logger.error(e)
-          })
-        }
+        await events.fire(args[0], args.slice(1))
         return
       default:
-        plugin.emit(method, args)
+        const m = method[0].toLowerCase() + method.slice(1)
+        if (typeof plugin[m] == 'function') {
+          try {
+            await Promise.resolve(plugin[m].apply(plugin, args))
+          } catch (e) {
+            // tslint:disable-next-line:no-console
+            console.error(`error on notification '${method}': ${e}`)
+          }
+        }
     }
   })
 

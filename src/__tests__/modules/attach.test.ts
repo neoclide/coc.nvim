@@ -1,9 +1,7 @@
-import path from 'path'
-import * as cp from 'child_process'
-import attach from '../../attach'
 import { Neovim } from '@chemzqm/neovim'
-import Plugin from '../../plugin'
 import events from '../../events'
+import Plugin from '../../plugin'
+import helper from '../helper'
 
 function wait(ms: number): Promise<void> {
   return new Promise(resolve => {
@@ -15,30 +13,23 @@ function wait(ms: number): Promise<void> {
 let nvim: Neovim
 let plugin: Plugin
 beforeAll(async () => {
-  const vimrc = path.resolve(__dirname, 'vimrc')
-  let proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
-    cwd: __dirname
-  })
-  plugin = attach({ proc })
-  nvim = plugin.nvim
-  await wait(300)
-  nvim.emit('notification', 'VimEnter')
+  await helper.setup()
+  plugin = helper.plugin
+  nvim = helper.nvim
 })
 
 afterAll(async () => {
-  await plugin.dispose()
-  nvim.quit()
+  await helper.shutdown()
 })
 
 afterEach(async () => {
-  await wait(30)
-  await nvim.command('silent! %bdelete!')
-  await wait(30)
+  await helper.reset()
 })
 
 describe('attach', () => {
 
   it('should listen CocInstalled', () => {
+    nvim.emit('notification', 'VimEnter')
     nvim.emit('notification', 'CocInstalled', ['-id'])
   })
 

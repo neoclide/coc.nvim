@@ -337,6 +337,7 @@ describe('SnippetSession#selectPlaceholder', () => {
   it('should select choice placeholder', async () => {
     let buf = await helper.edit('foo')
     let session = new SnippetSession(nvim, buf.id)
+    await nvim.input('i')
     await session.start('${1|one,two,three|}')
     await helper.wait(60)
     let line = await nvim.line
@@ -344,8 +345,5 @@ describe('SnippetSession#selectPlaceholder', () => {
     let val = await nvim.eval('g:coc#_context') as any
     expect(val.start).toBe(0)
     expect(val.candidates).toEqual(['one', 'two', 'three'])
-    await helper.wait(30)
-    let col = await nvim.call('col', '.')
-    expect(col).toBe(3)
   })
 })

@@ -28,18 +28,16 @@ export class Helper extends Emitter {
     this.setMaxListeners(99)
   }
 
-  public setup(uiAttach = true): Promise<void> {
+  public setup(): Promise<void> {
     const vimrc = path.resolve(__dirname, 'vimrc')
     let proc = this.proc = cp.spawn('nvim', ['-u', vimrc, '-i', 'NONE', '--embed'], {
       cwd: __dirname
     })
     let plugin = this.plugin = attach({ proc })
     this.nvim = plugin.nvim
-    if (uiAttach) {
-      this.nvim.uiAttach(80, 80, {}).catch(_e => {
-        // noop
-      })
-    }
+    this.nvim.uiAttach(80, 80, {}).catch(_e => {
+      // noop
+    })
     proc.on('exit', () => {
       this.proc = null
     })
@@ -221,6 +219,15 @@ export class Helper extends Emitter {
     `
     let file = await createTmpFile(content)
     await this.nvim.command(`source ${file}`)
+  }
+
+  public async screenLine(line: number): Promise<string> {
+    let res = ''
+    for (let i = 1; i <= 80; i++) {
+      let ch = await this.nvim.call('screenchar', [line, i])
+      res = res + String.fromCharCode(ch)
+    }
+    return res
   }
 }
 
