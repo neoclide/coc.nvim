@@ -122,7 +122,6 @@ export default class Document {
     this.nvim = nvim
     let { buffer } = this
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
-    logger.debug('opts:', opts)
     if (!opts) return false
     let buftype = this.buftype = opts.buftype
     this._changedtick = opts.changedtick
