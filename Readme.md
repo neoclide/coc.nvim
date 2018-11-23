@@ -93,9 +93,9 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 ## Completion sources
 
-Completion for words of buffers and file path is supported by default.
+Completion for words of buffers and file path are supported by default.
 
-For other completion source, check out:
+For other completion sources, check out:
 
 - [coc-sources](https://github.com/neoclide/coc-sources): includes some common
   completion source extensions.
@@ -247,6 +247,7 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 ## LICENSE
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
+
 [build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [build status]: https://travis-ci.org/neoclide/coc.nvim
 [coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
