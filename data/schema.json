@@ -1,6 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-04/schema",
   "description": "Configuration file for coc.nvim",
+  "additionalProperties": false,
   "definitions": {
     "languageServerSocket": {
       "type": "object",
