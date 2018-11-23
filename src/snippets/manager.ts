@@ -11,13 +11,18 @@ export class SnippetManager implements types.SnippetManager {
   private disposables: Disposable[] = []
   private snippetProvider: CompositeSnippetProvider
   private statusItem: types.StatusBarItem
+  private preferComplete = false
 
   constructor() {
     this.snippetProvider = new CompositeSnippetProvider()
-    workspace.onDidWorkspaceInitialized(() => {
+
+    // tslint:disable-next-line:no-floating-promises
+    workspace.ready.then(() => {
       this.statusItem = workspace.createStatusBarItem(0)
       this.statusItem.text = 'SNIP'
-    }, null, this.disposables)
+      let config = workspace.getConfiguration('coc.preferences')
+      this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    })
 
     workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {
       let { uri } = e.textDocument
@@ -37,6 +42,7 @@ export class SnippetManager implements types.SnippetManager {
 
     events.on('BufEnter', async bufnr => {
       let session = this.getSession(bufnr)
+      if (!this.statusItem) return
       if (session && session.isActive) {
         this.statusItem.show()
       } else {
@@ -86,7 +92,12 @@ export class SnippetManager implements types.SnippetManager {
   }
 
   public async nextPlaceholder(): Promise<void> {
-    let { session } = this
+    let { nvim } = workspace
+    let { session, preferComplete } = this
+    if (preferComplete) {
+      let visible = await nvim.call('pumvisible')
+      if (visible) return nvim.call('coc#_select', false)
+    }
     if (session) return await session.nextPlaceholder()
     workspace.nvim.call('coc#snippet#disable', [], true)
     this.statusItem.hide()

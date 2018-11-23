@@ -262,6 +262,11 @@
       "default": 50,
       "description": "Maxmium number of complete items shown in vim"
     },
+    "coc.preferences.preferCompleteThanJumpPlaceholder": {
+      "type": "boolean",
+      "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
+      "default": false
+    },
     "coc.preferences.fixInsertedWord": {
       "type": "boolean",
       "description": "Make inserted word replace word characers after cursor position.",
