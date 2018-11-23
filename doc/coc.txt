@@ -31,7 +31,6 @@ Statueline support      			|coc-status|
   Manual                			|coc-status-manual|
   Airline 					|coc-status-airline|
   Lightline  					|coc-stauts-lightline|
-Custom Source 					|coc-custom-source|
 Faq						|coc-faq|
 Changelog					|coc-changelog|
 
@@ -129,11 +128,6 @@ Use `<cr>` for confirm completion, use: >
 Note: `snippet` and `additionalTextEdit` feature only work after completion is
 confirmed.
 
-Use <C-x><C-u> to complete custom sources, including  `emoji` and
-`include` >
-
-	imap <silent> <C-x><C-u> <Plug>(coc-complete-custom)
-<
 Use <C-j> and <C-k> to jump forward and backward of snippet placeholders: >
 
 	let g:coc_snippet_next = '<c-j>'
@@ -163,14 +157,6 @@ Keymapings 					*coc-keymapings*
 
 Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
 mode, 'v_' works for visual mode.
-
-<Plug>(coc-complete-custom) 			*i_coc-complete-custom*
-
-			Trigger completion for custom sources.
-
-  			Default customs sources: `emoji` and `include`
-
-			Use `coc.preferences.customSources` to configure.
 
 <Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
 
@@ -706,6 +692,14 @@ AUTOCMD 					*coc-autocmds*
 
 		If you want trigger action of coc after vim started, this
 		autocmd should be used because coc always start in async.
+
+						CocDiagnosticChange
+
+:autocmd User CocDiagnosticChange {command}
+
+		Triggered after diagnostic status changed.
+
+		Could be used for update statusline.
 
 ------------------------------------------------------------------------------
 

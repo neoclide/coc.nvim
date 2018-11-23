@@ -75,6 +75,7 @@ export class DiagnosticBuffer {
     await this.setLocationlist(diagnostics)
     await this.addHighlight(diagnostics)
     await this.addSigns(diagnostics)
+    await this.nvim.command('silent doautocmd User CocDiagnosticChange')
   }
 
   public async setLocationlist(diagnostics: Diagnostic[]): Promise<void> {
