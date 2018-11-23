@@ -231,4 +231,3 @@ export default class Plugin extends EventEmitter {
     diagnosticManager.dispose()
   }
 }
-
