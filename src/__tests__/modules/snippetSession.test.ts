@@ -70,7 +70,7 @@ describe('SnippetSession#start', () => {
     let res = await session.start('${1:aaa}bbb$1')
     expect(res).toBe(true)
     await helper.wait(100)
-    await nvim.input('<backspace>i')
+    await nvim.input('<backspace>')
     await nvim.input('x')
     await helper.wait(30)
     await session.synchronizeUpdatedPlaceholders({

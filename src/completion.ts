@@ -141,7 +141,7 @@ export class Completion implements Disposable {
     option.filetype = document.filetype
     // current input
     this.input = option.input
-    this.triggerCharacters = sources.getTriggerCharacters(option.filetype, option.custom)
+    this.triggerCharacters = sources.getTriggerCharacters(option.filetype)
     if (this.completing) return
     this.completing = true
     try {

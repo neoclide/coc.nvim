@@ -17,7 +17,6 @@ const logger = require('./util/logger')('sources')
 export class Sources extends EventEmitter {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
-  private customs: string[]
 
   private get nvim(): Neovim {
     return workspace.nvim
@@ -26,15 +25,8 @@ export class Sources extends EventEmitter {
   private async createNativeSources(): Promise<void> {
     try {
       this.disposables.push((await import('./source/around')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/dictionary')).regist(this.sourceMap))
       this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/emoji')).regist(this.sourceMap))
       this.disposables.push((await import('./source/file')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/include')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/tag')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/gocode')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/word')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/omni')).regist(this.sourceMap))
     } catch (e) {
       console.error(e.message) // tslint:disable-line
     }
@@ -125,7 +117,6 @@ export class Sources extends EventEmitter {
     this.createNativeSources() // tslint:disable-line
     this.createRemoteSources() // tslint:disable-line
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
-    this.customs = workspace.getConfiguration('coc.preferences').get<string[]>('customSources', [])
   }
 
   public get names(): string[] {
@@ -151,7 +142,9 @@ export class Sources extends EventEmitter {
       let data = JSON.parse(user_data)
       if (!data.source) return
       let source = this.getSource(data.source)
-      if (source) await source.onCompleteResolve(item)
+      if (source && typeof source.onCompleteResolve == 'function') {
+        await source.onCompleteResolve(item)
+      }
     } catch (e) {
       logger.error(e.stack)
     }
@@ -161,7 +154,7 @@ export class Sources extends EventEmitter {
     let data = JSON.parse(item.user_data)
     let source = this.getSource(data.source)
     if (source && typeof source.onCompleteDone === 'function') {
-      await source.onCompleteDone(item, opt)
+      await Promise.resolve(source.onCompleteDone(item, opt))
     }
   }
 
@@ -175,11 +168,11 @@ export class Sources extends EventEmitter {
   }
 
   public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
-    let { triggerCharacter, filetype, custom } = opt
+    let { triggerCharacter, filetype } = opt
     if (isTriggered) {
       return this.getTriggerSources(triggerCharacter, filetype)
     }
-    return this.getSourcesForFiletype(filetype, false, custom)
+    return this.getSourcesForFiletype(filetype, false)
   }
 
   public shouldTrigger(character: string, languageId: string): boolean {
@@ -192,9 +185,9 @@ export class Sources extends EventEmitter {
     return idx !== -1
   }
 
-  public getTriggerCharacters(languageId: string, custom = false): Set<string> {
+  public getTriggerCharacters(languageId: string): Set<string> {
     let res: Set<string> = new Set()
-    let sources = this.getSourcesForFiletype(languageId, false, custom)
+    let sources = this.getSourcesForFiletype(languageId, false)
     for (let s of sources) {
       for (let c of s.triggerCharacters) {
         res.add(c)
@@ -204,21 +197,18 @@ export class Sources extends EventEmitter {
   }
 
   public getTriggerSources(character: string, languageId: string): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId, false, false)
+    let sources = this.getSourcesForFiletype(languageId, false)
     return sources.filter(o => {
       return o.triggerCharacters.indexOf(character) !== -1
     })
   }
 
-  public getSourcesForFiletype(filetype: string, includeDisabled = false, includeCustom = false): ISource[] {
+  public getSourcesForFiletype(filetype: string, includeDisabled = false): ISource[] {
     return this.sources.filter(source => {
-      let { filetypes, name } = source
+      let { filetypes } = source
       if (!includeDisabled && !source.enable) return false
       if (!filetypes || filetypes.indexOf(filetype) !== -1) {
-        if (includeCustom) {
-          return this.customs.indexOf(name) !== -1
-        }
-        return this.customs.indexOf(name) == -1
+        return true
       }
       return false
     })

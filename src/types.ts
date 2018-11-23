@@ -245,7 +245,6 @@ export interface CompleteOption {
   // cursor position
   colnr: number
   readonly linenr: number
-  readonly custom: boolean
   readonly synname: string
   triggerForInComplete?: boolean
 }

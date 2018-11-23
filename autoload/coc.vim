@@ -4,10 +4,6 @@ function! coc#refresh() abort
     return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
 endfunction
 
-function! coc#complete_custom() abort
-    return pumvisible() ? "\<c-e>\<c-r>=coc#start(1, 1)\<CR>" : "\<c-r>=coc#start(0, 1)\<CR>"
-endfunction
-
 function! coc#_set_context(start, items)
   let g:coc#_context = {
         \ 'start': a:start,
@@ -45,7 +41,6 @@ function! coc#start(...)
   let opt = coc#util#get_complete_option()
   call extend(opt, {
         \ 'reload': get(a:, 1, 0),
-        \ 'custom': get(a:, 2, 0),
         \})
   call CocAction('startCompletion', opt)
   return ''

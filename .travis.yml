@@ -19,15 +19,6 @@ matrix:
       env: TEST_SUITE=test-build
 
 before_install:
-  - |
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
-      brew update
-      brew install ripgrep
-    else
-      curl -LO https://github.com/BurntSushi/ripgrep/releases/download/0.9.0/ripgrep_0.9.0_amd64.deb
-      sudo dpkg -i ripgrep_0.9.0_amd64.deb
-    fi
-  - rg --version
   - curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   - |
     if [ "$TRAVIS_OS_NAME" = "osx" ]; then

@@ -1,6 +1,5 @@
 {
   "coc.preferences.timeout": 5000,
-  "coc.source.omni.filetypes": ["vim"],
   "coc.preferences.acceptSuggestionOnCommitCharacter": true,
   "tslint.enable": false,
   "coc.preferences.autoTrigger": "always"

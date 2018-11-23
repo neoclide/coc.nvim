@@ -89,140 +89,39 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 - [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
-- [Create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source)
-
 - [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Completion sources
 
-| Name         | Description                              | Filetypes | Requirement                                                        |
-| ------------ | ---------------------------------------- | --------- | ------------------------------------------------------------------ |
-| `around`     | Words of current buffer.                 | all       |
-| `buffer`     | Words of none current buffer.            | all       |
-| `dictionary` | Words from files of `dictionary` option. | all       |
-| `tag`        | Words from `taglist` of current buffer.  | all       |
-| `file`       | Filename completion.                     | all       |
-| `omni`       | Invoke `omnifunc` for complete items     | []        |
-| `word`       | Words from google 10000 english repo.    | all       |
-| `emoji`      | Emoji characters.                        | all       |
-| `include`    | Full path completion.                    | all       |
-| `gocode`     | Completion using gocode                  | ['go']    | Install [gocode](https://github.com/mdempsky/gocode)               |
-| `ultisnips`  | Snippets completion                      | all       | Install [ultisnips](https://github.com/SirVer/ultisnips)           |
-| `neco`       | Viml completion                          | vim       | Install [neco-vim](https://github.com/Shougo/neco-vim)             |
-| `neosnippet` | Snippets completion                      | all       | Install [neosnippet.vim](https://github.com/Shougo/neosnippet.vim) |
+Completion for words of buffers and file path is supported by default.
 
-- To enable `omni` source for certain files, open `coc-settings.json` by `:CocConfig`, then add configuration like:
+For other completion source, check out:
 
-  ```
-  "coc.source.omni.filetypes": ["python"],
-  ```
+- [coc-sources](https://github.com/neoclide/coc-sources): includes some common
+  completion source extensions.
+- [coc-neco](https://github.com/neoclide/coc-neco): viml completion support.
 
-- To complete sources: `include`, `emoji` and `word`, use mapping of `<Plug>(coc-complete-custom)`
+Or you can [create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
 ## Extensions
 
 Extension are powerful than configured language server. Checkout
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
-- **[coc-tsserver](https://github.com/neoclide/coc-tsserver)**
+- **[coc-json](https://github.com/neoclide/coc-json)** for `json`.
+- **[coc-tsserver](https://github.com/neoclide/coc-tsserver)** for `javascript`
+  and `typescript`.
+- **[coc-html](https://github.com/neoclide/coc-html)** for `html`, `handlebars`
+  and `razor`.
+- **[coc-css](https://github.com/neoclide/coc-css)** for `css`, `scss` and `less`.
+- **[coc-vetur](https://github.com/neoclide/coc-vetur)** for `vue`, use [vetur](https://github.com/vuejs/vetur).
+- **[coc-java](https://github.com/neoclide/coc-java)** for `java`, use [eclipse.jdt.ls](https://github.com/eclipse/eclipse.jdt.ls).
+- **[coc-solargraph](https://github.com/neoclide/coc-solargraph)** for `ruby`,
+  use [solargraph](http://solargraph.org/).
+- **[coc-rls](https://github.com/neoclide/coc-rls)** for `rust`, use
+  [Rust Language Server](https://github.com/rust-lang/rls)
 
-  Used for `javascript` and `typescript`
-
-        :CocInstall coc-tsserver
-
-- **[coc-html](https://github.com/neoclide/coc-html)**
-
-  Used for `html` `handlebars` `razor`
-
-        :CocInstall coc-html
-
-- **[coc-json](https://github.com/neoclide/coc-json)**
-
-  Used for `json` and `jsonc`
-
-        :CocInstall coc-json
-
-- **[coc-css](https://github.com/neoclide/coc-css)**
-
-  Used for `css` `scss` `less` and `wxss`
-
-        :CocInstall coc-css
-
-- **[coc-wxml](https://github.com/neoclide/coc-wxml)**
-
-        :CocInstall coc-wxml
-
-- **[coc-vetur](https://github.com/neoclide/coc-vetur)**
-
-  Used for `vue`
-
-        :CocInstall coc-vetur
-
-- **[coc-java](https://github.com/neoclide/coc-java)**
-
-  Used for `java`
-
-        :CocInstall coc-java
-
-- **[coc-solargraph](https://github.com/neoclide/coc-solargraph)**
-
-  Used for `ruby`
-
-  Install [solargraph](http://solargraph.org/) by:
-
-        gem install solargraph
-
-  then
-
-        :CocInstall coc-solargraph
-
-- **[coc-rls](https://github.com/neoclide/coc-rls)**
-
-  Used for `rust` files.
-
-        :CocInstall coc-rls
-
-- **[coc-pyls](https://github.com/neoclide/coc-pyls)**
-
-  Used for `python`
-
-  Install [pyls](https://github.com/palantir/python-language-server) by:
-
-        pip install 'python-language-server[all]'
-
-  then
-
-        :CocInstall coc-pyls
-
-- **[coc-stylelint](https://github.com/neoclide/coc-stylelint)**
-
-  Used for `css` `wxss` `scss` `less` `markdown` `postcss` `sugarss` `vue`.
-
-        :CocInstall coc-stylelint
-
-- **[coc-eslint](https://github.com/neoclide/coc-eslint)**
-
-  Used for `javascript`
-
-        :CocInstall coc-eslint
-
-- **[coc-tslint](https://github.com/neoclide/coc-tslint)**
-
-  Used for `typescript`
-
-        :CocInstall coc-tslint
-
-- **[coc-prettier](https://github.com/neoclide/coc-prettier)**
-
-  [Prettier](https://github.com/prettier/prettier) extension.
-
-        :CocInstall coc-prettier
-
-- **[coc-jest](https://github.com/neoclide/coc-jest)**
-
-  [Jest](https://github.com/facebook/jest) extension.
-
-        :CocInstall coc-jest
+And more, to get full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
 **Note:** use `:CocConfig` to edit configuration file, auto completion is
 supported after `coc-json` installed.
@@ -257,9 +156,6 @@ endfunction
 
 " Use <c-space> for trigger completion.
 inoremap <silent><expr> <c-space> coc#refresh()
-
-" Use <C-x><C-o> to complete 'word', 'emoji' and 'include' sources
-imap <silent> <C-x><C-o> <Plug>(coc-complete-custom)
 
 " Use <cr> for confirm completion.
 " Coc only does snippet and additional edit on confirm.
@@ -351,12 +247,9 @@ Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.co
 ## LICENSE
 
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
-
 [build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [build status]: https://travis-ci.org/neoclide/coc.nvim
 [coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
 [coverage report]: https://codecov.io/gh/neoclide/coc.nvim
 [gitter badge]: https://badges.gitter.im/neoclide/coc.nvim.svg
-[gitter]: https://gitter.im/neoclide/coc.nvim
-[doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
-[doc link]: doc/coc.txt
+[gitter]: https://gitter.im/neoclide/coc.nvim [doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg [doc link]: doc/coc.txt

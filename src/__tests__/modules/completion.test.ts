@@ -232,6 +232,7 @@ describe('completion#TextChangedP', () => {
   })
 
   it('should do resolve for complete item', async () => {
+    await helper.edit('resolve')
     let source: ISource = {
       priority: 0,
       enable: true,

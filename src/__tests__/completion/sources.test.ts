@@ -27,27 +27,6 @@ describe('native sources', () => {
     expect(res).toBe(true)
   })
 
-  it('should works for word source', async () => {
-    await helper.edit('word.md')
-    await nvim.command('setfiletype markdown')
-    await nvim.setLine('foo')
-    await nvim.input('At')
-    await helper.wait(30)
-    let res = await helper.visible('football', 'word')
-    expect(res).toBe(true)
-  })
-
-  it('should works for dictionary source', async () => {
-    await helper.edit('dictionary')
-    await nvim.call('SetDictionary')
-    let buf = await nvim.buffer
-    let dict = await buf.getOption('dictionary') as string
-    expect(dict).toContain('test.dict')
-    await nvim.input('idiction')
-    let res = await helper.visible('dictionary', 'dictionary')
-    expect(res).toBe(true)
-  })
-
   it('should works for buffer source', async () => {
     await nvim.command('set hidden')
     await helper.edit('buffer')
@@ -57,24 +36,6 @@ describe('native sources', () => {
     await helper.wait(100)
     await nvim.input('io')
     let res = await helper.visible('other', 'buffer')
-    expect(res).toBe(true)
-  })
-
-  it('should works for omni source', async () => {
-    let buf = await helper.edit('omni.vim')
-    await helper.wait(200)
-    await nvim.input('icomm')
-    let opt = await buf.getOption('omnifunc') as string
-    expect(opt).toBe('syntaxcomplete#Complete')
-    await helper.wait(200)
-    let res = await helper.visible('command', 'omni')
-    expect(res).toBe(true)
-  })
-
-  it('should works for tag source', async () => {
-    await helper.edit('tag')
-    await nvim.input('iunb')
-    let res = await helper.visible('unbind', 'tag')
     expect(res).toBe(true)
   })
 
@@ -92,23 +53,5 @@ describe('native sources', () => {
     items = await helper.getItems()
     let item = items.find(o => o.word == 'vimrc')
     expect(item).toBeTruthy()
-  })
-
-  it('should works for emoji source', async () => {
-    await helper.edit('emoji')
-    await nvim.input('ismile')
-    await helper.wait(100)
-    await nvim.input('<C-x><C-u>')
-    let res = await helper.visible('😄', 'emoji')
-    expect(res).toBe(true)
-  })
-
-  it('should works for include source', async () => {
-    await helper.edit('word')
-    await nvim.input('icombas')
-    await helper.wait(100)
-    await nvim.input('<C-x><C-u>')
-    let res = await helper.visible('./completion/basic.test.ts', 'include')
-    expect(res).toBe(true)
   })
 })
