@@ -46,19 +46,17 @@ export class DiagnosticManager {
   private _srcId = 1000
   private enableMessage = true
   constructor() {
-    workspace.onDidWorkspaceInitialized(() => {
+    // tslint:disable-next-line:no-floating-promises
+    workspace.ready.then(async () => {
       this.setConfiguration()
       if (this.enabled) {
         this.init().catch(err => {
           logger.error(err.stack)
         })
       }
-      workspace.nvim.mode.then(({ mode }) => {
-        this.insertMode = mode.startsWith('i')
-      }, _e => {
-        // noop
-      })
-    }, null, this.disposables)
+      let { mode } = await workspace.nvim.mode
+      this.insertMode = mode.startsWith('i')
+    })
 
     events.on('CursorMoved', bufnr => {
       if (this.timer) {
@@ -218,8 +216,8 @@ export class DiagnosticManager {
       let items = collection.get(document.uri)
       for (let item of items) {
         let { range } = item
-        if (document.offsetAt(range.start) >= si
-          && document.offsetAt(range.end) <= ei) {
+        if (withIn(document.offsetAt(range.start), si, ei)
+          || withIn(document.offsetAt(range.end), si, ei)) {
           res.push(item)
         }
       }
@@ -440,6 +438,10 @@ export class DiagnosticManager {
         return 'Error'
     }
   }
+}
+
+function withIn(a: number, s: number, e: number): boolean {
+  return a >= s && a <= e
 }
 
 export default new DiagnosticManager()
