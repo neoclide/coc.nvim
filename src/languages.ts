@@ -403,7 +403,14 @@ class Languages {
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       let { word } = item
-      return completeItems.find(o => o.data && o.data.word == word)
+      return completeItems.find(o => {
+        if (o.data && o.data.hasOwnProperty('word')) {
+          return o.data.word == word
+        }
+        // tslint:disable-next-line:deprecation
+        let insertText = o.insertText || o.label
+        return insertText == word
+      })
     }
     return {
       name,

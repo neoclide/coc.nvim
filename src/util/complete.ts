@@ -1,6 +1,7 @@
 import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import { CompleteOption, VimCompleteItem } from '../types'
 import { byteSlice } from './string'
+import { objectLiteral } from './is'
 const logger = require('./logger')('util-complete')
 
 export function isCocItem(item: any): boolean {
@@ -130,7 +131,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, p
   if (item.preselect) obj.preselect = true
   item.data = item.data || {}
   if (item.data.optional) obj.abbr = obj.abbr + '?'
-  item.data.word = obj.word
+  if (objectLiteral(item.data)) Object.assign(item.data, { word: obj.word })
   let document = getDocumentation(item)
   if (document) obj.info = document
   return obj
