@@ -1,3 +1,18 @@
+# 2018-11-24
+
+- **Break change** sources exluding `around`, `buffer` or `file` are extracted
+  as extensions.
+- **Break change** custom source not exists any more.
+- Add `coc.preferences.preferCompleteThanJumpPlaceholder` to make jump
+  placeholder behavior as confirm completion when possible.
+- Add `CocDiagnosticChange` autocmd for force statusline update.
+- Add `onDidUnloadExtension` event on extention unload.
+- Fix `getDiagnosticsInRange`, consider all interactive ranges.
+- Fix completion throw when `data` on complete item is `string`.
+- Fix `commitCharacters` not works.
+- Fix workspace methods: `renameFile`, `deleteFile` and `resolveRoot`.
+- Fix textEdit of builtin sources not works.
+
 # 2018-11-19
 
 - **Break change** snippet support reworked: support nest snippets, independent
