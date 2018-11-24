@@ -13,6 +13,7 @@ import extensions from './extensions'
 import completion from './completion'
 import Colors from './colors'
 import { TextDocumentContentProvider } from './provider'
+import { isWord } from './util/string'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -46,29 +47,29 @@ export default class Handler {
       this._showSignatureHelp().catch(e => {
         logger.error(e.stack)
       })
-    }, 200)
+    }, 100)
 
-    let lastChar = ''
-    let lastTs = null
-    events.on('InsertCharPre', ch => {
-      lastChar = ch
-      lastTs = Date.now()
+    let timer: NodeJS.Timer
+    events.on('InsertCharPre', async ch => {
+      if (isWord(ch)) return
+      let doc = await workspace.document
+      if (doc && languages.shouldTriggerSignatureHelp(doc.textDocument, ch)) {
+        let config = workspace.getConfiguration('coc.preferences')
+        let triggerSignatureHelp = config.get<boolean>('triggerSignatureHelp', true)
+        if (triggerSignatureHelp) this.showSignatureHelp()
+      }
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(async () => {
+        await this.onCharacterType(ch, doc.bufnr)
+      }, 40)
     }, null, this.disposables)
     events.on('TextChangedI', async bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
-      if (Date.now() - lastTs < 40 && lastChar) {
-        if (languages.shouldTriggerSignatureHelp(doc.textDocument, lastChar)) {
-          let config = workspace.getConfiguration('coc.preferences')
-          let triggerSignatureHelp = config.get<boolean>('triggerSignatureHelp')
-          if (triggerSignatureHelp) this.showSignatureHelp()
-        }
-        await this.onCharacterType(lastChar, bufnr)
-      } else if (doc.lastChange == 'insert') {
+      if (doc.lastChange == 'insert') {
         let line: string = await nvim.call('getline', '.')
         if (line.trim() == '') await this.onCharacterType('\n', bufnr)
       }
-      lastChar = null
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer
