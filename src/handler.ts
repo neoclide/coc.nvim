@@ -118,41 +118,41 @@ export default class Handler {
     }
   }
 
-  public async gotoDefinition(): Promise<void> {
+  public async gotoDefinition(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDefinition(document, position)
     if (definition && definition.length != 0) {
-      await this.handleDefinition(definition)
+      await this.handleLocations(definition, openCommand)
     } else {
       workspace.showMessage('Definition not found', 'warning')
     }
   }
 
-  public async gotoTypeDefinition(): Promise<void> {
+  public async gotoTypeDefinition(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getTypeDefinition(document, position)
     if (definition && definition.length != 0) {
-      await this.handleDefinition(definition)
+      await this.handleLocations(definition, openCommand)
     } else {
       workspace.showMessage('Type definition not found', 'warning')
     }
   }
 
-  public async gotoImplementation(): Promise<void> {
+  public async gotoImplementation(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getImplementation(document, position)
     if (definition && definition.length != 0) {
-      await this.handleDefinition(definition)
+      await this.handleLocations(definition, openCommand)
     } else {
       workspace.showMessage('Implementation not found', 'warning')
     }
   }
 
-  public async gotoReferences(): Promise<void> {
+  public async gotoReferences(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let locs = await languages.getReferences(document, { includeDeclaration: false }, position)
     if (locs && locs.length) {
-      await this.handleDefinition(locs)
+      await this.handleLocations(locs, openCommand)
     } else {
       workspace.showMessage('References not found', 'warning')
     }
@@ -540,20 +540,20 @@ export default class Handler {
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
   }
 
-  private async handleDefinition(definition: Definition): Promise<void> {
+  private async handleLocations(definition: Definition, openCommand?: string): Promise<void> {
     if (!definition) return
     if (Array.isArray(definition)) {
       let len = definition.length
       if (len == 0) return
       if (len == 1) {
         let { uri, range } = definition[0] as Location
-        await workspace.jumpTo(uri, range.start)
+        await workspace.jumpTo(uri, range.start, openCommand)
       } else {
         await this.addQuickfix(definition as Location[])
       }
     } else {
       let { uri, range } = definition as Location
-      await workspace.jumpTo(uri, range.start)
+      await workspace.jumpTo(uri, range.start, openCommand)
     }
   }
 

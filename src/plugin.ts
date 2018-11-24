@@ -149,16 +149,16 @@ export default class Plugin extends EventEmitter {
         case 'diagnosticList':
           return diagnosticManager.diagnosticList()
         case 'jumpDefinition':
-          await handler.gotoDefinition()
+          await handler.gotoDefinition(args[1])
           break
         case 'jumpImplementation':
-          await handler.gotoImplementation()
+          await handler.gotoImplementation(args[1])
           break
         case 'jumpTypeDefinition':
-          await handler.gotoTypeDefinition()
+          await handler.gotoTypeDefinition(args[1])
           break
         case 'jumpReferences':
-          await handler.gotoReferences()
+          await handler.gotoReferences(args[1])
           break
         case 'doHover':
           handler.onHover().catch(e => {

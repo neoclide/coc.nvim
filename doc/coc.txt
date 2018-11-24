@@ -395,30 +395,39 @@ Available Actions ~
 
 	Show diagnostic message at current position, no truncate.
 
-"jumpDefinition" 				*coc-action-jumpDefinition*
+"jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	jump to definition position of current symbol. Use <C-o> and <C-i> to
 	jump forward and backward.
 
 	Quickfix list is used when more than one position available.
 
-"jumpImplementation" 				*coc-action-jumpImplementation*
+	{openCommand}: optional command to open buffer, default to
+	`coc.preferences.openResourceCommand` in `coc-settings.json`
+
+"jumpImplementation" [{openCommand}] 		*coc-action-jumpImplementation*
 
 	Jump to implementation position of current symbol.
 
 	Quickfix list is used when more than one position available.
 
-"jumpTypeDefinition" 				*coc-action-jumpTypeDefinition*
+	{openCommand}: same as "jumpDefinition".
+
+"jumpTypeDefinition" [{openCommand}] 		*coc-action-jumpTypeDefinition*
 
 	Jump to type definition position of current symbol.
 
 	Quickfix list is used when more than one position available.
 
-"jumpReferences" 				*coc-action-jumpReferences*
+	{openCommand}: same as "jumpDefinition".
+
+"jumpReferences" [{openCommand}]		*coc-action-jumpReferences*
 
 	Jump to references position of current symbol.
 
 	Quickfix list is used when more than one position available.
+
+	{openCommand}: same as "jumpDefinition".
 
 "doHover" 					*coc-action-doHover*
 

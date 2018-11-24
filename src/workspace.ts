@@ -488,21 +488,23 @@ export class Workspace implements IWorkspace {
     return options
   }
 
-  public async jumpTo(uri: string, position: Position): Promise<void> {
+  public async jumpTo(uri: string, position: Position, openCommand?: string): Promise<void> {
     const preferences = this.getConfiguration('coc.preferences')
-    let jumpCommand = preferences.get<string>('jumpCommand', 'edit')
-    let { nvim, cwd } = this
+    let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
+    let { nvim } = this
     let { line, character } = position
     let cmd = `+call\\ cursor(${line + 1},${character + 1})`
     let u = Uri.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
     await nvim.command(`normal! m'`)
-    let bufnr = await nvim.call('bufnr', bufname)
+    let loaded = await nvim.call('bufloaded', bufname)
+    let bufnr = loaded == 0 ? 0 : await nvim.call('bufnr', bufname)
     if (bufnr == this.bufnr) {
       await nvim.call('cursor', [line + 1, character + 1])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       nvim.command(`buffer ${cmd} ${bufnr}`, true)
     } else {
+      let cwd = await nvim.call('getcwd')
       let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
       await nvim.command(`${jumpCommand} ${cmd} ${file}`)
