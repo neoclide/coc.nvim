@@ -669,10 +669,8 @@ export class SnippetParser {
     // that has a value defines the value for all placeholders with that index
     const placeholderDefaultValues = new Map<number, Marker[]>()
     const incompletePlaceholders: Placeholder[] = []
-    let placeholderCount = 0
     snippet.walk(marker => {
       if (marker instanceof Placeholder) {
-        placeholderCount += 1
         if (marker.isFinalTabstop) {
           placeholderDefaultValues.set(0, undefined)
         } else if (!placeholderDefaultValues.has(marker.index) && marker.children.length > 0) {

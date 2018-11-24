@@ -300,7 +300,12 @@
     "coc.preferences.triggerCompletionWait": {
       "type": "integer",
       "default": 60,
-      "description": "Wait time between trigger characer type and completion start, for sync content to the server"
+      "description": "Wait time between trigger character type and completion start, for wait server content synchronize."
+    },
+    "coc.preferences.echodocSupport": {
+      "type": "boolean",
+      "default": false,
+      "description": "When enabled, add function signature to user_data.signature to support echodoc.vim"
     },
     "coc.preferences.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",

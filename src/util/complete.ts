@@ -1,5 +1,6 @@
 import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import { CompleteOption, VimCompleteItem } from '../types'
+import { SnippetParser } from '../snippets/parser'
 import { byteSlice } from './string'
 import { objectLiteral } from './is'
 const logger = require('./logger')('util-complete')
@@ -24,14 +25,15 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem, parse: (text: string) => string): string {
+export function getWord(item: CompletionItem): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText, textEdit } = item
   let word: string
   if (insertTextFormat == InsertTextFormat.Snippet) {
     let snippet = textEdit ? textEdit.newText : insertText
     if (snippet) {
-      let lines = parse(snippet.trim()).split('\n')
+      let parser = new SnippetParser()
+      let lines = parser.text(snippet.trim()).split('\n')
       word = lines[0] || label
     } else {
       word = label
@@ -110,7 +112,7 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, parse: (text: string) => string): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string, echodocSupport = false): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   // tslint:disable-next-line:deprecation
@@ -120,13 +122,17 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, p
     item.insertTextFormat = InsertTextFormat.PlainText
   }
   let obj: VimCompleteItem = {
-    word: getWord(item, parse),
+    word: getWord(item),
     abbr: label,
     menu: item.detail ? `${item.detail.replace(/(\n|\t)/g, '').slice(0, 30)} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
     sortText: item.sortText || null,
     filterText: item.filterText || label,
     isSnippet
+  }
+  if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
+    // tslint:disable-next-line:deprecation
+    obj.signature = obj.word.indexOf('(') !== -1 ? obj.word : item.label
   }
   if (item.preselect) obj.preselect = true
   item.data = item.data || {}

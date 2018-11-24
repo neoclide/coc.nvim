@@ -269,6 +269,7 @@ export interface VimCompleteItem {
   priority?: number
   preselect?: boolean
   recentScore?: number
+  signature?: string
 }
 
 export interface CompleteResult {

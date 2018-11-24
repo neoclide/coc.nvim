@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, CompletionItemKind } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import { Chars } from './model/chars'
+import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
 import DefinitionManager from './provider/definitionManager'
@@ -23,15 +23,14 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
+import { ExtensionSnippetProvider } from './snippets/provider'
 import sources from './sources'
-import { CompleteOption, CompleteResult, DiagnosticCollection, ISource, SourceType, VimCompleteItem, CompletionContext } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage, wait } from './util'
 import * as complete from './util/complete'
-import workspace from './workspace'
-import { byteLength } from './util/string'
-import { ExtensionSnippetProvider } from './snippets/provider'
 import { mixin } from './util/object'
-import { SnippetParser } from './snippets/parser'
+import { byteLength } from './util/string'
+import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -398,8 +397,8 @@ class Languages {
     let preferences = workspace.getConfiguration('coc.preferences')
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let fixInsertedWord = preferences.get<boolean>('fixInsertedWord', true)
+    let echodocSupport = preferences.get<boolean>('echodocSupport', false)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    let snipperParser = new SnippetParser()
 
     function resolveItem(item: VimCompleteItem): CompletionItem {
       let { word } = item
@@ -459,7 +458,9 @@ class Languages {
         if (workspace.isVim) await wait(100)
         if (snippet) await snippetManager.insertSnippet(snippet)
         let { command, kind } = completeItem
-        if (snippet && !command && kind >= 2 && kind <= 4) {
+        if (snippet
+          && !echodocSupport
+          && !command && kind >= 2 && kind <= 4) {
           command = { title: 'triggerParameterHints', command: 'editor.action.triggerParameterHints' }
         }
         if (command) commands.execute(command)
@@ -492,7 +493,7 @@ class Languages {
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
         let items: VimCompleteItem[] = completeItems.map(o => {
-          let item = complete.convertVimCompleteItem(o, shortcut, text => snipperParser.parse(text).toString())
+          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport)
           if (endColnr != opt.colnr) item.isSnippet = true
           return item
         })

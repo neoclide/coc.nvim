@@ -150,6 +150,7 @@ export default class Complete {
               item.abbr = `${item.abbr || item.word}${snippetIndicator}`
             }
           }
+          if (item.signature) user_data.signature = item.signature
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
@@ -191,7 +192,7 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score']))
+    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score', 'signature']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
