@@ -21,7 +21,7 @@ describe('plugin', () => {
     await nvim.command(`edit ${home}/.vim/coc-settings.json`)
     await helper.wait(30)
     let line = await helper.screenLine(79)
-    expect(line).toMatch(/Install\scoc-json/)
+    expect(line).toMatch(/coc-json/)
     await nvim.input('n')
   })
 
@@ -34,6 +34,6 @@ describe('plugin', () => {
   it('should regist extensions', async () => {
     await plugin.registExtensions('/tmp/coc')
     let line = await helper.screenLine(79)
-    expect(line).toMatch("package.json not found")
+    expect(line).toMatch("not found")
   })
 })
