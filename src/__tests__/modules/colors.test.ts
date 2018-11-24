@@ -65,7 +65,8 @@ describe('Colors', () => {
   it('should highlight on CursorHold', async () => {
     let buf = await helper.edit('tmp')
     await nvim.setLine('#ffffff')
-    await helper.wait(600)
+    await nvim.command('doautocmd CursorHold')
+    await helper.wait(100)
     expect(colors.hasColor(buf.id)).toBe(true)
   })
 
