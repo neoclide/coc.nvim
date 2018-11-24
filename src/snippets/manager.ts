@@ -24,6 +24,7 @@ export class SnippetManager implements types.SnippetManager {
     workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {
       let { uri } = e.textDocument
       let doc = workspace.getDocument(uri)
+      if (!doc) return
       let session = this.getSession(doc.bufnr)
       if (session && session.isActive) {
         await session.synchronizeUpdatedPlaceholders(e.contentChanges[0])

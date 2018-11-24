@@ -694,8 +694,6 @@ export class SnippetParser {
       }
     }
 
-    insertFinalTabstop = placeholderCount > 0 && insertFinalTabstop
-
     if (!placeholderDefaultValues.has(0) && insertFinalTabstop) {
       // the snippet uses placeholders but has no
       // final tabstop defined -> insert at the end

@@ -32,6 +32,16 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
+  it('should start with findPlaceholder for plain snippet', async () => {
+    let buf = await helper.edit('foo')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('bar$0')
+    expect(res).toBe(false)
+    await helper.wait(100)
+    let pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 3 })
+  })
+
   it('should insert resolved variable', async () => {
     let buf = await helper.edit('foo')
     let session = new SnippetSession(nvim, buf.id)
