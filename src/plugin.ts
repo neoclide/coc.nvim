@@ -59,7 +59,13 @@ export default class Plugin extends EventEmitter {
     return await services.sendRequest(id, method, params)
   }
 
-  public async findLocations(id: string, method: string, params: any = {}, openCommand?: string): Promise<void> {
+  public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
+    let { document, position } = await workspace.getCurrentState()
+    params = params || {}
+    Object.assign(params, {
+      textDocument: { uri: document.uri },
+      position
+    })
     let res: Location[] | null = await services.sendRequest(id, method, params)
     if (!res || res.length == 0) {
       workspace.showMessage(`Location of "${method}" not found!`, 'warning')
