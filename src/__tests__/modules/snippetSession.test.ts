@@ -42,6 +42,17 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
+  it('should insert indent for snippet endsWith line break', async () => {
+    let buf = await helper.edit('foo')
+    await nvim.setLine('bar')
+    await nvim.input('I  ')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('foo\n')
+    expect(res).toBe(false)
+    let lines = await buf.lines
+    expect(lines).toEqual(['  foo', '  bar'])
+  })
+
   it('should insert resolved variable', async () => {
     let buf = await helper.edit('foo')
     let session = new SnippetSession(nvim, buf.id)

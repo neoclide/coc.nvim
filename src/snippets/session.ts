@@ -35,6 +35,10 @@ export class SnippetSession {
       position,
       new SnippetVariableResolver(position.line, Uri.parse(document.uri).fsPath))
     const edit = TextEdit.insert(position, snippet.toString())
+    const endPart = currentLine.slice(position.character)
+    if (snippetString.endsWith('\n') && endPart) {
+      edit.newText = edit.newText + currentIndent
+    }
     if (snippet.isPlainText) {
       // insert as text
       await document.applyEdits(this.nvim, [edit])
