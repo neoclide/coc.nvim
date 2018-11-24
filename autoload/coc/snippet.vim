@@ -39,15 +39,23 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
   call timer_start(20, { -> coc#_do_complete()})
 endfunction
 
-function! coc#snippet#enable()
+function! coc#snippet#enable(...)
   let b:coc_snippet_active = 1
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
-  nnoremap <buffer> <esc> :call CocActionAsync('snippetCancel')<cr>
+  nnoremap <buffer> <esc> :silent call CocAction('snippetCancel')<cr>
   execute 'imap <buffer> <nowait> <silent>'.prevkey." <C-o>:call CocActionAsync('snippetPrev')<cr>"
   execute 'smap <buffer> <nowait> <silent>'.prevkey." <Esc>:call CocActionAsync('snippetPrev')<cr>"
-  execute 'imap <buffer> <nowait> <silent>'.nextkey." <C-o>:call CocActionAsync('snippetNext')<cr>"
+  execute 'imap <buffer> <nowait> <silent>'.nextkey." <C-r>=<SID>SnippetNext(".get(a:, 1, 0).")<cr>"
   execute 'smap <buffer> <nowait> <silent>'.nextkey." <Esc>:call CocActionAsync('snippetNext')<cr>"
+endfunction
+
+function! s:SnippetNext(preferComplete)
+  if a:preferComplete && pumvisible()
+    return "\<c-y>"
+  endif
+  call CocActionAsync('snippetNext')
+  return pumvisible() ? "\<c-e>" : ''
 endfunction
 
 function! coc#snippet#disable()

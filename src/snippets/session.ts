@@ -17,6 +17,7 @@ export class SnippetSession {
   private _snippet: CocSnippet = null
   private _currId = 0
   private _onCancelEvent = new Emitter<void>()
+  private preferComplete = false
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
@@ -55,6 +56,8 @@ export class SnippetSession {
         return true
       }
     }
+    let config = workspace.getConfiguration('coc.preferences')
+    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     // new snippet
     this._snippet = snippet
     await this.selectPlaceholder(snippet.firstPlaceholder)
@@ -65,8 +68,9 @@ export class SnippetSession {
 
   private activate(): void {
     if (this._isActive) return
+    let { preferComplete } = this
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [], true)
+    this.nvim.call('coc#snippet#enable', [preferComplete ? 1 : 0], true)
   }
 
   public deactivate(): void {
@@ -84,16 +88,16 @@ export class SnippetSession {
   }
 
   public async nextPlaceholder(): Promise<void> {
-    if (!this.isActive) return
     await this.documentSynchronize()
+    if (!this.isActive) return
     let curr = this.placeholder
     let next = this.snippet.getNextPlaceholder(curr.index)
     await this.selectPlaceholder(next)
   }
 
   public async previousPlaceholder(): Promise<void> {
-    if (!this.isActive) return
     await this.documentSynchronize()
+    if (!this.isActive) return
     let curr = this.placeholder
     let prev = this.snippet.getPrevPlaceholder(curr.index)
     await this.selectPlaceholder(prev)
@@ -145,6 +149,7 @@ export class SnippetSession {
   }
 
   private async documentSynchronize(): Promise<void> {
+    if (!this.isActive) return
     await this.document.patchChange()
     this.document.forceSync()
     await wait(40)
