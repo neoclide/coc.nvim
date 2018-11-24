@@ -498,7 +498,7 @@ export class Workspace implements IWorkspace {
     let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
-    let bufnr = loaded == 0 ? 0 : await nvim.call('bufnr', bufname)
+    let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)
     if (bufnr == this.bufnr) {
       await nvim.call('cursor', [line + 1, character + 1])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
