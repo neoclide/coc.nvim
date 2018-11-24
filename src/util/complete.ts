@@ -132,7 +132,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, e
   }
   if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
     // tslint:disable-next-line:deprecation
-    obj.signature = obj.word.indexOf('(') !== -1 ? obj.word : item.label
+    obj.signature = obj.abbr.indexOf('(') !== -1 ? obj.abbr : isSnippet ? obj.word : item.detail || ''
   }
   if (item.preselect) obj.preselect = true
   item.data = item.data || {}
