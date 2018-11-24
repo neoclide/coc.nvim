@@ -356,9 +356,9 @@ CocActionAsync({action, [...{args}], {callback}})
 	`response`.
 
 						*CocRequest()*
-CocRequest({id}, {type}, [{params}])
+CocRequest({id}, {method}, [{params}])
 
-	Send request to language client of {id} with {type} and optional
+	Send request to language client of {id} with {method} and optional
 	{params}. eg: >
 
 	call CocRequest('tslint', 'textDocument/tslint/allFixes',
@@ -367,11 +367,23 @@ CocRequest({id}, {type}, [{params}])
 	vim error would raise when request response with error.
 
 						*CocRequestAsync()*
-CocRequestAsync({id}, {type}, [{params}, {callback}])
+CocRequestAsync({id}, {method}, [{params}, {callback}])
 
 	Async request for remote language client. {callback} is called with
 	error and response.
 
+						*CocLocations()*
+CocLocations({id}, {method}, [{params}, {openCommand}])
+
+	Send location request to language client of {id} with
+	{method} and optional {params}. eg: >
+
+	call CocLocations('ccls', '$ccls/call',  {'callee': v:true})
+
+	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
+<
+	{openCommand}: optional command to open buffer, default to
+	`coc.preferences.openResourceCommand` in `coc-settings.json`
 
 Available Actions ~
 

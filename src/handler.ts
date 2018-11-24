@@ -540,7 +540,7 @@ export default class Handler {
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
   }
 
-  private async handleLocations(definition: Definition, openCommand?: string): Promise<void> {
+  public async handleLocations(definition: Definition, openCommand?: string): Promise<void> {
     if (!definition) return
     if (Array.isArray(definition)) {
       let len = definition.length

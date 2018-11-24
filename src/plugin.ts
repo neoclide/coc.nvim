@@ -13,6 +13,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
+import { Location } from 'vscode-languageserver-types'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -56,6 +57,15 @@ export default class Plugin extends EventEmitter {
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
     return await services.sendRequest(id, method, params)
+  }
+
+  public async findLocations(id: string, method: string, params: any = {}, openCommand?: string): Promise<void> {
+    let res: Location[] | null = await services.sendRequest(id, method, params)
+    if (!res || res.length == 0) {
+      workspace.showMessage(`Location of "${method}" not found!`, 'warning')
+      return
+    }
+    await this.handler.handleLocations(res, openCommand)
   }
 
   public async openLog(): Promise<void> {
