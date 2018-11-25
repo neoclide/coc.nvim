@@ -286,14 +286,24 @@ export default class Handler {
     await document.applyEdits(this.nvim, textEdits)
   }
 
-  public async documentRangeFormatting(mode: string): Promise<void> {
+  public async documentRangeFormatting(mode: string): Promise<number> {
     let document = await workspace.document
-    if (!document || !mode) return
-    let range = await this.getSelectedRange(mode, document.textDocument)
-    if (!range) return
+    if (!document) return -1
+    let range: Range
+    if (mode) {
+      range = await this.getSelectedRange(mode, document.textDocument)
+      if (!range) return -1
+    } else {
+      let lnum = await this.nvim.getVvar('lnum') as number
+      let count = await this.nvim.getVvar('count') as number
+      let mode = await this.nvim.call('mode')
+      // we can't handle
+      if (count == 0 || mode == 'i' || mode == 'R') return -1
+      range = Range.create(lnum - 1, 0, lnum - 1 + count, 0)
+    }
     let options = await workspace.getFormatOptions()
     let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
-    if (!textEdits) return
+    if (!textEdits) return - 1
     await document.applyEdits(this.nvim, textEdits)
   }
 

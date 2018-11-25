@@ -193,6 +193,9 @@ nmap <leader>rn <Plug>(coc-rename)
 vmap <leader>f  <Plug>(coc-format-selected)
 nmap <leader>f  <Plug>(coc-format-selected)
 
+" Or use formatexpr for range format
+set formatexpr=CocAction('formatSelected')
+
 " Remap for do codeAction of selected region, ex: `<leader>aap` for current paragraph
 vmap <leader>a  <Plug>(coc-codeaction-selected)
 nmap <leader>a  <Plug>(coc-codeaction-selected)

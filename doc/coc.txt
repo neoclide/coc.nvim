@@ -493,6 +493,14 @@ Available Actions ~
 	Note: some format provider only does indent while others include
 	pretty functionality.
 
+"formatSelected" [{mode}] 			*coc-action-formatSelected*
+
+	Format selected range, {mode} should be one of visual mode: `v` , `V`,
+	`char`, `line`.
+
+	When {mode} omited, it should be called using |formatexpr|.
+	
+
 "codeAction" [{mode}] 				*coc-action-codeAction*
 
 	prompty for a code action and do it.
