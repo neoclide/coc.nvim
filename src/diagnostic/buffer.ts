@@ -57,7 +57,7 @@ export class DiagnosticBuffer {
     return workspace.getDocument(this.uri)
   }
 
-  private enableLoclist(): boolean {
+  private get enableLoclist(): boolean {
     return this.manager.config.locationlist
   }
 
