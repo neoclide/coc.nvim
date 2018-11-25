@@ -46,7 +46,7 @@ describe('document model properties', () => {
   it('should get word range', async () => {
     let doc = await helper.createDocument('foo')
     await nvim.setLine('foo bar')
-    await helper.wait(100)
+    await helper.wait(200)
     let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
     expect(range).toEqual(Range.create(0, 0, 0, 3))
     range = doc.getWordRangeAtPosition({ line: 0, character: 3 })
