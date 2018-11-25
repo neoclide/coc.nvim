@@ -25,7 +25,6 @@ export default class Plugin extends EventEmitter {
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
-    services.init()
     commandManager.init(nvim, this)
     completion.init(nvim)
     clean() // tslint:disable-line
@@ -38,6 +37,7 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     try {
       await workspace.init()
+      services.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
       await nvim.command('doautocmd User CocNvimInit')

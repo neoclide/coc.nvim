@@ -3,7 +3,6 @@ import fs from 'fs'
 import net from 'net'
 import path from 'path'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
-import which from 'which'
 import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
@@ -16,13 +15,7 @@ interface ServiceInfo {
   languageIds: string[]
 }
 
-interface LazyClient {
-  id: string
-  documentSelector: DocumentSelector
-  init: Function
-}
-
-function getStateName(state: ServiceStat): string {
+export function getStateName(state: ServiceStat): string {
   switch (state) {
     case ServiceStat.Initial:
       return 'init'
@@ -43,15 +36,13 @@ function getStateName(state: ServiceStat): string {
 
 export class ServiceManager extends EventEmitter implements Disposable {
   private readonly registed: Map<string, IServiceProvider> = new Map()
-  private readonly lazyClients: Set<LazyClient> = new Set()
   private disposables: Disposable[] = []
 
   public init(): void {
-    this.createCustomServices()
     workspace.onDidOpenTextDocument(document => {
-      this.checkLazyClients(document)
       this.start(document)
     }, null, this.disposables)
+    this.createCustomServices()
   }
 
   public dispose(): void {
@@ -65,7 +56,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
   public regist(service: IServiceProvider): Disposable {
     let { id } = service
     if (!id) logger.error('invalid service ', service.name)
-    if (service.enable === false) return
     if (this.registed.get(id)) {
       workspace.showMessage(`Service ${id} already exists`, 'error')
       return
@@ -74,15 +64,12 @@ export class ServiceManager extends EventEmitter implements Disposable {
     if (this.shouldStart(service)) {
       service.start() // tslint:disable-line
     }
-    const onStarted = (notify = true): void => {
-      if (notify) workspace.showMessage(`service ${id} started`, 'more')
+    if (service.state == ServiceStat.Running) {
       this.emit('ready', id)
     }
-    if (service.state == ServiceStat.Running) {
-      onStarted(false)
-    }
     service.onServiceReady(() => {
-      onStarted(true)
+      workspace.showMessage(`service ${id} started`, 'more')
+      this.emit('ready', id)
     }, null, this.disposables)
     return Disposable.create(() => {
       service.stop()
@@ -95,16 +82,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let service = this.registed.get(id)
     if (!service) service = this.registed.get(`languageserver.${id}`)
     return service
-  }
-
-  public getServices(document: TextDocument): IServiceProvider[] {
-    let res: IServiceProvider[] = []
-    for (let service of this.registed.values()) {
-      if (workspace.match(service.selector, document) > 0) {
-        res.push(service)
-      }
-    }
-    return res
   }
 
   private shouldStart(service: IServiceProvider): boolean {
@@ -127,6 +104,16 @@ export class ServiceManager extends EventEmitter implements Disposable {
         service.start() // tslint:disable-line
       }
     }
+  }
+
+  public getServices(document: TextDocument): IServiceProvider[] {
+    let res: IServiceProvider[] = []
+    for (let service of this.registed.values()) {
+      if (workspace.match(service.selector, document) > 0) {
+        res.push(service)
+      }
+    }
+    return res
   }
 
   public stop(id: string): Promise<void> {
@@ -180,28 +167,13 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base)
     for (let key of Object.keys(lspConfig)) {
-      let config = lspConfig[key]
+      let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
       if (config.enable === false) continue
       let opts = getLanguageServerOptions(id, key, config)
       if (!opts) continue
-      this.lazyClients.add({
-        id,
-        documentSelector: opts[0].documentSelector,
-        init: () => {
-          let client = new LanguageClient(id, key, opts[1], opts[0])
-          this.registLanguageClient(client)
-        }
-      })
-    }
-  }
-
-  private checkLazyClients(document?: TextDocument): void {
-    for (let [client] of this.lazyClients.entries()) {
-      if (document && workspace.match(client.documentSelector, document)) {
-        this.lazyClients.delete(client)
-        client.init()
-      }
+      let client = new LanguageClient(id, key, opts[1], opts[0])
+      this.registLanguageClient(client)
     }
   }
 
@@ -228,7 +200,6 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
     let service: IServiceProvider = {
       client,
-      enable: true,
       id: client.id,
       name: client.name,
       selector: client.clientOptions.documentSelector,
@@ -250,7 +221,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
             onDidServiceReady.fire(void 0)
             resolve()
           }, e => {
-            workspace.showMessage(`Server ${client.name} failed to start: ${e ? e.message : ''}`)
+            workspace.showMessage(`Server ${client.name} failed to start: ${e ? e.message : ''}`, 'error')
             service.state = ServiceStat.StartFailed
             resolve()
           })
@@ -290,7 +261,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 }
 
-function documentSelectorToLanguageIds(documentSelector: DocumentSelector): string[] {
+export function documentSelectorToLanguageIds(documentSelector: DocumentSelector): string[] {
   let res = documentSelector.map(filter => {
     if (typeof filter == 'string') {
       return filter
@@ -302,7 +273,7 @@ function documentSelectorToLanguageIds(documentSelector: DocumentSelector): stri
 }
 
 // convert config to options
-function getLanguageServerOptions(id: string, name: string, config: LanguageServerConfig): [LanguageClientOptions, ServerOptions] {
+export function getLanguageServerOptions(id: string, name: string, config: LanguageServerConfig): [LanguageClientOptions, ServerOptions] {
   let { command, module, port, args } = config
   args = args || []
   if (!command && !module && !port) {
@@ -312,17 +283,6 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
   if (module && !fs.existsSync(module as string)) {
     workspace.showMessage(`module file ${module} not found for ${name}`, 'error')
     return null
-  }
-  if (command) {
-    try {
-      let resolved = which.sync(config.command)
-      if (args.indexOf('--node-ipc') !== -1) {
-        module = resolved
-      }
-    } catch (e) {
-      workspace.showMessage(`Executable ${command} not found`, 'error')
-      return null
-    }
   }
   let isModule = module != null
   let serverOptions: ServerOptions
@@ -355,12 +315,11 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
       })
     }
   }
-  let section = config.settings == null ? null : `${id}.settings`
   let clientOptions: LanguageClientOptions = {
     documentSelector: config.filetypes || [{ language: '*' }],
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
-      configurationSection: section
+      configurationSection: `${id}.settings`
     },
     diagnosticCollectionName: name,
     outputChannelName: id,
@@ -370,7 +329,7 @@ function getLanguageServerOptions(id: string, name: string, config: LanguageServ
   return [clientOptions, serverOptions]
 }
 
-function getRevealOutputChannelOn(revealOn: string | undefined): RevealOutputChannelOn {
+export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOutputChannelOn {
   switch (revealOn) {
     case 'info':
       return RevealOutputChannelOn.Info
@@ -385,7 +344,7 @@ function getRevealOutputChannelOn(revealOn: string | undefined): RevealOutputCha
   }
 }
 
-function getTransportKind(args: string[]): Transport {
+export function getTransportKind(args: string[]): Transport {
   if (!args || args.indexOf('--node-ipc') !== -1) {
     return TransportKind.ipc
   }

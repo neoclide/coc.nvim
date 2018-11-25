@@ -410,7 +410,6 @@ export interface IServiceProvider {
   // unique service id
   id: string
   name: string
-  enable: boolean
   client?: LanguageClient
   selector: DocumentSelector
   // current state
