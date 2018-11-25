@@ -78,7 +78,7 @@ class Languages {
   private hoverManager = new HoverManager()
   private signatureManager = new SignatureManager()
   private documentSymbolManager = new DocumentSymbolManager()
-  private DocumentHighlightManager = new DocumentHighlightManager()
+  private documentHighlightManager = new DocumentHighlightManager()
   private definitionManager = new DefinitionManager()
   private typeDefinitionManager = new TypeDefinitionManager()
   private referenceManager = new ReferenceManager()
@@ -193,7 +193,7 @@ class Languages {
   }
 
   public registerDocumentHighlightProvider(selector, provider: any): Disposable {
-    return this.DocumentHighlightManager.register(selector, provider)
+    return this.documentHighlightManager.register(selector, provider)
   }
 
   public registerCodeLensProvider(selector: DocumentSelector, provider: CodeLensProvider): Disposable {
@@ -246,6 +246,10 @@ class Languages {
 
   @check
   public async getHover(document: TextDocument, position: Position): Promise<Hover> {
+    if (!this.hoverManager.hasProvider(document)) {
+      workspace.showMessage('Hover provider not found for current document', 'error')
+      return null
+    }
     return await this.hoverManager.provideHover(document, position, this.token)
   }
 
@@ -256,32 +260,56 @@ class Languages {
 
   @check
   public async getDefinition(document: TextDocument, position: Position): Promise<Location[]> {
+    if (!this.definitionManager.hasProvider(document)) {
+      workspace.showMessage('Definition provider not found for current document', 'error')
+      return null
+    }
     return await this.definitionManager.provideDefinition(document, position, this.token)
   }
 
   @check
   public async getTypeDefinition(document: TextDocument, position: Position): Promise<Location[]> {
+    if (!this.typeDefinitionManager.hasProvider(document)) {
+      workspace.showMessage('Type definition provider not found for current document', 'error')
+      return null
+    }
     return await this.typeDefinitionManager.provideTypeDefinition(document, position, this.token)
   }
 
   @check
   public async getImplementation(document: TextDocument, position: Position): Promise<Location[]> {
+    if (!this.implementatioinManager.hasProvider(document)) {
+      workspace.showMessage('Implementation provider not found for current document', 'error')
+      return null
+    }
     return await this.implementatioinManager.provideReferences(document, position, this.token)
   }
 
   @check
   public async getReferences(document: TextDocument, context: ReferenceContext, position: Position): Promise<Location[]> {
+    if (!this.referenceManager.hasProvider(document)) {
+      workspace.showMessage('References provider not found for current document', 'error')
+      return null
+    }
     return await this.referenceManager.provideReferences(document, position, context, this.token)
   }
 
   @check
   public async getDocumentSymbol(document: TextDocument): Promise<SymbolInformation[] | DocumentSymbol[]> {
+    if (!this.documentSymbolManager.hasProvider(document)) {
+      workspace.showMessage('Document symbol provider not found for current document', 'error')
+      return null
+    }
     return await this.documentSymbolManager.provideDocumentSymbols(document, this.token)
   }
 
   @check
   public async getWorkspaceSymbols(document: TextDocument, query: string): Promise<SymbolInformation[]> {
     query = query || ''
+    if (!this.workspaceSymbolsManager.hasProvider(document)) {
+      workspace.showMessage('Workspace symbols provider not found for current document', 'error')
+      return null
+    }
     return await this.workspaceSymbolsManager.provideWorkspaceSymbols(document, query, this.token)
   }
 
@@ -292,6 +320,10 @@ class Languages {
 
   @check
   public async provideRenameEdits(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit> {
+    if (!this.renameManager.hasProvider(document)) {
+      workspace.showMessage('Rename provider not found for current document', 'error')
+      return null
+    }
     return await this.renameManager.provideRenameEdits(document, position, newName, this.token)
   }
 
@@ -302,11 +334,19 @@ class Languages {
 
   @check
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
+    if (!this.formatManager.hasProvider(document)) {
+      workspace.showMessage('Format provider not found for current document', 'error')
+      return null
+    }
     return await this.formatManager.provideDocumentFormattingEdits(document, options, this.token)
   }
 
   @check
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
+    if (!this.formatRangeManager.hasProvider(document)) {
+      workspace.showMessage('Range format provider not found for current document', 'error')
+      return null
+    }
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, this.token)
   }
 
@@ -321,16 +361,24 @@ class Languages {
    */
   @check
   public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext): Promise<CodeAction[]> {
+    if (!this.codeActionManager.hasProvider(document)) {
+      workspace.showMessage('Code action provider not found for current document', 'error')
+      return null
+    }
     return await this.codeActionManager.provideCodeActions(document, range, context, this.token)
   }
 
   @check
   public async getDocumentHighLight(document: TextDocument, position: Position): Promise<DocumentHighlight[]> {
-    return await this.DocumentHighlightManager.provideDocumentHighlights(document, position, this.token)
+    return await this.documentHighlightManager.provideDocumentHighlights(document, position, this.token)
   }
 
   @check
   public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
+    if (!this.documentLinkManager.hasProvider(document)) {
+      workspace.showMessage('Document link provider not found for current document', 'error')
+      return null
+    }
     return await this.documentLinkManager.provideDocumentLinks(document, this.token)
   }
 
@@ -346,6 +394,10 @@ class Languages {
 
   @check
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext): Promise<FoldingRange[] | null> {
+    if (!this.formatRangeManager.hasProvider(document)) {
+      workspace.showMessage('Folding ranges provider not found for current document', 'error')
+      return null
+    }
     return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token)
   }
 

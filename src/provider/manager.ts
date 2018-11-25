@@ -12,6 +12,10 @@ export interface ProviderItem<T> {
 export default class Manager<T> {
   protected providers: Set<ProviderItem<T>> = new Set()
 
+  public hasProvider(document: TextDocument): boolean {
+    return this.getProvider(document) != null
+  }
+
   protected getProvider(document: TextDocument): ProviderItem<T> {
     let currScore = 0
     let providerItem: ProviderItem<T>
