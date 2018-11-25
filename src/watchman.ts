@@ -102,6 +102,7 @@ export default class Watchman {
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
       let { files } = resp
+      if (!files) return
       files.map(f => f.mtime_ms = +f.mtime_ms)
       cb(resp)
     })
