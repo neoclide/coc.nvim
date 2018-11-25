@@ -537,6 +537,11 @@ export default class Handler {
     // let visible = await this.nvim.call('pumvisible')
     if (!signatureHelp || completion.isActivted) return
     let { activeParameter, activeSignature, signatures } = signatureHelp
+    for (let signature of signatures) {
+      if (signature.label.indexOf('(') !== -1) {
+        signature.label = signature.label.replace(/\(.*\)/, '')
+      }
+    }
     await this.nvim.command('echo ""')
     await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
   }
