@@ -3406,7 +3406,7 @@ export abstract class BaseLanguageClient {
         level = RevealOutputChannelOn.Warn
         break
     }
-    this.outputChannel.appendLine(`[${level}  - ${(new Date().toLocaleTimeString())}] ${message}`)
+    this.outputChannel.appendLine(`[${type}  - ${(new Date().toLocaleTimeString())}] ${message}`)
     if (data) {
       this.outputChannel.appendLine(this.data2String(data))
     }
