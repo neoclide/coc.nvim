@@ -32,8 +32,7 @@ export default class BufferChannel implements OutputChannel {
       await buffer.append(value.split('\n'))
       return
     }
-    let lines = this.content.split('\n')
-    let last = lines[lines.length - 1] || ''
+    let last = await this.nvim.call('getbufline', [buffer.id, '$'])
     let content = last + value
     await buffer.setLines(content.split('\n'), {
       start: -2,
@@ -61,7 +60,7 @@ export default class BufferChannel implements OutputChannel {
     let { buffer } = this
     if (buffer) {
       buffer.setLines([], {
-        start: 1,
+        start: 0,
         end: -1,
         strictIndexing: false
       }).catch(_e => {

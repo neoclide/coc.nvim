@@ -15,7 +15,6 @@ import clean from './util/clean'
 import workspace from './workspace'
 import { Location } from 'vscode-languageserver-types'
 import { OutputChannel } from './types'
-import { readFile } from './util/fs'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
