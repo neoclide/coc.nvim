@@ -24,11 +24,11 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     for (let actions of arr) {
       if (actions == null) continue
       for (let action of actions) {
-        if (CodeAction.is(action)) {
+        if (Command.is(action)) {
+          res.push(CodeAction.create(action.title, action))
+        } else {
           let idx = res.findIndex(o => o.title == action.title)
           if (idx == -1) res.push(action)
-        } else {
-          res.push(CodeAction.create(action.title, action))
         }
       }
     }
