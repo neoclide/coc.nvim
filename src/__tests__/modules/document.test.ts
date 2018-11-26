@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range } from 'vscode-languageserver-protocol'
+import { Disposable, Range, Position } from 'vscode-languageserver-protocol'
 import { disposeAll } from '../../util'
 import helper from '../helper'
 
@@ -55,5 +55,43 @@ describe('document model properties', () => {
     expect(range).toEqual(Range.create(0, 4, 0, 7))
     range = doc.getWordRangeAtPosition({ line: 0, character: 7 })
     expect(range).toBeNull()
+  })
+
+  it('should get localify bonus', async () => {
+    let doc = await helper.createDocument('foo')
+    let { buffer } = doc
+    await buffer.setLines(['context content clearTimeout', ''],
+      { start: 0, end: -1, strictIndexing: false })
+    await helper.wait(100)
+    let pos: Position = { line: 1, character: 0 }
+    let res = doc.getLocalifyBonus(pos)
+    expect(res.get('clearTimeout')).toBe(15)
+    expect(res.get('content')).toBe(7)
+    expect(res.get('context')).toBe(0)
+  })
+
+  it('should be fast for localify bonus', async () => {
+    let lines = []
+    function randomWord(): string {
+      let s = ''
+      for (let i = 0; i < 10; i++) {
+        s = s + String.fromCharCode(97 + Math.floor(Math.random() * 26))
+      }
+      return s
+    }
+    for (let i = 0; i < 300; i++) {
+      let line = ''
+      for (let i = 0; i < 10; i++) {
+        line = line + randomWord() + ' '
+      }
+      lines.push(line)
+    }
+    let doc = await helper.createDocument('foo')
+    let { buffer } = doc
+    await buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false })
+    await helper.wait(100)
+    let ts = Date.now()
+    doc.getLocalifyBonus({ line: 299, character: 0 })
+    expect(Date.now() - ts).toBeLessThanOrEqual(30)
   })
 })

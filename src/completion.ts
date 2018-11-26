@@ -125,7 +125,8 @@ export class Completion implements Disposable {
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
       timeout: config.get<number>('timeout', 500),
       snippetIndicator: config.get<string>('snippetIndicator', '~'),
-      fixInsertedWord: config.get<boolean>('fixInsertedWord', true)
+      fixInsertedWord: config.get<boolean>('fixInsertedWord', true),
+      localityBonus: config.get<boolean>('localityBonus', true)
     }
   }
 

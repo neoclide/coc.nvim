@@ -17,6 +17,7 @@ export default class Complete {
   public results: CompleteResult[] | null
   public readonly recentScores: RecentScore
   private sources: ISource[]
+  private localBonus: Map<string, number>
   constructor(public option: CompleteOption,
     private document: Document,
     recentScores: RecentScore | null,
@@ -156,6 +157,11 @@ export default class Complete {
         }
         item.score = score(filterText, input) + this.getBonusScore(item)
         item.recentScore = this.recentScores[`${bufnr}|${word}`] || 0
+        if (item.recentScore && Date.now() - item.recentScore > 30 * 1000) {
+          item.recentScore = 0
+          delete this.recentScores[`${bufnr}|${word}`]
+        }
+        item.localBonus = this.localBonus ? this.localBonus.get(word) || 0 : 0
         item.priority = priority
         item.strictMatch = filterText.startsWith(input)
         words.add(word)
@@ -177,8 +183,9 @@ export default class Complete {
         if (a.strictMatch && !b.strictMatch) return -1
         if (b.strictMatch && !a.strictMatch) return 1
         if (a.strictMatch && b.strictMatch) {
-          if (a.priority != b.priority) return b.priority - a.priority
           if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+          if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+          if (a.priority != b.priority) return b.priority - a.priority
         }
       } else if (a.recentScore != b.recentScore) {
         return b.recentScore - a.recentScore
@@ -192,14 +199,19 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score', 'signature']))
+    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score', 'signature', 'localBonus']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
     let opts = this.option
-    let { line, colnr } = opts
+    let { line, colnr, linenr } = opts
     sources.sort((a, b) => b.priority - a.priority)
     this.sources = sources
+    if (this.config.localityBonus) {
+      this.localBonus = this.document.getLocalifyBonus({ line: linenr - 1, character: colnr - 1 })
+    } else {
+      this.localBonus = new Map()
+    }
     let results = await Promise.all(sources.map(s => this.completeSource(s)))
     results = results.filter(r => r != null && r.items && r.items.length > 0)
     if (results.length == 0) return []

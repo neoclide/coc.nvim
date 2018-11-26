@@ -272,6 +272,11 @@
       "description": "Make inserted word replace word characers after cursor position.",
       "default": true
     },
+    "coc.preferences.localityBonus": {
+      "type": "boolean",
+      "description": "Boost suggestions that appear closer to the cursor position.",
+      "default": true
+    },
     "coc.preferences.colorSupport": {
       "type": "boolean",
       "description": "Enable color highlight if language server support it.",

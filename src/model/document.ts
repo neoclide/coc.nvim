@@ -554,6 +554,25 @@ export default class Document {
     return await this.nvim.call('getcwd', wid)
   }
 
+  public getLocalifyBonus(position: Position): Map<string, number> {
+    let res: Map<string, number> = new Map()
+    let { chars } = this
+    let start = Math.max(0, position.line - 500)
+    let content = this.lines.slice(start, position.line + 1).join('\n')
+    let end = content.length - 1
+    for (let i = content.length - 1; i >= 0; i--) {
+      let iskeyword = chars.isKeyword(content[i])
+      if (!iskeyword || i == 0) {
+        if (end - i >= 2) {
+          let str = content.slice(i == 0 ? 0 : i + 1, end + 1)
+          if (!res.has(str)) res.set(str, i)
+        }
+        end = i - 1
+      }
+    }
+    return res
+  }
+
   /**
    * Real current line
    *

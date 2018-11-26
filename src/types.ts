@@ -276,6 +276,7 @@ export interface VimCompleteItem {
   preselect?: boolean
   recentScore?: number
   signature?: string
+  localBonus?: number
 }
 
 export interface CompleteResult {
@@ -302,6 +303,7 @@ export interface CompleteConfig {
   timeout: number
   snippetIndicator: string
   fixInsertedWord: boolean
+  localityBonus: boolean
 }
 
 export interface WorkspaceConfiguration {
