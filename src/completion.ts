@@ -75,7 +75,7 @@ export class Completion implements Disposable {
 
   public async getResumeInput(): Promise<string> {
     let { option, increment, document } = this
-    if (!document) return null
+    if (!document || !option) return null
     let [, lnum, col] = await this.nvim.call('getcurpos')
     if (lnum != option.linenr || col < option.col + 1) {
       increment.stop()
