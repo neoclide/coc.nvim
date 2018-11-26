@@ -246,7 +246,7 @@ export class Completion implements Disposable {
       this.resolving = true
       if (item.isSnippet) {
         let { word } = item
-        let text = word.split(/(\s|\()/, 2)[0]
+        let text = word.match(/^.[\w\-$]*/)[0]
         if (word != text) {
           let before = byteSlice(line, 0, option.col)
           let after = byteSlice(line, option.col + byteLength(word))
