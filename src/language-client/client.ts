@@ -2408,7 +2408,7 @@ class CodeActionFeature extends TextDocumentFeature<CodeActionRegistrationOption
             )
             : provideCodeActions(document, range, context, token)
         }
-      }, options.codeActionKinds)
+      }, client.id, options.codeActionKinds)
   }
 }
 

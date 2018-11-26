@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, CodeAction, ExecuteCommandRequest, ExecuteCommandParams } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
 import commandManager from './commands'
@@ -11,6 +11,7 @@ import { disposeAll, wait } from './util'
 import workspace from './workspace'
 import extensions from './extensions'
 import completion from './completion'
+import services from './services'
 import Colors from './colors'
 import { TextDocumentContentProvider } from './provider'
 import { isWord } from './util/string'
@@ -338,9 +339,15 @@ export default class Handler {
     }
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context = { diagnostics }
-    let codeActions = await languages.getCodeActions(document.textDocument, range, context)
-    if (!codeActions || codeActions.length == 0) {
-      return workspace.showMessage('No action available', 'warning')
+    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
+    if (!codeActionsMap) return workspace.showMessage('No action available', 'warning')
+    let codeActions: CodeAction[] = []
+    for (let clientId of codeActionsMap.keys()) {
+      let actions = codeActionsMap.get(clientId)
+      for (let action of actions) {
+        (action as any).clientId = clientId
+        codeActions.push(action)
+      }
     }
     let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
     if (idx == -1) return
@@ -348,7 +355,26 @@ export default class Handler {
     if (action) {
       let { command, edit } = action
       if (edit) await workspace.applyEdit(edit)
-      if (command) commandManager.execute(command)
+      if (command) {
+        if (commandManager.has(command.command)) {
+          commandManager.execute(command)
+        } else {
+          let clientId = (action as any).clientId
+          let service = services.getService(clientId)
+          let params: ExecuteCommandParams = {
+            command: command.command,
+            arguments: command.arguments
+          }
+          if (service.client) {
+            let { client } = service
+            client
+              .sendRequest(ExecuteCommandRequest.type, params)
+              .then(undefined, error => {
+                workspace.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
+              })
+          }
+        }
+      }
     }
   }
 

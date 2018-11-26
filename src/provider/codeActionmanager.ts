@@ -6,12 +6,13 @@ const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeActionManager extends Manager<CodeActionProvider> implements Disposable {
 
-  public register(selector: DocumentSelector, provider: CodeActionProvider, codeActionKinds?: CodeActionKind[]): Disposable {
+  public register(selector: DocumentSelector, provider: CodeActionProvider, clientId: string, codeActionKinds?: CodeActionKind[]): Disposable {
     let item: ProviderItem<CodeActionProvider> = {
       id: uuid(),
       selector,
       provider,
-      kinds: codeActionKinds
+      kinds: codeActionKinds,
+      clientId
     }
     this.providers.add(item)
     return Disposable.create(() => {
@@ -19,35 +20,33 @@ export default class CodeActionManager extends Manager<CodeActionProvider> imple
     })
   }
 
-  private mergeCodeActions(arr: (Command | CodeAction)[][]): CodeAction[] {
-    let res: CodeAction[] = []
-    for (let actions of arr) {
-      if (actions == null) continue
-      for (let action of actions) {
-        if (Command.is(action)) {
-          res.push(CodeAction.create(action.title, action))
-        } else {
-          let idx = res.findIndex(o => o.title == action.title)
-          if (idx == -1) res.push(action)
-        }
-      }
-    }
-    return res
-  }
-
   public async provideCodeActions(
     document: TextDocument,
     range: Range,
     context: CodeActionContext,
     token: CancellationToken
-  ): Promise<CodeAction[] | null> {
+  ): Promise<Map<string, CodeAction[]> | null> {
     let providers = this.getProviders(document)
     if (!providers.length) return null
-    let arr = await Promise.all(providers.map(item => {
-      let { provider } = item
-      return Promise.resolve(provider.provideCodeActions(document, range, context, token))
+    let res: Map<string, CodeAction[]> = new Map()
+    await Promise.all(providers.map(item => {
+      let { provider, clientId } = item
+      clientId = clientId || uuid()
+      return Promise.resolve(provider.provideCodeActions(document, range, context, token)).then(actions => {
+        if (!actions || actions.length == 0) return
+        let codeActions: CodeAction[] = []
+        for (let action of actions) {
+          if (Command.is(action)) {
+            codeActions.push(CodeAction.create(action.title, action))
+          } else {
+            let idx = codeActions.findIndex(o => o.title == action.title)
+            if (idx == -1) codeActions.push(action)
+          }
+        }
+        res.set(clientId, codeActions)
+      })
     }))
-    return this.mergeCodeActions(arr)
+    return res
   }
 
   public dispose(): void {

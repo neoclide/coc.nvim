@@ -169,8 +169,8 @@ class Languages {
     }
   }
 
-  public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, codeActionKinds?: CodeActionKind[]): Disposable {
-    return this.codeActionManager.register(selector, provider, codeActionKinds)
+  public registerCodeActionProvider(selector: DocumentSelector, provider: CodeActionProvider, clientId: string, codeActionKinds?: CodeActionKind[]): Disposable {
+    return this.codeActionManager.register(selector, provider, clientId, codeActionKinds)
   }
 
   public registerHoverProvider(selector, provider: HoverProvider): Disposable {
@@ -360,7 +360,7 @@ class Languages {
    * @returns {Promise<CodeAction[]>}
    */
   @check
-  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext): Promise<CodeAction[]> {
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext): Promise<Map<string, CodeAction[]>> {
     if (!this.codeActionManager.hasProvider(document)) {
       workspace.showMessage('Code action provider not found for current document', 'error')
       return null
