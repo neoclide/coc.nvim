@@ -9,6 +9,11 @@ export function byteIndex(content: string, index: number): number {
   return Buffer.byteLength(s)
 }
 
+export function characterIndex(content: string, byteIndex: number): number {
+  let buf = Buffer.from(content, 'utf8')
+  return buf.slice(0, byteIndex).toString('utf8').length
+}
+
 export function byteSlice(content: string, start: number, end?: number): string {
   let buf = Buffer.from(content, 'utf8')
   return buf.slice(start, end).toString('utf8')

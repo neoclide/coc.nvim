@@ -545,15 +545,11 @@ class Languages {
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
         let items: VimCompleteItem[] = completeItems.map(o => {
-          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport)
+          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
           if (endColnr != opt.colnr) item.isSnippet = true
           return item
         })
-        let res = { isIncomplete: !!(result as CompletionList).isIncomplete, items }
-        if (typeof (result as any).startcol === 'number' && (result as any).startcol != opt.col) {
-          (res as any).startcol = (result as any).startcol
-        }
-        return res
+        return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = resolveItem(item)

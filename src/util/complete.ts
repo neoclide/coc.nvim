@@ -1,7 +1,7 @@
 import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
 import { CompleteOption, VimCompleteItem } from '../types'
 import { SnippetParser } from '../snippets/parser'
-import { byteSlice } from './string'
+import { byteSlice, characterIndex } from './string'
 import { objectLiteral } from './is'
 const logger = require('./logger')('util-complete')
 
@@ -25,10 +25,32 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem): string {
+export function getWord(item: CompletionItem, opt: CompleteOption): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText, textEdit } = item
   let word: string
+  if (textEdit) {
+    let { range, newText } = textEdit
+    if (newText.indexOf('\n') == -1) {
+      let { line, col, colnr } = opt
+      let character = characterIndex(line, col)
+      let start = line.slice(range.start.character, character)
+      if (newText.startsWith(start)) {
+        textEdit = Object.assign({}, textEdit, {
+          newText: newText.slice(start.length)
+        })
+      }
+      character = characterIndex(line, colnr - 1)
+      if (range.end.character > character) {
+        let end = line.slice(character, range.end.character)
+        if (newText.endsWith(end)) {
+          textEdit = Object.assign({}, textEdit, {
+            newText: textEdit.newText.slice(0, - end.length)
+          })
+        }
+      }
+    }
+  }
   if (insertTextFormat == InsertTextFormat.Snippet) {
     let snippet = textEdit ? textEdit.newText : insertText
     if (snippet) {
@@ -39,11 +61,7 @@ export function getWord(item: CompletionItem): string {
       word = label
     }
   } else {
-    if (textEdit) {
-      word = textEdit.newText
-    } else {
-      word = insertText || label
-    }
+    word = textEdit ? textEdit.newText : insertText || label
   }
   return word
 }
@@ -112,7 +130,7 @@ export function completionKindString(kind: CompletionItemKind): string {
   }
 }
 
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, echodocSupport = false): VimCompleteItem {
+export function convertVimCompleteItem(item: CompletionItem, shortcut: string, echodocSupport = false, opt: CompleteOption): VimCompleteItem {
   let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
   let label = item.label.trim()
   // tslint:disable-next-line:deprecation
@@ -122,7 +140,7 @@ export function convertVimCompleteItem(item: CompletionItem, shortcut: string, e
     item.insertTextFormat = InsertTextFormat.PlainText
   }
   let obj: VimCompleteItem = {
-    word: getWord(item),
+    word: getWord(item, opt),
     abbr: label,
     menu: item.detail ? `${item.detail.replace(/(\n|\t)/g, '').slice(0, 30)} [${shortcut}]` : `[${shortcut}]`,
     kind: completionKindString(item.kind),
