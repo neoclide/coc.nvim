@@ -565,21 +565,12 @@ export default class Handler {
         let { uri, range } = definition[0] as Location
         await workspace.jumpTo(uri, range.start, openCommand)
       } else {
-        await this.addQuickfix(definition as Location[])
+        await workspace.showLocations(definition as Location[])
       }
     } else {
       let { uri, range } = definition as Location
       await workspace.jumpTo(uri, range.start, openCommand)
     }
-  }
-
-  private async addQuickfix(locations: Location[]): Promise<void> {
-    let items = await Promise.all(locations.map(loc => {
-      return workspace.getQuickfixItem(loc)
-    }))
-    let { nvim } = this
-    await nvim.call('setqflist', [[], ' ', { title: 'Results of coc', items }])
-    await nvim.command('doautocmd User CocQuickfixChange')
   }
 
   private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
@@ -749,3 +740,4 @@ function withIn(range: Range, position: Position): boolean {
   if ((line == end.line && character > end.character)) return false
   return true
 }
+

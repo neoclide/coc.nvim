@@ -380,6 +380,22 @@ export class Workspace implements IWorkspace {
     return item
   }
 
+  public async showLocations(locations: Location[]): Promise<void> {
+    let items = await Promise.all(locations.map(loc => {
+      return this.getQuickfixItem(loc)
+    }))
+    let { nvim } = this
+    let config = this.getConfiguration('coc.preferences')
+    let enableQuickfix = config.get<boolean>('useQuickfixForLocations', true)
+    if (enableQuickfix) {
+      await nvim.call('setqflist', [[], ' ', { title: 'Results of coc', items }])
+      await nvim.command('doautocmd User CocQuickfixChange')
+    } else {
+      await nvim.setVar('coc_jump_locations', items)
+      await nvim.command('doautocmd User CocLocationsChange')
+    }
+  }
+
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''

@@ -357,6 +357,11 @@
       "default": "edit",
       "enum": ["edit", "split", "vsplit", "tabe"]
     },
+    "coc.preferences.useQuickfixForLocations": {
+      "type": "boolean",
+      "description": "Use quickfix list for locations when there're more than one location, default: true",
+      "default": true
+    },
     "coc.preferences.formatOnType": {
       "type": "boolean",
       "description": "Set to true to enable format on type",

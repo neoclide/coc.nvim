@@ -66,11 +66,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.showReferences',
       execute: async (_filepath: string, _position: Position, references: Location[]) => {
-        let items = await Promise.all(references.map(loc => {
-          return workspace.getQuickfixItem(loc)
-        }))
-        await nvim.call('setqflist', [[], ' ', { title: 'Results of references', items }])
-        await nvim.command('doautocmd User CocQuickfixChange')
+        await workspace.showLocations(references)
       }
     }, true)
     this.register({
@@ -210,3 +206,4 @@ export class CommandManager implements Disposable {
 }
 
 export default new CommandManager()
+

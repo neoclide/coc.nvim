@@ -317,6 +317,19 @@ g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
 
 			Defaut: 'open'
 
+g:coc_jump_locations 				*g:coc_jump_locations*
+
+			When setting `"coc.preferences.useQuickfixForLocations"`
+			is `false` , this variable would be set to jump
+			locations when autocmd |CocLocationsChange| fired
+			(quickfix of vim would be untouched). Each location
+			item contains:
+
+			'filename': full file path.
+			'lnum': line number (1 based).
+			'col': column number(1 based).
+			'text':  line content of location.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so your can use them in your
@@ -726,6 +739,15 @@ AUTOCMD 					*coc-autocmds*
 
 		autocmd User CocQuickfixChange :call fzf_quickfix#run()
 <
+						*CocLocationsChange*
+
+
+:autocmd User CocLocationsChange {command}
+
+		When quickfix for locations is disabled by
+		`coc.preferences.useQuickfixForLocations` in
+		`coc-settings.json`, you can use this autocmd with
+		|g:coc_jump_locations| for build custom list view.
 
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
