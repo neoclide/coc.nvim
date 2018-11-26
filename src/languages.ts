@@ -518,6 +518,13 @@ class Languages {
         if (command) commands.execute(command)
         completeItems = []
       },
+      onCompleteSelect: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
+        let completeItem = resolveItem(item)
+        if (!completeItem) return
+        await this.resolveCompletionItem(completeItem, provider)
+        let { additionalTextEdits } = completeItem
+        await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
+      },
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         option = opt
         let { triggerCharacter, bufnr } = opt

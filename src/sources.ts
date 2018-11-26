@@ -158,6 +158,14 @@ export class Sources extends EventEmitter {
     }
   }
 
+  public async doCompleteSelect(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+    let data = JSON.parse(item.user_data)
+    let source = this.getSource(data.source)
+    if (source && typeof source.onCompleteSelect === 'function') {
+      await Promise.resolve(source.onCompleteSelect(item, opt))
+    }
+  }
+
   public shouldCommit(item: VimCompleteItem, commitCharacter: string): boolean {
     if (!item || !item.source) return false
     let source = this.getSource(item.source)

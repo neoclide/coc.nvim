@@ -331,8 +331,11 @@ export class Completion implements Disposable {
       let mode = await nvim.call('mode')
       await document.patchChange()
       document.forceSync()
-      if (mode !== 'i' || changedtick != document.changedtick) return
-      await sources.doCompleteDone(item, opt)
+      if (mode !== 'i' || changedtick != document.changedtick) {
+        await sources.doCompleteSelect(item, opt)
+      } else {
+        await sources.doCompleteDone(item, opt)
+      }
     } catch (e) {
       // tslint:disable-next-line:no-console
       console.error(e.stack)
