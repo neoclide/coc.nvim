@@ -31,7 +31,7 @@ export function getWord(item: CompletionItem, opt: CompleteOption): string {
   let word: string
   if (textEdit) {
     let { range, newText } = textEdit
-    if (newText.indexOf('\n') == -1) {
+    if (range && range.start.line == range.end.line) {
       let { line, col, colnr } = opt
       let character = characterIndex(line, col)
       let start = line.slice(range.start.character, character)
