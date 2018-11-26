@@ -103,6 +103,10 @@ function! coc#rpc#show_error()
   call setline(1, s:std_err)
 endfunction
 
+function! coc#rpc#get_errors()
+  return s:std_err
+endfunction
+
 function! coc#rpc#request(method, args)
   let channel = s:GetChannel()
   if !channel | return | endif

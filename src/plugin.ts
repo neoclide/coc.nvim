@@ -14,11 +14,14 @@ import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
 import { Location } from 'vscode-languageserver-types'
+import { OutputChannel } from './types'
+import { readFile } from './util/fs'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
   private initialized = false
   private handler: Handler
+  private infoChannel: OutputChannel
 
   constructor(public nvim: Neovim) {
     super()
@@ -78,6 +81,36 @@ export default class Plugin extends EventEmitter {
     let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
     let escaped = await this.nvim.call('fnameescape', file)
     await this.nvim.command(`edit ${escaped}`)
+  }
+
+  public async showInfo(): Promise<void> {
+    if (!this.infoChannel) {
+      this.infoChannel = workspace.createOutputChannel('info')
+    } else {
+      this.infoChannel.clear()
+    }
+    let channel = this.infoChannel
+    channel.show()
+    channel.appendLine('## versions')
+    channel.appendLine('')
+    let out = await this.nvim.call('execute', ['version']) as string
+    channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0])
+    channel.appendLine('node version: ' + process.version)
+    channel.appendLine('coc.nvim version: ' + workspace.version)
+    channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
+    channel.appendLine('platform: ' + process.platform)
+    channel.appendLine('')
+    channel.appendLine('## Error messages')
+    let msgs = await this.nvim.call('coc#rpc#get_errors') as string[]
+    channel.append(msgs.join('\n'))
+    channel.appendLine('')
+    for (let ch of (workspace as any).outputChannels.values()) {
+      if (ch.name !== 'info') {
+        channel.appendLine(`## Output channel: ${ch.name}`)
+        channel.append(ch.content)
+        channel.appendLine('')
+      }
+    }
   }
 
   public async registExtensions(...folders: string[]): Promise<void> {

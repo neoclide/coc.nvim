@@ -691,7 +691,13 @@ COMMANDS 					*coc-commands*
 		in your terminal, run command: >
 
 		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
+		
 <
+:CocInfo 					*:CocInfo*
+
+		Show some infomation in `info` output channel, useful for bug
+		report.
+
 ------------------------------------------------------------------------------
 
 AUTOCMD 					*coc-autocmds*

@@ -32,6 +32,7 @@ const isPkg = process.hasOwnProperty('pkg')
 export class Workspace implements IWorkspace {
   public terminal: Terminal
   public readonly nvim: Neovim
+  public readonly version: string
   public bufnr: number
 
   private willSaveUntilHandler: WillSaveUntilHandler
@@ -70,6 +71,8 @@ export class Workspace implements IWorkspace {
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
 
   constructor() {
+    let json = require(path.join(this.pluginRoot, 'package.json'))
+    this.version = json.version
     let config = this.loadConfigurations()
     let configurationShape = this.configurationShape = new ConfigurationShape(this)
     this._configurations = new Configurations(config, configurationShape)

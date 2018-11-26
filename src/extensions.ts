@@ -36,7 +36,6 @@ function loadJson(file: string): any {
 export class Extensions {
   private disposables: Disposable[] = []
   private list: ExtensionItem[] = []
-  private version: string
   private root: string
   private db: JsonDB
   public isEmpty = false
@@ -51,8 +50,6 @@ export class Extensions {
   public async init(nvim: Neovim): Promise<void> {
     let root = this.root = await nvim.call('coc#util#extension_root')
     let db = this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
-    let { version } = loadJson(path.join(workspace.pluginRoot, 'package.json'))
-    this.version = version
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) return
     Promise.all(stats.map(state => {
@@ -220,7 +217,7 @@ export class Extensions {
     let { engines } = packageJSON
     if (engines && engines.hasOwnProperty('coc')) {
       let required = engines.coc.replace(/^\^/, '>=')
-      if (!semver.satisfies(this.version, required)) {
+      if (!semver.satisfies(workspace.version, required)) {
         workspace.showMessage(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim >= ${engines.coc}`, 'warning')
       }
       this.createExtension(folder, Object.freeze(packageJSON))
