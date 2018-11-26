@@ -100,6 +100,12 @@ export enum SourceType {
   Service,
 }
 
+export enum MessageLevel {
+  More,
+  Warning,
+  Error
+}
+
 export interface ChangeInfo {
   lnum: number
   line: string

@@ -740,4 +740,3 @@ function withIn(range: Range, position: Position): boolean {
   if ((line == end.line && character > end.character)) return false
   return true
 }
-

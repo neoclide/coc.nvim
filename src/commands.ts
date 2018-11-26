@@ -206,4 +206,3 @@ export class CommandManager implements Disposable {
 }
 
 export default new CommandManager()
-

@@ -17,7 +17,7 @@ import StatusLine from './model/status'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, MessageLevel } from './types'
 import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, isFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
 import { score } from './util/match'
@@ -35,6 +35,7 @@ export class Workspace implements IWorkspace {
   public readonly version: string
   public bufnr: number
 
+  private messageLevel: MessageLevel
   private willSaveUntilHandler: WillSaveUntilHandler
   private statusLine: StatusLine
   private _env: Env
@@ -85,6 +86,7 @@ export class Workspace implements IWorkspace {
     this.disposables.push(
       watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
     )
+    this.setMessageLevel()
   }
 
   public async init(): Promise<void> {
@@ -439,6 +441,17 @@ export class Workspace implements IWorkspace {
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
     if (this._blocking) return
+    let level = this.messageLevel
+    switch (level) {
+      case MessageLevel.Error: {
+        if (identify === 'more' || identify === 'warning') return
+        break
+      }
+      case MessageLevel.Warning: {
+        if (identify === 'more') return
+        break
+      }
+    }
     if (identify == 'error') {
       return echoErr(this.nvim, msg)
     }
@@ -1125,6 +1138,21 @@ augroup end`
     let { cwd } = this
     let bufname = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
     return await this.nvim.call('fnameescape', bufname)
+  }
+
+  private setMessageLevel(): void {
+    let config = this.getConfiguration('coc.preferences')
+    let level = config.get<string>('messageLevel', 'more')
+    switch (level) {
+      case 'error':
+        this.messageLevel = MessageLevel.Error
+        break
+      case 'warning':
+        this.messageLevel = MessageLevel.Warning
+        break
+      default:
+        this.messageLevel = MessageLevel.More
+    }
   }
 }
 

@@ -357,6 +357,12 @@
       "default": "edit",
       "enum": ["edit", "split", "vsplit", "tabe"]
     },
+    "coc.preferences.messageLevel": {
+      "type": "string",
+      "description": "Message level for filter echoed messages, could be 'more', 'warning' and 'error'",
+      "default": "more",
+      "enum": ["more", "warning", "error"]
+    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "description": "Use quickfix list for locations when there're more than one location, default: true",
