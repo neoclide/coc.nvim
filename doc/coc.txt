@@ -310,6 +310,13 @@ g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 
 			Default: 0
 
+g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
+
+			Defaut action for open file in denite quickfix list.
+			Could be `open`, `drop`, `preview` and `cc` (use |:cc| command).
+
+			Defaut: 'open'
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so your can use them in your

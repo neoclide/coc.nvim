@@ -96,7 +96,7 @@ class QuickfixKind(FileKind):
 
     def __init__(self, vim):
         super().__init__(vim)
-        self.default_action = 'cc'
+        self.default_action = vim.vars.get('coc_denite_quickfix_action', 'open')
 
     def action_quickfix(self, context):
         """ Use the default file 'kind', but override quickfix, so that it uses
