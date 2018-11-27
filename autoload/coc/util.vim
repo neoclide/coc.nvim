@@ -254,48 +254,14 @@ function! coc#util#get_syntax_name(lnum, col)
   return synIDattr(synIDtrans(synID(a:lnum,a:col,1)),"name")
 endfunction
 
-function! coc#util#echo_signature(activeParameter, activeSignature, signatures) abort
+function! coc#util#echo_signatures(signatures) abort
   let showcmd = &showcmd
   let ruler = &ruler
   noa set noruler
   noa set noshowcmd
-  let arr = []
-  let i = 0
-  let activeParameter = get(a:, 'activeParameter', 0)
-  for item in a:signatures
-    let texts = []
-    if type(a:activeSignature) == 0 && a:activeSignature == i
-      call add(texts, {'text': item['label'], 'hl': 'Label'})
-      call add(texts, {'text': '('})
-      let params = get(item, 'parameters', [])
-      let j = 0
-      for param in params
-        call add(texts, {
-              \'text': param['label'],
-              \'hl': j == activeParameter ? 'MoreMsg' : ''
-              \})
-        if j != len(params) - 1
-          call add(texts, {'text': ', '})
-        endif
-        let j = j + 1
-      endfor
-      call add(texts, {'text': ')'})
-      let arr = [texts] + arr
-    else
-      call add(texts, {'text': item['label'], 'hl': 'Label'})
-      call add(texts, {'text': '('})
-      let params = get(item, 'parameters', [])
-      let text = join(map(params, 'v:val["label"]'), ',')
-      call add(texts, {'text': text})
-      call add(texts, {'text': ')'})
-      call add(arr, texts)
-    endif
-    let i = i + 1
-  endfor
-  let arr = arr[0: &cmdheight - 1]
-  for idx in range(len(arr))
-    call s:echo_signatureItem(arr[idx])
-    if idx != len(arr) - 1
+  for i in range(len(a:signatures))
+    call s:echo_signature(a:signatures[i])
+    if i != len(a:signatures) - 1
       echon "\n"
     endif
   endfor
@@ -303,30 +269,15 @@ function! coc#util#echo_signature(activeParameter, activeSignature, signatures) 
   if ruler | noa set ruler | endif
 endfunction
 
-function! s:echo_signatureItem(list)
-  let w = &columns
-  let cl = 0
-  let idx = 0
-  let outRange = 0
-  for item in a:list
-    if outRange | return | endif
-    let text = substitute(get(item, 'text', ''), "'", "''", 'g')
-    let l = len(text)
-    let hl = get(item, 'hl', '')
-    if !empty(hl) | execute 'echohl '.hl | endif
-    if cl + l >= w - 1
-      let end = l - 1 - (cl + l - w + 4)
-      let text = text[0: end].'...'
-      let outRange = 1
-    elseif idx != l - 1 && cl + 4 >= w
-      let end = l - 1 - (cl + 4 - w)
-      let text = text[0: end].'...'
-      let outRange = 1
+function! s:echo_signature(parts)
+  for part in a:parts
+    let hl = get(part, 'type', 'Normal')
+    let text = get(part, 'text', '')
+    if !empty(text)
+      execute 'echohl '.hl
+      execute "echon '".text."'"
+      echohl None
     endif
-    execute "echon '".text."'"
-    if !empty(hl) | echohl None | endif
-    let cl = cl + len(text)
-    let idx = idx + 1
   endfor
 endfunction
 

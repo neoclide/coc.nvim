@@ -34,6 +34,11 @@ interface CommandItem {
   title: string
 }
 
+interface SignaturePart {
+  text: string
+  type: 'Label' | 'MoreMsg' | 'Normal'
+}
+
 export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
   private colors: Colors
@@ -568,18 +573,62 @@ export default class Handler {
   }
 
   private async _showSignatureHelp(): Promise<void> {
-    let { document, position } = await workspace.getCurrentState()
-    let signatureHelp = await languages.getSignatureHelp(document, position)
-    // let visible = await this.nvim.call('pumvisible')
-    if (!signatureHelp || completion.isActivted) return
+    let position = await workspace.getCursorPosition()
+    let document = await workspace.document
+    if (completion.isActivted) return
+    let part = document.getline(position.line).slice(0, position.character)
+    let idx = Math.max(part.lastIndexOf('.'), part.lastIndexOf('('))
+    if (idx != -1) position.character = idx + 1
+    let signatureHelp = await languages.getSignatureHelp(document.textDocument, position)
+    if (!signatureHelp) return
     let { activeParameter, activeSignature, signatures } = signatureHelp
+    if (activeSignature) {
+      // make active first
+      let [active] = signatures.splice(activeSignature, 1)
+      if (active) signatures.unshift(active)
+    }
+    let height = await this.nvim.getOption('cmdheight') as number
+    let columns = await this.nvim.getOption('columns') as number
+    signatures = signatures.slice(0, height)
+    if (signatures.length == 0) return
+    let signatureList: SignaturePart[][] = []
     for (let signature of signatures) {
-      if (signature.label.indexOf('(') !== -1) {
-        signature.label = signature.label.replace(/\(.*\)/, '')
+      let parts: SignaturePart[] = []
+      let { label } = signature
+      if (label.length >= columns) {
+        label = label.slice(0, columns - 4) + '...'
       }
+      let idx = label.indexOf('(')
+      if (idx == -1) {
+        parts = [{ text: label, type: 'Normal' }]
+      } else {
+        parts.push({
+          text: label.slice(0, idx),
+          type: 'Label'
+        })
+        let after = label.slice(idx)
+        if (signatureList.length == 0 && activeParameter != null) {
+          let active = signature.parameters[activeParameter]
+          if (active) {
+            let idx = after.indexOf(active.label)
+            if (idx != -1) {
+              parts.push({ text: after.slice(0, idx), type: 'Normal' })
+              parts.push({ text: after.slice(idx, idx + active.label.length), type: 'MoreMsg' })
+              parts.push({ text: after.slice(idx + active.label.length), type: 'Normal' })
+              signatureList.push(parts)
+              continue
+            }
+          }
+        }
+        parts.push({
+          text: after,
+          type: 'Normal'
+        })
+      }
+      signatureList.push(parts)
     }
     await this.nvim.command('echo ""')
-    await this.nvim.call('coc#util#echo_signature', [activeParameter || 0, activeSignature || 0, signatures])
+    await this.nvim.call('coc#util#echo_signatures', [signatureList])
   }
 
   public async handleLocations(definition: Definition, openCommand?: string): Promise<void> {
