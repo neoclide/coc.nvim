@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { CharCode } from './charCode'
+import { CharCode } from '../util/charCode'
 const logger = require('../util/logger')('snippets-parser')
 
 export const enum TokenType {
