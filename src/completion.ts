@@ -248,7 +248,7 @@ export class Completion implements Disposable {
       this.resolving = true
       if (item.isSnippet) {
         let { word } = item
-        let text = word.match(/^.[\w\-$.]*/)[0]
+        let text = word.match(/^.[\w\-$.@#]*/)[0]
         if (word != text) {
           let before = byteSlice(line, 0, option.col)
           let after = byteSlice(line, option.col + byteLength(word))
@@ -274,7 +274,11 @@ export class Completion implements Disposable {
       if (bufnr !== this.bufnr) return
       await document.patchChange()
       let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
-      if (checkCommit && latestInsertChar && !this.document.isWord(latestInsertChar) && !this.resolving) {
+      if (checkCommit
+        && latestInsertChar
+        && !this.document.isWord(latestInsertChar)
+        && !this.resolving
+        && this._completeItems.findIndex(o => o.word == input) == -1) {
         let item = this._completeItems[0]
         if (item.word != input && sources.shouldCommit(item, latestInsertChar)) {
           let { linenr, col, line, colnr } = this.option
