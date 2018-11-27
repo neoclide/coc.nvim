@@ -156,7 +156,7 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
-        item.score = input.length ? score(filterText, input, { usePathScoring: false }) + priority * 10 : 0
+        item.score = input.length ? score(filterText, input, { usePathScoring: false }) : 0
         let recentScore = this.recentScores[`${bufnr}|${word}`]
         if (recentScore && now - recentScore < 60 * 1000) {
           item.recentScore = recentScore
@@ -169,7 +169,7 @@ export default class Complete {
           preselect = item
           continue
         }
-        if (filtering && item.sortText && item.score > 10000) {
+        if (filtering && item.sortText && input.length > 1) {
           arr.push(omit(item, ['sortText']))
         } else {
           arr.push(item)
@@ -183,7 +183,9 @@ export default class Complete {
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       if (sa && sb) return sa < sb ? -1 : 1
-      // priority, score
+      if (a.strictMatch && b.strictMatch && a.priority != b.priority) {
+        return b.priority - a.priority
+      }
       return b.score - a.score
     })
     let items = arr.slice(0, this.config.maxItemCount)

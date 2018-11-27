@@ -8,7 +8,7 @@ import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
 import { disposeAll, wait } from './util'
 import { isCocItem } from './util/complete'
-import { byteSlice, byteLength } from './util/string'
+import { byteSlice, byteLength, isWord } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('completion')
 
@@ -276,11 +276,11 @@ export class Completion implements Disposable {
       let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
       if (checkCommit
         && latestInsertChar
-        && !this.document.isWord(latestInsertChar)
+        && !isWord(latestInsertChar)
         && !this.resolving
         && this._completeItems.findIndex(o => o.word == input) == -1) {
         let item = this._completeItems[0]
-        if (item.word != input && sources.shouldCommit(item, latestInsertChar)) {
+        if (sources.shouldCommit(item, latestInsertChar)) {
           let { linenr, col, line, colnr } = this.option
           this.nvim.call('coc#_hide', [], true)
           increment.stop()
