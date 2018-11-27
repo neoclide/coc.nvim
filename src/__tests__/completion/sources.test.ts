@@ -22,7 +22,6 @@ describe('native sources', () => {
     await nvim.setLine('foo')
     await helper.wait(100)
     await nvim.input('of')
-    await helper.wait(30)
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })

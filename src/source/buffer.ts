@@ -12,12 +12,6 @@ export default class Buffer extends Source {
     })
   }
 
-  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let { input } = opt
-    if (input.length === 0) return false
-    return true
-  }
-
   public get ignoreGitignore(): boolean {
     return this.getConfig('ignoreGitignore', true)
   }
@@ -38,7 +32,8 @@ export default class Buffer extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { bufnr } = opt
+    let { bufnr, input } = opt
+    if (input.length == 0) return null
     let words = this.getWords(bufnr)
     words = this.filterWords(words, opt)
     return {

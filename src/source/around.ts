@@ -12,16 +12,11 @@ export default class Around extends Source {
     })
   }
 
-  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
-    let { input } = opt
-    if (input.length === 0) return false
-    return true
-  }
-
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { bufnr } = opt
+    let { bufnr, input } = opt
+    if (input.length === 0) return null
     let document = workspace.getDocument(bufnr)
-    if (!document) return
+    if (!document) return null
     let words = document.words
     let moreWords = document.getMoreWords()
     words.push(...moreWords)
