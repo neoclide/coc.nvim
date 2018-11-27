@@ -157,9 +157,12 @@ export default class Complete {
           item.source = source
         }
         item.score = input.length ? score(filterText, input, { usePathScoring: false }) : 0
-        let recentScore = this.recentScores[`${bufnr}|${word}`]
-        if (recentScore && now - recentScore < 60 * 1000) {
-          item.recentScore = recentScore
+        item.recentScore = item.recentScore || 0
+        if (!item.recentScore) {
+          let recentScore = this.recentScores[`${bufnr}|${word}`]
+          if (recentScore && now - recentScore < 60 * 1000) {
+            item.recentScore = recentScore
+          }
         }
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         item.priority = priority
