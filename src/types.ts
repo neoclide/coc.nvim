@@ -277,6 +277,7 @@ export interface VimCompleteItem {
   recentScore?: number
   signature?: string
   localBonus?: number
+  index?: number
 }
 
 export interface CompleteResult {

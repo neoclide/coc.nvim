@@ -5,17 +5,6 @@ import { byteSlice, characterIndex } from './string'
 import { objectLiteral } from './is'
 const logger = require('./logger')('util-complete')
 
-export function isCocItem(item: any): boolean {
-  if (!item || !item.hasOwnProperty('user_data')) return false
-  let { user_data } = item
-  try {
-    let res = JSON.parse(user_data)
-    return res.cid != null
-  } catch (e) {
-    return false
-  }
-}
-
 export function getPosition(opt: CompleteOption): Position {
   let { line, linenr, colnr } = opt
   let part = byteSlice(line, 0, colnr - 1)

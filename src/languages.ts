@@ -451,18 +451,6 @@ class Languages {
     let fixInsertedWord = preferences.get<boolean>('fixInsertedWord', true)
     let echodocSupport = preferences.get<boolean>('echodocSupport', false)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-
-    function resolveItem(item: VimCompleteItem): CompletionItem {
-      let { word } = item
-      return completeItems.find(o => {
-        if (o.data && o.data.hasOwnProperty('word')) {
-          return o.data.word == word
-        }
-        // tslint:disable-next-line:deprecation
-        let insertText = o.insertText || o.label
-        return insertText == word
-      })
-    }
     return {
       name,
       priority,
@@ -474,7 +462,7 @@ class Languages {
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         if (completeItems.length == 0) return
         resolveInput = item.word
-        let resolving = resolveItem(item)
+        let resolving = completeItems[item.index]
         if (!resolving) return
         await this.resolveCompletionItem(resolving, provider)
         let visible = await this.nvim.call('pumvisible')
@@ -491,7 +479,7 @@ class Languages {
         }
       },
       onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
-        let completeItem = resolveItem(item)
+        let completeItem = completeItems[item.index]
         if (!completeItem) return
         await this.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
@@ -519,7 +507,7 @@ class Languages {
         completeItems = []
       },
       onCompleteSelect: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
-        let completeItem = resolveItem(item)
+        let completeItem = completeItems[item.index]
         if (!completeItem) return
         await this.resolveCompletionItem(completeItem, provider)
         let { additionalTextEdits } = completeItem
@@ -551,15 +539,16 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
-        let items: VimCompleteItem[] = completeItems.map(o => {
+        let items: VimCompleteItem[] = completeItems.map((o, index) => {
           let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
+          item.index = index
           if (endColnr != opt.colnr) item.isSnippet = true
           return item
         })
         return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
-        let completeItem = resolveItem(item)
+        let completeItem = completeItems[item.index]
         if (!completeItem) return false
         let { commitCharacters } = completeItem
         if (commitCharacters && commitCharacters.indexOf(character) !== -1) {
@@ -618,20 +607,19 @@ class Languages {
     await document.applyEdits(this.nvim, textEdits)
   }
 
-  private async resolveCompletionItem(item: CompletionItem, provider: CompletionItemProvider): Promise<CompletionItem> {
-    item.data = item.data || {}
+  private async resolveCompletionItem(item: any, provider: CompletionItemProvider): Promise<CompletionItem> {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
     }
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    if (hasResolve && !item.data.resolved) {
+    if (hasResolve && !item.resolved) {
       let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
       let token = cancelTokenSource.token
       let resolved = await Promise.resolve(provider.resolveCompletionItem(item, token))
       if (token.isCancellationRequested) return
       this.resolveTokenSource = null
+      item.resolved = true
       if (resolved) mixin(item, resolved)
-      item.data.resolved = true
     }
     return item
   }

@@ -7,7 +7,6 @@ import Document from './model/document'
 import sources from './sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
 import { disposeAll, wait } from './util'
-import { isCocItem } from './util/complete'
 import { byteSlice, byteLength, isWord } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('completion')
@@ -323,7 +322,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { increment, document, nvim } = this
-    if (!this.isActivted || !document || !isCocItem(item)) return
+    if (!this.isActivted || !document) return
     item = this._completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     if (!item) return
     let opt = Object.assign({}, this.option)
