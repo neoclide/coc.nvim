@@ -108,7 +108,7 @@ describe('snippet provider', () => {
 
   it('should check position on InsertEnter', async () => {
     await helper.edit('foo')
-    await nvim.setLine('bar')
+    await nvim.input('ibar<left><left><left>')
     await snippetManager.insertSnippet('${1:foo} $1 ')
     await helper.wait(60)
     await nvim.input('<esc>A')
@@ -141,8 +141,11 @@ describe('snippet provider', () => {
     await helper.edit('foo')
     await nvim.setLine('bar')
     await snippetManager.insertSnippet('${1:foo} ')
-    await helper.wait(40)
-    await nvim.input('<esc>A')
+    await helper.wait(100)
+    await nvim.input('<esc>')
+    await nvim.command('stopinsert')
+    await nvim.input('A')
+    await helper.wait(100)
     let active = await snippetManager.insertSnippet('${2:bar}')
     expect(active).toBe(true)
     let line = await nvim.getLine()

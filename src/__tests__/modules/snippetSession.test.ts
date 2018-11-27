@@ -32,8 +32,19 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
-  it('should start with findPlaceholder for plain snippet', async () => {
+  it('should fix indent of next line when necessary', async () => {
     let buf = await helper.edit('foo')
+    await nvim.setLine('  ab')
+    await nvim.input('i<right><right><right>')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('x\n')
+    expect(res).toBe(false)
+    let lines = await buf.lines
+    expect(lines).toEqual(['  ax', '  b'])
+  })
+
+  it('should start with final position for plain snippet', async () => {
+    let buf = await helper.edit('plain')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
     expect(res).toBe(false)

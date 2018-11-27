@@ -24,30 +24,33 @@ export class SnippetSession {
   }
 
   public async start(snippetString: string): Promise<boolean> {
-    let { document } = this
-    let position = await workspace.getCursorPosition()
-    let formatOptions = await workspace.getFormatOptions(this.document.uri)
+    const { document, nvim } = this
+    const position = await workspace.getCursorPosition()
+    if (!document) return
+    const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
-    let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    const inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     const snippet = new CocSnippet(
       inserted,
       position,
       new SnippetVariableResolver(position.line, Uri.parse(document.uri).fsPath))
     const edit = TextEdit.insert(position, snippet.toString())
     const endPart = currentLine.slice(position.character)
+    const { mode } = await nvim.mode
+    if (mode != 'i') nvim.command('startinsert', true)
     if (snippetString.endsWith('\n') && endPart) {
+      // make next line same indent
       edit.newText = edit.newText + currentIndent
     }
     if (snippet.isPlainText) {
       // insert as text
-      await document.applyEdits(this.nvim, [edit])
-      let { end } = snippet.range
-      this.nvim.call('coc#snippet#range_select', [end.line + 1, end.character + 1, 0], true)
+      await document.applyEdits(nvim, [edit])
+      await nvim.call('cursor', [position.line + 1, position.character + snippetString.length + 1])
       return this._isActive
     }
     this._changedtick = document.changedtick
-    await document.applyEdits(this.nvim, [edit])
+    await document.applyEdits(nvim, [edit])
     if (this._isActive) {
       // insert check
       let placeholder = this.findPlaceholder(Range.create(position, position))
@@ -65,7 +68,7 @@ export class SnippetSession {
     // new snippet
     this._snippet = snippet
     await this.selectPlaceholder(snippet.firstPlaceholder)
-    await wait(100)
+    await wait(50)
     this.activate()
     return true
   }

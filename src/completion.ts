@@ -192,6 +192,7 @@ export class Completion implements Disposable {
     let first = this._completeItems[0]
     let noselect = this.preferences.get<boolean>('noselect')
     if (!noselect) await sources.doCompleteResolve(first)
+    if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
