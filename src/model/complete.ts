@@ -115,6 +115,7 @@ export default class Complete {
 
   public filterResults(input: string, cid = 0): VimCompleteItem[] {
     let { results } = this
+    let now = Date.now()
     let { bufnr, colnr, linenr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
     let endColnr = this.getEndColnr()
@@ -155,21 +156,20 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
-        item.score = score(filterText, input) + this.getBonusScore(item)
-        item.recentScore = this.recentScores[`${bufnr}|${word}`] || 0
-        if (item.recentScore && Date.now() - item.recentScore > 30 * 1000) {
-          item.recentScore = 0
-          delete this.recentScores[`${bufnr}|${word}`]
+        item.score = input.length ? score(filterText, input, { usePathScoring: false }) + priority * 10 : 0
+        let recentScore = this.recentScores[`${bufnr}|${word}`]
+        if (recentScore && now - recentScore < 60 * 1000) {
+          item.recentScore = recentScore
         }
-        item.localBonus = this.localBonus ? this.localBonus.get(word) || 0 : 0
+        item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         item.priority = priority
-        item.strictMatch = filterText.startsWith(input)
+        item.strictMatch = input.length && filterText.startsWith(input) ? 1 : 0
         words.add(word)
         if (!filtering && item.preselect) {
           preselect = item
           continue
         }
-        if (filtering && item.sortText && item.score > 50000) {
+        if (filtering && item.sortText && item.score > 10000) {
           arr.push(omit(item, ['sortText']))
         } else {
           arr.push(item)
@@ -179,23 +179,12 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (input.length) {
-        if (a.strictMatch && !b.strictMatch) return -1
-        if (b.strictMatch && !a.strictMatch) return 1
-        if (a.strictMatch && b.strictMatch) {
-          if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-          if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
-          if (a.priority != b.priority) return b.priority - a.priority
-        }
-      } else if (a.recentScore != b.recentScore) {
-        return b.recentScore - a.recentScore
-      }
-      if (a.source == b.source && sa && sb) {
-        if (sa === sb) return b.score - a.score
-        return sa < sb ? -1 : 1
-      } else {
-        return b.score - a.score
-      }
+      if (a.strictMatch != b.strictMatch) return b.strictMatch - a.strictMatch
+      if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+      if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+      if (sa && sb) return sa < sb ? -1 : 1
+      // priority, score
+      return b.score - a.score
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
@@ -227,16 +216,6 @@ export default class Complete {
     this.results = results
     logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
-  }
-
-  private getBonusScore(item: VimCompleteItem): number {
-    let { abbr, kind, info } = item
-    let score = 0
-    score += item.priority ? item.priority * 10 : 0
-    score += kind ? 1 : 0
-    score += abbr ? 1 : 0
-    score += info ? 1 : 0
-    return score
   }
 
   private getEndColnr(): number {

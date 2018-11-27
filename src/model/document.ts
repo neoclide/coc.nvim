@@ -563,7 +563,7 @@ export default class Document {
     for (let i = content.length - 1; i >= 0; i--) {
       let iskeyword = chars.isKeyword(content[i])
       if (!iskeyword || i == 0) {
-        if (end - i >= 2) {
+        if (end - i > 0) {
           let str = content.slice(i == 0 ? 0 : i + 1, end + 1)
           if (!res.has(str)) res.set(str, i)
         }

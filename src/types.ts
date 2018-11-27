@@ -271,7 +271,7 @@ export interface VimCompleteItem {
   filterText?: string
   isSnippet?: boolean
   source?: string
-  strictMatch?: boolean
+  strictMatch?: number
   priority?: number
   preselect?: boolean
   recentScore?: number
