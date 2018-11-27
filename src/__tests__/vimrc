@@ -8,7 +8,7 @@ set completeopt=menuone,noinsert,noselect
 set tabstop=2
 set cmdheight=2
 set updatetime=300
-set et
+set expandtab
 set noshowmode
 
 let s:dir = expand('<sfile>:h')
@@ -19,10 +19,3 @@ autocmd BufNewFile,BufRead *.ts  set filetype=typescript
 
 execute 'set runtimepath+='.s:root
 execute 'set runtimepath+='.s:plugin
-
-function! SetDictionary()
-  exe 'setl dictionary+='.s:dir.'/test.dict'
-endfunction
-
-exe 'setl tags+='.s:dir.'/tags'
-
