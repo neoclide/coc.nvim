@@ -96,10 +96,12 @@ function! nvim#rpc#request(clientId, method, ...) abort
   if !nvim#rpc#check_client(a:clientId)
     return
   endif
-  let args = get(a:000, 0, [])
-  let [errmsg, res] = ch_evalexpr(s:channel, [a:clientId, a:method, args])
-  if errmsg
-    echohl Error | echon '[rpc.vim] client error: '.errmsg | echohl None
+  let args = get(a:, 1, [])
+  let res = ch_evalexpr(s:channel, [a:clientId, a:method, args], {'timeout': 5000})
+  if type(res) == 1 && res ==# '' | return '' | endif
+  let [l:errmsg, res] =  res
+  if l:errmsg
+    echohl Error | echon '[rpc.vim] client error: '.l:errmsg | echohl None
   else
     return res
   endif
