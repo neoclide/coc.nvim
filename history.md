@@ -1,3 +1,26 @@
+# 2018-11-28
+
+- _Break change_ signature help reworked, vim API for echo signature changed.
+- Add `:CocInfo` command.
+- Add trigger for signature help after function expand.
+- Add echo message when provider not found for some actions.
+- Add support for `formatexpr`
+- Add support for locality bonus like VSCode.
+- Add support of `applyAdditionaLEdits` on item selected by `<esc>`
+- Add `coc.preferences.useQuickfixForLocations`
+- Add `coc.preferences.messageLevel`
+- Add support for trigger command which not registered by server.
+- Add `g:coc_denite_quickfix_action`
+- Fix insert unwanted word when trigger `commitCharacter`.
+- Fix rpc request throw on vim.
+- Fix `data` of complete item conflict.
+- Fix code action not work sometime.
+- Fix `coc.preferences.diagnostic.locationlist` not work.
+- Fix `coc.preference.preferCompleteThanJumpPlaceholder`.
+- Fix `workspace.jumpTo` not work sometime.
+- Fix line indent for snippet.
+- Fix trigger of `signatureHelp` and `onTypeFormat`.
+
 # 2018-11-24
 
 - **Break change** sources exluding `around`, `buffer` or `file` are extracted
