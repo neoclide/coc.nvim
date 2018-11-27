@@ -331,7 +331,8 @@ export class Completion implements Disposable {
       let mode = await nvim.call('mode')
       await document.patchChange()
       document.forceSync()
-      if (mode !== 'i' || changedtick != document.changedtick) {
+      if (changedtick != document.changedtick) return
+      if (mode !== 'i') {
         await sources.doCompleteSelect(item, opt)
       } else {
         await sources.doCompleteDone(item, opt)
