@@ -435,6 +435,10 @@ function! coc#util#clear()
   silent! call clearmatches()
 endfunction
 
+function! coc#util#clear_diagnostic_info()
+  let b:coc_diagnostic_info = {}
+endfunction
+
 function! coc#util#clear_signs()
   let buflist = []
   for i in range(tabpagenr('$'))
