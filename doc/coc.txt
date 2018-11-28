@@ -767,7 +767,7 @@ AUTOCMD 					*coc-autocmds*
 
 						*CocJumpPlaceholder*
 
-:autocmd User CocDiagnosticChange {command}
+:autocmd User CocJumpPlaceholder {command}
 
 		Triggered after jump placeholder. Can be used for trigger
 		signature help like: >
