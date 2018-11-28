@@ -440,14 +440,7 @@ function! coc#util#clear_diagnostic_info()
 endfunction
 
 function! coc#util#clear_signs()
-  let buflist = []
-  for i in range(tabpagenr('$'))
-    for n in tabpagebuflist(i + 1)
-      if index(buflist, n) == -1
-        call add(buflist, n)
-      endif
-    endfor
-  endfor
+  let buflist = filter(range(1, bufnr('$')), 'buflisted(v:val)')
   for b in buflist
     let signIds = []
     let lines = split(execute('sign place buffer='.b), "\n")
