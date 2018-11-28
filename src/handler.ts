@@ -577,7 +577,7 @@ export default class Handler {
     let document = await workspace.document
     if (completion.isActivted) return
     let part = document.getline(position.line).slice(0, position.character)
-    let idx = Math.max(part.lastIndexOf('.'), part.lastIndexOf('('))
+    let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
     let signatureHelp = await languages.getSignatureHelp(document.textDocument, position)
     if (!signatureHelp) return
