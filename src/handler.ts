@@ -62,7 +62,10 @@ export default class Handler {
       if (doc && languages.shouldTriggerSignatureHelp(doc.textDocument, ch)) {
         let config = workspace.getConfiguration('coc.preferences')
         let triggerSignatureHelp = config.get<boolean>('triggerSignatureHelp', true)
-        if (triggerSignatureHelp) this.showSignatureHelp()
+        if (triggerSignatureHelp) {
+          await wait(100)
+          this.showSignatureHelp()
+        }
       }
       if (timer) clearTimeout(timer)
       timer = setTimeout(async () => {
