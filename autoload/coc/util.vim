@@ -554,7 +554,7 @@ function! s:coc_installed(status, ...)
   endif
 endfunction
 
-function! s:rpc_installed(status)
+function! s:rpc_installed(status, ...)
   if a:status == 0
     redraw!
     echohl MoreMsg | echom 'vim-node-rpc installed, starting rpc server.' | echohl None
