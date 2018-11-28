@@ -29,6 +29,7 @@ function! s:start_select(lnum, col, len)
       call feedkeys("i", 'int')
     endif
   endif
+  silent doautocmd User CocJumpPlaceholder
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort

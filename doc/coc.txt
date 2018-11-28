@@ -757,13 +757,22 @@ AUTOCMD 					*coc-autocmds*
 		If you want trigger action of coc after vim started, this
 		autocmd should be used because coc always start in async.
 
-						CocDiagnosticChange
+						*CocDiagnosticChange*
 
 :autocmd User CocDiagnosticChange {command}
 
 		Triggered after diagnostic status changed.
 
 		Could be used for update statusline.
+
+						*CocJumpPlaceholder*
+
+:autocmd User CocDiagnosticChange {command}
+
+		Triggered after jump placeholder. Can be used for trigger
+		signature help like: >
+
+	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 
 ------------------------------------------------------------------------------
 
