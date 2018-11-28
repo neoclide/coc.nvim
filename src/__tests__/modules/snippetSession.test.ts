@@ -360,6 +360,7 @@ describe('SnippetSession#selectPlaceholder', () => {
     let buf = await helper.edit('foo')
     let session = new SnippetSession(nvim, buf.id)
     await session.start('a ${1} ${2}')
+    await helper.wait(100)
     let mode = await nvim.mode
     expect(mode.mode).toBe('i')
     let col = await nvim.call('col', '.')
