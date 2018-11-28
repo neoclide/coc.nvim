@@ -115,6 +115,7 @@ export default class CodeLensBuffer {
     codeLenses = await Promise.all(codeLenses.map(codeLens => {
       return languages.resolveCodeLens(codeLens)
     }))
+    if (codeLenses == null) return null
     Object.assign(item, { resolved: true, codeLenses })
     return item
   }

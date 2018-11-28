@@ -27,14 +27,15 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     if (!providers.length) return null
     let arr = await Promise.all(providers.map(item => {
       let { provider, id } = item
-      let res = Promise.resolve(provider.provideCodeLenses(document, token))
-      if (Array.isArray(res)) {
-        for (let o of res) {
-          o.data = o.data || []
-          o.data.source = id
+      return Promise.resolve(provider.provideCodeLenses(document, token)).then(res => {
+        if (Array.isArray(res)) {
+          for (let o of res) {
+            o.data = o.data || []
+            o.data.source = id
+          }
         }
-      }
-      return res || []
+        return res || []
+      })
     }))
     return [].concat(...arr)
   }
@@ -44,13 +45,15 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     token: CancellationToken
   ): Promise<CodeLens> {
     let { data } = codeLens
-    if (!data || !data.id) {
-      workspace.showMessage('Source id of codelens not found', 'error')
-      return null
+    let provider = this.poviderById(data.source)
+    if (!provider) {
+      workspace.showMessage(`Provider of ${data.source} not found`, 'error')
+      return codeLens
     }
-    let provider = this.poviderById(data.id)
-    if (!provider) return null
-    return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
+    if (typeof provider.resolveCodeLens == 'function') {
+      return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
+    }
+    return codeLens
   }
 
   public dispose(): void {
