@@ -1,6 +1,5 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
-
 | CI (Linux, macOS)                       | Coverage                               | Gitter                      | Doc                        |
 | --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- |
 | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] |
@@ -22,6 +21,34 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 - 💎 **Reliable**: typed language, tested with CI.
 - 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
 - ❤️ **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+
+## Completion experience
+
+You might wondering why another completion engine since there're already
+famous [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
+[deoplete.nvim](https://github.com/Shougo/deoplete.nvim).
+
+Below is the reasons that lead to coc.nvim build it's own engine:
+
+- **Full LSP completion support**, especially snippet and `additionalTextEdit`
+  feature, you'll understand why it's awesome when you experience it with
+  coc extension like `coc-tsserver`.
+- **Does completion resolve on completion item change**. The detail from complete
+  item is echoed after selected, we will have floating window for documentation
+  when floating window is supported.
+- **Start completion without timer**. The completion would start after you type
+  first letter of word by default, and filtered with new input when completion
+  finished, while some completion engine use timer to trigger completion and you
+  always have to wait after type character.
+- **Realtime buffer keywords**. Coc generate buffer keywords on buffer change in
+  background (with debounce), while some completion engines use cache which could
+  be wrong sometimes. And [Locality bonus feature](https://code.visualstudio.com/docs/editor/intellisense#_locality-bonus)
+  from VSCode is enabled by default.
+- **Filter completion items when possible.** When your does fuzzy filter with
+  completion items (which would trigger TextChangedI during completion), some
+  completion engines would trigger new completion, but coc filter the items when
+  possible which makes coc much faster. Filter completion items on backspace is
+  also supported.
 
 ## Table of contents
 
@@ -158,7 +185,7 @@ endfunction
 " Use <c-space> for trigger completion.
 inoremap <silent><expr> <c-space> coc#refresh()
 
-" Use <cr> for confirm completion.
+" Use <cr> for confirm completion, `<C-g>u` means break undo chain at current position.
 " Coc only does snippet and additional edit on confirm.
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
