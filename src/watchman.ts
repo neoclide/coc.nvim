@@ -73,10 +73,11 @@ export default class Watchman {
       this.relative_path = watch
       resp = await this.command(['clock', watch])
       this.clock = resp.clock
+      logger.info(`watchman watching project ${root}`)
     } catch (e) {
+      logger.error(e)
       return false
     }
-    logger.info(`watchman watching project ${root}`)
     return true
   }
 
@@ -133,11 +134,11 @@ export default class Watchman {
     let client = clientsMap.get(root)
     if (client) return client
     client = new Watchman(binaryPath)
+    clientsMap.set(root, client)
     let valid = await client.checkCapability()
     if (!valid) return null
     let watching = await client.watchProject(root)
     if (!watching) return null
-    clientsMap.set(root, client)
     return client
   }
 
