@@ -148,6 +148,9 @@ Extension are powerful than configured language server. Checkout
   use [solargraph](http://solargraph.org/).
 - **[coc-rls](https://github.com/neoclide/coc-rls)** for `rust`, use
   [Rust Language Server](https://github.com/rust-lang/rls)
+- **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
+- **[coc-pyls](https://github.com/neoclide/coc-pyls)** for `python`, use [Python
+  Language Server](https://github.com/palantir/python-language-server<Paste>)
 
 And more, to get full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
