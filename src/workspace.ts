@@ -809,9 +809,13 @@ augroup end`
   private async attach(): Promise<void> {
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
+    let idx = buffers.findIndex(buf => buf.id == bufnr)
+    buffers.splice(idx, 1)
     await Promise.all(buffers.map(buf => {
       return this.onBufCreate(buf)
     }))
+    // make current last one for resolve root
+    await this.onBufCreate(bufnr)
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true
@@ -1122,7 +1126,7 @@ augroup end`
   private resolveRoot(uri: string): string {
     let u = Uri.parse(uri)
     let dir = path.dirname(u.fsPath)
-    if (this._initialized && dir != os.homedir()) {
+    if (dir != os.homedir()) {
       let { roots } = this.env
       let files: string[]
       if (roots && roots.length) {
