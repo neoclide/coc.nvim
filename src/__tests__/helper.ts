@@ -137,51 +137,6 @@ export class Helper extends Emitter {
     return buf
   }
 
-  public async hide(): Promise<void> {
-    await this.nvim.call('coc#_hide')
-  }
-
-  public async startinsert(): Promise<void> {
-    let m = await this.nvim.call('mode')
-    if (m[0] !== 'i') {
-      await this.nvim.input('i')
-    }
-  }
-
-  public async getcurpos(): Promise<CursorPosition> {
-    let [bufnum, lnum, col] = await this.nvim.call('getcurpos')
-    return { bufnum, lnum, col }
-  }
-
-  public async insert(chars: string): Promise<void> {
-    await this.startinsert()
-    await this.nvim.input(chars)
-    let errmsg = await this.nvim.getVvar('errmsg') as string
-    if (errmsg) {
-      throw new Error(errmsg)
-    }
-  }
-
-  public onServiceReady(id: string): Promise<void> {
-    let service = services.getService(id)
-    if (service && service.state == ServiceStat.Running) {
-      return Promise.resolve()
-    }
-    return new Promise((resolve, reject) => {
-      let timer = setTimeout(() => {
-        reject(new Error('server timeout after 2s'))
-      }, 2000)
-      let cb = serviceId => {
-        if (serviceId == id) {
-          clearTimeout(timer)
-          services.removeListener('ready', cb)
-          resolve()
-        }
-      }
-      services.on('ready', cb)
-    })
-  }
-
   public get workspace(): IWorkspace {
     return require('../workspace').default
   }

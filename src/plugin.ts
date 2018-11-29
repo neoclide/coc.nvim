@@ -28,7 +28,6 @@ export default class Plugin extends EventEmitter {
       get: () => this.nvim
     })
     commandManager.init(nvim, this)
-    completion.init(nvim)
     clean() // tslint:disable-line
   }
 
@@ -39,6 +38,7 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     try {
       await workspace.init()
+      completion.init(nvim)
       services.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)

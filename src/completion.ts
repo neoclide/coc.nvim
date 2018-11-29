@@ -201,7 +201,7 @@ export class Completion implements Disposable {
     let config = this.getCompleteConfig()
     let document = workspace.getDocument(option.bufnr)
     this.complete = new Complete(option, document, this.recentScores, config, nvim)
-    increment.start()
+    increment.start(option)
     let items = await this.complete.doComplete(arr)
     if (items.length == 0 || !this.insertMode) {
       increment.stop()

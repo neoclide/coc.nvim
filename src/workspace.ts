@@ -1071,11 +1071,10 @@ augroup end`
 
   private onOptionSet(name: string, _oldValue: any, newValue: any): void {
     if (name === 'iskeyword') {
-      this.document.then(document => {
-        if (document) document.setIskeyword(newValue)
-      }, _e => {
-        // noop
-      })
+      let doc = this.getDocument(this.bufnr)
+      if (doc) doc.setIskeyword(newValue)
+    } else if (name === 'completeopt') {
+      this.env.completeOpt = newValue
     }
   }
 
