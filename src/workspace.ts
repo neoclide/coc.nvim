@@ -25,6 +25,7 @@ import { equals } from './util/object'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
+import { VimValue } from '@chemzqm/neovim/lib/types/VimValue'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -506,18 +507,17 @@ export class Workspace implements IWorkspace {
     } else {
       doc = await this.document
     }
-    if (!doc) return {
-      tabSize: await this.nvim.getOption('tabstop') as number,
-      insertSpaces: (await this.nvim.getOption('expandtab')) == 1
-    }
-    let { buffer } = doc
-    let tabSize = await buffer.getOption('tabstop') as number
-    let insertSpaces = (await buffer.getOption('expandtab')) == 1
-    let options: FormattingOptions = {
+    let tabSize = await this.getDocumentOption('softtabstop', doc) as number
+    if (!tabSize) tabSize = await this.getDocumentOption('tabstop', doc) as number
+    let insertSpaces = (await this.getDocumentOption('expandtab', doc)) == 1
+    return {
       tabSize,
       insertSpaces
-    }
-    return options
+    } as FormattingOptions
+  }
+
+  private getDocumentOption(name: string, doc?: Document): Promise<VimValue> {
+    return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name)
   }
 
   public async jumpTo(uri: string, position: Position, openCommand?: string): Promise<void> {
