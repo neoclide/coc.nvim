@@ -92,6 +92,6 @@ describe('document model properties', () => {
     await helper.wait(100)
     let ts = Date.now()
     doc.getLocalifyBonus({ line: 299, character: 0 })
-    expect(Date.now() - ts).toBeLessThanOrEqual(30)
+    expect(Date.now() - ts).toBeLessThanOrEqual(100)
   })
 })

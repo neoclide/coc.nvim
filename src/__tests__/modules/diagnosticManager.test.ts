@@ -40,7 +40,7 @@ async function createDocument(): Promise<Document> {
   diagnostics.push(createDiagnostic('hint', Range.create(1, 2, 1, 3), DiagnosticSeverity.Hint))
   diagnostics.push(createDiagnostic('error', Range.create(2, 0, 2, 2), DiagnosticSeverity.Error))
   collection.set(doc.uri, diagnostics)
-  await helper.wait(100)
+  await helper.wait(200)
   let buf = manager.buffers.find(b => b.bufnr == doc.bufnr)
   await (buf as any).sequence.ready
   return doc
