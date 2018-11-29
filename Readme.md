@@ -220,8 +220,11 @@ nmap <leader>rn <Plug>(coc-rename)
 vmap <leader>f  <Plug>(coc-format-selected)
 nmap <leader>f  <Plug>(coc-format-selected)
 
-" Or use formatexpr for range format
-set formatexpr=CocAction('formatSelected')
+" Setup formatexpr specified filetype(s).
+augroup mygroup
+  autocmd!
+  autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+augroup end
 
 " Remap for do codeAction of selected region, ex: `<leader>aap` for current paragraph
 vmap <leader>a  <Plug>(coc-codeaction-selected)
@@ -252,6 +255,8 @@ let g:lightline = {
 
 
 " Shortcuts for denite interface
+" Show extension list
+nnoremap <silent> <space>e  :<C-u>Denite coc-extension<cr>
 " Show symbols of current buffer
 nnoremap <silent> <space>o  :<C-u>Denite coc-symbols<cr>
 " Search symbols of current workspace
