@@ -391,6 +391,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'virtualText': exists('*nvim_buf_set_virtual_text') ? v:true : v:false,
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'roots': get(g:, 'rooter_patterns', []),
@@ -433,10 +434,6 @@ endfunction
 
 function! coc#util#clear()
   silent! call clearmatches()
-endfunction
-
-function! coc#util#clear_diagnostic_info()
-  let b:coc_diagnostic_info = {}
 endfunction
 
 function! coc#util#clear_signs()

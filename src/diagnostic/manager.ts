@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -8,9 +8,11 @@ import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
+import { getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
+  srcId: number
   locationlist: boolean
   signOffset: number
   errorSign: string
@@ -20,30 +22,14 @@ export interface DiagnosticConfig {
   level: number
 }
 
-function severityLevel(level: string): number {
-  switch (level) {
-    case 'hint':
-      return DiagnosticSeverity.Hint
-    case 'information':
-      return DiagnosticSeverity.Information
-    case 'warning':
-      return DiagnosticSeverity.Warning
-    case 'error':
-      return DiagnosticSeverity.Error
-    default:
-      return DiagnosticSeverity.Hint
-  }
-}
-
 export class DiagnosticManager {
   public config: DiagnosticConfig
   public enabled = true
   public insertMode = false
+  public readonly buffers: DiagnosticBuffer[] = []
   private timer: NodeJS.Timer
-  private buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private _srcId = 1000
   private enableMessage = true
   constructor() {
     // tslint:disable-next-line:no-floating-promises
@@ -51,7 +37,7 @@ export class DiagnosticManager {
       this.setConfiguration()
       if (this.enabled) {
         this.init().catch(err => {
-          logger.error(err.stack)
+          logger.error(err)
         })
       }
       let { mode } = await workspace.nvim.mode
@@ -59,9 +45,7 @@ export class DiagnosticManager {
     })
 
     events.on('CursorMoved', bufnr => {
-      if (this.timer) {
-        clearTimeout(this.timer)
-      }
+      if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
     }, null, this.disposables)
 
@@ -75,11 +59,10 @@ export class DiagnosticManager {
     events.on('InsertLeave', async () => {
       this.insertMode = false
       let { bufnr } = workspace
-      let res = await this.nvim.mode
-      if (res && !res.mode.startsWith('i')) {
-        let buf = this.buffers.find(buf => buf.bufnr == bufnr)
-        if (buf) buf.refresh()
-      }
+      let doc = workspace.getDocument(bufnr)
+      if (!this.shouldValidate(doc)) return
+      await wait(30)
+      this.refreshBuffer(doc.uri)
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(() => {
@@ -87,16 +70,18 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
+      if (this.timer) clearTimeout(this.timer)
       if (!this.config || !this.config.locationlist) return
       let winid = await this.nvim.call('win_getid') as number
-      // wait buffer create
-      await wait(50)
       let doc = workspace.getDocument(bufnr)
-      if (!doc || doc.buftype == 'quickfix' || doc.buftype == 'help') return
-      let buf = this.buffers.find(buf => buf.uri == doc.uri)
-      if (buf) {
-        buf.refresh()
-      } else {
+      // wait buffer create
+      if (!doc) {
+        await wait(100)
+        doc = workspace.getDocument(bufnr)
+      }
+      if (!this.shouldValidate(doc)) return
+      let refreshed = this.refreshBuffer(doc.uri)
+      if (!refreshed) {
         let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
         if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
           this.nvim.call('setloclist', [winid, [], 'f'], true)
@@ -108,10 +93,11 @@ export class DiagnosticManager {
       let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
       if (idx == -1) return
       let buf = this.buffers[idx]
-      for (let collection of this.collections) {
-        await collection.delete(buf.uri)
-      }
       this.buffers.splice(idx, 1)
+      for (let collection of this.collections) {
+        collection.delete(buf.uri)
+      }
+      await buf.clear()
     }, null, this.disposables)
 
     events.on('BufWritePost', async bufnr => {
@@ -126,66 +112,23 @@ export class DiagnosticManager {
     }))
   }
 
-  public get srcId(): number {
-    return this._srcId
-  }
-
-  private get nvim(): Neovim {
-    return workspace.nvim
-  }
-
-  private setConfiguration(): void {
-    let config = workspace.getConfiguration('coc.preferences.diagnostic')
-    this.enableMessage = config.get<boolean>('enableMessage', true)
-    this._srcId = config.get<number>('highlightOffset', 1000)
-    let level = config.get<string>('level', 'hint')
-    this.config = {
-      level: severityLevel(level),
-      locationlist: config.get<boolean>('locationlist', true),
-      signOffset: config.get<number>('signOffset', 1000),
-      errorSign: config.get<string>('errorSign', '>>'),
-      warningSign: config.get<string>('warningSign', '>>'),
-      infoSign: config.get<string>('infoSign', '>>'),
-      hintSign: config.get<string>('hintSign', '>>'),
-    }
-    this.enabled = config.get<boolean>('enable', true)
-  }
-
-  private async init(): Promise<void> {
-    let { nvim } = workspace
-    let { documents } = workspace
-    let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-    // create buffers
-    for (let doc of documents) {
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
-      }
-    }
-    workspace.onDidOpenTextDocument(textDocument => {
-      let doc = workspace.getDocument(textDocument.uri)
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc.bufnr, doc.uri, this))
-      }
-    }, null, this.disposables)
-    workspace.onDidCloseTextDocument(textDocument => {
-      let idx = this.buffers.findIndex(buf => textDocument.uri == buf.uri)
-      if (idx !== -1) this.buffers.splice(idx, 1)
-    }, null, this.disposables)
-  }
-
   public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
+    let disposable = collection.onDidDiagnosticsChange(uri => {
+      this.refreshBuffer(uri)
+    })
+    collection.onDispose(() => {
+      disposable.dispose()
+      let idx = this.collections.findIndex(o => o == collection)
+      if (idx !== -1) this.collections.splice(idx, 1)
+    })
+    collection.onDidDiagnosticsClear(uris => {
+      for (let uri of uris) {
+        this.refreshBuffer(uri)
+      }
+    })
     return collection
-  }
-
-  public removeCollection(owner: string): void {
-    let idx = this.collections.findIndex(c => c.name == owner)
-    if (idx !== -1) this.collections.splice(idx, 1)
   }
 
   public getSortedRanges(document: Document): Range[] {
@@ -196,13 +139,10 @@ export class DiagnosticManager {
       res.push(...ranges)
     }
     res.sort((a, b) => {
-      if (a.start.line < b.start.line) {
-        return -1
+      if (a.start.line != b.start.line) {
+        return a.start.line - b.start.line
       }
-      if (a.start.line > b.start.line) {
-        return 1
-      }
-      return b.start.character - a.start.character
+      return a.start.character - b.start.character
     })
     return res
   }
@@ -279,9 +219,7 @@ export class DiagnosticManager {
     for (let collection of this.getCollections(uri)) {
       let diagnostics = collection.get(uri)
       if (diagnostics) {
-        if (level != DiagnosticSeverity.Hint) {
-          diagnostics = diagnostics.filter(o => o.severity == null || o.severity <= level)
-        }
+        diagnostics = diagnostics.filter(o => o.severity == null || o.severity <= level)
         res[collection.name] = diagnostics
       }
     }
@@ -294,7 +232,7 @@ export class DiagnosticManager {
    * @public
    * @returns {any}
    */
-  public diagnosticList(): DiagnosticItem[] {
+  public getDiagnosticList(): DiagnosticItem[] {
     let res: DiagnosticItem[] = []
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
@@ -306,7 +244,7 @@ export class DiagnosticManager {
             lnum: start.line + 1,
             col: start.character + 1,
             message: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
-            severity: this.getSeverityName(diagnostic.severity),
+            severity: getSeverityName(diagnostic.severity),
             level: diagnostic.severity || 0
           }
           res.push(o)
@@ -342,6 +280,7 @@ export class DiagnosticManager {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
+    if (!this.shouldValidate(document)) return
     let offset = await workspace.getOffset()
     let diagnostics = this.diagnosticsAtOffset(offset, document.textDocument)
     if (diagnostics.length == 0) {
@@ -351,11 +290,20 @@ export class DiagnosticManager {
     let lines: string[] = []
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
-      let s = this.getSeverityName(severity)[0]
+      let s = getSeverityName(severity)[0]
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       lines.push(...str.split('\n'))
     })
     await workspace.echoLines(lines, truncate)
+  }
+
+  public dispose(): void {
+    for (let collection of this.collections) {
+      collection.dispose()
+    }
+    this.buffers.splice(0, this.buffers.length)
+    this.collections = []
+    disposeAll(this.disposables)
   }
 
   private diagnosticsAtOffset(offset: number, textDocument: TextDocument): Diagnostic[] {
@@ -377,27 +325,45 @@ export class DiagnosticManager {
     return res
   }
 
-  public async clear(owner: string, uri?: string): Promise<void> {
-    let collection = this.collections.find(o => o.name == owner)
-    if (!collection) return
-    if (!uri) {
-      await collection.clear()
-    } else {
-      await collection.delete(uri)
-    }
+  private get nvim(): Neovim {
+    return workspace.nvim
   }
 
-  public dispose(): void {
-    for (let collection of this.collections) {
-      collection.dispose()
+  private setConfiguration(): void {
+    let config = workspace.getConfiguration('coc.preferences.diagnostic')
+    this.enableMessage = config.get<boolean>('enableMessage', true)
+    this.config = {
+      srcId: config.get<number>('highlightOffset', 1000),
+      level: severityLevel(config.get<string>('level', 'hint')),
+      locationlist: config.get<boolean>('locationlist', true),
+      signOffset: config.get<number>('signOffset', 1000),
+      errorSign: config.get<string>('errorSign', '>>'),
+      warningSign: config.get<string>('warningSign', '>>'),
+      infoSign: config.get<string>('infoSign', '>>'),
+      hintSign: config.get<string>('hintSign', '>>'),
     }
-    this.buffers = []
-    this.collections = []
-    disposeAll(this.disposables)
+    this.enabled = config.get<boolean>('enable', true)
   }
 
-  public getBuffer(uri: string): DiagnosticBuffer {
-    return this.buffers.find(buf => buf.uri == uri)
+  private async init(): Promise<void> {
+    let { nvim } = workspace
+    let { errorSign, warningSign, infoSign, hintSign } = this.config
+    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
+    // create buffers
+    for (let doc of workspace.documents) {
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc, this.config))
+      }
+    }
+    workspace.onDidOpenTextDocument(textDocument => {
+      let doc = workspace.getDocument(textDocument.uri)
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc, this.config))
+      }
+    }, null, this.disposables)
   }
 
   private getCollections(uri: string): DiagnosticCollection[] {
@@ -406,14 +372,15 @@ export class DiagnosticManager {
 
   private async onHold(bufnr: number): Promise<void> {
     if (workspace.bufnr != bufnr) return
-    let m = await this.nvim.mode
-    if (m.blocking || m.mode != 'n') return
+    let mode = await this.nvim.call('mode') as string
+    if (mode != 'n') return
     await this.echoMessage(true)
   }
 
-  private shouldValidate(doc: Document): boolean {
+  private shouldValidate(doc: Document | null): boolean {
+    if (doc == null) return false
     let { buftype } = doc
-    return ['terminal', 'quickfix'].indexOf(buftype) == -1
+    return ['terminal', 'quickfix', 'help'].indexOf(buftype) == -1
   }
 
   private _echoMessage(): void {
@@ -424,19 +391,13 @@ export class DiagnosticManager {
     }, 100)
   }
 
-  public getSeverityName(severity: DiagnosticSeverity): string {
-    switch (severity) {
-      case DiagnosticSeverity.Error:
-        return 'Error'
-      case DiagnosticSeverity.Warning:
-        return 'Warning'
-      case DiagnosticSeverity.Information:
-        return 'Information'
-      case DiagnosticSeverity.Hint:
-        return 'Hint'
-      default:
-        return 'Error'
+  private refreshBuffer(uri: string): boolean {
+    let buf = this.buffers.find(buf => buf.uri == uri)
+    if (buf && !this.insertMode) {
+      buf.refresh(this.getBufferDiagnostic(uri))
+      return true
     }
+    return false
   }
 }
 

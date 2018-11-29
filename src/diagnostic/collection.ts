@@ -1,11 +1,17 @@
-import { Diagnostic } from 'vscode-languageserver-protocol'
+import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
-import diagnosticManager from './manager'
 const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
-  public readonly name: string
   private diagnosticsMap: Map<string, Diagnostic[]> = new Map()
+  private _onDispose = new Emitter<void>()
+  private _onDidDiagnosticsChange = new Emitter<string>()
+  private _onDidDiagnosticsClear = new Emitter<string[]>()
+
+  public readonly name: string
+  public readonly onDispose: Event<void> = this._onDispose.event
+  public readonly onDidDiagnosticsChange: Event<string> = this._onDidDiagnosticsChange.event
+  public readonly onDidDiagnosticsClear: Event<string[]> = this._onDidDiagnosticsClear.event
 
   constructor(owner: string) {
     this.name = owner
@@ -34,19 +40,19 @@ export default class Collection implements DiagnosticCollection {
     }
     let uri = entries
     this.diagnosticsMap.set(uri, diagnostics)
-    this.refresh(uri)
+    this._onDidDiagnosticsChange.fire(uri)
     return
   }
 
-  public async delete(uri: string): Promise<void> {
+  public delete(uri: string): void {
     this.diagnosticsMap.delete(uri)
-    this.refresh(uri)
+    this._onDidDiagnosticsChange.fire(uri)
   }
 
-  public async clear(): Promise<void> {
-    for (let uri of this.diagnosticsMap.keys()) {
-      await this.delete(uri)
-    }
+  public clear(): void {
+    let uris = this.diagnosticsMap.keys()
+    this.diagnosticsMap.clear()
+    this._onDidDiagnosticsClear.fire(Array.from(uris))
   }
 
   public forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void {
@@ -56,8 +62,9 @@ export default class Collection implements DiagnosticCollection {
     }
   }
 
-  public get(uri: string): Diagnostic[] | null {
-    return this.diagnosticsMap.get(uri)
+  public get(uri: string): Diagnostic[] {
+    let arr = this.diagnosticsMap.get(uri)
+    return arr == null ? [] : arr
   }
 
   public has(uri: string): boolean {
@@ -66,12 +73,10 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public dispose(): void {
-    this.diagnosticsMap.clear()
-    diagnosticManager.removeCollection(this.name)
-  }
-
-  private refresh(uri: string): void {
-    let buf = diagnosticManager.getBuffer(uri)
-    if (buf) buf.refresh()
+    this.clear()
+    this._onDispose.fire(void 0)
+    this._onDispose.dispose()
+    this._onDidDiagnosticsClear.dispose()
+    this._onDidDiagnosticsChange.dispose()
   }
 }

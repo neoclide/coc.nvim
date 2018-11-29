@@ -66,6 +66,7 @@ export interface Env {
   readonly version: string
   readonly easymotion: boolean
   readonly roots: string[]
+  readonly virtualText: boolean
 }
 
 export interface EditerState {

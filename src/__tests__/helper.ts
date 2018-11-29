@@ -186,10 +186,11 @@ export class Helper extends Emitter {
     return require('../workspace').default
   }
 
-  public async createDocument(name: string): Promise<Document> {
-    let buf = await this.edit(name)
-    await this.wait(100)
-    return this.workspace.getDocument(buf.id)
+  public async createDocument(name?: string): Promise<Document> {
+    name = name || uuid()
+    await this.edit(name)
+    await this.wait(10)
+    return await this.workspace.document
   }
 
   public async getCmdline(): Promise<string> {

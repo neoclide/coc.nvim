@@ -158,6 +158,7 @@ hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
+hi default link CocCodeLens         Comment
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText

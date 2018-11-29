@@ -1,51 +1,46 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
-import Document from '../model/document'
 import { DiagnosticItems, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
+import CallSequence from '../util/callSequence'
 import workspace from '../workspace'
-import { DiagnosticManager } from './manager'
+import { DiagnosticConfig } from './manager'
+import { getNameFromSeverity, getLocationListItem } from './util'
+import Document from '../model/document'
 const logger = require('../util/logger')('diagnostic-buffer')
-
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
-
-function getNameFromSeverity(severity: DiagnosticSeverity): string {
-  switch (severity) {
-    case DiagnosticSeverity.Error:
-      return 'CocError'
-    case DiagnosticSeverity.Warning:
-      return 'CocWarning'
-    case DiagnosticSeverity.Information:
-      return 'CocInfo'
-    case DiagnosticSeverity.Hint:
-      return 'CocHint'
-    default:
-      return 'CocError'
-  }
-}
 
 // maintains sign and highlightId
 export class DiagnosticBuffer {
   private matchIds: Set<number> = new Set()
   private signIds: Set<number> = new Set()
-  private signId: number
-  private diagnosticItems: DiagnosticItems = {}
-  private promise: Promise<void> = Promise.resolve(void 0)
-  public refresh: () => void
+  private _diagnosticItems: DiagnosticItems = {}
+  private sequence: CallSequence = null
+  private isVim: boolean
+  public readonly bufnr: number
+  public readonly uri: string
 
-  constructor(public readonly bufnr: number, public readonly uri: string, private manager: DiagnosticManager) {
-    this.signId = manager.config.signOffset || 1000
+  public refresh: (diagnosticItems: DiagnosticItems) => void
+
+  constructor(doc: Document, private config: DiagnosticConfig) {
+    this.bufnr = doc.bufnr
+    this.isVim = workspace.isVim
+    this.uri = doc.uri
     let timer: NodeJS.Timer = null
-    this.refresh = () => {
+    let time = Date.now()
+    this.refresh = (diagnosticItems: DiagnosticItems) => {
+      time = Date.now()
       if (timer) clearTimeout(timer)
-      timer = setTimeout(() => {
-        this.promise = this.promise.then(() => {
-          return this._refresh()
-        }, e => {
-          logger.error(e)
-        })
-      }, 100)
+      timer = setTimeout(async () => {
+        let current = time
+        if (this.sequence) {
+          await this.sequence.cancel()
+        }
+        // staled
+        if (current != time) return
+        this._refresh(diagnosticItems)
+      }, global.hasOwnProperty('__TEST__') ? 30 : 100)
     }
   }
 
@@ -53,42 +48,35 @@ export class DiagnosticBuffer {
     return workspace.nvim
   }
 
-  private get document(): Document {
-    return workspace.getDocument(this.uri)
-  }
-
-  private get enableLoclist(): boolean {
-    return this.manager.config.locationlist
-  }
-
-  private async _refresh(): Promise<void> {
-    if (!this.manager.enabled) return
-    if (this.manager.insertMode) return
-    let diagnosticItems = this.manager.getBufferDiagnostic(this.uri)
+  private _refresh(diagnosticItems: DiagnosticItems): void {
     let diagnostics = this.getDiagnostics(diagnosticItems)
-    if (equals(diagnosticItems, this.diagnosticItems)) {
-      await this.setLocationlist(diagnostics)
-      return
-    }
-    this.diagnosticItems = diagnosticItems
-    this.setDiagnosticInfo(diagnostics)
-    await this.setLocationlist(diagnostics)
-    await this.addHighlight(diagnostics)
-    await this.addSigns(diagnostics)
-    await this.nvim.command('silent doautocmd User CocDiagnosticChange')
+    if (equals(diagnosticItems, this._diagnosticItems)) return
+    let sequence = this.sequence = new CallSequence()
+    sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
+    sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
+    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
+    sequence.addFunction(this.addSigns.bind(this, diagnostics))
+    sequence.addFunction(() => {
+      this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
+    })
+    sequence.start().then(canceled => {
+      if (!canceled) {
+        this._diagnosticItems = diagnosticItems
+      }
+    }, e => {
+      logger.error(e)
+    })
   }
 
   public async setLocationlist(diagnostics: Diagnostic[]): Promise<void> {
-    if (!this.enableLoclist) return
-    let { nvim, document } = this
-    if (!document) return
-    let { bufnr } = document
+    if (!this.config.locationlist) return
+    let { nvim, bufnr } = this
     let winid = await nvim.call('bufwinid', bufnr) as number
     // not shown
     if (winid == -1) return
     let items: LocationListItem[] = []
     for (let diagnostic of diagnostics) {
-      let item = this.getLocationListItem(diagnostic.source, bufnr, diagnostic)
+      let item = getLocationListItem(diagnostic.source, bufnr, diagnostic)
       items.push(item)
     }
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
@@ -99,31 +87,33 @@ export class DiagnosticBuffer {
   private async clearSigns(): Promise<void> {
     let { nvim, signIds, bufnr } = this
     await nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)])
+    signIds.clear()
   }
 
   public async checkSigns(): Promise<void> {
     let { nvim, bufnr, signIds } = this
-    let buffers = await nvim.buffers
-    if (!buffers) return
-    let buffer = buffers.find(buf => buf.id == bufnr)
-    if (!buffer) return
-    let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
-    let lines: string[] = content.split('\n')
-    let ids = []
-    for (let line of lines) {
-      let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
-      if (!ms) continue
-      let [, id, name] = ms
-      if (!signIds.has(Number(id)) && severityNames.indexOf(name) != -1) {
-        ids.push(id)
+    try {
+      let content = await this.nvim.call('execute', [`sign place buffer=${bufnr}`])
+      let lines: string[] = content.split('\n')
+      let ids = []
+      for (let line of lines) {
+        let ms = line.match(/^\s*line=\d+\s+id=(\d+)\s+name=(\w+)/)
+        if (!ms) continue
+        let [, id, name] = ms
+        if (!signIds.has(Number(id)) && severityNames.indexOf(name) != -1) {
+          ids.push(id)
+        }
       }
+      await nvim.call('coc#util#unplace_signs', [bufnr, ids])
+    } catch (e) {
+      // noop
     }
-    await nvim.call('coc#util#unplace_signs', [bufnr, ids])
   }
 
-  private async addSigns(diagnostics: Diagnostic[]): Promise<void> {
+  public async addSigns(diagnostics: Diagnostic[]): Promise<void> {
     await this.clearSigns()
-    let { signId, signIds } = this
+    let { nvim, bufnr, signIds } = this
+    let signId = this.config.signOffset
     signIds.clear()
     let lines: Set<number> = new Set()
     for (let diagnostic of diagnostics) {
@@ -131,23 +121,14 @@ export class DiagnosticBuffer {
       let line = range.start.line
       if (lines.has(line)) continue
       lines.add(line)
-      this.addSign(signId, line, severity)
+      let name = getNameFromSeverity(severity)
+      nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${bufnr}`, true)
       signIds.add(signId)
       signId = signId + 1
     }
   }
 
-  private addSign(signId: number, line: number, severity: DiagnosticSeverity): void {
-    let { document, nvim } = this
-    if (!document) return
-    let { buffer } = document
-    let name = getNameFromSeverity(severity)
-    nvim.command(`sign place ${signId} line=${line + 1} name=${name} buffer=${buffer.id}`, true)
-  }
-
-  private setDiagnosticInfo(diagnostics: Diagnostic[]): void {
-    let { document } = this
-    if (!document) return
+  public async setDiagnosticInfo(diagnostics: Diagnostic[]): Promise<void> {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
     for (let diagnostic of diagnostics) {
       switch (diagnostic.severity) {
@@ -164,32 +145,30 @@ export class DiagnosticBuffer {
           info.error = info.error + 1
       }
     }
-    document.buffer.setVar('coc_diagnostic_info', info, true)
-    if (workspace.bufnr == this.bufnr) {
-      this.nvim.command('redraws', true)
-    }
+    let buffer = this.nvim.createBuffer(this.bufnr)
+    buffer.setVar('coc_diagnostic_info', info, true)
+    let bufnr = await this.nvim.call('bufnr', '%')
+    if (bufnr == this.bufnr) this.nvim.command('redraws', true)
   }
 
-  private async clearHighlight(): Promise<void> {
+  public async clearHighlight(): Promise<void> {
     let { bufnr, nvim, matchIds } = this
-    if (workspace.isNvim) {
-      let buffer = nvim.createBuffer(bufnr)
-      for (let srcId of matchIds) {
-        buffer.clearHighlight({ srcId })
-      }
-    } else {
+    if (this.isVim) {
       await nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)])
+    } else {
+      let buffer = nvim.createBuffer(bufnr)
+      buffer.clearHighlight({ srcId: this.config.srcId })
     }
     this.matchIds.clear()
   }
 
-  private async addHighlight(diagnostics: Diagnostic[]): Promise<void> {
+  public async addHighlight(diagnostics: Diagnostic[]): Promise<void> {
     await this.clearHighlight()
     let winid = await this.nvim.call('bufwinid', this.bufnr) as number
-    if (winid == -1) return
+    if (winid == -1 || diagnostics.length == 0) return
     for (let diagnostic of diagnostics.reverse()) {
       let { range, severity } = diagnostic
-      if (workspace.isVim) {
+      if (this.isVim) {
         await this.addHighlightVim(winid, range, severity)
       } else {
         await this.addHighlightNvim(range, severity)
@@ -198,9 +177,9 @@ export class DiagnosticBuffer {
   }
 
   private async addHighlightNvim(range: Range, severity: DiagnosticSeverity): Promise<void> {
-    let { srcId } = this.manager
+    let { srcId } = this.config
     let { start, end } = range
-    let { document } = this
+    let document = workspace.getDocument(this.bufnr)
     if (!document) return
     let { buffer } = document
     for (let i = start.line; i <= end.line; i++) {
@@ -221,7 +200,8 @@ export class DiagnosticBuffer {
 
   private async addHighlightVim(winid: number, range: Range, severity: DiagnosticSeverity): Promise<void> {
     let { start, end } = range
-    let { document, matchIds } = this
+    let { matchIds } = this
+    let document = workspace.getDocument(this.bufnr)
     if (!document) return
     try {
       let list: any[] = []
@@ -267,16 +247,37 @@ export class DiagnosticBuffer {
     return res
   }
 
-  public getLocationListItem(owner: string, bufnr: number, diagnostic: Diagnostic): LocationListItem {
-    let { start } = diagnostic.range
-    let msg = diagnostic.message.split('\n')[0]
-    let type = this.manager.getSeverityName(diagnostic.severity).slice(0, 1).toUpperCase()
-    return {
-      bufnr,
-      lnum: start.line + 1,
-      col: start.character + 1,
-      text: `[${owner}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${msg} [${type}]`,
-      type
+  /**
+   * Used on buffer unload
+   *
+   * @public
+   * @returns {Promise<void>}
+   */
+  public async clear(): Promise<void> {
+    let info = { error: 0, warning: 0, information: 0, hint: 0 }
+    if (this.sequence) {
+      await this.sequence.cancel()
     }
+    let buffer = this.nvim.createBuffer(this.bufnr)
+    buffer.setVar('coc_diagnostic_info', info, true)
+    let bufnr = await this.nvim.call('bufnr', '%')
+    if (bufnr == this.bufnr) this.nvim.command('redraws', true)
+    await this.clearHighlight()
+    await this.clearSigns()
+    // clear locationlist
+    if (this.config.locationlist) {
+      let winid = await this.nvim.call('bufwinid', bufnr) as number
+      // not shown
+      if (winid == -1) return
+      let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
+      if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
+        this.nvim.call('setloclist', [winid, [], 'f'], true)
+      }
+    }
+    await this.nvim.command('silent doautocmd User CocDiagnosticChange')
+  }
+
+  public hasMatch(match: number): boolean {
+    return this.matchIds.has(match)
   }
 }
