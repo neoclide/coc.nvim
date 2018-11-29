@@ -507,7 +507,7 @@ export class Workspace implements IWorkspace {
     } else {
       doc = await this.document
     }
-    let tabSize = await this.getDocumentOption('softtabstop', doc) as number
+    let tabSize = await this.getDocumentOption('shiftwidth', doc) as number
     if (!tabSize) tabSize = await this.getDocumentOption('tabstop', doc) as number
     let insertSpaces = (await this.getDocumentOption('expandtab', doc)) == 1
     return {

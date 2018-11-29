@@ -266,7 +266,7 @@ describe('workspace methods', () => {
 
   it('should get format options of current buffer', async () => {
     let buf = await helper.edit('foo')
-    await buf.setOption('tabstop', 8)
+    await buf.setOption('shiftwidth', 8)
     await buf.setOption('expandtab', false)
     let doc = workspace.getDocument(buf.id)
     let opts = await workspace.getFormatOptions(doc.uri)
