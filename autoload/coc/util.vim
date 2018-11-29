@@ -343,17 +343,18 @@ function! coc#util#open_terminal(opts) abort
   if empty(cmd)
     throw 'command required!'
   endif
-  let cwd = get(a:opts, 'cwd', '')
-  if !empty(cwd) | execute 'lcd '.cwd | endif
+  let cwd = get(a:opts, 'cwd', getcwd())
   let keepfocus = get(a:opts, 'keepfocus', 0)
   let bufnr = bufnr('%')
   let Callback = get(a:opts, 'Callback', v:null)
   if has('nvim')
     call termopen(cmd, {
+          \ 'cwd': cwd,
           \ 'on_exit': function('s:OnExit', [autoclose, bufnr, Callback]),
           \})
   else
     call term_start(cmd, {
+          \ 'cwd': cwd,
           \ 'exit_cb': function('s:OnExit', [autoclose, bufnr, Callback]),
           \ 'curwin': 1,
           \})
