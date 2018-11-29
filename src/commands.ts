@@ -39,7 +39,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'vscode.open',
       execute: async (url: string) => {
-        await nvim.call('coc#util#open_url', url)
+        nvim.call('coc#util#open_url', url, true)
       }
     }, true)
     this.register({
@@ -60,7 +60,7 @@ export class CommandManager implements Disposable {
       id: 'editor.action.restart',
       execute: async () => {
         await wait(30)
-        await nvim.command('CocRestart')
+        nvim.command('CocRestart', true)
       }
     }, true)
     this.register({
