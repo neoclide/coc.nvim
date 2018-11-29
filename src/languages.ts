@@ -246,10 +246,6 @@ class Languages {
 
   @check
   public async getHover(document: TextDocument, position: Position): Promise<Hover> {
-    if (!this.hoverManager.hasProvider(document)) {
-      workspace.showMessage('Hover provider not found for current document', 'error')
-      return null
-    }
     return await this.hoverManager.provideHover(document, position, this.token)
   }
 

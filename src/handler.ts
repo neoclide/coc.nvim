@@ -1,20 +1,20 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, CodeAction, ExecuteCommandRequest, ExecuteCommandParams } from 'vscode-languageserver-protocol'
+import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensBuffer from './codelens'
+import Colors from './colors'
 import commandManager from './commands'
+import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import events from './events'
-import languages from './languages'
-import { disposeAll, wait } from './util'
-import workspace from './workspace'
 import extensions from './extensions'
-import completion from './completion'
-import services from './services'
-import Colors from './colors'
+import languages from './languages'
 import { TextDocumentContentProvider } from './provider'
+import services from './services'
+import { disposeAll, wait } from './util'
 import { isWord } from './util/string'
+import workspace from './workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -677,27 +677,37 @@ export default class Handler {
   private async previewHover(hover: Hover): Promise<void> {
     let { contents } = hover
     let lines: string[] = []
+    let config = workspace.getConfiguration('coc.preferences')
+    let target = config.get<string>('hoverTarget', 'preview')
     if (Array.isArray(contents)) {
       for (let item of contents) {
         if (typeof item === 'string') {
           lines.push(...item.split('\n'))
         } else {
-          lines.push('``` ' + item.language)
-          lines.push(...item.value.split('\n'))
-          lines.push('```')
+          let content = item.value.trim()
+          if (target == 'preview') {
+            content = '``` ' + item.language + '\n' + content + '\n```'
+          }
+          lines.push(...content.split('\n'))
         }
       }
     } else if (typeof contents == 'string') {
       lines.push(...contents.split('\n'))
     } else if (MarkedString.is(contents)) { // tslint:disable-line
-      lines.push('``` ' + contents.language)
-      lines.push(...contents.value.split('\n'))
-      lines.push('```')
+      let content = contents.value.trim()
+      if (target == 'preview') {
+        content = '``` ' + contents.language + '\n' + content + '\n```'
+      }
+      lines.push(...content.split('\n'))
     } else if (MarkupContent.is(contents)) {
       lines.push(...contents.value.split('\n'))
     }
-    this.documentLines = lines
-    await this.nvim.command(`pedit coc://document`)
+    if (target == 'echo') {
+      await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim())
+    } else {
+      this.documentLines = lines
+      await this.nvim.command(`pedit coc://document`)
+    }
   }
 
 }

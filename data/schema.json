@@ -252,6 +252,12 @@
       "default": "",
       "description": "rootPath of language server, relative to folder of current file, it's workspace only.'"
     },
+    "coc.preferences.hoverTarget": {
+      "type": "string",
+      "default": "preview",
+      "description": "Target to show hover information, default is preview window, could also be echo",
+      "enum": ["preview", "echo"]
+    },
     "coc.preferences.snippetIndicator": {
       "type": "string",
       "default": "~",

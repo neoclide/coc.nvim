@@ -8,6 +8,7 @@
   "coc.preferences.snippetIndicator": "~",
   "coc.preferences.snippets.enable": true,
   "coc.preferences.colorSupport": true,
+  "coc.preferences.hoverTarget": "preview",
   "coc.preferences.maxColorCount": 1000,
   // only used when autoTrigger is always
   "coc.preferences.triggerAfterInsertEnter": false,

@@ -88,10 +88,15 @@ function! coc#util#job_command()
   echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
 endfunction
 
+function! coc#util#echo_hover(msg)
+  echohl MoreMsg
+  echo a:msg
+  echohl None
+endfunction
+
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   execute 'echohl '.a:hl
-  let height = &cmdheight
   let msgs = copy(a:msgs)
   if pumvisible()
     let msgs = msgs[0: 0]
