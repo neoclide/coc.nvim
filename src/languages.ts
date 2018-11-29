@@ -539,6 +539,7 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
         if (!result) return null
         completeItems = Array.isArray(result) ? result : result.items
+        if (!completeItems) return null
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
           let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
           item.index = index
