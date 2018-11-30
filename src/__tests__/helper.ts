@@ -79,7 +79,7 @@ export class Helper extends Emitter {
     await this.nvim.command('stopinsert')
     await this.wait(30)
     await this.nvim.command('silent! %bwipeout!')
-    await this.wait(100)
+    await this.wait(30)
   }
 
   public async pumvisible(): Promise<boolean> {

@@ -18,7 +18,7 @@ afterEach(async () => {
 describe('native sources', () => {
 
   it('should works for around source', async () => {
-    await helper.edit('around')
+    await helper.edit()
     await nvim.setLine('foo')
     await helper.wait(100)
     await nvim.input('of')
@@ -28,8 +28,8 @@ describe('native sources', () => {
 
   it('should works for buffer source', async () => {
     await nvim.command('set hidden')
-    await helper.edit('buffer')
-    await helper.edit('another')
+    await helper.edit()
+    await helper.edit()
     await nvim.setLine('other')
     await nvim.command('bp')
     await helper.wait(100)
@@ -39,7 +39,7 @@ describe('native sources', () => {
   })
 
   it('should works for file source', async () => {
-    await helper.edit('file')
+    await helper.edit()
     await nvim.input('i/')
     await helper.waitPopup()
     let items = await helper.getItems()

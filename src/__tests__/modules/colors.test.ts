@@ -63,7 +63,7 @@ describe('Colors', () => {
   })
 
   it('should highlight on CursorHold', async () => {
-    let buf = await helper.edit('tmp')
+    let buf = await helper.edit()
     await nvim.setLine('#ffffff')
     await nvim.command('doautocmd CursorHold')
     await helper.wait(100)
@@ -71,27 +71,27 @@ describe('Colors', () => {
   })
 
   it('should clearHighlight on empty result', async () => {
-    let doc = await helper.createDocument('tmp')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     state = 'empty'
-    await colors.highlightColors(doc)
+    await colors.highlightColors(doc, true)
     let res = colors.hasColor(doc.bufnr)
     expect(res).toBe(false)
     state = 'normal'
   })
 
   it('should clearHighlight on error result', async () => {
-    let doc = await helper.createDocument('tmp')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     state = 'error'
-    await colors.highlightColors(doc)
+    await colors.highlightColors(doc, true)
     let res = colors.hasColor(doc.bufnr)
     expect(res).toBe(false)
     state = 'normal'
   })
 
   it('should clearHighlight on clearHighlight', async () => {
-    let doc = await helper.createDocument('tmp')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     await colors.highlightColors(doc)
     expect(colors.hasColor(doc.bufnr)).toBe(true)
@@ -100,17 +100,17 @@ describe('Colors', () => {
   })
 
   it('should highlight colors', async () => {
-    let doc = await helper.createDocument('test')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc)
+    await colors.highlightColors(doc, true)
     let exists = await nvim.call('hlexists', 'BGffffff')
     expect(exists).toBe(1)
   })
 
   it('should pick presentations', async () => {
-    let doc = await helper.createDocument('test')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
-    await colors.highlightColors(doc)
+    await colors.highlightColors(doc, true)
     let p = colors.pickPresentation()
     await helper.wait(100)
     let m = await nvim.mode

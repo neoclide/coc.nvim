@@ -90,19 +90,21 @@ export default class Colors {
       let colors: ColorInformation[] = await languages.provideDocumentColors(document.textDocument)
       let old = this.colorInfomation.get(document.bufnr)
       if (!colors || colors.length == 0) {
+        this.colorInfomation.delete(document.bufnr)
         await this.clearHighlight(document.bufnr)
         return
       }
       if (old && equals(old, colors)) return
       colors = colors.slice(0, this.maxColorCount)
-      await this.clearHighlight(document.bufnr)
-      this.colorInfomation.set(document.bufnr, colors)
+      await this.clearHighlight(bufnr)
+      this.colorInfomation.set(bufnr, colors)
       let colorRanges = this.getColorRanges(colors)
       await this.addColors(colors.map(o => o.color))
       for (let o of colorRanges) {
-        await this.addHighlight(document.bufnr, o.ranges, o.color)
+        await this.addHighlight(bufnr, o.ranges, o.color)
       }
     } catch (e) {
+      this.colorInfomation.delete(bufnr)
       this.documentVersions.delete(bufnr)
       logger.error('error on highlight:', e.stack)
     }
