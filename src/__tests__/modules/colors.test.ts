@@ -102,17 +102,9 @@ describe('Colors', () => {
   it('should highlight colors', async () => {
     let doc = await helper.createDocument('test')
     await nvim.setLine('#ffffff')
-    let colorSet = false
-    helper.on('highlight_set', args => {
-      let color = args[0][0]
-      if (color.foreground == 0 && color.background == 16777215) {
-        colorSet = true
-      }
-    })
     await colors.highlightColors(doc)
     let exists = await nvim.call('hlexists', 'BGffffff')
     expect(exists).toBe(1)
-    expect(colorSet).toBe(true)
   })
 
   it('should pick presentations', async () => {

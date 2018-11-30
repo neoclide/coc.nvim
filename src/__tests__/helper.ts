@@ -126,7 +126,8 @@ export class Helper extends Emitter {
     return items || []
   }
 
-  public async edit(file: string): Promise<Buffer> {
+  public async edit(file?: string): Promise<Buffer> {
+    file = file || uuid()
     await this.nvim.command(`exe 'edit ' . fnameescape('${file}')`)
     await this.wait(50)
     let buf = await this.nvim.buffer
