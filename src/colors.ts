@@ -3,9 +3,10 @@ import { Color, ColorInformation, Disposable, Range } from 'vscode-languageserve
 import events from './events'
 import languages from './languages'
 import Document from './model/document'
-import { disposeAll } from './util'
+import { disposeAll, wait } from './util'
 import { equals } from './util/object'
 import workspace from './workspace'
+import services from './services'
 
 const logger = require('./util/logger')('colors')
 
@@ -28,17 +29,44 @@ export default class Colors {
     this._enabled = config.get<boolean>('colorSupport', true)
     this.maxColorCount = config.get<number>('maxColorCount', 300)
 
+    events.on('BufEnter', async bufnr => {
+      await wait(100)
+      let doc = workspace.getDocument(bufnr)
+      if (doc) this.highlightColors(doc) // tslint:disable-line
+    }, null, this.disposables)
+
     events.on('BufUnload', async bufnr => {
       this.colorInfomation.delete(bufnr)
       this.matchIds.delete(bufnr)
       this.documentVersions.delete(bufnr)
     }, null, this.disposables)
 
-    events.on(['CursorHold', 'CursorHoldI'], async () => {
+    events.on(['InsertLeave'], async () => {
       let doc = await workspace.document
       if (!doc || !this.enabled) return
       await this.highlightColors(doc)
     }, null, this.disposables)
+
+    let timer: NodeJS.Timer = null
+    services.on('ready', async id => {
+      let service = services.getService(id)
+      let doc = await workspace.document
+      if (!doc) return
+      if (workspace.match(service.selector, doc.textDocument)) {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => {
+          this.highlightColors(doc, true) // tslint:disable-line
+        }, 100)
+      }
+    })
+
+    workspace.onDidChangeTextDocument(async change => {
+      let { mode } = await nvim.mode
+      if (mode.startsWith('i')) return
+      await wait(100)
+      let doc = workspace.getDocument(change.textDocument.uri)
+      if (doc) this.highlightColors(doc) // tslint:disable-line
+    })
 
     workspace.onDidChangeConfiguration(async e => {
       if (e.affectsConfiguration('coc.preferences.maxColorCount')) {
@@ -52,13 +80,13 @@ export default class Colors {
     })
   }
 
-  public async highlightColors(document: Document): Promise<void> {
+  public async highlightColors(document: Document, force = false): Promise<void> {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
     let { bufnr, version } = document
-    let curr = this.documentVersions.get(bufnr)
-    if (curr == version) return
-    this.documentVersions.set(bufnr, version)
     try {
+      let curr = this.documentVersions.get(bufnr)
+      if (curr == version && !force) return
+      this.documentVersions.set(bufnr, version)
       let colors: ColorInformation[] = await languages.provideDocumentColors(document.textDocument)
       let old = this.colorInfomation.get(document.bufnr)
       if (!colors || colors.length == 0) {
