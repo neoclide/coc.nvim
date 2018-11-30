@@ -13,7 +13,7 @@ afterEach(() => {
 
 describe('OutputChannel', () => {
   test('outputChannel.show(true)', async () => {
-    let c = new OutputChannel('test', nvim)
+    let c = new OutputChannel('0', nvim)
     let bufnr = (await nvim.buffer).id
     c.show(true)
     await wait(100)
@@ -22,7 +22,7 @@ describe('OutputChannel', () => {
   })
 
   test('outputChannel.show(false)', async () => {
-    let c = new OutputChannel('test', nvim)
+    let c = new OutputChannel('1', nvim)
     let bufnr = (await nvim.buffer).id
     c.show()
     await wait(100)
@@ -31,7 +31,7 @@ describe('OutputChannel', () => {
   })
 
   test('outputChannel.appendLine()', async () => {
-    let c = new OutputChannel('test', nvim)
+    let c = new OutputChannel('2', nvim)
     c.show()
     await wait(100)
     let buf = await nvim.buffer
@@ -42,11 +42,12 @@ describe('OutputChannel', () => {
   })
 
   test('outputChannel.append()', async () => {
-    let c = new OutputChannel('test', nvim)
+    let c = new OutputChannel('3', nvim)
     c.show(false)
-    await wait(100)
+    await wait(30)
     let buf = await nvim.buffer
     c.append('foo')
+    await wait(100)
     c.append('bar')
     await wait(100)
     let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
@@ -54,7 +55,7 @@ describe('OutputChannel', () => {
   })
 
   test('outputChannel.clear()', async () => {
-    let c = new OutputChannel('test', nvim)
+    let c = new OutputChannel('4', nvim)
     c.show(false)
     await wait(30)
     let buf = await nvim.buffer
