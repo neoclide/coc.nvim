@@ -47,16 +47,16 @@ describe('snippet provider', () => {
   })
 
   it('should not active insert plain snippet', async () => {
-    let buf = await helper.edit('foo')
+    let doc = await helper.createDocument()
     await snippetManager.insertSnippet('foo')
     let line = await nvim.line
     expect(line).toBe('foo')
     expect(snippetManager.session).toBe(null)
-    expect(snippetManager.getSession(buf.id)).toBeUndefined()
+    expect(snippetManager.getSession(doc.bufnr)).toBeUndefined()
   })
 
   it('should goto next placeholder', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     await snippetManager.insertSnippet('${1:a} ${2:b}')
     await nvim.call('CocAction', 'snippetNext')
     await helper.wait(100)
@@ -65,7 +65,7 @@ describe('snippet provider', () => {
   })
 
   it('should goto previous placeholder', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     await snippetManager.insertSnippet('${1:a} ${2:b}')
     await snippetManager.nextPlaceholder()
     await helper.wait(100)
@@ -76,25 +76,25 @@ describe('snippet provider', () => {
   })
 
   it('should work remove kepmap on nextPlaceholder when session not exits', async () => {
-    let buf = await helper.edit('bar')
+    let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.nextPlaceholder()
     await helper.wait(60)
-    let val = await buf.getVar('coc_snippet_active')
+    let val = await doc.buffer.getVar('coc_snippet_active')
     expect(val).toBe(0)
   })
 
   it('should work remove kepmap on previousPlaceholder when session not exits', async () => {
-    let buf = await helper.edit('bar')
+    let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.previousPlaceholder()
     await helper.wait(60)
-    let val = await buf.getVar('coc_snippet_active')
+    let val = await doc.buffer.getVar('coc_snippet_active')
     expect(val).toBe(0)
   })
 
   it('should update placeholder on placeholder update', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     await nvim.setLine('bar')
     await snippetManager.insertSnippet('${1:foo} $1 ')
     let line = await nvim.line
@@ -107,7 +107,7 @@ describe('snippet provider', () => {
   })
 
   it('should check position on InsertEnter', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     await nvim.input('ibar<left><left><left>')
     await snippetManager.insertSnippet('${1:foo} $1 ')
     await helper.wait(60)
@@ -117,11 +117,11 @@ describe('snippet provider', () => {
   })
 
   it('should cancel snippet session', async () => {
-    let buf = await helper.edit('bar')
+    let { buffer } = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     snippetManager.cancel()
     await helper.wait(60)
-    let val = await buf.getVar('coc_snippet_active')
+    let val = await buffer.getVar('coc_snippet_active')
     expect(val).toBe(0)
     let active = await snippetManager.insertSnippet('${1:foo}')
     expect(active).toBe(true)
@@ -130,7 +130,7 @@ describe('snippet provider', () => {
   })
 
   it('should dispose', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     let active = await snippetManager.insertSnippet('${1:foo}')
     expect(active).toBe(true)
     snippetManager.dispose()
@@ -138,7 +138,7 @@ describe('snippet provider', () => {
   })
 
   it('should start new session if session exists', async () => {
-    await helper.edit('foo')
+    await helper.createDocument()
     await nvim.setLine('bar')
     await snippetManager.insertSnippet('${1:foo} ')
     await helper.wait(100)
@@ -153,7 +153,7 @@ describe('snippet provider', () => {
   })
 
   it('should start nest session', async () => {
-    await helper.edit('nest')
+    await helper.createDocument()
     await snippetManager.insertSnippet('${1:foo} ${2:bar}')
     await nvim.input('<backspace>')
     await helper.wait(100)
