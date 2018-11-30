@@ -440,6 +440,16 @@
       "description": "Text of hint sign",
       "default": ">>"
     },
+    "coc.preferences.codeLens.enable": {
+      "type": "boolean",
+      "description": "Enable codeLens feature, require neovim with set virtual text feature.",
+      "default": true
+    },
+    "coc.preferences.codeLens.separator": {
+      "type": "string",
+      "description": "Separator text for codeLens in virtual text",
+      "default": "‣"
+    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true

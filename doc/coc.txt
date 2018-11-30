@@ -230,6 +230,10 @@ mode, 'v_' works for visual mode.
 
 			Open link under cursor.
 
+<Plug>(coc-codelens-action) 			*n_coc-codelens-action*
+
+			Do command from codeLens of current line.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
@@ -529,15 +533,12 @@ Available Actions ~
 	could be empty string for none visualmode.
 
 
-"codeLens" 					*coc-action-codeLens*
-
-	Open codelens buffer in split window, you can jump (use <CR> by
-	default) and run command (use <d> by default).
-
 "codeLensAction" 				*coc-action-codeLensAction*
 
-	Do command from codeLens provider, should only be used in codelens
-	buffer.
+
+	Invoke command for codeLens of current line (or the line contains
+	codeLens just before). Prompt would be shown when multiple actions
+	available.
 
 "commands" 					*coc-action-commands*
 
@@ -868,6 +869,12 @@ CocHintLine 					*CocHintLine*
   Default `undefined`
 
   Highlight for line with diagnostic hint.
+
+CocCodeLens 					*CocCodeLens*
+
+  Default: ``ctermfg=Gray    guifg=#999999`
+
+  Highlight group of virtual text for codeLens.
 
 To customize the highlight, simply use |:highlight| command of vim in your
 vimrc, like: >

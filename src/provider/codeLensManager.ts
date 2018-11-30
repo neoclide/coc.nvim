@@ -1,8 +1,8 @@
 import { CancellationToken, CodeLens, Disposable, DocumentSelector, TextDocument } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
 import { CodeLensProvider } from './index'
 import Manager, { ProviderItem } from './manager'
 import uuid = require('uuid/v4')
+import { omit } from '../util/lodash'
 // const logger = require('../util/logger')('codeActionManager')
 
 export default class CodeLensManager extends Manager<CodeLensProvider> implements Disposable {
@@ -29,9 +29,8 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
       let { provider, id } = item
       return Promise.resolve(provider.provideCodeLenses(document, token)).then(res => {
         if (Array.isArray(res)) {
-          for (let o of res) {
-            o.data = o.data || []
-            o.data.source = id
+          for (let item of res) {
+            (item as any).source = id
           }
         }
         return res || []
@@ -44,15 +43,17 @@ export default class CodeLensManager extends Manager<CodeLensProvider> implement
     codeLens: CodeLens,
     token: CancellationToken
   ): Promise<CodeLens> {
-    let { data } = codeLens
-    let provider = this.poviderById(data.source)
-    if (!provider) {
-      workspace.showMessage(`Provider of ${data.source} not found`, 'error')
+    // no need to resolve
+    if (codeLens.command) return codeLens
+    let { source } = codeLens as any
+    let provider = this.poviderById(source)
+    if (!provider || typeof provider.resolveCodeLens != 'function') {
+      // tslint:disable-next-line:no-console
+      console.error(`CodeLens Resolve not supported`)
       return codeLens
     }
-    if (typeof provider.resolveCodeLens == 'function') {
-      return await Promise.resolve(provider.resolveCodeLens(codeLens, token))
-    }
+    let res = await Promise.resolve(provider.resolveCodeLens(omit(codeLens, ['source']), token))
+    Object.assign(codeLens, res)
     return codeLens
   }
 

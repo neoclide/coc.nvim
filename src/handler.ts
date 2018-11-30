@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import CodeLensBuffer from './codelens'
+import CodeLensManager from './codelens'
 import Colors from './colors'
 import commandManager from './commands'
 import completion from './completion'
@@ -44,9 +44,8 @@ export default class Handler {
   private colors: Colors
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
-  private codeLensBuffers: Map<number, CodeLensBuffer> = new Map()
+  private codeLensManager: CodeLensManager
   private disposables: Disposable[] = []
-  // codeLens instances
 
   constructor(private nvim: Neovim) {
     this.showSignatureHelp = debounce(() => {
@@ -88,13 +87,6 @@ export default class Handler {
       if (/^\s*$/.test(line)) return
       await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
-    events.on('BufUnload', bufnr => {
-      let codeLensBuffer = this.codeLensBuffers.get(bufnr)
-      if (codeLensBuffer) {
-        codeLensBuffer.dispose()
-        this.codeLensBuffers.delete(bufnr)
-      }
-    }, null, this.disposables)
     events.on('BufWinLeave', async bufnr => {
       let document = workspace.getDocument(bufnr)
       if (document) await document.clearHighlight()
@@ -115,6 +107,7 @@ export default class Handler {
     this.disposables.push(Disposable.create(() => {
       this.showSignatureHelp.clear()
     }))
+    this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
   }
 
@@ -386,26 +379,8 @@ export default class Handler {
     }
   }
 
-  public async doCodeLens(): Promise<void> {
-    let { document } = await workspace.getCurrentState()
-    if (!document) return
-    let codeLens = await languages.getCodeLens(document)
-    let buffer = await this.nvim.buffer
-    let codeLensBuffer = new CodeLensBuffer(this.nvim, buffer.id, codeLens)
-    this.codeLensBuffers.set(buffer.id, codeLensBuffer)
-  }
-
   public async doCodeLensAction(): Promise<void> {
-    let { nvim } = this
-    let buffer = await nvim.buffer
-    let bufnr = await buffer.getVar('bufnr')
-    if (!bufnr) return
-    let line = await nvim.call('getline', ['.'])
-    let ms = line.match(/^\d+/)
-    if (ms) {
-      let codeLensBuffer = this.codeLensBuffers.get(Number(bufnr))
-      if (codeLensBuffer) await codeLensBuffer.doAction(Number(ms[0]))
-    }
+    await this.codeLensManager.doAction()
   }
 
   public async fold(kind?: string): Promise<void> {

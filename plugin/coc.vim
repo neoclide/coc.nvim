@@ -154,11 +154,11 @@ hi default CocErrorSign   ctermfg=Red     guifg=#ff0000
 hi default CocWarningSign ctermfg=Brown   guifg=#ff922b
 hi default CocInfoSign    ctermfg=Yellow  guifg=#fab005
 hi default CocHintSign    ctermfg=Blue    guifg=#15aabf
+hi default CocCodeLens    ctermfg=Gray    guifg=#999999
 hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
-hi default link CocCodeLens         Comment
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText
@@ -206,6 +206,7 @@ command! -nargs=0 CocUpdate    :call coc#util#update()
 command! -nargs=0 CocRebuild   :call coc#util#rebuild()
 command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocAction('uninstallExtension', <f-args>)
 
+nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocAction('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>
 nnoremap <Plug>(coc-codeaction)          :<C-u>call CocAction('codeAction',     '')<CR>

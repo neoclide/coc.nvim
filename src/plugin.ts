@@ -40,8 +40,8 @@ export default class Plugin extends EventEmitter {
       await workspace.init()
       completion.init(nvim)
       services.init()
-      this.handler = new Handler(nvim)
       await extensions.init(nvim)
+      this.handler = new Handler(nvim)
       await nvim.command('doautocmd User CocNvimInit')
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
@@ -235,8 +235,6 @@ export default class Plugin extends EventEmitter {
           return services.toggle(args[1])
         case 'codeAction':
           return handler.doCodeAction(args[1])
-        case 'codeLens':
-          return handler.doCodeLens()
         case 'codeLensAction':
           return handler.doCodeLensAction()
         case 'runCommand':

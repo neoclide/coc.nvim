@@ -32,6 +32,8 @@
   "coc.preferences.diagnostic.warningSign": "⚠",
   "coc.preferences.diagnostic.infoSign": ">>",
   "coc.preferences.diagnostic.hintSign": ">>",
+  "coc.preferences.codeLens.enable": true,
+  "coc.preferences.codeLens.separator": "‣",
   "coc.source.around.enable": true,
   "coc.source.around.shortcut": "A",
   "coc.source.around.priority": 1,

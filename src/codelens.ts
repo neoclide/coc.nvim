@@ -1,146 +1,198 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
-import { CodeLens } from 'vscode-languageserver-protocol'
+import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
+import { CodeLens, Disposable, TextDocument } from 'vscode-languageserver-protocol'
+import { Document } from '.'
+import events from './events'
 import commandManager from './commands'
 import languages from './languages'
+import services from './services'
+import { disposeAll, wait } from './util'
 import workspace from './workspace'
 const logger = require('./util/logger')('codelens')
+const srcId = 1080
 
-export interface LineItem {
-  lnum: number
-  line: string
-  resolved: boolean
-  codeLenses: CodeLens[]
-}
-
-export default class CodeLensBuffer {
-  private buffer: Buffer
-  private lineItems: Map<number, LineItem> = new Map()
-  private hasLines = false
-  private startLnum: number
-  private lines: string[] = []
-  constructor(private nvim: Neovim, private bufnr: number, private codeLens: CodeLens[]) {
-    this.init().catch(e => {
-      logger.error(e.message)
-    })
-  }
-
-  private async init(): Promise<void> {
-    let { nvim, lineItems } = this
-    let buffer = await nvim.buffer
-    this.startLnum = await nvim.call('line', ['.'])
-    this.bufnr = buffer.id
-    let document = workspace.getDocument(this.bufnr)
-    await nvim.call('coc#util#open_codelens')
-    this.buffer = await nvim.buffer
-    for (let codeLens of this.codeLens) {
-      let { range } = codeLens
-      let { line } = range.start
-      let item = lineItems.get(line)
-      if (!item) {
-        item = {
-          line: document.getline(line),
-          lnum: line + 1,
-          resolved: false,
-          codeLenses: []
-        }
-        lineItems.set(line, item)
+export default class CodeLensManager {
+  private separator: string
+  private disposables: Disposable[] = []
+  private codeLensMap: Map<number, CodeLens[]> = new Map()
+  private resolveCodeLens: Function & { clear(): void }
+  private insertMode = false
+  constructor(private nvim: Neovim) {
+    let config = workspace.getConfiguration('coc.preferences.codeLens')
+    this.separator = config.get<string>('separator', '‣')
+    let enable = workspace.env.virtualText && config.get<boolean>('enable', true)
+    if (enable) {
+      let doc = workspace.getDocument(workspace.bufnr)
+      if (doc) {
+        this.fetchDocumentCodeLenes(doc.textDocument) // tslint:disable-line
       }
-      item.codeLenses.push(codeLens)
-    }
-    let items = Array.from(lineItems.values())
-    items.sort((a, b) => a.lnum - b.lnum)
-    await this.sequenceResolve(items)
-    await this.buffer.setVar('bufnr', this.bufnr)
-    await nvim.call('setbufvar', [this.buffer.id, '&readonly', 1])
-    await this.jump()
-  }
-
-  private async sequenceResolve(lineItems: LineItem[], max = 10): Promise<void> {
-    let iterable = lineItems.slice()
-    while (iterable.length) {
-      let items = iterable.splice(0, max)
-      items = await Promise.all(items.map(item => {
-        return this.resolveItem(item)
-      }))
-      await this.insertLines(items)
-    }
-  }
-
-  private async insertLines(items: LineItem[]): Promise<void> {
-    let { buffer } = this
-    items = items.filter(o => o.resolved)
-    let lines = items.map(item => {
-      let commands = item.codeLenses.map(codeLens => codeLens.command)
-      commands = commands.filter(c => c && c.title)
-      return `${item.lnum}` + '\u000c'
-        + `${commands.map(c => c.title.replace(/,/g, ' ')).join(',')}`
-        + '\u000c' + `${item.line.trim()}`
-    })
-    this.lines.push(...lines)
-    if (!this.hasLines) {
-      await buffer.setLines(lines, {
-        start: 0,
-        end: 1,
-        strictIndexing: false
+      services.on('ready', async id => {
+        let service = services.getService(id)
+        let doc = await workspace.document
+        if (!doc) return
+        if (workspace.match(service.selector, doc.textDocument)) {
+          await wait(100)
+          await this.fetchDocumentCodeLenes(doc.textDocument)
+        }
       })
-      this.hasLines = true
-    } else {
-      await buffer.append(lines)
-    }
-  }
 
-  private async jump(): Promise<void> {
-    let { startLnum, nvim, lineItems, buffer } = this
-    let start = startLnum - 1
-    let lnums = Array.from(lineItems.keys())
-    lnums.sort((a, b) => b - a)
-    let buf = await nvim.buffer
-    if (buf.id == buffer.id) {
-      for (let lnum of lnums) {
-        if (lnum <= start) {
-          let idx = this.lines.findIndex(line => line.startsWith(`${lnum + 1}\u000c`))
-          if (idx != -1) {
-            await nvim.command(`normal! ${idx + 1}G`)
+      workspace.onDidChangeTextDocument(async e => {
+        if (this.insertMode) return
+        let doc = workspace.getDocument(e.textDocument.uri)
+        if (doc && doc.bufnr == workspace.bufnr) {
+          await wait(100)
+          await this.fetchDocumentCodeLenes(doc.textDocument)
+        }
+      }, null, this.disposables)
+
+      events.on('CursorMoved', () => {
+        this.resolveCodeLens()
+      }, null, this.disposables)
+
+      events.on('BufEnter', bufnr => {
+        setTimeout(async () => {
+          if (workspace.bufnr == bufnr) {
+            let doc = workspace.getDocument(bufnr)
+            if (doc) await this.fetchDocumentCodeLenes(doc.textDocument)
           }
-          break
+        }, 100)
+      }, null, this.disposables)
+
+      events.on('InsertEnter', () => {
+        this.insertMode = true
+      }, null, this.disposables)
+
+      events.on('InsertLeave', () => {
+        this.insertMode = false
+        this.resolveCodeLens()
+      }, null, this.disposables)
+    }
+    this.resolveCodeLens = debounce(() => {
+      this._resolveCodeLenes().catch(e => {
+        logger.error(e)
+      })
+    }, 200)
+  }
+
+  private async fetchDocumentCodeLenes(doc: TextDocument): Promise<void> {
+    let { uri } = doc
+    let document = workspace.getDocument(uri)
+    if (!this.validDocument(document)) return
+    try {
+      let codeLenes = await languages.getCodeLens(document.textDocument)
+      if (codeLenes && codeLenes.length > 0) {
+        this.codeLensMap.set(document.bufnr, codeLenes)
+        if (workspace.bufnr == document.bufnr) {
+          this.resolveCodeLens.clear()
+          await this._resolveCodeLenes(true)
         }
       }
+    } catch (e) {
+      logger.error(e)
     }
   }
 
-  private async resolveItem(item: LineItem): Promise<LineItem> {
-    let { codeLenses } = item
-    let document = workspace.getDocument(this.bufnr)
-    if (!document) return null
-    codeLenses = await Promise.all(codeLenses.map(codeLens => {
-      return languages.resolveCodeLens(codeLens)
-    }))
-    if (codeLenses == null) return null
-    Object.assign(item, { resolved: true, codeLenses })
-    return item
-  }
-
-  public async doAction(lnum: number): Promise<void> {
-    let item = this.lineItems.get(lnum - 1)
-    if (item) {
-      let commands = item.codeLenses.map(o => o.command)
-      commands = commands.filter(o => o.command && o.command != '')
-      if (commands.length == 1) {
-        commandManager.execute(commands[0])
-      } else if (commands.length > 1) {
-        let idx = await workspace.showQuickpick(commands.map(o => o.title), 'choose command:')
-        if (idx != -1) {
-          commandManager.execute(commands[idx])
-        }
+  private async setVirtualText(buffer: Buffer, codeLenes: CodeLens[]): Promise<void> {
+    let list: Map<number, CodeLens[]> = new Map()
+    for (let codeLens of codeLenes) {
+      let { range, command } = codeLens
+      if (!command) continue
+      let { line } = range.start
+      if (list.has(line)) {
+        list.get(line).push(codeLens)
+      } else {
+        list.set(line, [codeLens])
       }
     }
+    for (let lnum of list.keys()) {
+      let codeLenes = list.get(lnum)
+      let commands = codeLenes.map(codeLens => codeLens.command)
+      commands = commands.filter(c => c && c.title)
+      let chunks = commands.map(c => [c.title + ' ', 'CocCodeLens'] as [string, string])
+      chunks.unshift([`${this.separator} `, 'CocCodeLens'])
+      await buffer.setVirtualText(srcId, lnum, chunks)
+    }
+  }
+
+  private async _resolveCodeLenes(clear = false): Promise<void> {
+    let { nvim } = this
+    let { bufnr } = workspace
+    let codeLenes = this.codeLensMap.get(bufnr)
+    if (codeLenes && codeLenes.length) {
+      // resolve codeLens of current window
+      let start = await nvim.call('line', 'w0')
+      let end = await nvim.call('line', 'w$')
+      if (end >= start) {
+        codeLenes = codeLenes.filter(o => {
+          let lnum = o.range.start.line + 1
+          return lnum >= start && lnum <= end
+        })
+        if (codeLenes.length) {
+          await Promise.all(codeLenes.map(codeLens => {
+            return languages.resolveCodeLens(codeLens)
+          }))
+        }
+      } else {
+        codeLenes = null
+      }
+    }
+    let buffer = this.nvim.createBuffer(bufnr)
+    if (workspace.getDocument(bufnr) == null) return
+    if (clear) buffer.clearHighlight({ srcId })
+    if (codeLenes && codeLenes.length) await this.setVirtualText(buffer, codeLenes)
+  }
+
+  public async doAction(): Promise<void> {
+    let { nvim } = this
+    let bufnr = await nvim.call('bufnr', '%')
+    let line = (await nvim.call('line', '.') as number) - 1
+    let codeLenes = this.codeLensMap.get(bufnr)
+    if (!codeLenes || codeLenes.length == 0) {
+      workspace.showMessage('No codeLenes available', 'warning')
+      return
+    }
+    let list: Map<number, CodeLens[]> = new Map()
+    for (let codeLens of codeLenes) {
+      let { range, command } = codeLens
+      if (!command) continue
+      let { line } = range.start
+      if (list.has(line)) {
+        list.get(line).push(codeLens)
+      } else {
+        list.set(line, [codeLens])
+      }
+    }
+    let current: CodeLens[] = null
+    for (let i = line; i >= 0; i--) {
+      if (list.has(i)) {
+        current = list.get(i)
+        break
+      }
+    }
+    if (!current) {
+      workspace.showMessage('No codeLenes available', 'warning')
+      return
+    }
+    let commands = current.map(o => o.command)
+    commands = commands.filter(c => c.command != null && c.command != '')
+    if (commands.length == 0) {
+      workspace.showMessage('CodeLenes command not found', 'warning')
+    } else if (commands.length == 1) {
+      commandManager.execute(commands[0])
+    } else {
+      let res = await workspace.showQuickpick(commands.map(c => c.title))
+      if (res == -1) return
+      commandManager.execute(commands[res])
+    }
+  }
+
+  private validDocument(doc: Document): boolean {
+    if (!doc) return false
+    if (doc.schema != 'file' || doc.buftype != '') return false
+    return true
   }
 
   public dispose(): void {
-    let { nvim, buffer } = this
-    nvim.command(`silent! bd! ${buffer.id}`).catch(e => {
-      logger.error(e.message)
-    })
+    disposeAll(this.disposables)
   }
-
 }
