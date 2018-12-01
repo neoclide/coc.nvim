@@ -389,7 +389,7 @@ endfunction
 
 function! s:OnExit(autoclose, bufnr, Callback, job_id, status, ...)
   let content = join(getbufline(a:bufnr, 1, '$'), "\n")
-  if a:status == 0 && a:autoclose == 1
+  if !s:is_win && a:status == 0 && a:autoclose == 1
     execute 'silent! bd! '.a:bufnr
   endif
   if !empty(a:Callback)
@@ -534,7 +534,7 @@ endfunction
 function! coc#util#install()
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
-  if s:is_vim
+  if s:is_win
     let res = coc#rpc#stop()
     if res != 0 | return | endif
     echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
