@@ -186,7 +186,9 @@ endfunction
 
 function! s:OnInit()
   call s:Enable()
-  call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
+  if !s:is_vim
+    call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
+  endif
   let extensions = get(g:, 'coc_local_extensions', [])
   call coc#rpc#notify('registExtensions', extensions)
 endfunction
