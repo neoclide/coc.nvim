@@ -55,7 +55,7 @@ export class CommandManager implements Disposable {
         await wait(30)
         await plugin.cocAction('showSignatureHelp')
       }
-    })
+    }, true)
     this.register({
       id: 'editor.action.restart',
       execute: async () => {
