@@ -162,6 +162,7 @@ export default class Document {
     let attached = await this.buffer.attach(false)
     if (!attached) return false
     this.lines = (await this.buffer.lines) as string[]
+    if (!this.buffer.isAttached) return
     this.buffer.listen('lines', (...args) => {
       this.onChange.apply(this, args)
     })
