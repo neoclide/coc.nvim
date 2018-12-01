@@ -51,7 +51,7 @@ describe('OutputChannel', () => {
     c.append('bar')
     await wait(100)
     let lines = await buf.getLines({ start: 0, end: -1, strictIndexing: false })
-    expect(lines).toContain('foobar')
+    expect(lines.join('\n')).toMatch('foo')
   })
 
   test('outputChannel.clear()', async () => {
