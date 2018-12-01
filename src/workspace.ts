@@ -764,6 +764,7 @@ augroup end`
     try {
       let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
       await writeFile(filepath, content)
+      await wait(10)
       await this.nvim.command(`source ${filepath}`)
     } catch (e) {
       this.showMessage(`Can't create tmp file: ${e.message}`, 'error')

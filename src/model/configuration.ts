@@ -48,7 +48,9 @@ export class ConfigurationModel implements IConfigurationModel {
 
   public setValue(key: string, value: any): void {
     addToValueTree(this.contents, key, value, message => {
-      logger.error(message)
+      if (global.hasOwnProperty('__TEST__')) return
+      // tslint:disable-next-line:no-console
+      console.error(message)
     })
   }
 

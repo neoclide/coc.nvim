@@ -30,7 +30,7 @@ export function func(value: any): value is Function {
 
 export function objectLiteral(obj: any): obj is object {
   return (
-    obj !== null &&
+    obj != null &&
     typeof obj === 'object' &&
     !Array.isArray(obj) &&
     !(obj instanceof RegExp) &&

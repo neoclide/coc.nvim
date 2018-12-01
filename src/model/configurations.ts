@@ -27,74 +27,12 @@ export interface ErrorItem {
 
 export type ShowError = (errors: ErrorItem[]) => void
 
-function convertErrors(uri: string, content: string, errors: ParseError[]): ErrorItem[] {
-  let items: ErrorItem[] = []
-  let document = TextDocument.create(uri, 'json', 0, content)
-  for (let err of errors) {
-    let msg = 'parse error'
-    switch (err.error) {
-      case 2:
-        msg = 'invalid number'
-        break
-      case 8:
-        msg = 'close brace expected'
-        break
-      case 5:
-        msg = 'colon expeted'
-        break
-      case 6:
-        msg = 'comma expected'
-        break
-      case 9:
-        msg = 'end of file expected'
-        break
-      case 16:
-        msg = 'invaliad character'
-        break
-      case 10:
-        msg = 'invalid commment token'
-        break
-      case 15:
-        msg = 'invalid escape character'
-        break
-      case 1:
-        msg = 'invalid symbol'
-        break
-      case 14:
-        msg = 'invalid unicode'
-        break
-      case 3:
-        msg = 'property name expected'
-        break
-      case 13:
-        msg = 'unexpected end of number'
-        break
-      case 12:
-        msg = 'unexpected end of string'
-        break
-      case 11:
-        msg = 'unexpected end of comment'
-        break
-      case 4:
-        msg = 'value expected'
-        break
-    }
-    let range: Range = {
-      start: document.positionAt(err.offset),
-      end: document.positionAt(err.offset + err.length),
-    }
-    let loc = Location.create(uri, range)
-    items.push({ location: loc, message: msg })
-  }
-  return items
-}
-
 export default class Configurations {
   private _configuration: Configuration
 
   constructor(
     data: IConfigurationData,
-    private readonly _proxy: ConfigurationShape,
+    private readonly _proxy?: ConfigurationShape,
     private readonly _folderConfigurations: Map<string, ConfigurationModel> = new Map()
   ) {
     this._configuration = Configurations.parse(data)
@@ -109,7 +47,19 @@ export default class Configurations {
   }
 
   public get defaults(): IConfigurationModel {
-    return { contents: this._configuration.defaults.contents }
+    return this._configuration.defaults
+  }
+
+  public get user(): IConfigurationModel {
+    return this._configuration.user
+  }
+
+  public get workspace(): IConfigurationModel {
+    return this._configuration.workspace
+  }
+
+  public toData(): IConfigurationData {
+    return this._configuration.toData()
   }
 
   public addFolderFile(filepath: string): void {
@@ -141,16 +91,14 @@ export default class Configurations {
         return typeof lookUp(config, key) !== 'undefined'
       },
       get: <T>(key: string, defaultValue?: T) => {
-        let result = lookUp(config, key)
-        if (typeof result === 'undefined') {
-          result = defaultValue
-        }
-        if (result == null || (typeof result == 'string' && result.length == 0)) return undefined
+        let result: T = lookUp(config, key)
+        if (result == null) return defaultValue
         return result
       },
       update: (key: string, value: any, isUser = true) => {
         let s = section ? `${section}.${key}` : key
         let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
+        if (!this._proxy) return
         if (value === undefined) {
           this._proxy.$removeConfigurationOption(target, s)
         } else {
@@ -213,13 +161,10 @@ export default class Configurations {
     return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
   }
 
-  private static parseConfig(uri: string, content: string, onError?: ShowError): any {
-    if (content.length == 0) return {}
+  public static parseConfiguration(content: string): [ParseError[], any] {
+    if (content.length == 0) return [[], {}]
     let errors: ParseError[] = []
     let data = parse(content, errors, { allowTrailingComma: true })
-    if (errors.length && onError) {
-      onError(convertErrors(uri, content, errors))
-    }
     function addProperty(current: object, key: string, remains: string[], value: any): void {
       if (remains.length == 0) {
         current[key] = convert(value)
@@ -236,7 +181,7 @@ export default class Configurations {
       if (emptyObject(obj)) return {}
       let dest = {}
       for (let key of Object.keys(obj)) {
-        if (key.indexOf('.') !== -1) {
+        if (/^[\w\.]+$/.test(key) && key.indexOf('.') !== -1) {
           let parts = key.split('.')
           let first = parts.shift()
           addProperty(dest, first, parts, obj[key])
@@ -246,7 +191,7 @@ export default class Configurations {
       }
       return dest
     }
-    return convert(data)
+    return [errors, convert(data)]
   }
 
   public static parseContentFromFile(filepath: string, onError?: ShowError): IConfigurationModel {
@@ -258,12 +203,75 @@ export default class Configurations {
     } catch (_e) {
       content = ''
     }
-    let res: any
-    try {
-      res = { contents: Configurations.parseConfig(uri, content, onError) }
-    } catch (e) {
-      res = { contents: {} }
+    let [errors, contents] = Configurations.parseConfiguration(content)
+    if (errors && errors.length) {
+      onError(convertErrors(uri, content, errors))
     }
-    return res
+    return { contents }
   }
+}
+
+export function convertErrors(uri: string, content: string, errors: ParseError[]): ErrorItem[] {
+  let items: ErrorItem[] = []
+  let document = TextDocument.create(uri, 'json', 0, content)
+  for (let err of errors) {
+    let msg = 'parse error'
+    switch (err.error) {
+      case 2:
+        msg = 'invalid number'
+        break
+      case 8:
+        msg = 'close brace expected'
+        break
+      case 5:
+        msg = 'colon expeted'
+        break
+      case 6:
+        msg = 'comma expected'
+        break
+      case 9:
+        msg = 'end of file expected'
+        break
+      case 16:
+        msg = 'invaliad character'
+        break
+      case 10:
+        msg = 'invalid commment token'
+        break
+      case 15:
+        msg = 'invalid escape character'
+        break
+      case 1:
+        msg = 'invalid symbol'
+        break
+      case 14:
+        msg = 'invalid unicode'
+        break
+      case 3:
+        msg = 'property name expected'
+        break
+      case 13:
+        msg = 'unexpected end of number'
+        break
+      case 12:
+        msg = 'unexpected end of string'
+        break
+      case 11:
+        msg = 'unexpected end of comment'
+        break
+      case 4:
+        msg = 'value expected'
+        break
+      default:
+        msg = 'Unknwn error'
+        break
+    }
+    let range: Range = {
+      start: document.positionAt(err.offset),
+      end: document.positionAt(err.offset + err.length),
+    }
+    let loc = Location.create(uri, range)
+    items.push({ location: loc, message: msg })
+  }
+  return items
 }
