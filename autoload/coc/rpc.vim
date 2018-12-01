@@ -140,9 +140,7 @@ function! coc#rpc#async_response(id, resp, isErr) abort
   endif
 endfunction
 
-function! coc#rpc#restart()
-  call coc#util#clear_signs()
-  call coc#rpc#request('CocAction', ['toggle', 0])
+function! coc#rpc#stop()
   if has('nvim')
     let [code] = jobwait([s:channel_id], 100)
     " running
@@ -158,9 +156,18 @@ function! coc#rpc#restart()
   sleep 200m
   if s:server_running
     echohl Error | echon '[coc.nvim] kill process failed' | echohl None
-    return
+    return 1
   endif
-  call coc#rpc#start_server()
+  return 0
+endfunction
+
+function! coc#rpc#restart()
+  call coc#util#clear_signs()
+  call coc#rpc#request('CocAction', ['toggle', 0])
+  let res =  coc#rpc#stop()
+  if res == 0
+    call coc#rpc#start_server()
+  endif
 endfunction
 
 function! s:empty(item)

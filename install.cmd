@@ -20,7 +20,7 @@ new-item -Name $dir -ItemType directory -Force
 Write-Host Dowloading latest release
 Invoke-WebRequest $download -Out $zip
 
-Remove-Item $dir\* -Recurse -Force -ErrorAction SilentlyContinue
+Remove-Item $dir\* -Recurse -Force
 
 Write-Host Extracting release files
 Expand-Archive $zip -DestinationPath $dir -Force

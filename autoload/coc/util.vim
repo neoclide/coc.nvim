@@ -534,6 +534,11 @@ endfunction
 function! coc#util#install()
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
+  if s:is_vim
+    let res = coc#rpc#stop()
+    if res != 0 | return | endif
+    echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
+  endif
   call coc#util#open_terminal({
         \ 'cmd': cmd,
         \ 'cwd': s:root,
