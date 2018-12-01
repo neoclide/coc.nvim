@@ -12,13 +12,13 @@ export default class Increment extends Emitter {
 
   constructor(private nvim: Neovim) {
     super()
-    workspace.onDidWorkspaceInitialized(this.setCompleteOpt, this, this.disposables)
+    this.setCompleteOpt()
     workspace.onDidChangeConfiguration(this.setCompleteOpt, this, this.disposables)
   }
 
   private setCompleteOpt(): void {
     let noselect = workspace.getConfiguration('coc.preferences').get<boolean>('noselect', true)
-    if (!noselect) this.completeOpt.replace('noselect,', '')
+    if (!noselect) this.completeOpt = this.completeOpt.replace('noselect,', '')
   }
 
   public start(option: CompleteOption): void {
@@ -26,7 +26,8 @@ export default class Increment extends Emitter {
     if (activted) return
     this.activted = true
     let enablePreview = false
-    if (option.filetype == 'json' || option.filetype == 'jsonc') {
+    let doc = workspace.getDocument(option.bufnr)
+    if (doc && doc.uri.endsWith('coc-settings.json')) {
       enablePreview = true
     } else if (workspace.completeOpt.indexOf('preview') !== -1) {
       enablePreview = true
