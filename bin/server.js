@@ -2,16 +2,13 @@ const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
 const address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
-let plugin = attach({
+attach({
   socket: address
 })
 
 process.on('uncaughtException', function(err) {
-  let msg = '[coc.nvim] uncaught exception: ' + err.stack
+  let msg = 'Uncaught exception: ' + err.stack
   console.error(msg)
-  if (plugin.nvim) {
-    plugin.nvim.call('coc#util#echo_messages', ['Error', msg.split('\n')], true)
-  }
   logger.error('uncaughtException', err.stack)
 })
 
@@ -20,9 +17,6 @@ process.on('unhandledRejection', function(reason, p) {
     console.error('UnhandledRejection: ' + reason.message + '\n' + reason.stack)
   } else {
     console.error('UnhandledRejection: ' + reason)
-  }
-  if (plugin.nvim) {
-    plugin.nvim.call('coc#util#echo_messages', ['Error', 'UnhandledRejection run :CocErrors to checkout'], true)
   }
   logger.error('unhandledRejection ', p, reason)
 })

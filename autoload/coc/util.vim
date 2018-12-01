@@ -102,7 +102,9 @@ function! coc#util#echo_messages(hl, msgs)
     let msgs = msgs[0: 0]
   endif
   for msg in msgs
-    echom msg
+    if !empty(msg)
+      echom msg
+    endif
   endfor
   echohl None
 endfunction

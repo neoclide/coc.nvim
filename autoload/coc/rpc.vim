@@ -1,5 +1,6 @@
 let s:server_running = 0
 let s:std_err = []
+let s:std_out = []
 let s:job_opts = {}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
@@ -51,23 +52,15 @@ endfunction
 
 function! s:job_opts.on_stderr(chan_id, data, event) dict
   call extend(s:std_err, a:data)
-  if bufexists(s:error_buf)
-    if s:is_vim
-      call appendbufline(s:error_buf, '$', a:data)
-    else
-      call nvim_buf_set_lines(s:error_buf, -1, -1, v:false, a:data)
-    endif
-  endif
+  let data = filter(copy(a:data), '!empty(v:val)')
+  if empty(data) | return | endif
+  let data[0] = '[coc.nvim] ' . data[0]
+  call coc#util#echo_messages('Error', data)
+  echohl Error
 endfunction
 
 function! s:job_opts.on_stdout(chan_id, data, event) dict
-  if get(g:, 'coc_node_rpc_debug', 0)
-    for msg in a:data
-      if !empty(msg)
-        echom msg
-      endif
-    endfor
-  endif
+  call extend(s:std_out, a:data)
 endfunction
 
 function! s:job_opts.on_exit(chan_id, code, event) dict
@@ -78,29 +71,23 @@ function! s:job_opts.on_exit(chan_id, code, event) dict
   if v:dying != 0 | return | endif
   if a:code != 0
     echohl Error | echomsg '[coc.nvim] Abnormal exited' | echohl None
-    if !empty(s:std_err)
-      call coc#rpc#show_error()
-    endif
   endif
-endfunction
-
-function! coc#rpc#append_error(msg) abort
-  call add(s:std_err, a:msg)
 endfunction
 
 function! coc#rpc#show_error()
   if empty(s:std_err)
-    echohl MoreMsg | echon '[coc.nvim] No error messages found.' | echohl None
+    echohl MoreMsg | echo '[coc.nvim] No error' | echohl None
     return
   endif
-  if bufexists(s:error_buf)
-    execute 'drop [coc error]'
-    return
-  endif
-  belowright vs +setl\ buftype=nofile [coc error]
+  echohl Error
+  echo join(s:std_err, "\n")
+  echohl None
+endfunction
+
+function! coc#rpc#stdout()
+  belowright vs +setl\ buftype=nofile [coc stdout]
   setl bufhidden=wipe
-  let s:error_buf = bufnr('%')
-  call setline(1, s:std_err)
+  call setline(1, s:std_out)
 endfunction
 
 function! coc#rpc#get_errors()
