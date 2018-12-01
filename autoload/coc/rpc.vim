@@ -56,7 +56,6 @@ function! s:job_opts.on_stderr(chan_id, data, event) dict
   if empty(data) | return | endif
   let data[0] = '[coc.nvim] ' . data[0]
   call coc#util#echo_messages('Error', data)
-  echohl Error
 endfunction
 
 function! s:job_opts.on_stdout(chan_id, data, event) dict

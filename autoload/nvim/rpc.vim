@@ -61,20 +61,21 @@ endfunction
 function! nvim#rpc#start_server() abort
   if !empty(s:channel)
     let state = ch_status(s:channel)
-    if state == 'open' || state == 'buffered'
+    if state ==# 'open' || state ==# 'buffered'
       " running
       return
     endif
   endif
   if !executable('node')
     echohl Error
-    echon '[rpc.vim] node executable not found on $PATH.'
+    echon '[coc.nvim] node executable not found on $PATH.'
     echohl None
     return
   endif
   let script = nvim#rpc#get_script()
   if empty(script) | return | endif
-  let job = job_start([script], {
+  let command = s:is_win ? script : [script]
+  let job = job_start(command, {
         \ 'in_mode': 'json',
         \ 'out_mode': 'json',
         \ 'err_mode': 'nl',
@@ -87,6 +88,11 @@ function! nvim#rpc#start_server() abort
         \ }
         \})
   let s:channel = job_getchannel(job)
+  let status = ch_status(job)
+  if status !=# 'open' && status !=# 'buffered'
+    echohl Error | echon '[coc.nvim] failed to start vim-node-rpc service!' | echohl None
+    return
+  endif
   let info = ch_info(s:channel)
   let data = json_encode([0, ['ready', [info.id]]])
   call ch_sendraw(s:channel, data."\n")

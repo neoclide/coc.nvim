@@ -312,6 +312,8 @@ g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 			If truthy, log channel communication by using
 			|ch_logfile|. Vim only.
 
+			Use `:call nvim#rpc#open_log()` to open log file.
+
 			Default: 0
 
 g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
