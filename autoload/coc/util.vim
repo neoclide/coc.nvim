@@ -530,6 +530,7 @@ function! s:coc_installed(status, ...) abort
   if s:is_vim
     let cmd = nvim#rpc#get_command()
     if empty(cmd)
+      sleep 100m
       let installed = nvim#rpc#install_node_rpc()
       if !installed | return | endif
     endif
