@@ -2,6 +2,7 @@
 
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 
+$ErrorActionPreference = "Stop"
 $repo = "neoclide/coc.nvim"
 $file = "coc-win.zip"
 

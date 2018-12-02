@@ -518,7 +518,7 @@ function! coc#util#install() abort
   " install.cmd would always exited with code 0 with/without errors.
   call coc#util#open_terminal({
         \ 'cmd': cmd,
-        \ 'autoclose' : !s:is_win,
+        \ 'autoclose': 1,
         \ 'cwd': s:root,
         \ 'Callback': function('s:coc_installed')
         \})
@@ -530,7 +530,7 @@ function! s:coc_installed(status, ...) abort
   if s:is_vim
     let cmd = nvim#rpc#get_command()
     if empty(cmd)
-      sleep 100m
+      sleep 300m
       let installed = nvim#rpc#install_node_rpc()
       if !installed | return | endif
     endif
