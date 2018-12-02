@@ -42,6 +42,7 @@ export default class Plugin extends EventEmitter {
       services.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
+      nvim.setVar('coc_process_pid', process.pid, true)
       await nvim.command('doautocmd User CocNvimInit')
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')

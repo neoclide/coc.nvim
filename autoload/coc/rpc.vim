@@ -4,6 +4,7 @@ let s:std_out = []
 let s:job_opts = {}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
+let s:is_win = has("win32") || has("win64")
 let s:async_req_id = 1
 let s:async_callbacks = {}
 
@@ -47,7 +48,6 @@ function! coc#rpc#start_server()
 endfunction
 
 function! s:GetChannel()
-  if !s:server_running | return 0 | endif
   let cid = get(g:, 'coc_node_channel_id', 0)
   if s:is_vim
      return nvim#rpc#check_client(cid) ? cid : 0
@@ -68,14 +68,18 @@ function! s:job_opts.on_stdout(chan_id, data, event) dict
 endfunction
 
 function! s:job_opts.on_exit(chan_id, code, event) dict
+  call s:reset()
+  if v:dying != 0 | return | endif
+  if a:code != 0
+    echoerr '[coc.nvim] Abnormal exited' 
+  endif
+endfunction
+
+function! s:reset()
   let s:job = v:null
   let s:channel_id = 0
   let s:server_running = 0
   let g:coc_node_channel_id = 0
-  if v:dying != 0 | return | endif
-  if a:code != 0
-    echohl Error | echomsg '[coc.nvim] Abnormal exited' | echohl None
-  endif
 endfunction
 
 function! coc#rpc#show_error()
@@ -88,6 +92,16 @@ function! coc#rpc#show_error()
   echohl None
 endfunction
 
+function! coc#rpc#kill()
+  let pid = get(g:, 'coc_process_pid', 0)
+  if !pid | return | endif
+  if s:is_win
+    call system('taskkill /PID '.pid)
+  else
+    call system('kill -9 '.pid)
+  endif
+endfunction
+
 function! coc#rpc#stdout()
   belowright vs +setl\ buftype=nofile [coc stdout]
   setl bufhidden=wipe
@@ -98,37 +112,47 @@ function! coc#rpc#get_errors()
   return s:std_err
 endfunction
 
-function! coc#rpc#request(method, args)
+function! coc#rpc#request(method, args) abort
   let channel = s:GetChannel()
   if !channel | return | endif
-  if s:is_vim
-    return nvim#rpc#request(channel, a:method, a:args)
-  endif
-  return call('rpcrequest', [channel, a:method] + a:args)
+  try
+    if s:is_vim
+      return nvim#rpc#request(channel, a:method, a:args)
+    endif
+    return call('rpcrequest', [channel, a:method] + a:args)
+  catch /^Vim\%((\a\+)\)\=:E475/
+    echohl Error | echom '[coc.nvim] server connection lost' | echohl None
+    call s:reset()
+    call coc#rpc#kill()
+  endtry
 endfunction
 
-function! coc#rpc#notify(method, args)
+function! coc#rpc#notify(method, args) abort
   let channel = s:GetChannel()
   if !channel | return | endif
-  if s:is_vim
-    call nvim#rpc#notify(channel, a:method, a:args)
-  else
-    call call('rpcnotify', [channel, a:method] + a:args)
-  endif
+  try
+    if s:is_vim
+      call nvim#rpc#notify(channel, a:method, a:args)
+    else
+      call call('rpcnotify', [channel, a:method] + a:args)
+    endif
+  catch /^Vim\%((\a\+)\)\=:E475/
+    echohl Error | echom '[coc.nvim] server connection lost' | echohl None
+    call s:reset()
+    call coc#rpc#kill()
+  endtry
 endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort
-  let channel = s:GetChannel()
-  if !channel | return | endif
+  if type(a:cb) != 2
+    echohl Error | echon '[coc.nvim] Callback should be function' | echohl None
+    return
+  endif
   let id = s:async_req_id
   let s:async_req_id = id + 1
   let s:async_callbacks[id] = a:cb
   let args = [id, a:method, a:args]
-  if s:is_vim
-    call nvim#rpc#notify(channel, 'nvim_async_request_event', args)
-  else
-    call call('rpcnotify', [channel, 'nvim_async_request_event'] + args)
-  endif
+  call coc#rpc#notify('nvim_async_request_event', args)
 endfunction
 
 function! coc#rpc#async_response(id, resp, isErr) abort
@@ -146,26 +170,32 @@ function! coc#rpc#async_response(id, resp, isErr) abort
 endfunction
 
 function! coc#rpc#stop()
-  if has('nvim')
-    let [code] = jobwait([s:channel_id], 100)
-    " running
-    if code == -1
+  if s:job_running()
+    if has('nvim')
       call jobstop(s:channel_id)
-    endif
-  elseif s:server_running
-    let status = job_status(s:job)
-    if status ==# 'run'
+    else
       call job_stop(s:job, 'term')
     endif
   endif
   sleep 200m
-  if s:server_running
+  if s:job_running()
+    let s:server_running = 1
     echohl Error | echon '[coc.nvim] kill process failed' | echohl None
     return 1
-  else
-    echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
   endif
+  let s:server_running = 0
+  echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
   return 0
+endfunction
+
+function! s:job_running()
+  if has('nvim')
+    let [code] = jobwait([s:channel_id], 10)
+    return code == 1
+  else
+    let status = job_status(s:job)
+    return status ==# 'run'
+  endif
 endfunction
 
 function! coc#rpc#restart()

@@ -342,6 +342,10 @@ g:coc_node_rpc_command 				*g:coc_node_rpc_command*
 			Command used to start vim-node-rpc on vim.
 			Doesn't exists on neovim.
 
+g:coc_process_pid 				*g:coc_process_pid*
+
+			Process pid of coc service.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so your can use them in your

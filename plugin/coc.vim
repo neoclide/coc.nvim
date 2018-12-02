@@ -42,13 +42,11 @@ endfunction
 function! s:AsyncRequest(name, args) abort
   if get(g:, 'coc_enabled', 0) == 0 | return | endif
   let Cb = a:args[len(a:args) - 1]
-  if type(Cb) != 2
-    let Cb = {-> {}}
-    let args = copy(a:args)
-  else
-    let args = copy(a:args)[0:-2]
+  if type(Cb) == 2
+    call coc#rpc#request_async(a:name, a:args[0:-2], Cb)
+    return ''
   endif
-  call coc#rpc#request_async(a:name, args, Cb)
+  call coc#rpc#notify(a:name, a:args)
   return ''
 endfunction
 
@@ -74,7 +72,7 @@ function! s:Autocmd(...) abort
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
-function! s:SyncAutoCmd(...)
+function! s:SyncAutocmd(...)
   if !get(g:, 'coc_enabled', 0) | return | endif
   call coc#rpc#request('CocAutocmd', a:000)
 endfunction
@@ -108,7 +106,7 @@ function! s:Enable()
     else
       autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
-    autocmd BufWinLeave         * call s:SyncAutoCmd('BufWinLeave', +expand('<abuf>'), win_getid())
+    autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
@@ -128,8 +126,8 @@ function! s:Enable()
     autocmd OptionSet           iskeyword call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd OptionSet           completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
-    autocmd BufUnload           * call s:SyncAutoCmd('BufUnload', +expand('<abuf>'))
-    autocmd BufWritePre         * call s:SyncAutoCmd('BufWritePre', +expand('<abuf>'))
+    autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
+    autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
   augroup end
 
   " same behaviour of ultisnips
