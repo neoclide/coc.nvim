@@ -360,6 +360,9 @@ function! coc#util#open_terminal(opts) abort
           \ 'on_exit': function('s:OnExit', [autoclose, bufnr, Callback]),
           \})
   else
+    if s:is_vim
+      let cmd = 'cmd.exe /C "'.cmd.'"'
+    endif
     call term_start(cmd, {
           \ 'cwd': cwd,
           \ 'exit_cb': function('s:OnExit', [autoclose, bufnr, Callback]),
@@ -389,7 +392,7 @@ endfunction
 
 function! s:OnExit(autoclose, bufnr, Callback, job_id, status, ...)
   let content = join(getbufline(a:bufnr, 1, '$'), "\n")
-  if !s:is_win && a:status == 0 && a:autoclose == 1
+  if a:status == 0 && a:autoclose == 1
     execute 'silent! bd! '.a:bufnr
   endif
   if !empty(a:Callback)
@@ -535,12 +538,15 @@ function! coc#util#install() abort
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
   if s:is_win
+    " can't remove file that in use on windows.
     let res = coc#rpc#stop()
     if res != 0 | return | endif
     echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
   endif
+  " install.cmd would always exited with code 0 with/without errors.
   call coc#util#open_terminal({
         \ 'cmd': cmd,
+        \ 'autoclose' : !s:is_win,
         \ 'cwd': s:root,
         \ 'Callback': function('s:coc_installed')
         \})
