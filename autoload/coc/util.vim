@@ -506,34 +506,6 @@ function! coc#util#module_folder(manager) abort
   return is_yarn ? folder . '/node_modules' : folder
 endfunction
 
-function! coc#util#install_node_rpc() abort
-  let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
-  if res !=? 'y' | return | endif
-  let cmd = ''
-  let idx = inputlist(['Select package manager:', '1. npm', '2. yarn'])
-  if idx <= 0 | return | endif
-  if idx == 1
-    let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') ==# 'Linux'
-    if executable('npm')
-      let cmd = (isLinux ? 'sudo ' : ' ').'npm i -g vim-node-rpc'
-    else
-      echohl Error | echon '[coc.nvim] executable "npm" not find in $PATH' | echohl None
-      return
-    endif
-  else
-    if executable('yarn')
-      let cmd = 'yarn global add vim-node-rpc'
-    else
-      echohl Error | echon '[coc.nvim] executable "yarn" not find in $PATH' | echohl None
-      return
-    endif
-  endif
-  call coc#util#open_terminal({
-        \ 'cmd': cmd,
-        \ 'Callback': function('s:rpc_installed')
-        \ })
-endfunction
-
 function! coc#util#install() abort
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
@@ -555,23 +527,18 @@ endfunction
 
 function! s:coc_installed(status, ...) abort
   if a:status != 0 | return | endif
-  if s:is_vim && !executable('vim-node-rpc')
-    call coc#util#install_node_rpc()
-  else
-    call coc#rpc#restart()
+  if s:is_vim
+    let cmd = nvim#rpc#get_command()
+    if empty(cmd)
+      let installed = nvim#rpc#install_node_rpc()
+      if !installed | return | endif
+    endif
   endif
+  call coc#rpc#restart()
   let dir = coc#util#extension_root()
   if !isdirectory(dir)
     echohl WarningMsg | echom 'No extensions found' | echohl None
     call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
-  endif
-endfunction
-
-function! s:rpc_installed(status, ...) abort
-  if a:status == 0
-    redraw!
-    echohl MoreMsg | echom 'vim-node-rpc installed, starting rpc server.' | echohl None
-    call nvim#rpc#start_server()
   endif
 endfunction
 

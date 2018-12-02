@@ -47,6 +47,7 @@ function! coc#rpc#start_server()
 endfunction
 
 function! s:GetChannel()
+  if !s:server_running | return 0 | endif
   let cid = get(g:, 'coc_node_channel_id', 0)
   if s:is_vim
      return nvim#rpc#check_client(cid) ? cid : 0
@@ -168,8 +169,8 @@ endfunction
 function! coc#rpc#restart()
   call coc#util#clear_signs()
   call coc#rpc#request('CocAction', ['toggle', 0])
-  let res =  coc#rpc#stop()
-  if res == 0
+  call coc#rpc#stop()
+  if !s:server_running
     call coc#rpc#start_server()
   endif
 endfunction
