@@ -148,8 +148,14 @@ function! nvim#rpc#check_client(clientId)
 endfunction
 
 function! nvim#rpc#install_node_rpc() abort
-  let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
-  if res !=? 'y' | return 0 | endif
+  echohl MoreMsg
+  echom '[coc.nvim] vim-node-rpc module not found, install? [y/n]'
+  echohl None
+  let confirm = nr2char(getchar()) | redraw!
+  if !(confirm ==? "y" || confirm ==? "\r")
+    echohl Moremsg | echo 'Cancelled.' | echohl None
+    return 0
+  end
   let cmd = ''
   let idx = inputlist(['Select package manager:', '1. npm', '2. yarn'])
   if idx <= 0 | return 0 | endif
