@@ -573,7 +573,7 @@ function! coc#util#install_extension(names) abort
     return
   endif
   let dir = coc#util#extension_root()
-  let res = coc#util#init_extension_root()
+  let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
   let l:Cb = {status -> s:extension_installed(status, a:names)}
   call coc#util#open_terminal({
