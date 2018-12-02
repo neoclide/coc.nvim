@@ -75,7 +75,7 @@ function! nvim#rpc#start_server() abort
   let script = nvim#rpc#get_script()
   if empty(script) | return | endif
   let command = s:is_win ? script : [script]
-  let job = job_start(command, {
+  let options = {
         \ 'in_mode': 'json',
         \ 'out_mode': 'json',
         \ 'err_mode': 'nl',
@@ -86,7 +86,11 @@ function! nvim#rpc#start_server() abort
         \ 'env': {
         \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
         \ }
-        \})
+        \}
+  if has("patch-8.1.350")
+    let options['noblock'] = 1
+  endif
+  let job = job_start(command, options)
   let s:channel = job_getchannel(job)
   let status = ch_status(job)
   if status !=# 'open' && status !=# 'buffered'

@@ -16,7 +16,7 @@ function! coc#rpc#start_server()
   let $VIMCONFIG = coc#util#get_config_home()
   if empty(cmd) | return | endif
   if s:is_vim
-    let s:job = job_start(cmd, {
+    let options = {
           \ 'err_mode': 'nl',
           \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:job_opts.on_stderr(0, [message], 'stderr')},
@@ -26,7 +26,11 @@ function! coc#rpc#start_server()
           \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS,
           \   'VIMCONFIG': $VIMCONFIG,
           \ }
-          \})
+          \}
+    if has("patch-8.1.350")
+      let options['noblock'] = 1
+    endif
+    let s:job = job_start(cmd, options)
     let status = job_status(s:job)
     if status !=# 'run'
       echoerr '[coc.nvim] Failed to start coc service'
@@ -150,7 +154,7 @@ function! coc#rpc#stop()
   elseif s:server_running
     let status = job_status(s:job)
     if status ==# 'run'
-      call job_stop(s:job)
+      call job_stop(s:job, 'term')
     endif
   endif
   sleep 200m

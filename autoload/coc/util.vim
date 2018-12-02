@@ -531,7 +531,7 @@ function! coc#util#install_node_rpc() abort
         \ })
 endfunction
 
-function! coc#util#install()
+function! coc#util#install() abort
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
   if s:is_win
@@ -547,7 +547,7 @@ function! coc#util#install()
   wincmd p
 endfunction
 
-function! s:coc_installed(status, ...)
+function! s:coc_installed(status, ...) abort
   if a:status != 0 | return | endif
   if s:is_vim && !executable('vim-node-rpc')
     call coc#util#install_node_rpc()
@@ -561,7 +561,7 @@ function! s:coc_installed(status, ...)
   endif
 endfunction
 
-function! s:rpc_installed(status, ...)
+function! s:rpc_installed(status, ...) abort
   if a:status == 0
     redraw!
     echohl MoreMsg | echom 'vim-node-rpc installed, starting rpc server.' | echohl None
@@ -569,14 +569,14 @@ function! s:rpc_installed(status, ...)
   endif
 endfunction
 
-function! coc#util#do_complete(name, opt, cb)
+function! coc#util#do_complete(name, opt, cb) abort
   let handler = 'coc#source#'.a:name.'#complete'
   let l:Cb = {res -> a:cb(v:null, res)}
   let args = [a:opt, l:Cb]
   call call(handler, args)
 endfunction
 
-function! coc#util#extension_root()
+function! coc#util#extension_root() abort
   if s:is_win
     let dir = $HOME.'/AppData/Local/coc/extensions'
   else
@@ -585,7 +585,7 @@ function! coc#util#extension_root()
   return dir
 endfunction
 
-function! coc#util#install_extension(names)
+function! coc#util#install_extension(names) abort
   if !executable('yarn')
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
@@ -600,16 +600,28 @@ function! coc#util#install_extension(names)
     return
   endif
   let dir = coc#util#extension_root()
-  if !isdirectory(dir)
-    call mkdir(dir, 'p')
-  endif
+  let res = coc#util#init_extension_root()
+  if res == -1| return | endif
   let l:Cb = {status -> s:extension_installed(status, a:names)}
   call coc#util#open_terminal({
         \ 'cwd': dir,
-        \ 'cmd': 'yarn add '.a:names.' --no-default-rc',
+        \ 'cmd': 'yarn add '.a:names,
         \ 'keepfocus': 1,
         \ 'Callback': l:Cb,
         \})
+endfunction
+
+function! coc#util#init_extension_root(root) abort
+  if !isdirectory(a:root)
+    call mkdir(a:root, 'p')
+    let file = a:root.'/package.json'
+    let res = writefile(['{}'], file)
+    if res == -1
+      echohl Error | echon 'Create package.json failed: '.v:errmsg | echohl None
+      return -1
+    endif
+  endif
+  return 0
 endfunction
 
 function! s:extension_installed(status, name)

@@ -162,7 +162,7 @@ export class Extensions {
     this.deactivate(id)
     await wait(200)
     try {
-      await workspace.runCommand(`yarn remove ${id} --no-default-rc`, this.root)
+      await workspace.runCommand(`yarn remove ${id}`, this.root)
       this._onDidUnloadExtension.fire(id)
       workspace.showMessage(`Extension ${id} removed`)
     } catch (e) {
