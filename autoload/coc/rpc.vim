@@ -162,6 +162,8 @@ function! coc#rpc#stop()
   if s:server_running
     echohl Error | echon '[coc.nvim] kill process failed' | echohl None
     return 1
+  else
+    echohl MoreMsg | echon '[coc.nvim] service stopped!' | echohl None
   endif
   return 0
 endfunction
