@@ -209,20 +209,20 @@ command! -nargs=0 CocUpdate    :call coc#util#update()
 command! -nargs=0 CocRebuild   :call coc#util#rebuild()
 command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocAction('uninstallExtension', <f-args>)
 
-nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocAction('codeLensAction')<CR>
-vnoremap <Plug>(coc-format-selected)     :<C-u>call CocAction('formatSelected', visualmode())<CR>
-vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocAction('codeAction',     visualmode())<CR>
-nnoremap <Plug>(coc-codeaction)          :<C-u>call CocAction('codeAction',     '')<CR>
-nnoremap <Plug>(coc-rename)              :<C-u>call CocAction('rename')<CR>
+nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocActionAsync('codeLensAction')<CR>
+vnoremap <Plug>(coc-format-selected)     :<C-u>call CocActionAsync('formatSelected', visualmode())<CR>
+vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocActionAsync('codeAction',     visualmode())<CR>
+nnoremap <Plug>(coc-codeaction)          :<C-u>call CocActionAsync('codeAction',     '')<CR>
+nnoremap <Plug>(coc-rename)              :<C-u>call CocActionAsync('rename')<CR>
 nnoremap <Plug>(coc-format-selected)     :<C-u>set  operatorfunc=<SID>FormatFromSelected<CR>g@
 nnoremap <Plug>(coc-codeaction-selected) :<C-u>set  operatorfunc=<SID>CodeActionFromSelected<CR>g@
-nnoremap <Plug>(coc-format)              :<C-u>call CocAction('format')<CR>
-nnoremap <Plug>(coc-diagnostic-info)     :<C-u>call CocAction('diagnosticInfo')<CR>
-nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocAction('diagnosticNext')<CR>
-nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocAction('diagnosticPrevious')<CR>
-nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
-nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
-nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
-nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
-nnoremap <Plug>(coc-openlink)            :<C-u>call CocAction('openLink')<CR>
+nnoremap <Plug>(coc-format)              :<C-u>call CocActionAsync('format')<CR>
+nnoremap <Plug>(coc-diagnostic-info)     :<C-u>call CocActionAsync('diagnosticInfo')<CR>
+nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocActionAsync('diagnosticNext')<CR>
+nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocActionAsync('diagnosticPrevious')<CR>
+nnoremap <Plug>(coc-definition)          :<C-u>call CocActionAsync('jumpDefinition')<CR>
+nnoremap <Plug>(coc-implementation)      :<C-u>call CocActionAsync('jumpImplementation')<CR>
+nnoremap <Plug>(coc-type-definition)     :<C-u>call CocActionAsync('jumpTypeDefinition')<CR>
+nnoremap <Plug>(coc-references)          :<C-u>call CocActionAsync('jumpReferences')<CR>
+nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
