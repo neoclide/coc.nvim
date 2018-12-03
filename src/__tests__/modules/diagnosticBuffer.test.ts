@@ -7,6 +7,7 @@ import { DiagnosticItems } from '../../types'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
+  displayByAle: false,
   srcId: 1000,
   level: DiagnosticSeverity.Hint,
   locationlist: true,

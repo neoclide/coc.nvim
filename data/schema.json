@@ -396,6 +396,11 @@
       "description": "Set to true to enable format on type",
       "default": false
     },
+    "coc.preferences.snippets.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable snippets",
+      "default": true
+    },
     "coc.preferences.diagnostic.level": {
       "type": "string",
       "description": "Used for filter diagnostics by diagnostic severity.",
@@ -404,13 +409,13 @@
     },
     "coc.preferences.diagnostic.enable": {
       "type": "boolean",
-      "description": "Set to false to disable diagnostic",
+      "description": "Set to false to disable diagnostic display",
       "default": true
     },
-    "coc.preferences.snippets.enable": {
+    "coc.preferences.diagnostic.displayByAle": {
       "type": "boolean",
-      "description": "Set to false to disable snippets",
-      "default": true
+      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics.",
+      "default": false
     },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "boolean",

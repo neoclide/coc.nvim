@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument, DiagnosticSeverity } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -12,6 +12,7 @@ import { getSeverityName, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
+  displayByAle: boolean
   srcId: number
   locationlist: boolean
   signOffset: number
@@ -27,33 +28,30 @@ export class DiagnosticManager {
   public enabled = true
   public insertMode = false
   public readonly buffers: DiagnosticBuffer[] = []
-  private timer: NodeJS.Timer
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private enableMessage = true
+  private timer: NodeJS.Timer
   constructor() {
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(async () => {
       this.setConfiguration()
-      if (this.enabled) {
-        this.init().catch(err => {
-          logger.error(err)
-        })
-      }
+      this.init().catch(err => {
+        logger.error(err)
+      })
       let { mode } = await workspace.nvim.mode
       this.insertMode = mode.startsWith('i')
     })
 
     events.on('CursorMoved', bufnr => {
+      if (!this.enabled) return
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
       this.insertMode = true
-      if (this.timer) {
-        clearTimeout(this.timer)
-      }
+      if (this.timer) clearTimeout(this.timer)
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
@@ -71,7 +69,9 @@ export class DiagnosticManager {
 
     events.on('BufEnter', async bufnr => {
       if (this.timer) clearTimeout(this.timer)
-      if (!this.config || !this.config.locationlist) return
+      if (!this.config
+        || !this.enabled
+        || !this.config.locationlist) return
       let winid = await this.nvim.call('win_getid') as number
       let doc = workspace.getDocument(bufnr)
       // wait buffer create
@@ -172,7 +172,6 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async jumpPrevious(): Promise<void> {
-    if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
@@ -197,7 +196,6 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async jumpNext(): Promise<void> {
-    if (!this.enabled) return
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     let offset = await workspace.getOffset()
@@ -274,7 +272,6 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async echoMessage(truncate = false): Promise<void> {
-    if (!this.enabled) return
     if (truncate && !this.enableMessage) return
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
@@ -333,6 +330,7 @@ export class DiagnosticManager {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this.config = {
+      displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),
       locationlist: config.get<boolean>('locationlist', true),
@@ -343,6 +341,9 @@ export class DiagnosticManager {
       hintSign: config.get<string>('hintSign', '>>'),
     }
     this.enabled = config.get<boolean>('enable', true)
+    if (this.config.displayByAle) {
+      this.enabled = false
+    }
   }
 
   private async init(): Promise<void> {
@@ -392,10 +393,32 @@ export class DiagnosticManager {
   }
 
   private refreshBuffer(uri: string): boolean {
+    let { displayByAle } = this.config
     let buf = this.buffers.find(buf => buf.uri == uri)
     if (buf && !this.insertMode) {
-      buf.refresh(this.getBufferDiagnostic(uri))
-      return true
+      let items = this.getBufferDiagnostic(uri)
+      if (this.enabled) {
+        buf.refresh(items)
+        return true
+      }
+      if (displayByAle) {
+        Object.keys(items).forEach(key => {
+          let diagnostics = items[key]
+          let aleItems = diagnostics.map(o => {
+            let { range } = o
+            return {
+              text: o.message,
+              code: o.code,
+              lnum: range.start.line + 1,
+              col: range.start.character + 1,
+              end_lnum: range.end.line + 1,
+              enc_col: range.end.character + 1,
+              type: o.severity && o.severity != DiagnosticSeverity.Error ? 'W' : 'E',
+            }
+          })
+          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, aleItems], true)
+        })
+      }
     }
     return false
   }

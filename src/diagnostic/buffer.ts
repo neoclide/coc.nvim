@@ -20,7 +20,6 @@ export class DiagnosticBuffer {
   private isVim: boolean
   public readonly bufnr: number
   public readonly uri: string
-
   public refresh: (diagnosticItems: DiagnosticItems) => void
 
   constructor(doc: Document, private config: DiagnosticConfig) {
