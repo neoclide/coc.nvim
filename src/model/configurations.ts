@@ -69,6 +69,16 @@ export default class Configurations {
     _folderConfigurations.set(filepath, Configurations.parseConfigurationModel(contents))
   }
 
+  public hasFolderConfiguration(filepath: string): boolean {
+    let { _folderConfigurations } = this
+    for (let folder of _folderConfigurations.keys()) {
+      if (folder.startsWith(filepath)) {
+        return true
+      }
+    }
+    return false
+  }
+
   /**
    * getConfiguration
    *

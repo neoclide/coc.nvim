@@ -405,7 +405,6 @@ function! coc#util#vim_info()
         \ 'virtualText': exists('*nvim_buf_set_virtual_text') ? v:true : v:false,
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
-        \ 'roots': get(g:, 'rooter_patterns', []),
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),

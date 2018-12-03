@@ -715,6 +715,12 @@ describe('workspace events', () => {
     config.update('enable', undefined)
   })
 
+  it('should get empty configuration for none exists section', () => {
+    let config = workspace.getConfiguration('notexists')
+    let keys = Object.keys(config)
+    expect(keys.length).toBe(0)
+  })
+
   it('should fire onWillSaveUntil', async () => {
     await helper.createDocument('willSaveHandler')
     let fn = jest.fn()

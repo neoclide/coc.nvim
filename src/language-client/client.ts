@@ -11,6 +11,7 @@ import FileWatcher from '../model/fileSystemWatcher'
 import { ProviderResult } from '../provider'
 import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import * as Is from '../util/is'
+import os from 'os'
 import workspace from '../workspace'
 import { ColorProviderMiddleware } from './colorProvider'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
@@ -21,6 +22,8 @@ import { TypeDefinitionMiddleware } from './typeDefinition'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
+import path from 'path'
+import { resolveRoot } from '../util/fs'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -3552,9 +3555,23 @@ export abstract class BaseLanguageClient {
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
     let initOption = this._clientOptions.initializationOptions
-    let rootPath = this._clientOptions.workspaceFolder
-      ? Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
-      : workspace.rootPath
+    let rootPath = workspace.rootPath
+    if (this._clientOptions.workspaceFolder) {
+      rootPath = Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+    } else {
+      let config = workspace.getConfiguration(this.id)
+      let rootPatterns = config.get<string[]>('rootPatterns', [])
+      if (rootPatterns && rootPatterns.length) {
+        let dir = workspace.cwd
+        let doc = workspace.getDocument(workspace.bufnr)
+        if (doc && doc.schema == 'file') {
+          dir = path.dirname(Uri.parse(doc.uri).fsPath)
+          let resolved = resolveRoot(dir, rootPatterns, os.homedir())
+          if (resolved) rootPath = resolved
+        }
+      }
+    }
+
     let initParams: InitializeParams = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,

@@ -1010,14 +1010,16 @@ augroup end`
     this.buffers.set(buffer.id, document)
     this.creating.delete(buffer.id)
     if (document.buftype == '' && document.schema == 'file') {
-      let root = this.resolveRoot(document.uri)
-      if (root && this._root !== root) {
-        let folder = await findUp('.vim', { cwd: root })
-        if (folder && folder != os.homedir()) {
-          let file = path.join(folder, CONFIG_FILE_NAME)
-          let stat = await statAsync(file)
-          if (stat && stat.isFile()) {
-            this._configurations.addFolderFile(file)
+      let root = await this.resolveRoot(document.uri)
+      if (root && this.bufnr == buffer.id && this._root !== root) {
+        if (!this._configurations.hasFolderConfiguration(root)) {
+          let folder = await findUp('.vim', { cwd: root })
+          if (folder && folder != os.homedir()) {
+            let file = path.join(folder, CONFIG_FILE_NAME)
+            let stat = await statAsync(file)
+            if (stat && stat.isFile()) {
+              this._configurations.addFolderFile(file)
+            }
           }
         }
         this._root = root
@@ -1123,18 +1125,13 @@ augroup end`
     await nvim.command('doautocmd User CocQuickfixChange')
   }
 
-  private resolveRoot(uri: string): string {
+  private async resolveRoot(uri: string): Promise<string> {
     let u = Uri.parse(uri)
     let dir = path.dirname(u.fsPath)
     if (dir != os.homedir()) {
-      let { roots } = this.env
-      let files: string[]
-      if (roots && roots.length) {
-        files = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
-      } else {
-        files = ['.vim', '.git', '.hg', '.projections.json']
-      }
-      return resolveRoot(dir, files, os.homedir()) || this.cwd
+      let roots = await this.nvim.getVar('rooter_patterns') as string[]
+      roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
+      return resolveRoot(dir, roots, os.homedir()) || this.cwd
     }
   }
 

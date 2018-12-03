@@ -65,7 +65,6 @@ export interface Env {
   readonly isVim: boolean
   readonly version: string
   readonly easymotion: boolean
-  readonly roots: string[]
   readonly virtualText: boolean
 }
 
@@ -145,7 +144,6 @@ export interface LanguageServerConfig {
   initializationOptions?: any
   revealOutputChannelOn?: string
   configSection?: string
-  forceFullSync?: boolean
   [index: string]: any
 }
 

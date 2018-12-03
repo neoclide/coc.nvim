@@ -21,9 +21,13 @@
           "type": "boolean",
           "default": true
         },
-        "forceFullSync": {
-          "type": "boolean",
-          "default": false
+        "rootPatterns": {
+          "type": "array",
+          "default": [],
+          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "items": {
+            "type": "string"
+          }
         },
         "filetypes": {
           "type": "array",
@@ -78,6 +82,14 @@
             "type": "string"
           }
         },
+        "rootPatterns": {
+          "type": "array",
+          "default": [],
+          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "items": {
+            "type": "string"
+          }
+        },
         "filetypes": {
           "type": "array",
           "default": [],
@@ -89,10 +101,6 @@
         "enable": {
           "type": "boolean",
           "default": true
-        },
-        "forceFullSync": {
-          "type": "boolean",
-          "default": false
         },
         "cwd": {
           "type": "string",
@@ -160,6 +168,14 @@
             "type": "string"
           }
         },
+        "rootPatterns": {
+          "type": "array",
+          "default": [],
+          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "items": {
+            "type": "string"
+          }
+        },
         "filetypes": {
           "type": "array",
           "default": [],
@@ -171,10 +187,6 @@
         "enable": {
           "type": "boolean",
           "default": true
-        },
-        "forceFullSync": {
-          "type": "boolean",
-          "default": false
         },
         "execArgv": {
           "type": "array",

@@ -5,6 +5,7 @@ if has('nvim') && !has('nvim-0.3.0') | finish | endif
 if !has('nvim') && !has('patch-8.1.001') | finish | endif
 
 let g:did_coc_loaded = 1
+let g:rooter_patterns = get(g:, 'rooter_patterns', ['.vim/', '.git/', '.hg/', '.projections.json'])
 let s:is_vim = !has('nvim')
 
 if s:is_vim
