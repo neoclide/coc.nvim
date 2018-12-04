@@ -7,12 +7,11 @@ import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
-import { Extension, ExtensionInfo, ExtensionState, ExtensionContext } from './types'
+import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
 import { disposeAll, wait } from './util'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
-import Configurations from './configuration'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -62,13 +61,16 @@ export class Extensions {
       })
     })) // tslint:disable-line
     let now = new Date()
-    let today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    let config = workspace.getConfiguration('coc.preferences')
+    let interval = config.get<string>('extensionUpdateCheck', 'daily')
+    if (interval == 'never') return
+    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
     this.onDidActiveExtension(async extension => {
       let { id, packageJSON } = extension
       if (!this.isGlobalExtension(id) || this.isExoticExtension(id)) return
       let key = `/extension/${id}/ts`
       let ts = (db as any).exists(key) ? db.getData(key) : null
-      if (!ts || Number(ts) < today.getTime()) {
+      if (!ts || Number(ts) < day.getTime()) {
         db.push(key, Date.now())
         try {
           let res = await workspace.runCommand(`yarn info ${id} version --json`)

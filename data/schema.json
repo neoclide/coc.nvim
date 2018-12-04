@@ -264,6 +264,12 @@
       "default": "",
       "description": "rootPath of language server, relative to folder of current file, it's workspace only.'"
     },
+    "coc.preferences.extensionUpdateCheck": {
+      "type": "string",
+      "default": "daily",
+      "description": "Interval for check extension update, could be daily, weekly, never",
+      "enum": ["daily", "weekly", "never"]
+    },
     "coc.preferences.hoverTarget": {
       "type": "string",
       "default": "preview",
