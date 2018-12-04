@@ -38,6 +38,10 @@ export default class Plugin extends EventEmitter {
     let { nvim } = this
     try {
       await workspace.init()
+      let val = await nvim.getVar('coc_user_config') as { [key: string]: any }
+      if (val && Object.keys(val).length) {
+        workspace.configurations.updateUserConfig(val)
+      }
       completion.init(nvim)
       services.init()
       this.handler = new Handler(nvim)
@@ -60,6 +64,10 @@ export default class Plugin extends EventEmitter {
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
     return await services.sendRequest(id, method, params)
+  }
+
+  public updateConfig(section: string, val: any): void {
+    workspace.configurations.updateUserConfig({ [section]: val })
   }
 
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {

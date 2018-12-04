@@ -1,4 +1,5 @@
 let g:coc#_context = {}
+let g:coc_user_config = {}
 
 function! coc#refresh() abort
     return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
@@ -57,4 +58,9 @@ function! coc#status()
     call add(msgs, '⚠️ ' . info['warning'])
   endif
   return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
+endfunction
+
+function! coc#config(section, value)
+  let g:coc_user_config[a:section] = a:value
+  call coc#rpc#notify('updateConfig', [a:section, a:value])
 endfunction

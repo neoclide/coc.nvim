@@ -622,6 +622,33 @@ Available Actions ~
 
 ------------------------------------------------------------------------------
 
+						*coc#config()*
+coc#config({section}, {value})
+
+	Change user configuration by vim script, no changes would be made to
+	user configuration file. ex: >
+
+	call coc#config('coc.preferences', {
+		\ 'timeout': 1000,
+		\ 'hoverTarget': 'echo',
+		\ 'languageserver': {
+		\   'ccls': {
+		\     "command": "ccls",
+      		\     "trace.server": "verbose",
+      		\     "filetypes": ["c", "cpp", "objc", "objcpp"]
+		\   }
+		\ }
+		\})
+<
+
+	Note: this function could be called multiple times.
+
+	Note: this function could be called before service initialized.
+
+	Note: this function could works with user configuration file, but it's
+	not recommended to use both.
+
+
 						*coc#refresh()*
 coc#refresh()
 
