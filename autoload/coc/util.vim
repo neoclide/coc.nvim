@@ -360,7 +360,7 @@ function! coc#util#open_terminal(opts) abort
           \ 'on_exit': function('s:OnExit', [autoclose, bufnr, Callback]),
           \})
   else
-    if s:is_vim
+    if s:is_win
       let cmd = 'cmd.exe /C "'.cmd.'"'
     endif
     call term_start(cmd, {
