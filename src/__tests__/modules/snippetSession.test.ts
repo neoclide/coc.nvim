@@ -180,10 +180,10 @@ describe('SnippetSession#nextPlaceholder', () => {
 
   it('should goto first placeholder when next not found', async () => {
     let buf = await helper.edit()
+    await helper.wait(60)
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${1:foo} bar')
     expect(res).toBe(true)
-    await helper.wait(60)
     await session.nextPlaceholder()
     await helper.wait(60)
     let position = await workspace.getCursorPosition()

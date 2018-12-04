@@ -56,9 +56,9 @@ describe('Colors', () => {
   })
 
   it('should toggle enable state on configuration change', () => {
-    helper.updateDefaults('coc.preferences.colorSupport', false)
+    helper.updateConfiguration('coc.preferences.colorSupport', false)
     expect(colors.enabled).toBe(false)
-    helper.updateDefaults('coc.preferences.colorSupport', true)
+    helper.updateConfiguration('coc.preferences.colorSupport', true)
     expect(colors.enabled).toBe(true)
   })
 
@@ -131,3 +131,4 @@ describe('Colors', () => {
     expect(line).toBe('#000000')
   })
 })
+

@@ -1,32 +1,24 @@
-import Configurations, { convertErrors } from '../../model/configurations'
-import { IConfigurationData, IConfigurationModel } from '../../types'
+import fs from 'fs'
+import os from 'os'
 import { ParseError } from 'jsonc-parser'
+import path from 'path'
+import Configurations from '../../configuration'
+import { convertErrors, getChangedKeys, getConfigurationValue, getKeys, parseConfiguration } from '../../configuration/util'
+import { IConfigurationModel } from '../../types'
+import Uri from 'vscode-uri'
+import uuidv1 = require('uuid/v1')
 
-const config = JSON.stringify({
-  'foo.bar': 1,
-  'bar.foo': 2,
-  schema: {
-    'https://example.com': '*.yaml'
-  },
-  servers: {
-    c: {
-      'trace.server': 'verbose'
-    }
-  }
-})
+const config = fs.readFileSync(path.join(__dirname, './settings.json'), 'utf8')
+const workspaceConfigFile = path.resolve(__dirname, '../sample/.vim/coc-settings.json')
 
 function getConfigurationModel(): IConfigurationModel {
-  let [, contents] = Configurations.parseConfiguration(config)
+  let [, contents] = parseConfiguration(config)
   return { contents }
 }
 
 function createConfigurations(): Configurations {
-  let data: IConfigurationData = {
-    defaults: getConfigurationModel(),
-    user: { contents: {} },
-    workspace: { contents: {} }
-  }
-  return new Configurations(data)
+  let userConfigFile = path.join(__dirname, './settings.json')
+  return new Configurations(userConfigFile)
 }
 
 describe('Configurations', () => {
@@ -43,6 +35,63 @@ describe('Configurations', () => {
     expect(res.length).toBe(17)
   })
 
+  it('should get all keys', () => {
+    let res = getKeys({
+      foo: {
+        bar: 1,
+        from: {
+          to: 2
+        }
+      },
+      bar: [1, 2]
+    })
+    expect(res).toEqual(['foo', 'foo.bar', 'foo.from', 'foo.from.to', 'bar'])
+  })
+
+  it('should get configuration value', () => {
+    let root = {
+      foo: {
+        bar: 1,
+        from: {
+          to: 2
+        }
+      },
+      bar: [1, 2]
+    }
+    let res = getConfigurationValue(root, 'foo.from.to', 1)
+    expect(res).toBe(2)
+    res = getConfigurationValue(root, 'foo.from', 1)
+    expect(res).toEqual({ to: 2 })
+  })
+
+  it('should add folder as workspace configuration', () => {
+    let configurations = createConfigurations()
+    configurations.onDidChange(e => {
+      let affects = e.affectsConfiguration('coc')
+      expect(affects).toBe(true)
+    })
+    configurations.addFolderFile(workspaceConfigFile)
+    let o = configurations.configuration.workspace.contents
+    expect(o.coc.preferences.rootPath).toBe('./src')
+    configurations.dispose()
+  })
+
+  it('should get changed keys #1', () => {
+    let res = getChangedKeys({ y: 2 }, { x: 1 })
+    expect(res).toEqual(['x', 'y'])
+  })
+
+  it('should get changed keys #2', () => {
+    let res = getChangedKeys({ x: 1, c: { d: 4 } }, { x: 1, b: { x: 5 } })
+    expect(res).toEqual(['b', 'b.x', 'c', 'c.d'])
+  })
+
+  it('should load default configurations', () => {
+    let conf = new Configurations()
+    expect(conf.defaults.contents.coc).toBeDefined()
+    conf.dispose()
+  })
+
   it('should parse configurations', () => {
     let { contents } = getConfigurationModel()
     expect(contents.foo.bar).toBe(1)
@@ -50,52 +99,124 @@ describe('Configurations', () => {
     expect(contents.schema).toEqual({ 'https://example.com': '*.yaml' })
   })
 
-  it('should update default configurations', () => {
-    let config = createConfigurations()
-    config.updateDefaults('x.y', 1)
-    let res = config.getConfiguration('x')
-    let n = res.get<number>('y', 0)
-    expect(n).toBe(1)
-    config.updateDefaults('x.y', void 0)
-    n = config.getConfiguration('x').get('y', 5)
-    expect(n).toBe(5)
+  it('should update user config #1', () => {
+    let conf = new Configurations()
+    let fn = jest.fn()
+    conf.onDidChange(e => {
+      expect(e.affectsConfiguration('x')).toBe(true)
+      fn()
+    })
+    conf.updateUserConfig({ x: 1 })
+    let config = conf.configuration.user
+    expect(config.contents).toEqual({ x: 1 })
+    expect(fn).toBeCalled()
+  })
+
+  it('should update user config #2', () => {
+    let conf = new Configurations()
+    conf.updateUserConfig({ x: 1 })
+    conf.updateUserConfig({ x: undefined })
+    let config = conf.configuration.user
+    expect(config.contents).toEqual({})
+  })
+
+  it('should handle errors', () => {
+    let tmpFile = path.join(os.tmpdir(), uuidv1())
+    fs.writeFileSync(tmpFile, '{"x":', 'utf8')
+    let conf = new Configurations(tmpFile)
+    let errors = conf.errorItems
+    expect(errors.length > 1).toBe(true)
+    conf.dispose()
+  })
+
+  it('should change to new folder configuration', () => {
+    let conf = new Configurations()
+    conf.addFolderFile(workspaceConfigFile)
+    let configFile = path.join(__dirname, './settings.json')
+    conf.addFolderFile(configFile)
+    let file = path.resolve(__dirname, '../sample/tmp.js')
+    let fn = jest.fn()
+    conf.onDidChange(fn)
+    conf.setFolderConfiguration(Uri.file(file).toString())
+    let { contents } = conf.workspace
+    expect(contents.foo).toBeUndefined()
+    expect(fn).toBeCalled()
+    conf.dispose()
   })
 
   it('should get nested property', () => {
-    let configurations = createConfigurations()
-    let config = configurations.getConfiguration('servers.c')
-    let res = config.get<string>('trace.server', '')
+    let config = createConfigurations()
+    let conf = config.getConfiguration('servers.c')
+    let res = conf.get<string>('trace.server', '')
     expect(res).toBe('verbose')
+    config.dispose()
   })
 
   it('should get user and workspace configuration', () => {
-    let user = Configurations.parseConfiguration('{"user": 1}')[1]
-    let workspace = Configurations.parseConfiguration('{"workspace": 1}')[1]
-    let data: IConfigurationData = {
-      defaults: getConfigurationModel(),
-      user: { contents: user },
-      workspace: { contents: workspace }
-    }
-    let configurations = new Configurations(data)
-    expect(configurations.user.contents).toEqual({ user: 1 })
-    expect(configurations.workspace.contents).toEqual({ workspace: 1 })
-    data = configurations.toData()
+    let userConfigFile = path.join(__dirname, './settings.json')
+    let configurations = new Configurations(userConfigFile)
+    let data = configurations.configuration.toData()
     expect(data.user).toBeDefined()
     expect(data.workspace).toBeDefined()
     expect(data.defaults).toBeDefined()
+    let value = configurations.configuration.getValue()
+    expect(value.foo).toBeDefined()
+    expect(value.foo.bar).toBe(1)
+    configurations.dispose()
   })
 
   it('should override with new value', () => {
     let configurations = createConfigurations()
-    configurations.updateDefaults('foo', 1)
+    configurations.configuration.defaults.setValue('foo', 1)
     let { contents } = configurations.defaults
     expect(contents.foo).toBe(1)
+    configurations.dispose()
   })
 
-  it('should not override', () => {
+  it('should extends defaults', () => {
     let configurations = createConfigurations()
-    configurations.updateDefaults('foo.bar.bar', 3)
-    let { contents } = configurations.defaults
-    expect(contents.foo).toEqual({ bar: 1 })
+    configurations.extendsDefaults({ 'a.b': 1 })
+    let o = configurations.defaults.contents
+    expect(o.a.b).toBe(1)
+    configurations.dispose()
+  })
+
+  it('should update configuration', async () => {
+    let configurations = createConfigurations()
+    configurations.addFolderFile(workspaceConfigFile)
+    let fn = jest.fn()
+    configurations.onDidChange(e => {
+      expect(e.affectsConfiguration('foo')).toBe(true)
+      expect(e.affectsConfiguration('foo.bar')).toBe(true)
+      expect(e.affectsConfiguration('foo.bar', 'file://tmp/foo.js')).toBe(false)
+      fn()
+    })
+    let config = configurations.getConfiguration('foo')
+    let o = config.get<number>('bar')
+    expect(o).toBe(1)
+    config.update('bar', 6)
+    config = configurations.getConfiguration('foo')
+    expect(config.get<number>('bar')).toBe(6)
+    expect(fn).toBeCalledTimes(1)
+    configurations.dispose()
+  })
+
+  it('should remove configuration', async () => {
+    let configurations = createConfigurations()
+    configurations.addFolderFile(workspaceConfigFile)
+    let fn = jest.fn()
+    configurations.onDidChange(e => {
+      expect(e.affectsConfiguration('foo')).toBe(true)
+      expect(e.affectsConfiguration('foo.bar')).toBe(true)
+      fn()
+    })
+    let config = configurations.getConfiguration('foo')
+    let o = config.get<number>('bar')
+    expect(o).toBe(1)
+    config.update('bar', null, true)
+    config = configurations.getConfiguration('foo')
+    expect(config.get<any>('bar')).toBeUndefined()
+    expect(fn).toBeCalledTimes(1)
+    configurations.dispose()
   })
 })

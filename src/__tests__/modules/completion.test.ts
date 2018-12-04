@@ -42,10 +42,8 @@ describe('completion events', () => {
   })
 
   it('should reload preferences onChange', () => {
-    (workspace as any)._configurations.updateDefaults('coc.preferences.snippetIndicator', '*')
-      ; (workspace as any)._onDidChangeConfiguration.fire({
-        affectsConfiguration: () => { } // tslint:disable-line
-      })
+    let { configurations } = workspace
+    configurations.updateUserConfig({ 'coc.preferences.snippetIndicator': '*' })
     let preferences = (completion as any).preferences
     let snippetIndicator = preferences.get('snippetIndicator', 1)
     expect(snippetIndicator).toBe('*')

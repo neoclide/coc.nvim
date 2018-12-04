@@ -11,6 +11,10 @@ afterAll(async () => {
   await helper.shutdown()
 })
 
+afterEach(async () => {
+  await helper.reset()
+})
+
 describe('sources', () => {
 
   it('should do document enter', async () => {

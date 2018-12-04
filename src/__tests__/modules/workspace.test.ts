@@ -2,15 +2,14 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
-import { Location, Position, Range, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit, CreateFile, DeleteFile, RenameFile } from 'vscode-languageserver-types'
+import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
 import URI from 'vscode-uri'
-import { ConfigurationTarget } from '../../types'
+import { TextDocumentContentProvider } from '../../provider'
+import { ErrorItem, ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile, writeFile } from '../../util/fs'
-import helper, { createTmpFile } from '../helper'
-import { ErrorItem } from '../../model/configurations'
 import workspace from '../../workspace'
-import { TextDocumentContentProvider } from '../../provider'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -241,7 +240,7 @@ describe('workspace applyEdits', () => {
 
 describe('workspace methods', () => {
   it('should get the document', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit('t.js')
     await helper.wait(100)
     let doc = workspace.getDocument(buf.id)
     expect(doc.buffer.equals(buf)).toBeTruthy()
@@ -251,7 +250,7 @@ describe('workspace methods', () => {
 
   it('should get offset', async () => {
     let buf = await nvim.buffer
-    await buf.setLines(['foo', 'bar'], { start: 0, end: 0 })
+    await buf.setLines(['foo', 'bar'], { start: 0, end: -1 })
     await helper.wait(100)
     await nvim.call('cursor', [2, 2])
     let n = await workspace.getOffset()
@@ -283,7 +282,7 @@ describe('workspace methods', () => {
 
   it('should get config files', async () => {
     let file = workspace.getConfigFile(ConfigurationTarget.Global)
-    expect(file).toBeTruthy()
+    expect(file).toBeFalsy()
     file = workspace.getConfigFile(ConfigurationTarget.User)
     expect(file).toBeTruthy()
   })
@@ -459,13 +458,13 @@ describe('workspace utility', () => {
     fs.unlinkSync(newPath)
   })
 
-  it('should rename buffer if rename file loaded', async () => {
+  it('should rename buffer when necessary', async () => {
     let filepath = path.join(__dirname, 'old')
     await workspace.createFile(filepath, { overwrite: true })
     await writeFile(filepath, 'bar')
     let uri = URI.file(filepath).toString()
     await workspace.openResource(uri)
-    await helper.wait(200)
+    await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('bar')
     let newFile = path.join(__dirname, 'bar')
@@ -548,7 +547,7 @@ describe('workspace utility', () => {
   it('should show outputChannel', async () => {
     workspace.createOutputChannel('channel')
     workspace.showOutputChannel('channel')
-    await helper.wait(200)
+    await helper.wait(100)
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toMatch('[coc channel]')
@@ -710,7 +709,7 @@ describe('workspace events', () => {
     })
     let config = workspace.getConfiguration('tsserver')
     config.update('enable', false)
-    await helper.wait(2000)
+    await helper.wait(300)
     expect(fn).toHaveBeenCalledTimes(1)
     config.update('enable', undefined)
   })
@@ -762,7 +761,7 @@ describe('workspace private', () => {
       ; (doc as any).env.isVim = true
       ; (workspace as any).initVimEvents()
     await nvim.setLine('abc')
-    await helper.wait(300)
+    await helper.wait(100)
     expect(doc.content).toMatch('abc')
     await nvim.input('Adef')
     await nvim.call('coc#_hide')
@@ -814,7 +813,7 @@ describe('workspace textDocument content provider', () => {
     await helper.wait(100)
     text = 'bar'
     emitter.fire(URI.parse('jdk://1'))
-    await helper.wait(200)
+    await helper.wait(100)
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines).toEqual(['bar'])

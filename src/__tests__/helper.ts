@@ -1,16 +1,15 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import os from 'os'
-import pify from 'pify'
-import uuid = require('uuid/v4')
 import * as cp from 'child_process'
 import Emitter from 'events'
+import fs from 'fs'
+import os from 'os'
 import path from 'path'
+import pify from 'pify'
 import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
-import services from '../services'
-import { IWorkspace, ServiceStat, VimCompleteItem } from '../types'
+import { IWorkspace, VimCompleteItem } from '../types'
+import uuid = require('uuid/v4')
 
 export interface CursorPosition {
   bufnum: number
@@ -133,7 +132,7 @@ export class Helper extends Emitter {
     let buf = await this.nvim.buffer
     let m = await this.nvim.mode
     if (m.blocking) {
-      console.log('blocking') // tslint:disable-line
+      console.error('blocking') // tslint:disable-line
     }
     return buf
   }
@@ -159,14 +158,9 @@ export class Helper extends Emitter {
     return str.trim()
   }
 
-  public updateDefaults(key: string, value: any): void {
-    let workspace = this.workspace as any
-    workspace._configurations.updateDefaults(key, value)
-    workspace._onDidChangeConfiguration.fire({
-      affectsConfiguration: (): boolean => {
-        return true
-      }
-    })
+  public updateConfiguration(key: string, value: any): void {
+    let { configurations } = this.workspace as any
+    configurations.updateUserConfig({ [key]: value })
   }
 
   public async mockFunction(name: string, result: string | number | any): Promise<void> {
