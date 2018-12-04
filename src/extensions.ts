@@ -12,6 +12,7 @@ import { disposeAll, wait } from './util'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
+import Configurations from './configuration'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -448,12 +449,12 @@ export class Extensions {
       let { configuration } = contributes
       if (configuration && configuration.properties) {
         let { properties } = configuration
+        let props = {}
         for (let key of Object.keys(properties)) {
           let val = properties[key].default
-          if (val !== undefined) {
-            (workspace as any)._configurations.updateDefaults(key, val)
-          }
+          if (val != null) props[key] = val
         }
+        workspace.configurations.extendsDefaults(props)
       }
     }
     this._onDidLoadExtension.fire(extension)

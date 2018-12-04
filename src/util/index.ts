@@ -105,24 +105,17 @@ export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<
   })
 }
 
-export function watchFiles(uris: string[], onChange: () => void): Disposable {
-  let callback = debounce(onChange, 200)
-  let watchers = []
-  for (let uri of uris) {
-    if (!fs.existsSync(uri)) continue
-    let watcher = fs.watch(uri, {
-      persistent: false,
-      recursive: false,
-      encoding: 'utf8'
-    }, () => {
-      callback()
-    })
-    watchers.push(watcher)
-  }
+export function watchFile(filepath: string, onChange: () => void): Disposable {
+  let callback = debounce(onChange, 100)
+  let watcher = fs.watch(filepath, {
+    persistent: true,
+    recursive: false,
+    encoding: 'utf8'
+  }, () => {
+    callback()
+  })
   return Disposable.create(() => {
-    for (let watcher of watchers) {
-      watcher.close()
-    }
+    watcher.close()
   })
 }
 

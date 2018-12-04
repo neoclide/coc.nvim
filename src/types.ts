@@ -5,6 +5,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import { LanguageClient } from './language-client'
 import log4js from 'log4js'
 import { TextDocumentContentProvider } from './provider'
+import Configurations from './configuration'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
@@ -13,6 +14,11 @@ export interface ExtensionInfo {
   id: string
   root: string
   state: ExtensionState
+}
+
+export interface ErrorItem {
+  location: Location
+  message: string
 }
 
 export interface DiagnosticItems {
@@ -751,18 +757,18 @@ export interface ExtensionContext {
 }
 
 export interface IWorkspace {
-  nvim: Neovim
-  cwd: string
-  root: string
-  rootPath: string
-  isVim: boolean
-  isNvim: boolean
-  filetypes: Set<string>
-  pluginRoot: string
-  initialized: boolean
-  completeOpt: string
-  channelNames: string[]
-  documents: Document[]
+  readonly nvim: Neovim
+  readonly cwd: string
+  readonly root: string
+  readonly isVim: boolean
+  readonly isNvim: boolean
+  readonly filetypes: Set<string>
+  readonly pluginRoot: string
+  readonly initialized: boolean
+  readonly completeOpt: string
+  readonly channelNames: string[]
+  readonly documents: Document[]
+  readonly configurations: Configurations
   document: Promise<Document | null>
   textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder

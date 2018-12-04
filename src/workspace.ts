@@ -1,4 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
+import { VimValue } from '@chemzqm/neovim/lib/types/VimValue'
 import debounce from 'debounce'
 import findUp from 'find-up'
 import fs from 'fs'
@@ -7,9 +8,9 @@ import path from 'path'
 import pify from 'pify'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
+import Configurations from './configuration'
+import ConfigurationShape from './configuration/shape'
 import events from './events'
-import Configurations, { ErrorItem } from './model/configurations'
-import ConfigurationShape from './model/configurationShape'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
@@ -17,15 +18,13 @@ import StatusLine from './model/status'
 import Terminal from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IConfigurationData, IConfigurationModel, IWorkspace, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, MessageLevel } from './types'
-import { mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, isFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait, watchFiles } from './util/index'
+import { ConfigurationChangeEvent, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationTarget } from './types'
+import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait } from './util/index'
 import { score } from './util/match'
-import { equals } from './util/object'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
 import uuidv1 = require('uuid/v1')
-import { VimValue } from '@chemzqm/neovim/lib/types/VimValue'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -40,18 +39,15 @@ export class Workspace implements IWorkspace {
   private willSaveUntilHandler: WillSaveUntilHandler
   private statusLine: StatusLine
   private _env: Env
+  private _root: string
   private _cwd = process.cwd()
-  private _root = process.cwd()
   private _blocking = false
   private _initialized = false
   private buffers: Map<number, Document> = new Map()
   private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
-  private configurationShape: ConfigurationShape
-  private _configurations: Configurations
   private disposables: Disposable[] = []
-  private configFiles: string[] = []
   private checkBuffer: Function & { clear(): void; }
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
@@ -71,22 +67,18 @@ export class Workspace implements IWorkspace {
   public readonly onDidSaveTextDocument: Event<TextDocument> = this._onDidSaveDocument.event
   public readonly onDidChangeConfiguration: Event<ConfigurationChangeEvent> = this._onDidChangeConfiguration.event
   public readonly onDidWorkspaceInitialized: Event<void> = this._onDidWorkspaceInitialized.event
+  public readonly configurations: Configurations
 
   constructor() {
     let json = require(path.join(this.pluginRoot, 'package.json'))
     this.version = json.version
-    let config = this.loadConfigurations()
-    let configurationShape = this.configurationShape = new ConfigurationShape(this)
-    this._configurations = new Configurations(config, configurationShape)
+    this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
     this.checkBuffer = debounce(() => {
       this._checkBuffer().catch(e => {
         logger.error(e.message)
       })
     }, 100)
-    this.disposables.push(
-      watchFiles(this.configFiles, this.onConfigurationChange.bind(this))
-    )
     this.setMessageLevel()
   }
 
@@ -117,16 +109,18 @@ export class Workspace implements IWorkspace {
     this._env = await this.nvim.call('coc#util#vim_info') as Env
     await this.attach()
     if (this.isVim) this.initVimEvents()
+    let { errorItems } = this.configurations
+    await this.showErrors(errorItems)
+    this.configurations.onError(async errors => {
+      await this.showErrors(errors)
+    }, null, this.disposables)
+    this.configurations.onDidChange(e => {
+      this._onDidChangeConfiguration.fire(e)
+    }, null, this.disposables)
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
-    if (target == ConfigurationTarget.Global) {
-      return this.configFiles[0]
-    }
-    if (target == ConfigurationTarget.User) {
-      return this.configFiles[1]
-    }
-    return this.configFiles[2]
+    return this.configurations.getConfigFile(target)
   }
 
   public get cwd(): string {
@@ -137,12 +131,8 @@ export class Workspace implements IWorkspace {
     return this._env
   }
 
-  // private get easymotion(): boolean {
-  //   return this.vimSettings.easymotion == 1
-  // }
-
   public get root(): string {
-    return this._root
+    return this._root || this.cwd
   }
 
   public get rootPath(): string {
@@ -271,7 +261,7 @@ export class Workspace implements IWorkspace {
   }
 
   public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
-    return this._configurations.getConfiguration(section, resource)
+    return this.configurations.getConfiguration(section, resource)
   }
 
   public getDocument(uri: number | string): Document {
@@ -464,7 +454,7 @@ export class Workspace implements IWorkspace {
 
   public get document(): Promise<Document> {
     let { bufnr } = this
-    if (bufnr && this.buffers.has(bufnr)) {
+    if (this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
     }
     return this.nvim.buffer.then(buffer => {
@@ -764,7 +754,6 @@ augroup end`
     try {
       let filepath = path.join(os.tmpdir(), `coc-${process.pid}.vim`)
       await writeFile(filepath, content)
-      await wait(10)
       await this.nvim.command(`source ${filepath}`)
     } catch (e) {
       this.showMessage(`Can't create tmp file: ${e.message}`, 'error')
@@ -802,6 +791,7 @@ augroup end`
     }
     Watchman.dispose()
     this.buffers.clear()
+    this.configurations.dispose()
     if (this.terminal) this.terminal.removeAllListeners()
     if (this.statusLine) this.statusLine.dispose()
     disposeAll(this.disposables)
@@ -810,13 +800,9 @@ augroup end`
   private async attach(): Promise<void> {
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
-    let idx = buffers.findIndex(buf => buf.id == bufnr)
-    buffers.splice(idx, 1)
     await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf)
+      return this.onBufCreate(buf, true)
     }))
-    // make current last one for resolve root
-    await this.onBufCreate(bufnr)
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
       this._initialized = true
@@ -853,21 +839,6 @@ augroup end`
       }
     }
     return res
-  }
-
-  private onConfigurationChange(): void {
-    let { _configurations } = this
-    let config = this.loadConfigurations()
-    this._configurations = new Configurations(config,
-      this.configurationShape,
-      _configurations.foldConfigurations)
-    this._onDidChangeConfiguration.fire({
-      affectsConfiguration: (section: string, resource?: string): boolean => {
-        let a = _configurations.getConfiguration(section, resource)
-        let b = this._configurations.getConfiguration(section, resource)
-        return !equals(a, b)
-      }
-    })
   }
 
   private validteDocumentChanges(documentChanges: any[] | null): boolean {
@@ -924,36 +895,13 @@ augroup end`
     return true
   }
 
-  private loadConfigurations(): IConfigurationData {
-    let file = path.join(this.pluginRoot, 'settings.json')
-    this.configFiles.push(file)
-    let defaultConfig: IConfigurationModel
-    if (this._configurations) {
-      defaultConfig = this._configurations.defaults
-    } else {
-      defaultConfig = Configurations.parseContentFromFile(file, this.showErrors.bind(this))
-    }
+  private createConfigurations(): Configurations {
     let home = process.env.VIMCONFIG || path.join(os.homedir(), '.vim')
     if (global.hasOwnProperty('__TEST__')) {
-      let root = path.join(this.pluginRoot, 'src/__tests__')
-      file = path.join(root, CONFIG_FILE_NAME)
-    } else {
-      file = path.join(home, CONFIG_FILE_NAME)
+      home = path.join(this.pluginRoot, 'src/__tests__')
     }
-    this.configFiles.push(file)
-    let userConfig = Configurations.parseContentFromFile(file, this.showErrors.bind(this))
-    let workspaceConfig = { contents: {} }
-    let folder = findUp.sync('.vim', { cwd: this.root })
-    if (folder && folder != home) {
-      let file = path.join(folder, CONFIG_FILE_NAME)
-      workspaceConfig = Configurations.parseContentFromFile(file, this.showErrors.bind(this))
-      this.configFiles.push(file)
-    }
-    return {
-      defaults: defaultConfig,
-      user: userConfig,
-      workspace: workspaceConfig
-    }
+    let userConfigFile = path.join(home, CONFIG_FILE_NAME)
+    return new Configurations(userConfigFile, new ConfigurationShape(this))
   }
 
   // events for sync buffer of vim
@@ -980,7 +928,7 @@ augroup end`
     })
   }
 
-  private async onBufCreate(buf: number | Buffer): Promise<void> {
+  private async onBufCreate(buf: number | Buffer, initialize = false): Promise<void> {
     this.checkBuffer.clear()
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     if (this.creating.has(buffer.id)) return
@@ -990,40 +938,45 @@ augroup end`
       this.creating.delete(buffer.id)
       return
     }
-    this.bufnr = buffer.id
-    let document = this.getDocument(buffer.id)
+    let bufnr = buffer.id
+    let document = this.getDocument(bufnr)
     try {
-      if (document) await events.fire('BufUnload', [buffer.id])
+      if (document) await events.fire('BufUnload', [bufnr])
       document = new Document(buffer,
-        this._configurations.getConfiguration('coc.preferences'),
+        this.configurations.getConfiguration('coc.preferences'),
         this._env)
       let created = await document.init(this.nvim)
       if (!created) {
-        this.creating.delete(buffer.id)
+        this.creating.delete(bufnr)
         return
       }
     } catch (e) {
-      this.creating.delete(buffer.id)
+      this.creating.delete(bufnr)
       logger.error(e)
       return
     }
-    this.buffers.set(buffer.id, document)
-    this.creating.delete(buffer.id)
-    if (document.buftype == '' && document.schema == 'file') {
+    if (!initialize) this.bufnr = await this.nvim.call('bufnr', '%')
+    this.creating.delete(bufnr)
+    this.buffers.set(bufnr, document)
+    if (bufnr == this.bufnr
+      && document.buftype == ''
+      && document.schema == 'file') {
       let root = await this.resolveRoot(document.uri)
       if (root && this.bufnr == buffer.id && this._root !== root) {
-        if (!this._configurations.hasFolderConfiguration(root)) {
+        let { configurations } = this
+        if (!configurations.hasFolderConfiguration(root)) {
           let folder = await findUp('.vim', { cwd: root })
           if (folder && folder != os.homedir()) {
             let file = path.join(folder, CONFIG_FILE_NAME)
             let stat = await statAsync(file)
             if (stat && stat.isFile()) {
-              this._configurations.addFolderFile(file)
+              this.configurations.addFolderFile(file)
             }
           }
+        } else {
+          configurations.setFolderConfiguration(document.uri)
         }
         this._root = root
-        this.onConfigurationChange()
         this._onDidChangeWorkspaceFolder.fire(this.workspaceFolder)
       }
     }
@@ -1114,7 +1067,7 @@ augroup end`
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {
-    await this.ready
+    if (!errors.length) return
     let items: QuickfixItem[] = []
     for (let err of errors) {
       let item = await this.getQuickfixItem(err.location, err.message)
