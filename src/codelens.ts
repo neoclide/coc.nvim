@@ -1,9 +1,9 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CodeLens, Disposable, TextDocument } from 'vscode-languageserver-protocol'
+import { CodeLens, Disposable } from 'vscode-languageserver-protocol'
 import { Document } from '.'
-import events from './events'
 import commandManager from './commands'
+import events from './events'
 import languages from './languages'
 import services from './services'
 import { disposeAll, wait } from './util'
@@ -11,62 +11,82 @@ import workspace from './workspace'
 const logger = require('./util/logger')('codelens')
 const srcId = 1080
 
+export interface CodeLensInfo {
+  codeLenes: CodeLens[]
+  changedtick: number
+}
+
 export default class CodeLensManager {
   private separator: string
+  private fetching: Set<number> = new Set()
   private disposables: Disposable[] = []
-  private codeLensMap: Map<number, CodeLens[]> = new Map()
+  private codeLensMap: Map<number, CodeLensInfo> = new Map()
   private resolveCodeLens: Function & { clear(): void }
   private insertMode = false
   constructor(private nvim: Neovim) {
     let config = workspace.getConfiguration('coc.preferences.codeLens')
     this.separator = config.get<string>('separator', '‣')
     let enable = workspace.env.virtualText && config.get<boolean>('enable', true)
-    if (enable) {
+    if (!enable) return
+    services.on('ready', async id => {
+      let service = services.getService(id)
       let doc = workspace.getDocument(workspace.bufnr)
-      if (doc) {
-        this.fetchDocumentCodeLenes(doc.textDocument) // tslint:disable-line
+      if (!doc) return
+      if (workspace.match(service.selector, doc.textDocument)) {
+        this.resolveCodeLens.clear()
+        await wait(2000)
+        await this.fetchDocumentCodeLenes()
       }
-      services.on('ready', async id => {
-        let service = services.getService(id)
-        let doc = await workspace.document
-        if (!doc) return
-        if (workspace.match(service.selector, doc.textDocument)) {
-          await wait(100)
-          await this.fetchDocumentCodeLenes(doc.textDocument)
-        }
-      })
+    })
 
-      workspace.onDidChangeTextDocument(async e => {
-        if (this.insertMode) return
-        let doc = workspace.getDocument(e.textDocument.uri)
-        if (doc && doc.bufnr == workspace.bufnr) {
-          await wait(100)
-          await this.fetchDocumentCodeLenes(doc.textDocument)
-        }
-      }, null, this.disposables)
+    nvim.call('mode').then(mode => {
+      this.insertMode = (mode as string).startsWith('i')
+    }, _e => {
+      // noop
+    })
 
-      events.on('CursorMoved', () => {
-        this.resolveCodeLens()
-      }, null, this.disposables)
-
-      events.on('BufEnter', bufnr => {
+    let timer: NodeJS.Timer
+    workspace.onDidChangeTextDocument(async e => {
+      let doc = workspace.getDocument(e.textDocument.uri)
+      if (doc && doc.bufnr == workspace.bufnr) {
+        if (timer) clearTimeout(timer)
         setTimeout(async () => {
-          if (workspace.bufnr == bufnr) {
-            let doc = workspace.getDocument(bufnr)
-            if (doc) await this.fetchDocumentCodeLenes(doc.textDocument)
-          }
+          await this.fetchDocumentCodeLenes()
         }, 100)
-      }, null, this.disposables)
+      }
+    }, null, this.disposables)
 
-      events.on('InsertEnter', () => {
-        this.insertMode = true
-      }, null, this.disposables)
+    events.on(['TextChanged', 'TextChangedI'], async () => {
+      this.resolveCodeLens.clear()
+    }, null, this.disposables)
 
-      events.on('InsertLeave', () => {
-        this.insertMode = false
-        this.resolveCodeLens()
-      }, null, this.disposables)
-    }
+    events.on('CursorMoved', () => {
+      this.resolveCodeLens()
+    }, null, this.disposables)
+
+    events.on('BufEnter', bufnr => {
+      setTimeout(async () => {
+        if (workspace.bufnr == bufnr) {
+          await this.fetchDocumentCodeLenes()
+        }
+      }, 100)
+    }, null, this.disposables)
+
+    events.on('InsertEnter', () => {
+      this.insertMode = true
+    }, null, this.disposables)
+
+    events.on('InsertLeave', async () => {
+      this.insertMode = false
+      let { bufnr } = workspace
+      let info = this.codeLensMap.get(bufnr)
+      if (info && info.changedtick != this.changedtick) {
+        this.resolveCodeLens.clear()
+        await wait(50)
+        await this.fetchDocumentCodeLenes()
+      }
+    }, null, this.disposables)
+
     this.resolveCodeLens = debounce(() => {
       this._resolveCodeLenes().catch(e => {
         logger.error(e)
@@ -74,21 +94,30 @@ export default class CodeLensManager {
     }, 200)
   }
 
-  private async fetchDocumentCodeLenes(doc: TextDocument): Promise<void> {
-    let { uri } = doc
+  private async fetchDocumentCodeLenes(retry = 0): Promise<void> {
+    let doc = workspace.getDocument(workspace.bufnr)
+    if (!doc) return
+    let { uri, changedtick, bufnr } = doc
     let document = workspace.getDocument(uri)
     if (!this.validDocument(document)) return
+    if (this.fetching.has(bufnr)) return
+    this.fetching.add(bufnr)
     try {
       let codeLenes = await languages.getCodeLens(document.textDocument)
       if (codeLenes && codeLenes.length > 0) {
-        this.codeLensMap.set(document.bufnr, codeLenes)
+        this.codeLensMap.set(document.bufnr, { codeLenes, changedtick })
         if (workspace.bufnr == document.bufnr) {
           this.resolveCodeLens.clear()
           await this._resolveCodeLenes(true)
         }
       }
+      this.fetching.delete(bufnr)
     } catch (e) {
+      this.fetching.delete(bufnr)
       logger.error(e)
+      if (/timeout/.test(e.message) && retry < 5) {
+        this.fetchDocumentCodeLenes(retry + 1) // tslint:disable-line
+      }
     }
   }
 
@@ -117,11 +146,13 @@ export default class CodeLensManager {
   private async _resolveCodeLenes(clear = false): Promise<void> {
     let { nvim } = this
     let { bufnr } = workspace
-    let codeLenes = this.codeLensMap.get(bufnr)
+    let { codeLenes, changedtick } = this.codeLensMap.get(bufnr) || {} as any
+    if (this.insertMode) return
     if (codeLenes && codeLenes.length) {
       // resolve codeLens of current window
       let start = await nvim.call('line', 'w0')
       let end = await nvim.call('line', 'w$')
+      if (changedtick && this.changedtick != changedtick) return
       if (end >= start) {
         codeLenes = codeLenes.filter(o => {
           let lnum = o.range.start.line + 1
@@ -146,7 +177,7 @@ export default class CodeLensManager {
     let { nvim } = this
     let bufnr = await nvim.call('bufnr', '%')
     let line = (await nvim.call('line', '.') as number) - 1
-    let codeLenes = this.codeLensMap.get(bufnr)
+    let { codeLenes } = this.codeLensMap.get(bufnr)
     if (!codeLenes || codeLenes.length == 0) {
       workspace.showMessage('No codeLenes available', 'warning')
       return
@@ -192,7 +223,15 @@ export default class CodeLensManager {
     return true
   }
 
+  private get changedtick(): number {
+    let doc = workspace.getDocument(workspace.bufnr)
+    return doc ? doc.changedtick : 0
+  }
+
   public dispose(): void {
+    if (this.resolveCodeLens) {
+      this.resolveCodeLens.clear()
+    }
     disposeAll(this.disposables)
   }
 }
