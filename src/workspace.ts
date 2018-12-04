@@ -85,9 +85,7 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     this.terminal = new Terminal(this.nvim)
     this.statusLine = new StatusLine(this.nvim)
-    events.on('BufEnter', async bufnr => {
-      this.bufnr = bufnr
-    }, null, this.disposables)
+    events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
@@ -989,6 +987,12 @@ augroup end`
       })
     })
     logger.debug('buffer created', buffer.id)
+  }
+
+  private async onBufEnter(bufnr: number): Promise<void> {
+    this.bufnr = bufnr
+    let doc = this.getDocument(bufnr)
+    if (doc) this.configurations.setFolderConfiguration(doc.uri)
   }
 
   private async onBufWritePost(bufnr: number): Promise<void> {
