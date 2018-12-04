@@ -224,7 +224,7 @@ export class Completion implements Disposable {
     let { increment, option, document } = this
     if (document) await document.patchChange()
     // filtered by remove character
-    if (!document || Math.abs(Date.now() - this.lastPumvisible) < 10) return
+    if (!document || !option || Math.abs(Date.now() - this.lastPumvisible) < 10) return
     if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
     // neovim would trigger TextChangedP after fix of word
     if (document.changedtick - this.changedTick == 1) return
