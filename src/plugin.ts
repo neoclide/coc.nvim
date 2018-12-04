@@ -48,7 +48,7 @@ export default class Plugin extends EventEmitter {
       this.emit('ready')
     } catch (e) {
       this.initialized = false
-      console.error(`Plugin initialized error: ${e.message}`) // tslint:disable-line
+      console.error(`Plugin initialized error: ${e.stack}`) // tslint:disable-line
     }
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
