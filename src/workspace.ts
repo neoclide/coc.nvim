@@ -286,6 +286,9 @@ export class Workspace implements IWorkspace {
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
     let { nvim } = this
     let { documentChanges, changes } = edit
+    if (documentChanges) {
+      documentChanges = this.mergeDocumentChanges(documentChanges)
+    }
     if (!this.validteDocumentChanges(documentChanges)) return false
     if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
@@ -1109,6 +1112,26 @@ augroup end`
       default:
         this.messageLevel = MessageLevel.More
     }
+  }
+
+  private mergeDocumentChanges(changes: (TextDocumentEdit | CreateFile | RenameFile | DeleteFile)[]): any[] {
+    let res: any[] = []
+    let documentEdits: TextDocumentEdit[] = []
+    for (let change of changes) {
+      if (TextDocumentEdit.is(change)) {
+        let { edits, textDocument } = change
+        let documentEdit = documentEdits.find(o => o.textDocument.uri == textDocument.uri && o.textDocument.version === textDocument.version)
+        if (documentEdit) {
+          documentEdit.edits.push(...edits)
+        } else {
+          documentEdits.push(change)
+        }
+      } else {
+        res.push(change)
+      }
+    }
+    res.push(...documentEdits)
+    return res
   }
 }
 
