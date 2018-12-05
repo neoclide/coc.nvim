@@ -844,15 +844,15 @@ augroup end`
         let { textDocument } = change
         let { uri, version } = textDocument
         let doc = this.getDocument(uri)
-        if (!doc && version) {
+        if (version && !doc) {
           this.showMessage(`${uri} not opened.`, 'error')
           return false
         }
-        if (doc && doc.version != version) {
+        if (version && doc.version != version) {
           this.showMessage(`${uri} changed before apply edit`, 'error')
           return false
         }
-        if (version == null) {
+        if (!version && !doc) {
           if (!uri.startsWith('file')) {
             this.showMessage(`Can't apply edits to ${uri}.`, 'error')
             return false
