@@ -440,24 +440,22 @@ export class Workspace implements IWorkspace {
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
     if (this._blocking) return
-    let level = this.messageLevel
-    switch (level) {
-      case MessageLevel.Error: {
-        if (identify === 'more' || identify === 'warning') return
+    let { messageLevel } = this
+    let level = MessageLevel.Error
+    let method = echoErr
+    switch (identify) {
+      case 'more':
+        level = MessageLevel.More
+        method = echoMessage
         break
-      }
-      case MessageLevel.Warning: {
-        if (identify === 'more') return
+      case 'warning':
+        level = MessageLevel.Warning
+        method = echoWarning
         break
-      }
     }
-    if (identify == 'error') {
-      return echoErr(this.nvim, msg)
+    if (level >= messageLevel) {
+      method(this.nvim, msg)
     }
-    if (identify == 'warning') {
-      return echoWarning(this.nvim, msg)
-    }
-    return echoMessage(this.nvim, msg)
   }
 
   public get document(): Promise<Document> {

@@ -3130,7 +3130,7 @@ export abstract class BaseLanguageClient {
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
       outputChannelName: clientOptions.outputChannelName || this._id,
       revealOutputChannelOn:
-        clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Error,
+        clientOptions.revealOutputChannelOn || RevealOutputChannelOn.Never,
       stdioEncoding: clientOptions.stdioEncoding || 'utf8',
       initializationOptions: clientOptions.initializationOptions,
       initializationFailedHandler: clientOptions.initializationFailedHandler,
@@ -3410,11 +3410,17 @@ export abstract class BaseLanguageClient {
         break
     }
     this.outputChannel.appendLine(`[${type}  - ${(new Date().toLocaleTimeString())}] ${message}`)
+    let dataString: string
     if (data) {
-      this.outputChannel.appendLine(this.data2String(data))
+      dataString = this.data2String(data)
+      this.outputChannel.appendLine(dataString)
     }
     if (this._clientOptions.revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
+    }
+    if (type == 'Error') {
+      message = dataString ? message + '\n' + dataString : message
+      workspace.showMessage(`Error output from ${this.id}: ${message}`, 'error')
     }
   }
 
