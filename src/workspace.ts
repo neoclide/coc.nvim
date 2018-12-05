@@ -6,7 +6,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
@@ -14,13 +14,13 @@ import events from './events'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
-import StatusLine from './model/status'
 import Resolver from './model/resolver'
+import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationTarget, RenameEvent } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
@@ -54,7 +54,6 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
-  private lastRename: RenameInfo
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -261,12 +260,6 @@ export class Workspace implements IWorkspace {
       !!ignoreChange,
       !!ignoreDelete
     )
-    watcher.onDidRename(event => {
-      this.lastRename = {
-        oldUri: event.oldUri.toString(),
-        newUri: event.newUri.toString()
-      }
-    }, null, this.disposables)
     return watcher
   }
 
@@ -301,9 +294,8 @@ export class Workspace implements IWorkspace {
     let { documentChanges, changes } = edit
     if (documentChanges) {
       documentChanges = this.mergeDocumentChanges(documentChanges)
+      if (!this.validteDocumentChanges(documentChanges)) return false
     }
-    if (!this.validteDocumentChanges(documentChanges)) return false
-    if (!this.validateChanges(changes)) return false
     let curpos = await nvim.call('getcurpos')
     let filetype = await nvim.buffer.getOption('filetype') as string
     let encoding = await this.getFileEncoding()
@@ -838,7 +830,9 @@ augroup end`
     let res: string[] = []
     if (changes) {
       for (let uri of Object.keys(changes)) {
-        if (uri.startsWith('file') && !this.getDocument(uri)) {
+        if (uri.startsWith('file')
+          && fs.existsSync(Uri.parse(uri).fsPath)
+          && !this.getDocument(uri)) {
           res.push(uri)
         }
       }
@@ -888,18 +882,6 @@ augroup end`
           this.showMessage(`Chagne of scheme ${change.uri} not supported`, 'error')
           return false
         }
-      }
-    }
-    return true
-  }
-
-  private validateChanges(changes: { [uri: string]: TextEdit[] }): boolean {
-    if (!changes) return true
-    for (let uri of Object.keys(changes)) {
-      let scheme = Uri.parse(uri).scheme
-      if (!isSupportedScheme(scheme)) {
-        this.showMessage(`Schema of ${uri} not supported.`, 'error')
-        return false
       }
     }
     return true

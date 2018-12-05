@@ -129,40 +129,14 @@ describe('workspace applyEdits', () => {
     expect(content).toBe('foobar')
   })
 
-  it('should not apply edits when file not exists', async () => {
-    let filepath = '/tmp/abcedf'
+  it('should apply edits when file not exists', async () => {
+    let filepath = '/tmp/not_exists'
     let uri = URI.file(filepath).toString()
     let changes = {
       [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
     }
     let res = await workspace.applyEdit({ changes })
-    expect(res).toBe(false)
-  })
-
-  it('should return false for invalid documentChanges', async () => {
-    let uri = URI.file('/tmp/not_exists').toString()
-    let versioned = VersionedTextDocumentIdentifier.create(uri, 10)
-    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
-    let change = TextDocumentEdit.create(versioned, [edit])
-    let workspaceEdit: WorkspaceEdit = {
-      documentChanges: [change]
-    }
-    let res = await workspace.applyEdit(workspaceEdit)
-    expect(res).toBe(false)
-  })
-
-  it('should return false for invalid changes schemas', async () => {
-    let uri = URI.parse('http://foo').toString()
-    let changes = {
-      [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
-    }
-    let res = await workspace.applyEdit({ changes })
-    expect(res).toBe(false)
-    let versioned = VersionedTextDocumentIdentifier.create('test://', null)
-    let edit = TextEdit.insert(Position.create(0, 0), 'bar')
-    let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
-    res = await workspace.applyEdit({ documentChanges })
-    expect(res).toBe(false)
+    expect(res).toBe(true)
   })
 
   it('should return false for change to file not exists', async () => {
