@@ -3,6 +3,7 @@ import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, 
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { LanguageClient } from './language-client'
+import Uri from 'vscode-uri'
 import log4js from 'log4js'
 import { TextDocumentContentProvider } from './provider'
 import Configurations from './configuration'
@@ -371,6 +372,11 @@ export interface ConfigurationInspect<T> {
   defaultValue?: T
   globalValue?: T
   workspaceValue?: T
+}
+
+export interface RenameEvent {
+  oldUri: Uri
+  newUri: Uri
 }
 
 export interface TerminalResult {

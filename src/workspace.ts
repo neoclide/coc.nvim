@@ -18,7 +18,7 @@ import StatusLine from './model/status'
 import Resolver from './model/resolver'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationTarget } from './types'
+import { ConfigurationChangeEvent, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationTarget, RenameEvent } from './types'
 import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, isSupportedScheme, runCommand, wait } from './util/index'
 import { score } from './util/match'
@@ -28,6 +28,11 @@ import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
+
+interface RenameInfo {
+  oldUri: string
+  newUri: string
+}
 
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
@@ -49,6 +54,7 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
+  private lastRename: RenameInfo
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -248,13 +254,20 @@ export class Workspace implements IWorkspace {
     const preferences = this.getConfiguration('coc.preferences')
     const watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', ''))
     let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root) : Promise.resolve(null)
-    return new FileSystemWatcher(
+    let watcher = new FileSystemWatcher(
       promise,
       globPattern,
       !!ignoreCreate,
       !!ignoreChange,
       !!ignoreDelete
     )
+    watcher.onDidRename(event => {
+      this.lastRename = {
+        oldUri: event.oldUri.toString(),
+        newUri: event.newUri.toString()
+      }
+    }, null, this.disposables)
+    return watcher
   }
 
   public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
@@ -310,10 +323,13 @@ export class Workspace implements IWorkspace {
           await document.applyEdits(nvim, edits)
         } else {
           let filepath = Uri.parse(uri).fsPath
-          let content = fs.readFileSync(filepath, encoding)
-          doc = TextDocument.create(uri, filetype, 0, content)
-          let res = TextDocument.applyEdits(doc, edits)
-          await writeFile(filepath, res)
+          let stat = await statAsync(filepath)
+          if (stat && stat.isFile()) {
+            let content = fs.readFileSync(filepath, encoding)
+            doc = TextDocument.create(uri, filetype, 0, content)
+            let res = TextDocument.applyEdits(doc, edits)
+            await writeFile(filepath, res)
+          }
         }
       }
     }
@@ -883,11 +899,6 @@ augroup end`
       let scheme = Uri.parse(uri).scheme
       if (!isSupportedScheme(scheme)) {
         this.showMessage(`Schema of ${uri} not supported.`, 'error')
-        return false
-      }
-      let filepath = Uri.parse(uri).fsPath
-      if (!this.getDocument(uri) && !fs.existsSync(filepath)) {
-        this.showMessage(`File ${filepath} not exists`, 'error')
         return false
       }
     }

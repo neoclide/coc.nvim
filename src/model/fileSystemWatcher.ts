@@ -2,12 +2,8 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Watchman, { FileChange } from '../watchman'
 import path = require('path')
+import { RenameEvent } from '../types'
 const logger = require('../util/logger')('filesystem-watcher')
-
-export interface RenameEvent {
-  oldUri: Uri
-  newUri: Uri
-}
 
 export default class FileSystemWatcher implements Disposable {
 
