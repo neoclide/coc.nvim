@@ -589,8 +589,8 @@ export default class Handler {
           let active = signature.parameters[activeParameter]
           if (active) {
             let ms = after.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-            if (ms) {
-              let idx = ms.index
+            let idx = ms ? ms.index : after.indexOf(active.label)
+            if (idx !== -1) {
               parts.push({ text: after.slice(0, idx), type: 'Normal' })
               parts.push({ text: after.slice(idx, idx + active.label.length), type: 'MoreMsg' })
               parts.push({ text: after.slice(idx + active.label.length), type: 'Normal' })

@@ -53,7 +53,7 @@ function! nvim#rpc#get_command() abort
     return 'vim-node-rpc'
   endif
   if executable('npm')
-    let root = trim(system('npm root -g'))
+    let root = trim(system('npm --loglevel silent root -g'))
     let file = root . '/vim-node-rpc/lib/index.js'
     if filereadable(file)
       let command = ['node', file]
@@ -147,9 +147,12 @@ function! nvim#rpc#check_client(clientId)
   return index(s:clientIds, a:clientId) >= 0
 endfunction
 
-function! nvim#rpc#install_node_rpc() abort
-  let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
-  if res !=? 'y' | return 0 | endif
+function! nvim#rpc#install_node_rpc(...) abort
+  let prompt = get(a:, 1, 1)
+  if prompt
+    let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
+    if res !=? 'y' | return 0 | endif
+  endif
   let cmd = ''
   let idx = inputlist(['Select package manager:', '1. npm', '2. yarn'])
   if idx <= 0 | return 0 | endif

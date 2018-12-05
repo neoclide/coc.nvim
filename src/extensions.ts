@@ -37,6 +37,7 @@ export class Extensions {
   private disposables: Disposable[] = []
   private list: ExtensionItem[] = []
   private root: string
+  private interval: string
   private db: JsonDB
   public isEmpty = false
 
@@ -49,7 +50,7 @@ export class Extensions {
 
   public async init(nvim: Neovim): Promise<void> {
     let root = this.root = await nvim.call('coc#util#extension_root')
-    let db = this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
+    this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) return
     Promise.all(stats.map(state => {
@@ -60,33 +61,47 @@ export class Extensions {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
     })) // tslint:disable-line
-    let now = new Date()
     let config = workspace.getConfiguration('coc.preferences')
-    let interval = config.get<string>('extensionUpdateCheck', 'daily')
+    let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
     if (interval == 'never') return
-    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
     this.onDidActiveExtension(async extension => {
       let { id, packageJSON } = extension
       if (!this.isGlobalExtension(id) || this.isExoticExtension(id)) return
-      let key = `/extension/${id}/ts`
-      let ts = (db as any).exists(key) ? db.getData(key) : null
-      if (!ts || Number(ts) < day.getTime()) {
-        db.push(key, Date.now())
-        try {
-          let res = await workspace.runCommand(`yarn info ${id} version --json`)
-          let version = JSON.parse(res).data
-          if (semver.gt(version, packageJSON.version)) {
-            let res = await workspace.showPrompt(`a new version: ${version} of ${id} available, update?`)
-            if (res) {
-              await workspace.nvim.command(`CocInstall ${id}`)
-            }
-          }
-        } catch (e) {
-          logger.error(e.stack)
-          // noop
-        }
-      }
+      let update = await this.checkUpdate(id, packageJSON.version)
+      if (update) await workspace.nvim.command(`CocInstall ${id}`)
     }, null, this.disposables)
+    if (workspace.isVim) {
+      let filepath = await workspace.resolveModule('vim-node-rpc')
+      if (filepath) {
+        let jsonFile = path.join(filepath, 'package.json')
+        let obj = loadJson(jsonFile)
+        let update = await this.checkUpdate('vim-node-rpc', obj.version)
+        if (update) nvim.call('nvim#rpc#install_node_rpc', [0], true)
+      }
+    }
+  }
+
+  public async checkUpdate(moduleName: string, oldVersion: string): Promise<boolean> {
+    let now = new Date()
+    let { interval, db } = this
+    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
+    let key = `/extension/${moduleName}/ts`
+    let ts = (db as any).exists(key) ? db.getData(key) : null
+    if (!ts || Number(ts) < day.getTime()) {
+      db.push(key, Date.now())
+      try {
+        let res = await workspace.runCommand(`yarn info ${moduleName} version --json`)
+        let version = JSON.parse(res).data
+        if (semver.gt(version, oldVersion)) {
+          let res = await workspace.showPrompt(`a new version: ${version} of ${moduleName} available, update?`)
+          if (res) return true
+        }
+      } catch (e) {
+        logger.error(e.stack)
+        // noop
+      }
+    }
+    return false
   }
 
   public get all(): Extension<API>[] {
