@@ -24,7 +24,7 @@
         "rootPatterns": {
           "type": "array",
           "default": [],
-          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "description": "Root patterns used for reoslve rootPath from current file, default to g:rooter_patterns variable.",
           "items": {
             "type": "string"
           }

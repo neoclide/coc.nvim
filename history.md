@@ -1,3 +1,26 @@
+# 2018-12-05
+
+- Add `CocJumpPlaceholder` autocmd.
+- Add `rootPatterns` to `languageserver` config.
+- Add setting: `coc.preferences.hoverTarget`, support use echo.
+- Add setting `coc.preferences.diagnostic.displayByAle` for use ale to display errors.
+- Add setting `coc.preferences.extensionUpdateCheck` for control update check of
+  extentions.
+- Add `coc#config` for set configuration in vim.
+- Fix rootPath not resolved on initialize.
+- Fix possible wrong `tabSize` by use `shiftwidth` option.
+- Fix trigger of `documentColors` request.
+- Fix `vim-node-rpc` service not work on windows vim.
+- Fix `codeLens` not works.
+- Fix highlight of signatureHelp.
+- Fix watchman watching same root multiple times.
+- Fix completion throw undefined error.
+- Fix `open_terminal` not works on vim.
+- Fix possible connection lost by use notification when possible.
+- Fix process not terminated when connection lost.
+- Rework diagnostics with task sequence.
+- Rework configuration with more tests.
+
 # 2018-11-28
 
 - _Break change_ signature help reworked, vim API for echo signature changed.
