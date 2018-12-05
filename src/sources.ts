@@ -1,20 +1,19 @@
 import { attach, Neovim } from '@chemzqm/neovim'
 import cp from 'child_process'
-import { EventEmitter } from 'events'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
 import { Disposable } from 'vscode-jsonrpc'
 import which from 'which'
+import events from './events'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceConfig, SourceType, VimCompleteItem, SourceStat } from './types'
+import { CompleteOption, ISource, SourceConfig, SourceStat, SourceType, VimCompleteItem } from './types'
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
-import events from './events'
 const logger = require('./util/logger')('sources')
 
-export class Sources extends EventEmitter {
+export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
 
@@ -28,7 +27,7 @@ export class Sources extends EventEmitter {
       this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
       this.disposables.push((await import('./source/file')).regist(this.sourceMap))
     } catch (e) {
-      console.error(e.message) // tslint:disable-line
+      console.error('Create source error:' + e.message) // tslint:disable-line
     }
   }
 
@@ -273,7 +272,6 @@ export class Sources extends EventEmitter {
   }
 
   public dispose(): void {
-    this.removeAllListeners()
     disposeAll(this.disposables)
   }
 }

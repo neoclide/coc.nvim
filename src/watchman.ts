@@ -46,6 +46,7 @@ export default class Watchman {
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
+    this.client.setMaxListeners(300)
   }
 
   public checkCapability(): Promise<boolean> {
