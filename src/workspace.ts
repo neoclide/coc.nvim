@@ -15,7 +15,7 @@ import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
 import StatusLine from './model/status'
-import Terminal from './model/terminal'
+import Resolver from './model/resolver'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, ConfigurationTarget } from './types'
@@ -30,10 +30,10 @@ const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
 
 export class Workspace implements IWorkspace {
-  public terminal: Terminal
   public readonly nvim: Neovim
   public readonly version: string
   public bufnr: number
+  private resolver: Resolver = new Resolver()
 
   private messageLevel: MessageLevel
   private willSaveUntilHandler: WillSaveUntilHandler
@@ -83,7 +83,6 @@ export class Workspace implements IWorkspace {
   }
 
   public async init(): Promise<void> {
-    this.terminal = new Terminal(this.nvim)
     this.statusLine = new StatusLine(this.nvim)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -661,7 +660,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async resolveModule(name: string): Promise<string> {
-    return await this.terminal.resolveModule(name)
+    return await this.resolver.resolveModule(name)
   }
 
   public async runCommand(cmd: string, cwd?: string, timeout?: number): Promise<string> {
@@ -670,7 +669,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async runTerminalCommand(cmd: string, cwd = this.cwd, keepfocus = false): Promise<TerminalResult> {
-    return await this.terminal.runCommand(cmd, cwd, keepfocus)
+    return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
@@ -790,7 +789,6 @@ augroup end`
     Watchman.dispose()
     this.buffers.clear()
     this.configurations.dispose()
-    if (this.terminal) this.terminal.removeAllListeners()
     if (this.statusLine) this.statusLine.dispose()
     disposeAll(this.disposables)
   }
