@@ -131,4 +131,3 @@ describe('Colors', () => {
     expect(line).toBe('#000000')
   })
 })
-
