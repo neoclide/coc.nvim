@@ -189,10 +189,11 @@ function! coc#rpc#stop()
 endfunction
 
 function! s:job_running()
-  if has('nvim')
+  if has('nvim') && s:channel_id != 0
     let [code] = jobwait([s:channel_id], 10)
     return code == 1
-  else
+  endif
+  if s:is_vim && !empty(s:job)
     let status = job_status(s:job)
     return status ==# 'run'
   endif
