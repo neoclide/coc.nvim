@@ -9,6 +9,7 @@ import { watchFile, disposeAll } from '../util'
 import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
 import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
+import { objectLiteral } from '../util/is'
 const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -83,6 +84,10 @@ export default class Configurations {
       let val = props[key]
       if (val === undefined) {
         model.removeValue(key)
+      } else if (objectLiteral(val)) {
+        for (let k of Object.keys(val)) {
+          model.setValue(`${key}.${k}`, val[k])
+        }
       } else {
         model.setValue(key, val)
       }

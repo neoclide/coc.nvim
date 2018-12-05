@@ -34,14 +34,14 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     if (this.initialized) return
     this.initialized = true
-    sources.init()
     let { nvim } = this
     try {
-      await workspace.init()
       let val = await nvim.getVar('coc_user_config') as { [key: string]: any }
       if (val && Object.keys(val).length) {
         workspace.configurations.updateUserConfig(val)
       }
+      await workspace.init()
+      sources.init()
       completion.init(nvim)
       services.init()
       this.handler = new Handler(nvim)
