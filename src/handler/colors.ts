@@ -8,7 +8,7 @@ import { equals } from '../util/object'
 import workspace from '../workspace'
 import services from '../services'
 
-const logger = require('./util/logger')('colors')
+const logger = require('../util/logger')('colors')
 
 export interface ColorRanges {
   color: Color

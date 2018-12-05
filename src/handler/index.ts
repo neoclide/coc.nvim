@@ -14,7 +14,7 @@ import services from '../services'
 import { disposeAll, wait } from '../util'
 import { isWord } from '../util/string'
 import workspace from '../workspace'
-const logger = require('./util/logger')('Handler')
+const logger = require('../util/logger')('Handler')
 
 interface SymbolInfo {
   filepath?: string

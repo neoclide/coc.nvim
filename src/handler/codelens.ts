@@ -8,7 +8,7 @@ import languages from '../languages'
 import services from '../services'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
-const logger = require('./util/logger')('codelens')
+const logger = require('../util/logger')('codelens')
 const srcId = 1080
 
 export interface CodeLensInfo {
