@@ -1,15 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import events from './events'
+import events from '../events'
 import Increment from './increment'
-import Complete from './model/complete'
-import Document from './model/document'
-import sources from './sources'
-import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from './types'
-import { disposeAll, wait } from './util'
-import { byteSlice, byteLength, isWord } from './util/string'
-import workspace from './workspace'
-const logger = require('./util/logger')('completion')
+import Complete from './complete'
+import Document from '../model/document'
+import sources from '../sources'
+import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, WorkspaceConfiguration } from '../types'
+import { disposeAll, wait } from '../util'
+import { byteSlice, byteLength, isWord } from '../util/string'
+import workspace from '../workspace'
+const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
   character: string

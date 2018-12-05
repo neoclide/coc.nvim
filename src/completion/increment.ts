@@ -1,9 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompleteOption } from './types'
-import workspace from './workspace'
+import { CompleteOption } from '../types'
+import workspace from '../workspace'
 import Emitter = require('events')
-const logger = require('./util/logger')('increment')
+const logger = require('../util/logger')('increment')
 
 export default class Increment extends Emitter {
   private disposables: Disposable[] = []

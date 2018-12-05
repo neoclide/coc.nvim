@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Color, ColorInformation, Disposable, Range } from 'vscode-languageserver-protocol'
-import events from './events'
-import languages from './languages'
-import Document from './model/document'
-import { disposeAll, wait } from './util'
-import { equals } from './util/object'
-import workspace from './workspace'
-import services from './services'
+import events from '../events'
+import languages from '../languages'
+import Document from '../model/document'
+import { disposeAll, wait } from '../util'
+import { equals } from '../util/object'
+import workspace from '../workspace'
+import services from '../services'
 
 const logger = require('./util/logger')('colors')
 

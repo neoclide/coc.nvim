@@ -5,8 +5,8 @@ import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
-import Document from './document'
-import { Chars } from './chars'
+import Document from '../model/document'
+import { Chars } from '../model/chars'
 import { Range } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-complete')
 

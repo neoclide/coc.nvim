@@ -1,7 +1,7 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation } from 'vscode-languageserver-protocol'
-import Colors from '../../colors'
+import Colors from '../../handler/colors'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 

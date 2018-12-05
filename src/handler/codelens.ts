@@ -1,13 +1,13 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { CodeLens, Disposable } from 'vscode-languageserver-protocol'
-import { Document } from '.'
-import commandManager from './commands'
-import events from './events'
-import languages from './languages'
-import services from './services'
-import { disposeAll, wait } from './util'
-import workspace from './workspace'
+import { Document } from '..'
+import commandManager from '../commands'
+import events from '../events'
+import languages from '../languages'
+import services from '../services'
+import { disposeAll, wait } from '../util'
+import workspace from '../workspace'
 const logger = require('./util/logger')('codelens')
 const srcId = 1080
 

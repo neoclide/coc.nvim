@@ -4,17 +4,16 @@ import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, Do
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
 import Colors from './colors'
-import commandManager from './commands'
-import completion from './completion'
-import diagnosticManager from './diagnostic/manager'
-import events from './events'
-import extensions from './extensions'
-import languages from './languages'
-import { TextDocumentContentProvider } from './provider'
-import services from './services'
-import { disposeAll, wait } from './util'
-import { isWord } from './util/string'
-import workspace from './workspace'
+import commandManager from '../commands'
+import diagnosticManager from '../diagnostic/manager'
+import events from '../events'
+import extensions from '../extensions'
+import languages from '../languages'
+import { TextDocumentContentProvider } from '../provider'
+import services from '../services'
+import { disposeAll, wait } from '../util'
+import { isWord } from '../util/string'
+import workspace from '../workspace'
 const logger = require('./util/logger')('Handler')
 
 interface SymbolInfo {
@@ -553,7 +552,8 @@ export default class Handler {
   private async _showSignatureHelp(): Promise<void> {
     let position = await workspace.getCursorPosition()
     let document = await workspace.document
-    if (completion.isActivted) return
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) return
     let part = document.getline(position.line).slice(0, position.character)
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
