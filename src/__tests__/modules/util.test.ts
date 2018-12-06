@@ -1,11 +1,10 @@
 /* tslint:disable:no-console */
-import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
-import { isGitIgnored, resolveRoot, readFileByLine, statAsync } from '../../util/fs'
-import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
-import { mixin } from '../../util/object'
-import { score } from '../../util/match'
-import Uri from 'vscode-uri'
 import path from 'path'
+import Uri from 'vscode-uri'
+import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
+import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { score } from '../../util/match'
+import { mixin } from '../../util/object'
 
 describe('score test', () => {
   test('should match schema', () => {
@@ -60,14 +59,6 @@ describe('fs test', () => {
     let res = await isGitIgnored(path.resolve(__dirname, '../lib/index.js.map'))
     expect(res).toBeTruthy
   })
-
-  test('should read file by line', async () => {
-    let lines = []
-    await readFileByLine(__filename, line => {
-      lines.push(line)
-    })
-    expect(lines.length > 0).toBeTruthy
-  })
 })
 
 describe('object test', () => {
@@ -82,6 +73,6 @@ describe('object test', () => {
 describe('resolveRoot', () => {
   test('resolve root consider root path', () => {
     let res = resolveRoot('/usr', ['.git'])
-    expect(res).toBe('/usr')
+    expect(res).toBeNull()
   })
 })

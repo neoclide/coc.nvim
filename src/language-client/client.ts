@@ -482,8 +482,8 @@ export interface _Middleware {
   didChange?: NextSignature<DidChangeTextDocumentParams, void>
   willSave?: NextSignature<TextDocumentWillSaveEvent, void>
   willSaveWaitUntil?: NextSignature<
-  TextDocumentWillSaveEvent,
-  Thenable<TextEdit[]>
+    TextDocumentWillSaveEvent,
+    Thenable<TextEdit[]>
   >
   didSave?: NextSignature<TextDocument, void>
   didClose?: NextSignature<TextDocument, void>
@@ -3572,7 +3572,7 @@ export abstract class BaseLanguageClient {
         let doc = workspace.getDocument(workspace.bufnr)
         if (doc && doc.schema == 'file') {
           dir = path.dirname(Uri.parse(doc.uri).fsPath)
-          let resolved = resolveRoot(dir, rootPatterns, os.homedir())
+          let resolved = resolveRoot(dir, rootPatterns)
           if (resolved) rootPath = resolved
         }
       }
@@ -3903,11 +3903,11 @@ export abstract class BaseLanguageClient {
   private readonly _method2Message: Map<string, RPCMessageType> = new Map<
     string,
     RPCMessageType
-    >()
+  >()
   private readonly _dynamicFeatures: Map<string, DynamicFeature<any>> = new Map<
     string,
     DynamicFeature<any>
-    >()
+  >()
 
   public registerFeatures(
     features: (StaticFeature | DynamicFeature<any>)[]
@@ -4045,7 +4045,7 @@ export abstract class BaseLanguageClient {
     let openTextDocuments: Map<string, TextDocument> = new Map<
       string,
       TextDocument
-      >()
+    >()
     workspace.textDocuments.forEach(document =>
       openTextDocuments.set(document.uri.toString(), document)
     )

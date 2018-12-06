@@ -6,6 +6,7 @@ import path from 'path'
 import pify from 'pify'
 import readline from 'readline'
 import mkdirp from 'mkdirp'
+import findUp from 'find-up'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -54,30 +55,11 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function getParentDirs(fullpath: string): string[] {
-  let obj = path.parse(fullpath)
-  if (!obj || !obj.root) return []
-  let res = []
-  let p = path.dirname(fullpath)
-  while (p && p !== obj.root) {
-    res.push(p)
-    p = path.dirname(p)
-  }
-  return res
-}
-
-export function resolveRoot(cwd: string, subs: string[], home?: string): string | null {
-  home = home || os.homedir()
+export function resolveRoot(cwd: string, subs: string[]): string | null {
+  let home = os.homedir()
   let { root } = path.parse(cwd)
-  let paths = getParentDirs(cwd)
-  for (let p of paths) {
-    if (p == home || p == root) return null
-    for (let sub of subs) {
-      let d = path.join(p, sub)
-      if (fs.existsSync(d)) return path.dirname(d)
-    }
-  }
-  if (cwd !== home && cwd !== root) return cwd
+  let p = findUp.sync(subs, { cwd })
+  if (p && p !== home && p !== root) return path.dirname(p)
   return null
 }
 
@@ -90,25 +72,21 @@ export function readFile(fullpath: string, encoding: string): Promise<string> {
   })
 }
 
-export function readFileByLine(fullpath: string, onLine: OnReadLine, limit = 50000): Promise<void> {
+export function readFileLine(fullpath: string, count: number): Promise<string> {
   const rl = readline.createInterface({
-    input: fs.createReadStream(fullpath),
+    input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
     crlfDelay: Infinity,
-    terminal: false,
-    highWaterMark: 1024 * 1024
+    terminal: false
   } as any)
   let n = 0
-  rl.on('line', line => {
-    n = n + 1
-    if (n === limit) {
-      rl.close()
-    } else {
-      onLine(line)
-    }
-  })
   return new Promise((resolve, reject) => {
-    rl.on('close', () => {
-      resolve()
+    rl.on('line', line => {
+      if (n == count) {
+        rl.close()
+        resolve(line)
+        return
+      }
+      n = n + 1
     })
     rl.on('error', reject)
   })

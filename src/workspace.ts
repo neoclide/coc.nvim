@@ -19,7 +19,7 @@ import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
-import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, readFileLine } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
@@ -400,7 +400,7 @@ export class Workspace implements IWorkspace {
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''
-    let content = await this.readFile(uri)
+    let content = await readFileLine(Uri.parse(uri).fsPath, line)
     let lines = content.split('\n', line + 1)
     return lines[line] || ''
   }
@@ -1080,7 +1080,7 @@ augroup end`
     if (dir != os.homedir()) {
       let roots = await this.nvim.getVar('rooter_patterns') as string[]
       roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
-      return resolveRoot(dir, roots, os.homedir()) || this.cwd
+      return resolveRoot(dir, roots) || this.cwd
     }
   }
 
