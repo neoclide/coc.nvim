@@ -9,7 +9,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strictPropertyInitialization": false,
-    "target": "es2015",
+    "target": "es2017",
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
@@ -22,9 +22,6 @@
     "strictFunctionTypes": false,
     "plugins": []
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-  ]
+  "include": ["src"],
+  "exclude": []
 }

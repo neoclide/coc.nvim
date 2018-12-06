@@ -67,7 +67,7 @@
     "@types/jest": "^23.3.10",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
-    "@types/node": "^10.12.10",
+    "@types/node": "^10.12.12",
     "@types/node-json-db": "^0.0.1",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
@@ -77,10 +77,10 @@
     "rimraf": "^2.6.2",
     "ts-jest": "^23.10.5",
     "tslint": "^5.11.0",
-    "typescript": "^3.1.6"
+    "typescript": "^3.2.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.27",
+    "@chemzqm/neovim": "4.3.28",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
