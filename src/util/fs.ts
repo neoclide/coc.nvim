@@ -70,7 +70,6 @@ export function resolveRoot(cwd: string, subs: string[], home?: string): string 
   home = home || os.homedir()
   let { root } = path.parse(cwd)
   let paths = getParentDirs(cwd)
-  paths.unshift(cwd)
   for (let p of paths) {
     if (p == home || p == root) return null
     for (let sub of subs) {
@@ -78,7 +77,8 @@ export function resolveRoot(cwd: string, subs: string[], home?: string): string 
       if (fs.existsSync(d)) return path.dirname(d)
     }
   }
-  return root
+  if (cwd !== home && cwd !== root) return cwd
+  return null
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {

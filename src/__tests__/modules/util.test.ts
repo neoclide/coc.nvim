@@ -1,6 +1,6 @@
 /* tslint:disable:no-console */
 import { TextDocument, TextEdit } from 'vscode-languageserver-protocol'
-import { isGitIgnored, readFileByLine, statAsync } from '../../util/fs'
+import { isGitIgnored, resolveRoot, readFileByLine, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { mixin } from '../../util/object'
 import { score } from '../../util/match'
@@ -76,5 +76,12 @@ describe('object test', () => {
     expect(res.a.b).toBe(1)
     expect(res.a.c).toBe(2)
     expect(res.d).toBe(3)
+  })
+})
+
+describe('resolveRoot', () => {
+  test('resolve root consider root path', () => {
+    let res = resolveRoot('/usr', ['.git'])
+    expect(res).toBe('/usr')
   })
 })
