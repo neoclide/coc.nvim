@@ -182,13 +182,12 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (a.strictMatch != b.strictMatch) return b.strictMatch - a.strictMatch
-      if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-      if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+      let strict = a.strictMatch && b.strictMatch
+      if (!strict && a.strictMatch != b.strictMatch) return b.strictMatch - a.strictMatch
+      if (strict && a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+      if (strict && a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+      if (strict && a.priority != b.priority) return b.priority - a.priority
       if (sa && sb) return sa < sb ? -1 : 1
-      if (a.strictMatch && b.strictMatch && a.priority != b.priority) {
-        return b.priority - a.priority
-      }
       return b.score - a.score
     })
     let items = arr.slice(0, this.config.maxItemCount)
