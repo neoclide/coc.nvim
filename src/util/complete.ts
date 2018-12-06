@@ -23,11 +23,18 @@ export function getWord(item: CompletionItem, opt: CompleteOption): string {
     if (range && range.start.line == range.end.line) {
       let { line, col, colnr } = opt
       let character = characterIndex(line, col)
-      let start = line.slice(range.start.character, character)
-      if (newText.startsWith(start)) {
+      if (range.start.character > character) {
+        let before = line.slice(character - range.start.character)
         textEdit = Object.assign({}, textEdit, {
-          newText: newText.slice(start.length)
+          newText: before + textEdit.newText
         })
+      } else {
+        let start = line.slice(range.start.character, character)
+        if (start.length && newText.startsWith(start)) {
+          textEdit = Object.assign({}, textEdit, {
+            newText: newText.slice(start.length)
+          })
+        }
       }
       character = characterIndex(line, colnr - 1)
       if (range.end.character > character) {
