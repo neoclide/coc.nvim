@@ -3,11 +3,9 @@
   "rules": {
     "no-invalid-template-strings": false,
     "no-unused-expression": false,
-    "no-console":true
+    "no-console": true
   },
   "linterOptions": {
-    "exclude": [
-      "**/catalog.json"
-    ]
+    "exclude": []
   }
 }
