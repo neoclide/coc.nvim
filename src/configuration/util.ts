@@ -41,12 +41,12 @@ export function parseConfiguration(content: string): [ParseError[], any] {
     }
   }
 
-  function convert(obj: any): any {
+  function convert(obj: any, split = false): any {
     if (!objectLiteral(obj)) return obj
     if (emptyObject(obj)) return {}
     let dest = {}
     for (let key of Object.keys(obj)) {
-      if (/^[\w\.]+$/.test(key) && key.indexOf('.') !== -1) {
+      if (split && key.indexOf('.') !== -1) {
         let parts = key.split('.')
         let first = parts.shift()
         addProperty(dest, first, parts, obj[key])
@@ -56,7 +56,7 @@ export function parseConfiguration(content: string): [ParseError[], any] {
     }
     return dest
   }
-  return [errors, convert(data)]
+  return [errors, convert(data, true)]
 }
 
 export function convertErrors(uri: string, content: string, errors: ParseError[]): ErrorItem[] {

@@ -220,3 +220,14 @@ describe('Configurations', () => {
     configurations.dispose()
   })
 })
+
+describe('parse configuration', () => {
+  it('should only split top level dot keys', () => {
+    let o = { 'x.y': 'foo' }
+    let [, contents] = parseConfiguration(JSON.stringify(o))
+    expect(contents).toEqual({ x: { y: 'foo' } })
+    let schema = { 'my.schema': { 'foo.bar': 1 } }
+    let [, obj] = parseConfiguration(JSON.stringify(schema))
+    expect(obj).toEqual({ my: { schema: { 'foo.bar': 1 } } })
+  })
+})
