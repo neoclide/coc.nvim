@@ -14,6 +14,7 @@ const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
   if (key) {
+    if (tree && tree.hasOwnProperty(key)) return tree[key]
     const parts = key.split('.')
     let node = tree
     for (let i = 0; node && i < parts.length; i++) {
