@@ -8,7 +8,7 @@ import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, severityLevel } from './util'
+import { getSeverityName, severityLevel, getSeverityType } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -154,6 +154,7 @@ export class DiagnosticManager {
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(document.uri)
+      if (!items) continue
       for (let item of items) {
         let { range } = item
         if (withIn(document.offsetAt(range.start), si, ei)
@@ -216,9 +217,11 @@ export class DiagnosticManager {
     let { level } = this.config
     for (let collection of this.getCollections(uri)) {
       let diagnostics = collection.get(uri)
-      if (diagnostics) {
+      if (diagnostics && diagnostics.length) {
         diagnostics = diagnostics.filter(o => o.severity == null || o.severity <= level)
         res[collection.name] = diagnostics
+      } else {
+        res[collection.name] = []
       }
     }
     return res
@@ -413,7 +416,7 @@ export class DiagnosticManager {
               col: range.start.character + 1,
               end_lnum: range.end.line + 1,
               enc_col: range.end.character + 1,
-              type: o.severity && o.severity != DiagnosticSeverity.Error ? 'W' : 'E',
+              type: getSeverityType(o.severity)
             }
           })
           this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, aleItems], true)

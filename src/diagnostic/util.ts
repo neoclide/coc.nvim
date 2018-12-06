@@ -16,6 +16,21 @@ export function getSeverityName(severity: DiagnosticSeverity): string {
   }
 }
 
+export function getSeverityType(severity: DiagnosticSeverity): string {
+  switch (severity) {
+    case DiagnosticSeverity.Error:
+      return 'E'
+    case DiagnosticSeverity.Warning:
+      return 'W'
+    case DiagnosticSeverity.Information:
+      return 'I'
+    case DiagnosticSeverity.Hint:
+      return 'I'
+    default:
+      return 'Error'
+  }
+}
+
 export function severityLevel(level: string): number {
   switch (level) {
     case 'hint':

@@ -39,7 +39,7 @@ export default class Collection implements DiagnosticCollection {
       return
     }
     let uri = entries
-    this.diagnosticsMap.set(uri, diagnostics)
+    this.diagnosticsMap.set(uri, diagnostics || [])
     this._onDidDiagnosticsChange.fire(uri)
     return
   }
@@ -68,8 +68,7 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public has(uri: string): boolean {
-    let diagnostics = this.diagnosticsMap.get(uri)
-    return diagnostics && diagnostics.length > 0
+    return this.diagnosticsMap.has(uri)
   }
 
   public dispose(): void {

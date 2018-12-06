@@ -52,12 +52,12 @@ export class DiagnosticBuffer {
     if (equals(diagnosticItems, this._diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
     sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
-    sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
-    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
-    sequence.addFunction(this.addSigns.bind(this, diagnostics))
     sequence.addFunction(() => {
       this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
     })
+    sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
+    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
+    sequence.addFunction(this.addSigns.bind(this, diagnostics))
     sequence.start().then(canceled => {
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
@@ -273,7 +273,7 @@ export class DiagnosticBuffer {
         this.nvim.call('setloclist', [winid, [], 'f'], true)
       }
     }
-    await this.nvim.command('silent doautocmd User CocDiagnosticChange')
+    this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }
 
   public hasMatch(match: number): boolean {
