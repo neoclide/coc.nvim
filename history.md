@@ -1,3 +1,14 @@
+# 2018-12-06
+
+- **Break change** `RevealOutputChannelOn` of language client default to
+  `never`.
+- Fix can't install on windows vim.
+- Fix `displayByAle` not clearing diagnostics.
+- Add check for `vim-node-rpc` udpate on vim.
+- Add `Resolver` module.
+- Improve apply `WorkspaceEdit`, support `0` as document version and merge
+  edits for same document.
+
 # 2018-12-05
 
 - Add `CocJumpPlaceholder` autocmd.
