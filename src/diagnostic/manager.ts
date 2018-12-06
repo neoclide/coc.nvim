@@ -3,7 +3,7 @@ import { Diagnostic, Disposable, Range, TextDocument, DiagnosticSeverity } from 
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, DiagnosticItems } from '../types'
+import { DiagnosticItem, DiagnosticItems, ConfigurationChangeEvent } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
@@ -63,8 +63,8 @@ export class DiagnosticManager {
       this.refreshBuffer(doc.uri)
     }, null, this.disposables)
 
-    workspace.onDidChangeConfiguration(() => {
-      this.setConfiguration()
+    workspace.onDidChangeConfiguration(e => {
+      this.setConfiguration(e)
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
@@ -275,6 +275,7 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async echoMessage(truncate = false): Promise<void> {
+    if (!this.enabled) return
     if (truncate && !this.enableMessage) return
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
@@ -329,7 +330,8 @@ export class DiagnosticManager {
     return workspace.nvim
   }
 
-  private setConfiguration(): void {
+  private setConfiguration(event?: ConfigurationChangeEvent): void {
+    if (event && !event.affectsConfiguration('coc.preferences.diagnostic')) return
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this.config = {
@@ -346,6 +348,16 @@ export class DiagnosticManager {
     this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {
       this.enabled = false
+    }
+    if (event) {
+      for (let severity of ['error', 'info', 'warning', 'hint']) {
+        let key = `coc.preferences.diagnostic.${severity}Sign`
+        if (event.affectsConfiguration(key)) {
+          let text = config.get<string>(`${severity}Sign`, '>>')
+          let name = severity[0].toUpperCase() + severity.slice(1)
+          this.nvim.command(`sign define Coc${name}   text=${text}   linehl=Coc${name}Line texthl=Coc${name}Sign`, true)
+        }
+      }
     }
   }
 
