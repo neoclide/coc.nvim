@@ -165,6 +165,8 @@ export class Completion implements Disposable {
     } else {
       items = complete.filterResults(resumeInput)
     }
+    if (!this.isActivted) return
+    let { col } = this.option
     if (!insertMode || !items || items.length === 0) {
       this._completeItems = []
       this.nvim.call('coc#_hide', [], true)
@@ -179,7 +181,7 @@ export class Completion implements Disposable {
       }
     }
     if (!avoidRedraw) {
-      nvim.call('coc#_set_context', [this.option.col, items], true)
+      nvim.call('coc#_set_context', [col, items], true)
       await nvim.call('coc#_do_complete', [])
     }
     this._completeItems = items
