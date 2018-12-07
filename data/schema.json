@@ -466,7 +466,7 @@
     "coc.preferences.codeLens.enable": {
       "type": "boolean",
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
-      "default": true
+      "default": false
     },
     "coc.preferences.codeLens.separator": {
       "type": "string",
