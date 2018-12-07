@@ -3568,10 +3568,9 @@ export abstract class BaseLanguageClient {
       let config = workspace.getConfiguration(this.id)
       let rootPatterns = config.get<string[]>('rootPatterns', [])
       if (rootPatterns && rootPatterns.length) {
-        let dir = workspace.cwd
         let doc = workspace.getDocument(workspace.bufnr)
         if (doc && doc.schema == 'file') {
-          dir = path.dirname(Uri.parse(doc.uri).fsPath)
+          let dir = path.dirname(Uri.parse(doc.uri).fsPath)
           let resolved = resolveRoot(dir, rootPatterns)
           if (resolved) rootPath = resolved
         }

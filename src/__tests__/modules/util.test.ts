@@ -73,6 +73,6 @@ describe('object test', () => {
 describe('resolveRoot', () => {
   test('resolve root consider root path', () => {
     let res = resolveRoot('/usr', ['.git'])
-    expect(res).toBeNull()
+    expect(res).toBe('/usr')
   })
 })

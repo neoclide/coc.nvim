@@ -400,9 +400,7 @@ export class Workspace implements IWorkspace {
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''
-    let content = await readFileLine(Uri.parse(uri).fsPath, line)
-    let lines = content.split('\n', line + 1)
-    return lines[line] || ''
+    return await readFileLine(Uri.parse(uri).fsPath, line)
   }
 
   public async readFile(uri: string): Promise<string> {
@@ -1080,7 +1078,7 @@ augroup end`
     if (dir != os.homedir()) {
       let roots = await this.nvim.getVar('rooter_patterns') as string[]
       roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
-      return resolveRoot(dir, roots) || this.cwd
+      return resolveRoot(dir, roots)
     }
   }
 

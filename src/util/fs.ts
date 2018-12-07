@@ -59,8 +59,8 @@ export function resolveRoot(cwd: string, subs: string[]): string | null {
   let home = os.homedir()
   let { root } = path.parse(cwd)
   let p = findUp.sync(subs, { cwd })
-  if (p && p !== home && p !== root) return path.dirname(p)
-  return null
+  if (p == null || p == home || p == root) return cwd
+  return p
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {
