@@ -179,15 +179,18 @@ export class DiagnosticManager {
     let offset = await workspace.getOffset()
     if (offset == null) return
     let ranges = this.getSortedRanges(document)
+    if (ranges.length == 0) {
+      workspace.showMessage('Empty diagnostics', 'warning')
+      return
+    }
     let { textDocument } = document
     for (let i = ranges.length - 1; i >= 0; i--) {
       if (textDocument.offsetAt(ranges[i].end) < offset) {
-        let { start } = ranges[i]
-        await this.nvim.call('cursor', [start.line + 1, start.character + 1])
-        break
+        await this.jumpTo(ranges[i])
+        return
       }
     }
-    this._echoMessage()
+    await this.jumpTo(ranges[ranges.length - 1])
   }
 
   /**
@@ -201,15 +204,18 @@ export class DiagnosticManager {
     let document = workspace.getDocument(buffer.id)
     let offset = await workspace.getOffset()
     let ranges = this.getSortedRanges(document)
+    if (ranges.length == 0) {
+      workspace.showMessage('Empty diagnostics', 'warning')
+      return
+    }
     let { textDocument } = document
     for (let i = 0; i <= ranges.length - 1; i++) {
       if (textDocument.offsetAt(ranges[i].start) > offset) {
-        let { start } = ranges[i]
-        await this.nvim.call('cursor', [start.line + 1, start.character + 1])
-        break
+        await this.jumpTo(ranges[i])
+        return
       }
     }
-    this._echoMessage()
+    await this.jumpTo(ranges[0])
   }
 
   public getBufferDiagnostic(uri: string): DiagnosticItems {
@@ -436,6 +442,13 @@ export class DiagnosticManager {
       }
     }
     return false
+  }
+
+  private async jumpTo(range: Range): Promise<void> {
+    if (!range) return
+    let { start } = range
+    await this.nvim.call('cursor', [start.line + 1, start.character + 1])
+    this._echoMessage()
   }
 }
 

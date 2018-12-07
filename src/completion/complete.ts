@@ -184,9 +184,9 @@ export default class Complete {
       let sb = b.sortText
       let strict = a.strictMatch && b.strictMatch
       if (!strict && a.strictMatch != b.strictMatch) return b.strictMatch - a.strictMatch
+      if (strict && a.priority != b.priority) return b.priority - a.priority
       if (strict && a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (strict && a.localBonus != b.localBonus) return b.localBonus - a.localBonus
-      if (strict && a.priority != b.priority) return b.priority - a.priority
       if (sa && sb) return sa < sb ? -1 : 1
       return b.score - a.score
     })
