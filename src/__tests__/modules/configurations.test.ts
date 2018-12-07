@@ -89,6 +89,8 @@ describe('Configurations', () => {
   it('should load default configurations', () => {
     let conf = new Configurations()
     expect(conf.defaults.contents.coc).toBeDefined()
+    let c = conf.getConfiguration('languageserver')
+    expect(c).toEqual({})
     conf.dispose()
   })
 

@@ -165,7 +165,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   private createCustomServices(): void {
     let base = 'languageserver'
-    let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base)
+    let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {})
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`

@@ -6,6 +6,7 @@ import { equals } from '../util/object'
 import fs from 'fs'
 import Uri from 'vscode-uri'
 import path from 'path'
+import { connect } from 'net'
 const isPkg = process.hasOwnProperty('pkg')
 
 export type ShowError = (errors: ErrorItem[]) => void
@@ -213,7 +214,10 @@ export function getConfigurationValue<T>(
 export function loadDefaultConfigurations(): IConfigurationModel {
   let root = isPkg ? path.resolve(process.execPath, '../..') : path.resolve(__dirname, '../..')
   let file = path.join(root, 'data/schema.json')
-  if (!fs.existsSync(file)) return { contents: {} }
+  if (!fs.existsSync(file)) {
+    console.error('schema.json not found, reinstall coc.nvim to fix this!')
+    return { contents: {} }
+  }
   let content = fs.readFileSync(file, 'utf8')
   let { properties } = JSON.parse(content)
   let config = {}
