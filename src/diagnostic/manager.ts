@@ -35,10 +35,8 @@ export class DiagnosticManager {
   constructor() {
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(async () => {
-      this.setConfiguration()
-      this.init().catch(err => {
-        logger.error(err)
-      })
+      await this.setConfiguration()
+      await this.init()
       let { mode } = await workspace.nvim.mode
       this.insertMode = mode.startsWith('i')
     })
@@ -63,8 +61,8 @@ export class DiagnosticManager {
       this.refreshBuffer(doc.uri)
     }, null, this.disposables)
 
-    workspace.onDidChangeConfiguration(e => {
-      this.setConfiguration(e)
+    workspace.onDidChangeConfiguration(async e => {
+      await this.setConfiguration(e)
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
@@ -336,7 +334,7 @@ export class DiagnosticManager {
     return workspace.nvim
   }
 
-  private setConfiguration(event?: ConfigurationChangeEvent): void {
+  private async setConfiguration(event?: ConfigurationChangeEvent): Promise<void> {
     if (event && !event.affectsConfiguration('coc.preferences.diagnostic')) return
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
@@ -351,6 +349,8 @@ export class DiagnosticManager {
       infoSign: config.get<string>('infoSign', '>>'),
       hintSign: config.get<string>('hintSign', '>>'),
     }
+    let srcId = await workspace.createNameSpace('coc-diagnostic')
+    if (srcId) this.config.srcId = srcId
     this.enabled = config.get<boolean>('enable', true)
     if (this.config.displayByAle) {
       this.enabled = false

@@ -90,7 +90,6 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     this.statusLine = new StatusLine(this.nvim)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
-    events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
@@ -185,6 +184,11 @@ export class Workspace implements IWorkspace {
 
   public get documents(): Document[] {
     return Array.from(this.buffers.values())
+  }
+
+  public async createNameSpace(name = ''): Promise<number> {
+    if (!this.env.namespaceSupport) return 0
+    return await this.nvim.createNamespace(name)
   }
 
   public get channelNames(): string[] {
@@ -1053,11 +1057,6 @@ augroup end`
   private async getFileEncoding(): Promise<string> {
     let encoding = await this.nvim.getOption('fileencoding') as string
     return encoding ? encoding : 'utf-8'
-  }
-
-  private async onInsertEnter(): Promise<void> {
-    let document = await this.document
-    if (document) await document.clearHighlight()
   }
 
   private async showErrors(errors: ErrorItem[]): Promise<void> {

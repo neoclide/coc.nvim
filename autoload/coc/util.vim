@@ -402,6 +402,7 @@ endfunction
 
 function! coc#util#vim_info()
   return {
+        \ 'namespaceSupport': exists('*nvim_create_namespace') ? v:true : v:false,
         \ 'virtualText': exists('*nvim_buf_set_virtual_text') ? v:true : v:false,
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),

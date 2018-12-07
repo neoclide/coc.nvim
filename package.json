@@ -77,10 +77,10 @@
     "rimraf": "^2.6.2",
     "ts-jest": "^23.10.5",
     "tslint": "^5.11.0",
-    "typescript": "^3.2.1"
+    "typescript": "^3.2.2"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.28",
+    "@chemzqm/neovim": "4.3.32",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",

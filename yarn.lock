@@ -16,10 +16,10 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@chemzqm/neovim@4.3.28":
-  version "4.3.28"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.28.tgz#e5b76667be736f1e15a3a293ded5ddf6c48f1419"
-  integrity sha512-35FJ2v4OPjUVN1NPbGE/JrxWr8o2PdgDUBxTQMvNqkF7XIlzWmH9qMocPVFOYnxAc7eIoJIxLk2VdRAjZJ8EsQ==
+"@chemzqm/neovim@4.3.32":
+  version "4.3.32"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.32.tgz#cb5e82cab3e2395ca2c6291ef5823601d93d6e19"
+  integrity sha512-hyZUYVlqWkowG6gOkxifjn3dfQJ2LHRuSYCYclq3OAcZsvrmvsz796Q0NaBsdmsEs/x2X/1MjY9sMDdbHBjYng==
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -3224,10 +3224,10 @@ type-check@~0.3.2:
   dependencies:
     prelude-ls "~1.1.2"
 
-typescript@^3.2.1:
-  version "3.2.1"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.2.1.tgz#0b7a04b8cf3868188de914d9568bd030f0c56192"
-  integrity sha512-jw7P2z/h6aPT4AENXDGjcfHTu5CSqzsbZc6YlUIebTyBAq8XaKp78x7VcSh30xwSCcsu5irZkYZUSFP1MrAMbg==
+typescript@^3.2.2:
+  version "3.2.2"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.2.2.tgz#fe8101c46aa123f8353523ebdcf5730c2ae493e5"
+  integrity sha512-VCj5UiSyHBjwfYacmDuc/NOk4QQixbE+Wn7MFJuS0nRuPQbof132Pw4u53dm264O8LPc2MVsc7RJNml5szurkg==
 
 uglify-js@^3.1.4:
   version "3.4.9"

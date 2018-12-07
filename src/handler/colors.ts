@@ -134,7 +134,7 @@ export default class Colors {
     if (!ids || ids.length == 0) return
     let doc = this.getDocument(bufnr)
     if (!doc) return
-    await doc.clearMatchIds(ids)
+    doc.clearMatchIds(ids)
     this.matchIds.set(bufnr, [])
   }
 
@@ -144,7 +144,9 @@ export default class Colors {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${this.toHexString(color)}`
     let matchIds: number[] = this.matchIds.get(bufnr) || []
+    let id = await workspace.createNameSpace('coc-colors')
     let ids = await doc.highlightRanges(ranges, hlGroup)
+    if (id) ids = [id]
     matchIds.push(...ids)
     if (!this.matchIds.has(bufnr)) {
       this.matchIds.set(bufnr, matchIds)

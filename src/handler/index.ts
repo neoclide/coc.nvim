@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument } from 'vscode-languageserver-protocol'
+import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
 import Colors from './colors'
@@ -40,6 +40,9 @@ interface SignaturePart {
 
 export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
+  /*bufnr and srcId list*/
+  private highlightsMap: Map<number, number[]> = new Map()
+  private highlightNamespace = 0
   private colors: Colors
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
@@ -52,6 +55,9 @@ export default class Handler {
         logger.error(e.stack)
       })
     }, 100)
+    workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
+      this.highlightNamespace = id
+    })
 
     let timer: NodeJS.Timer
     events.on('InsertCharPre', async ch => {
@@ -86,10 +92,13 @@ export default class Handler {
       if (/^\s*$/.test(line)) return
       await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
-    events.on('BufWinLeave', async bufnr => {
-      let document = workspace.getDocument(bufnr)
-      if (document) await document.clearHighlight()
+    events.on('BufWinLeave', bufnr => {
+      this.clearHighlight(bufnr)
     }, null, this.disposables)
+    events.on('InsertEnter', () => {
+      this.clearHighlight(workspace.bufnr)
+    }, null, this.disposables)
+
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {
@@ -423,7 +432,7 @@ export default class Handler {
     let line = document.getline(position.line)
     let ch = line[position.character]
     if (!ch || !document.isWord(ch)) {
-      await document.clearHighlight()
+      this.clearHighlight(document.bufnr)
       return
     }
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
@@ -431,11 +440,27 @@ export default class Handler {
     if (position.line != newPosition.line || position.character != newPosition.character) {
       return
     }
-    if (!highlights || highlights.length == 0) {
-      await document.clearHighlight()
-      return
+    let ids = this.highlightsMap.get(document.bufnr)
+    if (ids && ids.length) {
+      this.clearHighlight(document.bufnr)
     }
-    await document.setHighlights(highlights)
+    if (highlights && highlights.length) {
+      let groups: { [index: string]: Range[] } = {}
+      for (let hl of highlights) {
+        let hlGroup = hl.kind == DocumentHighlightKind.Text
+          ? 'CocHighlightText'
+          : hl.kind == DocumentHighlightKind.Read
+            ? 'CocHighlightRead'
+            : 'CocHighlightWrite'
+        groups[hlGroup] = groups[hlGroup] || []
+        groups[hlGroup].push(hl.range)
+      }
+      for (let hlGroup of Object.keys(groups)) {
+        let ranges = groups[hlGroup]
+        let ids = await document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
+        this.highlightsMap.set(document.bufnr, ids)
+      }
+    }
   }
 
   public async links(): Promise<DocumentLink[]> {
@@ -686,6 +711,14 @@ export default class Handler {
     }
   }
 
+  private clearHighlight(bufnr: number): void {
+    let doc = workspace.getDocument(bufnr)
+    let ids = this.highlightsMap.get(bufnr)
+    if (ids && ids.length) {
+      this.highlightsMap.delete(bufnr)
+      if (doc) doc.clearMatchIds(ids)
+    }
+  }
 }
 
 function getSymbolKind(kind: SymbolKind): string {

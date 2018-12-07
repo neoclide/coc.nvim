@@ -156,7 +156,11 @@ export class DiagnosticBuffer {
       await nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)])
     } else {
       let buffer = nvim.createBuffer(bufnr)
-      buffer.clearHighlight({ srcId: this.config.srcId })
+      if (workspace.env.namespaceSupport) {
+        buffer.clearNamespace(this.config.srcId)
+      } else {
+        buffer.clearHighlight({ srcId: this.config.srcId })
+      }
     }
     this.matchIds.clear()
   }

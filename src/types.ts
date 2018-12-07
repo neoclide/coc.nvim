@@ -73,6 +73,7 @@ export interface Env {
   readonly version: string
   readonly easymotion: boolean
   readonly virtualText: boolean
+  readonly namespaceSupport: boolean
 }
 
 export interface EditerState {

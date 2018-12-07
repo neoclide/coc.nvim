@@ -9,7 +9,6 @@ import services from '../services'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 const logger = require('../util/logger')('codelens')
-const srcId = 1080
 
 export interface CodeLensInfo {
   codeLenes: CodeLens[]
@@ -18,16 +17,26 @@ export interface CodeLensInfo {
 
 export default class CodeLensManager {
   private separator: string
+  private srcId: number
   private fetching: Set<number> = new Set()
   private disposables: Disposable[] = []
   private codeLensMap: Map<number, CodeLensInfo> = new Map()
   private resolveCodeLens: Function & { clear(): void }
   private insertMode = false
   constructor(private nvim: Neovim) {
+    this.init().catch(e => {
+      logger.error(e.message)
+    })
+  }
+
+  private async init(): Promise<void> {
+    let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences.codeLens')
     this.separator = config.get<string>('separator', '‣')
     let enable = workspace.env.virtualText && config.get<boolean>('enable', true)
     if (!enable) return
+    this.srcId = await workspace.createNameSpace('coc-codelens')
+    this.srcId = this.srcId || 1080
     services.on('ready', async id => {
       let service = services.getService(id)
       let doc = workspace.getDocument(workspace.bufnr)
@@ -38,13 +47,8 @@ export default class CodeLensManager {
         await this.fetchDocumentCodeLenes()
       }
     })
-
-    nvim.call('mode').then(mode => {
-      this.insertMode = (mode as string).startsWith('i')
-    }, _e => {
-      // noop
-    })
-
+    let { mode } = await nvim.mode
+    this.insertMode = mode.startsWith('i')
     let timer: NodeJS.Timer
     workspace.onDidChangeTextDocument(async e => {
       let doc = workspace.getDocument(e.textDocument.uri)
@@ -139,7 +143,7 @@ export default class CodeLensManager {
       commands = commands.filter(c => c && c.title)
       let chunks = commands.map(c => [c.title + ' ', 'CocCodeLens'] as [string, string])
       chunks.unshift([`${this.separator} `, 'CocCodeLens'])
-      await buffer.setVirtualText(srcId, lnum, chunks)
+      await buffer.setVirtualText(this.srcId, lnum, chunks)
     }
   }
 
@@ -169,7 +173,13 @@ export default class CodeLensManager {
     }
     let buffer = this.nvim.createBuffer(bufnr)
     if (workspace.getDocument(bufnr) == null) return
-    if (clear) buffer.clearHighlight({ srcId })
+    if (clear) {
+      if (workspace.env.namespaceSupport) {
+        buffer.clearNamespace(this.srcId)
+      } else {
+        buffer.clearHighlight({ srcId: this.srcId })
+      }
+    }
     if (codeLenes && codeLenes.length) await this.setVirtualText(buffer, codeLenes)
   }
 
