@@ -567,7 +567,8 @@ describe('workspace utility', () => {
     expect(name).toBe(uri)
   })
 
-  it('should findUp to tsconfig.json from cwd', async () => {
+  it('should findUp to tsconfig.json from current file', async () => {
+    await helper.edit(path.join(__dirname, 'edit'))
     let filepath = await workspace.findUp('tsconfig.json')
     expect(filepath).toMatch('tsconfig.json')
   })
