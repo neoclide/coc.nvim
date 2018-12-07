@@ -244,7 +244,7 @@ export class Workspace implements IWorkspace {
     if (doc && doc.schema == 'file') {
       root = path.dirname(Uri.parse(doc.uri).fsPath)
     } else {
-      root = this.cwd
+      root = this.root
     }
     return await findUp(filename, { cwd: root })
   }
