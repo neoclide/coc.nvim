@@ -59,6 +59,7 @@ export function resolveRoot(cwd: string, subs: string[]): string | null {
   let home = os.homedir()
   let { root } = path.parse(cwd)
   let p = findUp.sync(subs, { cwd })
+  p = p == null ? null : path.dirname(p)
   if (p == null || p == home || p == root) return cwd
   return p
 }
