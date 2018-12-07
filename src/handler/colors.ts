@@ -36,6 +36,7 @@ export default class Colors {
     }, null, this.disposables)
 
     events.on('BufUnload', async bufnr => {
+      this.clearHighlight(bufnr)
       this.colorInfomation.delete(bufnr)
       this.matchIds.delete(bufnr)
       this.documentVersions.delete(bufnr)
@@ -91,12 +92,12 @@ export default class Colors {
       let old = this.colorInfomation.get(document.bufnr)
       if (!colors || colors.length == 0) {
         this.colorInfomation.delete(document.bufnr)
-        await this.clearHighlight(document.bufnr)
+        this.clearHighlight(document.bufnr)
         return
       }
       if (old && equals(old, colors)) return
       colors = colors.slice(0, this.maxColorCount)
-      await this.clearHighlight(bufnr)
+      this.clearHighlight(bufnr)
       this.colorInfomation.set(bufnr, colors)
       let colorRanges = this.getColorRanges(colors)
       await this.addColors(colors.map(o => o.color))
@@ -128,7 +129,7 @@ export default class Colors {
     this.nvim.command(commands.join('|'), true)
   }
 
-  public async clearHighlight(bufnr: number): Promise<void> {
+  public clearHighlight(bufnr: number): void {
     this.colorInfomation.delete(bufnr)
     let ids = this.matchIds.get(bufnr)
     if (!ids || ids.length == 0) return

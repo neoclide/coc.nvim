@@ -68,6 +68,15 @@ export default class CodeLensManager {
       this.resolveCodeLens()
     }, null, this.disposables)
 
+    events.on('BufUnload', bufnr => {
+      let buf = this.nvim.createBuffer(bufnr)
+      if (workspace.env.namespaceSupport) {
+        buf.clearNamespace(this.srcId)
+      } else {
+        buf.clearHighlight({ srcId: this.srcId })
+      }
+    }, null, this.disposables)
+
     events.on('BufEnter', bufnr => {
       setTimeout(async () => {
         if (workspace.bufnr == bufnr) {

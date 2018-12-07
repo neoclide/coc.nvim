@@ -95,7 +95,7 @@ describe('Colors', () => {
     await nvim.setLine('#ffffff')
     await colors.highlightColors(doc)
     expect(colors.hasColor(doc.bufnr)).toBe(true)
-    await colors.clearHighlight(doc.bufnr)
+    colors.clearHighlight(doc.bufnr)
     expect(colors.hasColor(doc.bufnr)).toBe(false)
   })
 

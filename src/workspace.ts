@@ -999,6 +999,7 @@ augroup end`
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this._onDidCloseDocument.fire(doc.textDocument)
+      await wait(10)
       this.buffers.delete(bufnr)
       await doc.detach()
     }

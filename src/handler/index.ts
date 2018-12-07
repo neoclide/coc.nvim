@@ -95,6 +95,9 @@ export default class Handler {
     events.on('BufWinLeave', bufnr => {
       this.clearHighlight(bufnr)
     }, null, this.disposables)
+    events.on('BufUnload', async bufnr => {
+      this.clearHighlight(bufnr)
+    }, null, this.disposables)
     events.on('InsertEnter', () => {
       this.clearHighlight(workspace.bufnr)
     }, null, this.disposables)
@@ -426,7 +429,7 @@ export default class Handler {
   }
 
   public async highlight(): Promise<void> {
-    let document = await workspace.document
+    let document = workspace.getDocument(workspace.bufnr)
     if (!document) return
     let position = await workspace.getCursorPosition()
     let line = document.getline(position.line)
