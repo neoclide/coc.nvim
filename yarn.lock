@@ -16,7 +16,7 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@chemzqm/neovim@4.3.32":
+"@chemzqm/neovim@^4.3.32":
   version "4.3.32"
   resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.32.tgz#cb5e82cab3e2395ca2c6291ef5823601d93d6e19"
   integrity sha512-hyZUYVlqWkowG6gOkxifjn3dfQJ2LHRuSYCYclq3OAcZsvrmvsz796Q0NaBsdmsEs/x2X/1MjY9sMDdbHBjYng==

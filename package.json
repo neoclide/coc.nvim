@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.37",
+  "version": "0.0.38",
   "description": "Completion manager for neovim",
   "main": "./lib/index.js",
   "bin": "./bin/server.js",
@@ -80,7 +80,7 @@
     "typescript": "^3.2.2"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.32",
+    "@chemzqm/neovim": "^4.3.32",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",

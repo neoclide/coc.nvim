@@ -1,3 +1,15 @@
+# 2018-12-08
+
+- **Break change** default rootPath would be directory of current file, not cwd.
+- **Break change** codeLens feature now disabled by default.
+- **Break change** diagnostic prev/next now loop diagnostics.
+- Add support of neovim highlight namespace.
+- Add support for undo `additionalTextEdits` on neovim
+- Fix configuration resolve could be wrong.
+- Fix word of completion item could be wrong.
+- Fix rootPath could be null.
+- Fix highlight not cleared on restart.
+
 # 2018-12-06
 
 - **Break change** `RevealOutputChannelOn` of language client default to
