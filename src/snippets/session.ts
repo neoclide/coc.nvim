@@ -23,7 +23,7 @@ export class SnippetSession {
   constructor(private nvim: Neovim, public readonly bufnr: number) {
   }
 
-  public async start(snippetString: string): Promise<boolean> {
+  public async start(snippetString: string, select = true): Promise<boolean> {
     const { document, nvim } = this
     const position = await workspace.getCursorPosition()
     if (!document) return
@@ -59,7 +59,11 @@ export class SnippetSession {
         // don't repeat snippet insert
         let index = this.snippet.insertSnippet(placeholder, inserted, position)
         let p = this.snippet.getPlaceholder(index)
-        await this.selectPlaceholder(p)
+        this._currId = p.id
+        if (select) {
+          await this.selectPlaceholder(p)
+          await wait(50)
+        }
         return true
       }
     }
@@ -67,8 +71,11 @@ export class SnippetSession {
     this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     // new snippet
     this._snippet = snippet
-    await this.selectPlaceholder(snippet.firstPlaceholder)
-    await wait(50)
+    this._currId = snippet.firstPlaceholder.id
+    if (select) {
+      await this.selectPlaceholder(snippet.firstPlaceholder)
+      await wait(50)
+    }
     this.activate()
     return true
   }
@@ -140,6 +147,11 @@ export class SnippetSession {
     if (!edits.length) return
     this._changedtick = this.document.changedtick
     await this.document.applyEdits(this.nvim, edits)
+  }
+
+  public async selectCurrentPlaceholder(): Promise<void> {
+    let placeholder = this.snippet.getPlaceholderById(this._currId)
+    if (placeholder) await this.selectPlaceholder(placeholder)
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {

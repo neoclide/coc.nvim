@@ -66,7 +66,7 @@ export class SnippetManager implements types.SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string): Promise<boolean> {
+  public async insertSnippet(snippet: string, select = true): Promise<boolean> {
     let bufnr = await workspace.nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
     let disposable: Disposable
@@ -79,7 +79,7 @@ export class SnippetManager implements types.SnippetManager {
         }
       })
     }
-    let isActive = await session.start(snippet)
+    let isActive = await session.start(snippet, select)
     if (isActive) {
       this.sessionMap.set(bufnr, session)
       this.statusItem.show()
@@ -87,6 +87,11 @@ export class SnippetManager implements types.SnippetManager {
       disposable.dispose()
     }
     return isActive
+  }
+
+  public async selectCurrentPlaceholder(): Promise<void> {
+    let { session } = this
+    if (session) return await session.selectCurrentPlaceholder()
   }
 
   public async nextPlaceholder(): Promise<void> {

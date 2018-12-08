@@ -490,9 +490,11 @@ class Languages {
         let snippet = await this.applyTextEdit(completeItem, opt)
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
-        // vim is slow on synchronize
-        if (workspace.isVim) await wait(100)
-        if (snippet) await snippetManager.insertSnippet(snippet)
+        if (snippet) {
+          await wait(50)
+          await snippetManager.selectCurrentPlaceholder()
+        }
+
         let { command, kind } = completeItem
         if (snippet
           && !echodocSupport
@@ -561,10 +563,10 @@ class Languages {
     return this.cancelTokenSource.token
   }
 
-  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<string | null> {
+  private async applyTextEdit(item: CompletionItem, option: CompleteOption): Promise<boolean> {
     let { nvim } = this
     let { textEdit } = item
-    if (!textEdit) return null
+    if (!textEdit) return false
     let { line, bufnr, linenr } = option
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
@@ -572,13 +574,14 @@ class Languages {
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
-      await nvim.call('coc#util#setline', [option.linenr, `${start}${end}`])
+      await nvim.call('coc#util#setline', [linenr, `${start}${end}`])
       await nvim.call('cursor', [linenr, byteLength(start) + 1])
-      if (workspace.isVim) {
-        let doc = workspace.getDocument(bufnr)
-        await doc.patchChange()
-      }
-      return newText
+      // force vim sync
+      let doc = workspace.getDocument(bufnr)
+      await doc.patchChange()
+      doc.forceSync()
+      // can't select, since additionalTextEdits would break selection
+      return await snippetManager.insertSnippet(newText, false)
     }
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {
@@ -594,14 +597,20 @@ class Languages {
         })
       }
     }
-    return null
+    return false
   }
 
   private async applyAdditionaLEdits(textEdits: TextEdit[], bufnr: number): Promise<void> {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
+    if (workspace.isNvim) await this.nvim.input('<C-g>u')
+    if (workspace.isVim) {
+      await document.fetchContent()
+      await wait(50)
+    }
     await document.applyEdits(this.nvim, textEdits)
+    if (workspace.isVim) await document.fetchContent()
   }
 
   private async resolveCompletionItem(item: any, provider: CompletionItemProvider): Promise<CompletionItem> {
