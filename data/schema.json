@@ -52,15 +52,11 @@
           "default": {},
           "description": "Settings of languageserver"
         },
-        "configSection": {
-          "type": "string",
-          "default": {},
-          "description": "Config section of languageserver"
-        },
         "trace.server": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"]
+          "enum": ["off", "messages", "verbose"],
+          "description": "Trace level of communication between server and client"
         }
       }
     },
@@ -100,7 +96,8 @@
         },
         "enable": {
           "type": "boolean",
-          "default": true
+          "default": true,
+          "description": "Set to false to disable this language server"
         },
         "cwd": {
           "type": "string",
@@ -138,15 +135,11 @@
           "default": {},
           "description": "Settings of languageserver"
         },
-        "configSection": {
-          "type": "string",
-          "default": {},
-          "description": "Config section of languageserver"
-        },
         "trace.server": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"]
+          "enum": ["off", "messages", "verbose"],
+          "description": "Trace level of communication between server and client"
         }
       }
     },
@@ -234,15 +227,11 @@
           "default": {},
           "description": "Settings of languageserver"
         },
-        "configSection": {
-          "type": "string",
-          "default": {},
-          "description": "Config section of languageserver"
-        },
         "trace.server": {
           "type": "string",
           "default": "off",
-          "enum": ["off", "messages", "verbose"]
+          "enum": ["off", "messages", "verbose"],
+          "description": "Trace level of communication between server and client"
         }
       }
     }
