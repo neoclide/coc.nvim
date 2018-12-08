@@ -96,6 +96,21 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 2 })
   })
 
+  it('should start without select placeholder', async () => {
+    let buf = await helper.edit()
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start(' ${1:aa} ', false)
+    expect(res).toBe(true)
+    let line = await nvim.getLine()
+    expect(line).toBe(' aa ')
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
+    await session.selectCurrentPlaceholder()
+    await helper.wait(30)
+    let m = await nvim.mode
+    expect(m.mode).toBe('s')
+  })
+
   it('should start with placeholder update', async () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
@@ -136,6 +151,23 @@ describe('SnippetSession#start', () => {
     let line = await nvim.getLine()
     expect(line).toBe('foo bara b')
     expect(snippet.toString()).toBe('foo bara b')
+  })
+
+  it('should start nest snippet without select', async () => {
+    let buf = await helper.edit()
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('${1:a} ${2:b}')
+    await nvim.input('<backspace>')
+    res = await session.start('${1:foo} ${2:bar}', false)
+    expect(res).toBe(true)
+    let { mode } = await nvim.mode
+    expect(mode).toBe('i')
+    let line = await nvim.line
+    expect(line).toBe('foo bar b')
+    await session.selectCurrentPlaceholder()
+    await helper.wait(50)
+    let m = await nvim.mode
+    expect(m.mode).toBe('s')
   })
 })
 
