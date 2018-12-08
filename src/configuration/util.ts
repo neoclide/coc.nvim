@@ -215,7 +215,7 @@ export function loadDefaultConfigurations(): IConfigurationModel {
   let root = isPkg ? path.resolve(process.execPath, '../..') : path.resolve(__dirname, '../..')
   let file = path.join(root, 'data/schema.json')
   if (!fs.existsSync(file)) {
-    console.error('schema.json not found, reinstall coc.nvim to fix this!')
+    console.error('schema.json not found, reinstall coc.nvim to fix this!') // tslint:disable-line
     return { contents: {} }
   }
   let content = fs.readFileSync(file, 'utf8')
