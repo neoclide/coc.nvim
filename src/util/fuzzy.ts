@@ -15,6 +15,22 @@ export function fuzzyChar(a: string, b: string): boolean {
   return false
 }
 
+export function matchScore(input: string, word: string): number {
+  if (word.length < input.length) return 0
+  let n = 0
+  for (let i = 0; i < input.length; i++) {
+    const ch = input[i]
+    if (ch == word[i]) {
+      n = n + 1
+    } else if (fuzzyChar(ch, word[i])) {
+      n = n + 0.5
+    } else {
+      break
+    }
+  }
+  return n
+}
+
 // upper case must match, lower case ignore case
 export function fuzzyMatch(needle: number[], input: string): boolean {
   let totalCount = needle.length

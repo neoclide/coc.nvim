@@ -1,6 +1,6 @@
 import { score } from 'fuzzaldrin-plus'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { fuzzyMatch, matchScore, getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
@@ -166,6 +166,7 @@ export default class Complete {
         }
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         item.priority = priority
+        item.matchScore = matchScore(input, filterText)
         item.strictMatch = input.length && filterText.startsWith(input) ? 1 : 0
         words.add(word)
         if (!filtering && item.preselect) {
@@ -182,17 +183,17 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      let strict = a.strictMatch && b.strictMatch
-      if (!strict && a.strictMatch != b.strictMatch) return b.strictMatch - a.strictMatch
-      if (strict && a.priority != b.priority) return b.priority - a.priority
-      if (strict && a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-      if (strict && a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+      let strictMatch = a.strictMatch && b.strictMatch
+      if (a.matchScore != b.matchScore) return b.matchScore - a.matchScore
+      if (strictMatch && a.priority != b.priority) return b.priority - a.priority
+      if (strictMatch && a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+      if (strictMatch && a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       if (sa && sb) return sa < sb ? -1 : 1
       return b.score - a.score
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'priority', 'recentScore', 'filterText', 'strictMatch', 'score', 'signature', 'localBonus']))
+    return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'strictMatch', 'signature', 'localBonus']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {

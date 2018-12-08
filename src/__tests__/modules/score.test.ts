@@ -24,5 +24,4 @@ describe('score', () => {
     expectBigger('rs', 'recentScore', 'rtscore')
     expectBigger('reR', 'recentRead', 'recentread')
   })
-
 })
