@@ -25,7 +25,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 ## Completion experience
 
 You might wondering why another completion engine since there're already
-famous [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
+widely used [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim).
 
 Below is the reasons that lead to coc.nvim build it's own engine:
@@ -112,6 +112,10 @@ Below is the reasons that lead to coc.nvim build it's own engine:
     - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
     - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
     - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
+    - [Dockerfile](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dockerfile)
+    - [Bash](https://github.com/neoclide/coc.nvim/wiki/Language-servers#bash<Paste>)
+    - [Lua](https://github.com/neoclide/coc.nvim/wiki/Language-servers#lua)
+    - [OCaml and ReasonML](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ocaml-and-reasonml)
 
 - [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
@@ -151,6 +155,10 @@ Extension are powerful than configured language server. Checkout
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
 - **[coc-pyls](https://github.com/neoclide/coc-pyls)** for `python`, use [Python
   Language Server](https://github.com/palantir/python-language-server)
+- **[coc-highlight](https://github.com/neoclide/coc-highlight)** provide default
+  document symbol highlight and colors support.
+- **[coc-emmet](https://github.com/neoclide/coc-emmet)** provide emmet
+  suggest in completion list.
 
 And more, to get full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
