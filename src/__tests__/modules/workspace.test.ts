@@ -69,7 +69,7 @@ describe('workspace properties', () => {
   })
 
   it('should get filetyps', async () => {
-    await helper.edit('foo.js')
+    await helper.edit('f.js')
     let filetypes = workspace.filetypes
     expect(filetypes.has('javascript')).toBe(true)
   })
@@ -214,7 +214,7 @@ describe('workspace applyEdits', () => {
 
 describe('workspace methods', () => {
   it('should get the document', async () => {
-    let buf = await helper.edit('t.js')
+    let buf = await helper.edit()
     await helper.wait(100)
     let doc = workspace.getDocument(buf.id)
     expect(doc.buffer.equals(buf)).toBeTruthy()
@@ -238,7 +238,7 @@ describe('workspace methods', () => {
   })
 
   it('should get format options of current buffer', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     await buf.setOption('shiftwidth', 8)
     await buf.setOption('expandtab', false)
     let doc = workspace.getDocument(buf.id)
@@ -338,7 +338,7 @@ describe('workspace methods', () => {
   })
 
   it('should show mesages', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     workspace.showMessage('error', 'error')
     await helper.wait(30)
     let str = await helper.getCmdline()
@@ -495,7 +495,7 @@ describe('workspace utility', () => {
   })
 
   it('should open opened buffer', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     let doc = workspace.getDocument(buf.id)
     await workspace.openResource(doc.uri)
     await helper.wait(30)
@@ -505,7 +505,7 @@ describe('workspace utility', () => {
 
   it('should open url', async () => {
     await helper.mockFunction('coc#util#open_url', 0)
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     let uri = 'http://example.com'
     await workspace.openResource(uri)
     await helper.wait(30)
@@ -537,7 +537,7 @@ describe('workspace utility', () => {
   })
 
   it('should get current state', async () => {
-    let buf = await helper.edit('bar')
+    let buf = await helper.edit()
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await nvim.call('cursor', [2, 2])
     let doc = workspace.getDocument(buf.id)
@@ -629,7 +629,7 @@ describe('workspace utility', () => {
 describe('workspace events', () => {
 
   it('should listen to fileType change', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     await nvim.command('setf xml')
     await helper.wait(40)
     let doc = workspace.getDocument(buf.id)
@@ -648,23 +648,14 @@ describe('workspace events', () => {
   it('should fire onDidOpenTextDocument', async () => {
     let fn = jest.fn()
     workspace.onDidOpenTextDocument(fn, null, disposables)
-    await helper.edit('tmp')
+    await helper.edit()
     await helper.wait(30)
-    expect(fn).toHaveBeenCalledTimes(1)
-  })
-
-  it('should fire onDidCloseTextDocument', async () => {
-    let fn = jest.fn()
-    await helper.edit('tmp')
-    workspace.onDidCloseTextDocument(fn, null, disposables)
-    await nvim.command('bd!')
-    await helper.wait(100)
     expect(fn).toHaveBeenCalledTimes(1)
   })
 
   it('should fire onDidChangeTextDocument', async () => {
     let fn = jest.fn()
-    await helper.edit('tmp')
+    await helper.edit()
     workspace.onDidChangeTextDocument(fn, null, disposables)
     await nvim.setLine('foo')
     let doc = await workspace.document
@@ -713,7 +704,7 @@ describe('workspace events', () => {
   })
 
   it('should attach & detach', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     await nvim.command('CocDisable')
     await helper.wait(100)
     let doc = workspace.getDocument(buf.id)
@@ -728,7 +719,7 @@ describe('workspace events', () => {
 describe('workspace private', () => {
 
   it('should init vim events', async () => {
-    let buf = await helper.edit('foo')
+    let buf = await helper.edit()
     await buf.detach()
     let attached = buf.isAttached
     expect(attached).toBe(false)

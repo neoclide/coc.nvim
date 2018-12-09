@@ -164,10 +164,6 @@ describe('SnippetSession#start', () => {
     expect(mode).toBe('i')
     let line = await nvim.line
     expect(line).toBe('foo bar b')
-    await session.selectCurrentPlaceholder()
-    await helper.wait(50)
-    let m = await nvim.mode
-    expect(m.mode).toBe('s')
   })
 })
 
