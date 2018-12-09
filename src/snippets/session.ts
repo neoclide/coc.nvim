@@ -46,7 +46,9 @@ export class SnippetSession {
     if (snippet.isPlainText) {
       // insert as text
       await document.applyEdits(nvim, [edit])
-      await nvim.call('cursor', [position.line + 1, position.character + snippetString.length + 1])
+      let placeholder = snippet.finalPlaceholder
+      let { start } = placeholder.range
+      await nvim.call('cursor', [start.line + 1, start.character + 1])
       return this._isActive
     }
     this._changedtick = document.changedtick
