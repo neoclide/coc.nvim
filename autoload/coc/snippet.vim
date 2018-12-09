@@ -56,7 +56,7 @@ function! s:SnippetNext(preferComplete)
     return "\<c-y>"
   endif
   call CocActionAsync('snippetNext')
-  return pumvisible() ? "\<c-e>" : ''
+  return pumvisible() ? "\<c-y>" : ''
 endfunction
 
 function! coc#snippet#disable()
