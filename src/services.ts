@@ -340,7 +340,7 @@ export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOu
     case 'never':
       return RevealOutputChannelOn.Never
     default:
-      return RevealOutputChannelOn.Error
+      return RevealOutputChannelOn.Never
   }
 }
 
