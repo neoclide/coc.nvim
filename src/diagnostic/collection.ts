@@ -1,5 +1,6 @@
 import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
+import URI from 'vscode-uri'
 const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
@@ -39,6 +40,9 @@ export default class Collection implements DiagnosticCollection {
       return
     }
     let uri = entries
+    if (process.platform == 'win32' || process.platform == 'cygwin') {
+      uri = URI.parse(uri).toString()
+    }
     this.diagnosticsMap.set(uri, diagnostics || [])
     this._onDidDiagnosticsChange.fire(uri)
     return
