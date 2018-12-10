@@ -24,7 +24,7 @@ afterEach(async () => {
 
 describe('document model properties', () => {
   it('should parse iskeyword', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     await nvim.setLine('foo bar')
     await helper.wait(200)
     let words = doc.words
@@ -33,7 +33,7 @@ describe('document model properties', () => {
 
   it('should parse iskeyword of character range', async () => {
     await nvim.setOption('iskeyword', 'a-z,A-Z,48-57,_')
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let opt = await nvim.getOption('iskeyword')
     expect(opt).toBe('a-z,A-Z,48-57,_')
     await nvim.setLine('foo bar')
@@ -44,7 +44,7 @@ describe('document model properties', () => {
   })
 
   it('should get word range', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     await nvim.setLine('foo bar')
     await helper.wait(200)
     let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
@@ -58,7 +58,7 @@ describe('document model properties', () => {
   })
 
   it('should get localify bonus', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let { buffer } = doc
     await buffer.setLines(['context content clearTimeout', ''],
       { start: 0, end: -1, strictIndexing: false })
@@ -68,6 +68,27 @@ describe('document model properties', () => {
     expect(res.get('clearTimeout')).toBe(15)
     expect(res.get('content')).toBe(7)
     expect(res.get('context')).toBe(0)
+  })
+
+  it('should get current line', async () => {
+    let doc = await helper.createDocument()
+    let { buffer } = doc
+    await buffer.setLines(['first line', 'second line'],
+      { start: 0, end: -1, strictIndexing: false })
+    await helper.wait(30)
+    let line = doc.getline(1, true)
+    expect(line).toBe('second line')
+  })
+
+  it('should get cached line', async () => {
+    let doc = await helper.createDocument()
+    let { buffer } = doc
+    await buffer.setLines(['first line', 'second line'],
+      { start: 0, end: -1, strictIndexing: false })
+    await helper.wait(30)
+    doc.forceSync()
+    let line = doc.getline(0, false)
+    expect(line).toBe('first line')
   })
 
   it('should be fast for localify bonus', async () => {

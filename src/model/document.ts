@@ -560,8 +560,8 @@ export default class Document {
    */
   public getline(line: number, current = true): string {
     if (current) return this.lines[line] || ''
-    let lines = this.textDocument.getText().split('\n')
-    return lines[line] || ''
+    let str = this.textDocument.getText(Range.create(line, 0, line + 1, 0))
+    return str ? str.replace(/\n$/, '') : ''
   }
 
   private getDocumentContent(): string {

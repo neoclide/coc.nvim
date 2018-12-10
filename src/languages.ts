@@ -2,7 +2,6 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { Chars } from './model/chars'
 import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
@@ -441,13 +440,15 @@ class Languages {
     let completeItems: CompletionItem[] = []
     let resolveInput: string
     let option: CompleteOption
-    let endColnr: number
+    // column number on doComplete
+    let colnr: number
+    // line used for TextEdit
+    let currLine: string
     let preferences = workspace.getConfiguration('coc.preferences')
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
-    let fixInsertedWord = preferences.get<boolean>('fixInsertedWord', true)
     let echodocSupport = preferences.get<boolean>('echodocSupport', false)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
-    return {
+    let source = {
       name,
       priority,
       enable: true,
@@ -455,12 +456,42 @@ class Languages {
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
+        option = opt
+        let { triggerCharacter, bufnr } = opt
+        let doc = workspace.getDocument(bufnr)
+        if (!doc) return null
+        colnr = option.colnr
+        currLine = option.line
+        let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
+        let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
+        if (opt.triggerForInComplete) {
+          triggerKind = CompletionTriggerKind.TriggerForIncompleteCompletions
+        } else if (isTrigger) {
+          triggerKind = CompletionTriggerKind.TriggerCharacter
+        }
+        if (triggerKind != CompletionTriggerKind.Invoked) await wait(waitTime)
+        let position = complete.getPosition(opt)
+        let context: CompletionContext = { triggerKind, option: opt }
+        if (isTrigger) context.triggerCharacter = triggerCharacter
+        let cancellSource = new CancellationTokenSource()
+        let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, cancellSource.token, context))
+        if (!result) return null
+        completeItems = Array.isArray(result) ? result : result.items
+        if (!completeItems) return null
+        let items: VimCompleteItem[] = completeItems.map((o, index) => {
+          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
+          item.index = index
+          return item
+        })
+        return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
+      },
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         if (completeItems.length == 0) return
         resolveInput = item.word
         let resolving = completeItems[item.index]
         if (!resolving) return
-        await this.resolveCompletionItem(resolving, provider)
+        await source.resolveCompletionItem(resolving, provider)
         let visible = await this.nvim.call('pumvisible')
         if (visible != 0 && resolveInput == item.word) {
           // vim have no suppport for update complete item
@@ -477,24 +508,21 @@ class Languages {
       onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
         let completeItem = completeItems[item.index]
         if (!completeItem) return
-        await this.resolveCompletionItem(completeItem, provider)
+        await source.resolveCompletionItem(completeItem, provider)
         // use TextEdit for snippet item
         if (item.isSnippet && !completeItem.textEdit) {
           let line = opt.linenr - 1
           completeItem.textEdit = {
-            range: Range.create(line, opt.col, line, endColnr - 1),
+            range: Range.create(line, opt.col, line, colnr - 1),
             // tslint:disable-next-line: deprecation
             newText: completeItem.insertText || completeItem.label
           }
         }
+        opt = Object.assign({}, opt, { line: currLine })
         let snippet = await this.applyTextEdit(completeItem, opt)
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
-        if (snippet) {
-          await wait(50)
-          await snippetManager.selectCurrentPlaceholder()
-        }
-
+        if (snippet) await snippetManager.selectCurrentPlaceholder()
         let { command, kind } = completeItem
         if (snippet
           && !echodocSupport
@@ -507,44 +535,9 @@ class Languages {
       onCompleteSelect: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
         let completeItem = completeItems[item.index]
         if (!completeItem) return
-        await this.resolveCompletionItem(completeItem, provider)
+        await source.resolveCompletionItem(completeItem, provider)
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
-      },
-      doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
-        option = opt
-        let { triggerCharacter, bufnr } = opt
-        let doc = workspace.getDocument(bufnr)
-        if (!doc) return null
-        endColnr = option.colnr
-        if (fixInsertedWord) {
-          let word = Chars.getWordAfterCharacter(opt.line, endColnr - 1)
-          endColnr = endColnr + word.length
-        }
-        let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
-        let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
-        if (opt.triggerForInComplete) {
-          triggerKind = CompletionTriggerKind.TriggerForIncompleteCompletions
-        } else if (isTrigger) {
-          triggerKind = CompletionTriggerKind.TriggerCharacter
-        }
-        if (triggerKind != CompletionTriggerKind.Invoked) await wait(waitTime)
-        let document = doc.textDocument
-        let position = complete.getPosition(opt)
-        let context: CompletionContext = { triggerKind, option: opt }
-        if (isTrigger) context.triggerCharacter = triggerCharacter
-        let cancellSource = new CancellationTokenSource()
-        let result = await Promise.resolve(provider.provideCompletionItems(document, position, cancellSource.token, context))
-        if (!result) return null
-        completeItems = Array.isArray(result) ? result : result.items
-        if (!completeItems) return null
-        let items: VimCompleteItem[] = completeItems.map((o, index) => {
-          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
-          item.index = index
-          if (endColnr != opt.colnr) item.isSnippet = true
-          return item
-        })
-        return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]
@@ -554,8 +547,31 @@ class Languages {
           return true
         }
         return false
+      },
+      resolveCompletionItem: async (item: any, provider: CompletionItemProvider): Promise<CompletionItem> => {
+        if (this.resolveTokenSource) {
+          this.resolveTokenSource.cancel()
+        }
+        let hasEdit = item.textEdit != null
+        let hasResolve = typeof provider.resolveCompletionItem === 'function'
+        if (hasResolve && !item.resolved) {
+          let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
+          let token = cancelTokenSource.token
+          let resolved = await Promise.resolve(provider.resolveCompletionItem(item, token))
+          if (token.isCancellationRequested) return
+          this.resolveTokenSource = null
+          item.resolved = true
+          // textEdit send on resolve
+          if (!hasEdit && item.textEdit != null) {
+            let doc = workspace.getDocument(option.bufnr)
+            if (doc) currLine = doc.getline(option.linenr - 1, false)
+          }
+          if (resolved) mixin(item, resolved)
+        }
+        return item
       }
     }
+    return source as ISource
   }
 
   private get token(): CancellationToken {
@@ -611,23 +627,7 @@ class Languages {
     }
     await document.applyEdits(this.nvim, textEdits)
     if (workspace.isVim) await document.fetchContent()
-  }
-
-  private async resolveCompletionItem(item: any, provider: CompletionItemProvider): Promise<CompletionItem> {
-    if (this.resolveTokenSource) {
-      this.resolveTokenSource.cancel()
-    }
-    let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    if (hasResolve && !item.resolved) {
-      let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
-      let token = cancelTokenSource.token
-      let resolved = await Promise.resolve(provider.resolveCompletionItem(item, token))
-      if (token.isCancellationRequested) return
-      this.resolveTokenSource = null
-      item.resolved = true
-      if (resolved) mixin(item, resolved)
-    }
-    return item
+    await wait(50)
   }
 }
 
