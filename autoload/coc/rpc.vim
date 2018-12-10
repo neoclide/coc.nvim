@@ -1,7 +1,7 @@
 let s:server_running = 0
 let s:std_err = []
 let s:std_out = []
-let s:job_opts = {}
+let s:job_opts = {'rpc': 1}
 let s:error_buf = -1
 let s:is_vim = !has('nvim')
 let s:is_win = has("win32") || has("win64")
@@ -24,6 +24,7 @@ function! coc#rpc#start_server()
           \ 'out_cb': {channel, message -> s:job_opts.on_stdout(0, [message], 'stdout')},
           \ 'close_cb': { -> s:job_opts.on_exit(0, 0, 'exit')},
           \ 'env': {
+          \   'VIM_NODE_RPC': 1,
           \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS,
           \   'VIMCONFIG': $VIMCONFIG,
           \ }
@@ -63,10 +64,6 @@ function! s:job_opts.on_stderr(chan_id, data, event) dict
   call coc#util#echo_messages('Error', data)
 endfunction
 
-function! s:job_opts.on_stdout(chan_id, data, event) dict
-  call extend(s:std_out, a:data)
-endfunction
-
 function! s:job_opts.on_exit(chan_id, code, event) dict
   call s:reset()
   if v:dying != 0 | return | endif
@@ -100,12 +97,6 @@ function! coc#rpc#kill()
   else
     call system('kill -9 '.pid)
   endif
-endfunction
-
-function! coc#rpc#stdout()
-  belowright vs +setl\ buftype=nofile [coc stdout]
-  setl bufhidden=wipe
-  call setline(1, s:std_out)
 endfunction
 
 function! coc#rpc#get_errors()

@@ -1,10 +1,13 @@
 const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
+const isVim = process.env.VIM_NODE_RPC == 1
 const address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
-attach({
-  socket: address
-})
+if (isVim) {
+  attach({ socket: address })
+} else {
+  attach({ reader: process.stdin, writer: process.stdout })
+}
 
 process.on('uncaughtException', function(err) {
   let msg = 'Uncaught exception: ' + err.stack
