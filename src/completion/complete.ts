@@ -117,7 +117,7 @@ export default class Complete {
     let now = Date.now()
     let { bufnr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
-    let followPart = this.getFollowPart()
+    let followPart = cid == 0 ? '' : this.getFollowPart()
     // let endColnr = this.getEndColnr()
     if (results.length == 0) return []
     let arr: VimCompleteItem[] = []
@@ -135,6 +135,11 @@ export default class Complete {
         let filterText = item.filterText || item.word
         if (filterText.length < input.length) continue
         if (input.length && !fuzzyMatch(codes, filterText)) continue
+        if (fixInsertedWord && followPart.length && !item.isSnippet) {
+          if (item.word.endsWith(followPart)) {
+            item.word = item.word.slice(0, - followPart.length)
+          }
+        }
         if (!item.user_data) {
           let user_data: any = { cid, source }
           if (item.isSnippet && cid != 0) {

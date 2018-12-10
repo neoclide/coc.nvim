@@ -259,14 +259,13 @@ describe('completion#TextChangedP', () => {
 describe('completion#CompleteDone', () => {
   it('should fix word on CompleteDone', async () => {
     await helper.edit('tmp')
-    await nvim.setLine('foo football')
+    await nvim.setLine('fball football')
     await nvim.input('i')
-    await nvim.call('cursor', [1, 3])
+    await nvim.call('cursor', [1, 2])
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
     let items = completion.completeItems
     expect(items.length).toBe(1)
-    expect(items[0].isSnippet).toBe(true)
     await nvim.input('<C-n>')
     await nvim.call('coc#_select')
     await helper.wait(100)

@@ -552,7 +552,6 @@ class Languages {
         if (this.resolveTokenSource) {
           this.resolveTokenSource.cancel()
         }
-        let hasEdit = item.textEdit != null
         let hasResolve = typeof provider.resolveCompletionItem === 'function'
         if (hasResolve && !item.resolved) {
           let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
@@ -562,8 +561,9 @@ class Languages {
           this.resolveTokenSource = null
           item.resolved = true
           // textEdit send on resolve
-          if (!hasEdit && item.textEdit != null) {
+          if (item.textEdit == null && resolved.textEdit != null) {
             let doc = workspace.getDocument(option.bufnr)
+            // use the line send to server
             if (doc) currLine = doc.getline(option.linenr - 1, false)
           }
           if (resolved) mixin(item, resolved)
