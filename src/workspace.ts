@@ -18,7 +18,7 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, MapMode } from './types'
 import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, readFileLine } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait } from './util/index'
 import { score } from './util/match'
@@ -38,6 +38,7 @@ export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
   public readonly version: string
   public bufnr: number
+  public readonly keymaps: Map<string, Function> = new Map()
   private resolver: Resolver = new Resolver()
 
   private messageLevel: MessageLevel
@@ -742,6 +743,20 @@ export class Workspace implements IWorkspace {
       this.setupDocumentReadAutocmd().catch(_e => {
         // noop
       })
+    })
+  }
+
+  public registerKeymap(modes: MapMode[], key: string, fn: Function): Disposable {
+    if (this.keymaps.has(key)) return
+    this.keymaps.set(key, fn)
+    for (let m of modes) {
+      this.nvim.command(`${m}noremap <Plug>(coc-${key}) :<C-u>call coc#rpc#notify('doKeymap', ['${key}'])<cr>`, true)
+    }
+    return Disposable.create(() => {
+      this.keymaps.delete(key)
+      for (let m of modes) {
+        this.nvim.command(`${m}unmap <Plug>(coc-${key})`, true)
+      }
     })
   }
 

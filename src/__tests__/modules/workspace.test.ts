@@ -747,6 +747,24 @@ describe('workspace private', () => {
   })
 })
 
+describe('workspace keymaps', () => {
+  it('should regist keymap', async () => {
+    let fn = jest.fn()
+    await nvim.command('nmap go <Plug>(coc-echo)')
+    let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn)
+    await helper.wait(30)
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
+    await nvim.call('feedkeys', ['go', 'i'])
+    await helper.wait(100)
+    expect(fn).toBeCalledTimes(1)
+    disposable.dispose()
+    await nvim.call('feedkeys', ['go', 'i'])
+    await helper.wait(100)
+    expect(fn).toBeCalledTimes(1)
+  })
+})
+
 describe('workspace textDocument content provider', () => {
 
   it('should regist document content provider', async () => {

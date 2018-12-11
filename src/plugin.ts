@@ -131,6 +131,12 @@ export default class Plugin extends EventEmitter {
     return commandManager.commandList.map(o => o.id)
   }
 
+  public async doKeymap(key: string): Promise<string[]> {
+    let fn = workspace.keymaps.get(key)
+    if (!fn) return
+    await Promise.resolve(fn())
+  }
+
   public async cocInstalled(...names: string[]): Promise<void> {
     for (let name of names) {
       await extensions.onExtensionInstall(name)

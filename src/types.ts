@@ -102,6 +102,8 @@ export interface SnippetManager {
 
 export type ModuleResolve = () => Promise<string>
 
+export type MapMode = 'n' | 'i' | 'v' | 'x' | 's'
+
 export enum SourceType {
   Native,
   Remote,
