@@ -56,8 +56,8 @@ export class DiagnosticBuffer {
       this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
     })
     sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
-    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
     sequence.addFunction(this.addSigns.bind(this, diagnostics))
+    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
     sequence.start().then(canceled => {
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
