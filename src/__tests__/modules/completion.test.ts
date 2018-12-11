@@ -336,7 +336,6 @@ describe('completion#shouldTrigger', () => {
   it('should not trigger if autoTrigger is none', async () => {
     let config = workspace.getConfiguration('coc.preferences')
     config.update('autoTrigger', 'none')
-    await helper.wait(1000)
     let autoTrigger = completion.getPreference('autoTrigger')
     expect(autoTrigger).toBe('none')
     await nvim.setLine('foo fo')
@@ -344,6 +343,7 @@ describe('completion#shouldTrigger', () => {
     await helper.wait(100)
     expect(completion.isActivted).toBe(false)
     config.update('autoTrigger', 'always')
+    await helper.wait(100)
   })
 })
 

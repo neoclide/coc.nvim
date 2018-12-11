@@ -57,7 +57,7 @@ describe('completion', () => {
   })
 
   it('should filter and sort on increment search', async () => {
-    await helper.edit('search')
+    await helper.edit()
     await nvim.setLine('forceDocumentSync format  fallback')
     await helper.wait(30)
     await nvim.input('of')
@@ -72,10 +72,11 @@ describe('completion', () => {
   })
 
   it('should filter on character remove by backspace', async () => {
-    await helper.edit('remove')
+    await helper.edit()
     await nvim.setLine('forceDocumentSync format  fallback')
     await helper.wait(30)
     await nvim.input('ofa')
+
     await helper.waitPopup()
     let items = await helper.getItems()
     let words = items.map(o => o.word)

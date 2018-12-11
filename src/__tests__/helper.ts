@@ -74,8 +74,12 @@ export class Helper extends Emitter {
   }
 
   public async reset(): Promise<void> {
-    await this.nvim.input('<esc>')
-    await this.nvim.command('stopinsert')
+    let { mode, blocking } = await this.nvim.mode
+    if (blocking) throw new Error('nvim is blocking')
+    if (mode !== 'n') {
+      await this.nvim.input('<esc>')
+      await this.nvim.command('stopinsert')
+    }
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(60)
   }

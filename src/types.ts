@@ -359,9 +359,9 @@ export interface WorkspaceConfiguration {
    *
    * @param section Configuration name, supports _dotted_ names.
    * @param value The new value.
-   * @param isGlobal if true, update global configuration
+   * @param isUser if true, always update user configuration
    */
-  update(section: string, value: any, isGlobal?: boolean): void
+  update(section: string, value: any, isUser?: boolean): void
 
   /**
    * Readable dictionary that backs this configuration.

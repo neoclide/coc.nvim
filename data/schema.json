@@ -39,7 +39,7 @@
         },
         "revealOutputChannelOn": {
           "type": "string",
-          "default": "error",
+          "default": "never",
           "enum": ["info", "warn", "error", "never"]
         },
         "initializationOptions": {

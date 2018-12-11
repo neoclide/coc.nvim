@@ -291,13 +291,14 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${1:foo}')
+    expect(res).toBe(true)
     await nvim.input('Abar')
     await helper.wait(30)
-    expect(res).toBe(true)
     await session.synchronizeUpdatedPlaceholders({
       range: Range.create(0, 5, 0, 6),
       text: ''
     })
+    await helper.wait(30)
     expect(session.isActive).toBe(true)
   })
 

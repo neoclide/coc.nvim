@@ -12,12 +12,12 @@ const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
   private _isActive = false
+  private _currId = 0
   // Get state of line where we inserted
   private _changedtick: number
   private _snippet: CocSnippet = null
-  private _currId = 0
   private _onCancelEvent = new Emitter<void>()
-  private preferComplete = false
+  private _preferComplete = false
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
@@ -26,7 +26,7 @@ export class SnippetSession {
   public async start(snippetString: string, select = true): Promise<boolean> {
     const { document, nvim } = this
     const position = await workspace.getCursorPosition()
-    if (!document) return
+    if (!document) return false
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
@@ -70,7 +70,7 @@ export class SnippetSession {
       }
     }
     let config = workspace.getConfiguration('coc.preferences')
-    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    this._preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     // new snippet
     this._snippet = snippet
     this._currId = snippet.firstPlaceholder.id
@@ -84,9 +84,8 @@ export class SnippetSession {
 
   private activate(): void {
     if (this._isActive) return
-    let { preferComplete } = this
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [preferComplete ? 1 : 0], true)
+    this.nvim.call('coc#snippet#enable', [this._preferComplete ? 1 : 0], true)
   }
 
   public deactivate(): void {

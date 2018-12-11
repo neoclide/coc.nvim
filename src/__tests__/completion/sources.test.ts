@@ -21,6 +21,8 @@ describe('native sources', () => {
     await helper.edit()
     await nvim.setLine('foo')
     await helper.wait(100)
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
     await nvim.input('of')
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
@@ -33,6 +35,8 @@ describe('native sources', () => {
     await nvim.setLine('other')
     await nvim.command('bp')
     await helper.wait(100)
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
     await nvim.input('io')
     let res = await helper.visible('other', 'buffer')
     expect(res).toBe(true)
