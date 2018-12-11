@@ -335,14 +335,11 @@ export class Completion implements Disposable {
       this.addRecent(item.word, document.bufnr)
       await wait(30)
       let mode = await nvim.call('mode')
+      if (mode !== 'i') return
       await document.patchChange()
       document.forceSync()
       if (changedtick != document.changedtick) return
-      if (mode !== 'i') {
-        await sources.doCompleteSelect(item, opt)
-      } else {
-        await sources.doCompleteDone(item, opt)
-      }
+      await sources.doCompleteDone(item, opt)
     } catch (e) {
       // tslint:disable-next-line:no-console
       console.error(e.stack)
