@@ -275,9 +275,7 @@ export class Workspace implements IWorkspace {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
-    if (process.platform == 'win32' || process.platform == 'cygwin') {
-      uri = Uri.parse(uri).toString()
-    }
+    uri = Uri.parse(uri).toString()
     for (let doc of this.buffers.values()) {
       if (doc && doc.uri === uri) return doc
     }

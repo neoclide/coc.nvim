@@ -40,9 +40,7 @@ export default class Collection implements DiagnosticCollection {
       return
     }
     let uri = entries
-    if (process.platform == 'win32' || process.platform == 'cygwin') {
-      uri = URI.parse(uri).toString()
-    }
+    uri = URI.parse(uri).toString()
     this.diagnosticsMap.set(uri, diagnostics || [])
     this._onDidDiagnosticsChange.fire(uri)
     return

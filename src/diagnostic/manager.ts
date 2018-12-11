@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, Disposable, Range, TextDocument, DiagnosticSeverity } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import { DiagnosticItem, DiagnosticItems, ConfigurationChangeEvent } from '../types'
+import { ConfigurationChangeEvent, DiagnosticItem, DiagnosticItems } from '../types'
 import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
-import { getSeverityName, severityLevel, getSeverityType } from './util'
+import { getSeverityName, getSeverityType, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
