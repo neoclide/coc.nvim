@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.38",
+  "version": "0.0.39",
   "description": "Completion manager for neovim",
   "main": "./lib/index.js",
   "bin": "./bin/server.js",

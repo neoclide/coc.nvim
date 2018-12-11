@@ -1,3 +1,17 @@
+# 2018-12-12
+
+- **Break change** `fixInsertedWord` fix inserted word which ends with word
+  after.
+- **Break change** `onCompleteSelect` is removed.
+- Add `workspace.registerKeymap` for regist keymap.
+- Add match score for sort complete items.
+- Fix possible connection lost.
+- Fix priority of diagnostic signs.
+- Fix possible wrong uri.
+- Fix `RevealOutputChannelOn` not default to `never`.
+- Fix possible wrong line used for textEdit of complete item.
+- Fix possible wrong cursor position of snippet after inserted.
+
 # 2018-12-08
 
 - **Break change** default rootPath would be directory of current file, not cwd.
