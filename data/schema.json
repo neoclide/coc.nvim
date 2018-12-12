@@ -307,7 +307,7 @@
     },
     "coc.preferences.timeout": {
       "type": "integer",
-      "default": 500,
+      "default": 2000,
       "description": "Timeout for completion, in miliseconds."
     },
     "coc.preferences.minTriggerInputLength": {
