@@ -231,10 +231,12 @@ nmap <leader>rn <Plug>(coc-rename)
 vmap <leader>f  <Plug>(coc-format-selected)
 nmap <leader>f  <Plug>(coc-format-selected)
 
-" Setup formatexpr specified filetype(s).
 augroup mygroup
   autocmd!
+  " Setup formatexpr specified filetype(s).
   autocmd FileType typescript,json setl formatexpr=CocAction('formatSelected')
+  " Update signature help on jump placeholder
+  autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 augroup end
 
 " Remap for do codeAction of selected region, ex: `<leader>aap` for current paragraph
