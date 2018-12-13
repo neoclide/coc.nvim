@@ -35,8 +35,13 @@ export default class Plugin extends EventEmitter {
     if (this.initialized) return
     this.initialized = true
     let { nvim } = this
+    let val = {}
     try {
-      let val = await nvim.getVar('coc_user_config') as { [key: string]: any }
+      val = await nvim.getVar('coc_user_config') as { [key: string]: any }
+    } catch (_e) {
+      // noop
+    }
+    try {
       if (val && Object.keys(val).length) {
         workspace.configurations.updateUserConfig(val)
       }
