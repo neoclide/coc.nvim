@@ -77,7 +77,9 @@ export default class Complete {
       result.source = source.name
       result.completeInComplete = completeInComplete
       result.duplicate = source.duplicate
-      logger.debug(`Complete '${source.name}' takes ${Date.now() - start}ms`)
+      let dt = Date.now() - start
+      if (dt > 1000) logger.warn(`Complete source "${source.name}" takes ${dt}ms`)
+      if (dt > 3000) echoWarning(this.nvim, `Complete source "${source.name}" takes ${dt}ms`)
       return result
     } catch (err) {
       echoErr(this.nvim, `${source.name} complete error: ${err.message}`)
