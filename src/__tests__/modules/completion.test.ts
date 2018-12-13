@@ -89,7 +89,7 @@ describe('completion#startCompletion', () => {
   })
 
   it('should start completion', async () => {
-    await helper.edit('foo')
+    await helper.edit()
     await nvim.setLine('foo football')
     await nvim.input('a')
     await nvim.call('cursor', [1, 2])
@@ -115,7 +115,7 @@ describe('completion#startCompletion', () => {
       }
     }
     sources.addSource(source)
-    await helper.edit('t')
+    await helper.edit()
     await nvim.input('i.')
     await helper.wait(60)
     await nvim.input('f')
@@ -126,12 +126,43 @@ describe('completion#startCompletion', () => {
     expect(items[0].word).toBe('foo')
     sources.removeSource(source)
   })
+
+  it('should complete inComplete source', async () => {
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'inComplete',
+      sourceType: SourceType.Service,
+      triggerCharacters: ['.'],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        await helper.wait(30)
+        if (opt.input.length <= 1) {
+          return { isIncomplete: true, items: [{ word: 'foo' }, { word: opt.input }] }
+        }
+        return { isIncomplete: false, items: [{ word: 'foo' }, { word: opt.input }] }
+      }
+    }
+    sources.addSource(source)
+    await helper.edit()
+    await nvim.input('i.')
+    await helper.waitPopup()
+    expect(completion.isActivted).toBe(true)
+    let items = completion.completeItems
+    await nvim.input('a')
+    await helper.wait(10)
+    await nvim.input('b')
+    await helper.wait(100)
+    sources.removeSource(source)
+    items = completion.completeItems
+    expect(items.length).toBe(1)
+    expect(items[0].word).toBe('ab')
+  })
 })
 
 describe('completion#resumeCompletion', () => {
 
   it('should stop if no filtered items', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     await nvim.setLine('foo ')
     await nvim.input('Af')
     await helper.waitPopup()
@@ -142,7 +173,7 @@ describe('completion#resumeCompletion', () => {
   })
 
   it('should not do filter if vim could do the same', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     await nvim.setLine('foo fbi ')
     await nvim.input('Af')
     await helper.waitPopup()
@@ -155,7 +186,7 @@ describe('completion#resumeCompletion', () => {
   })
 
   it('should deactivate without filtered items', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     await nvim.setLine('foo fbi ')
     await nvim.input('Af')
     await helper.waitPopup()
@@ -180,7 +211,7 @@ describe('completion#resumeCompletion', () => {
       }
     }
     sources.addSource(source)
-    await helper.edit('f')
+    await helper.edit()
     await nvim.input('i.f')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
@@ -196,7 +227,7 @@ describe('completion#resumeCompletion', () => {
 describe('completion#TextChangedP', () => {
 
   it('should stop when input length below option input length', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     await nvim.setLine('foo fbi ')
     await nvim.input('Afo')
     await helper.waitPopup()
@@ -206,7 +237,7 @@ describe('completion#TextChangedP', () => {
   })
 
   it('should fix input for snippet item', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     let provider: SnippetProvider = {
       getSnippets: () => {
         return [{
@@ -230,7 +261,7 @@ describe('completion#TextChangedP', () => {
   })
 
   it('should do resolve for complete item', async () => {
-    await helper.edit('resolve')
+    await helper.edit()
     let source: ISource = {
       priority: 0,
       enable: true,
@@ -258,7 +289,7 @@ describe('completion#TextChangedP', () => {
 
 describe('completion#CompleteDone', () => {
   it('should fix word on CompleteDone', async () => {
-    await helper.edit('tmp')
+    await helper.edit()
     await nvim.setLine('fball football')
     await nvim.input('i')
     await nvim.call('cursor', [1, 2])

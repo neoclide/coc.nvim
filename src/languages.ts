@@ -450,15 +450,17 @@ class Languages {
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
     waitTime = Math.max(50, waitTime)
     waitTime = Math.min(300, waitTime)
+    let cancellSource: CancellationTokenSource
     let source = {
       name,
       priority,
       enable: true,
-      duplicate: false,
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
+        if (cancellSource) cancellSource.cancel()
+        cancellSource = new CancellationTokenSource()
         option = opt
         let { triggerCharacter, bufnr } = opt
         let doc = workspace.getDocument(bufnr)
@@ -472,13 +474,13 @@ class Languages {
         } else if (isTrigger) {
           triggerKind = CompletionTriggerKind.TriggerCharacter
         }
-        if (triggerKind != CompletionTriggerKind.Invoked) await wait(waitTime)
+        if (opt.triggerCharacter) await wait(waitTime)
+        if (cancellSource.token.isCancellationRequested) return null
         let position = complete.getPosition(opt)
         let context: CompletionContext = { triggerKind, option: opt }
         if (isTrigger) context.triggerCharacter = triggerCharacter
-        let cancellSource = new CancellationTokenSource()
         let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, cancellSource.token, context))
-        if (!result) return null
+        if (!result || cancellSource.token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
         if (!completeItems) return null
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
@@ -525,12 +527,7 @@ class Languages {
         let { additionalTextEdits } = completeItem
         await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
-        let { command, kind } = completeItem
-        if (snippet
-          && !echodocSupport
-          && !command && kind >= 2 && kind <= 4) {
-          command = { title: 'triggerParameterHints', command: 'editor.action.triggerParameterHints' }
-        }
+        let { command } = completeItem
         if (command) commands.execute(command)
         completeItems = []
       },

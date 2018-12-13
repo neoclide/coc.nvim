@@ -156,12 +156,14 @@ export class Completion implements Disposable {
   }
 
   private async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
-    let { nvim, increment, complete, insertMode } = this
+    let { nvim, increment, document, complete, insertMode } = this
     if (!complete || !complete.results) return
+    let { changedtick } = document
     this.input = resumeInput
     let items: VimCompleteItem[]
     if (complete.isIncomplete) {
       items = await complete.completeInComplete(resumeInput)
+      if (document.changedtick != changedtick) return
     } else {
       items = complete.filterResults(resumeInput)
     }
