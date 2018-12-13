@@ -208,7 +208,7 @@ command! -nargs=0 CocRestart   :call coc#rpc#restart()
 command! -nargs=+ CocInstall   :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate    :call coc#util#update()
 command! -nargs=0 CocRebuild   :call coc#util#rebuild()
-command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocAction('uninstallExtension', <f-args>)
+command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 
 nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocActionAsync('formatSelected', visualmode())<CR>

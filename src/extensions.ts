@@ -178,7 +178,7 @@ export class Extensions {
       return
     }
     this.deactivate(id)
-    await wait(200)
+    await wait(100)
     try {
       await workspace.runCommand(`yarn remove ${id}`, this.root)
       this._onDidUnloadExtension.fire(id)
@@ -202,6 +202,15 @@ export class Extensions {
     let folder = path.join(this.root, 'node_modules', id)
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
+      let jsonFile = path.join(folder, 'package.json')
+      let content = await readFile(jsonFile, 'utf8')
+      let packageJSON = JSON.parse(content)
+      let { engines } = packageJSON
+      if (!engines || !engines.hasOwnProperty('coc') || !engines.hasOwnProperty('vscode')) {
+        let confirmed = await workspace.showPrompt(`"${id}" is not a valid extension, remove it?`)
+        if (confirmed) workspace.nvim.command(`CocUninstall ${id}`, true)
+        return
+      }
       await this.loadExtension(folder)
     }
   }
@@ -242,7 +251,7 @@ export class Extensions {
     } else if (engines && engines.hasOwnProperty('vscode')) {
       this.createExtension(folder, Object.freeze(packageJSON))
     } else {
-      workspace.showMessage(`engine coc & vscode not found in ${jsonFile}`, 'error')
+      workspace.showMessage(`engine coc & vscode not found in ${jsonFile}`, 'warning')
     }
   }
 
