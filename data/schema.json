@@ -308,6 +308,8 @@
     "coc.preferences.timeout": {
       "type": "integer",
       "default": 2000,
+      "minimum": 500,
+      "maximum": 5000,
       "description": "Timeout for completion, in miliseconds."
     },
     "coc.preferences.minTriggerInputLength": {
@@ -318,6 +320,8 @@
     "coc.preferences.triggerCompletionWait": {
       "type": "integer",
       "default": 60,
+      "minimum": 50,
+      "maximum": 300,
       "description": "Wait time between trigger character type and completion start, for wait server content synchronize."
     },
     "coc.preferences.echodocSupport": {

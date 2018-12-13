@@ -448,6 +448,8 @@ class Languages {
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let echodocSupport = preferences.get<boolean>('echodocSupport', false)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    waitTime = Math.max(50, waitTime)
+    waitTime = Math.min(300, waitTime)
     let source = {
       name,
       priority,
