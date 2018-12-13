@@ -19,11 +19,12 @@ endfunction
 
 function! s:start_select(lnum, col, len)
   call cursor(a:lnum, a:col)
+  let ed = &virtualedit
   if a:len > 0
     let m = a:len == 1 ? '' : (a:len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
   elseif mode() !=# 'i'
-    if strlen(getline('.')) + 1 == a:col
+    if strlen(getline('.')) + 1 == a:col && ed !=# 'onemore' && ed !=# 'all'
       call feedkeys("a", 'int')
     else
       call feedkeys("i", 'int')
