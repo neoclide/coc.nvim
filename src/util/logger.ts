@@ -9,8 +9,9 @@ const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'c
 
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
-if (level === 'debug') {
-  fs.writeFileSync(LOG_FILE_PATH, '', 'utf8')
+if (!fs.existsSync(LOG_FILE_PATH) && level == 'debug') {
+  fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
+  fs.chmodSync(LOG_FILE_PATH, 0o666)
 }
 
 const isRoot = process.getuid && process.getuid() == 0
