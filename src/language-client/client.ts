@@ -11,7 +11,6 @@ import FileWatcher from '../model/fileSystemWatcher'
 import { ProviderResult } from '../provider'
 import { DiagnosticCollection, OutputChannel, TextDocumentWillSaveEvent, Thenable } from '../types'
 import * as Is from '../util/is'
-import os from 'os'
 import workspace from '../workspace'
 import { ColorProviderMiddleware } from './colorProvider'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
@@ -636,6 +635,7 @@ export type Middleware = _Middleware &
   FoldingRangeProviderMiddleware
 
 export interface LanguageClientOptions {
+  ignoredRootPaths?: string[]
   documentSelector?: DocumentSelector | string[]
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -655,6 +655,7 @@ export interface LanguageClientOptions {
 }
 
 interface ResolvedClientOptions {
+  ignoredRootPaths?: string[]
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -3125,6 +3126,7 @@ export abstract class BaseLanguageClient {
     this._name = name
     clientOptions = clientOptions || {}
     this._clientOptions = {
+      ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
       diagnosticCollectionName: clientOptions.diagnosticCollectionName,
@@ -3575,6 +3577,11 @@ export abstract class BaseLanguageClient {
           if (resolved) rootPath = resolved
         }
       }
+    }
+    let { ignoredRootPaths } = this._clientOptions
+    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
+      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
+      return
     }
 
     let initParams: InitializeParams = {

@@ -1,8 +1,10 @@
 import { EventEmitter } from 'events'
+import which from 'which'
 import fs from 'fs'
 import net from 'net'
 import path from 'path'
-import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
+import os from 'os'
+import { Disposable, DocumentSelector, Emitter, TextDocument, DocumentFilter } from 'vscode-languageserver-protocol'
 import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
@@ -274,16 +276,29 @@ export function documentSelectorToLanguageIds(documentSelector: DocumentSelector
 
 // convert config to options
 export function getLanguageServerOptions(id: string, name: string, config: LanguageServerConfig): [LanguageClientOptions, ServerOptions] {
-  let { command, module, port, args } = config
+  let { command, module, port, args, filetypes } = config
   args = args || []
+  if (!filetypes) {
+    workspace.showMessage(`Wrong configuration of LS "${name}", filetypes not found`, 'error')
+    return null
+  }
   if (!command && !module && !port) {
-    workspace.showMessage(`Invalid config of language server ${name}`, 'error')
+    workspace.showMessage(`Wrong configuration of LS "${name}"`, 'error')
     return null
   }
   if (module && !fs.existsSync(module as string)) {
-    workspace.showMessage(`module file ${module} not found for ${name}`, 'error')
+    workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
     return null
   }
+  if (command) {
+    try {
+      which.sync(command)
+    } catch (e) {
+      workspace.showMessage(`Command "${command}" of LS "${name}" not found in $PATH`, 'error')
+      return null
+    }
+  }
+  if (filetypes.length == 0) return
   let isModule = module != null
   let serverOptions: ServerOptions
   if (isModule) {
@@ -315,8 +330,15 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
       })
     }
   }
+  let documentSelector: DocumentFilter[] = []
+  config.filetypes.forEach(filetype => {
+    documentSelector.push({ language: filetype, scheme: 'file' }, { language: filetype, scheme: 'untitled' })
+  })
+  let ignoredRootPaths = config.ignoredRootPaths || []
+  ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
   let clientOptions: LanguageClientOptions = {
-    documentSelector: config.filetypes || [{ language: '*' }],
+    ignoredRootPaths,
+    documentSelector,
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
       configurationSection: `${id}.settings`

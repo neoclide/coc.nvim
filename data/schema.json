@@ -1,30 +1,40 @@
 {
-  "$schema": "http://json-schema.org/draft-04/schema",
+  "$schema": "http://json-schema.org/draft-06/schema",
   "description": "Configuration file for coc.nvim",
   "additionalProperties": false,
   "definitions": {
-    "languageServerSocket": {
+    "languageServerBase": {
       "type": "object",
-      "additionalProperties": false,
-      "required": ["port", "filetypes"],
       "properties": {
-        "port": {
-          "type": "integer",
-          "description": "Port number of socket server"
-        },
-        "host": {
-          "type": "string",
-          "default": "127.0.0.1",
-          "description": "Host of server"
-        },
         "enable": {
           "type": "boolean",
           "default": true
+        },
+        "cwd": {
+          "type": "string",
+          "default": "",
+          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+        },
+        "env": {
+          "type": "array",
+          "default": null,
+          "description": "Environment variable for child process.",
+          "items": {
+            "type": "string"
+          }
         },
         "rootPatterns": {
           "type": "array",
           "default": [],
           "description": "Root patterns used for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "ignoredRootPaths": {
+          "type": "array",
+          "default": [],
+          "description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
           "items": {
             "type": "string"
           }
@@ -40,6 +50,7 @@
         "revealOutputChannelOn": {
           "type": "string",
           "default": "never",
+          "description": "Configure message level to show the output channel buffer",
           "enum": ["info", "warn", "error", "never"]
         },
         "initializationOptions": {
@@ -60,8 +71,34 @@
         }
       }
     },
+    "languageServerSocket": {
+      "type": "object",
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
+      "required": ["port", "filetypes"],
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port number of socket server"
+        },
+        "host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host of server"
+        },
+        "enable": {},
+        "rootPatterns": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "settings": {},
+        "trace.server": {}
+      }
+    },
     "languageServerModule": {
       "type": "object",
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
       "required": ["module", "filetypes"],
       "additionalProperties": false,
       "properties": {
@@ -78,40 +115,6 @@
             "type": "string"
           }
         },
-        "rootPatterns": {
-          "type": "array",
-          "default": [],
-          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "filetypes": {
-          "type": "array",
-          "default": [],
-          "description": "Supported filetypes",
-          "items": {
-            "type": "string"
-          }
-        },
-        "enable": {
-          "type": "boolean",
-          "default": true,
-          "description": "Set to false to disable this language server"
-        },
-        "cwd": {
-          "type": "string",
-          "default": "",
-          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
-        },
-        "env": {
-          "type": "array",
-          "default": null,
-          "description": "Environment variable for child process.",
-          "items": {
-            "type": "string"
-          }
-        },
         "execArgv": {
           "type": "array",
           "default": ["--nolazy", "--inspect-brk=6045"],
@@ -119,33 +122,23 @@
           "items": {
             "type": "string"
           }
-        },
-        "revealOutputChannelOn": {
-          "type": "string",
-          "default": "error",
-          "enum": ["info", "warn", "error", "never"]
-        },
-        "initializationOptions": {
-          "type": "object",
-          "default": {},
-          "description": "initializationOptions passed to languageserver"
-        },
-        "settings": {
-          "type": "object",
-          "default": {},
-          "description": "Settings of languageserver"
-        },
-        "trace.server": {
-          "type": "string",
-          "default": "off",
-          "enum": ["off", "messages", "verbose"],
-          "description": "Trace level of communication between server and client"
         }
-      }
+      },
+      "cwd": {},
+      "env": {},
+      "enable": {},
+      "rootPatterns": {},
+      "ignoredRootPaths": {},
+      "filetypes": {},
+      "revealOutputChannelOn": {},
+      "initializationOptions": {},
+      "settings": {},
+      "trace.server": {}
     },
     "languageServerCommand": {
       "type": "object",
       "required": ["command", "filetypes"],
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
       "additionalProperties": false,
       "properties": {
         "command": {
@@ -161,47 +154,6 @@
             "type": "string"
           }
         },
-        "rootPatterns": {
-          "type": "array",
-          "default": [],
-          "description": "Root patterns to for reoslve rootPath from current file, default to g:rooter_patterns variable.",
-          "items": {
-            "type": "string"
-          }
-        },
-        "filetypes": {
-          "type": "array",
-          "default": [],
-          "description": "Supported filetypes",
-          "items": {
-            "type": "string"
-          }
-        },
-        "enable": {
-          "type": "boolean",
-          "default": true
-        },
-        "execArgv": {
-          "type": "array",
-          "default": ["--nolazy", "--inspect-brk=6045"],
-          "description": "Args passed to node, only available when args contains --node-ipc",
-          "items": {
-            "type": "string"
-          }
-        },
-        "cwd": {
-          "type": "string",
-          "default": "",
-          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
-        },
-        "env": {
-          "type": "array",
-          "default": null,
-          "description": "Environment variable for child process.",
-          "items": {
-            "type": "string"
-          }
-        },
         "detached": {
           "type": "boolean",
           "default": false,
@@ -212,27 +164,16 @@
           "default": false,
           "description": "Use shell for process"
         },
-        "revealOutputChannelOn": {
-          "type": "string",
-          "default": "error",
-          "enum": ["info", "warn", "error", "never"]
-        },
-        "initializationOptions": {
-          "type": "object",
-          "default": {},
-          "description": "initializationOptions passed to languageserver"
-        },
-        "settings": {
-          "type": "object",
-          "default": {},
-          "description": "Settings of languageserver"
-        },
-        "trace.server": {
-          "type": "string",
-          "default": "off",
-          "enum": ["off", "messages", "verbose"],
-          "description": "Trace level of communication between server and client"
-        }
+        "cwd": {},
+        "env": {},
+        "enable": {},
+        "rootPatterns": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "settings": {},
+        "trace.server": {}
       }
     }
   },

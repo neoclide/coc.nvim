@@ -151,6 +151,7 @@ export interface LanguageServerConfig {
   detached?: boolean
   shell?: boolean
   execArgv?: string[]
+  ignoredRootPaths?: string[]
   initializationOptions?: any
   revealOutputChannelOn?: string
   configSection?: string
