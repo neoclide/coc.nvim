@@ -125,3 +125,13 @@ export function convertFiletype(filetype: string, map: { [index: string]: string
   if (map[filetype]) return map[filetype]
   return filetype
 }
+
+export function isRunning(pid: number): boolean {
+  try {
+    let res: any = process.kill(pid, 0)
+    return res == true
+  }
+  catch (e) {
+    return e.code === 'EPERM'
+  }
+}

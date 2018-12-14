@@ -15,12 +15,14 @@ import clean from './util/clean'
 import workspace from './workspace'
 import { Location } from 'vscode-languageserver-types'
 import { OutputChannel } from './types'
+import { isRunning } from './util'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
   private initialized = false
   private handler: Handler
   private infoChannel: OutputChannel
+  private interval: NodeJS.Timeout
 
   constructor(public nvim: Neovim) {
     super()
@@ -45,6 +47,8 @@ export default class Plugin extends EventEmitter {
       if (val && Object.keys(val).length) {
         workspace.configurations.updateUserConfig(val)
       }
+      let pid = await nvim.call('getpid')
+      this.checkProcess(pid)
       await workspace.init()
       sources.init()
       completion.init(nvim)
@@ -282,7 +286,17 @@ export default class Plugin extends EventEmitter {
     }
   }
 
+  private checkProcess(pid: number): void {
+    if (global.hasOwnProperty('__TEST__')) return
+    this.interval = setInterval(() => {
+      if (!isRunning(pid)) {
+        process.exit()
+      }
+    }, 15000)
+  }
+
   public async dispose(): Promise<void> {
+    if (this.interval) clearInterval(this.interval)
     this.removeAllListeners()
     workspace.dispose()
     sources.dispose()

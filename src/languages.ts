@@ -503,11 +503,12 @@ class Languages {
         resolveInput = item.word
         if (resolveTokenSource) resolveTokenSource.cancel()
         resolveTokenSource = new CancellationTokenSource()
+        let line = doc.getline(option.linenr - 1, false)
         let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
         if (resolveTokenSource.token.isCancellationRequested) return
         resolvedIndexes.add(item.index)
         if (resolved && resolving.textEdit == null && resolved.textEdit != null) {
-          currLine = doc.getline(option.linenr - 1, false)
+          currLine = line
         }
         if (resolved) mixin(item, resolved)
         if (resolveInput != item.word) return
