@@ -206,7 +206,7 @@ export class Extensions {
       let content = await readFile(jsonFile, 'utf8')
       let packageJSON = JSON.parse(content)
       let { engines } = packageJSON
-      if (!engines || !engines.hasOwnProperty('coc') || !engines.hasOwnProperty('vscode')) {
+      if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
         let confirmed = await workspace.showPrompt(`"${id}" is not a valid extension, remove it?`)
         if (confirmed) workspace.nvim.command(`CocUninstall ${id}`, true)
         return
