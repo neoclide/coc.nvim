@@ -106,7 +106,7 @@ describe('SnippetSession#start', () => {
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await session.selectCurrentPlaceholder()
-    await helper.wait(30)
+    await helper.wait(100)
     let m = await nvim.mode
     expect(m.mode).toBe('s')
   })
@@ -278,7 +278,7 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${1:foo} $0 ')
     await nvim.input('Abar')
-    await helper.wait(30)
+    await helper.wait(100)
     expect(res).toBe(true)
     await session.synchronizeUpdatedPlaceholders({
       range: Range.create(0, 5, 0, 5),

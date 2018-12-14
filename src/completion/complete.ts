@@ -89,8 +89,6 @@ export default class Complete {
 
   public async completeInComplete(resumeInput: string): Promise<VimCompleteItem[]> {
     let { results, document } = this
-    await document.patchChange()
-    document.forceSync()
     let remains = results.filter(res => !res.isIncomplete)
     remains.forEach(res => {
       res.items.forEach(item => delete item.user_data)
@@ -153,7 +151,7 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
-        item.score = input.length ? score(filterText, input, { usePathScoring: false }) : 0
+        item.score = input.length ? score(filterText, input) + (priority * 100) : 0
         item.recentScore = item.recentScore || 0
         if (!item.recentScore) {
           let recentScore = this.recentScores[`${bufnr}|${word}`]

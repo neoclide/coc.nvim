@@ -162,6 +162,10 @@ export class Completion implements Disposable {
     this.input = resumeInput
     let items: VimCompleteItem[]
     if (complete.isIncomplete) {
+      await document.patchChange()
+      document.forceSync()
+      await wait(30)
+      if (document.changedtick != changedtick) return
       items = await complete.completeInComplete(resumeInput)
       if (document.changedtick != changedtick) return
     } else {
@@ -334,6 +338,7 @@ export class Completion implements Disposable {
     let { changedtick } = document
     try {
       increment.stop()
+      await sources.doCompleteResolve(item)
       this.addRecent(item.word, document.bufnr)
       await wait(30)
       let mode = await nvim.call('mode')

@@ -30,6 +30,7 @@ import * as complete from './util/complete'
 import { mixin } from './util/object'
 import { byteLength } from './util/string'
 import workspace from './workspace'
+import Document from './model/document'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -84,7 +85,6 @@ class Languages {
   private implementatioinManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
-  private resolveTokenSource: CancellationTokenSource
 
   constructor() {
     workspace.onWillSaveUntil(event => {
@@ -133,7 +133,7 @@ class Languages {
           return res
         }
       }
-      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 100)
+      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 99)
     })
   }
 
@@ -445,13 +445,18 @@ class Languages {
     // line used for TextEdit
     let currLine: string
     let preferences = workspace.getConfiguration('coc.preferences')
+    let hasResolve = typeof provider.resolveCompletionItem === 'function'
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
     let echodocSupport = preferences.get<boolean>('echodocSupport', false)
     let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    // index set of resolved items
+    let resolvedIndexes: Set<number> = new Set()
+    let doc: Document = null
     waitTime = Math.max(50, waitTime)
     waitTime = Math.min(300, waitTime)
     let cancellSource: CancellationTokenSource
-    let source = {
+    let resolveTokenSource: CancellationTokenSource
+    let source: ISource = {
       name,
       priority,
       enable: true,
@@ -461,10 +466,11 @@ class Languages {
       doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
         if (cancellSource) cancellSource.cancel()
         cancellSource = new CancellationTokenSource()
-        option = opt
         let { triggerCharacter, bufnr } = opt
-        let doc = workspace.getDocument(bufnr)
+        doc = workspace.getDocument(bufnr)
         if (!doc) return null
+        resolvedIndexes = new Set()
+        option = opt
         colnr = option.colnr
         currLine = option.line
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
@@ -491,44 +497,53 @@ class Languages {
         return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
       },
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
-        if (completeItems.length == 0) return
-        resolveInput = item.word
+        if (!hasResolve || resolvedIndexes.has(item.index)) return
         let resolving = completeItems[item.index]
         if (!resolving) return
-        await source.resolveCompletionItem(resolving, provider)
-        let visible = await this.nvim.call('pumvisible')
-        if (visible != 0 && resolveInput == item.word) {
-          // vim have no suppport for update complete item
-          let str = resolving.detail ? resolving.detail.trim() : ''
-          if (str) echoMessage(this.nvim, str)
-          let doc = complete.getDocumentation(resolving)
-          if (doc) str += '\n\n' + doc
-          if (str.length) {
-            // TODO vim has bug with layout change on pumvisible
-            // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
-          }
+        resolveInput = item.word
+        if (resolveTokenSource) resolveTokenSource.cancel()
+        resolveTokenSource = new CancellationTokenSource()
+        let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
+        if (resolveTokenSource.token.isCancellationRequested) return
+        resolvedIndexes.add(item.index)
+        if (resolved && resolving.textEdit == null && resolved.textEdit != null) {
+          currLine = doc.getline(option.linenr - 1, false)
         }
+        if (resolved) mixin(item, resolved)
+        if (resolveInput != item.word) return
+        setTimeout(async () => {
+          let visible = await this.nvim.call('pumvisible')
+          if (visible && resolveInput == item.word) {
+            // vim have no suppport for update complete item
+            let str = resolving.detail ? resolving.detail.trim() : ''
+            if (str) echoMessage(this.nvim, str)
+            let doc = complete.getDocumentation(resolving)
+            if (doc) str += '\n\n' + doc
+            if (str.length) {
+              // TODO vim has bug with layout change on pumvisible
+              // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
+            }
+          }
+        }, 20)
       },
-      onCompleteDone: async (item: VimCompleteItem, opt: CompleteOption): Promise<void> => {
-        let completeItem = completeItems[item.index]
-        if (!completeItem) return
-        await source.resolveCompletionItem(completeItem, provider)
+      onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
+        let item = completeItems[vimItem.index]
+        if (!item) return
         // use TextEdit for snippet item
-        if (item.isSnippet && !completeItem.textEdit) {
+        if (vimItem.isSnippet && !item.textEdit) {
           let line = opt.linenr - 1
-          completeItem.textEdit = {
+          item.textEdit = {
             range: Range.create(line, opt.col, line, colnr - 1),
             // tslint:disable-next-line: deprecation
-            newText: completeItem.insertText || completeItem.label
+            newText: item.insertText || item.label
           }
         }
         opt = Object.assign({}, opt, { line: currLine })
-        let snippet = await this.applyTextEdit(completeItem, opt)
-        let { additionalTextEdits } = completeItem
+        let snippet = await this.applyTextEdit(item, opt)
+        let { additionalTextEdits } = item
         await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
-        let { command } = completeItem
-        if (command) commands.execute(command)
+        if (item.command) commands.execute(item.command)
         completeItems = []
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
@@ -539,31 +554,9 @@ class Languages {
           return true
         }
         return false
-      },
-      resolveCompletionItem: async (item: any, provider: CompletionItemProvider): Promise<CompletionItem> => {
-        if (this.resolveTokenSource) {
-          this.resolveTokenSource.cancel()
-        }
-        let hasResolve = typeof provider.resolveCompletionItem === 'function'
-        if (hasResolve && !item.resolved) {
-          let cancelTokenSource = this.resolveTokenSource = new CancellationTokenSource()
-          let token = cancelTokenSource.token
-          let resolved = await Promise.resolve(provider.resolveCompletionItem(item, token))
-          if (token.isCancellationRequested) return
-          this.resolveTokenSource = null
-          item.resolved = true
-          // textEdit send on resolve
-          if (item.textEdit == null && resolved.textEdit != null) {
-            let doc = workspace.getDocument(option.bufnr)
-            // use the line send to server
-            if (doc) currLine = doc.getline(option.linenr - 1, false)
-          }
-          if (resolved) mixin(item, resolved)
-        }
-        return item
       }
     }
-    return source as ISource
+    return source
   }
 
   private get token(): CancellationToken {

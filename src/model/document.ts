@@ -59,7 +59,8 @@ export default class Document {
           paused = true
         } else {
           paused = false
-          this._fireContentChanges()
+          // not send immediatelly
+          this.fireContentChanges()
         }
       }
     })

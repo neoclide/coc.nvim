@@ -353,10 +353,10 @@ statusline. See |coc-status| for detail.
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 
-			Diagnostic infomation of current buffer, the format
+			Diagnostic information of current buffer, the format
 			would like:
 
-			`{'error': 0, 'warning': 0, 'infomation': 0, 'hint':0}`
+			`{'error': 0, 'warning': 0, 'information': 0, 'hint':0}`
 
 			can be used for customize statusline. See |coc-status|.
 
@@ -514,7 +514,7 @@ Available Actions ~
 
 "services" 					*coc-action-services*
 
-	Get all services infomation list.
+	Get all services information list.
 
 	Used for |coc-denite-service|
 
@@ -661,7 +661,7 @@ coc#refresh()
 coc#status()
 
 	Return status string for used in status line, the status
-	including diagnostic infomation from `b:coc_diagnostic_info`
+	including diagnostic information from `b:coc_diagnostic_info`
 	and extension contributed status from `g:coc_status`,
 	for statusline integration, see |coc-status|
 
@@ -755,7 +755,7 @@ COMMANDS 					*coc-commands*
 <
 :CocInfo 					*:CocInfo*
 
-		Show some infomation in `info` output channel, useful for bug
+		Show some information in `info` output channel, useful for bug
 		report.
 
 ------------------------------------------------------------------------------
@@ -834,7 +834,7 @@ CocInfoSign 					*CocInfoSign*
 
   Default: `hi CocInfoSign  ctermfg=Yellow guifg=#fab005`
 
-  The highlight used for infomation signs.
+  The highlight used for information signs.
 
 CocHintSign 					*CocHintSign*
 
@@ -858,7 +858,7 @@ CocInfoHighlight 				*CocInfoHighlight*
 
   Default: `hi default link CocInfoHighlight   CocUnderline`
 
-  The highlight used for infomation text.
+  The highlight used for information text.
 
 CocHintHighlight 				*CocHintHighlight*
 
@@ -901,7 +901,7 @@ CocInfoLine 					*CocInfoLine*
 
   Default `undefined`
 
-  Highlight for line with diagnostic infomation.
+  Highlight for line with diagnostic information.
 
 CocHintLine 					*CocHintLine*
 
