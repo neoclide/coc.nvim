@@ -49,6 +49,7 @@ function! coc#rpc#start_server()
 endfunction
 
 function! s:GetChannel()
+  " TODO use vim_node_coc_client_id on vim
   let cid = get(g:, 'coc_node_channel_id', 0)
   if s:is_vim
      return nvim#rpc#check_client(cid) ? cid : 0
@@ -182,7 +183,7 @@ endfunction
 function! s:job_running()
   if has('nvim') && s:channel_id != 0
     let [code] = jobwait([s:channel_id], 10)
-    return code == 1
+    return code == -1
   endif
   if s:is_vim && !empty(s:job)
     let status = job_status(s:job)

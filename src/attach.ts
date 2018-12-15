@@ -2,6 +2,7 @@ import { attach, NeovimClient } from '@chemzqm/neovim'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
+import semver from 'semver'
 const logger = require('./util/logger')('attach')
 
 export default function(opts: Attach): Plugin {
@@ -52,6 +53,9 @@ export default function(opts: Attach): Plugin {
 
   nvim.channelId.then(async channelId => {
     await nvim.setVar('coc_node_channel_id', channelId)
+    let json = require('../package.json')
+    let { major, minor, patch } = semver.parse(json.version)
+    await nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')
     if (entered) plugin.init().catch(e => {
       logger.error(e)
