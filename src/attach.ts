@@ -55,7 +55,7 @@ export default function(opts: Attach): Plugin {
     await nvim.setVar('coc_node_channel_id', channelId)
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)
-    await nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
+    nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})
     let entered = await nvim.getVvar('vim_did_enter')
     if (entered) plugin.init().catch(e => {
       logger.error(e)

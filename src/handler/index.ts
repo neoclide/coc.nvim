@@ -616,21 +616,30 @@ export default class Handler {
         if (signatureList.length == 0 && activeParameter != null) {
           let active = signature.parameters[activeParameter]
           if (active) {
-            let ms = after.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-            let idx = ms ? ms.index : after.indexOf(active.label)
-            if (idx !== -1) {
-              parts.push({ text: after.slice(0, idx), type: 'Normal' })
-              parts.push({ text: after.slice(idx, idx + active.label.length), type: 'MoreMsg' })
-              parts.push({ text: after.slice(idx + active.label.length), type: 'Normal' })
-              signatureList.push(parts)
-              continue
+            let start: number
+            let end: number
+            if (typeof active.label === 'string') {
+              let ms = after.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+              let idx = ms ? ms.index : after.indexOf(active.label)
+              if (idx == -1) {
+                parts.push({ text: after, type: 'Normal' })
+                continue
+              }
+              start = idx
+              end = idx + active.label.length
+            } else {
+              [start, end] = active.label
             }
+            parts.push({ text: after.slice(0, start), type: 'Normal' })
+            parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
+            parts.push({ text: after.slice(end), type: 'Normal' })
           }
+        } else {
+          parts.push({
+            text: after,
+            type: 'Normal'
+          })
         }
-        parts.push({
-          text: after,
-          type: 'Normal'
-        })
       }
       signatureList.push(parts)
     }
