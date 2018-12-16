@@ -1,3 +1,14 @@
+# 2018-12-17
+
+- **Break change** `vim-node-rpc` now upgrade in bacground.
+- Add `ignoredRootPaths` to `languageserver` option.
+- Add detect of vim running state.
+- Add `client.vim` for create clients.
+- Fix possible wrong current line of `completeResolve`.
+- Fix snippet not work with `set virtualedit=all`.
+- Fix default timeout to 2000.
+- Fix file mode of log file.
+
 # 2018-12-12
 
 - **Break change** `fixInsertedWord` fix inserted word which ends with word
