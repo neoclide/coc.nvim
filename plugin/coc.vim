@@ -8,12 +8,8 @@ let g:did_coc_loaded = 1
 let g:rooter_patterns = get(g:, 'rooter_patterns', ['.vim/', '.git/', '.hg/', '.projections.json'])
 let s:is_vim = !has('nvim')
 
-if s:is_vim
-  call nvim#rpc#start_server()
-else
-  if $NODE_ENV !=# 'test' && $NVIM_LISTEN_ADDRESS !=# '/tmp/nvim'
-    call coc#rpc#start_server()
-  endif
+if has('nvim') && $NODE_ENV !=# 'test' && $NVIM_LISTEN_ADDRESS !=# '/tmp/nvim'
+  call coc#rpc#start_server()
 endif
 
 function! CocAction(...) abort
@@ -178,11 +174,8 @@ endfunction
 function! s:OnVimEnter()
   " it's possible that client is not ready
   call coc#rpc#notify('VimEnter', [])
-  if s:is_vim && empty(get(g:, 'coc_node_rpc_command', ''))
-    let installed = nvim#rpc#install_node_rpc()
-    if installed
-      call nvim#rpc#start_server()
-    endif
+  if s:is_vim
+    call nvim#rpc#start_server()
   endif
 endfunction
 

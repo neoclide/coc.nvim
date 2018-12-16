@@ -7,6 +7,7 @@ let s:is_win = has("win32") || has("win64")
 let s:clientIds = []
 let s:logfile = tempname()
 let s:channel = v:null
+let s:command = ''
 
 " env used only for testing purpose
 if !empty($NVIM_LISTEN_ADDRESS)
@@ -48,25 +49,25 @@ function! s:on_exit(channel)
 endfunction
 
 function! nvim#rpc#get_command() abort
-  " executable not works on windows
-  if executable('vim-node-rpc') && !s:is_win
-    return 'vim-node-rpc'
-  endif
-  if executable('npm')
-    let root = trim(system('npm --loglevel silent root -g'))
-    let file = root . '/vim-node-rpc/lib/index.js'
-    if filereadable(file)
-      let command = ['node', file]
-      return s:is_win ? join(command, ' ') : command
-    endif
-  endif
-  if executable('yarn')
+  let folder = get(g:, 'vim_node_rpc_folder', '')
+  let file = empty(folder) ? '' : folder . '/lib/index.js'
+  if empty(file) && executable('yarn')
     let dir = trim(system('yarn global dir'))
-    let file = dir . '/node_modules/vim-node-rpc/lib/index.js'
-    if filereadable(file)
-      let command = ['node', file]
-      return s:is_win ? join(command, ' ') : command
+    let p = dir . '/node_modules/vim-node-rpc/lib/index.js'
+    if filereadable(p)
+      let file = p
     endif
+  endif
+  if empty(file) && executable('npm')
+    let root = trim(system('npm --loglevel silent root -g'))
+    let p = root . '/vim-node-rpc/lib/index.js'
+    if filereadable(p)
+      let file = p
+    endif
+  endif
+  if !empty(file)
+    let s:command = s:is_win ? join(['node', file], ' ') : ['node', file]
+    return s:command
   endif
   return ''
 endfunction
@@ -86,7 +87,11 @@ function! nvim#rpc#start_server() abort
     return
   endif
   let command = nvim#rpc#get_command()
-  if empty(command) | return | endif
+  if empty(command)
+    let installed = nvim#rpc#install_node_rpc()
+    if installed | call nvim#rpc#start_server() | endif
+    return
+  endif
   let g:coc_node_rpc_command = command
   let options = {
         \ 'in_mode': 'json',
@@ -148,30 +153,13 @@ function! nvim#rpc#check_client(clientId)
 endfunction
 
 function! nvim#rpc#install_node_rpc(...) abort
-  let prompt = get(a:, 1, 1)
-  if prompt
-    let res = input('[coc.nvim] vim-node-rpc module not found, install? [y/n]')
-    if res !=? 'y' | return 0 | endif
+  let res = coc#util#prompt_confirm('vim-node-rpc module not found, install?')
+  if !res | return 0 | endif
+  if !executable('yarn')
+    echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
+    return 0
   endif
-  let cmd = ''
-  let idx = inputlist(['Select package manager:', '1. npm', '2. yarn'])
-  if idx <= 0 | return 0 | endif
-  if idx == 1
-    let isLinux = !s:is_win && substitute(system('uname'), '\n', '', '') ==# 'Linux'
-    if executable('npm')
-      let cmd = (isLinux ? 'sudo ' : ' ').'npm i -g vim-node-rpc'
-    else
-      echohl Error | echon '[coc.nvim] executable "npm" not find in $PATH' | echohl None
-      return 0
-    endif
-  else
-    if executable('yarn')
-      let cmd = 'yarn global add vim-node-rpc'
-    else
-      echohl Error | echon '[coc.nvim] executable "yarn" not find in $PATH' | echohl None
-      return 0
-    endif
-  endif
+  let cmd = 'yarn global add vim-node-rpc'
   execute '!'.cmd
   return v:shell_error == 0
 endfunction

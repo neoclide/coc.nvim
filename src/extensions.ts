@@ -70,18 +70,26 @@ export class Extensions {
       let update = await this.checkUpdate(id, packageJSON.version)
       if (update) await workspace.nvim.command(`CocInstall ${id}`)
     }, null, this.disposables)
-    if (workspace.isVim) {
-      let filepath = await workspace.resolveModule('vim-node-rpc')
-      if (filepath) {
-        let jsonFile = path.join(filepath, 'package.json')
-        let obj = loadJson(jsonFile)
-        let update = await this.checkUpdate('vim-node-rpc', obj.version)
-        if (update) nvim.call('nvim#rpc#install_node_rpc', [0], true)
+    if (workspace.isVim) this.updateNodeRpc() // tslint:disable-line
+  }
+
+  public async updateNodeRpc(): Promise<void> {
+    let filepath = await workspace.resolveModule('vim-node-rpc')
+    if (filepath) {
+      let jsonFile = path.join(filepath, 'package.json')
+      let obj = loadJson(jsonFile)
+      let update = await this.checkUpdate('vim-node-rpc', obj.version, false)
+      if (update) {
+        let status = workspace.createStatusBarItem(99, { progress: true })
+        status.text = 'Upgrading vim-node-rpc'
+        status.show()
+        await workspace.runCommand('yarn global add vim-node-rpc', process.cwd(), 30000)
+        status.dispose()
       }
     }
   }
 
-  public async checkUpdate(moduleName: string, oldVersion: string): Promise<boolean> {
+  public async checkUpdate(moduleName: string, oldVersion: string, prompt = true): Promise<boolean> {
     let now = new Date()
     let { interval, db } = this
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
@@ -93,6 +101,7 @@ export class Extensions {
         let res = await workspace.runCommand(`yarn info ${moduleName} version --json`)
         let version = JSON.parse(res).data
         if (semver.gt(version, oldVersion)) {
+          if (!prompt) return true
           let res = await workspace.showPrompt(`a new version: ${version} of ${moduleName} available, update?`)
           if (res) return true
         }

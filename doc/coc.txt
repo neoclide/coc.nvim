@@ -316,6 +316,13 @@ g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 
 			Default: 0
 
+g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
+
+			Folder contains `vim-node-rpc` module, used for speed
+			up vim startup.
+
+			Default: undefined
+
 g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
 
 			Defaut action for open file in denite quickfix list.

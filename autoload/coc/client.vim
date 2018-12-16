@@ -28,8 +28,9 @@ function! s:start() dict
   if self.running | return | endif
   if s:is_vim
     if empty($NVIM_LISTEN_ADDRESS)
-      echoerr 'vim-node-rpc service not started!'
-      return
+      let command = nvim#rpc#get_command()
+      if empty(command) | return | endif
+      call nvim#rpc#start_server()
     endif
     let self.running = 1
     let options = {
