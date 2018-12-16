@@ -19,7 +19,7 @@ import { isRunning } from './util'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
-  private initialized = false
+  private ready = false
   private handler: Handler
   private infoChannel: OutputChannel
   private interval: NodeJS.Timeout
@@ -34,8 +34,6 @@ export default class Plugin extends EventEmitter {
   }
 
   public async init(): Promise<void> {
-    if (this.initialized) return
-    this.initialized = true
     let { nvim } = this
     let val = {}
     try {
@@ -57,10 +55,11 @@ export default class Plugin extends EventEmitter {
       await extensions.init(nvim)
       nvim.setVar('coc_process_pid', process.pid, true)
       await nvim.command('doautocmd User CocNvimInit')
+      this.ready = true
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
-      this.initialized = false
+      this.ready = false
       console.error(`Plugin initialized error: ${e.stack}`) // tslint:disable-line
     }
     workspace.onDidOpenTextDocument(async doc => {
@@ -153,7 +152,7 @@ export default class Plugin extends EventEmitter {
   }
 
   public async cocAction(...args: any[]): Promise<any> {
-    if (!this.initialized) return
+    if (!this.ready) return
     let { handler } = this
     try {
       switch (args[0] as string) {
