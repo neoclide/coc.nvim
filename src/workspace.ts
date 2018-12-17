@@ -29,11 +29,6 @@ const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
 
-interface RenameInfo {
-  oldUri: string
-  newUri: string
-}
-
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
   public readonly version: string
@@ -76,7 +71,7 @@ export class Workspace implements IWorkspace {
   public readonly configurations: Configurations
 
   constructor() {
-    let json = require(path.join(this.pluginRoot, 'package.json'))
+    let json = require('../package.json')
     this.version = json.version
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
