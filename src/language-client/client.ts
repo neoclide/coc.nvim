@@ -3804,6 +3804,9 @@ export abstract class BaseLanguageClient {
         errorHandler,
         closeHandler
       )
+    }, e => {
+      console.error(e.message) // tslint:disable-line
+      logger.error(e.stack)
     })
   }
 
