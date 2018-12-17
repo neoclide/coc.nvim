@@ -497,24 +497,25 @@ class Languages {
         return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
       },
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
-        if (!hasResolve || resolvedIndexes.has(item.index)) return
         let resolving = completeItems[item.index]
         if (!resolving) return
         resolveInput = item.word
         if (resolveTokenSource) resolveTokenSource.cancel()
-        resolveTokenSource = new CancellationTokenSource()
-        let line = doc.getline(option.linenr - 1, false)
-        let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
-        if (resolveTokenSource.token.isCancellationRequested) return
-        resolvedIndexes.add(item.index)
-        if (resolved && resolving.textEdit == null && resolved.textEdit != null) {
-          currLine = line
+        if (hasResolve && !resolvedIndexes.has(item.index)) {
+          resolveTokenSource = new CancellationTokenSource()
+          let line = doc.getline(option.linenr - 1, false)
+          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
+          if (resolveTokenSource.token.isCancellationRequested) return
+          resolvedIndexes.add(item.index)
+          if (resolved && resolving.textEdit == null && resolved.textEdit != null) {
+            currLine = line
+          }
+          if (resolved) mixin(item, resolved)
         }
-        if (resolved) mixin(item, resolved)
-        if (resolveInput != item.word) return
         setTimeout(async () => {
+          if (resolveInput != item.word) return
           let visible = await this.nvim.call('pumvisible')
-          if (visible && resolveInput == item.word) {
+          if (visible) {
             // vim have no suppport for update complete item
             let str = resolving.detail ? resolving.detail.trim() : ''
             if (str) echoMessage(this.nvim, str)
