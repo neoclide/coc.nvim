@@ -219,4 +219,5 @@ nnoremap <Plug>(coc-implementation)      :<C-u>call CocActionAsync('jumpImplemen
 nnoremap <Plug>(coc-type-definition)     :<C-u>call CocActionAsync('jumpTypeDefinition')<CR>
 nnoremap <Plug>(coc-references)          :<C-u>call CocActionAsync('jumpReferences')<CR>
 nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
+nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>

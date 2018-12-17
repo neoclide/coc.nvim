@@ -627,6 +627,21 @@ Available Actions ~
 
 	Requires language server support color representation request.
 
+"quickfixs" 					*coc-action-quickfixs*
+
+	Get all quickfix codeActions of current buffer.
+
+	Could be used with |CocDiagnosticChange| autocmd to get available fix
+	actions.
+
+"doCodeAction" {codeAction} 			*coc-action-doCodeAction*
+
+	Do a codeAction.
+
+"doQuickfix" 					*coc-action-doQuickfix*
+
+	Run quickfix actions of current line.
+
 ------------------------------------------------------------------------------
 
 						*coc#config()*

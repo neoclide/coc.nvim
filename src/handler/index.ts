@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind } from 'vscode-languageserver-protocol'
+import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
 import Colors from './colors'
@@ -336,7 +336,7 @@ export default class Handler {
     }
   }
 
-  public async doCodeAction(mode: string | null): Promise<void> {
+  public async doCodeAction(mode: string | null, only?: CodeActionKind[]): Promise<void> {
     let document = await workspace.document
     if (!document) return
     let range: Range
@@ -350,7 +350,8 @@ export default class Handler {
       }
     }
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
-    let context = { diagnostics }
+    let context: CodeActionContext = { diagnostics }
+    if (only) context.only = only
     let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
     if (!codeActionsMap) return workspace.showMessage('No action available', 'warning')
     let codeActions: CodeAction[] = []
@@ -364,27 +365,68 @@ export default class Handler {
     let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
     if (idx == -1) return
     let action = codeActions[idx]
-    if (action) {
-      let { command, edit } = action
-      if (edit) await workspace.applyEdit(edit)
-      if (command) {
-        if (commandManager.has(command.command)) {
-          commandManager.execute(command)
-        } else {
-          let clientId = (action as any).clientId
-          let service = services.getService(clientId)
-          let params: ExecuteCommandParams = {
-            command: command.command,
-            arguments: command.arguments
-          }
-          if (service.client) {
-            let { client } = service
-            client
-              .sendRequest(ExecuteCommandRequest.type, params)
-              .then(undefined, error => {
-                workspace.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
-              })
-          }
+    if (action) await this.applyCodeAction(action)
+  }
+
+  /**
+   * Get all quickfix actions of current buffer
+   *
+   * @public
+   * @returns {Promise<CodeAction[]>}
+   */
+  public async getQuickfixActions(range?: Range): Promise<CodeAction[]> {
+    let document = await workspace.document
+    if (!document) return []
+    range = range || Range.create(0, 0, document.lineCount, 0)
+    let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
+    let context: CodeActionContext = { diagnostics, only: [CodeActionKind.QuickFix] }
+    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
+    if (!codeActionsMap) return []
+    let codeActions: CodeAction[] = []
+    for (let clientId of codeActionsMap.keys()) {
+      let actions = codeActionsMap.get(clientId)
+      for (let action of actions) {
+        if (action.kind !== CodeActionKind.QuickFix) continue
+        (action as any).clientId = clientId
+        codeActions.push(action)
+      }
+    }
+    return codeActions
+  }
+
+  public async doQuickfix(): Promise<void> {
+    let lnum = await this.nvim.call('line', ['.'])
+    let range: Range = {
+      start: { line: lnum - 1, character: 0 },
+      end: { line: lnum, character: 0 }
+    }
+    let actions = await this.getQuickfixActions(range)
+    if (!actions || actions.length == 0) {
+      return workspace.showMessage('No action available', 'warning')
+    }
+    await this.applyCodeAction(actions[0])
+  }
+
+  public async applyCodeAction(action: CodeAction): Promise<void> {
+    let { command, edit } = action
+    if (edit) await workspace.applyEdit(edit)
+    if (command) {
+      if (commandManager.has(command.command)) {
+        commandManager.execute(command)
+      } else {
+        let clientId = (action as any).clientId
+        let service = services.getService(clientId)
+        let params: ExecuteCommandParams = {
+          command: command.command,
+          arguments: command.arguments
+        }
+        if (service.client) {
+          let { client } = service
+          client
+            .sendRequest(ExecuteCommandRequest.type, params)
+            .then(undefined, error => {
+              workspace.showMessage(`Execute '${command.command} error: ${error}'`, 'error')
+            })
         }
       }
     }

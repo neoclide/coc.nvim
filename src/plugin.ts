@@ -262,6 +262,12 @@ export default class Plugin extends EventEmitter {
           return handler.doCodeLensAction()
         case 'runCommand':
           return await handler.runCommand(...args.slice(1))
+        case 'quickfixs':
+          return await handler.getQuickfixActions()
+        case 'doQuickfix':
+          return await handler.doQuickfix()
+        case 'doCodeAction':
+          return await handler.applyCodeAction(args[1])
         case 'extensionStats':
           return extensions.getExtensionStates()
         case 'activeExtension':

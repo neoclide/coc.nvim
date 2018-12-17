@@ -45,7 +45,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, ke
     return
   }
 
-  descriptor.value = function(...args): Promise<R> {
+  descriptor.value = function(...args: any[]): Promise<R> {
     let { cancelTokenSource } = this
     this.cancelTokenSource = new CancellationTokenSource()
     return new Promise((resolve, reject): void => { // tslint:disable-line
@@ -172,7 +172,7 @@ class Languages {
     return this.codeActionManager.register(selector, provider, clientId, codeActionKinds)
   }
 
-  public registerHoverProvider(selector, provider: HoverProvider): Disposable {
+  public registerHoverProvider(selector: DocumentSelector, provider: HoverProvider): Disposable {
     return this.hoverManager.register(selector, provider)
   }
 
@@ -183,7 +183,7 @@ class Languages {
     return this.signatureManager.register(selector, provider, triggerCharacters)
   }
 
-  public registerDocumentSymbolProvider(selector, provider: DocumentSymbolProvider): Disposable {
+  public registerDocumentSymbolProvider(selector: DocumentSelector, provider: DocumentSymbolProvider): Disposable {
     return this.documentSymbolManager.register(selector, provider)
   }
 
@@ -191,7 +191,7 @@ class Languages {
     return this.foldingRangeManager.register(selector, provider)
   }
 
-  public registerDocumentHighlightProvider(selector, provider: any): Disposable {
+  public registerDocumentHighlightProvider(selector: DocumentSelector, provider: any): Disposable {
     return this.documentHighlightManager.register(selector, provider)
   }
 
