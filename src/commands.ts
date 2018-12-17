@@ -83,9 +83,9 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
-      id: 'workspace.refreshSources',
+      id: 'workspace.clearWatchman',
       execute: async () => {
-        await sources.refresh()
+        await workspace.runCommand('watchman watch-del-all')
       }
     })
     this.register({
