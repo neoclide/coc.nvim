@@ -278,6 +278,10 @@ g:coc_filetype_map 				*g:coc_filetype_map*
 <
 			Default: {}
 
+			Note: coc will always map filetype `javascript.jsx` to
+			`javascriptreact` and `typescript.tsx` to
+			`typescriptreact`.
+
 g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 
 			Add key mappings for make snippet select mode easier.  >

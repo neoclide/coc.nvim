@@ -109,6 +109,7 @@ Below is the reasons that lead to coc.nvim build it's own engine:
   - [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
     - [Dart](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dart)
+    - [Flow](https://github.com/neoclide/coc.nvim/wiki/Language-servers#flow)
     - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
     - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
     - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
