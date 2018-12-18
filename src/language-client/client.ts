@@ -3486,10 +3486,7 @@ export abstract class BaseLanguageClient {
         connection.onRequest(ShowMessageRequest.type, params => {
           if (!params.actions || params.actions.length == 0) {
             let msgType = params.type == MessageType.Error
-              ? 'error'
-              : params.type == MessageType.Warning
-                ? 'warning'
-                : 'more'
+              ? 'error' : params.type == MessageType.Warning ? 'warning' : 'more'
             workspace.showMessage(params.message, msgType as any)
             return Promise.resolve(null)
           }
@@ -3499,7 +3496,7 @@ export abstract class BaseLanguageClient {
           })
         })
         connection.onTelemetry(_data => {
-          logger.warn('telemetry not supported')
+          // ignored
         })
         connection.listen()
         // Error is handled in the intialize call.
@@ -3507,8 +3504,7 @@ export abstract class BaseLanguageClient {
       }).then(undefined, error => {
         this.state = ClientState.StartFailed
         this._onReadyCallbacks.reject(error)
-        this.error('Starting client failed', error)
-        workspace.showMessage(`Couldn't start client ${this._id}`, 'error')
+        this.error('Starting client failed: ', error)
       })
     return Disposable.create(() => {
       if (this.needsStop()) {
@@ -3767,9 +3763,6 @@ export abstract class BaseLanguageClient {
         errorHandler,
         closeHandler
       )
-    }, e => {
-      console.error(e.message) // tslint:disable-line
-      logger.error(e.stack)
     })
   }
 
