@@ -631,7 +631,7 @@ Available Actions ~
 
 	Requires language server support color representation request.
 
-"quickfixs" 					*coc-action-quickfixs*
+"quickfixes" 					*coc-action-quickfixes*
 
 	Get all quickfix codeActions of current buffer.
 
