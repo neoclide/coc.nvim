@@ -303,6 +303,18 @@ g:coc_node_path 				*g:coc_node_path*
 			it doen't take effect if coc service started by binary
 			build of coc.
 
+g:coc_node_args 				*g:coc_node_exec_args*
+
+			Arguments passed to node when starting coc
+			service from source code.
+
+			Useful for start coc in debug mode, ex: >
+			
+			let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
+<
+
+			Default: []
+
 g:coc_force_debug  				*g:coc_force_debug*
 
 			Coc would use precompiled binary when the binary file

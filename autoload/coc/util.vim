@@ -71,21 +71,18 @@ endfunction
 
 function! coc#util#job_command()
   let binary = coc#util#binary()
-  if filereadable(binary) && !get(g:, 'coc_force_debug', 0)
+  if executable(binary) && !get(g:, 'coc_force_debug', 0)
     return [binary]
   endif
   let file = s:root.'/lib/attach.js'
-  if exists('g:coc_node_path')
-    return [g:coc_node_path, s:root.'/bin/server.js']
+  if !filereadable(file)
+    echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
   endif
-  if filereadable(file)
-    if executable('node')
-      return ['node', s:root.'/bin/server.js']
-    else
-      echohl Error | echon 'node not found in $PATH' | echohl None
-    endif
+  let node = get(g:, 'coc_node_path', 'node')
+  if !executable(node)
+    echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
   endif
-  echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
+  return [node] + get(g:, 'coc_node_args', []) + [s:root.'/bin/server.js']
 endfunction
 
 function! coc#util#echo_hover(msg)
