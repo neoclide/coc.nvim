@@ -49,22 +49,38 @@ export class DiagnosticBuffer {
 
   private _refresh(diagnosticItems: DiagnosticItems): void {
     let diagnostics = this.getDiagnostics(diagnosticItems)
-    if (equals(diagnosticItems, this._diagnosticItems)) return
+    if (this.equalDiagnostics(diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
+    this.nvim.pauseNotification()
     sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
-    sequence.addFunction(() => {
-      this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
-    })
     sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
     sequence.addFunction(this.addSigns.bind(this, diagnostics))
     sequence.addFunction(this.addHighlight.bind(this, diagnostics))
+    sequence.addFunction(() => {
+      if (this.isVim) this.nvim.command('redraw', true)
+    })
     sequence.start().then(canceled => {
+      this.nvim.resumeNotification(canceled)
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
       }
     }, e => {
       logger.error(e)
     })
+  }
+
+  private equalDiagnostics(diagnosticItems: DiagnosticItems): boolean {
+    for (let key of Object.keys(diagnosticItems)) {
+      let diagnostics = diagnosticItems[key]
+      let curr = this._diagnosticItems[key]
+      if ((diagnostics == null || diagnostics.length == 0) && (!curr || curr.length == 0)) {
+        continue
+      }
+      if (!equals(diagnostics, curr)) {
+        return false
+      }
+    }
+    return true
   }
 
   public async setLocationlist(diagnostics: Diagnostic[]): Promise<void> {
@@ -80,13 +96,15 @@ export class DiagnosticBuffer {
     }
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
     let action = (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) ? 'r' : ' '
-    await nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }])
+    nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }], true)
   }
 
   private async clearSigns(): Promise<void> {
     let { nvim, signIds, bufnr } = this
-    await nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)])
-    signIds.clear()
+    if (signIds.size > 0) {
+      nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
+      signIds.clear()
+    }
   }
 
   public async checkSigns(): Promise<void> {
@@ -109,8 +127,8 @@ export class DiagnosticBuffer {
     }
   }
 
-  public async addSigns(diagnostics: Diagnostic[]): Promise<void> {
-    await this.clearSigns()
+  public addSigns(diagnostics: Diagnostic[]): void {
+    this.clearSigns()
     let { nvim, bufnr, signIds } = this
     let signId = this.config.signOffset
     signIds.clear()
@@ -148,6 +166,7 @@ export class DiagnosticBuffer {
     buffer.setVar('coc_diagnostic_info', info, true)
     let bufnr = await this.nvim.call('bufnr', '%')
     if (bufnr == this.bufnr) this.nvim.command('redraws', true)
+    this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }
 
   public async clearHighlight(): Promise<void> {
@@ -167,8 +186,9 @@ export class DiagnosticBuffer {
 
   public async addHighlight(diagnostics: Diagnostic[]): Promise<void> {
     await this.clearHighlight()
+    if (diagnostics.length == 0) return
     let winid = await this.nvim.call('bufwinid', this.bufnr) as number
-    if (winid == -1 || diagnostics.length == 0) return
+    if (winid == -1 && this.isVim) return
     for (let diagnostic of diagnostics.reverse()) {
       let { range, severity } = diagnostic
       if (this.isVim) {
@@ -266,7 +286,7 @@ export class DiagnosticBuffer {
     let bufnr = await this.nvim.call('bufnr', '%')
     if (bufnr == this.bufnr) this.nvim.command('redraws', true)
     await this.clearHighlight()
-    await this.clearSigns()
+    this.clearSigns()
     // clear locationlist
     if (this.config.locationlist) {
       let winid = await this.nvim.call('bufwinid', bufnr) as number

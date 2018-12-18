@@ -67,7 +67,8 @@ describe('diagnostic buffer', () => {
   it('should add signs', async () => {
     let diagnostics = [createDiagnostic('foo'), createDiagnostic('bar')]
     let buf = await createDiagnosticBuffer()
-    await buf.addSigns(diagnostics)
+    buf.addSigns(diagnostics)
+    await helper.wait(30)
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
     let line = lines.find(s => s.indexOf('CocError') != -1)
