@@ -52,11 +52,17 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
 }
 
 export function getUri(bufname: string, id: number, buftype: string): string {
-  if (buftype == 'quickfix') return `quickfix:${process.cwd()}/${id}`
-  if (buftype == 'nofile') return `nofile:${bufname}/${id}`
-  if (!bufname) return `untitled:${process.cwd()}/${id}`
+  if (buftype == 'quickfix') return Uri.parse(`quickfix:${process.cwd()}/${id}`).toString()
+  if (buftype == 'nofile') return Uri.parse(`nofile:${bufname}/${id}`).toString()
+  if (buftype == 'terminal') {
+    if (bufname.startsWith('!')) {
+      return Uri.parse(`term://${bufname.slice(1)}`).toString()
+    }
+    return Uri.parse(bufname).toString()
+  }
+  if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
   bufname = bufname.replace(/\s/g, '%20')
-  if (isuri.isValid(bufname)) return bufname
+  if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
   return Uri.file(bufname).toString()
 }
 
