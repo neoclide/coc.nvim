@@ -370,13 +370,13 @@ export class LanguageClient extends BaseLanguageClient {
           throw new Error(`Launching server ${node.module} failed.`)
         }
         this._serverProcess = serverProcess
-        serverProcess.stdout.on('data', data => this.info(Is.string(data) ? data : data.toString(encoding)))
+        serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
         serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
         return {
           reader: new IPCMessageReader(serverProcess),
           writer: new IPCMessageWriter(serverProcess)
         }
-      } else if (transport === TransportKind.ipc) {
+      } else if (transport === TransportKind.stdio) {
         let serverProcess = cp.spawn(runtime, args, execOptions)
         if (!serverProcess || !serverProcess.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
@@ -395,7 +395,7 @@ export class LanguageClient extends BaseLanguageClient {
         }
         this._serverProcess = process
         process.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
-        process.stdout.on('data', data => this.info(Is.string(data) ? data : data.toString(encoding)))
+        process.stdout.on('data', data => this.appendOutput(data, encoding))
         let protocol = await Promise.resolve(transport.onConnected())
         return { reader: protocol[0], writer: protocol[1] }
       } else if (Transport.isSocket(node.transport)) {
@@ -406,7 +406,7 @@ export class LanguageClient extends BaseLanguageClient {
         }
         this._serverProcess = process
         process.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
-        process.stdout.on('data', data => this.info(Is.string(data) ? data : data.toString(encoding)))
+        process.stdout.on('data', data => this.appendOutput(data, encoding))
         let protocol = await Promise.resolve(transport.onConnected())
         return { reader: protocol[0], writer: protocol[1] }
       }
@@ -461,8 +461,13 @@ export class LanguageClient extends BaseLanguageClient {
     return Promise.resolve(undefined)
   }
 
-  private appendOutput(data: string | Buffer, encoding: string): void {
-    this.outputChannel.append(Is.string(data) ? data : data.toString(encoding))
+  private appendOutput(data: any, encoding: string): void {
+    let msg = Is.string(data) ? data : data.toString(encoding)
+    if (global.hasOwnProperty('__TEST__')) {
+      console.log(msg) // tslint:disable-line
+      return
+    }
+    this.info(Is.string(data) ? data : data.toString(encoding))
   }
 }
 
@@ -474,11 +479,11 @@ export class SettingMonitor {
   }
 
   public start(): Disposable {
-    workspace.onDidChangeConfiguration(
-      this.onDidChangeConfiguration,
-      this,
-      this._listeners
-    )
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration(this._setting)) {
+        this.onDidChangeConfiguration()
+      }
+    }, null, this._listeners)
     this.onDidChangeConfiguration()
     return {
       dispose: () => {

@@ -1138,8 +1138,6 @@ class DidChangeTextDocumentFeature
   implements DynamicFeature<TextDocumentChangeRegistrationOptions> {
   private _listener: Disposable | undefined
   private _changeData: Map<string, DidChangeTextDocumentData> = new Map<string, DidChangeTextDocumentData>()
-  private _forcingDelivery: boolean = false
-  private _changeDelayer: { uri: string; delayer: Delayer<void> } | undefined
 
   constructor(private _client: BaseLanguageClient) { }
 
@@ -1214,30 +1212,10 @@ class DidChangeTextDocumentFeature
         } else if (changeData.syncKind === TextDocumentSyncKind.Full) {
           let didChange: (event: DidChangeTextDocumentParams) => void = event => {
             let { textDocument } = workspace.getDocument(event.textDocument.uri)
-            if (this._changeDelayer) {
-              if (this._changeDelayer.uri !== textDocument.uri.toString()) {
-                // Use this force delivery to track boolean state. Otherwise we might call two times.
-                this.forceDelivery()
-                this._changeDelayer.uri = textDocument.uri.toString()
-              }
-              this._changeDelayer.delayer.trigger(() => {
-                this._client.sendNotification(
-                  DidChangeTextDocumentNotification.type,
-                  cv.asChangeTextDocumentParams(textDocument)
-                )
-              })
-            } else {
-              this._changeDelayer = {
-                uri: textDocument.uri,
-                delayer: new Delayer<void>(200)
-              }
-              this._changeDelayer.delayer.trigger(() => {
-                this._client.sendNotification(
-                  DidChangeTextDocumentNotification.type,
-                  cv.asChangeTextDocumentParams(textDocument)
-                )
-              }, -1)
-            }
+            this._client.sendNotification(
+              DidChangeTextDocumentNotification.type,
+              cv.asChangeTextDocumentParams(textDocument)
+            )
           }
           if (middleware.didChange) {
             middleware.didChange(event, didChange)
@@ -1258,24 +1236,10 @@ class DidChangeTextDocumentFeature
   }
 
   public dispose(): void {
-    this._changeDelayer = undefined
-    this._forcingDelivery = false
     this._changeData.clear()
     if (this._listener) {
       this._listener.dispose()
       this._listener = undefined
-    }
-  }
-
-  public forceDelivery() {
-    if (this._forcingDelivery || !this._changeDelayer) {
-      return
-    }
-    try {
-      this._forcingDelivery = true
-      this._changeDelayer.delayer.forceDelivery()
-    } finally {
-      this._forcingDelivery = false
     }
   }
 }
@@ -1786,7 +1750,7 @@ class CompletionItemFeature extends TextDocumentFeature<
     }
 
     let middleware = this._client.clientOptions.middleware!
-    let languageIds = cv.documentSelectorToLanguageIds(options.documentSelector!)
+    let languageIds = cv.asLanguageIds(options.documentSelector!)
     return languages.registerCompletionItemProvider(
       this._client.id,
       'LS',
@@ -3754,9 +3718,8 @@ export abstract class BaseLanguageClient {
   }
 
   private forceDocumentSync(): void {
-    (this._dynamicFeatures.get(
-      DidChangeTextDocumentNotification.type.method
-    ) as DidChangeTextDocumentFeature).forceDelivery()
+    let doc = workspace.getDocument(workspace.bufnr)
+    if (doc) doc.forceSync()
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {
@@ -4065,3 +4028,5 @@ export abstract class BaseLanguageClient {
     this.error(`Request ${type.method} failed.`, error)
   }
 }
+
+

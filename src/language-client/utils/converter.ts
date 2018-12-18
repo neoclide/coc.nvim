@@ -7,7 +7,7 @@ import Uri from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../../types'
 import { omit } from '../../util/lodash'
 
-export function documentSelectorToLanguageIds(documentSelector: DocumentSelector): string[] {
+export function asLanguageIds(documentSelector: DocumentSelector): string[] {
   let res = documentSelector.map(filter => {
     if (typeof filter == 'string') {
       return filter
@@ -15,10 +15,7 @@ export function documentSelectorToLanguageIds(documentSelector: DocumentSelector
     return filter.language
   })
   res = res.filter(s => s != null)
-  if (res.length == 0) {
-    throw new Error('Invliad document selector')
-  }
-  return res
+  return res.length == 0 ? null : res
 }
 
 export function convertToTextDocumentItem(document: TextDocument): TextDocumentItem {
