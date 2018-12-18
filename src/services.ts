@@ -306,7 +306,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
       module: module.toString(),
       runtime: config.runtime || process.execPath,
       args,
-      transport: getTransportKind(args),
+      transport: getTransportKind(config),
       options: getForkOptions(config)
     }
   } else if (command) {
@@ -367,22 +367,12 @@ export function getRevealOutputChannelOn(revealOn: string | undefined): RevealOu
   }
 }
 
-export function getTransportKind(args: string[]): Transport {
-  if (!args || args.indexOf('--node-ipc') !== -1) {
-    return TransportKind.ipc
-  }
-  if (args.indexOf('--stdio') !== -1) {
-    return TransportKind.stdio
-  }
-  let idx = args.findIndex(s => s === '--socket' || s === '--port')
-  if (idx !== -1 && typeof args[idx + 1] == 'number') {
-    let n = args[idx + 1]
-    return {
-      kind: TransportKind.socket,
-      port: Number(n)
-    }
-  }
-  return TransportKind.ipc
+export function getTransportKind(config: LanguageServerConfig): Transport {
+  let { transport, transportPort } = config
+  if (!transport || transport == 'ipc') return TransportKind.ipc
+  if (transport == 'stdio') return TransportKind.stdio
+  if (transport == 'pipe') return TransportKind.pipe
+  return { kind: TransportKind.socket, port: transportPort }
 }
 
 function getForkOptions(config: LanguageServerConfig): ForkOptions {

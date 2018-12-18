@@ -339,22 +339,21 @@ export class LanguageClient extends BaseLanguageClient {
       let runtime = node.runtime || process.execPath
       if (options.execArgv) options.execArgv.forEach(element => args.push(element))
       if (transport != TransportKind.ipc) args.push(node.module)
+      if (node.args) node.args.forEach(element => args.push(element))
       let execOptions: SpawnOptions = Object.create(null)
       execOptions.cwd = serverWorkingDir
       execOptions.env = getEnvironment(options.env)
       let pipeName: string | undefined
       if (transport === TransportKind.ipc) {
-        execOptions.stdio = [null, null, null, 'ipc']
-        if (args.indexOf('--node-ipc') == -1) args.push('--node-ipc')
+        execOptions.stdio = [null, null, null]
+        args.push('--node-ipc')
       } else if (transport === TransportKind.stdio) {
-        if (args.indexOf('--stdio') == -1) args.push('--stdio')
+        args.push('--stdio')
       } else if (transport === TransportKind.pipe) {
         pipeName = generateRandomPipeName()
         args.push(`--pipe=${pipeName}`)
       } else if (Transport.isSocket(transport)) {
-        if (args.findIndex(s => s.startsWith('--socket=')) == -1) {
-          args.push(`--socket=${transport.port}`)
-        }
+        args.push(`--socket=${transport.port}`)
       }
       args.push(`--clientProcessId=${process.pid.toString()}`)
       if (transport === TransportKind.ipc) {

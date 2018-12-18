@@ -140,6 +140,8 @@ export interface ConfigurationChangeEvent {
 export interface LanguageServerConfig {
   module?: string | ModuleResolve
   command?: string
+  transport?: string
+  transportPort?: number
   filetypes: string[]
   enable: boolean
   args?: string[]

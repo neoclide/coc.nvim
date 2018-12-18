@@ -113,7 +113,7 @@
         "args": {
           "type": "array",
           "default": [],
-          "description": "Arguments of module",
+          "description": "Extra arguments of module",
           "items": {
             "type": "string"
           }
@@ -130,19 +130,29 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "cwd": {},
-      "env": {},
-      "enable": {},
-      "rootPatterns": {},
-      "ignoredRootPaths": {},
-      "filetypes": {},
-      "revealOutputChannelOn": {},
-      "initializationOptions": {},
-      "stdioEncoding": {},
-      "settings": {},
-      "trace.server": {}
+        },
+        "transport": {
+          "type": "string",
+          "default": "ipc",
+          "description": "Transport kind used by server, could be 'ipc', 'stdio', 'socket' and 'pipe'",
+          "enum": ["ipc", "stdio", "socket", "pipe"]
+        },
+        "transportPort": {
+          "type": "integer",
+          "description": "Port number used when transport is 'socket'"
+        },
+        "cwd": {},
+        "env": {},
+        "enable": {},
+        "rootPatterns": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "stdioEncoding": {},
+        "settings": {},
+        "trace.server": {}
+      }
     },
     "languageServerCommand": {
       "type": "object",
