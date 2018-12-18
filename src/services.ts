@@ -5,7 +5,7 @@ import net from 'net'
 import path from 'path'
 import os from 'os'
 import { Disposable, DocumentSelector, Emitter, TextDocument, DocumentFilter } from 'vscode-languageserver-protocol'
-import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
+import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind, Executable } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
@@ -304,16 +304,17 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   if (isModule) {
     serverOptions = {
       module: module.toString(),
+      runtime: config.runtime || process.execPath,
       args,
       transport: getTransportKind(args),
-      options: getSpawnOptions(config)
+      options: getForkOptions(config)
     }
   } else if (command) {
     serverOptions = {
       command,
       args,
-      options: getForkOptions(config)
-    }
+      options: getSpawnOptions(config)
+    } as Executable
   } else if (port) {
     serverOptions = () => {
       return new Promise((resolve, reject) => {

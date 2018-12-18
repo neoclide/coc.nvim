@@ -16,12 +16,14 @@
           "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
         },
         "env": {
-          "type": "array",
+          "type": "object",
           "default": null,
-          "description": "Environment variable for child process.",
-          "items": {
-            "type": "string"
-          }
+          "description": "Environment variables for child process."
+        },
+        "stdioEncoding": {
+          "type": "string",
+          "default": "utf8",
+          "description": "Encoding used for stdio of child process."
         },
         "rootPatterns": {
           "type": "array",
@@ -93,6 +95,7 @@
         "revealOutputChannelOn": {},
         "initializationOptions": {},
         "settings": {},
+        "stdioEncoding": {},
         "trace.server": {}
       }
     },
@@ -115,10 +118,15 @@
             "type": "string"
           }
         },
+        "runtime": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path of node runtime."
+        },
         "execArgv": {
           "type": "array",
-          "default": ["--nolazy", "--inspect-brk=6045"],
-          "description": "Argv passed to node when using module, normally used for debugging",
+          "default": [],
+          "description": "Argv passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
           "items": {
             "type": "string"
           }
@@ -132,6 +140,7 @@
       "filetypes": {},
       "revealOutputChannelOn": {},
       "initializationOptions": {},
+      "stdioEncoding": {},
       "settings": {},
       "trace.server": {}
     },
@@ -172,6 +181,7 @@
         "filetypes": {},
         "revealOutputChannelOn": {},
         "initializationOptions": {},
+        "stdioEncoding": {},
         "settings": {},
         "trace.server": {}
       }
@@ -488,7 +498,7 @@
     "languageserver": {
       "type": "object",
       "default": {},
-      "description": "List of languageservers",
+      "description": "Dictionary of languageservers, key is used as id of languageserver.",
       "patternProperties": {
         "^[_a-zA-Z]+$": {
           "oneOf": [

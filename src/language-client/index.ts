@@ -48,6 +48,7 @@ namespace Executable {
 export interface ForkOptions {
   cwd?: string
   env?: any
+  execPath?: string
   encoding?: string
   execArgv?: string[]
 }
@@ -310,7 +311,7 @@ export class LanguageClient extends BaseLanguageClient {
           cp = result
           this._isDetached = false
         }
-        cp.stderr.on('data', data => this.appendOutput(data, encoding))
+        cp.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
         return {
           reader: new StreamMessageReader(cp.stdout),
           writer: new StreamMessageWriter(cp.stdin)
@@ -337,44 +338,58 @@ export class LanguageClient extends BaseLanguageClient {
       let options: ForkOptions = node.options || Object.create(null)
       let runtime = node.runtime || process.execPath
       if (options.execArgv) options.execArgv.forEach(element => args.push(element))
-      args.push(node.module)
+      if (transport != TransportKind.ipc) args.push(node.module)
       let execOptions: SpawnOptions = Object.create(null)
       execOptions.cwd = serverWorkingDir
       execOptions.env = getEnvironment(options.env)
       let pipeName: string | undefined
       if (transport === TransportKind.ipc) {
         execOptions.stdio = [null, null, null, 'ipc']
-        args.push('--node-ipc')
+        if (args.indexOf('--node-ipc') == -1) args.push('--node-ipc')
       } else if (transport === TransportKind.stdio) {
-        args.push('--stdio')
+        if (args.indexOf('--stdio') == -1) args.push('--stdio')
       } else if (transport === TransportKind.pipe) {
         pipeName = generateRandomPipeName()
         args.push(`--pipe=${pipeName}`)
       } else if (Transport.isSocket(transport)) {
-        args.push(`--socket=${transport.port}`)
+        if (args.findIndex(s => s.startsWith('--socket=')) == -1) {
+          args.push(`--socket=${transport.port}`)
+        }
       }
       args.push(`--clientProcessId=${process.pid.toString()}`)
-      if (transport === TransportKind.ipc || transport === TransportKind.stdio) {
+      if (transport === TransportKind.ipc) {
+        let forkOptions: cp.ForkOptions = {
+          cwd: serverWorkingDir,
+          env: getEnvironment(options.env),
+          stdio: [null, null, null, 'ipc'],
+          execPath: runtime,
+          execArgv: options.execArgv || [],
+        }
+        let serverProcess = cp.fork(node.module, args, forkOptions)
+        if (!serverProcess || !serverProcess.pid) {
+          throw new Error(`Launching server ${node.module} failed.`)
+        }
+        this._serverProcess = serverProcess
+        serverProcess.stdout.on('data', data => this.info(Is.string(data) ? data : data.toString(encoding)))
+        serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        return {
+          reader: new IPCMessageReader(serverProcess),
+          writer: new IPCMessageWriter(serverProcess)
+        }
+      } else if (transport === TransportKind.ipc) {
         let serverProcess = cp.spawn(runtime, args, execOptions)
         if (!serverProcess || !serverProcess.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }
         this._serverProcess = serverProcess
         serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
-        if (transport === TransportKind.ipc) {
-          serverProcess.stdout.on('data', data => this.info(Is.string(data) ? data : data.toString(encoding)))
-          return {
-            reader: new IPCMessageReader(serverProcess),
-            writer: new IPCMessageWriter(serverProcess)
-          }
-        }
         return {
           reader: new StreamMessageReader(serverProcess.stdout),
           writer: new StreamMessageWriter(serverProcess.stdin)
         }
       } else if (transport == TransportKind.pipe) {
         let transport = await Promise.resolve(createClientPipeTransport(pipeName!))
-        let process = cp.spawn(runtime!, args, execOptions)
+        let process = cp.spawn(runtime, args, execOptions)
         if (!process || !process.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }

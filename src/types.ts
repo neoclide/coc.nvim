@@ -155,7 +155,8 @@ export interface LanguageServerConfig {
   initializationOptions?: any
   revealOutputChannelOn?: string
   configSection?: string
-  [index: string]: any
+  stdioEncoding?: string
+  runtime?: string
 }
 
 export interface LocationListItem {

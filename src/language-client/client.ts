@@ -4048,37 +4048,9 @@ export abstract class BaseLanguageClient {
   private handleApplyWorkspaceEdit(
     params: ApplyWorkspaceEditParams
   ): Thenable<ApplyWorkspaceEditResponse> {
-    // This is some sort of workaround since the version check should be done by VS Code in the Workspace.applyEdit.
-    // However doing it here adds some safety since the server can lag more behind then an extension.
-    let workspaceEdit: WorkspaceEdit = params.edit
-    let openTextDocuments: Map<string, TextDocument> = new Map<
-      string,
-      TextDocument
-    >()
-    workspace.textDocuments.forEach(document =>
-      openTextDocuments.set(document.uri.toString(), document)
-    )
-    let versionMismatch = false
-    if (workspaceEdit.documentChanges) {
-      for (const change of workspaceEdit.documentChanges) {
-        if (TextDocumentEdit.is(change)) {
-          if (change.textDocument.version && change.textDocument.version >= 0) {
-            let textDocument = openTextDocuments.get(change.textDocument.uri)
-            if (textDocument && textDocument.version !== change.textDocument.version) {
-              versionMismatch = true
-              break
-            }
-          }
-        }
-      }
+    return workspace.applyEdit(params.edit).then(value => {
+      return { applied: value }
     }
-    if (versionMismatch) {
-      return Promise.resolve({ applied: false })
-    }
-    return workspace.applyEdit(params.edit).then(
-      value => {
-        return { applied: value }
-      }
     )
   }
 
