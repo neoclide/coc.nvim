@@ -196,6 +196,7 @@ function! coc#rpc#restart()
   call coc#rpc#request('CocAction', ['toggle', 0])
   call coc#rpc#stop()
   if !s:server_running
+    call coc#client#restart_all()
     call coc#rpc#start_server()
   endif
 endfunction

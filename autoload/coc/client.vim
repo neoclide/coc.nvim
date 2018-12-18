@@ -202,3 +202,9 @@ function! coc#client#restart(name) abort
     call client['start']()
   endif
 endfunction
+
+function! coc#client#restart_all()
+  for key in keys(s:clients)
+    call coc#client#restart(key)
+  endfor
+endfunction
