@@ -311,7 +311,7 @@ export class LanguageClient extends BaseLanguageClient {
           cp = result
           this._isDetached = false
         }
-        cp.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        cp.stderr.on('data', data => this.appendOutput(data, encoding))
         return {
           reader: new StreamMessageReader(cp.stdout),
           writer: new StreamMessageWriter(cp.stdin)
@@ -370,7 +370,7 @@ export class LanguageClient extends BaseLanguageClient {
         }
         this._serverProcess = serverProcess
         serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
-        serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
         return {
           reader: new IPCMessageReader(serverProcess),
           writer: new IPCMessageWriter(serverProcess)
@@ -381,7 +381,7 @@ export class LanguageClient extends BaseLanguageClient {
           throw new Error(`Launching server ${node.module} failed.`)
         }
         this._serverProcess = serverProcess
-        serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
         return {
           reader: new StreamMessageReader(serverProcess.stdout),
           writer: new StreamMessageWriter(serverProcess.stdin)
@@ -393,7 +393,7 @@ export class LanguageClient extends BaseLanguageClient {
           throw new Error(`Launching server ${node.module} failed.`)
         }
         this._serverProcess = process
-        process.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        process.stderr.on('data', data => this.appendOutput(data, encoding))
         process.stdout.on('data', data => this.appendOutput(data, encoding))
         let protocol = await Promise.resolve(transport.onConnected())
         return { reader: protocol[0], writer: protocol[1] }
@@ -404,7 +404,7 @@ export class LanguageClient extends BaseLanguageClient {
           throw new Error(`Launching server ${node.module} failed.`)
         }
         this._serverProcess = process
-        process.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+        process.stderr.on('data', data => this.appendOutput(data, encoding))
         process.stdout.on('data', data => this.appendOutput(data, encoding))
         let protocol = await Promise.resolve(transport.onConnected())
         return { reader: protocol[0], writer: protocol[1] }
@@ -421,7 +421,7 @@ export class LanguageClient extends BaseLanguageClient {
       serverProcess.on('exit', code => {
         if (code != 0) this.error(`${command} exited with code: ${code}`)
       })
-      serverProcess.stderr.on('data', data => this.error(Is.string(data) ? data : data.toString(encoding)))
+      serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
       this._serverProcess = serverProcess
       this._isDetached = !!options.detached
       return {
@@ -461,12 +461,12 @@ export class LanguageClient extends BaseLanguageClient {
   }
 
   private appendOutput(data: any, encoding: string): void {
-    let msg = Is.string(data) ? data : data.toString(encoding)
+    let msg: string = Is.string(data) ? data : data.toString(encoding)
     if (global.hasOwnProperty('__TEST__')) {
       console.log(msg) // tslint:disable-line
       return
     }
-    this.info(Is.string(data) ? data : data.toString(encoding))
+    this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
   }
 }
 
