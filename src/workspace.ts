@@ -183,8 +183,10 @@ export class Workspace implements IWorkspace {
   }
 
   public async createNameSpace(name = ''): Promise<number> {
-    if (!this.env.namespaceSupport) return 0
-    return await this.nvim.createNamespace(name)
+    if (this.nvim.hasFunction('nvim_create_namespace')) {
+      return await this.nvim.createNamespace(name)
+    }
+    return 0
   }
 
   public get channelNames(): string[] {

@@ -39,7 +39,7 @@ export class DiagnosticBuffer {
         // staled
         if (current != time) return
         this._refresh(diagnosticItems)
-      }, global.hasOwnProperty('__TEST__') ? 30 : 100)
+      }, global.hasOwnProperty('__TEST__') ? 30 : 50)
     }
   }
 
@@ -175,7 +175,7 @@ export class DiagnosticBuffer {
       await nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)])
     } else {
       let buffer = nvim.createBuffer(bufnr)
-      if (workspace.env.namespaceSupport) {
+      if (this.nvim.hasFunction('nvim_create_namespace')) {
         buffer.clearNamespace(this.config.srcId)
       } else {
         buffer.clearHighlight({ srcId: this.config.srcId })

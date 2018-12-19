@@ -32,7 +32,9 @@ export default class Document {
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
+  private _onDocumentDetach = new Emitter<string>()
   public readonly onDocumentChange: Event<DidChangeTextDocumentParams> = this._onDocumentChange.event
+  public readonly onDocumentDetach: Event<string> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
     private configurations: WorkspaceConfiguration,
@@ -251,14 +253,14 @@ export default class Document {
     if (!this.attached) return
     // neovim not detach on `:checktime`
     this.attached = false
-    try {
-      await this.buffer.detach()
-    } catch (e) {
+    this._onDocumentDetach.fire(this.uri)
+    this.buffer.detach().catch(_e => {
       // noop
-    }
+    })
     this.fetchContent.clear()
     this._fireContentChanges.clear()
     this._onDocumentChange.dispose()
+    this._onDocumentDetach.dispose()
   }
 
   public get bufnr(): number {
@@ -462,7 +464,7 @@ export default class Document {
     return col
   }
 
-  public async highlightRanges(ranges: Range[], hlGroup: string, srcId = 0): Promise<number[]> {
+  public async highlightRanges(ranges: Range[], hlGroup: string, srcId: number): Promise<number[]> {
     let { nvim, bufnr } = this
     let res: number[] = []
     if (this.env.isVim) {
@@ -493,7 +495,9 @@ export default class Document {
         }
       }
     } else {
-      srcId = await this.buffer.addHighlight({ hlGroup: '', srcId, line: 0, colStart: 0, colEnd: 0 })
+      if (srcId == 0) {
+        srcId = await this.buffer.addHighlight({ hlGroup: '', srcId, line: 0, colStart: 0, colEnd: 0 })
+      }
       if (srcId) {
         for (let range of ranges) {
           let { start, end } = range
@@ -517,7 +521,7 @@ export default class Document {
       this.nvim.call('coc#util#clearmatches', [this.bufnr, Array.from(ids)], true)
     } else {
       for (let id of ids) {
-        if (this.env.namespaceSupport) {
+        if (this.nvim.hasFunction('nvim_create_namespace')) {
           this.buffer.clearNamespace(id)
         } else {
           this.buffer.clearHighlight({ srcId: id })

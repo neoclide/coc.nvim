@@ -14,6 +14,7 @@ import services from '../services'
 import { disposeAll, wait } from '../util'
 import { isWord } from '../util/string'
 import workspace from '../workspace'
+import Document from '../model/document'
 const logger = require('../util/logger')('Handler')
 
 interface SymbolInfo {
@@ -470,9 +471,7 @@ export default class Handler {
     await this.colors.pickPresentation()
   }
 
-  public async highlight(): Promise<void> {
-    let document = workspace.getDocument(workspace.bufnr)
-    if (!document) return
+  private async highlightDocument(document: Document): Promise<void> {
     let position = await workspace.getCursorPosition()
     let line = document.getline(position.line)
     let ch = line[position.character]
@@ -506,6 +505,14 @@ export default class Handler {
         this.highlightsMap.set(document.bufnr, ids)
       }
     }
+  }
+
+  public async highlight(): Promise<void> {
+    let document = workspace.getDocument(workspace.bufnr)
+    if (!document) return
+    this.nvim.pauseNotification()
+    await this.highlightDocument(document)
+    this.nvim.resumeNotification()
   }
 
   public async links(): Promise<DocumentLink[]> {

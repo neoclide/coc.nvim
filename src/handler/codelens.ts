@@ -33,7 +33,7 @@ export default class CodeLensManager {
     let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences.codeLens')
     this.separator = config.get<string>('separator', '‣')
-    let enable = workspace.env.virtualText && config.get<boolean>('enable', true)
+    let enable = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
     if (!enable) return
     this.srcId = await workspace.createNameSpace('coc-codelens')
     this.srcId = this.srcId || 1080
@@ -70,7 +70,7 @@ export default class CodeLensManager {
 
     events.on('BufUnload', bufnr => {
       let buf = this.nvim.createBuffer(bufnr)
-      if (workspace.env.namespaceSupport) {
+      if (this.nvim.hasFunction('nvim_create_namespace')) {
         buf.clearNamespace(this.srcId)
       } else {
         buf.clearHighlight({ srcId: this.srcId })
@@ -180,16 +180,13 @@ export default class CodeLensManager {
         codeLenes = null
       }
     }
-    let buffer = this.nvim.createBuffer(bufnr)
-    if (workspace.getDocument(bufnr) == null) return
-    if (clear) {
-      if (workspace.env.namespaceSupport) {
-        buffer.clearNamespace(this.srcId)
-      } else {
-        buffer.clearHighlight({ srcId: this.srcId })
-      }
+    nvim.pauseNotification()
+    let doc = workspace.getDocument(bufnr)
+    if (doc && clear) {
+      doc.clearMatchIds([this.srcId])
     }
-    if (codeLenes && codeLenes.length) await this.setVirtualText(buffer, codeLenes)
+    if (codeLenes && codeLenes.length) await this.setVirtualText(doc.buffer, codeLenes)
+    nvim.resumeNotification()
   }
 
   public async doAction(): Promise<void> {

@@ -17,6 +17,7 @@ export interface ColorRanges {
 
 export default class Colors {
   private _enabled: boolean
+  private srcId = 0
   private maxColorCount: number
   private colors: Set<string> = new Set()
   private disposables: Disposable[] = []
@@ -25,9 +26,20 @@ export default class Colors {
   private documentVersions: Map<number, number> = new Map()
 
   constructor(private nvim: Neovim) {
+    this.init().catch(e => {
+      workspace.showMessage(e.message, 'error')
+    })
+  }
+
+  private async init(): Promise<void> {
+    let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.maxColorCount = config.get<number>('maxColorCount', 300)
+    this.srcId = await workspace.createNameSpace('coc-colors')
+    if (workspace.isNvim && this.srcId == 0) {
+      this.srcId = 1090
+    }
 
     events.on('BufEnter', async bufnr => {
       await wait(100)
@@ -57,7 +69,7 @@ export default class Colors {
         if (timer) clearTimeout(timer)
         timer = setTimeout(() => {
           this.highlightColors(doc, true) // tslint:disable-line
-        }, 100)
+        }, 300)
       }
     })
 
@@ -90,20 +102,21 @@ export default class Colors {
       this.documentVersions.set(bufnr, version)
       let colors: ColorInformation[] = await languages.provideDocumentColors(document.textDocument)
       let old = this.colorInfomation.get(document.bufnr)
+      this.nvim.pauseNotification()
       if (!colors || colors.length == 0) {
         this.colorInfomation.delete(document.bufnr)
         this.clearHighlight(document.bufnr)
-        return
+      } else if (!old || !equals(old, colors)) {
+        colors = colors.slice(0, this.maxColorCount)
+        this.clearHighlight(bufnr)
+        this.colorInfomation.set(bufnr, colors)
+        let colorRanges = this.getColorRanges(colors)
+        await this.addColors(colors.map(o => o.color))
+        for (let o of colorRanges) {
+          await this.addHighlight(bufnr, o.ranges, o.color)
+        }
       }
-      if (old && equals(old, colors)) return
-      colors = colors.slice(0, this.maxColorCount)
-      this.clearHighlight(bufnr)
-      this.colorInfomation.set(bufnr, colors)
-      let colorRanges = this.getColorRanges(colors)
-      await this.addColors(colors.map(o => o.color))
-      for (let o of colorRanges) {
-        await this.addHighlight(bufnr, o.ranges, o.color)
-      }
+      this.nvim.resumeNotification()
     } catch (e) {
       this.colorInfomation.delete(bufnr)
       this.documentVersions.delete(bufnr)
@@ -145,9 +158,7 @@ export default class Colors {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${this.toHexString(color)}`
     let matchIds: number[] = this.matchIds.get(bufnr) || []
-    let id = await workspace.createNameSpace('coc-colors')
-    let ids = await doc.highlightRanges(ranges, hlGroup)
-    if (id) ids = [id]
+    let ids = await doc.highlightRanges(ranges, hlGroup, this.srcId)
     matchIds.push(...ids)
     if (!this.matchIds.has(bufnr)) {
       this.matchIds.set(bufnr, matchIds)

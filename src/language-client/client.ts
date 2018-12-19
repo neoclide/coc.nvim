@@ -1679,7 +1679,7 @@ class CompletionItemFeature extends TextDocumentFeature<
     completion.contextSupport = true
     completion.completionItem = {
       snippetSupport: true,
-      commitCharactersSupport: false,
+      commitCharactersSupport: true,
       documentationFormat: [MarkupKind.Markdown, MarkupKind.PlainText],
       deprecatedSupport: true,
       preselectSupport: true

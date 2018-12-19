@@ -21,6 +21,14 @@ function! coc#_complete() abort
   return ''
 endfunction
 
+function! coc#_complete_with(start, items)
+  let g:coc#_context = {
+        \ 'start': a:start,
+        \ 'candidates': a:items,
+        \}
+  call feedkeys("\<Plug>_", 'i')
+endfunction
+
 function! coc#_do_complete() abort
   call feedkeys("\<Plug>_", 'i')
 endfunction
