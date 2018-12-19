@@ -3851,7 +3851,7 @@ export abstract class BaseLanguageClient {
     let fileEvents = this._clientOptions.synchronize.fileEvents
     if (!fileEvents) return
     let watchers: FileWatcher[]
-    if (Is.array(fileEvents)) {
+    if (Array.isArray(fileEvents)) {
       watchers = <FileWatcher[]>fileEvents
     } else {
       watchers = [<FileWatcher>fileEvents]

@@ -1,13 +1,5 @@
 const hasOwnProperty = Object.prototype.hasOwnProperty
 
-export function defined(value: any): boolean {
-  return typeof value !== 'undefined'
-}
-
-export function undefined(value: any): boolean {
-  return typeof value === 'undefined'
-}
-
 export function boolean(value: any): value is boolean {
   return typeof value === 'boolean'
 }
@@ -57,8 +49,4 @@ export function typedArray<T>(
   check: (value: any) => boolean
 ): value is T[] {
   return Array.isArray(value) && (value as any).every(check)
-}
-
-export function thenable<T>(value: any): value is Thenable<T> {
-  return value && func(value.then)
 }

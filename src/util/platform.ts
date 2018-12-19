@@ -63,10 +63,6 @@ export const isNative = _isNative
 export const isWeb = _isWeb
 export const platform = _platform
 
-export function isRootUser(): boolean {
-  return _isNative && !_isWindows && process.getuid() === 0
-}
-
 const _globals =
   typeof self === 'object'
     ? self
@@ -74,23 +70,6 @@ const _globals =
       ? global
       : ({} as any)
 export const globals: any = _globals
-
-let _setImmediate: (callback: (...args: any[]) => void) => number = null
-export function setImmediate(callback: (...args: any[]) => void): number {
-  if (_setImmediate === null) {
-    if (globals.setImmediate) {
-      _setImmediate = globals.setImmediate.bind(globals)
-    } else if (
-      typeof process !== 'undefined' &&
-      typeof process.nextTick === 'function'
-    ) {
-      _setImmediate = process.nextTick.bind(process)
-    } else {
-      _setImmediate = globals.setTimeout.bind(globals)
-    }
-  }
-  return _setImmediate(callback)
-}
 
 export const enum OperatingSystem {
   Windows = 1,
