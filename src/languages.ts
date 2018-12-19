@@ -355,8 +355,8 @@ class Languages {
    * @returns {Promise<CodeAction[]>}
    */
   @check
-  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext): Promise<Map<string, CodeAction[]>> {
-    if (!this.codeActionManager.hasProvider(document)) {
+  public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, silent = false): Promise<Map<string, CodeAction[]>> {
+    if (!silent && !this.codeActionManager.hasProvider(document)) {
       workspace.showMessage('Code action provider not found for current document', 'error')
       return null
     }

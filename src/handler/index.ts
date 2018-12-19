@@ -380,7 +380,7 @@ export default class Handler {
     range = range || Range.create(0, 0, document.lineCount, 0)
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context: CodeActionContext = { diagnostics, only: [CodeActionKind.QuickFix] }
-    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
+    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context, true)
     if (!codeActionsMap) return []
     let codeActions: CodeAction[] = []
     for (let clientId of codeActionsMap.keys()) {
