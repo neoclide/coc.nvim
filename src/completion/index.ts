@@ -179,16 +179,9 @@ export class Completion implements Disposable {
       increment.stop()
       return
     }
-    let avoidRedraw = false
-    if (isChangedP) {
-      let filtered = this.filterItemsVim(resumeInput)
-      if (filtered.length == items.length) {
-        avoidRedraw = true
-      }
-    }
-    if (!avoidRedraw) {
-      nvim.call('coc#_set_context', [col, items], true)
-      await nvim.call('coc#_do_complete', [])
+    if (!isChangedP || this.filterItemsVim(resumeInput).length != items.length) {
+      // avoid redraw when vim does could do filter
+      nvim.call('coc#_complete_with', [col, items], true)
     }
     this._completeItems = items
     await this.onPumVisible()
@@ -199,7 +192,6 @@ export class Completion implements Disposable {
     let first = this._completeItems[0]
     let noselect = this.preferences.get<boolean>('noselect')
     if (!noselect) await sources.doCompleteResolve(first)
-    if (workspace.isVim) this.nvim.command('redraw', true)
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
@@ -217,8 +209,7 @@ export class Completion implements Disposable {
     }
     // changedtick could change without content change
     if (this.document.getline(linenr - 1) == line) {
-      nvim.call('coc#_set_context', [option.col, items], true)
-      await nvim.call('coc#_do_complete', [])
+      nvim.call('coc#_complete_with', [option.col, items], true)
       this._completeItems = items
       await this.onPumVisible()
       return

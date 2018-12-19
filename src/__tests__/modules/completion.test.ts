@@ -336,28 +336,27 @@ describe('completion#TextChangedI', () => {
 
   it('should trigger completion when possible', async () => {
     let source: ISource = {
-      priority: 0,
+      priority: 1,
       enable: true,
       name: 'trigger',
       sourceType: SourceType.Service,
-      triggerCharacters: ['#'],
+      triggerCharacters: ['.'],
       doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
-        if (opt.triggerCharacter == '#') {
+        if (opt.triggerCharacter == '.') {
           return Promise.resolve({ items: [{ word: 'bar' }] })
         }
         return Promise.resolve({ items: [{ word: 'foo#bar' }] })
       }
     }
     sources.addSource(source)
-    await nvim.input('if')
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
     await helper.pumvisible()
-    await helper.wait(100)
-    await nvim.input('#')
-    await helper.wait(100)
+    await helper.wait(80)
     expect(completion.isActivted).toBe(true)
     let items = completion.completeItems
     expect(items.length).toBe(1)
-    expect(items[0].word).toBe('bar')
     sources.removeSource(source)
   })
 })

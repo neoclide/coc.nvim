@@ -125,7 +125,7 @@ describe('diagnostic buffer', () => {
       test: [diagnostic]
     }
     buf.refresh(diagnostics)
-    await helper.wait(30)
+    await helper.wait(100)
     await buf.clear()
     let content = await nvim.call('execute', [`sign place buffer=${buf.bufnr}`])
     let lines: string[] = content.split('\n')
