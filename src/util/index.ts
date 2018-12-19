@@ -61,7 +61,6 @@ export function getUri(bufname: string, id: number, buftype: string): string {
     return Uri.parse(bufname).toString()
   }
   if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
-  bufname = bufname.replace(/\s/g, '%20')
   if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
   return Uri.file(bufname).toString()
 }
