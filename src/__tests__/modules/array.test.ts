@@ -8,11 +8,11 @@ describe('Arrays', () => {
       return a
     }
 
-    assert.deepEqual(arrays.distinct(['32', '4', '5'], compare), ['32', '4', '5'])
-    assert.deepEqual(arrays.distinct(['32', '4', '5', '4'], compare), ['32', '4', '5'])
-    assert.deepEqual(arrays.distinct(['32', 'constructor', '5', '1'], compare), ['32', 'constructor', '5', '1'])
-    assert.deepEqual(arrays.distinct(['32', 'constructor', 'proto', 'proto', 'constructor'], compare), ['32', 'constructor', 'proto'])
-    assert.deepEqual(arrays.distinct(['32', '4', '5', '32', '4', '5', '32', '4', '5', '5'], compare), ['32', '4', '5'])
+    assert.deepStrictEqual(arrays.distinct(['32', '4', '5'], compare), ['32', '4', '5'])
+    assert.deepStrictEqual(arrays.distinct(['32', '4', '5', '4'], compare), ['32', '4', '5'])
+    assert.deepStrictEqual(arrays.distinct(['32', 'constructor', '5', '1'], compare), ['32', 'constructor', '5', '1'])
+    assert.deepStrictEqual(arrays.distinct(['32', 'constructor', 'proto', 'proto', 'constructor'], compare), ['32', 'constructor', 'proto'])
+    assert.deepStrictEqual(arrays.distinct(['32', '4', '5', '32', '4', '5', '32', '4', '5', '5'], compare), ['32', '4', '5'])
   })
 
   test('tail', () => {
@@ -30,6 +30,6 @@ describe('Arrays', () => {
       return Object.keys(item).reduce((p, c) => p.concat(item[c]), [])
     }
     let res = arrays.flatMap(objs, values)
-    assert.deepEqual(res, [1, 2, 3, 4, 5, 6])
+    assert.deepStrictEqual(res, [1, 2, 3, 4, 5, 6])
   })
 })

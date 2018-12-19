@@ -99,7 +99,7 @@ export class DiagnosticBuffer {
     nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }], true)
   }
 
-  private async clearSigns(): Promise<void> {
+  private clearSigns(): void {
     let { nvim, signIds, bufnr } = this
     if (signIds.size > 0) {
       nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
