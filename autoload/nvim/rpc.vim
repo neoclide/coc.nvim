@@ -7,7 +7,6 @@ let s:is_win = has("win32") || has("win64")
 let s:clientIds = []
 let s:logfile = tempname()
 let s:channel = v:null
-let s:command = ''
 
 " env used only for testing purpose
 if !empty($NVIM_LISTEN_ADDRESS)
@@ -66,8 +65,8 @@ function! nvim#rpc#get_command() abort
     endif
   endif
   if !empty(file)
-    let s:command = s:is_win ? join(['node', file], ' ') : ['node', file]
-    return s:command
+    let arr = ['node'] + get(g:, 'vim_node_rpc_args', []) + [file]
+    return s:is_win ? join(arr, ' ') : arr
   endif
   return ''
 endfunction
