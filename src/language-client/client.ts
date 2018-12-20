@@ -1867,7 +1867,10 @@ class SignatureHelpFeature extends TextDocumentFeature<
     let config = ensure(ensure(capabilites, 'textDocument')!, 'signatureHelp')!
     config.dynamicRegistration = true
     config.signatureInformation = {
-      documentationFormat: [MarkupKind.Markdown, MarkupKind.PlainText]
+      documentationFormat: [MarkupKind.Markdown, MarkupKind.PlainText],
+      parameterInformation: {
+        labelOffsetSupport: true
+      }
     }
   }
 

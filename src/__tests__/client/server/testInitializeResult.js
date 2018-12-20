@@ -18,7 +18,7 @@ connection.onInitialize((params) => {
   assert.equal(params.capabilities.workspace.workspaceEdit.failureHandling, vscode_languageserver_1.FailureHandlingKind.TextOnlyTransactional);
   assert.equal(params.capabilities.textDocument.completion.completionItem.deprecatedSupport, true);
   assert.equal(params.capabilities.textDocument.completion.completionItem.preselectSupport, true);
-  // assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true);
+  assert.equal(params.capabilities.textDocument.signatureHelp.signatureInformation.parameterInformation.labelOffsetSupport, true);
   assert.equal(params.capabilities.textDocument.definition.linkSupport, undefined);
   // assert.equal(params.capabilities.textDocument.declaration.linkSupport, undefined);
   assert.equal(params.capabilities.textDocument.implementation.linkSupport, undefined);
