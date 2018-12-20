@@ -1,8 +1,8 @@
-import helper from '../helper'
 import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
 import workspace from '../../workspace'
 import { SnippetSession } from '../../snippets/session'
+import helper from '../helper'
 
 let nvim: Neovim
 beforeAll(async () => {

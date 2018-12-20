@@ -305,8 +305,8 @@ export class Workspace implements IWorkspace {
     let changedFiles = this.getChangedFiles(edit)
     let len = changedFiles.length
     if (len > 0) {
-      let c = await nvim.call('coc#util#prompt_change', len)
-      if (c != 1) return false
+      let confirm = await this.showPrompt(`${len} files on disk will be changed. Confirm`)
+      if (!confirm) return false
     }
     if (changes) {
       for (let uri of Object.keys(changes)) {
@@ -1025,7 +1025,7 @@ augroup end`
     if (!doc) return
     await doc.checkDocument()
     if (bufnr == this.bufnr && this.env.isVim) {
-      nvim.call('coc#util#clear', [], true)
+      nvim.call('clearmatches', [], true)
     }
     if (doc) {
       let event: TextDocumentWillSaveEvent = {

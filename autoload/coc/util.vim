@@ -43,11 +43,6 @@ function! coc#util#regist_extension(folder)
   endif
 endfunction
 
-function! coc#util#valid_buf(bufnr)
-  if !bufloaded(a:bufnr) | return 0 | endif
-  return getbufvar(a:bufnr, '&buftype') ==# ''
-endfunction
-
 function! coc#util#remote_fns(name)
   let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
   let res = []
@@ -111,12 +106,6 @@ function! coc#util#echo_lines(lines)
   echo msg
 endfunction
 
-function! coc#util#get_fullpath(bufnr) abort
-  let fname = bufname(a:bufnr)
-  if empty(fname) | return '' | endif
-  return fnamemodify(fname, ':p')
-endfunction
-
 function! coc#util#get_bufoptions(bufnr) abort
   if !bufloaded(a:bufnr) | return v:null| endif
   let bufname = bufname(a:bufnr)
@@ -133,32 +122,6 @@ endfunction
 
 function! coc#util#on_error(msg) abort
   echohl Error | echom '[coc.nvim] '.a:msg | echohl None
-endfunction
-
-" make function that only trigger once
-function! coc#util#once(callback) abort
-  function! Cb(...) dict
-    if self.called == 1 | return | endif
-    let self.called = 1
-    call call(self.fn, a:000)
-  endfunction
-
-  let obj = {
-        \'called': 0,
-        \'fn': a:callback,
-        \'callback': funcref('Cb'),
-        \}
-  return obj['callback']
-endfunction
-
-function! coc#util#get_listfile_command() abort
-  if executable('rg')
-    return 'rg --color never --files'
-  endif
-  if executable('ag')
-    return 'ag --follow --nogroup --nocolor -g .'
-  endif
-  return ''
 endfunction
 
 function! coc#util#preview_info(info, ...) abort
@@ -229,18 +192,6 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
-function! coc#util#prompt_change(count)
-  echohl MoreMsg
-  echom a:count.' files on disk will be changed. Confirm? (y/n)'
-  echohl None
-  let confirm = nr2char(getchar()) | redraw!
-  if !(confirm ==? "y" || confirm ==? "\r")
-    echohl Moremsg | echo 'Cancelled.' | echohl None
-    return 0
-  end
-  return 1
-endfunction
-
 function! coc#util#prompt_confirm(title)
   echohl MoreMsg
   echom a:title.' (y/n)'
@@ -289,40 +240,6 @@ function! coc#util#unplace_signs(bufnr, sign_ids)
   for id in a:sign_ids
     execute 'sign unplace '.id.' buffer='.a:bufnr
   endfor
-endfunction
-
-function! s:codelens_jump() abort
-  let lnum = matchstr(getline('.'), '^\d\+')
-  if !empty(lnum)
-    let wnr = bufwinnr(get(b:, 'bufnr', 0))
-    if wnr != -1
-      execute wnr.'wincmd w'
-      execute 'normal! '.lnum.'G'
-    endif
-  endif
-endfunction
-
-function! coc#util#open_codelens()
-  pclose
-  execute &previewheight.'new +setlocal\ buftype=nofile [CodeLens]'
-  setl noswapfile
-  setl nowrap
-  setl nonumber
-  setl norelativenumber
-  setl cursorline
-  setl bufhidden=wipe
-  setl nobuflisted
-  setl nospell
-  execute 'nnoremap <silent> <buffer> '.get(g:, 'coc_codelen_jump_key', '<CR>').' :call <SID>codelens_jump()<CR>'
-  execute 'nnoremap <silent> <buffer> '.get(g:, 'coc_codelen_action_key', 'd').' :call CocAction("codeLensAction")<CR>'
-  syntax clear
-  syntax case match
-  syntax match codelinesLine        /^.*$/
-  syntax match codelinesLineNumbder /^\d\+/       contained nextgroup=codelinesAction containedin=codelinesLine
-  syntax match codelinesAction      /\%x0c.*\%x0c/ contained containedin=codelinesLine contains=codelinesSepChar
-  syntax match codelinesSepChar     /\%x0c/        conceal cchar=:
-  hi def link codelinesLineNumbder Comment
-  hi def link codelinesAction      MoreMsg
 endfunction
 
 function! coc#util#setline(lnum, line)
@@ -440,10 +357,6 @@ function! coc#util#diff_content(lines) abort
   setl foldenable
 endfunction
 
-function! coc#util#clear()
-  silent! call clearmatches()
-endfunction
-
 function! coc#util#clear_signs()
   let buflist = filter(range(1, bufnr('$')), 'buflisted(v:val)')
   for b in buflist
@@ -456,12 +369,6 @@ function! coc#util#clear_signs()
       endif
     endfor
     call coc#util#unplace_signs(b, signIds)
-  endfor
-endfunction
-
-function! coc#util#matchdelete(ids)
-  for id in a:ids
-    silent! call matchdelete(id)
   endfor
 endfunction
 
@@ -487,20 +394,6 @@ function! coc#util#open_url(url)
     echohl Error | echon 'Failed to open '.a:url | echohl None
     return
   endif 
-endfunction
-
-function! coc#util#module_folder(manager) abort
-  let is_yarn = a:manager ==# 'yarn'
-  let cmd = is_yarn ? 'yarn global dir' : 'npm --loglevel silent root -g'
-  let lines = filter(systemlist(cmd), "v:val !=# ''")
-  if v:shell_error || empty(lines)
-    return ''
-  endif
-  let folder = lines[-1]
-  if !isdirectory(folder)
-    return ''
-  endif
-  return is_yarn ? folder . '/node_modules' : folder
 endfunction
 
 function! coc#util#install() abort
@@ -533,7 +426,7 @@ function! s:coc_installed(status, ...) abort
   endif
   call coc#rpc#restart()
   let dir = coc#util#extension_root()
-  if !isdirectory(dir)
+  if !isdirectory(dir) && empty(get(g:, 'coc_global_extensions', []))
     echohl WarningMsg | echom 'No extensions found' | echohl None
     call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
   endif

@@ -1,10 +1,10 @@
-import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { severityLevel, getNameFromSeverity } from '../../diagnostic/util'
 import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
 import Document from '../../model/document'
 import workspace from '../../workspace'
 import manager from '../../diagnostic/manager'
+import helper from '../helper'
 
 let nvim: Neovim
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {

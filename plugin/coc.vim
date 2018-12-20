@@ -137,7 +137,6 @@ function! s:Enable()
 
   command! -nargs=0 CocDisable :call s:Disable()
   command! -nargs=0 CocEnable  :call s:Enable()
-  command! -nargs=0 CocConfig  :call s:OpenConfig()
   command! -nargs=0 CocOpenLog :call coc#rpc#notify('openLog', [])
   command! -nargs=0 CocInfo    :call coc#rpc#notify('showInfo', [])
   command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
@@ -196,6 +195,7 @@ augroup coc_init
   endif
 augroup end
 
+command! -nargs=0 CocConfig    :call s:OpenConfig()
 command! -nargs=0 CocRestart   :call coc#rpc#restart()
 command! -nargs=+ CocInstall   :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate    :call coc#util#update()
