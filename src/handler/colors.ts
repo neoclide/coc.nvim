@@ -144,7 +144,7 @@ export default class Colors {
     return this._enabled
   }
 
-  public clearHighlight(bufnr: number) {
+  public clearHighlight(bufnr: number): void {
     let highlighter = this.highlighters.get(bufnr)
     if (!highlighter) return
     highlighter.clearHighlight()

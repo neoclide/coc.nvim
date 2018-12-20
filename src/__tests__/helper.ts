@@ -139,7 +139,7 @@ export class Helper extends Emitter {
     let uri = Uri.file(file).toString()
     let doc = this.workspace.getDocument(uri)
     if (!doc) {
-      console.error(`document ${uri} not found`)
+      console.error(`document ${uri} not found`) // tslint:disable-line
       return
     }
     return doc.buffer
