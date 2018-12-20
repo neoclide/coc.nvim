@@ -686,6 +686,15 @@ coc#config({section}, {value})
 	Note: this function could works with user configuration file, but it's
 	not recommended to use both.
 
+coc#add_extension({name}, ...)
+
+	Config extensions to install, a terminal buffer would be opened to
+	install missing extensions after service started, ex: >
+
+  	call coc#add_extension('coc-json', 'coc-tsserver', 'coc-rls')
+<
+	This function could be called before service initialized.
+	This function could be called multiple times.
 
 						*coc#refresh()*
 coc#refresh()

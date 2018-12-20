@@ -1,5 +1,6 @@
 let g:coc#_context = {}
 let g:coc_user_config = {}
+let g:coc_global_extensions = []
 
 function! coc#refresh() abort
     return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
@@ -71,4 +72,12 @@ endfunction
 function! coc#config(section, value)
   let g:coc_user_config[a:section] = a:value
   call coc#rpc#notify('updateConfig', [a:section, a:value])
+endfunction
+
+function! coc#add_extension(...)
+  if a:0 == 0 | return | endif
+  call extend(g:coc_global_extensions, a:000)
+  if get(g:, 'coc_enabled', 0)
+    call coc#rpc#notify('addExtensions', [])
+  endif
 endfunction

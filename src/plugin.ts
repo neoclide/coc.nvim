@@ -16,6 +16,7 @@ import workspace from './workspace'
 import { Location } from 'vscode-languageserver-types'
 import { OutputChannel } from './types'
 import { isRunning } from './util'
+import { distinct } from './util/array'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -35,15 +36,10 @@ export default class Plugin extends EventEmitter {
 
   public async init(): Promise<void> {
     let { nvim } = this
-    let val = {}
+    let config = await nvim.getVar('coc_user_config') as { [key: string]: any } || {}
     try {
-      val = await nvim.getVar('coc_user_config') as { [key: string]: any }
-    } catch (_e) {
-      // noop
-    }
-    try {
-      if (val && Object.keys(val).length) {
-        workspace.configurations.updateUserConfig(val)
+      if (Object.keys(config).length) {
+        workspace.configurations.updateUserConfig(config)
       }
       let pid = await nvim.call('getpid')
       this.checkProcess(pid)
@@ -54,6 +50,7 @@ export default class Plugin extends EventEmitter {
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
       nvim.setVar('coc_process_pid', process.pid, true)
+      await this.addExtensions()
       await nvim.command('doautocmd User CocNvimInit')
       this.ready = true
       logger.info(`coc initialized with node: ${process.version}`)
@@ -125,6 +122,18 @@ export default class Plugin extends EventEmitter {
         channel.appendLine(`## Output channel: ${ch.name}`)
         channel.append(ch.content)
         channel.appendLine('')
+      }
+    }
+  }
+
+  public async addExtensions(): Promise<void> {
+    let { nvim } = this
+    let list = await nvim.getVar('coc_global_extensions') as string[]
+    if (list && list.length) {
+      list = distinct(list)
+      list = list.filter(name => !extensions.has(name))
+      if (list.length) {
+        nvim.command(`CocInstall ${list.join(' ')}`, true)
       }
     }
   }

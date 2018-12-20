@@ -58,16 +58,15 @@ export class Extensions {
       this._onReady.fire()
       return
     }
-    Promise.all(stats.map(state => {
+    await Promise.all(stats.map(state => {
       let folder = state.root
       let id = path.dirname(folder)
       if (this.isDisabled(id)) return null
       return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
-    })).then(() => {
-      this._onReady.fire()
-    })
+    }))
+    this._onReady.fire()
     let config = workspace.getConfiguration('coc.preferences')
     let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
     if (interval == 'never') return
