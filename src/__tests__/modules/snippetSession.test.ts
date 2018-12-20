@@ -1,15 +1,13 @@
 import helper from '../helper'
 import { Range } from 'vscode-languageserver-protocol'
 import { Neovim } from '@chemzqm/neovim'
-import { IWorkspace } from '../../types'
+import workspace from '../../workspace'
 import { SnippetSession } from '../../snippets/session'
 
 let nvim: Neovim
-let workspace: IWorkspace
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  workspace = helper.workspace
 })
 
 afterAll(async () => {

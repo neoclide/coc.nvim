@@ -8,9 +8,9 @@ import pify from 'pify'
 import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
-import { IWorkspace, VimCompleteItem } from '../types'
-import Uri from 'vscode-uri'
+import workspace from '../workspace'
 import uuid = require('uuid/v4')
+import { VimCompleteItem } from '../types'
 
 export interface CursorPosition {
   bufnum: number
@@ -135,23 +135,14 @@ export class Helper extends Emitter {
     file = path.join(__dirname, file ? file : `${id}`)
     id = id + 1
     await this.nvim.command(`exe 'edit ' . fnameescape('${file}')`)
-    await this.wait(60)
-    let uri = Uri.file(file).toString()
-    let doc = this.workspace.getDocument(uri)
-    if (!doc) {
-      console.error(`document ${uri} not found`) // tslint:disable-line
-      return
-    }
-    return doc.buffer
-  }
-
-  public get workspace(): IWorkspace {
-    return require('../workspace').default
+    let bufnr = await this.nvim.call('bufnr', ['%']) as number
+    await this.wait(50)
+    return this.nvim.createBuffer(bufnr)
   }
 
   public async createDocument(name?: string): Promise<Document> {
     let buf = await this.edit(name)
-    return this.workspace.getDocument(buf.id)
+    return workspace.getDocument(buf.id)
   }
 
   public async getCmdline(): Promise<string> {
@@ -165,7 +156,7 @@ export class Helper extends Emitter {
   }
 
   public updateConfiguration(key: string, value: any): void {
-    let { configurations } = this.workspace as any
+    let { configurations } = workspace as any
     configurations.updateUserConfig({ [key]: value })
   }
 
