@@ -9,6 +9,7 @@ function! coc#client#create(name, command)
   let client['name'] = a:name
   let client['chan_id'] = 0
   let client['running'] = 0
+  let client['stderrs'] = []
   " vim only
   let client['job'] = v:null
   let client['async_req_id'] = 1
@@ -70,8 +71,11 @@ function! s:start() dict
 endfunction
 
 function! s:on_stderr(name, msgs)
+  let client = get(s:clients, a:name, v:null)
+  if empty(client) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
   if empty(data) | return | endif
+  call extend(client['stderrs'], data)
   let data[0] = '[vim-node-'.a:name.']: ' . data[0]
   call coc#util#echo_messages('Error', data)
 endfunction
@@ -94,9 +98,7 @@ endfunction
 
 function! s:get_channel_id(client)
   if s:is_vim
-    let key = 'vim_node_'.a:client['name'].'_client_id'
-    let chan_id = get(g:, key, 0)
-    return nvim#rpc#check_client(chan_id) ? chan_id : 0
+    return get(g:, 'vim_node_'.a:client['name'].'_client_id', 0)
   endif
   return a:client['chan_id']
 endfunction
@@ -111,7 +113,9 @@ function! s:request(method, args) dict
     return call('rpcrequest', [chan_id, a:method] + a:args)
   catch /^Vim\%((\a\+)\)\=:E475/
     echohl Error | echom '['.self.name.'] server connection lost' | echohl None
-    call s:on_exit(self.name, 0)
+    let name = self.name
+    call s:on_exit(name, 0)
+    execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
   endtry
 endfunction
 
@@ -126,7 +130,9 @@ function! s:notify(method, args) dict
     endif
   catch /^Vim\%((\a\+)\)\=:E475/
     echohl Error | echom '['.self['name'].'] server connection lost' | echohl None
-    call s:on_exit(self.name, 0)
+    let name = self.name
+    call s:on_exit(name, 0)
+    execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
   endtry
 endfunction
 
@@ -174,6 +180,7 @@ endfunction
 
 function! coc#client#stop(name) abort
   let client = get(s:clients, a:name, v:null)
+  if empty(client) | return 1 | endif
   let running = coc#client#is_running(a:name)
   if !running
     echohl WarningMsg | echom 'client '.a:name. ' not running.' | echohl None
@@ -192,6 +199,34 @@ function! coc#client#stop(name) abort
   call s:on_exit(a:name, 0)
   echohl MoreMsg | echom 'client '.a:name.' stopped!' | echohl None
   return 1
+endfunction
+
+function! coc#client#request(name, method, args)
+  let client = get(s:clients, a:name, v:null)
+  if !empty(client)
+    return client['request'](a:method, a:args)
+  endif
+endfunction
+
+function! coc#client#notify(name, method, args)
+  let client = get(s:clients, a:name, v:null)
+  if !empty(client)
+    call client['notify'](a:method, a:args)
+  endif
+endfunction
+
+function! coc#client#request_async(name, method, args, cb)
+  let client = get(s:clients, a:name, v:null)
+  if !empty(client)
+    call client['request_async'](a:method, a:args, a:cb)
+  endif
+endfunction
+
+function! coc#client#on_response(name, id, resp, isErr)
+  let client = get(s:clients, a:name, v:null)
+  if !empty(client)
+    call client['on_async_response'](a:id, a:resp, a:isErr)
+  endif
 endfunction
 
 function! coc#client#restart(name) abort

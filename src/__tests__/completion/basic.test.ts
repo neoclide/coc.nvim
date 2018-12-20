@@ -21,8 +21,10 @@ afterEach(async () => {
 
 describe('completion', () => {
   it('should create channel', async () => {
-    let id = await nvim.getVar('coc_node_channel_id')
-    expect(id).toBeGreaterThan(0)
+    let chans = await nvim.request('nvim_list_chans', [])
+    let chan = chans.find(o => o.client && o.client.name == 'coc')
+    expect(chan).toBeDefined()
+    expect(chan.id).toBeGreaterThan(0)
   })
 
   it('should not show word of word source on empty input', async () => {

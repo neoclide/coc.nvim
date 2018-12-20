@@ -54,7 +54,9 @@ export default function(opts: Attach): Plugin {
   })
 
   nvim.channelId.then(async channelId => {
-    await nvim.setVar('coc_node_channel_id', channelId)
+    if (global.hasOwnProperty('__TEST__')) {
+      await nvim.call('coc#rpc#set_channel_id', channelId)
+    }
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})

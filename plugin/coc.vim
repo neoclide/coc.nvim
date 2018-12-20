@@ -8,7 +8,7 @@ let g:did_coc_loaded = 1
 let g:rooter_patterns = get(g:, 'rooter_patterns', ['.vim/', '.git/', '.hg/', '.projections.json'])
 let s:is_vim = !has('nvim')
 
-if has('nvim') && $NODE_ENV !=# 'test' && $NVIM_LISTEN_ADDRESS !=# '/tmp/nvim'
+if has('nvim')
   call coc#rpc#start_server()
 endif
 
@@ -170,10 +170,11 @@ function! s:StatChange(dict, key, val)
 endfunction
 
 function! s:OnVimEnter()
-  " it's possible that client is not ready
-  call coc#rpc#notify('VimEnter', [])
   if s:is_vim
     call nvim#rpc#start_server()
+  else
+    " it's possible that client is not ready
+    call coc#rpc#notify('VimEnter', [])
   endif
 endfunction
 

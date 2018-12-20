@@ -30,8 +30,8 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkInitailize() abort
-  if get(g:, 'coc_node_channel_id', 0)
-    call health#report_ok('Service initialized')
+  if get(g:, 'coc_enabled', 0)
+    call health#report_ok('Service started')
     return 1
   endif
   call health#report_error('service could not be initialized', [
