@@ -6,13 +6,6 @@ function! coc#refresh() abort
     return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
 endfunction
 
-function! coc#_set_context(start, items)
-  let g:coc#_context = {
-        \ 'start': a:start,
-        \ 'candidates': a:items,
-        \}
-endfunction
-
 function! coc#_complete() abort
   let items = get(g:coc#_context, 'candidates', [])
   if empty(items) | return '' | endif
@@ -22,15 +15,11 @@ function! coc#_complete() abort
   return ''
 endfunction
 
-function! coc#_complete_with(start, items)
+function! coc#_do_complete(start, items)
   let g:coc#_context = {
         \ 'start': a:start,
         \ 'candidates': a:items,
         \}
-  call feedkeys("\<Plug>_", 'i')
-endfunction
-
-function! coc#_do_complete() abort
   call feedkeys("\<Plug>_", 'i')
 endfunction
 

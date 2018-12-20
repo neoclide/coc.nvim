@@ -134,7 +134,7 @@ function! s:request_async(method, args, cb) dict
   let chan_id = s:get_channel_id(self)
   if !chan_id | return | endif
   if type(a:cb) != 2
-    echohl Error | echon '['.self['name'].'] Callback should be function' | echohl None
+    echohl Error | echom '['.self['name'].'] Callback should be function' | echohl None
     return
   endif
   let id = self.async_req_id
@@ -147,7 +147,7 @@ function! s:on_async_response(id, resp, isErr) dict
   let Callback = get(self.async_callbacks, a:id, v:null)
   if empty(Callback)
     " should not happen
-    echohl Error | echon 'callback not found' | echohl None
+    echohl Error | echom 'callback not found' | echohl None
     return
   endif
   call remove(self.async_callbacks, a:id)
@@ -176,7 +176,7 @@ function! coc#client#stop(name) abort
   let client = get(s:clients, a:name, v:null)
   let running = coc#client#is_running(a:name)
   if !running
-    echohl WarningMsg | echon 'client '.a:name. ' not running.' | echohl None
+    echohl WarningMsg | echom 'client '.a:name. ' not running.' | echohl None
     return 1
   endif
   if s:is_vim
@@ -186,11 +186,11 @@ function! coc#client#stop(name) abort
   endif
   sleep 200m
   if coc#client#is_running(a:name)
-    echohl Error | echon 'client '.a:name. ' stop failed.' | echohl None
+    echohl Error | echom 'client '.a:name. ' stop failed.' | echohl None
     return 0
   endif
   call s:on_exit(a:name, 0)
-  echohl MoreMsg | echon 'client '.a:name.' stopped!' | echohl None
+  echohl MoreMsg | echom 'client '.a:name.' stopped!' | echohl None
   return 1
 endfunction
 

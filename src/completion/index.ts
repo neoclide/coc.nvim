@@ -181,7 +181,7 @@ export class Completion implements Disposable {
     }
     if (!isChangedP || this.filterItemsVim(resumeInput).length != items.length) {
       // avoid redraw when vim does could do filter
-      nvim.call('coc#_complete_with', [col, items], true)
+      nvim.call('coc#_do_complete', [col, items], true)
     }
     this._completeItems = items
     await this.onPumVisible()
@@ -209,7 +209,7 @@ export class Completion implements Disposable {
     }
     // changedtick could change without content change
     if (this.document.getline(linenr - 1) == line) {
-      nvim.call('coc#_complete_with', [option.col, items], true)
+      nvim.call('coc#_do_complete', [option.col, items], true)
       this._completeItems = items
       await this.onPumVisible()
       return

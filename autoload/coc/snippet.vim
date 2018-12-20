@@ -37,8 +37,7 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
   let m = mode()
   call cursor(a:lnum, a:col + a:len)
   if m !=# 'i' | startinsert | endif
-  call coc#_set_context(a:col - 1, a:values)
-  call timer_start(20, { -> coc#_do_complete()})
+  call timer_start(20, { -> coc#_do_complete(a:col - 1, a:values)})
 endfunction
 
 function! coc#snippet#enable(...)
