@@ -252,15 +252,17 @@ export class Completion implements Disposable {
           let after = byteSlice(line, option.col + byteLength(word))
           line = `${before}${text}${after}`
           this.changedTick = document.changedtick
-          await this.nvim.call('coc#util#setline', [option.linenr, line])
-          await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
-          if (workspace.isVim) {
-            this.nvim.command('redraw', true)
-            await document.patchChange()
-          }
+          this.nvim.pauseNotification()
+          this.nvim.call('coc#util#setline', [option.linenr, line], true)
+          this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))], true)
+          this.nvim.resumeNotification()
         }
       }
       await sources.doCompleteResolve(item)
+      if (workspace.isVim) {
+        await document.patchChange()
+        this.nvim.command('redraw', true)
+      }
     }
   }
 

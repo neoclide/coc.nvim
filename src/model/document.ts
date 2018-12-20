@@ -21,6 +21,8 @@ export default class Document {
   public chars: Chars
   public textDocument: TextDocument
   public fetchContent: Function & { clear(): void }
+  // vim only, for matchaddpos
+  private colorId = 1080
   private nvim: Neovim
   private _lastChange: LastChangeType = 'insert'
   private eol = true
@@ -468,6 +470,8 @@ export default class Document {
     let { nvim, bufnr } = this
     let res: number[] = []
     if (this.env.isVim) {
+      let curr = await nvim.call('bufnr', '%') as number
+      if (bufnr != curr) return []
       let group: Range[] = []
       for (let i = 0, l = ranges.length; i < l; i++) {
         if (group.length < 8) {
@@ -487,11 +491,10 @@ export default class Document {
               arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
             }
           }
-          let curr = await nvim.call('bufnr', '%') as number
-          if (bufnr == curr) {
-            let id = await nvim.call('matchaddpos', [hlGroup, arr, 9])
-            res.push(id)
-          }
+          let id = this.colorId
+          this.colorId = this.colorId + 1
+          nvim.call('matchaddpos', [hlGroup, arr, 9, id], true)
+          res.push(id)
         }
       }
     } else {

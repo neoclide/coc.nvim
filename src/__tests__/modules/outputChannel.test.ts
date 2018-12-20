@@ -1,14 +1,20 @@
 import { Neovim } from '@chemzqm/neovim'
 import OutputChannel from '../../model/outputChannel'
-import { createNvim, wait } from '../../util'
+import { wait } from '../../util'
+import helper from '../helper'
 
 let nvim: Neovim
-beforeEach(() => {
-  nvim = createNvim()
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
 })
 
-afterEach(() => {
-  nvim.quit()
+afterEach(async () => {
+  await helper.reset()
+})
+
+afterAll(async () => {
+  await helper.shutdown()
 })
 
 describe('OutputChannel', () => {

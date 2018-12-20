@@ -41,9 +41,11 @@ export class Extensions {
   private db: JsonDB
   public isEmpty = false
 
+  private _onReady = new Emitter<void>()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
+  public readonly onReady: Event<void> = this._onReady.event
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
@@ -52,7 +54,10 @@ export class Extensions {
     let root = this.root = await nvim.call('coc#util#extension_root')
     this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
     let stats = this.globalExtensionStats()
-    if (global.hasOwnProperty('__TEST__')) return
+    if (global.hasOwnProperty('__TEST__')) {
+      this._onReady.fire()
+      return
+    }
     Promise.all(stats.map(state => {
       let folder = state.root
       let id = path.dirname(folder)
@@ -60,7 +65,9 @@ export class Extensions {
       return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
-    })) // tslint:disable-line
+    })).then(() => {
+      this._onReady.fire()
+    })
     let config = workspace.getConfiguration('coc.preferences')
     let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
     if (interval == 'never') return

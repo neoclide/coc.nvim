@@ -485,6 +485,7 @@ export default class Handler {
       return
     }
     let ids = this.highlightsMap.get(document.bufnr)
+    this.nvim.pauseNotification()
     if (ids && ids.length) {
       this.clearHighlight(document.bufnr)
     }
@@ -493,9 +494,7 @@ export default class Handler {
       for (let hl of highlights) {
         let hlGroup = hl.kind == DocumentHighlightKind.Text
           ? 'CocHighlightText'
-          : hl.kind == DocumentHighlightKind.Read
-            ? 'CocHighlightRead'
-            : 'CocHighlightWrite'
+          : hl.kind == DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite'
         groups[hlGroup] = groups[hlGroup] || []
         groups[hlGroup].push(hl.range)
       }
@@ -505,14 +504,13 @@ export default class Handler {
         this.highlightsMap.set(document.bufnr, ids)
       }
     }
+    this.nvim.resumeNotification()
   }
 
   public async highlight(): Promise<void> {
     let document = workspace.getDocument(workspace.bufnr)
     if (!document) return
-    this.nvim.pauseNotification()
     await this.highlightDocument(document)
-    this.nvim.resumeNotification()
   }
 
   public async links(): Promise<DocumentLink[]> {

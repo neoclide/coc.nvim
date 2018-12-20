@@ -3,6 +3,15 @@ export function tail<T>(array: T[], n = 0): T {
   return array[array.length - (1 + n)]
 }
 
+export function group<T>(array: T[], size: number): T[][] {
+  let len = array.length
+  let res: T[][] = []
+  for (let i = 0; i < Math.ceil(len / size); i++) {
+    res.push(array.slice(i * size, (i + 1) * size))
+  }
+  return res
+}
+
 /**
  * Removes duplicates from the given array. The optional keyFn allows to specify
  * how elements are checked for equalness by returning a unique string for each.

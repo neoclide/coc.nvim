@@ -9,6 +9,7 @@ import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
 import { IWorkspace, VimCompleteItem } from '../types'
+import Uri from 'vscode-uri'
 import uuid = require('uuid/v4')
 
 export interface CursorPosition {
@@ -16,6 +17,8 @@ export interface CursorPosition {
   lnum: number
   col: number
 }
+
+let id = 0
 
 export class Helper extends Emitter {
   public nvim: Neovim
@@ -129,15 +132,17 @@ export class Helper extends Emitter {
   }
 
   public async edit(file?: string): Promise<Buffer> {
-    file = file || uuid()
+    file = path.join(__dirname, file ? file : `${id}`)
+    id = id + 1
     await this.nvim.command(`exe 'edit ' . fnameescape('${file}')`)
-    await this.wait(50)
-    let buf = await this.nvim.buffer
-    let m = await this.nvim.mode
-    if (m.blocking) {
-      console.error('blocking') // tslint:disable-line
+    await this.wait(60)
+    let uri = Uri.file(file).toString()
+    let doc = this.workspace.getDocument(uri)
+    if (!doc) {
+      console.error(`document ${uri} not found`)
+      return
     }
-    return buf
+    return doc.buffer
   }
 
   public get workspace(): IWorkspace {
@@ -145,10 +150,8 @@ export class Helper extends Emitter {
   }
 
   public async createDocument(name?: string): Promise<Document> {
-    name = name || uuid()
-    await this.edit(name)
-    await this.wait(10)
-    return await this.workspace.document
+    let buf = await this.edit(name)
+    return this.workspace.getDocument(buf.id)
   }
 
   public async getCmdline(): Promise<string> {

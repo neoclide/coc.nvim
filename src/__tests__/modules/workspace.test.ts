@@ -10,6 +10,7 @@ import { disposeAll } from '../../util'
 import { readFile, writeFile } from '../../util/fs'
 import workspace from '../../workspace'
 import helper, { createTmpFile } from '../helper'
+import Uri from 'vscode-uri'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -77,7 +78,7 @@ describe('workspace properties', () => {
 
 describe('workspace applyEdits', () => {
   it('should apply TextEdit of documentChanges', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, doc.version)
     let edit = TextEdit.insert(Position.create(0, 0), 'bar')
     let change = TextDocumentEdit.create(versioned, [edit])
@@ -91,7 +92,7 @@ describe('workspace applyEdits', () => {
   })
 
   it('should not apply TextEdit if version miss match', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let versioned = VersionedTextDocumentIdentifier.create(doc.uri, 10)
     let edit = TextEdit.insert(Position.create(0, 0), 'bar')
     let change = TextDocumentEdit.create(versioned, [edit])
@@ -103,7 +104,7 @@ describe('workspace applyEdits', () => {
   })
 
   it('should apply edits with changes to buffer', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let changes = {
       [doc.uri]: [TextEdit.insert(Position.create(0, 0), 'bar')]
     }
@@ -277,7 +278,7 @@ describe('workspace methods', () => {
   })
 
   it('should get line of document', async () => {
-    let doc = await helper.createDocument('tmp')
+    let doc = await helper.createDocument()
     await nvim.setLine('abc')
     let line = await workspace.getLine(doc.uri, 0)
     expect(line).toBe('abc')
@@ -305,7 +306,7 @@ describe('workspace methods', () => {
   })
 
   it('should read content from buffer', async () => {
-    let doc = await helper.createDocument('ade')
+    let doc = await helper.createDocument()
     await nvim.setLine('foo')
     await helper.wait(100)
     let line = await workspace.readFile(doc.uri)
@@ -385,7 +386,7 @@ describe('workspace methods', () => {
 describe('workspace utility', () => {
 
   it('should not create file if document exists', async () => {
-    let doc = await helper.createDocument('foo')
+    let doc = await helper.createDocument()
     let filepath = URI.parse(doc.uri).fsPath
     await workspace.createFile(filepath, { ignoreIfExists: false })
     let exists = fs.existsSync(filepath)
@@ -665,7 +666,7 @@ describe('workspace events', () => {
   })
 
   it('should fire onDidChangeConfiguration', async () => {
-    await helper.createDocument('onDidChangeConfiguration')
+    await helper.createDocument()
     let fn = jest.fn()
     let disposable = workspace.onDidChangeConfiguration(e => {
       disposable.dispose()
@@ -687,20 +688,26 @@ describe('workspace events', () => {
   })
 
   it('should fire onWillSaveUntil', async () => {
-    await helper.createDocument('willSaveHandler')
+    let doc = await helper.createDocument()
     let fn = jest.fn()
     workspace.onWillSaveUntil(event => {
-      let promise = new Promise<void>(resolve => {
+      let promise = new Promise<TextEdit[]>(resolve => {
         fn()
-        nvim.command('normal! dd').then(resolve, resolve)
+        let edit: TextEdit = {
+          newText: 'foo',
+          range: Range.create(0, 0, 0, 0)
+        }
+        resolve([edit])
       })
       event.waitUntil(promise)
     }, null, 'test')
-    let file = await createTmpFile('tmp')
-    await helper.edit(file)
+    await helper.wait(100)
+    await nvim.setLine('bar')
     await nvim.command('w')
-    expect(fn).toHaveBeenCalledTimes(1)
-    fs.unlinkSync(file)
+    let line = await nvim.getLine()
+    expect(line).toBe('foobar')
+    expect(fn).toBeCalledTimes(1)
+    fs.unlinkSync(Uri.parse(doc.uri).fsPath)
   })
 
   it('should attach & detach', async () => {

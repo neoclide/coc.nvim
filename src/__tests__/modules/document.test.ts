@@ -4,7 +4,6 @@ import { disposeAll } from '../../util'
 import helper from '../helper'
 
 let nvim: Neovim
-let disposables: Disposable[] = []
 jest.setTimeout(30000)
 
 beforeAll(async () => {
@@ -18,8 +17,6 @@ afterAll(async () => {
 
 afterEach(async () => {
   await helper.reset()
-  disposeAll(disposables)
-  disposables = []
 })
 
 describe('document model properties', () => {
@@ -46,7 +43,7 @@ describe('document model properties', () => {
   it('should get word range', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('foo bar')
-    await helper.wait(200)
+    await helper.wait(100)
     let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
     expect(range).toEqual(Range.create(0, 0, 0, 3))
     range = doc.getWordRangeAtPosition({ line: 0, character: 3 })

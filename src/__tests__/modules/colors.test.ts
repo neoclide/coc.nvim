@@ -2,6 +2,7 @@ import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
 import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation } from 'vscode-languageserver-protocol'
 import Colors from '../../handler/colors'
+import { toHexString } from '../../handler/highlighter'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
 
@@ -10,6 +11,7 @@ let state = 'normal'
 let colors: Colors
 beforeAll(async () => {
   await helper.setup()
+  await helper.wait(500)
   nvim = helper.nvim
   colors = (helper.plugin as any).handler.colors
 
@@ -51,7 +53,7 @@ describe('Colors', () => {
 
   it('should get hex string', () => {
     let color = getColor(255, 255, 255)
-    let hex = colors.toHexString(color)
+    let hex = toHexString(color)
     expect(hex).toBe('ffffff')
   })
 
@@ -80,7 +82,7 @@ describe('Colors', () => {
     state = 'normal'
   })
 
-  it('should clearHighlight on error result', async () => {
+  it('should not highlight on error result', async () => {
     let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     state = 'error'
@@ -123,7 +125,7 @@ describe('Colors', () => {
 
   it('should pickColor', async () => {
     await helper.mockFunction('coc#util#pick_color', [0, 0, 0])
-    let doc = await helper.createDocument('test')
+    let doc = await helper.createDocument()
     await nvim.setLine('#ffffff')
     await colors.highlightColors(doc)
     await colors.pickColor()
