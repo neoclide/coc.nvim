@@ -35,7 +35,7 @@ function! s:checkInitailize() abort
     return 1
   endif
   call health#report_error('service could not be initialized', [
-        \ 'Use command ":CocErrors" to get error messages.',
+        \ 'Use command ":messages" to get error messages.',
         \ 'Open a issue at https://github.com/neoclide/coc.nvim/issues for feedback.'
         \])
   return 0

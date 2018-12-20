@@ -91,7 +91,6 @@ function! nvim#rpc#start_server() abort
     if installed | call nvim#rpc#start_server() | endif
     return
   endif
-  let g:coc_node_rpc_command = command
   let options = {
         \ 'in_mode': 'json',
         \ 'out_mode': 'json',

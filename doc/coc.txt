@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for vim & neovim.
 
-Version: 0.0.32
+Version: 0.0.40
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -48,14 +48,14 @@ REQUIREMENT					*coc-requirement*
 
 Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
-If version not match, this plugin would not be loaded at all.
+If not satisfied, the plugin would not be loaded at all.
 
 ==============================================================================
 INSTALL						*coc-install*
 
 Use plugin manager, like https://github.com/junegunn/vim-plug by add: >
 
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
 
 to your `init.vim` and run: >
 
@@ -137,21 +137,11 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
 for more tips.
 
 ==============================================================================
-LANGUAGESERVER					*coc-languageserver*
-
-Coc have support for every language server features in the LSP specification,
-checkout
-
-https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features
-
-for a complete list.
-
-==============================================================================
 INTERFACE					*coc-interface*
 
 ------------------------------------------------------------------------------
 
-Coc doesn't comes with any default keymap, you need to configure yourself.
+Coc doesn't comes with default global keymap, you need to configure yourself.
 
 Keymapings 					*coc-keymapings*
 
@@ -234,6 +224,11 @@ mode, 'v_' works for visual mode.
 
 			Do command from codeLens of current line.
 
+<Plug>(coc-fix-current) 			*n_coc-fix-current*
+
+			Try run quickfix action for diagnostics in current
+			line.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
@@ -251,11 +246,17 @@ g:rooter_patterns 				*g:rooter_patterns*
 <
 			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
 
+			Note: you can specify different project root for
+			language servers by use `rootPatterns` in
+			settings.json.
+
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
 			Trigger key for goto next snippet position, applied
 			on insert and select mode.
+
+			Only works when snippet session is activated.
 
 			Default: <C-j>
 
@@ -264,12 +265,14 @@ g:coc_snippet_prev                            	*g:coc_snippet_prev*
 			Trigger key for goto previous snippet position,
 			applied on insert and select mode.
 
+			Only works when snippet session is activated.
+
 			Default: <C-k>
 
 g:coc_filetype_map 				*g:coc_filetype_map*
 
-			Map for document filetype so server could handle it as
-			expected, ex: >
+			Map for document filetype so server could handle
+			current document as other filetype, ex: >
 			
 			let g:coc_filetype_map = {
 				\ 'html.swig': 'html',
@@ -303,6 +306,16 @@ g:coc_node_path 				*g:coc_node_path*
 			it doen't take effect if coc service started by binary
 			build of coc.
 
+			Note: not work when using binary release.
+
+g:coc_force_debug  				*g:coc_force_debug*
+
+			Coc would use precompiled binary when the binary file
+			exists, set this to 1 to use compiled code instead of
+			prebuild binary.
+
+			Default: 0
+
 g:coc_node_args 				*g:coc_node_exec_args*
 
 			Arguments passed to node when starting coc
@@ -314,14 +327,6 @@ g:coc_node_args 				*g:coc_node_exec_args*
 <
 
 			Default: []
-
-g:coc_force_debug  				*g:coc_force_debug*
-
-			Coc would use precompiled binary when the binary file
-			exists, set this to 1 to use compiled code instead of
-			prebuild binary.
-
-			Default: 0
 
 g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
 
@@ -337,6 +342,9 @@ g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
 			Folder contains `vim-node-rpc` module, used for speed
 			up vim startup.
 
+			If not defined, the folder is resolved from yarn
+			global directory.
+
 			Default: undefined
 
 g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
@@ -351,19 +359,14 @@ g:coc_jump_locations 				*g:coc_jump_locations*
 			When setting `"coc.preferences.useQuickfixForLocations"`
 			is `false` , this variable would be set to jump
 			locations when autocmd |CocLocationsChange| fired
-			(quickfix of vim would be untouched). Each location
-			item contains:
+			(quickfix of vim would be untouched).
+
+			Each location item contains:
 
 			'filename': full file path.
 			'lnum': line number (1 based).
 			'col': column number(1 based).
 			'text':  line content of location.
-
-g:coc_node_rpc_command 				*g:coc_node_rpc_command*
-
-
-			Command used to start vim-node-rpc on vim.
-			Doesn't exists on neovim.
 
 g:coc_process_pid 				*g:coc_process_pid*
 
@@ -388,32 +391,20 @@ g:coc_status 					*g:coc_status*
 			Status string contributed by extensions, used for
 			status line.
 
-------------------------------------------------------------------------------
+==============================================================================
 FUNCTIONS 					*coc-functions*
 
 Coc functions are normally used by user defined command/keymap or other
 plugins.
 
-Note: coc functions only work after the coc service is initialized, it will
-silently fails if the service is not enabled. To run a function on startup,
-use autocmd like: >
+Note: some functions only work after coc service initialized, it will
+silently fail if the service not started.
+
+To run a function on startup, use autocmd like: >
 
  	autocmd User CocNvimInit call s:CocAction('runCommand',
 						\ 'tsserver.watchBuild')
-
 <
-						*CocAction()*
-CocAction({action}, [...{args}])
-
-	Run {action} of coc with optional extra {args}.
-
-						*CocActionAsync()*
-
-CocActionAsync({action, [...{args}], {callback}})
-
-	Call CocAction in none block way, callback is called with `error` and
-	`response`.
-
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 
@@ -426,7 +417,7 @@ CocRequest({id}, {method}, [{params}])
 	vim error would raise when request response with error.
 
 						*CocRequestAsync()*
-CocRequestAsync({id}, {method}, [{params}, {callback}])
+CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 
 	Async request for remote language client. {callback} is called with
 	error and response.
@@ -442,7 +433,22 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.openResourceCommand` in `coc-settings.json`
+	|:edit| or `coc.preferences.openResourceCommand` in
+	`coc-settings.json`
+
+						*CocAction()*
+CocAction({action}, [...{args}])
+
+	Run {action} of coc with optional extra {args}.
+
+						*CocActionAsync()*
+
+CocActionAsync({action}, [...{args}, [{callback}]])
+
+	Call CocAction without bblock vim UI, callback is called
+	with `error` and `response`.
+
+------------------------------------------------------------------------------
 
 Available Actions ~
 
@@ -722,7 +728,7 @@ health#coc#check()
 
 nvim#rpc#open_log()
 
-	Open log of channel, vim only. Set |g:coc_node_rpc_debug| to 1 to
+	Open channel log, vim only. Set |g:coc_node_rpc_debug| to 1 to
 	enable log.
 
 ------------------------------------------------------------------------------
@@ -746,15 +752,7 @@ COMMANDS 					*coc-commands*
 
 		Edit user config file `coc-setting.json`
 
-:CocErrors 					*:CocErrors*
-
-		Show error messages from `stderr` of coc server, use this to
-		get messages when coc unexpected exited.
-
-		Use `let $NODE_DEBUG=nvim*` to debug communication between
-		node-client and neovim.
-
-:CocInstall {names} 				*:CocInstall*
+:CocInstall {name} ... 				*:CocInstall*
 
 		Install one or more coc extensions.
 
@@ -773,10 +771,10 @@ COMMANDS 					*coc-commands*
 
 		Run `npm rebuild` for coc extensions.
 
-		May required if coc not started by binary and nodejs get
-		upgraded.
+		May required if coc not started by binary and environment
+		nodejs get upgraded.
 
-:CocCommand {name} [{args}]			*:CocCommand*
+:CocCommand {name} [{args}] ...			*:CocCommand*
 
 		Run command contributed by extensions, use `<tab>` for name
 		completion.
@@ -802,8 +800,8 @@ COMMANDS 					*coc-commands*
 <
 :CocInfo 					*:CocInfo*
 
-		Show some information in `info` output channel, useful for bug
-		report.
+		Show version and log information in split window, useful for
+		bug report.
 
 ------------------------------------------------------------------------------
 
@@ -825,7 +823,10 @@ AUTOCMD 					*coc-autocmds*
 		To use |fzf| for open quickfix list: >
 
 		autocmd User CocQuickfixChange :call fzf_quickfix#run()
+		
 <
+		Note: quickfix source of denite and fzf already included.
+
 						*CocLocationsChange*
 
 
@@ -834,7 +835,8 @@ AUTOCMD 					*coc-autocmds*
 		When quickfix for locations is disabled by
 		`coc.preferences.useQuickfixForLocations` in
 		`coc-settings.json`, you can use this autocmd with
-		|g:coc_jump_locations| for build custom list view.
+		|g:coc_jump_locations| to build custom list view of jump
+		locations
 
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
@@ -1053,7 +1055,9 @@ and actions.
 STATUSLINE SUPPORT 				*coc-status*
 
 Diagnostic info and other status info contributed by extensions could be shown
-in statusline of your vim.
+in statusline.
+
+The easiest way is add `%{coc#status()}` to your 'statusline' option.
 
 ------------------------------------------------------------------------------
 
@@ -1137,7 +1141,32 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 ==============================================================================
 FAQ						*coc-faq*
 
-Check out https://github.com/neoclide/coc.nvim/wiki/F.A.Q
+Q: 	I want to use ale for diagnostics.
+
+A: 	Yes, you can make coc send diagnostics to ale, just add >
+
+	"coc.preferences.diagnostic.displayByAle": false,
+<
+	to your coc-settings.json
+
+Q: 	I want codeLens feature of LSP.
+
+A: 	CodeLens support use virtual text feature of neovim, its's not enabled by
+	default, to make it works, add: >
+
+	  "coc.preferences.codeLens.enable": true,
+<
+	to your coc-settings.json
+
+Q: 	I want to highlight codes in markdown documentation.
+
+A: 	Use a markdown plugin which could provide fency code highlight,
+	like https://github.com/tpope/vim-markdown, and use settings like:
+>
+  	let g:markdown_fenced_languages = ['css', 'js=javascript']
+<
+	in your .vimrc.
+
 
 ==============================================================================
 CHANGELOG					*coc-changelog*

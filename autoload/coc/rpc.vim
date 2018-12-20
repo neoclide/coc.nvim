@@ -80,16 +80,6 @@ function! s:reset()
   let g:coc_node_channel_id = 0
 endfunction
 
-function! coc#rpc#show_error()
-  if empty(s:std_err)
-    echohl MoreMsg | echo '[coc.nvim] No error' | echohl None
-    return
-  endif
-  echohl Error
-  echo join(s:std_err, "\n")
-  echohl None
-endfunction
-
 function! coc#rpc#kill()
   let pid = get(g:, 'coc_process_pid', 0)
   if !pid | return | endif
