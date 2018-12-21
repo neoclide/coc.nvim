@@ -61,6 +61,12 @@ describe('chars match keywords', () => {
     let res = chars.matchKeywords('foo bar')
     expect(res).toEqual(['foo', 'bar'])
   })
+
+  it('should consider unicode character as word', () => {
+    let chars = new Chars('@')
+    let res = chars.matchKeywords('blackкофе')
+    expect(res).toEqual(['blackкофе'])
+  })
 })
 
 describe('chars isKeyword', () => {

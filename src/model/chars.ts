@@ -16,7 +16,6 @@ export class Range {
         // isalpha() of c
         ranges.push(new Range(65, 90))
         ranges.push(new Range(97, 122))
-        ranges.push(new Range(192, 255))
       } else if (part == '@-@') {
         ranges.push(new Range(64))
       } else if (/^([A-Za-z])-([A-Za-z])$/.test(part)) {
@@ -80,7 +79,7 @@ export class Chars {
       if (isKeyword) {
         str = str + ch
       }
-      if (str.length >= min && !res.has(str) && !isKeyword) {
+      if (str.length >= min && !res.has(str) && !isKeyword && str.length < 50) {
         res.add(str)
       }
       if (!isKeyword) {
@@ -93,7 +92,7 @@ export class Chars {
   public isKeywordChar(ch: string): boolean {
     let { ranges } = this
     let c = ch.charCodeAt(0)
-    if (c > 255) return false
+    if (c > 255) return true
     return ranges.some(r => r.contains(c))
   }
 
