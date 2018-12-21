@@ -32,6 +32,8 @@
     "globals": {
       "__TEST__": true
     },
+    "clearMocks": true,
+    "globalSetup": "./jest.js",
     "testEnvironment": "node",
     "moduleFileExtensions": [
       "ts",

@@ -5,7 +5,9 @@ import Plugin from './plugin'
 import semver from 'semver'
 const logger = require('./util/logger')('attach')
 
-export default function(opts: Attach): Plugin {
+const isTest = process.env.NODE_ENV == 'test'
+
+export default function (opts: Attach): Plugin {
   const nvim: NeovimClient = attach(opts)
   const plugin = new Plugin(nvim)
   let initialized = false
@@ -54,9 +56,7 @@ export default function(opts: Attach): Plugin {
   })
 
   nvim.channelId.then(async channelId => {
-    if (global.hasOwnProperty('__TEST__')) {
-      await nvim.call('coc#rpc#set_channel_id', channelId)
-    }
+    if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)
     nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {})

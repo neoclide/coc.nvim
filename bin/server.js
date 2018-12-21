@@ -1,3 +1,6 @@
+Object.defineProperty(console, 'log', {
+  value: () => { }
+})
 const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
 const isVim = process.env.VIM_NODE_RPC == 1

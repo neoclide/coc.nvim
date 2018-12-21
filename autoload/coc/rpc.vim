@@ -6,6 +6,9 @@ function! coc#rpc#start_server()
   if $NODE_ENV ==# 'test'
     " server already started
     let s:client = coc#client#create(s:name, [])
+    let s:client['running'] = 1
+    let s:client['chan_id'] = get(g:, 'coc_node_channel_id', 0)
+    call dictwatcheradd(g:, 'coc_node_channel_id', function('s:ChannelSet'))
     return
   endif
   if empty(s:client)
@@ -17,10 +20,12 @@ function! coc#rpc#start_server()
   call s:client['start']()
 endfunction
 
-function! coc#rpc#set_channel_id(chan_id)
+function! s:ChannelSet(dict, key, val)
+  let chan_id = get(a:val, 'new', 0)
   if empty(s:client) | return | endif
   let s:client['running'] = 1
-  let s:client['chan_id'] = a:chan_id
+  let s:client['chan_id'] = chan_id
+  call dictwatcherdel(g:, 'coc_node_channel_id', function('s:ChannelSet'))
 endfunction
 
 function! coc#rpc#kill()
