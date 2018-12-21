@@ -219,7 +219,6 @@ export interface DiagnosticItem {
 // Config property of source
 export interface SourceConfig {
   name: string
-  isFallback?: boolean
   sourceType?: SourceType
   triggerCharacters?: string[]
   optionalFns?: string[]
@@ -295,7 +294,6 @@ export interface VimCompleteItem {
 export interface CompleteResult {
   items: VimCompleteItem[]
   completeInComplete?: boolean
-  isFallback?: boolean
   duplicate?: boolean
   isIncomplete?: boolean
   engross?: boolean
@@ -456,7 +454,6 @@ export interface ISource {
   triggerCharacters?: string[]
   duplicate?: boolean
   isSnippet?: boolean
-  isFallback?: boolean
   filetypes?: string[]
   filepath?: string
   // should the first character always match

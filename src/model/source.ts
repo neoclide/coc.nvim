@@ -1,9 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
 import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
-import { byteSlice, byteLength } from '../util/string'
+import { byteSlice } from '../util/string'
 import workspace from '../workspace'
-import { TextEdit } from 'vscode-languageserver-types'
 const logger = require('../util/logger')('model-source')
 
 export default abstract class Source implements ISource {
@@ -14,7 +13,6 @@ export default abstract class Source implements ISource {
   // exists opitonnal function names for remote source
   public readonly optionalFns: string[]
   public readonly isSnippet: boolean
-  public readonly isFallback: boolean
   protected readonly nvim: Neovim
   private _disabled = false
   constructor(option: SourceConfig) {
@@ -22,7 +20,6 @@ export default abstract class Source implements ISource {
     this.name = name
     this.nvim = workspace.nvim
     this.isSnippet = !!option.isSnippet
-    this.isFallback = !!option.isFallback
     this.optionalFns = optionalFns || []
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native

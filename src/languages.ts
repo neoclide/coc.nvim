@@ -133,7 +133,7 @@ class Languages {
           return res
         }
       }
-      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 99)
+      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 90)
     })
   }
 

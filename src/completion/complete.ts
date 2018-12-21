@@ -72,7 +72,6 @@ export default class Complete {
       if (result.startcol != null && result.startcol != col) {
         result.engross = true
       }
-      result.isFallback = source.isFallback
       result.priority = source.priority
       result.source = source.name
       result.completeInComplete = completeInComplete
@@ -117,8 +116,8 @@ export default class Complete {
     let { bufnr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
     let followPart = cid == 0 ? '' : this.getFollowPart()
-    // let endColnr = this.getEndColnr()
     if (results.length == 0) return []
+    let hasLanguageServerMatch = false
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
@@ -127,7 +126,7 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority, duplicate } = res
-      if (res.isFallback && input.length < 3) continue
+      if (priority < 10 && hasLanguageServerMatch) continue
       for (let item of items) {
         let { word } = item
         if (words.has(word) && !duplicate) continue
@@ -135,6 +134,9 @@ export default class Complete {
         if (filterText.length < input.length) continue
         let score = matchScore(filterText, codes)
         if (input.length && score == 0) continue
+        if (priority > 90 && score > 5) {
+          hasLanguageServerMatch = true
+        }
         if (fixInsertedWord && followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
