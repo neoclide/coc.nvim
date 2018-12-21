@@ -12,7 +12,7 @@ import languages from '../languages'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import { disposeAll, wait } from '../util'
-import { isWord } from '../util/string'
+import { isWord, indexOf } from '../util/string'
 import workspace from '../workspace'
 import Document from '../model/document'
 const logger = require('../util/logger')('Handler')
@@ -666,14 +666,17 @@ export default class Handler {
             let start: number
             let end: number
             if (typeof active.label === 'string') {
-              let ms = after.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-              let idx = ms ? ms.index : after.indexOf(active.label)
+              let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
+              startIndex = startIndex == -1 ? 0 : startIndex
+              let str = after.slice(startIndex)
+              let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+              let idx = ms ? ms.index : str.indexOf(active.label)
               if (idx == -1) {
                 parts.push({ text: after, type: 'Normal' })
                 continue
               }
-              start = idx
-              end = idx + active.label.length
+              start = idx + startIndex
+              end = idx + startIndex + active.label.length
             } else {
               [start, end] = active.label
             }

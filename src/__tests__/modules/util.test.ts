@@ -5,12 +5,20 @@ import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score } from '../../util/match'
 import { mixin } from '../../util/object'
+import { indexOf } from '../../util/string'
 
 describe('score test', () => {
   test('should match schema', () => {
     let uri = Uri.file('/foo').toString()
     let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
+  })
+})
+
+describe('string test', () => {
+  test('should find index', () => {
+    expect(indexOf('a,b,c', ',', 2)).toBe(3)
+    expect(indexOf('a,b,c', ',', 1)).toBe(1)
   })
 })
 
