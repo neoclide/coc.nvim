@@ -55,10 +55,6 @@
   version "2.1.1"
   resolved "https://registry.yarnpkg.com/@types/find-up/-/find-up-2.1.1.tgz#1cd2d240f1ad1f48d32346074724dc3107248a11"
 
-"@types/fuzzaldrin-plus@^0.6.0":
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/@types/fuzzaldrin-plus/-/fuzzaldrin-plus-0.6.0.tgz#7bdb91a6a50dea787e7f735ecac48c43a8965674"
-
 "@types/glob@^7.1.1":
   version "7.1.1"
   resolved "https://registry.yarnpkg.com/@types/glob/-/glob-7.1.1.tgz#aa59a1c6e3fbc421e07ccd31a944c30eba521575"
@@ -1077,10 +1073,6 @@ fsevents@^1.2.3:
 function-bind@^1.1.1:
   version "1.1.1"
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.1.tgz#a56899d3ea3c9bab874bb9773b7c5ede92f4895d"
-
-fuzzaldrin-plus@^0.6.0:
-  version "0.6.0"
-  resolved "https://registry.yarnpkg.com/fuzzaldrin-plus/-/fuzzaldrin-plus-0.6.0.tgz#832f6489fbe876769459599c914a670ec22947ee"
 
 gauge@~2.7.3:
   version "2.7.4"
