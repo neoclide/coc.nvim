@@ -4,10 +4,9 @@ import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
 const logger = require('./util/logger')('attach')
-
 const isTest = process.env.NODE_ENV == 'test'
 
-export default function (opts: Attach): Plugin {
+export default (opts: Attach): Plugin => {
   const nvim: NeovimClient = attach(opts)
   const plugin = new Plugin(nvim)
   let initialized = false
