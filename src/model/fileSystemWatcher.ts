@@ -45,6 +45,7 @@ export default class FileSystemWatcher implements Disposable {
       ignoreDeleteEvents } = this
     this.subscription = await client.subscribe(globPattern, (change: FileChange) => {
       let { root, files } = change
+      files = files.filter(f => f.type == 'f')
       for (let file of files) {
         let uri = Uri.file(path.join(root, file.name))
         if (!file.exists) {
