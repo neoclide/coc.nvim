@@ -16,7 +16,7 @@ import workspace from './workspace'
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
 
-export type API = { [index: string]: any } | null | undefined
+export type API = { [index: string]: any } | void | null | undefined
 
 export interface ExtensionItem {
   id: string
@@ -406,17 +406,14 @@ export class Extensions {
 
   public async call(id: string, method: string, args: any[]): Promise<any> {
     let item = this.list.find(o => o.id == id)
-    if (!item) {
-      workspace.showMessage(`extension ${id} not found`, 'error')
-      return
-    }
+    if (!item) return workspace.showMessage(`extension ${id} not found`, 'error')
     let { extension } = item
     if (!extension.isActive) {
-      workspace.showMessage(`extension ${id} not actived`, 'error')
+      workspace.showMessage(`extension ${id} not activated`, 'error')
       return
     }
     let { exports } = extension
-    if (!exports.hasOwnProperty(method)) {
+    if (!exports || !exports.hasOwnProperty(method)) {
       workspace.showMessage(`method ${method} not found on extension ${id}`, 'error')
       return
     }
@@ -501,6 +498,26 @@ export class Extensions {
     this._onDidLoadExtension.fire(extension)
     this.setupActiveEvents(id, packageJSON)
     return id
+  }
+
+  public registerExtension(extension: Extension<API>, deactivate?: () => void): void {
+    let { id, packageJSON } = extension
+    this.list.push({ id, extension, deactivate })
+    let { contributes } = packageJSON
+    if (contributes) {
+      let { configuration } = contributes
+      if (configuration && configuration.properties) {
+        let { properties } = configuration
+        let props = {}
+        for (let key of Object.keys(properties)) {
+          let val = properties[key].default
+          if (val != null) props[key] = val
+        }
+        workspace.configurations.extendsDefaults(props)
+      }
+    }
+    this._onDidLoadExtension.fire(extension)
+    this.setupActiveEvents(id, packageJSON)
   }
 
   private globalExtensionStats(): ExtensionInfo[] {

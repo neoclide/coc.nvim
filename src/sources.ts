@@ -7,10 +7,11 @@ import { Disposable } from 'vscode-jsonrpc'
 import which from 'which'
 import events from './events'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceConfig, SourceStat, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, Extension } from './types'
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
+import extensions from './extensions'
 const logger = require('./util/logger')('sources')
 
 export class Sources {
@@ -31,7 +32,7 @@ export class Sources {
     }
   }
 
-  private async createVimSourceFromPath(nvim: Neovim, filepath: string): Promise<void> {
+  private async createVimSourceExtension(nvim: Neovim, filepath: string): Promise<void> {
     let name = path.basename(filepath, '.vim')
     try {
       await nvim.command(`source ${filepath}`)
@@ -42,17 +43,62 @@ export class Sources {
           return null
         }
       }
-      let config: SourceConfig | null
-      let source
-      config = await nvim.call(`coc#source#${name}#init`, [])
-      config = Object.assign(config, {
+      let props = await nvim.call(`coc#source#${name}#init`, [])
+      let packageJSON = {
+        name: `coc-source-${name}`,
+        activationEvents: props.filetypes ? props.filetypes.map(f => `onLanguage:${f}`) : ['*'],
+        contributes: {
+          configuration: {
+            properties: {
+              [`coc.source.${name}.enable`]: {
+                type: 'boolean',
+                default: true
+              },
+              [`coc.source.${name}.priority`]: {
+                type: 'number',
+                default: props.priority || 9
+              },
+              [`coc.source.${name}.shortcut`]: {
+                type: 'string',
+                default: props.shortcut || name.slice(0, 3).toUpperCase()
+              },
+              [`coc.source.${name}.filetypes`]: {
+                type: 'array',
+                default: props.filetypes || null,
+                items: {
+                  type: 'string'
+                }
+              }
+            }
+          }
+        }
+      }
+      let source = new VimSource({
         name,
         filepath,
         sourceType: SourceType.Remote,
         optionalFns: fns.filter(n => ['init', 'complete'].indexOf(n) == -1)
       })
-      source = new VimSource(config)
-      this.addSource(source)
+      let isActive = false
+      let extension: any = {
+        id: packageJSON.name,
+        packageJSON,
+        exports: void 0,
+        extensionPath: filepath,
+        activate: async () => {
+          isActive = true
+          this.addSource(source)
+        }
+      }
+      Object.defineProperty(extension, 'isActive', {
+        get: () => {
+          return isActive
+        }
+      })
+      extensions.registerExtension(extension, () => {
+        isActive = false
+        this.removeSource(source)
+      })
     } catch (e) {
       workspace.showMessage(`Error on create vim source ${name}: ${e.message}`, 'error')
     }
@@ -61,9 +107,7 @@ export class Sources {
   private createNvimProcess(): cp.ChildProcess {
     try {
       let p = which.sync('nvim')
-      let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
-        shell: false
-      })
+      let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'])
       return proc
     } catch (e) {
       return null
@@ -97,7 +141,7 @@ export class Sources {
       }
     }
     await Promise.all(files.map(p => {
-      return this.createVimSourceFromPath(nvim, p)
+      return this.createVimSourceExtension(nvim, p)
     }))
     if (proc) proc.kill()
   }
