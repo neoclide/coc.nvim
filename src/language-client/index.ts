@@ -248,20 +248,16 @@ export class LanguageClient extends BaseLanguageClient {
   }
 
   private checkProcessDied(childProcess: ChildProcess | undefined): void {
-    if (!childProcess) {
-      return
-    }
-    if (!global.hasOwnProperty('__TEST__')) {
-      setTimeout(() => {
-        // Test if the process is still alive. Throws an exception if not
-        try {
-          process.kill(childProcess.pid, 0)
-          terminate(childProcess)
-        } catch (error) {
-          // All is fine.
-        }
-      }, 2000)
-    }
+    if (!childProcess || global.hasOwnProperty('__TEST__')) return
+    setTimeout(() => {
+      // Test if the process is still alive. Throws an exception if not
+      try {
+        process.kill(childProcess.pid, 0)
+        terminate(childProcess)
+      } catch (error) {
+        // All is fine.
+      }
+    }, 1000)
   }
 
   protected handleConnectionClosed(): void {
@@ -413,6 +409,7 @@ export class LanguageClient extends BaseLanguageClient {
       let command: Executable = json as Executable
       let args = command.args || []
       let options = Object.assign({}, command.options)
+      options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
       let serverProcess = cp.spawn(command.command, args, options)
       if (!serverProcess || !serverProcess.pid) {
