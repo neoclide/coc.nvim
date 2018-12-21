@@ -353,7 +353,7 @@ export class Workspace implements IWorkspace {
           await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
         }
       }
-      this.showMessage(`${n} documents changed!`, 'more')
+      this.showMessage(`${n} documents changed!`)
     }
     if (changedFiles.length) {
       let names = await Promise.all(changedFiles.map(uri => {

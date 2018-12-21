@@ -70,7 +70,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
       this.emit('ready', id)
     }
     service.onServiceReady(() => {
-      workspace.showMessage(`service ${id} started`, 'more')
+      logger.info(`service ${id} started`)
       this.emit('ready', id)
     }, null, this.disposables)
     return Disposable.create(() => {
