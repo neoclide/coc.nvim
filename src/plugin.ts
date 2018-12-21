@@ -41,7 +41,7 @@ export default class Plugin extends EventEmitter {
       if (Object.keys(config).length) {
         workspace.configurations.updateUserConfig(config)
       }
-      let pid = await nvim.call('getpid')
+      let pid = await nvim.call('getpid') as number
       this.checkProcess(pid)
       await workspace.init()
       sources.init()

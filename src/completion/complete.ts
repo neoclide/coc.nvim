@@ -1,12 +1,12 @@
-import { score } from 'fuzzaldrin-plus'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
-import { fuzzyMatch, matchScore, getCharCodes } from '../util/fuzzy'
+import { getCharCodes } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
 import { omit } from '../util/lodash'
 import Document from '../model/document'
 import { Chars } from '../model/chars'
+import { matchScore } from './match'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -133,7 +133,8 @@ export default class Complete {
         if (words.has(word) && !duplicate) continue
         let filterText = item.filterText || item.word
         if (filterText.length < input.length) continue
-        if (input.length && !fuzzyMatch(codes, filterText)) continue
+        let score = matchScore(filterText, codes)
+        if (input.length && score == 0) continue
         if (fixInsertedWord && followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
@@ -151,7 +152,7 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
-        item.score = input.length ? score(filterText, input) + (priority * 100) : 0
+        item.score = input.length ? score + priority / 1000 : 0
         item.recentScore = item.recentScore || 0
         if (!item.recentScore) {
           let recentScore = this.recentScores[`${bufnr}|${word}`]
@@ -160,9 +161,6 @@ export default class Complete {
           }
         }
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
-        item.priority = priority
-        item.matchScore = matchScore(input, filterText)
-        item.strictMatch = input.length && filterText.startsWith(input) ? 1 : 0
         words.add(word)
         if (!filtering && item.preselect) {
           preselect = item
@@ -178,17 +176,15 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      let strictMatch = a.strictMatch && b.strictMatch
-      if (a.matchScore != b.matchScore) return b.matchScore - a.matchScore
-      if (strictMatch && a.priority != b.priority) return b.priority - a.priority
-      if (strictMatch && a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-      if (strictMatch && a.localBonus != b.localBonus) return b.localBonus - a.localBonus
-      if (sa && sb) return sa < sb ? -1 : 1
+      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
+      if (a.score != b.score) return b.score - a.score
+      if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+      if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       return b.score - a.score
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'strictMatch', 'signature', 'localBonus']))
+    return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'signature', 'localBonus']))
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {

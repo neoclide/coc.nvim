@@ -7,28 +7,22 @@ export function getCharCodes(str: string): number[] {
   return res
 }
 
+export function wordChar(ch: number) {
+  return (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90)
+}
+
+export function caseMatch(ch: number, code: number) {
+  if (ch == code) return true
+  if (ch >= 97 && ch <= 122 && code + 32 === ch) return true
+  return false
+}
+
 export function fuzzyChar(a: string, b: string): boolean {
   let ca = a.charCodeAt(0)
   let cb = b.charCodeAt(0)
   if (ca === cb) return true
   if (ca >= 97 && ca <= 122 && cb + 32 === ca) return true
   return false
-}
-
-export function matchScore(input: string, word: string): number {
-  if (word.length < input.length) return 0
-  let n = 0
-  for (let i = 0; i < input.length; i++) {
-    const ch = input[i]
-    if (ch == word[i]) {
-      n = n + 1
-    } else if (fuzzyChar(ch, word[i])) {
-      n = n + 0.5
-    } else {
-      break
-    }
-  }
-  return n
 }
 
 // upper case must match, lower case ignore case
