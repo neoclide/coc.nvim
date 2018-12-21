@@ -230,7 +230,7 @@ function! s:echo_signature(parts)
     let text = get(part, 'text', '')
     if !empty(text)
       execute 'echohl '.hl
-      execute "echon '".text."'"
+      execute "echon '".substitute(text, "'", "''", 'g')."'"
       echohl None
     endif
   endfor

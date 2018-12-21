@@ -518,6 +518,7 @@ class Languages {
           if (visible) {
             // vim have no suppport for update complete item
             let str = resolving.detail ? resolving.detail.trim() : ''
+            str = str.replace(/\n\s*/g, ' ')
             if (str) echoMessage(this.nvim, str)
             let doc = complete.getDocumentation(resolving)
             if (doc) str += '\n\n' + doc
