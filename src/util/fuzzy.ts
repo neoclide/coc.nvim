@@ -7,11 +7,11 @@ export function getCharCodes(str: string): number[] {
   return res
 }
 
-export function wordChar(ch: number) {
+export function wordChar(ch: number): boolean {
   return (ch >= 97 && ch <= 122) || (ch >= 65 && ch <= 90)
 }
 
-export function caseMatch(ch: number, code: number) {
+export function caseMatch(ch: number, code: number): boolean {
   if (ch == code) return true
   if (ch >= 97 && ch <= 122 && code + 32 === ch) return true
   return false

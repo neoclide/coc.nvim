@@ -1,3 +1,20 @@
+# 2018-12-20
+
+- **Break change** configuration for module language server, transport now
+  require specified value.
+- **Break change** new algorithm for socre complete items.
+- Add command `workspace.clearWatchman`.
+- Add `quickfixs`, `doCodeAction` and `doQuickfix` actions.
+- Add `g:vim_node_rpc_args` for debug purpose.
+- Add `coc#add_extension()` for specify extentions to install.
+- Fix clients not restarted on CocRestart.
+- Fix `execArgv` and `runtime` not work for node language server.
+- Fix detail of complete item not echoed sometimes.
+- Fix actions missing when registed with same clientId.
+- Fix issues with signature echo.
+- Fix uri is wrong with whitespace.
+- Improve highlight performance with `nvim_call_atomic`.
+
 # 2018-12-17
 
 - **Break change** `vim-node-rpc` now upgrade in bacground.
