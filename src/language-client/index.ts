@@ -463,6 +463,9 @@ export class LanguageClient extends BaseLanguageClient {
       console.log(msg) // tslint:disable-line
       return
     }
+    if (process.env.NVIM_COC_LOG_LEVEL == 'debug') {
+      logger.debug(`[${this.id}]`, msg)
+    }
     this.outputChannel.append(msg.endsWith('\n') ? msg : msg + '\n')
   }
 }
