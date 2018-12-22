@@ -52,19 +52,23 @@ function! coc#rpc#restart()
 endfunction
 
 function! coc#rpc#request(method, args) abort
-  return coc#client#request(s:name, a:method, a:args)
+  if empty(s:client) | return | endif
+  return s:client['request'](a:method, a:args)
 endfunction
 
 function! coc#rpc#notify(method, args) abort
-  call coc#client#notify(s:name, a:method, a:args)
+  if empty(s:client) | return | endif
+  call s:client['notify'](a:method, a:args)
 endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort
-  call coc#client#request_async(s:name, a:method, a:args, a:cb)
+  if empty(s:client) | return | endif
+  call s:client['request_async'](a:method, a:args, a:cb)
 endfunction
 
 " receive async response
 function! coc#rpc#async_response(id, resp, isErr) abort
+  if empty(s:client) | return | endif
   call coc#client#on_response(s:name, a:id, a:resp, a:isErr)
 endfunction
 

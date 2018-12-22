@@ -717,7 +717,7 @@ export class Workspace implements IWorkspace {
 
   public registerTextDocumentContentProvider(scheme: string, provider: TextDocumentContentProvider): Disposable {
     this.schemeProviderMap.set(scheme, provider)
-    this.setupDocumentReadAutocmd() // tslint:disable-line
+    this.setupDynamicAutocmd() // tslint:disable-line
     let disposables: Disposable[] = []
     if (provider.onDidChange) {
       provider.onDidChange(async uri => {
@@ -737,7 +737,7 @@ export class Workspace implements IWorkspace {
     return Disposable.create(() => {
       this.schemeProviderMap.delete(scheme)
       disposeAll(disposables)
-      this.setupDocumentReadAutocmd().catch(_e => {
+      this.setupDynamicAutocmd().catch(_e => {
         // noop
       })
     })
@@ -761,7 +761,7 @@ export class Workspace implements IWorkspace {
     return this.statusLine.createStatusBarItem(priority, opt.progress || false)
   }
 
-  private async setupDocumentReadAutocmd(): Promise<void> {
+  private async setupDynamicAutocmd(): Promise<void> {
     let schemes = this.schemeProviderMap.keys()
     let cmds: string[] = []
     for (let scheme of schemes) {

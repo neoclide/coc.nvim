@@ -155,10 +155,6 @@ export class Extensions {
   }
 
   public async toggleExtension(id: string): Promise<void> {
-    if (!this.isGlobalExtension(id)) {
-      workspace.showMessage(`toggle state of local extension ${id} not supported`, 'error')
-      return
-    }
     let state = this.getExtensionState(id)
     if (state == null) return
     if (state == 'activited') {
@@ -376,7 +372,7 @@ export class Extensions {
   public deactivate(id): boolean {
     let item = this.list.find(o => o.id == id)
     if (!item) return false
-    if (item.extension.isActive) {
+    if (item.extension.isActive && typeof item.deactivate == 'function') {
       item.deactivate()
       return true
     }
@@ -522,11 +518,9 @@ export class Extensions {
 
   private globalExtensionStats(): ExtensionInfo[] {
     let { root } = this
-    let json = this.loadJson()
-    if (!json || !json.dependencies) {
-      return []
-    }
-    return Object.keys(json.dependencies).map(name => {
+    let names = this.globalExtensions
+    if (!names.length) return []
+    return names.map(name => {
       return {
         id: name,
         root: path.join(root, 'node_modules', name),
@@ -536,29 +530,22 @@ export class Extensions {
   }
 
   private localExtensionStats(): ExtensionInfo[] {
-    let { root } = this
+    let globals = this.globalExtensions
     let res: ExtensionInfo[] = []
     this.list.forEach(item => {
-      let p = item.extension.extensionPath
-      if (!p.startsWith(root)) {
-        let jsonFile = path.join(p, 'package.json')
-        let json = loadJson(jsonFile)
-        res.push({
-          id: json.name,
-          root: p,
-          state: this.getExtensionState(json.name)
-        })
-      }
+      if (globals.indexOf(item.id) !== -1) return
+      let { extensionPath, packageJSON } = item.extension
+      res.push({
+        id: packageJSON.name,
+        root: extensionPath,
+        state: this.getExtensionState(item.id)
+      })
     })
     return res
   }
 
   private isGlobalExtension(id: string): boolean {
-    let json = this.loadJson()
-    if (!json || !json.dependencies) {
-      return false
-    }
-    return json.dependencies.hasOwnProperty(id)
+    return this.globalExtensions.indexOf(id) !== -1
   }
 
   private isExoticExtension(id: string): boolean {
@@ -568,10 +555,16 @@ export class Extensions {
     }
     let { dependencies } = json
     let val = dependencies[id]
-    if (!val || /^\w+:/.test(val)) {
+    if (!val || /^(https?|git):/.test(val)) {
       return true
     }
     return false
+  }
+
+  public get globalExtensions(): string[] {
+    let json = this.loadJson()
+    if (!json) return []
+    return Object.keys(json.dependencies)
   }
 }
 
