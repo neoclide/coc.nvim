@@ -80,7 +80,7 @@ export default class Complete {
       logger[dt > 1000 ? 'warn' : 'debug'](`Complete source "${source.name}" takes ${dt}ms`)
       return result
     } catch (err) {
-      echoErr(this.nvim, `${source.name} complete error: ${err.message}`)
+      echoErr(this.nvim, `${source.name} complete error: ${err}`)
       logger.error('Complete error:', source.name, err)
       return null
     }
@@ -117,7 +117,8 @@ export default class Complete {
     let { snippetIndicator, fixInsertedWord } = this.config
     let followPart = cid == 0 ? '' : this.getFollowPart()
     if (results.length == 0) return []
-    let hasLanguageServerMatch = false
+    // max score of high priority source
+    let maxScore = 0
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
     let words: Set<string> = new Set()
@@ -126,17 +127,16 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority, duplicate } = res
-      if (priority < 10 && hasLanguageServerMatch) continue
       for (let item of items) {
         let { word } = item
         if (words.has(word) && !duplicate) continue
         let filterText = item.filterText || item.word
+        item.filterText = filterText
         if (filterText.length < input.length) continue
         let score = matchScore(filterText, codes)
         if (input.length && score == 0) continue
-        if (priority > 90 && score > 5) {
-          hasLanguageServerMatch = true
-        }
+        if (priority > 90) maxScore = Math.max(maxScore, score)
+        if (maxScore > 5 && priority <= 10 && score <= maxScore) continue
         if (fixInsertedWord && followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
@@ -154,7 +154,7 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
-        item.score = input.length ? score + priority / 1000 : 0
+        item.score = input.length ? score : 0
         item.recentScore = item.recentScore || 0
         if (!item.recentScore) {
           let recentScore = this.recentScores[`${bufnr}|${word}`]
@@ -178,11 +178,16 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
+      let fa = a.filterText
+      let fb = b.filterText
       if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.score != b.score) return b.score - a.score
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
+      if (a.priority != b.priority) return b.priority - a.priority
+      if (fa.startsWith(fb)) return 1
+      if (fb.startsWith(fa)) return -1
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
-      return b.score - a.score
+      return a.filterText.length - b.filterText.length
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)

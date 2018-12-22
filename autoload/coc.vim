@@ -38,10 +38,7 @@ function! coc#start(...)
     return ''
   endif
   let opt = coc#util#get_complete_option()
-  call extend(opt, {
-        \ 'reload': get(a:, 1, 0),
-        \})
-  call CocAction('startCompletion', opt)
+  call CocActionAsync('startCompletion', opt)
   return ''
 endfunction
 

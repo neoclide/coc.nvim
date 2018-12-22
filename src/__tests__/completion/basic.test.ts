@@ -1,14 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { ISource, SourceType, CompleteResult } from '../../types'
 import helper from '../helper'
-import { Sources } from '../../sources'
+import sources from '../../sources'
 
 let nvim: Neovim
-let sources: Sources
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  sources = (await import('../../sources')).default
 })
 
 afterAll(async () => {
@@ -20,15 +18,9 @@ afterEach(async () => {
 })
 
 describe('completion', () => {
-  it('should create channel', async () => {
-    let chans = await nvim.request('nvim_list_chans', [])
-    let chan = chans.find(o => o.client && o.client.name == 'coc')
-    expect(chan).toBeDefined()
-    expect(chan.id).toBeGreaterThan(0)
-  })
 
   it('should not show word of word source on empty input', async () => {
-    await helper.edit('insert')
+    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(30)
     await nvim.input('of')
@@ -36,13 +28,13 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
     await nvim.input('<backspace>')
-    await helper.wait(1000)
+    await helper.wait(100)
     res = await helper.notVisible('foo')
     expect(res).toBe(true)
   })
 
   it('should trigger on first letter insert', async () => {
-    await helper.edit('foo')
+    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(30)
     await nvim.input('of')
@@ -50,11 +42,14 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
-  it('should trigger on trigger character', async () => {
-    await helper.edit('file')
-    // trigger file source
-    await nvim.input('i./')
-    let res = await helper.visible('coc-settings.json', 'file')
+  it('should trigger on force refresh', async () => {
+    await helper.edit()
+    await nvim.setLine('foo f')
+    await helper.wait(100)
+    await nvim.input('A')
+    await helper.wait(10)
+    await nvim.call('coc#start')
+    let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
   })
 
@@ -92,7 +87,7 @@ describe('completion', () => {
   })
 
   it('should not trigger on insert enter', async () => {
-    await helper.edit('insert')
+    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(30)
     await nvim.input('o')
@@ -101,7 +96,7 @@ describe('completion', () => {
   })
 
   it('should filter on fast input', async () => {
-    await helper.edit('insert')
+    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(60)
     await nvim.input('oba')
@@ -113,6 +108,7 @@ describe('completion', () => {
   })
 
   it('should fix start column', async () => {
+    await helper.edit()
     let source: ISource = {
       name: 'test',
       priority: 10,
@@ -134,5 +130,29 @@ describe('completion', () => {
     await helper.waitPopup()
     let val = await nvim.getVar('coc#_context') as any
     expect(val.start).toBe(0)
+  })
+
+  it('should trigger on triggerCharacters', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'trigger',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    sources.removeSource(source)
+    let res = await helper.visible('foo', 'trigger')
+    expect(res).toBe(true)
   })
 })

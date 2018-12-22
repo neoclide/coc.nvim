@@ -317,7 +317,7 @@ export class Completion implements Disposable {
     if (!shouldTrigger) return
     let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
     option.triggerCharacter = character
-    logger.trace('trigger completion with', option)
+    logger.debug('trigger completion with', option)
     await this.startCompletion(option)
   }
 
