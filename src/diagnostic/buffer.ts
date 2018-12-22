@@ -165,6 +165,7 @@ export class DiagnosticBuffer {
     let buffer = this.nvim.createBuffer(this.bufnr)
     buffer.setVar('coc_diagnostic_info', info, true)
     let bufnr = await this.nvim.call('bufnr', '%')
+    if (!workspace.getDocument(this.bufnr)) return
     if (bufnr == this.bufnr) this.nvim.command('redraws', true)
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }

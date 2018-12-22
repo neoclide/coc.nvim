@@ -71,6 +71,7 @@ function! s:start() dict
 endfunction
 
 function! s:on_stderr(name, msgs)
+  if v:dying | return | endif
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
@@ -240,6 +241,8 @@ endfunction
 
 function! coc#client#restart_all()
   for key in keys(s:clients)
-    call coc#client#restart(key)
+    if key !=# 'coc'
+      call coc#client#restart(key)
+    endif
   endfor
 endfunction
