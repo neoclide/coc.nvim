@@ -651,15 +651,15 @@ export default class Handler {
       if (label.length >= columns) {
         label = label.slice(0, columns - 4) + '...'
       }
-      let idx = label.indexOf('(')
-      if (idx == -1) {
+      let nameIndex = label.indexOf('(')
+      if (nameIndex == -1) {
         parts = [{ text: label, type: 'Normal' }]
       } else {
         parts.push({
-          text: label.slice(0, idx),
+          text: label.slice(0, nameIndex),
           type: 'Label'
         })
-        let after = label.slice(idx)
+        let after = label.slice(nameIndex)
         if (signatureList.length == 0 && activeParameter != null) {
           let active = signature.parameters[activeParameter]
           if (active) {
@@ -679,6 +679,8 @@ export default class Handler {
               end = idx + startIndex + active.label.length
             } else {
               [start, end] = active.label
+              start = start - nameIndex
+              end = end - nameIndex
             }
             parts.push({ text: after.slice(0, start), type: 'Normal' })
             parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
