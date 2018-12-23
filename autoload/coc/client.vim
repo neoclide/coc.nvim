@@ -51,7 +51,7 @@ function! s:start() dict
     let status = job_status(job)
     if status !=# 'run'
       let self.running = 0
-      echoerr 'Failed to start '.self.name.' service'
+      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['job'] = job
@@ -62,7 +62,7 @@ function! s:start() dict
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
           \})
     if chan_id <= 0 || jobwait([chan_id], 10)[0] != -1
-      echoerr 'Failed to start '.self.name.' service'
+      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['chan_id'] = chan_id
@@ -94,7 +94,7 @@ function! s:on_exit(name, code) abort
     silent! exe 'unlet g:vim_node_'.a:name.'_client_id'
   endif
   if a:code != 0
-    echoerr 'client '.a:name. ' abnormal exit with: '.a:code
+    echohl Error | echon 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
 endfunction
 
