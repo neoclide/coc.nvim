@@ -105,8 +105,5 @@ export function matchScore(word: string, input: number[]): number {
     if (!add) return 0
     score += add
   }
-  if (word.length === input.length) {
-    score += 0.2
-  }
   return score
 }

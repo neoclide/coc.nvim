@@ -57,14 +57,13 @@ describe('document model properties', () => {
   it('should get localify bonus', async () => {
     let doc = await helper.createDocument()
     let { buffer } = doc
-    await buffer.setLines(['context content clearTimeout', ''],
+    await buffer.setLines(['context content clearTimeout', '', 'product confirm'],
       { start: 0, end: -1, strictIndexing: false })
     await helper.wait(100)
     let pos: Position = { line: 1, character: 0 }
-    let res = doc.getLocalifyBonus(pos)
-    expect(res.get('clearTimeout')).toBe(15)
-    expect(res.get('content')).toBe(7)
-    expect(res.get('context')).toBe(0)
+    let res = doc.getLocalifyBonus(pos, pos)
+    expect(res.has('confirm')).toBe(true)
+    expect(res.has('clearTimeout')).toBe(true)
   })
 
   it('should get current line', async () => {
@@ -88,28 +87,4 @@ describe('document model properties', () => {
     expect(line).toBe('first line')
   })
 
-  it('should be fast for localify bonus', async () => {
-    let lines = []
-    function randomWord(): string {
-      let s = ''
-      for (let i = 0; i < 10; i++) {
-        s = s + String.fromCharCode(97 + Math.floor(Math.random() * 26))
-      }
-      return s
-    }
-    for (let i = 0; i < 300; i++) {
-      let line = ''
-      for (let i = 0; i < 10; i++) {
-        line = line + randomWord() + ' '
-      }
-      lines.push(line)
-    }
-    let doc = await helper.createDocument('foo')
-    let { buffer } = doc
-    await buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false })
-    await helper.wait(100)
-    let ts = Date.now()
-    doc.getLocalifyBonus({ line: 299, character: 0 })
-    expect(Date.now() - ts).toBeLessThanOrEqual(100)
-  })
 })

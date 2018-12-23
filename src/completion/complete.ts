@@ -7,6 +7,7 @@ import { omit } from '../util/lodash'
 import Document from '../model/document'
 import { Chars } from '../model/chars'
 import { matchScore } from './match'
+import { Position } from 'vscode-languageserver-types'
 const logger = require('../util/logger')('model-complete')
 
 export type Callback = () => void
@@ -136,7 +137,7 @@ export default class Complete {
         let score = matchScore(filterText, codes)
         if (input.length && score == 0) continue
         if (priority > 90) maxScore = Math.max(maxScore, score)
-        if (maxScore > 5 && priority <= 10 && score <= maxScore) continue
+        if (maxScore > 5 && priority <= 10 && score < maxScore) continue
         if (fixInsertedWord && followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
@@ -154,7 +155,9 @@ export default class Complete {
           item.user_data = JSON.stringify(user_data)
           item.source = source
         }
+        item.priority = priority
         item.score = input.length ? score : 0
+        item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         item.recentScore = item.recentScore || 0
         if (!item.recentScore) {
           let recentScore = this.recentScores[`${bufnr}|${word}`]
@@ -162,7 +165,6 @@ export default class Complete {
             item.recentScore = recentScore
           }
         }
-        item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         words.add(word)
         if (!filtering && item.preselect) {
           preselect = item
@@ -178,14 +180,10 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      let fa = a.filterText
-      let fb = b.filterText
       if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.score != b.score) return b.score - a.score
-      if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.priority != b.priority) return b.priority - a.priority
-      if (fa.startsWith(fb)) return 1
-      if (fb.startsWith(fa)) return -1
+      if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       return a.filterText.length - b.filterText.length
     })
@@ -200,7 +198,8 @@ export default class Complete {
     sources.sort((a, b) => b.priority - a.priority)
     this.sources = sources
     if (this.config.localityBonus) {
-      this.localBonus = this.document.getLocalifyBonus({ line: linenr - 1, character: colnr - 1 })
+      let line = linenr - 1
+      this.localBonus = this.document.getLocalifyBonus(Position.create(line, opts.col - 1), Position.create(line, colnr))
     } else {
       this.localBonus = new Map()
     }
