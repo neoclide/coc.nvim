@@ -3,10 +3,17 @@ import net from 'net'
 import fs from 'fs'
 import bser from 'bser'
 import Watchman, { FileChangeItem } from '../../watchman'
-import helper from '../helper'
 
 let server: net.Server
 let client: net.Socket
+
+function wait(ms: number): Promise<any> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve()
+    }, ms)
+  })
+}
 
 function sendResponse(data: any): void {
   client.write(bser.dumpToBuffer(data))
@@ -99,7 +106,7 @@ describe('watchman', () => {
     expect(uid).toBeDefined()
     let changes: FileChangeItem[] = [createFileChange('/tmp/a')]
     sendSubscription(uid, '/tmp', changes)
-    await helper.wait(100)
+    await wait(100)
     expect(fn).toBeCalled()
     let call = fn.mock.calls[0][0]
     expect(call).toEqual({
@@ -139,13 +146,5 @@ describe('Watchman#createClient', () => {
   it('should not create client for root', async () => {
     let client = await Watchman.createClient(null, '/')
     expect(client).toBeNull()
-  })
-})
-
-describe('Watchman#getBinaryPath', () => {
-  it('should use path is exists', () => {
-    let p = __filename
-    let res = Watchman.getBinaryPath(p)
-    expect(res).toBe(p)
   })
 })

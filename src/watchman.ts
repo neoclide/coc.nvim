@@ -1,6 +1,5 @@
 import path from 'path'
 import watchman, { Client } from 'fb-watchman'
-import fs from 'fs'
 import which from 'which'
 import uuidv1 = require('uuid/v1')
 import os from 'os'
@@ -30,7 +29,7 @@ export interface FileChange {
 
 export type ChangeCallback = (FileChange) => void
 
-const clientsMap: Map<string, Watchman> = new Map()
+const clientsMap: Map<string, Promise<Watchman>> = new Map()
 /**
  * Watchman wrapper for fb-watchman client
  *
@@ -125,28 +124,36 @@ export default class Watchman {
   }
 
   public static dispose(): void {
-    for (let client of clientsMap.values()) {
-      client.dispose()
+    for (let promise of clientsMap.values()) {
+      promise.then(client => {
+        client.dispose()
+      })
     }
   }
 
-  public static async createClient(binaryPath: string, root: string): Promise<Watchman | null> {
+  public static createClient(binaryPath: string, root: string): Promise<Watchman | null> {
     if (root == os.homedir() || root == '/' || path.parse(root).base == root) return null
     let client = clientsMap.get(root)
     if (client) return client
-    client = new Watchman(binaryPath)
-    clientsMap.set(root, client)
-    let valid = await client.checkCapability()
-    if (!valid) return null
-    let watching = await client.watchProject(root)
-    if (!watching) return null
-    return client
+    let promise = new Promise<Watchman | null>(async (resolve, reject) => {
+      try {
+        let watchman = new Watchman(binaryPath)
+        let valid = await watchman.checkCapability()
+        if (!valid) return resolve(null)
+        let watching = await watchman.watchProject(root)
+        if (!watching) return resolve(null)
+        resolve(watchman)
+      } catch (e) {
+        reject(e)
+      }
+    })
+    clientsMap.set(root, promise)
+    return promise
   }
 
   public static getBinaryPath(path: string): string | null {
-    if (path && fs.existsSync(path)) return path
     try {
-      path = which.sync('watchman')
+      path = which.sync(path || 'watchman')
       return path
     } catch (e) {
       return null

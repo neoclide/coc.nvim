@@ -253,7 +253,8 @@ export class Workspace implements IWorkspace {
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
     const preferences = this.getConfiguration('coc.preferences')
-    const watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', ''))
+    let watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', 'watchman'))
+    if (process.env.NODE_ENV == 'test') watchmanPath = ''
     let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(
       promise,
