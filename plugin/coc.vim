@@ -125,6 +125,7 @@ function! s:Enable()
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
+    autocmd VimLeavePre         * let g:coc_vim_leaving = 1
   augroup end
 
   " same behaviour of ultisnips

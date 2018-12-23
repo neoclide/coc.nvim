@@ -71,7 +71,7 @@ function! s:start() dict
 endfunction
 
 function! s:on_stderr(name, msgs)
-  if v:dying | return | endif
+  if get(g:, 'coc_vim_leaving', 0) | return | endif
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
@@ -82,6 +82,7 @@ function! s:on_stderr(name, msgs)
 endfunction
 
 function! s:on_exit(name, code) abort
+  if get(g:, 'coc_vim_leaving', 0) | return | endif
   let client = get(s:clients, a:name, v:null)
   if empty(client) | return | endif
   if client['running'] != 1 | return | endif
@@ -92,7 +93,7 @@ function! s:on_exit(name, code) abort
   if s:is_vim
     silent! exe 'unlet g:vim_node_'.a:name.'_client_id'
   endif
-  if !v:dying && a:code != 0
+  if a:code != 0
     echoerr 'client '.a:name. ' abnormal exit with: '.a:code
   endif
 endfunction
