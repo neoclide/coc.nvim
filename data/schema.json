@@ -44,7 +44,7 @@
         "filetypes": {
           "type": "array",
           "default": [],
-          "description": "Supported filetypes",
+          "description": "Supported filetypes, use empty array for all filetypes.",
           "items": {
             "type": "string"
           }

@@ -331,10 +331,13 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
       })
     }
   }
-  let documentSelector: DocumentFilter[] = []
+  let documentSelector: DocumentSelector = []
   config.filetypes.forEach(filetype => {
     documentSelector.push({ language: filetype, scheme: 'file' }, { language: filetype, scheme: 'untitled' })
   })
+  if (documentSelector.length == 0) {
+    documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }]
+  }
   let ignoredRootPaths = config.ignoredRootPaths || []
   ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
   let clientOptions: LanguageClientOptions = {
