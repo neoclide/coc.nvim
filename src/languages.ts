@@ -103,6 +103,9 @@ class Languages {
 
     workspace.onDidWorkspaceInitialized(() => {
       let provider = new ExtensionSnippetProvider()
+      let config = workspace.getConfiguration('coc.preferences')
+      let enabled = config.get('snippets.loadFromExtensions', true)
+      if (!enabled) return
       snippetManager.registerSnippetProvider(provider)
       let completionProvider: CompletionItemProvider = {
         provideCompletionItems: async (
@@ -112,8 +115,8 @@ class Languages {
           context: CompletionContext
         ): Promise<CompletionItem[]> => {
           let { languageId } = document
-          let { synname, input } = context.option!
-          if (input.length == 0 || /string/i.test(synname) || /comment/i.test(synname)) {
+          let { synname, input, line, col } = context.option!
+          if (input.length == 0 || line[col - 1] != ' ' || /string/i.test(synname) || /comment/i.test(synname)) {
             return []
           }
           let snippets = await snippetManager.getSnippetsForLanguage(languageId)

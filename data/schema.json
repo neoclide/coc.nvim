@@ -361,6 +361,11 @@
       "description": "Set to false to disable snippets",
       "default": true
     },
+    "coc.preferences.snippets.loadFromExtensions": {
+      "type": "boolean",
+      "description": "Set to false to disable load snippets from extensions",
+      "default": true
+    },
     "coc.preferences.diagnostic.level": {
       "type": "string",
       "description": "Used for filter diagnostics by diagnostic severity.",

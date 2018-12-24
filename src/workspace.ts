@@ -50,7 +50,6 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
-  private watchmanWaring = false
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -272,10 +271,6 @@ export class Workspace implements IWorkspace {
     try {
       return which.sync(watchmanPath)
     } catch (e) {
-      if (!this.watchmanWaring) {
-        this.showMessage('Watchman not found, file events would not fired, checkout https://facebook.github.io/watchman/', 'warning')
-        this.watchmanWaring = true
-      }
       return null
     }
   }
