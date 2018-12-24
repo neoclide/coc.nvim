@@ -326,7 +326,7 @@
     "coc.preferences.watchmanPath": {
       "type": "string",
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
-      "default": ""
+      "default": null
     },
     "coc.preferences.openResourceCommand": {
       "type": "string",

@@ -8,6 +8,7 @@ import path from 'path'
 import pify from 'pify'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
+import which from 'which'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
@@ -18,13 +19,12 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, MapMode } from './types'
-import { isFile, mkdirAsync, readFile, renameAsync, resolveRoot, statAsync, writeFile, readFileLine } from './util/fs'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
-import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -50,6 +50,7 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
+  private watchmanWaring = false
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -252,10 +253,9 @@ export class Workspace implements IWorkspace {
   }
 
   public createFileSystemWatcher(globPattern: string, ignoreCreate?: boolean, ignoreChange?: boolean, ignoreDelete?: boolean): FileSystemWatcher {
-    const preferences = this.getConfiguration('coc.preferences')
-    let watchmanPath = Watchman.getBinaryPath(preferences.get<string>('watchmanPath', 'watchman'))
-    if (process.env.NODE_ENV == 'test') watchmanPath = ''
-    let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root) : Promise.resolve(null)
+    let watchmanPath = process.env.NODE_ENV == 'test' ? null : this.getWatchmanPath()
+    let channel: OutputChannel = watchmanPath ? this.createOutputChannel('watchman') : null
+    let promise = watchmanPath ? Watchman.createClient(watchmanPath, this.root, channel) : Promise.resolve(null)
     let watcher = new FileSystemWatcher(
       promise,
       globPattern,
@@ -264,6 +264,20 @@ export class Workspace implements IWorkspace {
       !!ignoreDelete
     )
     return watcher
+  }
+
+  public getWatchmanPath(): string | null {
+    const preferences = this.getConfiguration('coc.preferences')
+    let watchmanPath = preferences.get<string>('watchmanPath', 'watchman')
+    try {
+      return which.sync(watchmanPath)
+    } catch (e) {
+      if (!this.watchmanWaring) {
+        this.showMessage('Watchman not found, file events would not fired, checkout https://facebook.github.io/watchman/', 'warning')
+        this.watchmanWaring = true
+      }
+      return null
+    }
   }
 
   public getConfiguration(section?: string, resource?: string): WorkspaceConfiguration {
@@ -653,9 +667,7 @@ export class Workspace implements IWorkspace {
   }
 
   public createOutputChannel(name: string): OutputChannel {
-    if (this.outputChannels.has(name)) {
-      name = `${name}-${uuidv1()}`
-    }
+    if (this.outputChannels.has(name)) return this.outputChannels.get(name)
     let channel = new BufferChannel(name, this.nvim)
     this.outputChannels.set(name, channel)
     return channel

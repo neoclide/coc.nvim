@@ -1,8 +1,8 @@
-import path from 'path'
 import watchman, { Client } from 'fb-watchman'
-import which from 'which'
-import uuidv1 = require('uuid/v1')
 import os from 'os'
+import path from 'path'
+import { OutputChannel } from './types'
+import uuidv1 = require('uuid/v1')
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -41,7 +41,7 @@ export default class Watchman {
   private clock: string | null
   private _disposed = false
 
-  constructor(binaryPath: string) {
+  constructor(binaryPath: string, private channel?: OutputChannel) {
     this.client = new watchman.Client({
       watchmanBinaryPath: binaryPath
     })
@@ -74,6 +74,7 @@ export default class Watchman {
       resp = await this.command(['clock', watch])
       this.clock = resp.clock
       logger.info(`watchman watching project ${root}`)
+      this.appendOutput(`watchman watching project ${root}`)
     } catch (e) {
       logger.error(e)
       return false
@@ -92,7 +93,10 @@ export default class Watchman {
 
   public async subscribe(globPattern: string, cb: ChangeCallback): Promise<string> {
     let { clock, relative_path } = this
-    if (!clock) return null
+    if (!clock) {
+      this.appendOutput(`watchman not watching any root`, 'Error')
+      return null
+    }
     let uid = uuidv1()
     let sub = {
       expression: ['allof', ['match', globPattern, 'wholename']],
@@ -100,11 +104,13 @@ export default class Watchman {
       since: clock,
     }
     let { subscribe } = await this.command(['subscribe', relative_path, uid, sub])
+    this.appendOutput(`subscribing "${globPattern}" in ${relative_path}`)
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
       let { files } = resp
       if (!files) return
       files.map(f => f.mtime_ms = +f.mtime_ms)
+      this.appendOutput(`file change detected: ${JSON.stringify(resp, null, 2)}`)
       cb(resp)
     })
     return subscribe
@@ -112,6 +118,7 @@ export default class Watchman {
 
   public unsubscribe(subscription: string): Promise<any> {
     if (this._disposed) return Promise.resolve()
+    this.appendOutput(`unsubscribe "${subscription}" in: ${this.relative_path}`)
     return this.command(['unsubscribe', this.relative_path, subscription]).catch(e => {
       logger.error(e)
     })
@@ -123,6 +130,12 @@ export default class Watchman {
     this.client.end()
   }
 
+  private appendOutput(message: string, type = "Info") {
+    if (this.channel) {
+      this.channel.appendLine(`[${type}  - ${(new Date().toLocaleTimeString())}] ${message}`)
+    }
+  }
+
   public static dispose(): void {
     for (let promise of clientsMap.values()) {
       promise.then(client => {
@@ -131,13 +144,13 @@ export default class Watchman {
     }
   }
 
-  public static createClient(binaryPath: string, root: string): Promise<Watchman | null> {
+  public static createClient(binaryPath: string, root: string, channel?: OutputChannel): Promise<Watchman | null> {
     if (root == os.homedir() || root == '/' || path.parse(root).base == root) return null
     let client = clientsMap.get(root)
     if (client) return client
     let promise = new Promise<Watchman | null>(async (resolve, reject) => {
       try {
-        let watchman = new Watchman(binaryPath)
+        let watchman = new Watchman(binaryPath, channel)
         let valid = await watchman.checkCapability()
         if (!valid) return resolve(null)
         let watching = await watchman.watchProject(root)
@@ -149,14 +162,5 @@ export default class Watchman {
     })
     clientsMap.set(root, promise)
     return promise
-  }
-
-  public static getBinaryPath(path: string): string | null {
-    try {
-      path = which.sync(path || 'watchman')
-      return path
-    } catch (e) {
-      return null
-    }
   }
 }
