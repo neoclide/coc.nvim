@@ -23,6 +23,12 @@ function! coc#_do_complete(start, items)
   call feedkeys("\<Plug>_", 'i')
 endfunction
 
+function! coc#_select_confirm()
+  let hasSelected = coc#rpc#request('hasSelected', [])
+  if hasSelected | return "\<C-y>" | endif
+  return "\<C-n>\<C-y>"
+endfunction
+
 function! coc#_hide() abort
   if !pumvisible() | return | endif
   call feedkeys("\<C-e>", 'in')

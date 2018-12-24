@@ -75,6 +75,10 @@ export default class Plugin extends EventEmitter {
     workspace.configurations.updateUserConfig({ [section]: val })
   }
 
+  public hasSelected(): boolean {
+    return completion.hasSelected()
+  }
+
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     params = params || {}

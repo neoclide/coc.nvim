@@ -194,6 +194,13 @@ export class Completion implements Disposable {
     if (!noselect) await sources.doCompleteResolve(first)
   }
 
+  public hasSelected(): boolean {
+    if (!this.isActivted) return false
+    let noselect = this.preferences.get<boolean>('noselect')
+    if (!noselect) return true
+    return this.resolving
+  }
+
   private async _doComplete(option: CompleteOption): Promise<void> {
     let { linenr, line } = option
     let { nvim, increment } = this
