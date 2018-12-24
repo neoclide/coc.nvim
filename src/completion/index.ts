@@ -35,9 +35,12 @@ export class Completion implements Disposable {
   private preferences: WorkspaceConfiguration
   private triggerCharacters: Set<string> = new Set()
   private changedTick = 0
+  private currIndex = 0
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
+    let noselect = this.preferences.get<boolean>('noselect')
+    if (!noselect) this.currIndex = 1
 
     workspace.onDidChangeConfiguration(_e => {
       this.preferences = workspace.getConfiguration('coc.preferences')
@@ -54,7 +57,7 @@ export class Completion implements Disposable {
   }
 
   // vim's logic for filter items
-  private filterItemsVim(input: string): VimCompleteItem[] {
+  public filterItemsVim(input: string): VimCompleteItem[] {
     return this._completeItems.filter(item => {
       return item.word.startsWith(input)
     })
@@ -64,7 +67,14 @@ export class Completion implements Disposable {
   private getCompleteItem(word: string): VimCompleteItem | null {
     let { _completeItems } = this
     if (!_completeItems) return null
-    return _completeItems.find(o => o.word == word)
+    let idx = _completeItems.findIndex(o => o.word == word)
+    if (idx == -1) return null
+    this.currIndex = idx + 1
+    return _completeItems[idx]
+  }
+
+  public get index(): number {
+    return this.currIndex
   }
 
   private addRecent(word: string, bufnr: number): void {
@@ -91,7 +101,7 @@ export class Completion implements Disposable {
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
-    let increment = this.increment = new Increment(nvim)
+    let increment = this.increment = new Increment(nvim, this.numberSelect)
     this.disposables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
     this.disposables.push(events.on('InsertLeave', this.onInsertLeave, this))
     this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
@@ -103,6 +113,8 @@ export class Completion implements Disposable {
     }) // tslint:disable-line
     // stop change emit on completion
     increment.on('start', () => {
+      let noselect = this.preferences.get<boolean>('noselect')
+      this.currIndex = noselect ? 0 : 1
       this.resolving = false
       this.changedTick = 0
       this._completeItems = []
@@ -179,12 +191,21 @@ export class Completion implements Disposable {
       increment.stop()
       return
     }
-    if (!isChangedP || this.filterItemsVim(resumeInput).length != items.length) {
-      // avoid redraw when vim does could do filter
-      nvim.call('coc#_do_complete', [col, items], true)
-    }
+    if (isChangedP && items.length <= 10 && items.length == this._completeItems.length) return
+    this.appendNumber(items)
+    nvim.call('coc#_do_complete', [col, items], true)
     this._completeItems = items
     await this.onPumVisible()
+  }
+
+  private appendNumber(items: VimCompleteItem[]): void {
+    if (!this.numberSelect) return
+    for (let i = 1; i <= 10; i++) {
+      let item = items[i - 1]
+      if (!item) break
+      let idx = i == 10 ? 0 : i
+      item.abbr = item.abbr ? `${idx} ${item.abbr}` : `${idx} ${item.word}`
+    }
   }
 
   private async onPumVisible(): Promise<void> {
@@ -216,6 +237,7 @@ export class Completion implements Disposable {
     }
     // changedtick could change without content change
     if (this.document.getline(linenr - 1) == line) {
+      this.appendNumber(items)
       nvim.call('coc#_do_complete', [option.col, items], true)
       this._completeItems = items
       await this.onPumVisible()
@@ -400,11 +422,18 @@ export class Completion implements Disposable {
     if (sources.shouldTrigger(character, doc.filetype)) return true
     if (autoTrigger !== 'always') return false
     if (doc.isWord(character)) {
+      if (character <= '9' && character >= '0' && this.numberSelect) {
+        return false
+      }
       let minLength = this.preferences.get<number>('minTriggerInputLength', 1)
       let input = await this.nvim.call('coc#util#get_input') as string
       return input.length >= minLength
     }
     return false
+  }
+
+  private get numberSelect(): boolean {
+    return this.preferences.get<boolean>('numberSelect', false)
   }
 
   public get completeItems(): VimCompleteItem[] {

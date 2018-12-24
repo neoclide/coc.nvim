@@ -73,3 +73,49 @@ function! coc#add_extension(...)
     call coc#rpc#notify('addExtensions', [])
   endif
 endfunction
+
+function! coc#_choose(index)
+  let idx = coc#rpc#request('getCurrentIndex', [])
+  if idx == a:index
+    return "\<C-y>"
+  endif
+  let res = ""
+  if idx < a:index
+    for i in range(a:index - idx)
+      let res = res."\<C-n>"
+    endfor
+  endif
+  if idx > a:index
+    for i in range(idx - a:index)
+      let res = res."\<C-p>"
+    endfor
+  endif
+  let g:res = res
+  return res."\<C-y>"
+endfunction
+
+function! coc#_map()
+  inoremap <buffer> 1 <C-R>=coc#_choose(1)<CR>
+  inoremap <buffer> 2 <C-R>=coc#_choose(2)<CR>
+  inoremap <buffer> 3 <C-R>=coc#_choose(3)<CR>
+  inoremap <buffer> 4 <C-R>=coc#_choose(4)<CR>
+  inoremap <buffer> 5 <C-R>=coc#_choose(5)<CR>
+  inoremap <buffer> 6 <C-R>=coc#_choose(6)<CR>
+  inoremap <buffer> 7 <C-R>=coc#_choose(7)<CR>
+  inoremap <buffer> 8 <C-R>=coc#_choose(8)<CR>
+  inoremap <buffer> 9 <C-R>=coc#_choose(9)<CR>
+  inoremap <buffer> 0 <C-R>=coc#_choose(0)<CR>
+endfunction
+
+function! coc#_unmap()
+  iunmap <buffer> 1
+  iunmap <buffer> 2
+  iunmap <buffer> 3
+  iunmap <buffer> 4
+  iunmap <buffer> 5
+  iunmap <buffer> 6
+  iunmap <buffer> 7
+  iunmap <buffer> 8
+  iunmap <buffer> 9
+  iunmap <buffer> 0
+endfunction

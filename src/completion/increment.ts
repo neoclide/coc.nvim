@@ -10,7 +10,7 @@ export default class Increment extends Emitter {
   private activted = false
   private completeOpt = 'noselect,noinsert,menuone'
 
-  constructor(private nvim: Neovim) {
+  constructor(private nvim: Neovim, private numberSelect: boolean) {
     super()
     this.setCompleteOpt()
     workspace.onDidChangeConfiguration(this.setCompleteOpt, this, this.disposables)
@@ -33,6 +33,9 @@ export default class Increment extends Emitter {
       enablePreview = true
     }
     let opt = enablePreview ? `${this.completeOpt},preview` : this.completeOpt
+    if (this.numberSelect) {
+      nvim.call('coc#_map', [], true)
+    }
     nvim.command(`noa set completeopt=${opt}`, true)
     this.emit('start')
   }
@@ -41,7 +44,10 @@ export default class Increment extends Emitter {
     let { nvim, activted } = this
     if (!activted) return
     this.activted = false
-    nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+    nvim.call('coc#_unmap', [], true)
+    if (this.numberSelect) {
+      nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+    }
     this.emit('stop')
   }
 

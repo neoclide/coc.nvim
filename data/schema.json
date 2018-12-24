@@ -209,10 +209,10 @@
       "default": 99,
       "description": "Priority of language sources."
     },
-    "coc.preferences.rootPath": {
-      "type": "string",
-      "default": "",
-      "description": "rootPath of language server, relative to folder of current file, it's workspace only.'"
+    "coc.preferences.numberSelect": {
+      "type": "boolean",
+      "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
+      "default": false
     },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",

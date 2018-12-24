@@ -79,6 +79,10 @@ export default class Plugin extends EventEmitter {
     return completion.hasSelected()
   }
 
+  public getCurrentIndex(): number {
+    return completion.index
+  }
+
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     params = params || {}

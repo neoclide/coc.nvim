@@ -8,7 +8,7 @@ import Document from '../model/document'
 import { Chars } from '../model/chars'
 import { matchScore } from './match'
 import { Position } from 'vscode-languageserver-types'
-const logger = require('../util/logger')('model-complete')
+const logger = require('../util/logger')('completion-complete')
 
 export type Callback = () => void
 

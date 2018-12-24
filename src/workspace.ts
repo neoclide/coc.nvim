@@ -133,15 +133,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get rootPath(): string {
-    // rootPath for language server
-    let { uri, root } = this
-    let config = this.getConfiguration('coc.preferences', uri)
-    let rootPath = config.inspect<string>('rootPath').workspaceValue
-    if (rootPath && !path.isAbsolute(rootPath)) {
-      let dir = findUp.sync('.vim', { cwd: root })
-      if (dir) rootPath = path.join(dir, rootPath)
-    }
-    return rootPath || root
+    return this.root
   }
 
   /**
