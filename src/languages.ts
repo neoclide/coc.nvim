@@ -116,7 +116,11 @@ class Languages {
         ): Promise<CompletionItem[]> => {
           let { languageId } = document
           let { synname, input, line, col } = context.option!
-          if (input.length == 0 || line[col - 1] != ' ' || /string/i.test(synname) || /comment/i.test(synname)) {
+          if (input.length == 0 || /string/i.test(synname) || /comment/i.test(synname)) {
+            return []
+          }
+          let part = line.slice(0, col)
+          if (part.trim().length) {
             return []
           }
           let snippets = await snippetManager.getSnippetsForLanguage(languageId)

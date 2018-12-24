@@ -130,7 +130,7 @@ export default class Watchman {
     this.client.end()
   }
 
-  private appendOutput(message: string, type = "Info") {
+  private appendOutput(message: string, type = "Info"): void {
     if (this.channel) {
       this.channel.appendLine(`[${type}  - ${(new Date().toLocaleTimeString())}] ${message}`)
     }
