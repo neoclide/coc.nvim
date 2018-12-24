@@ -122,6 +122,8 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
 - [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
+- [Debug coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Debug-coc.nvim)
+
 - [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Completion sources
