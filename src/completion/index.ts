@@ -193,7 +193,10 @@ export class Completion implements Disposable {
     }
     if (isChangedP && items.length <= 10 && items.length == this._completeItems.length) return
     this.appendNumber(items)
-    nvim.call('coc#_do_complete', [col, items], true)
+    let same = isChangedP && this.filterItemsVim(resumeInput).length == items.length
+    if (!same || this.numberSelect) {
+      nvim.call('coc#_do_complete', [col, items], true)
+    }
     this._completeItems = items
     await this.onPumVisible()
   }

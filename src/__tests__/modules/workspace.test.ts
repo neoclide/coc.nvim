@@ -49,13 +49,6 @@ describe('workspace properties', () => {
     expect(isNvim).toBe(true)
   })
 
-  it('should find rootPath from workspace folder', async () => {
-    let file = path.resolve(__dirname, '../sample/foo.js')
-    await nvim.command(`edit ${file}`)
-    await helper.wait(100)
-    expect(workspace.rootPath).toBe(path.resolve(file, '../.vim/src'))
-  })
-
   it('should return plugin root', () => {
     let { pluginRoot } = workspace
     expect(pluginRoot).toBe(process.cwd())
