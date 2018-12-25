@@ -496,12 +496,19 @@ class Languages {
         if (!result || cancellSource.token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
         if (!completeItems) return null
+        if ((result as any).startcol != null) {
+          option.col = (result as any).startcol
+        }
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
-          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, opt)
+          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, option)
           item.index = index
           return item
         })
-        return { isIncomplete: !!(result as CompletionList).isIncomplete, items }
+        return {
+          startcol: (result as any).startcol,
+          isIncomplete: !!(result as CompletionList).isIncomplete,
+          items
+        }
       },
       onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         let resolving = completeItems[item.index]
