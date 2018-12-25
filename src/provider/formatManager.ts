@@ -5,10 +5,13 @@ import uuid = require('uuid/v4')
 
 export default class FormatManager extends Manager<DocumentFormattingEditProvider> implements Disposable {
 
-  public register(selector: DocumentSelector, provider: DocumentFormattingEditProvider): Disposable {
+  public register(selector: DocumentSelector,
+    provider: DocumentFormattingEditProvider,
+    priority = 0): Disposable {
     let item: ProviderItem<DocumentFormattingEditProvider> = {
       id: uuid(),
       selector,
+      priority,
       provider
     }
     this.providers.add(item)

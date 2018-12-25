@@ -238,12 +238,12 @@ class Languages {
     return this.workspaceSymbolsManager.register(selector, provider)
   }
 
-  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider): Disposable {
-    return this.formatManager.register(selector, provider)
+  public registerDocumentFormatProvider(selector: DocumentSelector, provider: DocumentFormattingEditProvider, priority = 0): Disposable {
+    return this.formatManager.register(selector, provider, priority)
   }
 
-  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider): Disposable {
-    return this.formatRangeManager.register(selector, provider)
+  public registerDocumentRangeFormatProvider(selector: DocumentSelector, provider: DocumentRangeFormattingEditProvider, priority = 0): Disposable {
+    return this.formatRangeManager.register(selector, provider, priority)
   }
 
   public shouldTriggerSignatureHelp(document: TextDocument, triggerCharacter: string): boolean {

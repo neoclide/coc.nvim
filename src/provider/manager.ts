@@ -20,10 +20,13 @@ export default class Manager<T> {
     let currScore = 0
     let providerItem: ProviderItem<T>
     for (let item of this.providers) {
-      let { selector } = item
+      let { selector, priority } = item
       let score = workspace.match(selector, document)
-      if (score == 10) return item
-      if (score == 0 || score <= currScore) continue
+      if (score == 0) continue
+      if (typeof priority == 'number') {
+        score = priority
+      }
+      if (score < currScore) continue
       currScore = score
       providerItem = item
     }
