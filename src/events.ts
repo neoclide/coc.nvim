@@ -14,7 +14,7 @@ export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'CursorMovedI'
 
 export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' |
   'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' |
-  'DirChanged' | 'OptionSet' | 'Command' | 'toggle' | 'BufReadCmd'
+  'DirChanged' | 'OptionSet' | 'Command' | 'toggle' | 'BufReadCmd' | 'GlobalChange'
 
 export type OptionValue = string | number | boolean
 
@@ -47,7 +47,7 @@ class Events {
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'DirChanged', handler: (cwd: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'OptionSet', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'OptionSet' | 'GlobalChange', handler: (option: string, oldVal: OptionValue, newVal: OptionValue) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: AllEvents[] | AllEvents, handler: (...args: any[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable {
     if (Array.isArray(event)) {
       let disposables: Disposable[] = []

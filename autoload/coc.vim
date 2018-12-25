@@ -1,6 +1,8 @@
 let g:coc#_context = {}
 let g:coc_user_config = {}
 let g:coc_global_extensions = []
+let s:watched_keys = []
+let s:is_vim = !has('nvim')
 
 function! coc#refresh() abort
     return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
@@ -92,6 +94,28 @@ function! coc#_choose(index)
   endif
   let g:res = res
   return res."\<C-y>"
+endfunction
+
+function! coc#_watch(key)
+  if s:is_vim | return | endif
+  if index(s:watched_keys, a:key) == -1
+    call add(s:watched_keys, a:key)
+    call dictwatcheradd(g:, a:key, function('s:GlobalChange'))
+  endif
+endfunction
+
+function! coc#_unwatch(key)
+  if s:is_vim | return | endif
+  let idx = index(s:watched_keys, a:key)
+  if idx != -1
+    call remove(s:watched_keys, idx)
+    call dictwatcherdel(g:, a:key, function('s:GlobalChange'))
+  endif
+endfunction
+
+function! s:OptionChange(dict, key, val)
+  let g:v = a:val
+  call coc#rpc#notify('OptionSet', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 
 function! coc#_map()

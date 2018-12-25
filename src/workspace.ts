@@ -50,6 +50,8 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
+  private setupDynamicAutocmd: Function & { clear(): void; }
+  private watchedOptions: Set<string> = new Set()
 
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
@@ -80,6 +82,11 @@ export class Workspace implements IWorkspace {
         logger.error(e.message)
       })
     }, 100)
+    this.setupDynamicAutocmd = debounce(() => {
+      this._setupDynamicAutocmd().catch(e => {
+        logger.error(e.message)
+      })
+    }, global.hasOwnProperty('__TEST__') ? 0 : 100)
     this.setMessageLevel()
   }
 
@@ -91,7 +98,6 @@ export class Workspace implements IWorkspace {
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
     events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
     events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
-    events.on('OptionSet', this.onOptionSet, this, this.disposables)
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
@@ -114,10 +120,59 @@ export class Workspace implements IWorkspace {
     this.configurations.onDidChange(e => {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
+
+    this.watchOption('iskeyword', (_, newValue: string) => {
+      let doc = this.getDocument(this.bufnr)
+      if (doc) doc.setIskeyword(newValue)
+    }, this.disposables)
+    this.watchOption('completeopt', (_, newValue) => {
+      this.env.completeOpt = newValue
+    }, this.disposables)
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
     return this.configurations.getConfigFile(target)
+  }
+
+  public watchOption(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
+    let watching = this.watchedOptions.has(key)
+    if (!watching) {
+      this.watchedOptions.add(key)
+      this.setupDynamicAutocmd()
+    }
+    let disposable = events.on('OptionSet', async (changed: string, oldValue: any, newValue: any) => {
+      if (changed == key && callback) {
+        await Promise.resolve(callback(oldValue, newValue))
+      }
+    })
+    if (disposables) {
+      disposables.push(
+        Disposable.create(() => {
+          disposable.dispose()
+          if (watching) return
+          this.watchedOptions.delete(key)
+          this.setupDynamicAutocmd()
+        })
+      )
+    }
+  }
+
+  public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
+    let { nvim } = this
+    nvim.call('coc#_watch', key, true)
+    let disposable = events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
+      if (changed == key && callback) {
+        await Promise.resolve(callback(oldValue, newValue))
+      }
+    })
+    if (disposables) {
+      disposables.push(
+        Disposable.create(() => {
+          disposable.dispose()
+          nvim.call('coc#_unwatch', key, true)
+        })
+      )
+    }
   }
 
   public get cwd(): string {
@@ -737,9 +792,7 @@ export class Workspace implements IWorkspace {
     return Disposable.create(() => {
       this.schemeProviderMap.delete(scheme)
       disposeAll(disposables)
-      this.setupDynamicAutocmd().catch(_e => {
-        // noop
-      })
+      this.setupDynamicAutocmd()
     })
   }
 
@@ -761,14 +814,17 @@ export class Workspace implements IWorkspace {
     return this.statusLine.createStatusBarItem(priority, opt.progress || false)
   }
 
-  private async setupDynamicAutocmd(): Promise<void> {
+  private async _setupDynamicAutocmd(): Promise<void> {
     let schemes = this.schemeProviderMap.keys()
     let cmds: string[] = []
     for (let scheme of schemes) {
       cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}://* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<amatch>')])`)
     }
+    for (let key of this.watchedOptions) {
+      cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`)
+    }
     let content = `
-augroup coc_file_read
+augroup coc_autocmd
   autocmd!
   ${cmds.join('\n')}
 augroup end`
@@ -804,11 +860,6 @@ augroup end`
   public dispose(): void {
     for (let ch of this.outputChannels.values()) {
       ch.dispose()
-    }
-    for (let doc of this.buffers.values()) {
-      doc.detach().catch(e => {
-        logger.error(e)
-      })
     }
     Watchman.dispose()
     this.buffers.clear()
@@ -1034,15 +1085,6 @@ augroup end`
       }
       this._onWillSaveDocument.fire(event)
       await this.willSaveUntilHandler.handeWillSaveUntil(event)
-    }
-  }
-
-  private onOptionSet(name: string, _oldValue: any, newValue: any): void {
-    if (name === 'iskeyword') {
-      let doc = this.getDocument(this.bufnr)
-      if (doc) doc.setIskeyword(newValue)
-    } else if (name === 'completeopt') {
-      this.env.completeOpt = newValue
     }
   }
 

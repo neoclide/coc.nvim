@@ -618,6 +618,44 @@ describe('workspace utility', () => {
     let res = await p
     expect(res).toBeNull()
   })
+
+  it('should regist keymap', async () => {
+    let fn = jest.fn()
+    await nvim.command('nmap go <Plug>(coc-echo)')
+    let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn)
+    await helper.wait(30)
+    let { mode } = await nvim.mode
+    expect(mode).toBe('n')
+    await nvim.call('feedkeys', ['go', 'i'])
+    await helper.wait(100)
+    expect(fn).toBeCalledTimes(1)
+    disposable.dispose()
+    await nvim.call('feedkeys', ['go', 'i'])
+    await helper.wait(100)
+    expect(fn).toBeCalledTimes(1)
+  })
+
+  it('should watch options', async () => {
+    let fn = jest.fn((oldValue, newValue) => {
+      expect(oldValue).toBe(0)
+      expect(newValue).toBe(1)
+    })
+    workspace.watchOption('showmode', fn, disposables)
+    await helper.wait(150)
+    await nvim.command('set showmode')
+    await helper.wait(150)
+    expect(fn).toBeCalled()
+    await nvim.command('noa set noshowmode')
+  })
+
+  it('should watch global', async () => {
+    let fn = jest.fn((oldValue, newValue) => {
+      expect(newValue).toBe(1)
+    })
+    workspace.watchGlobal('x', fn, disposables)
+    await nvim.command('let g:x = 1')
+    await helper.wait(30)
+  })
 })
 
 describe('workspace events', () => {
@@ -744,24 +782,6 @@ describe('workspace private', () => {
     await (workspace as any).showErrors(errors)
     let res = await nvim.call('getqflist') as any
     expect(res.length).toBe(1)
-  })
-})
-
-describe('workspace keymaps', () => {
-  it('should regist keymap', async () => {
-    let fn = jest.fn()
-    await nvim.command('nmap go <Plug>(coc-echo)')
-    let disposable = workspace.registerKeymap(['n', 'v'], 'echo', fn)
-    await helper.wait(30)
-    let { mode } = await nvim.mode
-    expect(mode).toBe('n')
-    await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(100)
-    expect(fn).toBeCalledTimes(1)
-    disposable.dispose()
-    await nvim.call('feedkeys', ['go', 'i'])
-    await helper.wait(100)
-    expect(fn).toBeCalledTimes(1)
   })
 })
 

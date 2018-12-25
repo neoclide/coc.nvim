@@ -19,6 +19,12 @@ export default (opts: Attach): Plugin => {
         }
         break
       }
+      case 'OptionSet':
+        await events.fire('OptionSet', args)
+        break
+      case 'GlobalChange':
+        await events.fire('GlobalChange', args)
+        break
       case 'CocAutocmd':
         await events.fire(args[0], args.slice(1))
         break

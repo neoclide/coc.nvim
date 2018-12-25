@@ -77,7 +77,7 @@ function! coc#util#job_command()
   if !executable(node)
     echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
   endif
-  return [node] + get(g:, 'coc_node_args', []) + [s:root.'/bin/server.js']
+  return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
 endfunction
 
 function! coc#util#echo_hover(msg)
