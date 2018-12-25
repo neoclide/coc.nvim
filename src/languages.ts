@@ -526,22 +526,16 @@ class Languages {
           }
           if (resolved) mixin(item, resolved)
         }
-        setTimeout(async () => {
-          if (resolveInput != item.word) return
-          let visible = await this.nvim.call('pumvisible')
-          if (visible) {
-            // vim have no suppport for update complete item
-            let str = resolving.detail ? resolving.detail.trim() : ''
-            str = str.replace(/\n\s*/g, ' ')
-            if (str) echoMessage(this.nvim, str)
-            let doc = complete.getDocumentation(resolving)
-            if (doc) str += '\n\n' + doc
-            if (str.length) {
-              // TODO vim has bug with layout change on pumvisible
-              // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
-            }
-          }
-        }, 20)
+        if (resolveInput != item.word) return
+        let str = resolving.detail ? resolving.detail.trim() : ''
+        str = str.replace(/\n\s*/g, ' ')
+        if (str) echoMessage(this.nvim, str)
+        let documentation = complete.getDocumentation(resolving)
+        if (doc) str += '\n\n' + documentation
+        if (str.length) {
+          // TODO vim has bug with layout change on pumvisible
+          // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
+        }
       },
       onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
         let item = completeItems[vimItem.index]

@@ -191,7 +191,6 @@ export class Completion implements Disposable {
       increment.stop()
       return
     }
-    if (isChangedP && items.length <= 10 && items.length == this._completeItems.length) return
     this.appendNumber(items)
     let same = isChangedP && this.filterItemsVim(resumeInput).length == items.length
     if (!same || this.numberSelect) {
@@ -287,14 +286,13 @@ export class Completion implements Disposable {
           this.nvim.pauseNotification()
           this.nvim.call('coc#util#setline', [option.linenr, line], true)
           this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))], true)
+          if (workspace.isVim) {
+            await document.patchChange()
+          }
           this.nvim.resumeNotification()
         }
       }
       await sources.doCompleteResolve(item)
-      if (workspace.isVim) {
-        await document.patchChange()
-        this.nvim.command('redraw', true)
-      }
     }
   }
 
