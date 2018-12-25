@@ -21,7 +21,8 @@ function! s:start_select(lnum, col, len)
   call cursor(a:lnum, a:col)
   let ed = &virtualedit
   if a:len > 0
-    let m = a:len == 1 ? '' : (a:len - 1).'l'
+    let len = &selection ==# 'exclusive' ? a:len + 1: a:len
+    let m = len == 1 ? '' : (len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
   elseif mode() !=# 'i'
     if strlen(getline('.')) + 1 == a:col && ed !=# 'onemore' && ed !=# 'all'
