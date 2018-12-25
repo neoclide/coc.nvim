@@ -32,6 +32,7 @@ export class DiagnosticManager {
   private disposables: Disposable[] = []
   private enableMessage = true
   private timer: NodeJS.Timer
+  private lastMessage = ''
   constructor() {
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(async () => {
@@ -284,14 +285,19 @@ export class DiagnosticManager {
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
-    if (!document) return
-    if (!this.shouldValidate(document)) return
+    if (!document || !this.shouldValidate(document)) return
     let offset = await workspace.getOffset()
     let diagnostics = this.diagnosticsAtOffset(offset, document.textDocument)
     if (diagnostics.length == 0) {
       diagnostics = this.diagnosticsAtOffset(offset + 1, document.textDocument)
     }
-    if (diagnostics.length == 0) return
+    if (diagnostics.length == 0) {
+      let echoLine = await this.nvim.call('coc#util#echo_line') as string
+      if (this.lastMessage == echoLine.trim()) {
+        this.nvim.command('echo ""', true)
+      }
+      return
+    }
     let lines: string[] = []
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
@@ -299,6 +305,7 @@ export class DiagnosticManager {
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       lines.push(...str.split('\n'))
     })
+    this.lastMessage = lines[0]
     await workspace.echoLines(lines, truncate)
   }
 

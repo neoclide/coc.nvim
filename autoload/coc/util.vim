@@ -528,6 +528,17 @@ function! s:extension_updated(status)
   endif
 endfunction
 
+" content of first echo line
+function! coc#util#echo_line()
+  let str = ''
+  let line = &lines - (&cmdheight - 1)
+  for i in range(1, &columns - 1)
+    let nr = screenchar(line, i)
+    let str = str . nr2char(nr)
+  endfor
+  return str
+endfunction
+
 function! coc#util#cc(index)
   call timer_start(60, { -> execute('cc! '.a:index)})
 endfunction
