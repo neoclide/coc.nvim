@@ -70,6 +70,7 @@ export interface Env {
   completeOpt: string
   readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
+  readonly isMacvim: boolean
   readonly version: string
   readonly easymotion: boolean
 }

@@ -20,31 +20,6 @@ afterEach(async () => {
 })
 
 describe('snippet provider', () => {
-  it('should regist snippets provider', async () => {
-    let provider: SnippetProvider = {
-      getSnippets: () => {
-        return [{
-          body: 'foo',
-          description: 'foo',
-          prefix: 'foo'
-        }]
-      }
-    }
-    let disposable = snippetManager.registerSnippetProvider(provider)
-    let snippets = await snippetManager.getSnippetsForLanguage('javascript')
-    expect(snippets.length).toBe(1)
-    expect(snippets[0].body).toBe('foo')
-    disposable.dispose()
-  })
-
-  it('should get snippets from extensions', async () => {
-    let extensionPath = path.resolve(__dirname, '../extensions/snippet-sample')
-    await extensions.loadExtension(extensionPath)
-    await helper.wait(100)
-    let snippets = await snippetManager.getSnippetsForLanguage('javascript')
-    expect(snippets.length).toBe(1)
-    expect(snippets[0].prefix).toBe('for')
-  })
 
   it('should not active insert plain snippet', async () => {
     let doc = await helper.createDocument()
@@ -58,8 +33,7 @@ describe('snippet provider', () => {
   it('should goto next placeholder', async () => {
     await helper.createDocument()
     await snippetManager.insertSnippet('${1:a} ${2:b}')
-    await nvim.call('CocAction', 'snippetNext')
-    await helper.wait(100)
+    await snippetManager.nextPlaceholder()
     let col = await nvim.call('col', '.')
     expect(col).toBe(3)
   })
@@ -68,9 +42,7 @@ describe('snippet provider', () => {
     await helper.createDocument()
     await snippetManager.insertSnippet('${1:a} ${2:b}')
     await snippetManager.nextPlaceholder()
-    await helper.wait(100)
-    await nvim.call('CocAction', 'snippetPrev')
-    await helper.wait(200)
+    await snippetManager.previousPlaceholder()
     let col = await nvim.call('col', '.')
     expect(col).toBe(1)
   })

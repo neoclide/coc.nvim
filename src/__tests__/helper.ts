@@ -134,7 +134,8 @@ export class Helper extends Emitter {
   public async edit(file?: string): Promise<Buffer> {
     file = path.join(__dirname, file ? file : `${id}`)
     id = id + 1
-    await this.nvim.command(`exe 'edit ' . fnameescape('${file}')`)
+    let escaped = await this.nvim.call('fnameescape', file)
+    await this.nvim.command(`edit ${escaped}`)
     let bufnr = await this.nvim.call('bufnr', ['%']) as number
     await this.wait(50)
     return this.nvim.createBuffer(bufnr)
@@ -142,7 +143,12 @@ export class Helper extends Emitter {
 
   public async createDocument(name?: string): Promise<Document> {
     let buf = await this.edit(name)
-    return workspace.getDocument(buf.id)
+    let doc = workspace.getDocument(buf.id)
+    if (!doc) {
+      await this.wait(50)
+      return workspace.getDocument(buf.id)
+    }
+    return doc
   }
 
   public async getCmdline(): Promise<string> {

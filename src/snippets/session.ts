@@ -62,10 +62,7 @@ export class SnippetSession {
         let index = this.snippet.insertSnippet(placeholder, inserted, position)
         let p = this.snippet.getPlaceholder(index)
         this._currId = p.id
-        if (select) {
-          await this.selectPlaceholder(p)
-          await wait(50)
-        }
+        if (select) await this.selectPlaceholder(p)
         return true
       }
     }
@@ -74,10 +71,7 @@ export class SnippetSession {
     // new snippet
     this._snippet = snippet
     this._currId = snippet.firstPlaceholder.id
-    if (select) {
-      await this.selectPlaceholder(snippet.firstPlaceholder)
-      await wait(50)
-    }
+    if (select) await this.selectPlaceholder(snippet.firstPlaceholder)
     this.activate()
     return true
   }
@@ -85,7 +79,7 @@ export class SnippetSession {
   private activate(): void {
     if (this._isActive) return
     this._isActive = true
-    this.nvim.call('coc#snippet#enable', [this._preferComplete ? 1 : 0], true)
+    this.nvim.call('coc#snippet#enable', [], true)
   }
 
   public deactivate(): void {
@@ -153,26 +147,65 @@ export class SnippetSession {
   public async selectCurrentPlaceholder(): Promise<void> {
     let placeholder = this.snippet.getPlaceholderById(this._currId)
     if (placeholder) await this.selectPlaceholder(placeholder)
+    if (workspace.env.isMacvim) {
+      setTimeout(() => {
+        this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'], true)
+      }, 30)
+    }
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {
     if (!placeholder) return
+    let { nvim } = this
     let { start, end } = placeholder.range
     const len = end.character - start.character
     const col = start.character + 1
     this._currId = placeholder.id
+    let { mode, blocking } = await nvim.mode
+    if (workspace.isNvim && mode == 's') {
+      this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'], true)
+    }
+    if (blocking) return
+    if (len > 0 && mode.startsWith('i')) {
+      if (workspace.isVim) {
+        nvim.command('stopinsert', true)
+      } else {
+        await nvim.input('<esc>')
+      }
+    } else if (len == 0 && !mode.startsWith('i')) {
+      if (workspace.isVim) {
+        nvim.command('startinsert', true)
+      } else {
+        await nvim.input('i')
+      }
+    }
     if (placeholder.choice) {
-      this.nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice], true)
+      await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
-      this.nvim.call('coc#snippet#range_select', [start.line + 1, col, len], true)
+      if (len == 0) {
+        await nvim.call('cursor', [start.line + 1, col])
+      } else {
+        await nvim.call('coc#snippet#range_select', [start.line + 1, col, len])
+      }
+    }
+    if (workspace.isVim) {
+      nvim.command('redraw', true)
     }
   }
 
   private async documentSynchronize(): Promise<void> {
     if (!this.isActive) return
+    let visible = await this.nvim.call('pumvisible')
+    if (visible) {
+      await this.nvim.call('coc#_select', [])
+      if (this._preferComplete) return
+      await wait(40)
+    }
     await this.document.patchChange()
-    this.document.forceSync()
-    await wait(40)
+    if (this.document.dirty) {
+      this.document.forceSync()
+      await wait(40)
+    }
   }
 
   public async checkPosition(): Promise<void> {

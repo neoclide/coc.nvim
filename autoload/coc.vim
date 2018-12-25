@@ -113,9 +113,9 @@ function! coc#_unwatch(key)
   endif
 endfunction
 
-function! s:OptionChange(dict, key, val)
+function! s:GlobalChange(dict, key, val)
   let g:v = a:val
-  call coc#rpc#notify('OptionSet', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
+  call coc#rpc#notify('GlobalChange', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 
 function! coc#_map()

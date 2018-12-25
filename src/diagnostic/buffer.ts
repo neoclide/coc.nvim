@@ -56,11 +56,9 @@ export class DiagnosticBuffer {
     sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
     sequence.addFunction(this.addSigns.bind(this, diagnostics))
     sequence.addFunction(this.addHighlight.bind(this, diagnostics))
-    sequence.addFunction(() => {
-      if (this.isVim) this.nvim.command('redraw', true)
-    })
     sequence.start().then(canceled => {
       this.nvim.resumeNotification(canceled)
+      if (this.isVim) this.nvim.command('redraw', true)
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
       }

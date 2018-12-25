@@ -505,6 +505,9 @@ export default class Handler {
       }
     }
     this.nvim.resumeNotification()
+    if (workspace.isVim) {
+      this.nvim.command('redraw', true)
+    }
   }
 
   public async highlight(): Promise<void> {
@@ -695,7 +698,7 @@ export default class Handler {
       }
       signatureList.push(parts)
     }
-    await this.nvim.command('echo ""')
+    this.nvim.command('echo ""', true)
     await this.nvim.call('coc#util#echo_signatures', [signatureList])
   }
 

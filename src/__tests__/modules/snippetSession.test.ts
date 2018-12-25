@@ -137,7 +137,9 @@ describe('SnippetSession#start', () => {
   it('should start with nest snippet', async () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${1:a} b')
+    let res = await session.start('${1:a} ${2:b}', false)
+    let line = await nvim.getLine()
+    expect(line).toBe('a b')
     expect(res).toBe(true)
     let { placeholder } = session
     expect(placeholder.index).toBe(1)
@@ -146,7 +148,7 @@ describe('SnippetSession#start', () => {
     placeholder = session.placeholder
     let { snippet } = session
     expect(placeholder.index).toBe(2)
-    let line = await nvim.getLine()
+    line = await nvim.getLine()
     expect(line).toBe('foo bara b')
     expect(snippet.toString()).toBe('foo bara b')
   })
@@ -208,15 +210,16 @@ describe('SnippetSession#nextPlaceholder', () => {
     let buf = await helper.edit()
     await helper.wait(60)
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${1:foo} bar')
+    let res = await session.start('${1:foo} bar$0')
     expect(res).toBe(true)
+    let line = await nvim.line
+    expect(line).toBe('foo bar')
     await session.nextPlaceholder()
-    await helper.wait(60)
+    let [_, lnum, col] = await nvim.call('getcurpos') as any
+    expect(session.placeholder.index).toBe(0)
     let position = await workspace.getCursorPosition()
     expect(position).toEqual({ line: 0, character: 7 })
-    expect(session.placeholder.index).toBe(0)
     await session.nextPlaceholder()
-    await helper.wait(200)
     expect(session.placeholder.index).toBe(1)
   })
 })

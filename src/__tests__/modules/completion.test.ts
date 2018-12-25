@@ -298,6 +298,7 @@ describe('completion#CompleteDone', () => {
     let items = completion.completeItems
     expect(items.length).toBe(1)
     await nvim.input('<C-n>')
+    await helper.wait(30)
     await nvim.call('coc#_select')
     await helper.wait(100)
     let line = await nvim.line

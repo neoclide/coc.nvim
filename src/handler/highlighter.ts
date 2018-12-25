@@ -78,6 +78,7 @@ export default class Highlighter implements Disposable {
 
   public clearHighlight(): void {
     let { matchIds, srcId } = this
+    if (!this.document) return
     if (workspace.isVim) {
       this.matchIds = []
       this.document.clearMatchIds(matchIds)

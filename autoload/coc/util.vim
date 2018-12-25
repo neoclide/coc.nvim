@@ -322,6 +322,7 @@ function! coc#util#vim_info()
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
+        \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
         \}
 endfunction
