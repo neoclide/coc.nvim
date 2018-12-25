@@ -303,7 +303,7 @@
     "coc.preferences.parseKeywordsLimitLines": {
       "type": "number",
       "description": "Limit the lines of buffer for parse keywords on change.",
-      "default": 5000
+      "default": 30000
     },
     "coc.preferences.hyphenAsKeyword": {
       "type": "boolean",

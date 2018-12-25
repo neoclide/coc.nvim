@@ -66,33 +66,41 @@ export class Chars {
   }
 
   public matchKeywords(content: string, min = 3): string[] {
-    if (!content) return []
-    content = content + '\n'
+    let length = content.length
+    if (length == 0) return []
     let res: Set<string> = new Set()
     let str = ''
-    for (let i = 0, l = content.length; i < l; i++) {
+    let len = 0
+    for (let i = 0; i < length; i++) {
       let ch = content[i]
-      if ('-' == ch && str.length == 0) {
-        continue
-      }
-      let isKeyword = this.isKeywordChar(ch)
+      let code = ch.codePointAt(0)
+      if (len == 0 && code == 45) continue
+      let isKeyword = this.isKeywordCode(code)
       if (isKeyword) {
+        if (len == 48) continue
         str = str + ch
-      }
-      if (str.length >= min && !res.has(str) && !isKeyword && str.length < 50) {
-        res.add(str)
-      }
-      if (!isKeyword) {
+        len = len + 1
+      } else {
+        if (len >= min && len < 48) res.add(str)
         str = ''
+        len = 0
       }
     }
+    if (len != 0) res.add(str)
     return Array.from(res)
+  }
+
+  public isKeywordCode(code: number): boolean {
+    if (code > 255) return true
+    if (code < 33) return false
+    return this.ranges.some(r => r.contains(code))
   }
 
   public isKeywordChar(ch: string): boolean {
     let { ranges } = this
     let c = ch.charCodeAt(0)
     if (c > 255) return true
+    if (c < 33) return false
     return ranges.some(r => r.contains(c))
   }
 
