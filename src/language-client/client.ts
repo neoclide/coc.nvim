@@ -2885,7 +2885,12 @@ class ConfigurationFeature
       this.onDidChangeConfiguration(data.registerOptions.section)
     })
     this._listeners.set(data.id, disposable)
-    if (data.registerOptions.section != null) {
+    let { section } = data.registerOptions
+    if (Is.string(section) && section.endsWith('.settings')) {
+      let settings = this.getConfiguredSettings(section as string)
+      if (!settings || Is.emptyObject(settings)) return
+    }
+    if (section != null) {
       this.onDidChangeConfiguration(data.registerOptions.section)
     }
   }
