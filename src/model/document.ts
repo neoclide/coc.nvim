@@ -251,7 +251,7 @@ export default class Document {
     }
   }
 
-  public async detach(): Promise<void> {
+  public detach(): void {
     if (!this.attached) return
     // neovim not detach on `:checktime`
     this.attached = false

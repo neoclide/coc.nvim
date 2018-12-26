@@ -102,13 +102,6 @@ export class Workspace implements IWorkspace {
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
     events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
-    events.on('toggle', async enable => {
-      if (enable == 1) {
-        await this.attach()
-      } else {
-        await this.detach()
-      }
-    })
     this._env = await this.nvim.call('coc#util#vim_info') as Env
     await this.attach()
     if (this.isVim) this.initVimEvents()
@@ -128,6 +121,13 @@ export class Workspace implements IWorkspace {
     this.watchOption('completeopt', (_, newValue) => {
       this.env.completeOpt = newValue
     }, this.disposables)
+    this.watchGlobal('coc_enabled', async (_, newValue) => {
+      if (newValue == 1) {
+        await this.attach()
+      } else {
+        await this.detach()
+      }
+    })
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -159,6 +159,7 @@ export class Workspace implements IWorkspace {
 
   public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
     let { nvim } = this
+    if (this.isVim) return
     nvim.call('coc#_watch', key, true)
     let disposable = events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
       if (changed == key && callback) {
@@ -1063,9 +1064,8 @@ augroup end`
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this._onDidCloseDocument.fire(doc.textDocument)
-      await wait(10)
+      doc.detach()
       this.buffers.delete(bufnr)
-      await doc.detach()
     }
     logger.debug('buffer unload', bufnr)
   }
