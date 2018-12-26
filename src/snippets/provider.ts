@@ -113,7 +113,6 @@ export class ExtensionSnippetProvider implements SnippetProvider {
 
   public getSnippets(language: string): Snippet[] {
     let res: Snippet[] = []
-    if (!this._snippetCache) return []
     for (let key of Object.keys(this._snippetCache)) {
       let cache = this._snippetCache[key]
       let snippets = cache[language]
@@ -143,8 +142,10 @@ export function loadSnippetsFromText(contents: string): Snippet[] {
     if (errors.length) {
       logger.error(`parse error: ${errors[0].error}`)
     }
-    for (let key of Object.keys(snippetObject)) {
-      snippets.push(snippetObject[key])
+    if (snippetObject) {
+      for (let key of Object.keys(snippetObject)) {
+        snippets.push(snippetObject[key])
+      }
     }
   } catch (ex) {
     logger.error(ex)

@@ -6,6 +6,7 @@ import pify from 'pify'
 import { validSocket } from './fs'
 
 export default async function(): Promise<void> {
+  if (global.hasOwnProperty('__TEST__')) return
   try {
     let dir = tmpdir()
     let files = glob.sync(path.join(dir, '/coc-*.sock'))

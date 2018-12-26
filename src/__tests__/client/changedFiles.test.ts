@@ -5,7 +5,7 @@ import fs from 'fs'
 import * as lsclient from '../../language-client'
 import * as path from 'path'
 import Uri from 'vscode-uri'
-import which from 'which'
+// import which from 'which'
 
 beforeAll(async () => {
   await helper.setup()

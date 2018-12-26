@@ -6,6 +6,8 @@ import Watchman, { FileChangeItem } from '../../watchman'
 
 let server: net.Server
 let client: net.Socket
+const sockPath = '/tmp/watchman-fake'
+process.env.WATCHMAN_SOCK = sockPath
 
 function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
@@ -69,18 +71,17 @@ beforeAll(done => {
   server.on('error', err => {
     throw err
   })
-  const sockPath = '/tmp/coc-watchman'
-  if (fs.existsSync(sockPath)) {
-    fs.unlinkSync(sockPath)
-  }
-  process.env.WATCHMAN_SOCK = sockPath
   server.listen(sockPath, () => {
     done()
   })
 })
 
 afterAll(() => {
+  client.unref()
   server.close()
+  if (fs.existsSync(sockPath)) {
+    fs.unlinkSync(sockPath)
+  }
 })
 
 describe('watchman', () => {

@@ -120,6 +120,7 @@ export default class Configurations {
 
   private watchFile(filepath: string, target: ConfigurationTarget): void {
     if (!fs.existsSync(filepath)) return
+    if (global.hasOwnProperty('__TEST__')) return
     let disposable = watchFile(filepath, () => {
       let model = parseContentFromFile(filepath, this.handleErrors.bind(this))
       this.changeConfiguration(target, model, filepath)

@@ -53,6 +53,7 @@ export class Workspace implements IWorkspace {
   private setupDynamicAutocmd: Function & { clear(): void; }
   private watchedOptions: Set<string> = new Set()
 
+  private _disposed = false
   private _onDidOpenDocument = new Emitter<TextDocument>()
   private _onDidCloseDocument = new Emitter<TextDocument>()
   private _onDidChangeDocument = new Emitter<DidChangeTextDocumentParams>()
@@ -127,7 +128,7 @@ export class Workspace implements IWorkspace {
       } else {
         await this.detach()
       }
-    })
+    }, this.disposables)
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -860,17 +861,20 @@ augroup end`
   }
 
   public dispose(): void {
+    this._disposed = true
     for (let ch of this.outputChannels.values()) {
       ch.dispose()
     }
     for (let doc of this.documents) {
       doc.detach()
     }
-    Watchman.dispose()
-    this.buffers.clear()
-    this.configurations.dispose()
-    if (this.statusLine) this.statusLine.dispose()
     disposeAll(this.disposables)
+    Watchman.dispose()
+    this.configurations.dispose()
+    this.checkBuffer.clear()
+    this.setupDynamicAutocmd.clear()
+    this.buffers.clear()
+    if (this.statusLine) this.statusLine.dispose()
   }
 
   private async attach(): Promise<void> {
@@ -1108,6 +1112,7 @@ augroup end`
 
   private async _checkBuffer(): Promise<void> {
     await wait(30)
+    if (this._disposed) return
     let bufnr = await this.nvim.call('bufnr', '%')
     // it's possible that vim exiting
     if (!bufnr) return
