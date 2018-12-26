@@ -23,7 +23,9 @@ export default async function(): Promise<void> {
     }
     files = glob.sync(path.join(dir, '/coc-*.vim'))
     for (let file of files) {
-      await pify(fs.unlink)(file)
+      if (path.basename(file) != `coc-${process.pid}.vim`) {
+        await pify(fs.unlink)(file)
+      }
     }
   } catch (e) {
     // noop
