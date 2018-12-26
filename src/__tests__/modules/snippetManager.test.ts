@@ -73,10 +73,10 @@ describe('snippet provider', () => {
     let line = await nvim.line
     expect(line).toBe('foo foo bar')
     await helper.wait(60)
-    await nvim.input('bar')
-    await helper.wait(60)
+    await nvim.input('update')
+    await helper.wait(200)
     line = await nvim.line
-    expect(line).toBe('bar bar bar')
+    expect(line).toBe('update update bar')
   })
 
   it('should check position on InsertEnter', async () => {

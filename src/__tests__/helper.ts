@@ -18,8 +18,6 @@ export interface CursorPosition {
   col: number
 }
 
-let id = 0
-
 export class Helper extends Emitter {
   public nvim: Neovim
   public proc: cp.ChildProcess
@@ -59,7 +57,6 @@ export class Helper extends Emitter {
   public async shutdown(): Promise<void> {
     await this.plugin.dispose()
     this.nvim.quit()
-    await this.wait(300)
     if (this.proc) {
       this.proc.kill('SIGKILL')
     }
@@ -68,20 +65,23 @@ export class Helper extends Emitter {
   public async waitPopup(): Promise<void> {
     let visible = await this.nvim.call('pumvisible')
     if (visible) return
-    for (let i = 0; i < 50; i++) {
+    for (let i = 0; i < 30; i++) {
       await this.wait(100)
       let visible = await this.nvim.call('pumvisible')
       if (visible) return
     }
-    throw new Error('timeout after 5s')
+    throw new Error('timeout after 3s')
   }
 
   public async reset(): Promise<void> {
     let { mode, blocking } = await this.nvim.mode
-    if (blocking) throw new Error('nvim is blocking')
+    if (blocking) {
+      await this.nvim.input('<cr>')
+      // throw new Error('nvim is blocking')
+    }
     if (mode !== 'n') {
-      await this.nvim.input('<esc>')
       await this.nvim.command('stopinsert')
+      await this.nvim.input('<esc>')
     }
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(60)
@@ -132,22 +132,18 @@ export class Helper extends Emitter {
   }
 
   public async edit(file?: string): Promise<Buffer> {
-    file = path.join(__dirname, file ? file : `${id}`)
-    id = id + 1
+    file = path.join(__dirname, file ? file : `${uuid()}`)
     let escaped = await this.nvim.call('fnameescape', file)
     await this.nvim.command(`edit ${escaped}`)
+    await this.wait(60)
     let bufnr = await this.nvim.call('bufnr', ['%']) as number
-    await this.wait(50)
     return this.nvim.createBuffer(bufnr)
   }
 
   public async createDocument(name?: string): Promise<Document> {
     let buf = await this.edit(name)
     let doc = workspace.getDocument(buf.id)
-    if (!doc) {
-      await this.wait(50)
-      return workspace.getDocument(buf.id)
-    }
+    if (!doc) return await workspace.document
     return doc
   }
 

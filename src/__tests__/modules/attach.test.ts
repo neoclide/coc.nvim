@@ -1,6 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
 import events from '../../events'
-import Plugin from '../../plugin'
 import helper from '../helper'
 
 function wait(ms: number): Promise<void> {
@@ -11,10 +10,8 @@ function wait(ms: number): Promise<void> {
   })
 }
 let nvim: Neovim
-let plugin: Plugin
 beforeAll(async () => {
   await helper.setup()
-  plugin = helper.plugin
   nvim = helper.nvim
 })
 
@@ -30,7 +27,6 @@ describe('attach', () => {
 
   it('should listen CocInstalled', () => {
     nvim.emit('notification', 'VimEnter')
-    nvim.emit('notification', 'CocInstalled', ['-id'])
   })
 
   it('should not throw on event handler error', async () => {
@@ -48,18 +44,6 @@ describe('attach', () => {
   it('should not throw when plugin method not found', async () => {
     let fn = jest.fn()
     nvim.emit('request', 'NotExists', [], {
-      send: fn
-    })
-    await wait(100)
-    expect(fn).toBeCalled()
-  })
-
-  it('should not throw on plugin method error', async () => {
-    (plugin as any).errorMethod = async () => {
-      throw new Error('error')
-    }
-    let fn = jest.fn()
-    nvim.emit('request', 'errorMethod', [], {
       send: fn
     })
     await wait(100)

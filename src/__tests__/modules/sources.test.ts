@@ -2,9 +2,12 @@ import sources from '../../sources'
 import helper from '../helper'
 import { ISource, SourceType } from '../../types'
 import events from '../../events'
+import { Neovim } from '@chemzqm/neovim'
 
+let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
+  nvim = helper.nvim
 })
 
 afterAll(async () => {
@@ -31,7 +34,8 @@ describe('sources', () => {
       onEnter: fn
     }
     sources.addSource(source)
-    await events.fire('BufEnter', [1])
+    let buffer = await nvim.buffer
+    await events.fire('BufEnter', [buffer.id])
     expect(fn).toBeCalled()
     sources.removeSource(source)
   })

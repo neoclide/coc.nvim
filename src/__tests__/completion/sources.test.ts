@@ -18,20 +18,21 @@ afterEach(async () => {
 describe('native sources', () => {
 
   it('should works for around source', async () => {
-    await helper.edit()
-    await nvim.setLine('foo')
+    await helper.createDocument()
+    await nvim.setLine('foo ')
     await helper.wait(100)
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
-    await nvim.input('of')
+    await nvim.input('Af')
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)
+    await nvim.input('<esc>')
   })
 
   it('should works for buffer source', async () => {
     await nvim.command('set hidden')
-    await helper.edit()
-    await helper.edit()
+    await helper.createDocument()
+    await helper.createDocument()
     await nvim.setLine('other')
     await nvim.command('bp')
     await helper.wait(100)

@@ -11,6 +11,7 @@ set shiftwidth=2
 set updatetime=300
 set expandtab
 set noshowmode
+set shortmess=at
 
 let s:dir = expand('<sfile>:h')
 let s:root = expand('<sfile>:h:h:h')

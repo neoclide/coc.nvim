@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Range, Position } from 'vscode-languageserver-protocol'
-import { disposeAll } from '../../util'
+import { Position, Range } from 'vscode-languageserver-protocol'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -41,9 +41,10 @@ describe('document model properties', () => {
   })
 
   it('should get word range', async () => {
-    let doc = await helper.createDocument()
+    await helper.createDocument()
     await nvim.setLine('foo bar')
-    await helper.wait(100)
+    await helper.wait(30)
+    let doc = await workspace.document
     let range = doc.getWordRangeAtPosition({ line: 0, character: 0 })
     expect(range).toEqual(Range.create(0, 0, 0, 3))
     range = doc.getWordRangeAtPosition({ line: 0, character: 3 })

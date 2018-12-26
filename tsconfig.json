@@ -13,7 +13,6 @@
     "module": "commonjs",
     "moduleResolution": "node",
     "experimentalDecorators": true,
-    "importHelpers": true,
     "lib": ["es2017", "es2018"],
     "declaration": true,
     "resolveJsonModule": true,

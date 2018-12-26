@@ -9,6 +9,7 @@ import { ErrorItem, ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile, writeFile } from '../../util/fs'
 import workspace from '../../workspace'
+import events from '../../events'
 import helper, { createTmpFile } from '../helper'
 import Uri from 'vscode-uri'
 
@@ -636,10 +637,7 @@ describe('workspace utility', () => {
   })
 
   it('should watch options', async () => {
-    let fn = jest.fn((oldValue, newValue) => {
-      expect(oldValue).toBe(0)
-      expect(newValue).toBe(1)
-    })
+    let fn = jest.fn()
     workspace.watchOption('showmode', fn, disposables)
     await helper.wait(150)
     await nvim.command('set showmode')
@@ -649,9 +647,7 @@ describe('workspace utility', () => {
   })
 
   it('should watch global', async () => {
-    let fn = jest.fn((oldValue, newValue) => {
-      expect(newValue).toBe(1)
-    })
+    let fn = jest.fn()
     workspace.watchGlobal('x', fn, disposables)
     await nvim.command('let g:x = 1')
     await helper.wait(30)
@@ -720,8 +716,9 @@ describe('workspace events', () => {
 
   it('should fire onWillSaveUntil', async () => {
     let doc = await helper.createDocument()
+    let filepath = Uri.parse(doc.uri).fsPath
     let fn = jest.fn()
-    workspace.onWillSaveUntil(event => {
+    let disposable = workspace.onWillSaveUntil(event => {
       let promise = new Promise<TextEdit[]>(resolve => {
         fn()
         let edit: TextEdit = {
@@ -734,11 +731,16 @@ describe('workspace events', () => {
     }, null, 'test')
     await helper.wait(100)
     await nvim.setLine('bar')
-    await nvim.command('w')
-    let line = await nvim.getLine()
-    expect(line).toBe('foobar')
+    await helper.wait(30)
+    await events.fire('BufWritePre', [doc.bufnr])
+    await helper.wait(30)
+    let content = doc.getDocumentContent()
+    expect(content.startsWith('foobar')).toBe(true)
+    disposable.dispose()
     expect(fn).toBeCalledTimes(1)
-    fs.unlinkSync(Uri.parse(doc.uri).fsPath)
+    if (fs.existsSync(filepath)) {
+      fs.unlinkSync(filepath)
+    }
   })
 
   it('should attach & detach', async () => {
@@ -822,4 +824,5 @@ describe('workspace textDocument content provider', () => {
     let lines = await buf.lines
     expect(lines).toEqual(['bar'])
   })
+
 })

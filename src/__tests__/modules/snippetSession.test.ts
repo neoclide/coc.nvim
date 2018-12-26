@@ -22,6 +22,8 @@ describe('SnippetSession#start', () => {
 
   it('should start with plain snippet', async () => {
     let buf = await helper.edit()
+    await helper.wait(30)
+    await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
     expect(res).toBe(false)
@@ -53,8 +55,10 @@ describe('SnippetSession#start', () => {
 
   it('should insert indent for snippet endsWith line break', async () => {
     let buf = await helper.edit()
-    await nvim.setLine('bar')
-    await nvim.input('I  ')
+    await nvim.setLine('  bar')
+    await helper.wait(10)
+    await nvim.command('startinsert')
+    await nvim.call('cursor', [1, 3])
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('foo\n')
     expect(res).toBe(false)
@@ -107,31 +111,6 @@ describe('SnippetSession#start', () => {
     await helper.wait(100)
     let m = await nvim.mode
     expect(m.mode).toBe('s')
-  })
-
-  it('should start with placeholder update', async () => {
-    let buf = await helper.edit()
-    let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${1:aaa}bbb$1')
-    expect(res).toBe(true)
-    await helper.wait(100)
-    await nvim.input('<backspace>')
-    await nvim.input('x')
-    await helper.wait(30)
-    await session.synchronizeUpdatedPlaceholders({
-      range: Range.create(0, 0, 0, 3),
-      text: 'x'
-    })
-    await helper.wait(100)
-    await nvim.call('cursor', [1, 2])
-    await session.start('bar')
-    await session.synchronizeUpdatedPlaceholders({
-      range: Range.create(0, 1, 0, 1),
-      text: 'bar'
-    })
-    await helper.wait(10)
-    let line = await nvim.getLine()
-    expect(line).toBe('xbarbbbxbar')
   })
 
   it('should start with nest snippet', async () => {

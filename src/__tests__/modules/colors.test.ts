@@ -1,21 +1,23 @@
 import helper from '../helper'
 import { Neovim } from '@chemzqm/neovim'
-import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation } from 'vscode-languageserver-protocol'
+import { Color, Range, TextDocument, CancellationToken, ColorInformation, ColorPresentation, Disposable } from 'vscode-languageserver-protocol'
 import Colors from '../../handler/colors'
 import { toHexString } from '../../handler/highlighter'
 import languages from '../../languages'
 import { ProviderResult } from '../../provider'
+import { disposeAll } from '../../util'
 
 let nvim: Neovim
 let state = 'normal'
 let colors: Colors
+let disposables: Disposable[] = []
 beforeAll(async () => {
   await helper.setup()
   await helper.wait(500)
   nvim = helper.nvim
   colors = (helper.plugin as any).handler.colors
 
-  languages.registerDocumentColorProvider([{ language: '*' }], {
+  disposables.push(languages.registerDocumentColorProvider([{ language: '*' }], {
     provideColorPresentations: (
       _color: Color,
       _context: { document: TextDocument; range: Range },
@@ -34,10 +36,11 @@ beforeAll(async () => {
         color: getColor(255, 255, 255)
       }]
     }
-  })
+  }))
 })
 
 afterAll(async () => {
+  disposeAll(disposables)
   await helper.shutdown()
 })
 
