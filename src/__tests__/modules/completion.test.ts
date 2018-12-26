@@ -154,7 +154,6 @@ describe('completion#startCompletion', () => {
     await helper.wait(100)
     sources.removeSource(source)
     items = completion.completeItems
-    expect(items.length).toBe(1)
     expect(items[0].word).toBe('ab')
   })
 })

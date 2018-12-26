@@ -34,6 +34,7 @@ describe('snippet provider', () => {
     await helper.createDocument()
     await snippetManager.insertSnippet('${1:a} ${2:b}')
     await snippetManager.nextPlaceholder()
+    await helper.wait(30)
     let col = await nvim.call('col', '.')
     expect(col).toBe(3)
   })
