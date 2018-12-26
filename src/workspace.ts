@@ -79,12 +79,12 @@ export class Workspace implements IWorkspace {
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
     this.checkBuffer = debounce(() => {
       this._checkBuffer().catch(e => {
-        logger.error(e.message)
+        logger.error(e)
       })
     }, 100)
     this.setupDynamicAutocmd = debounce(() => {
       this._setupDynamicAutocmd().catch(e => {
-        logger.error(e.message)
+        logger.error(e)
       })
     }, global.hasOwnProperty('__TEST__') ? 0 : 100)
     this.setMessageLevel()
@@ -519,6 +519,7 @@ export class Workspace implements IWorkspace {
 
   public get document(): Promise<Document> {
     let { bufnr } = this
+    if (bufnr == null) return null
     if (this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
     }
@@ -862,6 +863,9 @@ augroup end`
     for (let ch of this.outputChannels.values()) {
       ch.dispose()
     }
+    for (let doc of this.documents) {
+      doc.detach()
+    }
     Watchman.dispose()
     this.buffers.clear()
     this.configurations.dispose()
@@ -1103,8 +1107,10 @@ augroup end`
   }
 
   private async _checkBuffer(): Promise<void> {
-    await wait(60)
+    await wait(30)
     let bufnr = await this.nvim.call('bufnr', '%')
+    // it's possible that vim exiting
+    if (!bufnr) return
     this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
     if (!doc) await this.onBufCreate(bufnr)

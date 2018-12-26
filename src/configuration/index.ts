@@ -230,7 +230,7 @@ export default class Configurations {
           model.setValue(s, value)
         }
         this.changeConfiguration(target, model, target == ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile)
-        if (this._proxy) {
+        if (this._proxy && !global.hasOwnProperty('__TEST__')) {
           if (value == undefined) {
             this._proxy.$removeConfigurationOption(target, s)
           } else {

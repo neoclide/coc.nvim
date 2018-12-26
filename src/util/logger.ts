@@ -18,6 +18,7 @@ const isRoot = process.getuid && process.getuid() == 0
 
 if (!isRoot) {
   log4js.configure({
+    disableClustering: true,
     appenders: {
       out: {
         type: 'file',

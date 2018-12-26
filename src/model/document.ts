@@ -370,7 +370,7 @@ export default class Document {
    * @param {boolean} current? - use current line
    * @returns {Range}
    */
-  public getWordRangeAtPosition(position: Position, extraChars?: string, current = false): Range | null {
+  public getWordRangeAtPosition(position: Position, extraChars?: string, current = true): Range | null {
     let chars = new Chars('@,48-57,_')
     if (extraChars && extraChars.length) {
       for (let ch of extraChars) {
@@ -598,7 +598,7 @@ export default class Document {
     return str ? str.replace(/\n$/, '') : ''
   }
 
-  private getDocumentContent(): string {
+  public getDocumentContent(): string {
     let content = this.lines.join('\n')
     return this.eol ? content + '\n' : content
   }

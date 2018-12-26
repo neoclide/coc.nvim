@@ -113,6 +113,7 @@ export class ExtensionSnippetProvider implements SnippetProvider {
 
   public getSnippets(language: string): Snippet[] {
     let res: Snippet[] = []
+    if (!this._snippetCache) return []
     for (let key of Object.keys(this._snippetCache)) {
       let cache = this._snippetCache[key]
       let snippets = cache[language]
