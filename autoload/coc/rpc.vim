@@ -1,6 +1,7 @@
 let s:is_win = has("win32") || has("win64")
 let s:client = v:null
 let s:name = 'coc'
+let s:is_vim = !has('nvim')
 
 function! coc#rpc#start_server()
   if $NODE_ENV ==# 'test'
@@ -18,6 +19,16 @@ function! coc#rpc#start_server()
     let s:client = coc#client#create(s:name, cmd)
   endif
   call s:client['start']()
+endfunction
+
+function! coc#rpc#ready()
+  if empty(s:client) || s:client['running'] == 0 | return 0 | endif
+  if s:is_vim && empty(s:client['job'])
+    return 0
+  elseif !s:is_vim && s:client['chan_id'] == 0
+    return 0
+  endif
+  return 1
 endfunction
 
 function! s:ChannelSet(dict, key, val)

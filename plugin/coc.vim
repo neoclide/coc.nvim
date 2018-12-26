@@ -13,7 +13,9 @@ if has('nvim')
 endif
 
 function! CocAction(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return | endif
+  if !coc#rpc#ready()
+    throw '[coc.nvim] service not started.'
+  endif
   return coc#rpc#request('CocAction', a:000)
 endfunction
 
@@ -22,12 +24,13 @@ function! CocActionAsync(...) abort
 endfunction
 
 function! CocRequest(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return | endif
+  if !coc#rpc#ready()
+    throw '[coc.nvim] service not started.'
+  endif
   return coc#rpc#request('sendRequest', a:000)
 endfunction
 
 function! CocLocations(id, method, ...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return | endif
   let args = [a:id, a:method] + copy(a:000)
   call coc#rpc#request('findLocations', args)
 endfunction
@@ -37,10 +40,13 @@ function! CocRequestAsync(...)
 endfunction
 
 function! s:AsyncRequest(name, args) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return | endif
   let Cb = a:args[len(a:args) - 1]
   if type(Cb) == 2
-    call coc#rpc#request_async(a:name, a:args[0:-2], Cb)
+    if !coc#rpc#ready()
+      call Cb('service not started', v:null)
+    else
+      call coc#rpc#request_async(a:name, a:args[0:-2], Cb)
+    endif
     return ''
   endif
   call coc#rpc#notify(a:name, a:args)
@@ -48,13 +54,13 @@ function! s:AsyncRequest(name, args) abort
 endfunction
 
 function! s:CommandList(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  if !coc#rpc#ready() | return '' | endif
   let list = coc#rpc#request('CommandList', a:000)
   return join(list, "\n")
 endfunction
 
 function! s:ExtensionList(...) abort
-  if get(g:, 'coc_enabled', 0) == 0 | return '' | endif
+  if !coc#rpc#ready() | return '' | endif
   let list = map(CocAction('extensionStats'), 'v:val["id"]')
   return join(list, "\n")
 endfunction
@@ -62,16 +68,6 @@ endfunction
 function! s:OpenConfig()
   let home = coc#util#get_config_home()
   execute 'edit '.home.'/coc-settings.json'
-endfunction
-
-function! s:Autocmd(...) abort
-  if !get(g:, 'coc_enabled', 0) | return | endif
-  call coc#rpc#notify('CocAutocmd', a:000)
-endfunction
-
-function! s:SyncAutocmd(...)
-  if !get(g:, 'coc_enabled', 0) | return | endif
-  call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
 function! s:Disable() abort
@@ -85,6 +81,14 @@ function! s:Disable() abort
     echom '[coc.nvim] Disabled'
   echohl None
   let g:coc_enabled = 0
+endfunction
+
+function! s:Autocmd(...) abort
+  call coc#rpc#notify('CocAutocmd', a:000)
+endfunction
+
+function! s:SyncAutocmd(...)
+  call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
 function! s:Enable()
@@ -120,8 +124,6 @@ function! s:Enable()
     autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'))
-    "autocmd OptionSet           iskeyword call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
-    "autocmd OptionSet           completeopt call s:Autocmd('OptionSet', expand('<amatch>'), v:option_old, v:option_new)
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
@@ -140,6 +142,7 @@ function! s:Enable()
   command! -nargs=0 CocEnable  :call s:Enable()
   command! -nargs=0 CocOpenLog :call coc#rpc#notify('openLog', [])
   command! -nargs=0 CocInfo    :call coc#rpc#notify('showInfo', [])
+  command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
   command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction
 
@@ -159,15 +162,13 @@ hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 
 function! s:FormatFromSelected(type)
+  if !coc#rpc#ready() | return '' | endif
   call CocAction('formatSelected', a:type)
 endfunction
 
 function! s:CodeActionFromSelected(type)
+  if !coc#rpc#ready() | return '' | endif
   call CocAction('codeAction', a:type)
-endfunction
-
-function! s:StatChange(dict, key, val)
-  return coc#rpc#request('CocAction', ['toggle', get(a:val, 'new', 0)])
 endfunction
 
 function! s:OnVimEnter()
@@ -181,9 +182,6 @@ endfunction
 
 function! s:OnInit()
   call s:Enable()
-  if !s:is_vim
-    call dictwatcheradd(g:, 'coc_enabled', function('s:StatChange'))
-  endif
   let extensions = get(g:, 'coc_local_extensions', [])
   call coc#rpc#notify('registExtensions', extensions)
 endfunction
@@ -202,7 +200,6 @@ command! -nargs=0 CocRestart   :call coc#rpc#restart()
 command! -nargs=+ CocInstall   :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate    :call coc#util#update()
 command! -nargs=0 CocRebuild   :call coc#util#rebuild()
-command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
 
 nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocActionAsync('formatSelected', visualmode())<CR>
