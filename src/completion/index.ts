@@ -23,7 +23,6 @@ export class Completion implements Disposable {
   private increment: Increment
   private lastInsert?: LastInsert
   private lastChangedI: number
-  private lastPumvisible = 0
   private insertMode = false
   private nvim: Neovim
   private completing = false
@@ -193,6 +192,7 @@ export class Completion implements Disposable {
     }
     this.appendNumber(items)
     let same = isChangedP && this.filterItemsVim(resumeInput).length == items.length
+    this.changedTick = document.changedtick
     if (!same || this.numberSelect) {
       nvim.call('coc#_do_complete', [col, items], true)
     }
@@ -211,7 +211,6 @@ export class Completion implements Disposable {
   }
 
   private async onPumVisible(): Promise<void> {
-    this.lastPumvisible = Date.now()
     let first = this._completeItems[0]
     let noselect = this.preferences.get<boolean>('noselect')
     if (!noselect) await sources.doCompleteResolve(first)
@@ -240,6 +239,7 @@ export class Completion implements Disposable {
     // changedtick could change without content change
     if (this.document.getline(linenr - 1) == line) {
       this.appendNumber(items)
+      this.changedTick = document.changedtick
       nvim.call('coc#_do_complete', [option.col, items], true)
       this._completeItems = items
       await this.onPumVisible()
@@ -254,10 +254,10 @@ export class Completion implements Disposable {
     let { increment, option, document } = this
     if (document) await document.patchChange()
     // filtered by remove character
-    if (!document || !option || Math.abs(Date.now() - this.lastPumvisible) < 10) return
-    if (this.hasLatestChangedI || this.completing || !increment.isActivted) return
+    if (!document || !option || this.completing || !this.isActivted) return
     // neovim would trigger TextChangedP after fix of word
-    if (document.changedtick - this.changedTick == 1) return
+    // avoid trigger filter on pumvisible
+    if (document.changedtick == this.changedTick) return
     let { latestInsert } = this
     this.lastInsert = null
     let col = await this.nvim.call('col', ['.'])
@@ -282,7 +282,7 @@ export class Completion implements Disposable {
           let before = byteSlice(line, 0, option.col)
           let after = byteSlice(line, option.col + byteLength(word))
           line = `${before}${text}${after}`
-          this.changedTick = document.changedtick
+          if (workspace.isNvim) this.changedTick = document.changedtick + 1
           this.nvim.pauseNotification()
           this.nvim.call('coc#util#setline', [option.linenr, line], true)
           this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))], true)
