@@ -604,26 +604,31 @@ export default class Handler {
     let origLine = doc.getline(position.line)
     let { changedtick, dirty } = doc
     if (dirty) {
-      await wait(20)
       doc.forceSync()
-      await wait(20)
+      await wait(30)
     }
     let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
-    let edits = await languages.provideDocumentOntTypeEdits(ch, doc.textDocument, pos)
-    // changed by other process
-    if (doc.changedtick != changedtick) return
-    if (insertLeave) {
-      edits = edits.filter(edit => {
-        return edit.range.start.line < position.line + 1
-      })
-    }
-    if (edits && edits.length) {
-      await doc.applyEdits(this.nvim, edits)
-    }
-    let newLine = doc.getline(position.line)
-    if (newLine.length > origLine.length) {
-      let col = position.character + 1 + (newLine.length - origLine.length)
-      await this.nvim.call('cursor', [position.line + 1, col])
+    try {
+      let edits = await languages.provideDocumentOntTypeEdits(ch, doc.textDocument, pos)
+      // changed by other process
+      if (doc.changedtick != changedtick) return
+      if (insertLeave) {
+        edits = edits.filter(edit => {
+          return edit.range.start.line < position.line + 1
+        })
+      }
+      if (edits && edits.length) {
+        await doc.applyEdits(this.nvim, edits)
+        let newLine = doc.getline(position.line)
+        if (newLine.length > origLine.length) {
+          let col = position.character + 1 + (newLine.length - origLine.length)
+          await this.nvim.call('cursor', [position.line + 1, col])
+        }
+      }
+    } catch (e) {
+      if (!/timeout\safter/.test(e.message)) {
+        throw e
+      }
     }
   }
 
