@@ -82,8 +82,6 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
   **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
 
-  **Note:** for windows user, the update for executable could fail if the binary is shared by other vim/neovim instance.
-
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
 - [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)

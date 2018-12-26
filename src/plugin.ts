@@ -173,10 +173,6 @@ export default class Plugin extends EventEmitter {
     let { handler } = this
     try {
       switch (args[0] as string) {
-        case 'toggle': {
-          await events.fire('toggle', [args[1]])
-          return
-        }
         case 'links': {
           return await handler.links()
         }

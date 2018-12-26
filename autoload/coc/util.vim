@@ -268,10 +268,21 @@ function! coc#util#open_terminal(opts) abort
   let keepfocus = get(a:opts, 'keepfocus', 0)
   let bufnr = bufnr('%')
   let Callback = get(a:opts, 'Callback', v:null)
+
+  function! OnExit(status) closure
+    let content = join(getbufline(bufnr, 1, '$'), "\n")
+    if a:status == 0 && autoclose == 1
+      execute 'silent! bd! '.bufnr
+    endif
+    if !empty(Callback)
+      call call(Callback, [a:status, bufnr, content])
+    endif
+  endfunction
+
   if has('nvim')
     call termopen(cmd, {
           \ 'cwd': cwd,
-          \ 'on_exit': function('s:OnExit', [autoclose, bufnr, Callback]),
+          \ 'on_exit': {job, status -> OnExit(status)},
           \})
   else
     if s:is_win
@@ -279,7 +290,7 @@ function! coc#util#open_terminal(opts) abort
     endif
     call term_start(cmd, {
           \ 'cwd': cwd,
-          \ 'exit_cb': function('s:OnExit', [autoclose, bufnr, Callback]),
+          \ 'exit_cb': {job, status -> OnExit(status)},
           \ 'curwin': 1,
           \})
   endif
@@ -302,16 +313,6 @@ function! coc#util#run_terminal(opts, cb)
         \ 'Callback': {status, bufnr, content -> a:cb(v:null, {'success': status == 0 ? v:true : v:false, 'bufnr': bufnr, 'content': content})}
         \}
   call coc#util#open_terminal(opts)
-endfunction
-
-function! s:OnExit(autoclose, bufnr, Callback, job_id, status, ...)
-  let content = join(getbufline(a:bufnr, 1, '$'), "\n")
-  if a:status == 0 && a:autoclose == 1
-    execute 'silent! bd! '.a:bufnr
-  endif
-  if !empty(a:Callback)
-    call call(a:Callback, [a:status, a:bufnr, content])
-  endif
 endfunction
 
 function! coc#util#vim_info()
@@ -400,37 +401,31 @@ endfunction
 function! coc#util#install() abort
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
-  if s:is_win
-    " can't remove file that in use on windows.
-    let res = coc#rpc#stop()
-    if res != 0 | return | endif
-  endif
+  function! OnInstalled(status, ...) closure
+    if a:status != 0 | return | endif
+    if s:is_vim
+      let cmd = nvim#rpc#get_command()
+      if empty(cmd)
+        let installed = nvim#rpc#install_node_rpc()
+        if !installed | return | endif
+        sleep 200m
+      endif
+    endif
+    call coc#rpc#restart()
+    let dir = coc#util#extension_root()
+    if !isdirectory(dir) && empty(get(g:, 'coc_global_extensions', []))
+      echohl WarningMsg | echom 'No extensions found' | echohl None
+      call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
+    endif
+  endfunction
   " install.cmd would always exited with code 0 with/without errors.
   call coc#util#open_terminal({
         \ 'cmd': cmd,
         \ 'autoclose': 1,
         \ 'cwd': s:root,
-        \ 'Callback': function('s:coc_installed')
+        \ 'Callback': funcref('OnInstalled')
         \})
   wincmd p
-endfunction
-
-function! s:coc_installed(status, ...) abort
-  if a:status != 0 | return | endif
-  if s:is_vim
-    let cmd = nvim#rpc#get_command()
-    if empty(cmd)
-      let installed = nvim#rpc#install_node_rpc()
-      if !installed | return | endif
-      sleep 300m
-    endif
-  endif
-  call coc#rpc#restart()
-  let dir = coc#util#extension_root()
-  if !isdirectory(dir) && empty(get(g:, 'coc_global_extensions', []))
-    echohl WarningMsg | echom 'No extensions found' | echohl None
-    call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
-  endif
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort
@@ -466,12 +461,19 @@ function! coc#util#install_extension(names) abort
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
-  let l:Cb = {status -> s:extension_installed(status, a:names)}
+  function OnExtensionInstalled(status, names) closure
+    if a:status == 0
+      call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
+      call coc#rpc#notify('CocInstalled', split(a:names, '\s\+'))
+    else
+      call coc#util#echo_messages('Error', ['extension '.a:names. ' install failed!'])
+    endif
+  endfunction
   call coc#util#open_terminal({
         \ 'cwd': dir,
         \ 'cmd': 'yarn add '.a:names,
         \ 'keepfocus': 1,
-        \ 'Callback': l:Cb,
+        \ 'Callback': {status -> OnExtensionInstalled(status, a:names)},
         \})
 endfunction
 
@@ -486,15 +488,6 @@ function! coc#util#init_extension_root(root) abort
     endif
   endif
   return 0
-endfunction
-
-function! s:extension_installed(status, name)
-  if a:status == 0
-    call coc#util#echo_messages('MoreMsg', ['extension '.a:name. ' installed!'])
-    call coc#rpc#notify('CocInstalled', split(a:name, '\s\+'))
-  else
-    call coc#util#echo_messages('Error', ['extension '.a:name. ' install failed!'])
-  endif
 endfunction
 
 function! coc#util#rebuild()
@@ -514,19 +507,17 @@ function! coc#util#update()
   endif
   let dir = coc#util#extension_root()
   if !isdirectory(dir) | return | endif
-  let l:Cb = {status -> s:extension_updated(status)}
+  function! OnUpdated(status, ...) closure
+    if a:status == 0
+      call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
+    endif
+  endfunction
   call coc#util#open_terminal({
         \ 'cwd': dir,
         \ 'cmd': 'yarn upgrade --latest --ignore-engines',
         \ 'keepfocus': 1,
-        \ 'Callback': l:Cb,
+        \ 'Callback': funcref('OnUpdated'),
         \})
-endfunction
-
-function! s:extension_updated(status)
-  if a:status == 0
-    call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
-  endif
 endfunction
 
 " content of first echo line
