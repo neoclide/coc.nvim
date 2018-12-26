@@ -22,7 +22,7 @@ afterEach(async () => {
 describe('Client integration', () => {
 
   it('should send file change notification', (done) => {
-    if (process.env.NODE_ENV == 'test') return done()
+    if (global.hasOwnProperty('__TEST__')) return done()
     let serverModule = path.join(__dirname, './server/testFileWatcher.js')
     let serverOptions: lsclient.ServerOptions = {
       module: serverModule,
