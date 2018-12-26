@@ -4,7 +4,8 @@
 | --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- |
 | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] |
 
-Coc is an intellisense engine for vim8 & neovim.
+Coc is an intellisense engine for vim8 & neovim. It only works on `vim >= 8.1`
+and `neovim >= 0.3.1`
 
 It's a completion framework, language server client which
 [support extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
@@ -71,7 +72,7 @@ Below is the reasons that lead to coc.nvim build it's own engine:
   And add:
 
   ```vim
-  Plug 'neoclide/coc.nvim', {'do': 'yarn install'}
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install'}
   ```
 
   to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
@@ -79,29 +80,17 @@ Below is the reasons that lead to coc.nvim build it's own engine:
   For other plugin manager, run command `:call coc#util#install()` to download
   binary after coc is installed.
 
-  **Note:** neovim >= 0.3.0 or vim >= 8.1 is required.
-
   **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
 
-- [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
+  **Note:** for windows user, the update for executable could fail if the binary is shared by other vim/neovim instance.
 
-  - [Trigger mode of completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#trigger-mode-of-completion)
-  - [Use `<Tab>` or custom key for trigger completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#use-tab-or-custom-key-for-trigger-completion)
-  - [Improve completion experience](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#improve-completion-experience)
-  - [Completion sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#completion-sources)
+- [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
 - [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)
 
 - [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-  - [Manage extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions#installupdate-coc-extension)
-
 - [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
-
-  - [Configuration file resolve](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-file-resolve)
-  - [Default COC preferences](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#default-coc-preferences)
-  - [Configuration for sources](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#configuration-for-sources)
-  - [Extension configuration](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file#extension-configuration)
 
 - [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
