@@ -17,6 +17,13 @@ function! coc#_complete() abort
   return ''
 endfunction
 
+" hack method to avoid vim flicking
+function! coc#_reload()
+  let items = get(g:coc#_context, 'candidates', [])
+  if empty(items) | return '' | endif
+  call feedkeys("\<Plug>_", 'i')
+endfunction
+
 function! coc#_do_complete(start, items)
   let g:coc#_context = {
         \ 'start': a:start,

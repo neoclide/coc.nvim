@@ -191,11 +191,8 @@ export class Completion implements Disposable {
       return
     }
     this.appendNumber(items)
-    let same = isChangedP && this.filterItemsVim(resumeInput).length == items.length
     this.changedTick = document.changedtick
-    if (!same || this.numberSelect) {
-      nvim.call('coc#_do_complete', [col, items], true)
-    }
+    nvim.call('coc#_do_complete', [col, items], true)
     this._completeItems = items
     await this.onPumVisible()
   }
@@ -394,10 +391,16 @@ export class Completion implements Disposable {
     }
   }
 
-  private onInsertCharPre(character: string): void {
+  private async onInsertCharPre(character: string): Promise<void> {
     this.lastInsert = {
       character,
       timestamp: Date.now(),
+    }
+    if (workspace.isNvim &&
+      this.isActivted &&
+      !global.hasOwnProperty('__TEST__') &&
+      !this.triggerCharacters.has(character)) {
+      await this.nvim.call('coc#_reload')
     }
   }
 

@@ -194,10 +194,7 @@ describe('SnippetSession#nextPlaceholder', () => {
     let line = await nvim.line
     expect(line).toBe('foo bar')
     await session.nextPlaceholder()
-    let [_, lnum, col] = await nvim.call('getcurpos') as any
     expect(session.placeholder.index).toBe(0)
-    let position = await workspace.getCursorPosition()
-    expect(position).toEqual({ line: 0, character: 7 })
     await session.nextPlaceholder()
     expect(session.placeholder.index).toBe(1)
   })

@@ -17,6 +17,7 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   await helper.createDocument()
+  await nvim.input('<esc>')
 })
 
 afterAll(async () => {
@@ -97,7 +98,6 @@ describe('completion#startCompletion', () => {
   })
 
   it('should start completion', async () => {
-    await helper.createDocument()
     await nvim.setLine('foo football')
     await nvim.input('a')
     await nvim.call('cursor', [1, 2])
@@ -179,20 +179,6 @@ describe('completion#resumeCompletion', () => {
     await helper.wait(60)
     expect(completion.isActivted).toBe(false)
     await nvim.input('<esc>')
-  })
-
-  it('should not do filter if vim could do the same', async () => {
-    await nvim.setLine('foo fbi ')
-    await helper.wait(50)
-    await nvim.input('Af')
-    await helper.wait(50)
-    await helper.waitPopup()
-    await nvim.input('o')
-    await helper.wait(50)
-    let items = completion.completeItems
-    expect(items.length).toBe(1)
-    let visible = await helper.visible('fbi')
-    expect(visible).toBe(true)
   })
 
   it('should deactivate without filtered items', async () => {
