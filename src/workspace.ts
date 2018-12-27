@@ -44,6 +44,7 @@ export class Workspace implements IWorkspace {
   private _cwd = process.cwd()
   private _blocking = false
   private _initialized = false
+  private _attached = false
   private buffers: Map<number, Document> = new Map()
   private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
@@ -122,7 +123,8 @@ export class Workspace implements IWorkspace {
     this.watchOption('completeopt', (_, newValue) => {
       this.env.completeOpt = newValue
     }, this.disposables)
-    this.watchGlobal('coc_enabled', async (_, newValue) => {
+    this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
+      if (newValue == oldValue) return
       if (newValue == 1) {
         await this.attach()
       } else {
@@ -742,14 +744,10 @@ export class Workspace implements IWorkspace {
 
   public async showQuickpick(items: string[], placeholder = 'Choose by number'): Promise<number> {
     let msgs = [placeholder + ':']
-    msgs = msgs.concat(
-      items.map((str, index) => {
-        return `${index + 1}. ${str}`
-      })
-    )
-    this._blocking = true
+    msgs = msgs.concat(items.map((str, index) => {
+      return `${index + 1}. ${str}`
+    }))
     let res = await this.nvim.call('inputlist', [msgs])
-    this._blocking = false
     let n = parseInt(res, 10)
     if (isNaN(n) || n <= 0 || n > msgs.length) return -1
     return n - 1
@@ -878,6 +876,8 @@ augroup end`
   }
 
   private async attach(): Promise<void> {
+    if (this._attached) return
+    this._attached = true
     let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
     await Promise.all(buffers.map(buf => {
@@ -893,6 +893,8 @@ augroup end`
   }
 
   private async detach(): Promise<void> {
+    if (!this._attached) return
+    this._attached = false
     for (let bufnr of this.buffers.keys()) {
       await events.fire('BufUnload', [bufnr])
     }

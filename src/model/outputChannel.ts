@@ -3,7 +3,6 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import { OutputChannel } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
-import URI from 'vscode-uri'
 const logger = require('../util/logger')("outpubChannel")
 
 export default class BufferChannel implements OutputChannel {
@@ -11,18 +10,14 @@ export default class BufferChannel implements OutputChannel {
   private disposables: Disposable[] = []
   private _showing = false
   private promise = Promise.resolve(void 0)
-  private buffer: Buffer | null = null
+  private bufnr: number | null = null
   constructor(public name: string, private nvim: Neovim) {
-    workspace.onDidCloseTextDocument(doc => {
-      let p = URI.parse(doc.uri).path
-      if (p.startsWith(this.bufname)) {
-        this.buffer = null
-      }
-    }, null, this.disposables)
   }
 
-  private get bufname(): string {
-    return `[coc ${this.name}]`
+  private get buffer(): Buffer {
+    if (!this.bufnr) return null
+    let doc = workspace.getDocument(this.bufnr)
+    return doc ? doc.buffer : null
   }
 
   private async _append(value: string, isLine: boolean): Promise<void> {
@@ -30,15 +25,17 @@ export default class BufferChannel implements OutputChannel {
     if (!buffer) return
     if (isLine) {
       await buffer.append(value.split('\n'))
-      return
+    } else {
+      let last = await this.nvim.call('getbufline', [buffer.id, '$'])
+      let content = last + value
+      if (this.buffer) {
+        await buffer.setLines(content.split('\n'), {
+          start: -2,
+          end: -1,
+          strictIndexing: false
+        })
+      }
     }
-    let last = await this.nvim.call('getbufline', [buffer.id, '$'])
-    let content = last + value
-    await buffer.setLines(content.split('\n'), {
-      start: -2,
-      end: -1,
-      strictIndexing: false
-    })
   }
 
   public append(value: string): void {
@@ -72,9 +69,7 @@ export default class BufferChannel implements OutputChannel {
   public hide(): void {
     let { nvim } = this
     let { buffer } = this
-    if (buffer) {
-      nvim.command(`silent! bd! ${buffer.id}`, true)
-    }
+    if (buffer) nvim.command(`silent! bd! ${buffer.id}`, true)
   }
 
   public dispose(): void {
@@ -84,24 +79,23 @@ export default class BufferChannel implements OutputChannel {
   }
 
   private async openBuffer(preserveFocus?: boolean): Promise<void> {
-    let { buffer } = this
     let { nvim } = this
-    if (!buffer) {
+    if (!this.buffer) {
       await nvim.command(`belowright vs +setl\\ buftype=nofile\\ bufhidden=wipe [coc ${this.name}]`)
       await nvim.command('setfiletype log')
-      buffer = await nvim.buffer
+      let buffer = await nvim.buffer
       await buffer.setOption('swapfile', false)
       await buffer.setLines(this.content.split('\n'), {
         start: 0,
         end: -1,
         strictIndexing: false
       })
-      this.buffer = buffer
+      this.bufnr = buffer.id
     } else {
-      let wnr = await nvim.call('bufwinnr', buffer.id)
+      let wnr = await nvim.call('bufwinnr', this.bufnr)
       // is shown
       if (wnr != -1) return
-      await nvim.command(`vert belowright sb ${buffer.id}`)
+      await nvim.command(`vert belowright sb ${this.bufnr}`)
     }
     if (preserveFocus) {
       await nvim.command('wincmd p')
