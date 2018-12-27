@@ -163,20 +163,16 @@ export class SnippetSession {
     this._currId = placeholder.id
     let { mode, blocking } = await nvim.mode
     if (workspace.isNvim && mode == 's') {
-      this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'], true)
+      await nvim.call('feedkeys', [String.fromCharCode(27), 'int'])
     }
     if (blocking) return
     if (len > 0 && mode.startsWith('i')) {
-      if (workspace.isVim) {
-        nvim.command('stopinsert', true)
-      } else {
-        await nvim.input('<esc>')
-      }
+      await nvim.command('stopinsert')
     } else if (len == 0 && !mode.startsWith('i')) {
       if (workspace.isVim) {
         nvim.command('startinsert', true)
       } else {
-        await nvim.input('i')
+        await nvim.call('feedkeys', ['i', 'int'], true)
       }
     }
     if (placeholder.choice) {
