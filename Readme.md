@@ -10,7 +10,7 @@ and `neovim >= 0.3.1`
 It's a completion framework, language server client which
 [support extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-![example.gif](https://user-images.githubusercontent.com/251450/42722527-028898ea-8780-11e8-959f-09db0d39ba05.gif)
+![example.gif](https://user-images.githubusercontent.com/251450/50468690-25083880-09e4-11e9-8d8c-38b789bbfab2.gif)
 
 _True snippet and additional text edit support_
 
