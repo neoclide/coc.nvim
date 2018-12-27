@@ -14,7 +14,11 @@ export default class CallSequence {
       for (let fn of this.funcs) {
         if (this._canceled) return resolve(true)
         try {
-          await Promise.resolve(fn())
+          let cancel = await Promise.resolve(fn())
+          if (cancel === true) {
+            this._canceled = true
+            return resolve(true)
+          }
         } catch (e) {
           reject(e)
         }

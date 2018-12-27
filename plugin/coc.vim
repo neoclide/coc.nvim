@@ -112,7 +112,7 @@ function! s:Enable()
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
     " Must be sync to fix flicking on neovim
-    autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
+    autocmd InsertCharPre       * silent! call s:SyncAutocmd('InsertCharPre', v:char)
     " Must be sync to fix cursor disappear on vim
     autocmd TextChangedP        * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))

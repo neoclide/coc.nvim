@@ -72,7 +72,6 @@ export interface Env {
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
-  readonly easymotion: boolean
 }
 
 export interface EditerState {

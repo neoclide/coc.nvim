@@ -51,6 +51,10 @@ export class DiagnosticBuffer {
     let diagnostics = this.getDiagnostics(diagnosticItems)
     if (this.equalDiagnostics(diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
+    sequence.addFunction(async () => {
+      let valid = await this.nvim.call('coc#util#valid_state')
+      return valid ? false : true
+    })
     this.nvim.pauseNotification()
     sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
     sequence.addFunction(this.setLocationlist.bind(this, diagnostics))

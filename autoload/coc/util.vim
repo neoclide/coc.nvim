@@ -24,6 +24,14 @@ function! coc#util#version()
   return matchstr(c, 'NVIM v\zs[^\n-]*')
 endfunction
 
+function! coc#util#valid_state()
+  if get(g: , 'EasyMotion_loaded', 0)
+    let line = coc#util#echo_line()
+    return line !~# 'Target key'
+  endif
+  return 1
+endfunction
+
 function! coc#util#platform()
   if s:is_win
     return 'windows'
@@ -329,7 +337,6 @@ function! coc#util#vim_info()
         \ 'completeOpt': &completeopt,
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
-        \ 'easymotion': get(g:, 'EasyMotion_loaded', 0),
         \}
 endfunction
 
