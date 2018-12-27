@@ -110,8 +110,10 @@ function! s:Enable()
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
+    " Must be sync to fix flicking on neovim
+    autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
+    " Must be sync to fix cursor disappear on vim
     autocmd TextChangedP        * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave')

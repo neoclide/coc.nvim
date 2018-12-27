@@ -400,7 +400,7 @@ export class Completion implements Disposable {
       this.isActivted &&
       !global.hasOwnProperty('__TEST__') &&
       !this.triggerCharacters.has(character)) {
-      await this.nvim.call('coc#_reload')
+      this.nvim.call('coc#_reload', [], true)
     }
   }
 
