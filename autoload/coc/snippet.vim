@@ -7,6 +7,7 @@ function! coc#snippet#range_select(lnum, col, len)
     let m = len == 1 ? '' : (len - 1).'l'
     execute 'normal! v'.m. "\<C-g>"
   endif
+  silent doautocmd User CocJumpPlaceholder
 endfunction
 
 function! coc#snippet#show_choices(lnum, col, len, values) abort
