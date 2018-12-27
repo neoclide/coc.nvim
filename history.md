@@ -1,3 +1,28 @@
+# 2018-12-27
+
+- **Break change:** no more message on service ready.
+- **Break change:** vim source now registed as extention.
+- **Break change:** complete item sort have reworked.
+- **Break change:** request send to coc would throw when service not ready.
+- Add support for check current state on diagnostic update.
+- Add `env` opinion for registed command languageserver.
+- Add outputChannel for watchman.
+- Add `coc#_select_confirm()` for trigger select and confirm.
+- Add `coc.preferences.numberSelect`.
+- Add priority support for format provider.
+- Add `workspace.watchGlobal` and `workspace.watchOption` methods.
+- Fix cursor disappear on `TextChangedP` with vim.
+- Fix coc process not killed when update on windows.
+- Fix snippet broken on vim.
+- Fix support of startcol of completion result.
+- Fix `labelOffsetSupport` wrong position.
+- Fix flicking on neovim.
+- Fix unicide not considered as iskeyword.
+- Fix watchman client not initialized sometimes.
+- Improve performance for parse iskeyword.
+- Not echo message on vim exit.
+- Not send empty configuration change to languageserver.
+
 # 2018-12-20
 
 - **Break change** configuration for module language server, transport now
