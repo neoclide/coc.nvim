@@ -22,7 +22,6 @@ export class Completion implements Disposable {
   private document: Document
   private increment: Increment
   private lastInsert?: LastInsert
-  private lastChangedI: number
   private insertMode = false
   private nvim: Neovim
   private completing = false
@@ -34,6 +33,7 @@ export class Completion implements Disposable {
   private triggerCharacters: Set<string> = new Set()
   private changedTick = 0
   private currIndex = 0
+  private insertCharTs = 0
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
@@ -139,11 +139,6 @@ export class Completion implements Disposable {
       fixInsertedWord: config.get<boolean>('fixInsertedWord', true),
       localityBonus: config.get<boolean>('localityBonus', true)
     }
-  }
-
-  public get hasLatestChangedI(): boolean {
-    let { lastChangedI } = this
-    return lastChangedI && Date.now() - lastChangedI < 100
   }
 
   public async startCompletion(option: CompleteOption): Promise<void> {
@@ -291,7 +286,6 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number): Promise<void> {
-    this.lastChangedI = Date.now()
     if (this.completing) return
     let { nvim, increment, document, input, latestInsertChar } = this
     this.lastInsert = null
@@ -351,14 +345,16 @@ export class Completion implements Disposable {
     if (!this.isActivted || !document) return
     item = this._completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     if (!item) return
+    let timestamp = this.insertCharTs
     let opt = Object.assign({}, this.option)
     let { changedtick } = document
     try {
       increment.stop()
       await sources.doCompleteResolve(item)
       this.addRecent(item.word, document.bufnr)
-      await wait(40)
+      await wait(50)
       await document.patchChange()
+      if (this.insertCharTs != timestamp) return
       if (changedtick != document.changedtick) return
       document.forceSync()
       let { mode } = await nvim.mode
@@ -393,6 +389,7 @@ export class Completion implements Disposable {
       character,
       timestamp: Date.now(),
     }
+    this.insertCharTs = this.lastInsert.timestamp
     if (workspace.isNvim &&
       this.isActivted &&
       !global.hasOwnProperty('__TEST__') &&
