@@ -149,6 +149,8 @@ Extension are powerful than configured language server. Checkout
   document symbol highlight and colors support.
 - **[coc-emmet](https://github.com/neoclide/coc-emmet)** provide emmet
   suggest in completion list.
+- **[coc-snippets](https://github.com/neoclide/coc-snippets)** provide snippets
+  solution.
 
 And more, to get full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
