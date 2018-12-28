@@ -282,7 +282,7 @@ function! coc#util#open_terminal(opts) abort
   let bufnr = bufnr('%')
   let Callback = get(a:opts, 'Callback', v:null)
 
-  function! OnExit(status) closure
+  function! s:OnExit(status) closure
     let content = join(getbufline(bufnr, 1, '$'), "\n")
     if a:status == 0 && autoclose == 1
       execute 'silent! bd! '.bufnr
@@ -295,7 +295,7 @@ function! coc#util#open_terminal(opts) abort
   if has('nvim')
     call termopen(cmd, {
           \ 'cwd': cwd,
-          \ 'on_exit': {job, status -> OnExit(status)},
+          \ 'on_exit': {job, status -> s:OnExit(status)},
           \})
   else
     if s:is_win
@@ -303,7 +303,7 @@ function! coc#util#open_terminal(opts) abort
     endif
     call term_start(cmd, {
           \ 'cwd': cwd,
-          \ 'exit_cb': {job, status -> OnExit(status)},
+          \ 'exit_cb': {job, status -> s:OnExit(status)},
           \ 'curwin': 1,
           \})
   endif
@@ -413,7 +413,7 @@ endfunction
 function! coc#util#install() abort
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
-  function! OnInstalled(status, ...) closure
+  function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
     if s:is_vim
       let cmd = nvim#rpc#get_command()
@@ -435,7 +435,7 @@ function! coc#util#install() abort
         \ 'cmd': cmd,
         \ 'autoclose': 1,
         \ 'cwd': s:root,
-        \ 'Callback': funcref('OnInstalled')
+        \ 'Callback': funcref('s:OnInstalled')
         \})
   wincmd p
 endfunction
@@ -473,7 +473,7 @@ function! coc#util#install_extension(names) abort
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
-  function! OnExtensionInstalled(status, names) closure
+  function! s:OnExtensionInstalled(status, names) closure
     if a:status == 0
       call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
       call coc#rpc#notify('CocInstalled', split(a:names, '\s\+'))
@@ -485,7 +485,7 @@ function! coc#util#install_extension(names) abort
         \ 'cwd': dir,
         \ 'cmd': 'yarn add '.a:names,
         \ 'keepfocus': 1,
-        \ 'Callback': {status -> OnExtensionInstalled(status, a:names)},
+        \ 'Callback': {status -> s:OnExtensionInstalled(status, a:names)},
         \})
 endfunction
 
@@ -519,7 +519,7 @@ function! coc#util#update()
   endif
   let dir = coc#util#extension_root()
   if !isdirectory(dir) | return | endif
-  function! OnUpdated(status, ...) closure
+  function! s:OnUpdated(status, ...) closure
     if a:status == 0
       call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
     endif
@@ -528,7 +528,7 @@ function! coc#util#update()
         \ 'cwd': dir,
         \ 'cmd': 'yarn upgrade --latest --ignore-engines',
         \ 'keepfocus': 1,
-        \ 'Callback': funcref('OnUpdated'),
+        \ 'Callback': funcref('s:OnUpdated'),
         \})
 endfunction
 
