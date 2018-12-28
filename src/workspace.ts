@@ -21,7 +21,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier } from './util/index'
 import { score } from './util/match'
 import { byteIndex } from './util/string'
 import Watchman from './watchman'
@@ -801,7 +801,8 @@ export class Workspace implements IWorkspace {
     if (this.keymaps.has(key)) return
     this.keymaps.set(key, fn)
     for (let m of modes) {
-      this.nvim.command(`${m}noremap <Plug>(coc-${key}) :<C-u>call coc#rpc#notify('doKeymap', ['${key}'])<cr>`, true)
+      let modify = getKeymapModifier(m)
+      this.nvim.command(`${m}noremap <Plug>(coc-${key}) :${modify}call coc#rpc#notify('doKeymap', ['${key}'])<cr>`, true)
     }
     return Disposable.create(() => {
       this.keymaps.delete(key)

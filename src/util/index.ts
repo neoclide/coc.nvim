@@ -7,6 +7,7 @@ import Uri from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
 import isuri from 'isuri'
+import { MapMode } from '../types'
 
 export { platform }
 const logger = require('./logger')('util-index')
@@ -139,4 +140,11 @@ export function isRunning(pid: number): boolean {
   catch (e) {
     return e.code === 'EPERM'
   }
+}
+
+export function getKeymapModifier(mode: MapMode): string {
+  if (mode == 'n' || mode == 'v') return ''
+  if (mode == 'i') return '<C-o>'
+  if (mode == 's' || mode == 'x') return '<Esc>'
+  return ''
 }
