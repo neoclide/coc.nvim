@@ -473,7 +473,7 @@ function! coc#util#install_extension(names) abort
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
-  function OnExtensionInstalled(status, names) closure
+  function! OnExtensionInstalled(status, names) closure
     if a:status == 0
       call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
       call coc#rpc#notify('CocInstalled', split(a:names, '\s\+'))
