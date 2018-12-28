@@ -6,6 +6,7 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
+import snippetManager from '../snippets/manager'
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
@@ -596,7 +597,7 @@ export default class Handler {
   private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
     let config = workspace.getConfiguration('coc.preferences')
     let formatOnType = config.get<boolean>('formatOnType')
-    if (!formatOnType) return
+    if (!formatOnType || snippetManager.session) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || doc.paused || workspace.bufnr != bufnr) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
