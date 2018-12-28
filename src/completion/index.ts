@@ -26,7 +26,6 @@ export class Completion implements Disposable {
   private insertMode = false
   private nvim: Neovim
   private completing = false
-  private resolving = false
   private disposables: Disposable[] = []
   private _completeItems: VimCompleteItem[] = []
   private complete: Complete | null = null
@@ -51,6 +50,10 @@ export class Completion implements Disposable {
     return this.complete.option
   }
 
+  public get resolving(): boolean {
+    return this.currIndex !== 0
+  }
+
   public getPreference(key: string): any {
     return this.preferences.get(key)
   }
@@ -64,12 +67,11 @@ export class Completion implements Disposable {
 
   // TODO this is incorrect sometimes
   private getCompleteItem(word: string): VimCompleteItem | null {
-    let { _completeItems } = this
-    if (!_completeItems) return null
-    let idx = _completeItems.findIndex(o => o.word == word)
-    if (idx == -1) return null
+    let items = this._completeItems || []
+    let idx = items.findIndex(o => o.word == word)
     this.currIndex = idx + 1
-    return _completeItems[idx]
+    if (idx == -1) return null
+    return items[idx]
   }
 
   public get index(): number {
@@ -114,7 +116,6 @@ export class Completion implements Disposable {
     increment.on('start', () => {
       let noselect = this.preferences.get<boolean>('noselect')
       this.currIndex = noselect ? 0 : 1
-      this.resolving = false
       this.changedTick = 0
       this._completeItems = []
       this.document.paused = true
@@ -166,7 +167,7 @@ export class Completion implements Disposable {
     }
   }
 
-  private async resumeCompletion(resumeInput: string, isChangedP = false): Promise<void> {
+  private async resumeCompletion(resumeInput: string, _isChangedP = false): Promise<void> {
     let { nvim, increment, document, complete, insertMode } = this
     if (!complete || !complete.results) return
     let { changedtick } = document
@@ -214,10 +215,7 @@ export class Completion implements Disposable {
   }
 
   public hasSelected(): boolean {
-    if (!this.isActivted) return false
-    let noselect = this.preferences.get<boolean>('noselect')
-    if (!noselect) return true
-    return this.resolving
+    return this.currIndex != 0
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
@@ -271,7 +269,6 @@ export class Completion implements Disposable {
     }
     let item = this.getCompleteItem(search)
     if (item) {
-      this.resolving = true
       if (item.isSnippet) {
         let { word } = item
         let text = word.match(/^[\w\-$.@#:"]*/)[0]
@@ -297,9 +294,10 @@ export class Completion implements Disposable {
     this.lastChangedI = Date.now()
     if (this.completing) return
     let { nvim, increment, document, input, latestInsertChar } = this
+    this.lastInsert = null
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
-      await document.patchChange()
+      if (latestInsertChar) await document.patchChange()
       let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
       if (checkCommit
         && latestInsertChar
@@ -354,18 +352,17 @@ export class Completion implements Disposable {
     item = this._completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     if (!item) return
     let opt = Object.assign({}, this.option)
-    let { line, linenr } = this.option
     let { changedtick } = document
     try {
       increment.stop()
       await sources.doCompleteResolve(item)
       this.addRecent(item.word, document.bufnr)
-      await wait(50)
+      await wait(40)
       await document.patchChange()
       if (changedtick != document.changedtick) return
       document.forceSync()
-      let mode = await nvim.call('mode')
-      if (mode !== 'i') return
+      let { mode } = await nvim.mode
+      if (mode != 'i') return
       await sources.doCompleteDone(item, opt)
     } catch (e) {
       // tslint:disable-next-line:no-console
@@ -406,7 +403,7 @@ export class Completion implements Disposable {
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 80) {
       return null
     }
     return lastInsert

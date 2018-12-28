@@ -35,7 +35,7 @@ endfunction
 function! coc#_select_confirm()
   let hasSelected = coc#rpc#request('hasSelected', [])
   if hasSelected | return "\<C-y>" | endif
-  return "\<C-n>\<C-y>"
+  return "\<down>\<C-y>"
 endfunction
 
 function! coc#_hide() abort
