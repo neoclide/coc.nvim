@@ -94,8 +94,6 @@ export interface SnippetManager {
   cancel(): void
   nextPlaceholder(): Promise<void>
   previousPlaceholder(): Promise<void>
-  getSnippetsForLanguage(language: string): Promise<Snippet[]>
-  registerSnippetProvider(snippetProvider: SnippetProvider): void
 }
 
 export type ModuleResolve = () => Promise<string>

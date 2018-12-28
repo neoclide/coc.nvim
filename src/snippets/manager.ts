@@ -2,19 +2,15 @@ import { DidChangeTextDocumentParams, Disposable } from 'vscode-languageserver-p
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
-import { CompositeSnippetProvider } from './provider'
 import { SnippetSession } from './session'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
   private sessionMap: Map<number, SnippetSession> = new Map()
   private disposables: Disposable[] = []
-  private snippetProvider: CompositeSnippetProvider
   private statusItem: types.StatusBarItem
 
   constructor() {
-    this.snippetProvider = new CompositeSnippetProvider()
-
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(() => {
       this.statusItem = workspace.createStatusBarItem(0)
@@ -53,14 +49,6 @@ export class SnippetManager implements types.SnippetManager {
       if (!session) return
       await session.checkPosition()
     }, null, this.disposables)
-  }
-
-  public registerSnippetProvider(snippetProvider: types.SnippetProvider): Disposable {
-    return this.snippetProvider.registerProvider(snippetProvider)
-  }
-
-  public async getSnippetsForLanguage(language: string): Promise<types.Snippet[]> {
-    return this.snippetProvider.getSnippets(language)
   }
 
   /**

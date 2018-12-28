@@ -22,7 +22,6 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
-import { ExtensionSnippetProvider } from './snippets/provider'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage, wait } from './util'
@@ -100,48 +99,6 @@ class Languages {
         event.waitUntil(willSaveWaitUntil())
       }
     }, null, 'languageserver')
-
-    workspace.onDidWorkspaceInitialized(() => {
-      let provider = new ExtensionSnippetProvider()
-      let config = workspace.getConfiguration('coc.preferences')
-      let enabled = config.get('snippets.loadFromExtensions', true)
-      if (!enabled) return
-      snippetManager.registerSnippetProvider(provider)
-      let completionProvider: CompletionItemProvider = {
-        provideCompletionItems: async (
-          document: TextDocument,
-          position: Position,
-          _token: CancellationToken,
-          context: CompletionContext
-        ): Promise<CompletionItem[]> => {
-          let { languageId } = document
-          let { synname, input, line, col } = context.option!
-          if (input.length == 0 || /string/i.test(synname) || /comment/i.test(synname)) {
-            return []
-          }
-          let part = line.slice(0, col)
-          if (part.trim().length) {
-            return []
-          }
-          let snippets = await snippetManager.getSnippetsForLanguage(languageId)
-          let res: CompletionItem[] = []
-          for (let snip of snippets) {
-            res.push({
-              label: snip.prefix,
-              detail: snip.description,
-              filterText: snip.prefix,
-              documentation: complete.getSnippetDocumentation(document.languageId, snip.body),
-              insertTextFormat: InsertTextFormat.Snippet,
-              textEdit: TextEdit.replace(
-                Range.create({ line: position.line, character: context.option!.col }, position), snip.body
-              )
-            })
-          }
-          return res
-        }
-      }
-      this.registerCompletionItemProvider('snippets', 'S', null, completionProvider, [], 90)
-    })
   }
 
   private get nvim(): Neovim {
