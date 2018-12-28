@@ -172,7 +172,7 @@ export class SnippetSession {
       if (workspace.isVim) {
         nvim.command('startinsert', true)
       } else {
-        await nvim.call('feedkeys', ['i', 'int'], true)
+        nvim.call('feedkeys', ['i', 'int'], true)
       }
     }
     if (placeholder.choice) {

@@ -1,9 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position } from 'vscode-languageserver-protocol'
-import sources from './sources'
+import { Disposable, Location, Position, TextEdit } from 'vscode-languageserver-protocol'
 import { wait } from './util'
 import workspace from './workspace'
+import snipetsManager from './snippets/manager'
+import { comparePosition } from './util/position'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -40,6 +41,23 @@ export class CommandManager implements Disposable {
       id: 'vscode.open',
       execute: async (url: string) => {
         nvim.call('coc#util#open_url', url, true)
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.insertSnippet',
+      execute: async (edit: TextEdit) => {
+        let doc = workspace.getDocument(workspace.bufnr)
+        if (!doc) return
+        let { start, end } = edit.range
+        if (comparePosition(start, end) != 0) {
+          doc.applyEdits(nvim, [{ range: edit.range, newText: '' }], false)
+        }
+        let visible = await nvim.call('pumvisible')
+        if (visible) await nvim.call('coc#_select')
+        let { mode } = await nvim.mode
+        if (!mode.startsWith('i')) nvim.command('startinsert', true)
+        await nvim.call('cursor', [start.line + 1, start.character + 1])
+        await snipetsManager.insertSnippet(edit.newText)
       }
     }, true)
     this.register({

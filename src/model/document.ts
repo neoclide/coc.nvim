@@ -293,9 +293,9 @@ export default class Document {
     this.chars = new Chars(option)
   }
 
-  public async applyEdits(nvim: Neovim, edits: TextEdit[]): Promise<void> {
+  public async applyEdits(nvim: Neovim, edits: TextEdit[], forceSync = true): Promise<void> {
     if (edits.length == 0) return
-    this.forceSync()
+    if (forceSync) this.forceSync()
     let orig = this.content
     let content = TextDocument.applyEdits(this.textDocument, edits)
     // could be equal
@@ -320,7 +320,7 @@ export default class Document {
         strictIndexing: false
       })
     }
-    this.forceSync()
+    if (forceSync) this.forceSync()
   }
 
   public forceSync(): void {
