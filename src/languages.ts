@@ -474,13 +474,9 @@ class Languages {
         if (resolveTokenSource) resolveTokenSource.cancel()
         if (hasResolve && !resolvedIndexes.has(item.index)) {
           resolveTokenSource = new CancellationTokenSource()
-          let line = doc.getline(option.linenr - 1, false)
           let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
           if (resolveTokenSource.token.isCancellationRequested) return
           resolvedIndexes.add(item.index)
-          if (resolved && resolving.textEdit == null && resolved.textEdit != null) {
-            currLine = line
-          }
           if (resolved) mixin(item, resolved)
         }
         if (resolveInput != item.word) return
