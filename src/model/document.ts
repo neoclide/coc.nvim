@@ -295,8 +295,9 @@ export default class Document {
 
   public async applyEdits(nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
-    let orig = this.content
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, this.getDocumentContent())
+    await this._fetchContent(true)
+    let orig = this.getDocumentContent()
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
     let content = TextDocument.applyEdits(textDocument, edits)
     // could be equal sometimes
     if (orig === content) return
@@ -324,9 +325,11 @@ export default class Document {
     if (sync) this.forceSync()
   }
 
-  public forceSync(): void {
+  public forceSync(ignorePause = true): void {
+    this.fetchContent.clear()
+    this._fetchContent(ignorePause)
     this._fireContentChanges.clear()
-    this.fireContentChanges(true)
+    this.fireContentChanges(ignorePause)
   }
 
   public getOffset(lnum: number, col: number): number {
@@ -417,8 +420,9 @@ export default class Document {
     )
   }
 
-  private async _fetchContent(): Promise<void> {
+  private async _fetchContent(ignorePause = false): Promise<void> {
     if (!this.env.isVim || !this.attached) return
+    if (!ignorePause && this.paused) return
     let { nvim, buffer } = this
     let { id } = buffer
     let o = (await nvim.call('coc#util#get_content', [id])) as any

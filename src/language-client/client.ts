@@ -3732,7 +3732,7 @@ export abstract class BaseLanguageClient {
 
   private forceDocumentSync(): void {
     let doc = workspace.getDocument(workspace.bufnr)
-    if (doc) doc.forceSync()
+    if (doc) doc.forceSync(false)
   }
 
   private handleDiagnostics(params: PublishDiagnosticsParams) {

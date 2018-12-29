@@ -983,7 +983,7 @@ augroup end`
     events.on('TextChangedI', async bufnr => {
       let doc = this.getDocument(bufnr)
       if (!doc) return
-      if (Date.now() - lastTs < 100 && lastChar) {
+      if (Date.now() - lastTs < 20 && lastChar) {
         await doc.patchChange()
       } else {
         doc.fetchContent()
