@@ -449,6 +449,11 @@ export default class Document {
     this.fireContentChanges()
   }
 
+  public async patchChangedTick(): Promise<void> {
+    if (!this.env.isVim || !this.attached) return
+    this._changedtick = await this.nvim.call('getbufvar', [this.bufnr, 'changedtick'])
+  }
+
   public fixStartcol(position: Position, valids: string[]): number {
     let line = this.getline(position.line)
     if (!line) return null

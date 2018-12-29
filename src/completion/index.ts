@@ -347,19 +347,21 @@ export class Completion implements Disposable {
     if (!item) return
     let timestamp = this.insertCharTs
     let opt = Object.assign({}, this.option)
+    await document.patchChangedTick()
     let { changedtick } = document
     try {
       increment.stop()
       await sources.doCompleteResolve(item)
       this.addRecent(item.word, document.bufnr)
       await wait(50)
-      await document.patchChange()
       if (this.insertCharTs != timestamp) return
+      await document.patchChange()
       if (changedtick != document.changedtick) return
-      document.forceSync()
       let { mode } = await nvim.mode
-      if (mode != 'i') return
-      await sources.doCompleteDone(item, opt)
+      if (mode == 'i') {
+        await sources.doCompleteDone(item, opt)
+      }
+      document.forceSync()
     } catch (e) {
       // tslint:disable-next-line:no-console
       console.error(e.stack)
