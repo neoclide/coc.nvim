@@ -2881,11 +2881,13 @@ class ConfigurationFeature
     _message: RPCMessageType,
     data: RegistrationData<DidChangeConfigurationRegistrationOptions>
   ): void {
+    let { section } = data.registerOptions
     let disposable = workspace.onDidChangeConfiguration(() => {
-      this.onDidChangeConfiguration(data.registerOptions.section)
+      if (section != null) {
+        this.onDidChangeConfiguration(data.registerOptions.section)
+      }
     })
     this._listeners.set(data.id, disposable)
-    let { section } = data.registerOptions
     if (Is.string(section) && section.endsWith('.settings')) {
       let settings = this.getConfiguredSettings(section as string)
       if (!settings || Is.emptyObject(settings)) return
