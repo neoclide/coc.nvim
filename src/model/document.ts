@@ -314,6 +314,7 @@ export default class Document {
         })
       }
     } else {
+      content = this.eol && content.endsWith('\n') ? content.slice(0, -1) : content
       await buf.setLines(content.split(/\r?\n/), {
         start: 0,
         end: -1,
