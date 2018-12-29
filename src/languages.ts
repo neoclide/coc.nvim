@@ -544,13 +544,10 @@ class Languages {
     let end = line.substr(range.end.character)
     if (isSnippet) {
       await nvim.call('coc#util#setline', [linenr, `${start}${end}`])
-      await nvim.call('cursor', [linenr, byteLength(start) + 1])
-      // force vim sync
       let doc = workspace.getDocument(bufnr)
       await doc.patchChange()
-      doc.forceSync()
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false)
+      return await snippetManager.insertSnippet(newText, false, Position.create(linenr - 1, range.start.character))
     }
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {

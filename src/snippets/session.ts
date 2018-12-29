@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions } from 'jsonc-parser'
-import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit, Position } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Document from '../model/document'
 import { wait } from '../util'
@@ -23,10 +23,10 @@ export class SnippetSession {
   constructor(private nvim: Neovim, public readonly bufnr: number) {
   }
 
-  public async start(snippetString: string, select = true): Promise<boolean> {
+  public async start(snippetString: string, select = true, position?: Position): Promise<boolean> {
     const { document, nvim } = this
-    const position = await workspace.getCursorPosition()
     if (!document) return false
+    if (!position) position = await workspace.getCursorPosition()
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]

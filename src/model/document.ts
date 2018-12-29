@@ -293,16 +293,16 @@ export default class Document {
     this.chars = new Chars(option)
   }
 
-  public async applyEdits(nvim: Neovim, edits: TextEdit[], forceSync = true): Promise<void> {
+  public async applyEdits(nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
-    if (forceSync) this.forceSync()
     let orig = this.content
-    let content = TextDocument.applyEdits(this.textDocument, edits)
-    // could be equal
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, this.getDocumentContent())
+    let content = TextDocument.applyEdits(textDocument, edits)
+    // could be equal sometimes
     if (orig === content) return
-    let cur = await nvim.buffer
+    let cur = await nvim.call('bufnr', '%') as number
     let buf = this.buffer
-    if (cur.id == buf.id) {
+    if (cur == buf.id) {
       let d = diffLines(orig, content)
       if (d.end - d.start == 1 && d.replacement.length == 1) {
         await nvim.call('coc#util#setline', [d.start + 1, d.replacement[0]])
@@ -320,7 +320,7 @@ export default class Document {
         strictIndexing: false
       })
     }
-    if (forceSync) this.forceSync()
+    if (sync) this.forceSync()
   }
 
   public forceSync(): void {
