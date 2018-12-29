@@ -51,7 +51,13 @@ function! nvim#rpc#get_command() abort
   let folder = get(g:, 'vim_node_rpc_folder', '')
   let file = empty(folder) ? '' : folder . '/lib/index.js'
   if empty(file) && executable('yarn')
-    let dir = trim(systemlist('yarn global dir --offline -s')[-1])
+    let dir = expand('~').'/.config/yarn/global'
+    if s:is_win
+      let dir = $LOCALAPPDATA.'\Yarn\Data\global'
+    endif
+    if !isdirectory(dir)
+      let dir = trim(systemlist('yarn global dir --offline -s')[-1])
+    endif
     let p = dir . '/node_modules/vim-node-rpc/lib/index.js'
     if filereadable(p)
       let file = p
