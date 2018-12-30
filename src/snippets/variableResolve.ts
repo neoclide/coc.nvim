@@ -51,6 +51,9 @@ export class SnippetVariableResolver implements VariableResolver {
       TM_DIRECTORY: path.dirname(filePath),
       TM_FILEPATH: filePath,
     }
+    workspace.watchGlobal('coc_selected_text', (_, newValue) => {
+      this._variableToValue["TM_SELECTED_TEXT"] = newValue
+    })
     this.init() // tslint:disable-line
   }
 
