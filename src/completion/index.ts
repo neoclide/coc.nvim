@@ -122,6 +122,7 @@ export class Completion implements Disposable {
     })
     increment.on('stop', () => {
       this.document.paused = false
+      this._completeItems = []
       this.complete = null
     })
   }
@@ -394,8 +395,10 @@ export class Completion implements Disposable {
     this.insertCharTs = this.lastInsert.timestamp
     if (workspace.isNvim &&
       this.isActivted &&
+      this._completeItems.length &&
       !global.hasOwnProperty('__TEST__') &&
-      !this.triggerCharacters.has(character)) {
+      !this.triggerCharacters.has(character) &&
+      this.complete.hasMatch(this.input + character)) {
       this.nvim.call('coc#_reload', [], true)
     }
   }

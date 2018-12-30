@@ -26,12 +26,12 @@ export function fuzzyChar(a: string, b: string): boolean {
 }
 
 // upper case must match, lower case ignore case
-export function fuzzyMatch(needle: number[], input: string): boolean {
+export function fuzzyMatch(needle: number[], text: string): boolean {
   let totalCount = needle.length
   let i = 0
-  for (let j = 0; j < input.length; j++) {
+  for (let j = 0; j < text.length; j++) {
     if (i === totalCount) break
-    let code = input.charCodeAt(j)
+    let code = text.charCodeAt(j)
     let m = needle[i]
     if (code === m) {
       i = i + 1

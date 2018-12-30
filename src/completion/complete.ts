@@ -1,5 +1,5 @@
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
-import { getCharCodes } from '../util/fuzzy'
+import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
@@ -190,6 +190,20 @@ export default class Complete {
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
     return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'signature', 'localBonus']))
+  }
+
+  public hasMatch(input: string): boolean {
+    let { results } = this
+    if (!results) return false
+    let codes = getCharCodes(input)
+    for (let i = 0, l = results.length; i < l; i++) {
+      let items = results[i].items
+      let idx = items.findIndex(item => {
+        return fuzzyMatch(codes, item.filterText)
+      })
+      if (idx !== -1) return true
+    }
+    return false
   }
 
   public async doComplete(sources: ISource[]): Promise<VimCompleteItem[]> {
