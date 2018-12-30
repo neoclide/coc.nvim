@@ -1,3 +1,22 @@
+# 2018-12-31
+
+- **Break change:** created keymaps use rpcrequest instead of rpcnotify.
+- **Break change:** snippets provider is removed, use `coc-snippets` for
+  extention snippets.
+- Add command: `coc.action.insertSnippet`
+- Fix position of snippets.
+- Fix modifier of registed keymaps.
+- Fix completion triggered on complete done.
+- Fix closure function possible conflict.
+- Fix unexpected snippet cancel.
+- Fix document applyEdits, always use current lines.
+- Fix fail of yarn global command.
+- Fix check of changedtick on completion done.
+- Fix line used for textEdit of completion.
+- Fix snippet canceled by `formatOnType`.
+- Fix `CocJumpPlaceholder` not fired
+- Optimize content synchronize.
+
 # 2018-12-27
 
 - **Break change:** no more message on service ready.
