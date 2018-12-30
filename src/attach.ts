@@ -50,7 +50,7 @@ export default (opts: Attach): Plugin => {
       }
       let m = method[0].toLowerCase() + method.slice(1)
       if (typeof plugin[m] !== 'function') {
-        return resp.send(`Action ${m} not found`, true)
+        return resp.send(`Method ${m} not found`, true)
       }
       let res = await Promise.resolve(plugin[m].apply(plugin, args))
       resp.send(res)

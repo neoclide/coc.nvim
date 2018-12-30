@@ -192,18 +192,6 @@ export default class Plugin extends EventEmitter {
           await handler.fold(args[1])
           break
         }
-        case 'snippetPrev': {
-          await snippetManager.previousPlaceholder()
-          break
-        }
-        case 'snippetNext': {
-          await snippetManager.nextPlaceholder()
-          break
-        }
-        case 'snippetCancel': {
-          snippetManager.cancel()
-          break
-        }
         case 'startCompletion':
           await completion.startCompletion(args[1])
           break
@@ -310,6 +298,20 @@ export default class Plugin extends EventEmitter {
         process.exit()
       }
     }, 15000)
+  }
+
+  public async snippetCancel(): Promise<void> {
+    snippetManager.cancel()
+  }
+
+  public async snippetPrev(): Promise<string> {
+    await snippetManager.previousPlaceholder()
+    return ''
+  }
+
+  public async snippetNext(): Promise<string> {
+    await snippetManager.nextPlaceholder()
+    return ''
   }
 
   public async dispose(): Promise<void> {

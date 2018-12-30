@@ -161,11 +161,10 @@ export class SnippetSession {
     const len = end.character - start.character
     const col = start.character + 1
     this._currId = placeholder.id
-    let { mode, blocking } = await nvim.mode
+    let mode = await nvim.call('mode')
     if (workspace.isNvim && mode == 's') {
       await nvim.call('feedkeys', [String.fromCharCode(27), 'int'])
     }
-    if (blocking) return
     if (len > 0 && mode.startsWith('i')) {
       await nvim.command('stopinsert')
     } else if (len == 0 && !mode.startsWith('i')) {
@@ -179,14 +178,18 @@ export class SnippetSession {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
       if (len == 0) {
-        await nvim.call('cursor', [start.line + 1, col])
+        // virtualedit
+        let virtualedit = await nvim.getOption('virtualedit')
+        nvim.pauseNotification()
+        nvim.command('let &virtualedit = "onemore"', true)
+        nvim.call('cursor', [start.line + 1, col], true)
+        nvim.command(`let &virtualedit = ${virtualedit}`, true)
+        nvim.resumeNotification()
       } else {
         await nvim.call('coc#snippet#range_select', [start.line + 1, col, len])
       }
     }
-    if (workspace.isVim) {
-      nvim.command('redraw', true)
-    }
+    if (workspace.isVim) nvim.command('redraw', true)
   }
 
   private async documentSynchronize(): Promise<void> {
