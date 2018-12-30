@@ -43,7 +43,7 @@ export class SnippetVariableResolver implements VariableResolver {
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
       CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
-      // TM_SELECTED_TEXT: "",
+      TM_SELECTED_TEXT: "",
       TM_LINE_INDEX: line.toString(),
       TM_LINE_NUMBER: (line + 1).toString(),
       TM_FILENAME: path.basename(filePath),

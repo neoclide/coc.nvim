@@ -801,8 +801,12 @@ export class Workspace implements IWorkspace {
     if (this.keymaps.has(key)) return
     this.keymaps.set(key, fn)
     for (let m of modes) {
-      let modify = getKeymapModifier(m)
-      this.nvim.command(`${m}noremap <Plug>(coc-${key}) ${modify}:call coc#rpc#notify('doKeymap', ['${key}'])<cr>`, true)
+      if (m == 'i') {
+        this.nvim.command(`imap <Plug>(coc-${key}) <C-R>=coc#rpc#request('doKeymap', ['${key}'])<cr>`, true)
+      } else {
+        let modify = this.isNvim ? '<Cmd>' : getKeymapModifier(m)
+        this.nvim.command(`${m}map <Plug>(coc-${key}) ${modify}:call coc#rpc#request('doKeymap', ['${key}'])<cr>`, true)
+      }
     }
     return Disposable.create(() => {
       this.keymaps.delete(key)

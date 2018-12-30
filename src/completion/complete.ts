@@ -199,7 +199,7 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let items = results[i].items
       let idx = items.findIndex(item => {
-        return fuzzyMatch(codes, item.filterText)
+        return fuzzyMatch(codes, item.filterText || item.word)
       })
       if (idx !== -1) return true
     }
