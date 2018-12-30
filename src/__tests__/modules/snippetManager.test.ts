@@ -1,9 +1,6 @@
-import path from 'path'
-import helper from '../helper'
-import { SnippetProvider } from '../../types'
-import extensions from '../../extensions'
 import { Neovim } from '@chemzqm/neovim'
 import snippetManager from '../../snippets/manager'
+import helper from '../helper'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -48,7 +45,7 @@ describe('snippet provider', () => {
     expect(col).toBe(1)
   })
 
-  it('should work remove kepmap on nextPlaceholder when session not exits', async () => {
+  it('should remove kepmap on nextPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.nextPlaceholder()
@@ -57,7 +54,7 @@ describe('snippet provider', () => {
     expect(val).toBe(0)
   })
 
-  it('should work remove kepmap on previousPlaceholder when session not exits', async () => {
+  it('should remove kepmap on previousPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.previousPlaceholder()

@@ -37,8 +37,6 @@ export class SnippetSession {
       new SnippetVariableResolver(position.line, Uri.parse(document.uri).fsPath))
     const edit = TextEdit.insert(position, snippet.toString())
     const endPart = currentLine.slice(position.character)
-    const { mode } = await nvim.mode
-    if (mode != 'i') nvim.command('startinsert', true)
     if (snippetString.endsWith('\n') && endPart) {
       // make next line same indent
       edit.newText = edit.newText + currentIndent
@@ -48,7 +46,7 @@ export class SnippetSession {
       await document.applyEdits(nvim, [edit])
       let placeholder = snippet.finalPlaceholder
       let { start } = placeholder.range
-      await nvim.call('cursor', [start.line + 1, start.character + 1])
+      await this.moveTo(start.line + 1, start.character + 1)
       return this._isActive
     }
     this._changedtick = document.changedtick
@@ -178,18 +176,23 @@ export class SnippetSession {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
       if (len == 0) {
-        // virtualedit
-        let virtualedit = await nvim.getOption('virtualedit')
-        nvim.pauseNotification()
-        nvim.command('let &virtualedit = "onemore"', true)
-        nvim.call('cursor', [start.line + 1, col], true)
-        nvim.command(`let &virtualedit = ${virtualedit}`, true)
-        nvim.resumeNotification()
+        await this.moveTo(start.line + 1, col)
       } else {
         await nvim.call('coc#snippet#range_select', [start.line + 1, col, len])
       }
     }
     if (workspace.isVim) nvim.command('redraw', true)
+  }
+
+  private async moveTo(lnum: number, col: number): Promise<void> {
+    let { nvim } = this
+    // virtualedit
+    let virtualedit = await nvim.getOption('virtualedit')
+    nvim.pauseNotification()
+    nvim.command('let &virtualedit = "onemore"', true)
+    nvim.call('cursor', [lnum, col], true)
+    nvim.command(`let &virtualedit = ${virtualedit}`, true)
+    nvim.resumeNotification()
   }
 
   private async documentSynchronize(): Promise<void> {

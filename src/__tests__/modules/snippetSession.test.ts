@@ -134,13 +134,14 @@ describe('SnippetSession#start', () => {
 
   it('should start nest snippet without select', async () => {
     let buf = await helper.edit()
+    await nvim.command('startinsert')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${1:a} ${2:b}')
+    await helper.wait(30)
     await nvim.input('<backspace>')
     res = await session.start('${1:foo} ${2:bar}', false)
+    await helper.wait(30)
     expect(res).toBe(true)
-    let { mode } = await nvim.mode
-    expect(mode).toBe('i')
     let line = await nvim.line
     expect(line).toBe('foo bar b')
   })
@@ -150,8 +151,9 @@ describe('SnippetSession#deactivate', () => {
 
   it('should deactivate on invalid change', async () => {
     let buf = await helper.edit()
+    await nvim.command('startinsert')
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('a${1:a}b')
+    let res = await session.start('${1:a}bc')
     expect(res).toBe(true)
     await nvim.command('execute "normal! d2l"')
     await session.synchronizeUpdatedPlaceholders({
