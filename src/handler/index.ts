@@ -622,8 +622,8 @@ export default class Handler {
         await doc.applyEdits(this.nvim, edits)
         let newLine = doc.getline(position.line)
         if (newLine.length > origLine.length) {
-          let col = position.character + 1 + (newLine.length - origLine.length)
-          await this.nvim.call('cursor', [position.line + 1, col])
+          let character = position.character + (newLine.length - origLine.length)
+          await workspace.moveTo(Position.create(position.line, character))
         }
       }
     } catch (e) {

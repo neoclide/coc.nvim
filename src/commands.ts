@@ -5,6 +5,7 @@ import { wait } from './util'
 import workspace from './workspace'
 import snipetsManager from './snippets/manager'
 import { comparePosition } from './util/position'
+import { byteLength } from './util/string'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -57,7 +58,7 @@ export class CommandManager implements Disposable {
         if (visible) await nvim.call('coc#_select')
         let { mode } = await nvim.mode
         if (!mode.startsWith('i')) nvim.command('startinsert', true)
-        await nvim.call('cursor', [start.line + 1, start.character + 1])
+        await workspace.moveTo(start)
         await snipetsManager.insertSnippet(edit.newText)
       }
     }, true)

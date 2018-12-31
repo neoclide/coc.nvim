@@ -8,6 +8,7 @@ import { positionInRange, rangeInRange, comparePosition } from '../util/position
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
+import { byteLength } from '../util/string'
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
@@ -45,8 +46,7 @@ export class SnippetSession {
       // insert as text
       await document.applyEdits(nvim, [edit])
       let placeholder = snippet.finalPlaceholder
-      let { start } = placeholder.range
-      await this.moveTo(start.line + 1, start.character + 1)
+      await workspace.moveTo(placeholder.range.start)
       return this._isActive
     }
     this._changedtick = document.changedtick
@@ -153,11 +153,11 @@ export class SnippetSession {
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {
-    if (!placeholder) return
-    let { nvim } = this
+    let { nvim, document } = this
+    if (!document || !placeholder) return
     let { start, end } = placeholder.range
     const len = end.character - start.character
-    const col = start.character + 1
+    const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
     this._currId = placeholder.id
     let mode = await nvim.call('mode')
     if (workspace.isNvim && mode == 's') {
@@ -176,23 +176,12 @@ export class SnippetSession {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
       if (len == 0) {
-        await this.moveTo(start.line + 1, col)
+        await workspace.moveTo(start)
       } else {
         await nvim.call('coc#snippet#range_select', [start.line + 1, col, len])
       }
     }
     if (workspace.isVim) nvim.command('redraw', true)
-  }
-
-  private async moveTo(lnum: number, col: number): Promise<void> {
-    let { nvim } = this
-    // virtualedit
-    let virtualedit = await nvim.getOption('virtualedit')
-    nvim.pauseNotification()
-    nvim.command('let &virtualedit = "onemore"', true)
-    nvim.call('cursor', [lnum, col], true)
-    nvim.command(`let &virtualedit = ${virtualedit}`, true)
-    nvim.resumeNotification()
   }
 
   private async documentSynchronize(): Promise<void> {

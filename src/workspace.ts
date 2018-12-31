@@ -23,7 +23,7 @@ import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorI
 import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier } from './util/index'
 import { score } from './util/match'
-import { byteIndex } from './util/string'
+import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
@@ -584,14 +584,17 @@ export class Workspace implements IWorkspace {
     let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
     let { nvim } = this
     let { line, character } = position
-    let cmd = `+call\\ cursor(${line + 1},${character + 1})`
+    let doc = this.getDocument(uri)
+    let col = character + 1
+    if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
+    let cmd = `+call\\ cursor(${line + 1},${col})`
     let u = Uri.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
     let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)
     if (bufnr == this.bufnr) {
-      await nvim.call('cursor', [line + 1, character + 1])
+      await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       nvim.command(`buffer ${cmd} ${bufnr}`, true)
     } else {
@@ -599,6 +602,22 @@ export class Workspace implements IWorkspace {
       let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
       await nvim.command(`${jumpCommand} ${cmd} ${file}`)
+    }
+  }
+
+  public async moveTo(position: Position): Promise<void> {
+    let { nvim } = this
+    let mode = await nvim.call('mode')
+    let doc = this.getDocument(this.bufnr)
+    let line = doc ? doc.getline(position.line) : ''
+    let col = line ? byteLength(line.slice(0, position.character)) + 1 : position.character + 1
+    if (mode.startsWith('i')) {
+      let virtualedit = await nvim.getOption('virtualedit')
+      await nvim.setOption('virtualedit', 'onemore')
+      await nvim.call('cursor', [position.line + 1, col])
+      await nvim.setOption('virtualedit', virtualedit)
+    } else {
+      await nvim.call('cursor', [position.line + 1, col])
     }
   }
 

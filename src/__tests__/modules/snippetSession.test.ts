@@ -45,10 +45,10 @@ describe('SnippetSession#start', () => {
 
   it('should start with final position for plain snippet', async () => {
     let buf = await helper.edit()
+    await nvim.command('startinsert')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('bar$0')
     expect(res).toBe(false)
-    await helper.wait(100)
     let pos = await workspace.getCursorPosition()
     expect(pos).toEqual({ line: 0, character: 3 })
   })

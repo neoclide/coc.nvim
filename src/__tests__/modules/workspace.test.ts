@@ -562,6 +562,17 @@ describe('workspace utility', () => {
     expect(name).toBe(uri)
   })
 
+  it('should moveTo position in insert mode', async () => {
+    await helper.edit()
+    await nvim.setLine('foo')
+    await nvim.input('i')
+    await workspace.moveTo({ line: 0, character: 3 })
+    let col = await nvim.call('col', '.')
+    expect(col).toBe(4)
+    let virtualedit = await nvim.getOption('virtualedit')
+    expect(virtualedit).toBe('')
+  })
+
   it('should findUp to tsconfig.json from current file', async () => {
     await helper.edit(path.join(__dirname, 'edit'))
     let filepath = await workspace.findUp('tsconfig.json')

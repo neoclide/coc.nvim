@@ -291,6 +291,7 @@ describe('completion#TextChangedP', () => {
     await helper.wait(30)
     let line = await nvim.line
     expect(line).toBe('end')
+    sources.removeSource(source)
   })
 
   it('should do resolve for complete item', async () => {
