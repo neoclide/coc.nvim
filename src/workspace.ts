@@ -609,6 +609,7 @@ export class Workspace implements IWorkspace {
     let { nvim } = this
     let mode = await nvim.call('mode')
     let doc = this.getDocument(this.bufnr)
+    if (doc) await doc.patchChange()
     let line = doc ? doc.getline(position.line) : ''
     let col = line ? byteLength(line.slice(0, position.character)) + 1 : position.character + 1
     if (mode.startsWith('i')) {

@@ -155,6 +155,7 @@ export class SnippetSession {
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {
     let { nvim, document } = this
     if (!document || !placeholder) return
+    await document.patchChange()
     let { start, end } = placeholder.range
     const len = end.character - start.character
     const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
