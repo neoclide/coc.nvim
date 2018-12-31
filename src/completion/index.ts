@@ -180,7 +180,6 @@ export class Completion implements Disposable {
       items = complete.filterResults(resumeInput)
     }
     if (!this.isActivted) return
-    let { col } = this.option
     if (!insertMode || !items || items.length === 0) {
       this._completeItems = []
       this.nvim.call('coc#_hide', [], true)
@@ -189,7 +188,7 @@ export class Completion implements Disposable {
     }
     this.appendNumber(items)
     this.changedTick = document.changedtick
-    nvim.call('coc#_do_complete', [col, items], true)
+    nvim.call('coc#_do_complete', [this.option.col, items], true)
     this._completeItems = items
     await this.onPumVisible()
   }
@@ -252,14 +251,21 @@ export class Completion implements Disposable {
     let { latestInsert } = this
     this.lastInsert = null
     let col = await this.nvim.call('col', ['.'])
-    if (col < option.colnr) {
+    if (col < option.colnr && !latestInsert) {
       increment.stop()
       return null
     }
-    let idx = option.linenr - 1
-    let line = this.document.getline(idx)
+    let line = this.document.getline(option.linenr - 1)
     let search = byteSlice(line, option.col, col - 1)
     if (latestInsert) {
+      let ind = option.line.match(/^\s*/)[0].length
+      let curr = line.match(/^\s*/)[0].length
+      if (ind != curr) {
+        // indented by vim
+        let newCol = option.col + curr - ind
+        Object.assign(option, { col: newCol })
+        search = byteSlice(line, newCol, col - 1)
+      }
       await this.resumeCompletion(search, true)
       return
     }
@@ -405,7 +411,7 @@ export class Completion implements Disposable {
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 80) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 60) {
       return null
     }
     return lastInsert

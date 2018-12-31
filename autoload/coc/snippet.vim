@@ -21,7 +21,7 @@ function! coc#snippet#enable()
   let b:coc_snippet_active = 1
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
-  nnoremap <buffer> <esc> :silent call coc#rpc#request('snippetCancel', [])<cr>
+  nnoremap <buffer> <silent> <esc> :call coc#rpc#request('snippetCancel', [])<cr>
   let method = s:is_vim ? 'request' : 'notify'
   execute 'imap <buffer> <nowait> <silent>'.prevkey." <C-o>:call coc#rpc#".method."('snippetPrev', [])<cr>"
   execute 'smap <buffer> <nowait> <silent>'.prevkey." <Esc>:call coc#rpc#".method."('snippetPrev', [])<cr>"
