@@ -122,7 +122,6 @@ function! coc#_unwatch(key)
 endfunction
 
 function! s:GlobalChange(dict, key, val)
-  let g:v = a:val
   call coc#rpc#notify('GlobalChange', [a:key, get(a:val, 'old', v:null), get(a:val, 'new', v:null)])
 endfunction
 

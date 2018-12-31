@@ -817,15 +817,16 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  public registerKeymap(modes: MapMode[], key: string, fn: Function): Disposable {
+  public registerKeymap(modes: MapMode[], key: string, fn: Function, sync = true): Disposable {
     if (this.keymaps.has(key)) return
     this.keymaps.set(key, fn)
+    let method = sync ? 'request' : 'notify'
     for (let m of modes) {
       if (m == 'i') {
-        this.nvim.command(`imap <Plug>(coc-${key}) <C-R>=coc#rpc#request('doKeymap', ['${key}'])<cr>`, true)
+        this.nvim.command(`imap <Plug>(coc-${key}) <C-R>=coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       } else {
         let modify = this.isNvim ? '<Cmd>' : getKeymapModifier(m)
-        this.nvim.command(`${m}map <Plug>(coc-${key}) ${modify}:call coc#rpc#request('doKeymap', ['${key}'])<cr>`, true)
+        this.nvim.command(`${m}map <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       }
     }
     return Disposable.create(() => {

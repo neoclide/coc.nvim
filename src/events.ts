@@ -23,7 +23,7 @@ class Events {
   private handlers: Map<string, Function[]> = new Map()
 
   public async fire(event: string, args: any[]): Promise<void> {
-    logger.debug('Autocmd:', event, args)
+    logger.debug('Event:', event, args)
     let handlers = this.handlers.get(event)
     if (handlers) {
       try {

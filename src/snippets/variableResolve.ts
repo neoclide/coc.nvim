@@ -9,6 +9,7 @@ import workspace from '../workspace'
 
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
+const logger = require('../util/logger')('snippets-variable')
 
 export class SnippetVariableResolver implements VariableResolver {
   private _variableToValue: { [key: string]: string } = {}
@@ -17,12 +18,16 @@ export class SnippetVariableResolver implements VariableResolver {
     return workspace.nvim
   }
 
-  private async init(): Promise<void> {
+  public async init(): Promise<void> {
     let { nvim } = this
     let line = await nvim.call('getline', '.')
     this._variableToValue['TM_CURRENT_LINE'] = line
     let cword = await this.nvim.call('expand', '<cword>')
     this._variableToValue['TM_CURRENT_WORD'] = cword
+    let selected = await this.nvim.getVar('coc_selected_text') as string
+    logger.debug('text:', selected)
+    this._variableToValue['TM_SELECTED_TEXT'] = selected
+    await this.nvim.setVar('coc_selected_text', '')
   }
 
   constructor(line: number, filePath: string) {
@@ -51,18 +56,10 @@ export class SnippetVariableResolver implements VariableResolver {
       TM_DIRECTORY: path.dirname(filePath),
       TM_FILEPATH: filePath,
     }
-    workspace.watchGlobal('coc_selected_text', (_, newValue) => {
-      this._variableToValue["TM_SELECTED_TEXT"] = newValue
-    })
-    this.init() // tslint:disable-line
   }
 
   public resolve(variable: Variable): string {
     const variableName = variable.name
-    if (!this._variableToValue[variableName]) {
-      return ""
-    }
-
-    return this._variableToValue[variableName]
+    return this._variableToValue[variableName] || ''
   }
 }

@@ -32,10 +32,9 @@ export class SnippetSession {
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
     const inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
-    const snippet = new CocSnippet(
-      inserted,
-      position,
-      new SnippetVariableResolver(position.line, Uri.parse(document.uri).fsPath))
+    const resolver = new SnippetVariableResolver(position.line, Uri.parse(document.uri).fsPath)
+    await resolver.init()
+    const snippet = new CocSnippet(inserted, position, resolver)
     const edit = TextEdit.insert(position, snippet.toString())
     const endPart = currentLine.slice(position.character)
     if (snippetString.endsWith('\n') && endPart) {
