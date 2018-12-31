@@ -297,17 +297,17 @@ export class Completion implements Disposable {
 
   private async onTextChangedI(bufnr: number): Promise<void> {
     if (this.completing) return
-    let { nvim, increment, document, input, latestInsertChar } = this
+    let { nvim, increment, input, latestInsertChar } = this
+    let document = workspace.getDocument(workspace.bufnr)
     this.lastInsert = null
+    if (latestInsertChar && document) await document.patchChange()
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
-      if (latestInsertChar) await document.patchChange()
       let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
       if (checkCommit
         && latestInsertChar
         && !isWord(latestInsertChar)
-        && !this.resolving
-        && this._completeItems.findIndex(o => o.word == input) == -1) {
+        && !this.resolving) {
         let item = this._completeItems[0]
         if (sources.shouldCommit(item, latestInsertChar)) {
           let { linenr, col, line, colnr } = this.option
