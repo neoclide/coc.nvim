@@ -21,7 +21,11 @@ new-item -Name $dir -ItemType directory -Force
 Write-Host Dowloading latest release
 Invoke-WebRequest $download -Out $zip
 
-Stop-Process -Name coc-win
+try {
+  taskkill /F /Im coc-win.exe
+} catch {
+  Write-Host coc process not running
+}
 Remove-Item $dir\* -Recurse -Force
 
 Write-Host Extracting release files
