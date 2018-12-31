@@ -114,7 +114,11 @@ function! s:Enable()
     " Must be sync to fix flicking on neovim
     autocmd InsertCharPre       * silent! call s:SyncAutocmd('InsertCharPre', v:char)
     " Must be sync to fix cursor disappear on vim
-    autocmd TextChangedP        * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
+    if s:is_vim
+      autocmd TextChangedP        * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
+    else
+      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
+    endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave')
     autocmd InsertEnter         * call s:Autocmd('InsertEnter')

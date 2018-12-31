@@ -250,6 +250,9 @@ export class Completion implements Disposable {
     if (document.changedtick == this.changedTick) return
     let { latestInsert } = this
     this.lastInsert = null
+    if (global.hasOwnProperty('__TEST__')) {
+      await wait(30)
+    }
     let col = await this.nvim.call('col', ['.'])
     if (col < option.colnr && !latestInsert) {
       increment.stop()
