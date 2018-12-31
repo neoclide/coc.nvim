@@ -1,3 +1,7 @@
+# 2019-01-01
+
+- Fix issues with completion.
+
 # 2018-12-31
 
 - **Break change:** created keymaps use rpcrequest instead of rpcnotify.
