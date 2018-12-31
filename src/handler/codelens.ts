@@ -12,7 +12,7 @@ const logger = require('../util/logger')('codelens')
 
 export interface CodeLensInfo {
   codeLenes: CodeLens[]
-  changedtick: number
+  version: number
 }
 
 export default class CodeLensManager {
@@ -93,7 +93,7 @@ export default class CodeLensManager {
       this.insertMode = false
       let { bufnr } = workspace
       let info = this.codeLensMap.get(bufnr)
-      if (info && info.changedtick != this.changedtick) {
+      if (info && info.version != this.version) {
         this.resolveCodeLens.clear()
         await wait(50)
         await this.fetchDocumentCodeLenes()
@@ -110,7 +110,7 @@ export default class CodeLensManager {
   private async fetchDocumentCodeLenes(retry = 0): Promise<void> {
     let doc = workspace.getDocument(workspace.bufnr)
     if (!doc) return
-    let { uri, changedtick, bufnr } = doc
+    let { uri, version, bufnr } = doc
     let document = workspace.getDocument(uri)
     if (!this.validDocument(document)) return
     if (this.fetching.has(bufnr)) return
@@ -118,7 +118,7 @@ export default class CodeLensManager {
     try {
       let codeLenes = await languages.getCodeLens(document.textDocument)
       if (codeLenes && codeLenes.length > 0) {
-        this.codeLensMap.set(document.bufnr, { codeLenes, changedtick })
+        this.codeLensMap.set(document.bufnr, { codeLenes, version })
         if (workspace.bufnr == document.bufnr) {
           this.resolveCodeLens.clear()
           await this._resolveCodeLenes(true)
@@ -159,13 +159,13 @@ export default class CodeLensManager {
   private async _resolveCodeLenes(clear = false): Promise<void> {
     let { nvim } = this
     let { bufnr } = workspace
-    let { codeLenes, changedtick } = this.codeLensMap.get(bufnr) || {} as any
+    let { codeLenes, version } = this.codeLensMap.get(bufnr) || {} as any
     if (this.insertMode) return
     if (codeLenes && codeLenes.length) {
       // resolve codeLens of current window
       let start = await nvim.call('line', 'w0')
       let end = await nvim.call('line', 'w$')
-      if (changedtick && this.changedtick != changedtick) return
+      if (version && this.version != version) return
       if (end >= start) {
         codeLenes = codeLenes.filter(o => {
           let lnum = o.range.start.line + 1
@@ -239,9 +239,9 @@ export default class CodeLensManager {
     return true
   }
 
-  private get changedtick(): number {
+  private get version(): number {
     let doc = workspace.getDocument(workspace.bufnr)
-    return doc ? doc.changedtick : 0
+    return doc ? doc.version : 0
   }
 
   public dispose(): void {

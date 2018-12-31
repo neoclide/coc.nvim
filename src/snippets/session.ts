@@ -15,7 +15,7 @@ export class SnippetSession {
   private _isActive = false
   private _currId = 0
   // Get state of line where we inserted
-  private _changedtick: number
+  private version: number
   private _snippet: CocSnippet = null
   private _onCancelEvent = new Emitter<void>()
   private _preferComplete = false
@@ -49,7 +49,6 @@ export class SnippetSession {
       await workspace.moveTo(placeholder.range.start)
       return this._isActive
     }
-    this._changedtick = document.changedtick
     await document.applyEdits(nvim, [edit])
     if (this._isActive) {
       // insert check
@@ -111,8 +110,8 @@ export class SnippetSession {
   }
 
   public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent): Promise<void> {
-    if (!this.isActive) return
-    if (this._changedtick && this.document.changedtick - this._changedtick == 1) return
+    if (!this.isActive || !this.document) return
+    if (this.version && this.document.version - this.version == 1) return
     let edit: TextEdit = { range: change.range, newText: change.text }
     let { snippet } = this
     // change outside range
@@ -138,7 +137,7 @@ export class SnippetSession {
     this._currId = placeholder.id
     let edits = snippet.updatePlaceholder(placeholder, edit)
     if (!edits.length) return
-    this._changedtick = this.document.changedtick
+    this.version = this.document.version
     await this.document.applyEdits(this.nvim, edits)
   }
 
