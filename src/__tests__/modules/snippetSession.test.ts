@@ -151,7 +151,7 @@ describe('SnippetSession#deactivate', () => {
 
   it('should deactivate on invalid change', async () => {
     let buf = await helper.edit()
-    await nvim.command('startinsert')
+    await nvim.input('i')
     let session = new SnippetSession(nvim, buf.id)
     let res = await session.start('${1:a}bc')
     expect(res).toBe(true)

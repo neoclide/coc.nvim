@@ -43,10 +43,12 @@ export default class Colors {
     this._highlightCurrent()
 
     events.on('BufEnter', async () => {
-      this.highlightCurrent()
+      if (!global.hasOwnProperty('__TEST__')) {
+        this.highlightCurrent()
+      }
     }, null, this.disposables)
 
-    events.on(['InsertLeave'], async () => {
+    events.on('InsertLeave', async () => {
       this.highlightCurrent()
     }, null, this.disposables)
 
