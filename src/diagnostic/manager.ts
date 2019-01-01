@@ -26,7 +26,6 @@ export interface DiagnosticConfig {
 export class DiagnosticManager {
   public config: DiagnosticConfig
   public enabled = true
-  public insertMode = false
   public readonly buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
@@ -38,8 +37,6 @@ export class DiagnosticManager {
     workspace.ready.then(async () => {
       await this.setConfiguration()
       await this.init()
-      let { mode } = await workspace.nvim.mode
-      this.insertMode = mode.startsWith('i')
     })
 
     events.on('CursorMoved', bufnr => {
@@ -49,12 +46,10 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
-      this.insertMode = true
       if (this.timer) clearTimeout(this.timer)
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
-      this.insertMode = false
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
@@ -423,7 +418,7 @@ export class DiagnosticManager {
   private refreshBuffer(uri: string): boolean {
     let { displayByAle } = this.config
     let buf = this.buffers.find(buf => buf.uri == uri)
-    if (buf && !this.insertMode) {
+    if (buf) {
       let items = this.getBufferDiagnostic(uri)
       if (this.enabled) {
         buf.refresh(items)
