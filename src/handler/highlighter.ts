@@ -60,8 +60,7 @@ export default class Highlighter implements Disposable {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
     let ids = await this.document.highlightRanges(ranges, hlGroup, this.srcId)
-    let { matchIds } = this
-    if (workspace.isVim) matchIds.push(...ids)
+    if (workspace.isVim) this.matchIds.push(...ids)
   }
 
   private addColors(colors: Color[]): void {

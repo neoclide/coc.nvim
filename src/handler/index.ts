@@ -499,9 +499,11 @@ export default class Handler {
         groups[hlGroup] = groups[hlGroup] || []
         groups[hlGroup].push(hl.range)
       }
+      let ids = []
       for (let hlGroup of Object.keys(groups)) {
         let ranges = groups[hlGroup]
-        let ids = await document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
+        let arr = await document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
+        ids.push(...arr)
         this.highlightsMap.set(document.bufnr, ids)
       }
     }
