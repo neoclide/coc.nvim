@@ -131,21 +131,6 @@ describe('diagnostic manager', () => {
     expect(line).toMatch('error')
   })
 
-  it('should not refresh buffer on insert mode', async () => {
-    let doc = await helper.createDocument()
-    await nvim.input('i')
-    let { mode } = await nvim.mode
-    expect(mode).toBe('i')
-    let collection = manager.create('test')
-    await helper.wait(100)
-    let info = await doc.buffer.getVar('coc_diagnostic_info')
-    expect(info).toBeFalsy()
-    collection.set(doc.uri, [createDiagnostic('new')])
-    await helper.wait(200)
-    info = await doc.buffer.getVar('coc_diagnostic_info')
-    expect(info).toBeFalsy()
-  })
-
   it('should get severity level', () => {
     expect(severityLevel('hint')).toBe(DiagnosticSeverity.Hint)
     expect(severityLevel('error')).toBe(DiagnosticSeverity.Error)

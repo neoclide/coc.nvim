@@ -393,11 +393,7 @@ export class Completion implements Disposable {
   }
 
   private async onInsertCharPre(character: string): Promise<void> {
-    this.lastInsert = {
-      character,
-      timestamp: Date.now(),
-    }
-    this.insertCharTs = this.lastInsert.timestamp
+    // hack to make neovim not flicking
     if (workspace.isNvim &&
       this.isActivted &&
       this._completeItems.length &&
@@ -406,11 +402,16 @@ export class Completion implements Disposable {
       this.complete.hasMatch(this.input + character)) {
       this.nvim.call('coc#_reload', [], true)
     }
+    this.lastInsert = {
+      character,
+      timestamp: Date.now(),
+    }
+    this.insertCharTs = this.lastInsert.timestamp
   }
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 60) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 100) {
       return null
     }
     return lastInsert
