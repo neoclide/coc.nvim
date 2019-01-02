@@ -1171,6 +1171,7 @@ augroup end`
     let dir = path.dirname(u.fsPath)
     if (dir != os.homedir()) {
       let roots = await this.nvim.getVar('rooter_patterns') as string[]
+      roots = roots || ['.vim/', '.git/', '.hg/', '.projections.json']
       roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
       return resolveRoot(dir, roots)
     }
