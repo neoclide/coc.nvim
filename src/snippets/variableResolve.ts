@@ -1,14 +1,10 @@
-/**
- * Snippets.ts
- *
- * Manages snippet integration
- */
-
 import * as path from "path"
 import workspace from '../workspace'
+import Uri from 'vscode-uri'
 
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
+import Document from '../model/document'
 const logger = require('../util/logger')('snippets-variable')
 
 export class SnippetVariableResolver implements VariableResolver {
@@ -18,21 +14,31 @@ export class SnippetVariableResolver implements VariableResolver {
     return workspace.nvim
   }
 
-  public async init(): Promise<void> {
+  public async init(document: Document): Promise<void> {
     let { nvim } = this
-    let line = await nvim.call('getline', '.')
-    this._variableToValue['TM_CURRENT_LINE'] = line
+    let filepath = Uri.parse(document.uri).fsPath
+    let lnum = await nvim.call('line', '.') as number
+    let line = document.getline(lnum - 1)
     let cword = await this.nvim.call('expand', '<cword>')
-    this._variableToValue['TM_CURRENT_WORD'] = cword
     let selected = await this.nvim.getVar('coc_selected_text') as string
-    logger.debug('text:', selected)
-    this._variableToValue['TM_SELECTED_TEXT'] = selected
+    let clipboard = await this.nvim.call('getreg', '+')
     await this.nvim.setVar('coc_selected_text', '')
+    Object.assign(this._variableToValue, {
+      CLIPBOARD: clipboard || undefined,
+      TM_CURRENT_LINE: line,
+      TM_SELECTED_TEXT: selected || undefined,
+      TM_CURRENT_WORD: cword,
+      TM_LINE_INDEX: (lnum - 1).toString(),
+      TM_LINE_NUMBER: lnum.toString(),
+      TM_FILENAME: path.basename(filepath),
+      TM_FILENAME_BASE: path.basename(filepath, path.extname(filepath)),
+      TM_DIRECTORY: path.dirname(filepath),
+      TM_FILEPATH: filepath,
+    })
   }
 
-  constructor(line: number, filePath: string) {
+  constructor() {
     const currentDate = new Date()
-
     this._variableToValue = {
       CURRENT_YEAR: currentDate.getFullYear().toString(),
       CURRENT_YEAR_SHORT: currentDate
@@ -47,19 +53,12 @@ export class SnippetVariableResolver implements VariableResolver {
       CURRENT_DAY_NAME: currentDate.toLocaleString("en-US", { weekday: "long" }),
       CURRENT_DAY_NAME_SHORT: currentDate.toLocaleString("en-US", { weekday: "short" }),
       CURRENT_MONTH_NAME: currentDate.toLocaleString("en-US", { month: "long" }),
-      CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" }),
-      TM_SELECTED_TEXT: "",
-      TM_LINE_INDEX: line.toString(),
-      TM_LINE_NUMBER: (line + 1).toString(),
-      TM_FILENAME: path.basename(filePath),
-      TM_FILENAME_BASE: path.basename(filePath, path.extname(filePath)),
-      TM_DIRECTORY: path.dirname(filePath),
-      TM_FILEPATH: filePath,
+      CURRENT_MONTH_NAME_SHORT: currentDate.toLocaleString("en-US", { month: "short" })
     }
   }
 
   public resolve(variable: Variable): string {
     const variableName = variable.name
-    return this._variableToValue[variableName] || ''
+    return this._variableToValue[variableName]
   }
 }
