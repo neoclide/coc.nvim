@@ -1,3 +1,12 @@
+# 2019-01-03
+
+- **Break change:** using of `g:rooter_patterns` is removed.
+- **Break change:** diagnostics would be updated in insert mode now.
+- Add configuration: `coc.preferences.rootPatterns`
+- Add `TM_SELECTED_TEXT` and `CLIPBOARD` support for snippets.
+- Fix check of latest insert char failed.
+- Fix highlight not cleared sometimes.
+
 # 2019-01-01
 
 - Fix issues with completion.
