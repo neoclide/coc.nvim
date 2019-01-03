@@ -214,18 +214,6 @@
       "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
       "default": false
     },
-    "coc.preferences.extensionUpdateCheck": {
-      "type": "string",
-      "default": "daily",
-      "description": "Interval for check extension update, could be daily, weekly, never",
-      "enum": ["daily", "weekly", "never"]
-    },
-    "coc.preferences.hoverTarget": {
-      "type": "string",
-      "default": "preview",
-      "description": "Target to show hover information, default is preview window, could also be echo",
-      "enum": ["preview", "echo"]
-    },
     "coc.preferences.snippetIndicator": {
       "type": "string",
       "default": "~",
@@ -250,16 +238,6 @@
       "type": "boolean",
       "description": "Boost suggestions that appear closer to the cursor position.",
       "default": true
-    },
-    "coc.preferences.colorSupport": {
-      "type": "boolean",
-      "description": "Enable color highlight if language server support it.",
-      "default": true
-    },
-    "coc.preferences.maxColorCount": {
-      "type": "number",
-      "default": 1000,
-      "description": "Maxmium number of color range to highlight vim, default 1000"
     },
     "coc.preferences.triggerAfterInsertEnter": {
       "type": "boolean",
@@ -300,6 +278,23 @@
       "description": "Not make vim select first item on completion start",
       "default": true
     },
+    "coc.preferences.extensionUpdateCheck": {
+      "type": "string",
+      "default": "daily",
+      "description": "Interval for check extension update, could be daily, weekly, never",
+      "enum": ["daily", "weekly", "never"]
+    },
+    "coc.preferences.hoverTarget": {
+      "type": "string",
+      "default": "preview",
+      "description": "Target to show hover information, default is preview window, could also be echo",
+      "enum": ["preview", "echo"]
+    },
+    "coc.preferences.colorSupport": {
+      "type": "boolean",
+      "description": "Enable color highlight if language server support it.",
+      "default": true
+    },
     "coc.preferences.parseKeywordsLimitLines": {
       "type": "number",
       "description": "Limit the lines of buffer for parse keywords on change.",
@@ -319,6 +314,14 @@
       "type": "array",
       "default": [],
       "description": "Filetypes that should run format on save.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.preferences.rootPatterns": {
+      "type": "array",
+      "default": [".vim", ".git", ".hg", ".projections.json"],
+      "description": "General root patterns to resolve project root from file to parent folders, it's overwrited by rootPatterns of specific languageserver.",
       "items": {
         "type": "string"
       }
