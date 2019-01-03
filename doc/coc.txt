@@ -675,12 +675,12 @@ coc#config({section}, {value})
 	call coc#config('coc.preferences', {
 		\ 'timeout': 1000,
 		\ 'hoverTarget': 'echo',
-		\ 'languageserver': {
-		\   'ccls': {
-		\     "command": "ccls",
-      		\     "trace.server": "verbose",
-      		\     "filetypes": ["c", "cpp", "objc", "objcpp"]
-		\   }
+		\})
+	call coc#config('languageserver', {
+		\ 'ccls': {
+		\   "command": "ccls",
+		\   "trace.server": "verbose",
+		\   "filetypes": ["c", "cpp", "objc", "objcpp"]
 		\ }
 		\})
 <
