@@ -77,10 +77,13 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
   to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
 
-  For other plugin manager, run command `:call coc#util#install()` to download
-  binary after coc is installed.
+  For other plugin manager, run command `:call coc#util#build()` to build
+  coc from source code.
 
   **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
+
+  Note: The first time of building from source code could be slow since some
+  dependencies need to be downloaded.
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 

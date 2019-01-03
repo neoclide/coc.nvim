@@ -440,6 +440,18 @@ function! coc#util#install() abort
   wincmd p
 endfunction
 
+" build coc from source code
+function! coc#util#build()
+  if !executable('yarn')
+    echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
+    return 0
+  endif
+  let cwd = getcwd()
+  execute 'lcd '.s:root
+  execute '!yarn install'
+  execute 'lcd '.cwd
+endfunction
+
 function! coc#util#do_complete(name, opt, cb) abort
   let handler = 'coc#source#'.a:name.'#complete'
   let l:Cb = {res -> a:cb(v:null, res)}
