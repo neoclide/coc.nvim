@@ -6,6 +6,7 @@ if !has('nvim') && !has('patch-8.1.001') | finish | endif
 
 let g:did_coc_loaded = 1
 let s:is_vim = !has('nvim')
+silent doautocmd <nomodeline> User CocSetup
 
 if has('nvim')
   call coc#rpc#start_server()

@@ -688,6 +688,8 @@ coc#config({section}, {value})
 	Note: this function could be called multiple times.
 
 	Note: this function could be called before service initialized.
+	For a hook where you can effectively call this function see
+	|CocSetup|.
 
 	Note: this function could works with user configuration file, but it's
 	not recommended to use both.
@@ -807,6 +809,17 @@ COMMANDS 					*coc-commands*
 
 AUTOCMD 					*coc-autocmds*
 
+
+						*CocSetup*
+
+:autocmd User CocSetup {command}
+
+		Triggered before the service is initialized.
+		You may want to use this hook to pass configuration
+		with |coc#config|: >
+
+		autocmd User CocSetup :call coc#config(...)
+<
 						*CocQuickfixChange*
 
 :autocmd User CocQuickfixChange {command}
