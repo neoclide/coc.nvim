@@ -9,7 +9,7 @@ const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'c
 
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
-if (!fs.existsSync(LOG_FILE_PATH) && level == 'debug') {
+if (!fs.existsSync(LOG_FILE_PATH)) {
   fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
   fs.chmodSync(LOG_FILE_PATH, 0o666)
 }
@@ -22,6 +22,7 @@ if (!isRoot) {
     appenders: {
       out: {
         type: 'file',
+        mode: 0o666,
         filename: LOG_FILE_PATH,
         maxLogSize: MAX_LOG_SIZE,
         backups: MAX_LOG_BACKUPS,
