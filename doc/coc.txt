@@ -238,18 +238,6 @@ g:coc_auto_copen  				*g:coc_auto_copen*
 
 			Default: 1
 
-g:rooter_patterns 				*g:rooter_patterns*
-
-			To specify how to identify a project's root directory >
-
-			let g:rooter_patterns = ['Rakefile', '.git/']
-<
-			default to `['.vim/', '.git/', '.hg/', '.projections.json']`
-
-			Note: you can specify different project root for
-			language servers by use `rootPatterns` in
-			settings.json.
-
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 

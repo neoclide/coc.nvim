@@ -340,8 +340,7 @@
     "coc.preferences.jumpCommand": {
       "type": "string",
       "description": "Command used for location jump, like goto definition, goto references etc.",
-      "default": "edit",
-      "enum": ["edit", "split", "vsplit", "tabe"]
+      "default": "edit"
     },
     "coc.preferences.messageLevel": {
       "type": "string",
