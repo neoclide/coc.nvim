@@ -44,10 +44,13 @@ export default class Increment extends Emitter {
     let { nvim, activted } = this
     if (!activted) return
     this.activted = false
+    nvim.pauseNotification()
     if (this.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
+    nvim.call('coc#_hide', [])
     nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+    nvim.resumeNotification()
     this.emit('stop')
   }
 

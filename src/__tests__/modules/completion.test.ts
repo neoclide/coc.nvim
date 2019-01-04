@@ -260,40 +260,6 @@ describe('completion#TextChangedP', () => {
     disposable.dispose()
   })
 
-  it('should fix col on indent', async () => {
-    let source: ISource = {
-      priority: 0,
-      enable: true,
-      filetypes: ['vim'],
-      name: 'indent',
-      sourceType: SourceType.Service,
-      triggerCharacters: ['.'],
-      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => {
-        return Promise.resolve({ items: [{ word: 'end' }, { word: 'endfor' }] })
-      }
-    }
-    sources.addSource(source)
-    await helper.createDocument('tmp.vim')
-    await nvim.setLine('if 1')
-    await nvim.input('o')
-    await helper.wait(30)
-    await nvim.input('en')
-    await helper.wait(30)
-    let visible = await nvim.call('pumvisible')
-    expect(visible).toBe(1)
-    await nvim.input('d')
-    await helper.wait(10)
-    await nvim.setLine('end')
-    await helper.wait(30)
-    await nvim.input('<C-n>')
-    await helper.wait(30)
-    await nvim.input('<C-y>')
-    await helper.wait(30)
-    let line = await nvim.line
-    expect(line).toBe('end')
-    sources.removeSource(source)
-  })
-
   it('should do resolve for complete item', async () => {
     let source: ISource = {
       priority: 0,

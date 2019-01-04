@@ -182,7 +182,6 @@ export class Completion implements Disposable {
     if (!this.isActivted) return
     if (!insertMode || !items || items.length === 0) {
       this._completeItems = []
-      this.nvim.call('coc#_hide', [], true)
       increment.stop()
       return
     }
@@ -250,9 +249,6 @@ export class Completion implements Disposable {
     if (document.changedtick == this.changedTick) return
     let { latestInsert } = this
     this.lastInsert = null
-    if (global.hasOwnProperty('__TEST__')) {
-      await wait(30)
-    }
     let col = await this.nvim.call('col', ['.'])
     if (col < option.colnr && !latestInsert) {
       increment.stop()
@@ -307,7 +303,6 @@ export class Completion implements Disposable {
         let item = this._completeItems[0]
         if (sources.shouldCommit(item, latestInsertChar)) {
           let { linenr, col, line, colnr } = this.option
-          this.nvim.call('coc#_hide', [], true)
           increment.stop()
           let { word } = item
           let newLine = `${line.slice(0, col)}${word}${latestInsertChar}${line.slice(colnr - 1)}`
@@ -317,7 +312,6 @@ export class Completion implements Disposable {
         }
       }
       if (latestInsertChar && this.triggerCharacters.has(latestInsertChar)) {
-        this.nvim.call('coc#_hide', [], true)
         increment.stop()
         await this.triggerCompletion(latestInsertChar)
         return
@@ -377,7 +371,6 @@ export class Completion implements Disposable {
 
   private async onInsertLeave(): Promise<void> {
     this.insertMode = false
-    this.nvim.call('coc#_hide', [], true)
     this.increment.stop()
   }
 
@@ -396,10 +389,9 @@ export class Completion implements Disposable {
     // hack to make neovim not flicking
     if (workspace.isNvim &&
       this.isActivted &&
-      this._completeItems.length &&
       !global.hasOwnProperty('__TEST__') &&
       !this.triggerCharacters.has(character) &&
-      this.complete.hasMatch(this.input + character)) {
+      isWord(character)) {
       this.nvim.call('coc#_reload', [], true)
     }
     this.lastInsert = {
