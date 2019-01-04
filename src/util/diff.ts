@@ -1,6 +1,6 @@
 import fastDiff from 'fast-diff'
-import { ChangedLines, ChangeItem } from '../types'
-import { TextEdit, TextDocument, Range, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
+import { Range, TextDocument, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
+import { ChangedLines } from '../types'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -25,17 +25,19 @@ export function diffLines(from: string, to: string): ChangedLines {
       start = end
     }
   }
-  for (let j = oldLen; j >= 0; j--) {
-    if (j < start) {
-      end = start
-      break
-    }
-    if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
-      end = j
-      break
-    }
-    if (j == 0) {
-      end = 0
+  if (start != newLines.length) {
+    for (let j = oldLen; j >= 0; j--) {
+      if (j < start) {
+        end = start
+        break
+      }
+      if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
+        end = j
+        break
+      }
+      if (j == 0) {
+        end = 0
+      }
     }
   }
   return {

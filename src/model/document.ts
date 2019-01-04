@@ -296,9 +296,12 @@ export default class Document {
   public async applyEdits(nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
     await this._fetchContent(true)
-    let orig = this.getDocumentContent()
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
+    let orig = this.lines.join('\n')
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig + (this.eol ? '\n' : ''))
     let content = TextDocument.applyEdits(textDocument, edits)
+    if (this.eol && content.endsWith('\n')) {
+      content = content.slice(0, -1)
+    }
     // could be equal sometimes
     if (orig === content) return
     let cur = await nvim.call('bufnr', '%') as number
@@ -315,7 +318,6 @@ export default class Document {
         })
       }
     } else {
-      content = this.eol && content.endsWith('\n') ? content.slice(0, -1) : content
       await buf.setLines(content.split(/\r?\n/), {
         start: 0,
         end: -1,

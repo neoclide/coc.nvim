@@ -1,5 +1,39 @@
-import { getContentChanges } from '../../util/diff'
+import { getContentChanges, diffLines } from '../../util/diff'
 import { TextDocument } from 'vscode-languageserver-types'
+
+describe('diff lines', () => {
+  it('should diff changed lines', () => {
+    let res = diffLines('a\n', 'b\n')
+    expect(res).toEqual({ start: 0, end: 1, replacement: ['b'] })
+  })
+
+  it('should diff added lines', () => {
+    let res = diffLines('a\n', 'a\nb\n')
+    expect(res).toEqual({
+      start: 1,
+      end: 1,
+      replacement: ['b']
+    })
+  })
+
+  it('should diff remove lines', () => {
+    let res = diffLines('a\n\n', 'a\n')
+    expect(res).toEqual({
+      start: 2,
+      end: 3,
+      replacement: []
+    })
+  })
+
+  it('should diff remove multiple lines', () => {
+    let res = diffLines('a\n\n\n', 'a\n')
+    expect(res).toEqual({
+      start: 2,
+      end: 4,
+      replacement: []
+    })
+  })
+})
 
 describe('should get text edits', () => {
 
