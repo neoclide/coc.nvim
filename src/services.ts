@@ -44,6 +44,11 @@ export class ServiceManager extends EventEmitter implements Disposable {
     workspace.onDidOpenTextDocument(document => {
       this.start(document)
     }, null, this.disposables)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('languageserver')) {
+        this.createCustomServices()
+      }
+    }, null, this.disposables)
     this.createCustomServices()
   }
 
@@ -84,6 +89,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let service = this.registed.get(id)
     if (!service) service = this.registed.get(`languageserver.${id}`)
     return service
+  }
+
+  private hasService(id: string): boolean {
+    return this.registed.has(id)
   }
 
   private shouldStart(service: IServiceProvider): boolean {
@@ -171,7 +180,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     for (let key of Object.keys(lspConfig)) {
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
-      if (config.enable === false) continue
+      if (config.enable === false || this.hasService(id)) continue
       let opts = getLanguageServerOptions(id, key, config)
       if (!opts) continue
       let client = new LanguageClient(id, key, opts[1], opts[0])
