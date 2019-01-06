@@ -80,10 +80,12 @@ function! coc#util#job_command()
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
     echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
+    return
   endif
   let node = get(g:, 'coc_node_path', 'node')
   if !executable(node)
     echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
+    return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
 endfunction
