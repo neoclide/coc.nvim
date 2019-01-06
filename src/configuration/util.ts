@@ -6,7 +6,6 @@ import { equals } from '../util/object'
 import fs from 'fs'
 import Uri from 'vscode-uri'
 import path from 'path'
-import { connect } from 'net'
 const isPkg = process.hasOwnProperty('pkg')
 
 export type ShowError = (errors: ErrorItem[]) => void

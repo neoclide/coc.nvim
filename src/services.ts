@@ -1,11 +1,11 @@
 import { EventEmitter } from 'events'
-import which from 'which'
 import fs from 'fs'
 import net from 'net'
-import path from 'path'
 import os from 'os'
-import { Disposable, DocumentSelector, Emitter, TextDocument, DocumentFilter } from 'vscode-languageserver-protocol'
-import { ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind, Executable } from './language-client'
+import path from 'path'
+import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
+import which from 'which'
+import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
 import workspace from './workspace'
@@ -178,6 +178,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
     for (let key of Object.keys(lspConfig)) {
+      if (!/^\w+$/.test(key)) {
+        workspace.showMessage(`Invalid languageserver id: ${key}, only character allowed!`, 'error')
+      }
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
       if (config.enable === false || this.hasService(id)) continue
