@@ -226,6 +226,9 @@ export default class Plugin extends EventEmitter {
         case 'jumpDefinition':
           await handler.gotoDefinition(args[1])
           break
+        case 'jumpDeclaration':
+          await handler.gotoDeclaration(args[1])
+          break
         case 'jumpImplementation':
           await handler.gotoImplementation(args[1])
           break

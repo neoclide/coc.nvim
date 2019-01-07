@@ -14,6 +14,7 @@ import { ConfigurationFeature as PullConfigurationFeature } from './configuratio
 import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
+import { DeclarationFeature } from './declaration'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
 import { terminate } from './utils/processes'
 import ChildProcess = cp.ChildProcess
@@ -438,6 +439,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new PullConfigurationFeature(this))
     this.registerFeature(new TypeDefinitionFeature(this))
     this.registerFeature(new ImplementationFeature(this))
+    this.registerFeature(new DeclarationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
     this.registerFeature(new WorkspaceFoldersFeature(this))

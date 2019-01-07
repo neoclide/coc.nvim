@@ -163,15 +163,19 @@ mode, 'v_' works for visual mode.
 
 <Plug>(coc-definition) 				*n_coc-definition*
 
-			Jump to definition of current symbol.
+			Jump to definition(s) of current symbol.
+
+<Plug>(coc-declaration) 			*n_coc-declaration*
+
+			Jump to declaration(s) of current symbol.
 
 <Plug>(coc-implementation) 			*n_coc-implementation*
 
-			Jump to implementations of current symbol.
+			Jump to implementation(s) of current symbol.
 
 <Plug>(coc-type-definition) 			*n_coc-type-definition*
 
-			Jump to type definition of current symbol.
+			Jump to type definition(s) of current symbol.
 
 <Plug>(coc-references) 				*n_coc-references*
 
@@ -463,6 +467,16 @@ Available Actions ~
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	jump to definition position of current symbol. Use <C-o> and <C-i> to
+	jump forward and backward.
+
+	Quickfix list is used when more than one position available.
+
+	{openCommand}: optional command to open buffer, default to
+	`coc.preferences.openResourceCommand` in `coc-settings.json`
+
+"jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
+
+	jump to declaration position of current symbol. Use <C-o> and <C-i> to
 	jump forward and backward.
 
 	Quickfix list is used when more than one position available.

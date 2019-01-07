@@ -6,7 +6,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import pify from 'pify'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, LocationLink } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import Configurations from './configuration'
@@ -426,8 +426,11 @@ export class Workspace implements IWorkspace {
     return true
   }
 
-  public async getQuickfixItem(loc: Location, text?: string, type = ''): Promise<QuickfixItem> {
+  public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = ''): Promise<QuickfixItem> {
     let { cwd, nvim } = this
+    if (LocationLink.is(loc)) {
+      loc = Location.create(loc.targetUri, loc.targetRange)
+    }
     let { uri, range } = loc
     let { line, character } = range.start
     let u = Uri.parse(uri)

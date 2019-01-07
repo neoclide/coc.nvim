@@ -1,4 +1,4 @@
-import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, Event } from 'vscode-languageserver-protocol'
+import { CancellationToken, CodeAction, CodeActionContext, CodeActionKind, CodeLens, Color, ColorInformation, ColorPresentation, Command, CompletionContext, CompletionItem, CompletionList, Definition, DocumentHighlight, DocumentLink, DocumentSymbol, FoldingRange, FormattingOptions, Hover, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, Event, DefinitionLink } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
 
 /**
@@ -129,6 +129,18 @@ export interface DefinitionProvider {
     position: Position,
     token: CancellationToken
   ): ProviderResult<Definition>
+}
+
+/**
+ * The definition provider interface defines the contract between extensions and
+ * the [go to definition](https://code.visualstudio.com/docs/editor/editingevolved#_go-to-definition)
+ * and peek definition features.
+ */
+export interface DeclarationProvider {
+  /**
+   * Provide the declaration of the symbol at the given position and document.
+   */
+  provideDeclaration(document: TextDocument, position: Position, token: CancellationToken): ProviderResult<Definition | DefinitionLink[]>
 }
 
 /**

@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind } from 'vscode-languageserver-protocol'
+import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind, LocationLink } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
 import Colors from './colors'
@@ -107,12 +107,12 @@ export default class Handler {
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
       provideTextDocumentContent: async () => {
-        await nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap')
-        await nvim.command('setfiletype markdown')
-        let buf = await nvim.buffer
-        await buf.setOption('bufhidden', 'wipe')
-        await buf.setOption('buflisted', false)
-        await nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`)
+        nvim.pauseNotification()
+        nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
+        nvim.command('setlocal bufhidden=wipe nobuflisted', true)
+        nvim.command('setfiletype markdown', true)
+        nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
+        nvim.resumeNotification()
         return this.documentLines.join('\n')
       }
     }
@@ -142,6 +142,16 @@ export default class Handler {
     } else {
       workspace.showMessage('Definition not found', 'warning')
     }
+  }
+
+  public async gotoDeclaration(openCommand?: string): Promise<void> {
+    let { document, position } = await workspace.getCurrentState()
+    let definition = await languages.getDeclaration(document, position)
+    if (!definition) {
+      workspace.showMessage('Definition not found', 'warning')
+      return
+    }
+    await this.handleLocations(definition, openCommand)
   }
 
   public async gotoTypeDefinition(openCommand?: string): Promise<void> {
@@ -710,13 +720,18 @@ export default class Handler {
     await this.nvim.call('coc#util#echo_signatures', [signatureList])
   }
 
-  public async handleLocations(definition: Definition, openCommand?: string): Promise<void> {
+  public async handleLocations(definition: Definition | LocationLink[], openCommand?: string): Promise<void> {
     if (!definition) return
     if (Array.isArray(definition)) {
       let len = definition.length
       if (len == 0) return
       if (len == 1) {
-        let { uri, range } = definition[0] as Location
+        let location = definition[0] as Location
+        if (LocationLink.is(definition[0])) {
+          let link = definition[0] as LocationLink
+          location = Location.create(link.targetUri, link.targetRange)
+        }
+        let { uri, range } = location
         await workspace.jumpTo(uri, range.start, openCommand)
       } else {
         await workspace.showLocations(definition as Location[])

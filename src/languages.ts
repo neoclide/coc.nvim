@@ -1,11 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, LocationLink } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider, DeclarationProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
 import DefinitionManager from './provider/definitionManager'
+import DeclarationManager from './provider/declarationManager'
 import DocumentColorManager from './provider/documentColorManager'
 import DocumentHighlightManager from './provider/documentHighlightManager'
 import DocumentLinkManager from './provider/documentLinkManager'
@@ -79,6 +80,7 @@ class Languages {
   private documentSymbolManager = new DocumentSymbolManager()
   private documentHighlightManager = new DocumentHighlightManager()
   private definitionManager = new DefinitionManager()
+  private declarationManager = new DeclarationManager()
   private typeDefinitionManager = new TypeDefinitionManager()
   private referenceManager = new ReferenceManager()
   private implementatioinManager = new ImplementationManager()
@@ -175,6 +177,10 @@ class Languages {
     return this.definitionManager.register(selector, provider)
   }
 
+  public registerDeclarationProvider(selector: DocumentSelector, provider: DeclarationProvider): Disposable {
+    return this.declarationManager.register(selector, provider)
+  }
+
   public registerTypeDefinitionProvider(selector: DocumentSelector, provider: TypeDefinitionProvider): Disposable {
     return this.typeDefinitionManager.register(selector, provider)
   }
@@ -224,6 +230,15 @@ class Languages {
       return null
     }
     return await this.definitionManager.provideDefinition(document, position, this.token)
+  }
+
+  @check
+  public async getDeclaration(document: TextDocument, position: Position): Promise<Location[] | Location | LocationLink[] | null> {
+    if (!this.declarationManager.hasProvider(document)) {
+      workspace.showMessage('Declaration provider not found for current document', 'error')
+      return null
+    }
+    return await this.declarationManager.provideDeclaration(document, position, this.token)
   }
 
   @check

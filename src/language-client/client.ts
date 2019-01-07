@@ -19,6 +19,7 @@ import { ConfigurationWorkspaceMiddleware } from './configuration'
 import { FoldingRangeProviderMiddleware } from './foldingRange'
 import { ImplementationMiddleware } from './implementation'
 import { TypeDefinitionMiddleware } from './typeDefinition'
+import { DeclarationMiddleware } from './declaration'
 import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
@@ -632,6 +633,7 @@ export type Middleware = _Middleware &
   TypeDefinitionMiddleware &
   ImplementationMiddleware &
   ColorProviderMiddleware &
+  DeclarationMiddleware &
   FoldingRangeProviderMiddleware
 
 export interface LanguageClientOptions {
@@ -1947,10 +1949,9 @@ class DefinitionFeature extends TextDocumentFeature<
   }
 
   public fillClientCapabilities(capabilites: ClientCapabilities): void {
-    ensure(
-      ensure(capabilites, 'textDocument')!,
-      'definition'
-    )!.dynamicRegistration = true
+    let definitionSupport = ensure(ensure(capabilites, 'textDocument')!, 'definition')!
+    definitionSupport.dynamicRegistration = true
+    // definitionSupport.linkSupport = true
   }
 
   public initialize(
