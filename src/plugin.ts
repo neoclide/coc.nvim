@@ -67,6 +67,10 @@ export default class Plugin extends EventEmitter {
   }
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+    if (!method) {
+      workspace.showMessage('method required for send request', 'error')
+      return
+    }
     return await services.sendRequest(id, method, params)
   }
 
