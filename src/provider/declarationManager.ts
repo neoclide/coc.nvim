@@ -26,7 +26,7 @@ export default class DeclarationManager extends Manager<DeclarationProvider> imp
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return await provider.provideDeclaration(document, position, token)
+    return await Promise.resolve(provider.provideDeclaration(document, position, token))
   }
 
   public dispose(): void {

@@ -50,7 +50,7 @@ export class DeclarationFeature extends TextDocumentFeature<TextDocumentRegistra
       }
       this.register(this.messages, {
         id: UUID.generateUuid(),
-        registerOptions: Object.assign({}, { documentSelector: documentSelector })
+        registerOptions: Object.assign({}, { documentSelector })
       })
     } else {
       const declCapabilities = capabilities.declarationProvider
@@ -69,8 +69,7 @@ export class DeclarationFeature extends TextDocumentFeature<TextDocumentRegistra
     let client = this._client
     let provideDeclaration: ProvideDeclarationSignature = (document, position, token) => {
       return client.sendRequest(DeclarationRequest.type, asTextDocumentPositionParams(document, position), token).then(
-        res => res,
-        (error) => {
+        res => res, error => {
           client.logFailedRequest(DeclarationRequest.type, error)
           return Promise.resolve(null)
         }
