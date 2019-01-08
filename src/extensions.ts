@@ -563,7 +563,7 @@ export class Extensions {
 
   public get globalExtensions(): string[] {
     let json = this.loadJson()
-    if (!json) return []
+    if (!json || !json.dependencies) return []
     return Object.keys(json.dependencies)
   }
 }

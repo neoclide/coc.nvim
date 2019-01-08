@@ -507,7 +507,7 @@ function! coc#util#init_extension_root(root) abort
   if !isdirectory(a:root)
     call mkdir(a:root, 'p')
     let file = a:root.'/package.json'
-    let res = writefile(['{}'], file)
+    let res = writefile(['{"dependencies":{}}'], file)
     if res == -1
       echohl Error | echon 'Create package.json failed: '.v:errmsg | echohl None
       return -1
