@@ -1,3 +1,13 @@
+# 2019-01-09
+
+- **Break change:** throw error when languageserver id is invalid.
+- Add watcher for languageserver configuration change.
+- Fix possible invalid package.json.
+- Fix applyEdits not work sometimes.
+- Fix server still started when command search failed.
+- Fix log file not writeable.
+- Improve completion performance.
+
 # 2019-01-03
 
 - **Break change:** using of `g:rooter_patterns` is removed.
