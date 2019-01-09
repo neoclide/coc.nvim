@@ -647,6 +647,25 @@ describe('workspace utility', () => {
     expect(fn).toBeCalledTimes(1)
   })
 
+  it('should regist expr keymap', async () => {
+    let called = false
+    let fn = () => {
+      called = true
+      return '""'
+    }
+    await nvim.input('i')
+    let { mode } = await nvim.mode
+    expect(mode).toBe('i')
+    let disposable = workspace.registerExprKeymap('i', '"', fn)
+    await helper.wait(30)
+    await nvim.call('feedkeys', ['"', 't'])
+    await helper.wait(30)
+    expect(called).toBe(true)
+    let line = await nvim.line
+    expect(line).toBe('""')
+    disposable.dispose()
+  })
+
   it('should watch options', async () => {
     let fn = jest.fn()
     workspace.watchOption('showmode', fn, disposables)

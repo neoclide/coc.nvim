@@ -25,6 +25,7 @@ import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKey
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
+import uuid = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -838,6 +839,17 @@ export class Workspace implements IWorkspace {
       for (let m of modes) {
         this.nvim.command(`${m}unmap <Plug>(coc-${key})`, true)
       }
+    })
+  }
+
+  public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
+    let id = uuid()
+    let { nvim } = this
+    this.keymaps.set(id, fn)
+    nvim.command(`${mode}noremap <expr> ${buffer ? '<buffer>' : ''} ${key} coc#rpc#request('doKeymap', ['${id}'])`, true)
+    return Disposable.create(() => {
+      this.keymaps.delete(id)
+      nvim.command(`${mode}unmap ${buffer ? '<buffer>' : ''} ${key}`, true)
     })
   }
 
