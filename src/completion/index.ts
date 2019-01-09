@@ -109,9 +109,6 @@ export class Completion implements Disposable {
     this.disposables.push(events.on('TextChangedP', this.onTextChangedP, this))
     this.disposables.push(events.on('TextChangedI', this.onTextChangedI, this))
     this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
-    nvim.mode.then(({ mode }) => {
-      this.insertMode = mode.startsWith('i')
-    }) // tslint:disable-line
     // stop change emit on completion
     increment.on('start', () => {
       let noselect = this.preferences.get<boolean>('noselect')
@@ -288,6 +285,7 @@ export class Completion implements Disposable {
   }
 
   private async onTextChangedI(bufnr: number): Promise<void> {
+    this.insertMode = true
     if (this.completing) return
     let { nvim, increment, input, latestInsertChar } = this
     let document = workspace.getDocument(workspace.bufnr)
