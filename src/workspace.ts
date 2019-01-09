@@ -590,7 +590,6 @@ export class Workspace implements IWorkspace {
     let doc = this.getDocument(uri)
     let col = character + 1
     if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
-    let cmd = `+call\\ cursor(${line + 1},${col})`
     let u = Uri.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
     await nvim.command(`normal! m'`)
@@ -599,12 +598,14 @@ export class Workspace implements IWorkspace {
     if (bufnr == this.bufnr) {
       await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
-      nvim.command(`buffer ${cmd} ${bufnr}`, true)
+      await nvim.command(`buffer ${bufnr}`)
+      await nvim.call('cursor', [line + 1, col])
     } else {
       let cwd = await nvim.call('getcwd')
       let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
-      await nvim.command(`${jumpCommand} ${cmd} ${file}`)
+      await nvim.command(`${jumpCommand} ${file}`)
+      await nvim.call('cursor', [line + 1, col])
     }
   }
 
