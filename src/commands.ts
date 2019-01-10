@@ -5,7 +5,6 @@ import { wait } from './util'
 import workspace from './workspace'
 import snipetsManager from './snippets/manager'
 import { comparePosition } from './util/position'
-import { byteLength } from './util/string'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -51,11 +50,14 @@ export class CommandManager implements Disposable {
         if (!doc) return
         await doc.patchChange()
         let { start, end } = edit.range
+        let visible = await nvim.call('pumvisible')
+        if (visible) {
+          await nvim.eval('feedkeys("\\<C-y>", "in")')
+          await wait(30)
+        }
         if (comparePosition(start, end) != 0) {
           doc.applyEdits(nvim, [{ range: edit.range, newText: '' }], false)
         }
-        let visible = await nvim.call('pumvisible')
-        if (visible) await nvim.call('coc#_select')
         let { mode } = await nvim.mode
         if (!mode.startsWith('i')) nvim.command('startinsert', true)
         await workspace.moveTo(start)
