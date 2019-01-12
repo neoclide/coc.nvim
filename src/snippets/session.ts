@@ -1,14 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions } from 'jsonc-parser'
-import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit, Position } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { Emitter, Event, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { wait } from '../util'
-import { positionInRange, rangeInRange, comparePosition } from '../util/position'
+import { comparePosition, positionInRange } from '../util/position'
+import { byteLength } from '../util/string'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
-import { byteLength } from '../util/string'
 const logger = require('../util/logger')('snippets-session')
 
 export class SnippetSession {
@@ -18,7 +17,6 @@ export class SnippetSession {
   private version: number
   private _snippet: CocSnippet = null
   private _onCancelEvent = new Emitter<void>()
-  private _preferComplete = false
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
@@ -48,6 +46,7 @@ export class SnippetSession {
       await workspace.moveTo(placeholder.range.start)
       return this._isActive
     }
+    this.version = document.version
     await document.applyEdits(nvim, [edit])
     if (this._isActive) {
       // insert check
@@ -62,8 +61,6 @@ export class SnippetSession {
         return true
       }
     }
-    let config = workspace.getConfiguration('coc.preferences')
-    this._preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
     // new snippet
     this._snippet = snippet
     this._currId = snippet.firstPlaceholder.id
@@ -158,39 +155,61 @@ export class SnippetSession {
     const len = end.character - start.character
     const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
     this._currId = placeholder.id
-    let mode = await nvim.call('mode')
-    if (workspace.isNvim && mode == 's') {
-      await nvim.call('feedkeys', [String.fromCharCode(27), 'int'])
-    }
-    if (len > 0 && mode.startsWith('i')) {
-      await nvim.command('stopinsert')
-    } else if (len == 0 && !mode.startsWith('i')) {
-      if (workspace.isVim) {
-        nvim.command('startinsert', true)
-      } else {
-        nvim.call('feedkeys', ['i', 'int'], true)
-      }
-    }
     if (placeholder.choice) {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
-      if (len == 0) {
-        await workspace.moveTo(start)
-      } else {
-        await nvim.call('coc#snippet#range_select', [start.line + 1, col, len])
-      }
+      await this.select(placeholder.range)
     }
-    if (workspace.isVim) nvim.command('redraw', true)
+  }
+
+  private async select(range: Range): Promise<void> {
+    let { document, nvim } = this
+    let { start, end } = range
+    let { textDocument } = document
+    let len = textDocument.offsetAt(end) - textDocument.offsetAt(start)
+    let line = document.getline(start.line)
+    let endLine = document.getline(end.line)
+    let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
+    let col = line ? byteLength(line.slice(0, start.character)) : 0
+    let ve = await nvim.getOption('virtualedit')
+    let selection = await nvim.getOption('selection')
+    let mode = await nvim.call('mode') as string
+    let resetVirtualEdit = false
+    if (ve != 'onemore') {
+      resetVirtualEdit = true
+      await nvim.setOption('virtualedit', 'onemore')
+    }
+    await nvim.call('cursor', [start.line + 1, col + 1])
+    let move_cmd = ''
+    if (mode != 'n') move_cmd += "\\<Esc>"
+    if (len == 0) {
+      if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {
+        move_cmd += 'i'
+      } else {
+        move_cmd += 'a'
+      }
+    } else {
+      move_cmd += 'v'
+      if (selection == 'inclusive') {
+        if (end.character == 0) {
+          move_cmd += `${end.line}G`
+        } else {
+          move_cmd += `${end.line + 1}G${endCol}|`
+        }
+      } else if (selection == 'old') {
+        move_cmd += `${end.line + 1}G${endCol}|`
+      } else {
+        move_cmd += `${end.line + 1}G${endCol + 1}|`
+      }
+      move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
+    }
+    logger.debug('move:', move_cmd)
+    await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
+    if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
   }
 
   private async documentSynchronize(): Promise<void> {
     if (!this.isActive) return
-    let visible = await this.nvim.call('pumvisible')
-    if (visible) {
-      await this.nvim.call('coc#_select', [])
-      if (this._preferComplete) return
-      await wait(40)
-    }
     await this.document.patchChange()
     if (this.document.dirty) {
       this.document.forceSync()
@@ -209,9 +228,7 @@ export class SnippetSession {
 
   public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
     if (!this.snippet) return null
-    let { placeholder } = this
-    if (!placeholder || !rangeInRange(range, placeholder.range)) return null
-    return placeholder
+    return this.snippet.getPlaceholderByRange(range) || null
   }
 
   public get placeholder(): CocSnippetPlaceholder {

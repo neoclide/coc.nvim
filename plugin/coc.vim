@@ -132,21 +132,19 @@ function! s:Enable()
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
+    autocmd FocusGained         * call s:Autocmd('FocusGained')
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
+    autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
 
-  " same behaviour of ultisnips
-  if get(g:, 'coc_selectmode_mapping', 1) && !get(g:, 'did_plugin_ultisnips', 0)
-    snoremap <silent> <BS> <c-g>c
-    snoremap <silent> <DEL> <c-g>c
-    snoremap <silent> <c-h> <c-g>c
-    snoremap <c-r> <c-g>"_c<c-r>
-  endif
-
-  command! -nargs=0 CocDisable :call s:Disable()
-  command! -nargs=0 CocEnable  :call s:Enable()
-  command! -nargs=0 CocOpenLog :call coc#rpc#notify('openLog', [])
-  command! -nargs=0 CocInfo    :call coc#rpc#notify('showInfo', [])
+  command! -nargs=0 CocDisable    :call s:Disable()
+  command! -nargs=0 CocEnable     :call s:Enable()
+  command! -nargs=0 CocOpenLog    :call coc#rpc#notify('openLog',  [])
+  command! -nargs=0 CocInfo       :call coc#rpc#notify('showInfo', [])
+  command! -nargs=0 CocListResume :call coc#rpc#notify('listResume', [])
+  command! -nargs=0 CocPrev       :call coc#rpc#notify('listPrev', [])
+  command! -nargs=0 CocNext       :call coc#rpc#notify('listNext', [])
+  command! -nargs=+ -complete=custom,coc#list#options  CocList    :call coc#rpc#notify('openList', [<f-args>])
   command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
   command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction

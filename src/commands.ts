@@ -48,16 +48,11 @@ export class CommandManager implements Disposable {
       execute: async (edit: TextEdit) => {
         let doc = workspace.getDocument(workspace.bufnr)
         if (!doc) return
-        let mode = await nvim.call('mode')
-        if (!mode.startsWith('i')) nvim.command('startinsert', true)
         let { start, end } = edit.range
-        await doc.patchChange()
-        if (doc.dirty) {
-          await doc.forceSync()
-          await wait(40)
-        }
         if (comparePosition(start, end) != 0) {
-          doc.applyEdits(nvim, [{ range: edit.range, newText: '' }], false)
+          await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }])
+        } else if (doc.dirty) {
+          await doc.forceSync()
         }
         await nvim.call('cursor', [start.line + 1, start.character + 1])
         await snipetsManager.insertSnippet(edit.newText)

@@ -15,6 +15,11 @@ export class SnippetManager implements types.SnippetManager {
     workspace.ready.then(() => {
       this.statusItem = workspace.createStatusBarItem(0)
       this.statusItem.text = 'SNIP'
+      let config = workspace.getConfiguration('coc.preferences')
+      let preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+      if (preferComplete) {
+        workspace.nvim.setVar('coc_prefer_complete', 1, true)
+      }
     })
 
     workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {

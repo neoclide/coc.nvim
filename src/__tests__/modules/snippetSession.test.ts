@@ -132,6 +132,18 @@ describe('SnippetSession#start', () => {
     expect(snippet.toString()).toBe('foo bara b')
   })
 
+  it('should jump to nested snippet placeholder', async () => {
+    let buf = await helper.edit()
+    let session = new SnippetSession(nvim, buf.id)
+    await session.start('${1} ${2:b}', false)
+    await session.start('${1:foo} ${2:bar}')
+    await session.nextPlaceholder()
+    await session.nextPlaceholder()
+    await session.nextPlaceholder()
+    let pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 8 })
+  })
+
   it('should start nest snippet without select', async () => {
     let buf = await helper.edit()
     await nvim.command('startinsert')
@@ -150,16 +162,17 @@ describe('SnippetSession#start', () => {
 describe('SnippetSession#deactivate', () => {
 
   it('should deactivate on invalid change', async () => {
-    let buf = await helper.edit()
+    let doc = await helper.createDocument()
     await nvim.input('i')
-    let session = new SnippetSession(nvim, buf.id)
+    let session = new SnippetSession(nvim, doc.bufnr)
     let res = await session.start('${1:a}bc')
     expect(res).toBe(true)
-    await nvim.command('execute "normal! d2l"')
-    await session.synchronizeUpdatedPlaceholders({
+    let edit = {
       range: Range.create(0, 0, 0, 2),
-      text: ''
-    })
+      newText: ''
+    }
+    await doc.applyEdits(nvim, [edit])
+    await session.synchronizeUpdatedPlaceholders({ range: edit.range, text: edit.newText })
     expect(session.isActive).toBe(false)
   })
 
@@ -286,7 +299,10 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
     let session = new SnippetSession(nvim, buf.id)
     await session.start('a${1:b}c')
     let doc = await workspace.document
-      ; (doc as any)._changedtick = 999
+    await doc.applyEdits(nvim, [{
+      range: Range.create(0, 0, 0, 1),
+      newText: ''
+    }])
     await session.synchronizeUpdatedPlaceholders({
       range: Range.create(0, 0, 0, 1),
       text: ''

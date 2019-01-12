@@ -554,9 +554,11 @@ class Languages {
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
     if (isSnippet) {
-      await nvim.call('coc#util#setline', [linenr, `${start}${end}`])
       let doc = workspace.getDocument(bufnr)
-      await doc.patchChange()
+      await doc.applyEdits(nvim, [{
+        range: Range.create(linenr - 1, 0, linenr, 0),
+        newText: `${start}${end}\n`
+      }])
       // can't select, since additionalTextEdits would break selection
       return await snippetManager.insertSnippet(newText, false, Position.create(linenr - 1, range.start.character))
     }

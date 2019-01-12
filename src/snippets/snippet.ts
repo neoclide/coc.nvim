@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { comparePosition, isSingleLine } from '../util/position'
+import { comparePosition, isSingleLine, rangeInRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -70,10 +70,11 @@ export class CocSnippet {
   }
 
   public get range(): Range {
-    let end = this._placeholders.reduce((pos, p) => {
-      return comparePosition(p.range.end, pos) > 0 ? p.range.end : pos
-    }, this.position)
-    return Range.create(this.position, end)
+    let { position } = this
+    let content = this.toString()
+    const doc = TextDocument.create('untitled:/1', 'snippet', 0, content)
+    let pos = doc.positionAt(content.length)
+    return Range.create(position, Position.create(position.line + pos.line, position.character + pos.character))
   }
 
   public get firstPlaceholder(): CocSnippetPlaceholder | null {
@@ -109,6 +110,12 @@ export class CocSnippet {
 
   public get finalPlaceholder(): CocSnippetPlaceholder {
     return this._placeholders.find(o => o.isFinalTabstop)
+  }
+
+  public getPlaceholderByRange(range: Range): CocSnippetPlaceholder {
+    return this._placeholders.find(o => {
+      return rangeInRange(range, o.range)
+    })
   }
 
   public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, position: Position): number {
