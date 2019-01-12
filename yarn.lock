@@ -16,10 +16,10 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@chemzqm/neovim@^4.3.40":
-  version "4.3.40"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.40.tgz#8807826d417058d81889dbd55e2a557ac2ad8162"
-  integrity sha512-OPX84pEBF7yRr5l+Yq3dAjoxoOkAOWT3+VTNvPl/DVS93wHyJoO70g/LFajBHQfIi4ri6aL6rKC0vwQ8VH1W+Q==
+"@chemzqm/neovim@^4.3.41":
+  version "4.3.41"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.41.tgz#8b05ad60dd138d96f049905fe86d22f0e1eaa80e"
+  integrity sha512-d3Yq23LyCM5macFkrl2ILgmW93FX2E0CYaCYtYh1/pwubMPdjtLzpL5i18nuWtA3oKRibKBTHJg1RAVP3tCZ1w==
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -3185,10 +3185,10 @@ tslint-react@^3.2.0:
   dependencies:
     tsutils "^2.13.1"
 
-tslint@^5.12.0:
-  version "5.12.0"
-  resolved "https://registry.yarnpkg.com/tslint/-/tslint-5.12.0.tgz#47f2dba291ed3d580752d109866fb640768fca36"
-  integrity sha512-CKEcH1MHUBhoV43SA/Jmy1l24HJJgI0eyLbBNSRyFlsQvb9v6Zdq+Nz2vEOH00nC5SUx4SneJ59PZUS/ARcokQ==
+tslint@^5.12.1:
+  version "5.12.1"
+  resolved "https://registry.yarnpkg.com/tslint/-/tslint-5.12.1.tgz#8cec9d454cf8a1de9b0a26d7bdbad6de362e52c1"
+  integrity sha512-sfodBHOucFg6egff8d1BvuofoOQ/nOeYNfbp7LDlKBcLNrL3lmS5zoiDGyOMdT7YsEXAwWpTdAHwOGOc8eRZAw==
   dependencies:
     babel-code-frame "^6.22.0"
     builtin-modules "^1.1.1"

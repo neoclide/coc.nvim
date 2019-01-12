@@ -60,8 +60,6 @@ export default class BufferChannel implements OutputChannel {
         start: 0,
         end: -1,
         strictIndexing: false
-      }).catch(_e => {
-        // noop
       })
     }
   }
