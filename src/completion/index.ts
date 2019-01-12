@@ -34,6 +34,7 @@ export class Completion implements Disposable {
   private changedTick = 0
   private currIndex = 0
   private insertCharTs = 0
+  private lastConfirmWord = ''
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
@@ -111,6 +112,7 @@ export class Completion implements Disposable {
     this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
     // stop change emit on completion
     increment.on('start', () => {
+      this.lastConfirmWord = ''
       let noselect = this.preferences.get<boolean>('noselect')
       this.currIndex = noselect ? 0 : 1
       this.changedTick = 0
@@ -317,6 +319,7 @@ export class Completion implements Disposable {
       let search = await this.getResumeInput()
       if (search == input || !increment.isActivted) return
       if (search == null
+        || search == this.lastConfirmWord
         || search.endsWith(' ')
         || search.length < this.option.input.length) {
         increment.stop()
@@ -340,6 +343,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { increment, document, nvim } = this
+    this.lastConfirmWord = item.word || ''
     if (!this.isActivted || !document) return
     item = this._completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     if (!item) return
