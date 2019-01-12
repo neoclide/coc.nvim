@@ -52,7 +52,7 @@ export class CommandManager implements Disposable {
         if (comparePosition(start, end) != 0) {
           await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }])
         } else if (doc.dirty) {
-          await doc.forceSync()
+          doc.forceSync()
         }
         await nvim.call('cursor', [start.line + 1, start.character + 1])
         await snipetsManager.insertSnippet(edit.newText)
