@@ -32,9 +32,12 @@ export class DiagnosticManager {
   private enableMessage = true
   private timer: NodeJS.Timer
   private lastMessage = ''
+  private insertMode = false
   constructor() {
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(async () => {
+      let mode = await this.nvim.call('mode') as string
+      this.insertMode = mode.startsWith('i')
       await this.setConfiguration()
       await this.init()
     })
@@ -46,10 +49,12 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
+      this.insertMode = true
       if (this.timer) clearTimeout(this.timer)
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
+      this.insertMode = false
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
@@ -418,7 +423,8 @@ export class DiagnosticManager {
   }
 
   private refreshBuffer(uri: string): boolean {
-    let { displayByAle } = this.config
+    // vim has issue with diagnostic update
+    if (workspace.isVim && this.insertMode) return
     let buf = this.buffers.find(buf => buf.uri == uri)
     if (buf) {
       let items = this.getBufferDiagnostic(uri)
@@ -426,6 +432,7 @@ export class DiagnosticManager {
         buf.refresh(items)
         return true
       }
+      let { displayByAle } = this.config
       if (displayByAle) {
         Object.keys(items).forEach(key => {
           let diagnostics = items[key]
