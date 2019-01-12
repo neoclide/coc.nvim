@@ -295,7 +295,6 @@ export default class Document {
 
   public async applyEdits(nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
-    await this._fetchContent(true)
     let orig = this.lines.join('\n')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig + (this.eol ? '\n' : ''))
     let content = TextDocument.applyEdits(textDocument, edits)
@@ -324,12 +323,12 @@ export default class Document {
         strictIndexing: false
       })
     }
+    // can't wait vim sync buffer
+    this.lines = content.split(/\r?\n/)
     if (sync) this.forceSync()
   }
 
   public forceSync(ignorePause = true): void {
-    this.fetchContent.clear()
-    this._fetchContent(ignorePause)
     this._fireContentChanges.clear()
     this.fireContentChanges(ignorePause)
   }
