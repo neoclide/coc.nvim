@@ -6,7 +6,11 @@ let s:watched_keys = []
 let s:is_vim = !has('nvim')
 
 function! coc#refresh() abort
-    return pumvisible() ? "\<c-e>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
+    return pumvisible() ? "\<c-y>\<c-r>=coc#start(1)\<CR>" : "\<c-r>=coc#start()\<CR>"
+endfunction
+
+function! coc#_insert_key(method, key) abort
+  return pumvisible() ? "\<c-y>\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>" : "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
 function! coc#_complete() abort

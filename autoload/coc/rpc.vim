@@ -68,8 +68,9 @@ function! coc#rpc#request(method, args) abort
 endfunction
 
 function! coc#rpc#notify(method, args) abort
-  if empty(s:client) | return | endif
+  if empty(s:client) | return '' | endif
   call s:client['notify'](a:method, a:args)
+  return ''
 endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort

@@ -610,19 +610,11 @@ export class Workspace implements IWorkspace {
 
   public async moveTo(position: Position): Promise<void> {
     let { nvim } = this
-    let mode = await nvim.call('mode')
     let doc = this.getDocument(this.bufnr)
     if (doc) await doc.patchChange()
     let line = doc ? doc.getline(position.line) : ''
     let col = line ? byteLength(line.slice(0, position.character)) + 1 : position.character + 1
-    if (mode.startsWith('i')) {
-      let virtualedit = await nvim.getOption('virtualedit')
-      await nvim.setOption('virtualedit', 'onemore')
-      await nvim.call('cursor', [position.line + 1, col])
-      await nvim.setOption('virtualedit', virtualedit)
-    } else {
-      await nvim.call('cursor', [position.line + 1, col])
-    }
+    await nvim.call('cursor', [position.line + 1, col])
   }
 
   public async createFile(filepath: string, opts: CreateFileOptions = {}): Promise<void> {
@@ -826,7 +818,7 @@ export class Workspace implements IWorkspace {
     let method = sync ? 'request' : 'notify'
     for (let m of modes) {
       if (m == 'i') {
-        this.nvim.command(`imap <Plug>(coc-${key}) <C-R>=coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
+        this.nvim.command(`imap <silent><expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}')`, true)
       } else {
         let modify = this.isNvim ? '<Cmd>' : getKeymapModifier(m)
         this.nvim.command(`${m}map <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
@@ -844,7 +836,11 @@ export class Workspace implements IWorkspace {
     let id = uuid()
     let { nvim } = this
     this.keymaps.set(id, fn)
-    nvim.command(`${mode}noremap <expr> ${buffer ? '<buffer>' : ''} ${key} coc#rpc#request('doKeymap', ['${id}'])`, true)
+    if (mode == 'i') {
+      nvim.command(`inoremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#_insert_key('request', '${id}')`, true)
+    } else {
+      nvim.command(`${mode}noremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#rpc#request('doKeymap', ['${id}'])`, true)
+    }
     return Disposable.create(() => {
       this.keymaps.delete(id)
       nvim.command(`${mode}unmap ${buffer ? '<buffer>' : ''} ${key}`, true)
@@ -1140,7 +1136,6 @@ augroup end`
 
   private onDirChanged(cwd: string): void {
     if (cwd == this._cwd) return
-    process.chdir(cwd)
     this._cwd = cwd
   }
 
