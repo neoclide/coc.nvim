@@ -288,9 +288,11 @@ export class DiagnosticManager {
     }
     if (diagnostics.length == 0) {
       let echoLine = await this.nvim.call('coc#util#echo_line') as string
-      if (this.lastMessage == echoLine.trim()) {
+      if (this.lastMessage && this.lastMessage == echoLine.trim()) {
         this.nvim.command('echo ""', true)
+        this.nvim.command('redraw', true)
       }
+      this.lastMessage = ''
       return
     }
     let lines: string[] = []
