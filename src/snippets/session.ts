@@ -180,12 +180,9 @@ export class SnippetSession {
     let move_cmd = ''
     if (mode.startsWith('i')) {
       let pum = await nvim.call('pumvisible')
-      if (pum) {
-        if (this.preferComplete) {
-          await nvim.eval(`feedkeys("\\<C-y>", 'in')`)
-          return
-        }
-        move_cmd += '\\<C-y>'
+      if (pum && this.preferComplete) {
+        await nvim.eval(`feedkeys("\\<C-y>", 'in')`)
+        return
       }
     }
     let resetVirtualEdit = false
