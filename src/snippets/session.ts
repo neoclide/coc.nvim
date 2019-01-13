@@ -15,11 +15,14 @@ export class SnippetSession {
   private _currId = 0
   // Get state of line where we inserted
   private version: number
+  private preferComplete = false
   private _snippet: CocSnippet = null
   private _onCancelEvent = new Emitter<void>()
   public readonly onCancel: Event<void> = this._onCancelEvent.event
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
+    let config = workspace.getConfiguration('coc.preferences')
+    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
   }
 
   public async start(snippetString: string, select = true, position?: Position): Promise<boolean> {
@@ -174,13 +177,23 @@ export class SnippetSession {
     let ve = await nvim.getOption('virtualedit')
     let selection = await nvim.getOption('selection')
     let mode = await nvim.call('mode') as string
+    let move_cmd = ''
+    if (mode.startsWith('i')) {
+      let pum = await nvim.call('pumvisible')
+      if (pum) {
+        if (this.preferComplete) {
+          await nvim.eval(`feedkeys("\\<C-y>", 'in')`)
+          return
+        }
+        move_cmd += '\\<C-y>'
+      }
+    }
     let resetVirtualEdit = false
     if (ve != 'onemore') {
       resetVirtualEdit = true
       await nvim.setOption('virtualedit', 'onemore')
     }
     await nvim.call('cursor', [start.line + 1, col + 1])
-    let move_cmd = ''
     if (mode != 'n') move_cmd += "\\<Esc>"
     if (len == 0) {
       if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {

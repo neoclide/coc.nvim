@@ -219,6 +219,11 @@
       "default": "~",
       "description": "The characer used in abbr of complete item to indicate the item could be expand as snippet."
     },
+    "coc.preferences.snippetStatusText": {
+      "type": "string",
+      "default": "SNIP",
+      "description": "Text shown in statusline to indicate snippet session is activated."
+    },
     "coc.preferences.maxCompleteItemCount": {
       "type": "number",
       "default": 50,

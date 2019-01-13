@@ -13,13 +13,9 @@ export class SnippetManager implements types.SnippetManager {
   constructor() {
     // tslint:disable-next-line:no-floating-promises
     workspace.ready.then(() => {
-      this.statusItem = workspace.createStatusBarItem(0)
-      this.statusItem.text = 'SNIP'
       let config = workspace.getConfiguration('coc.preferences')
-      let preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
-      if (preferComplete) {
-        workspace.nvim.setVar('coc_prefer_complete', 1, true)
-      }
+      this.statusItem = workspace.createStatusBarItem(0)
+      this.statusItem.text = config.get<string>('snippetStatusText', 'SNIP')
     })
 
     workspace.onDidChangeTextDocument(async (e: DidChangeTextDocumentParams) => {

@@ -42,23 +42,16 @@ function! coc#snippet#show_choices(lnum, col, len, values) abort
   redraw
 endfunction
 
-function! coc#snippet#_expr(action)
-  if get(g:, 'coc_prefer_complete', 0)
-    return pumvisible() ? "\<c-y>" : "\<c-r>=coc#rpc#request('".a:action."', [])\<CR>"
-  endif
-  return pumvisible() ? "\<c-y>\<c-r>=coc#rpc#request('".a:action."', [])\<CR>" : "\<c-r>=coc#rpc#request('".a:action."', [])\<CR>"
-endfunction
-
 function! coc#snippet#enable()
   let b:coc_snippet_active = 1
   call coc#snippet#_select_mappings()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   nnoremap <buffer> <silent> <esc> :call coc#rpc#request('snippetCancel', [])<cr>
-  execute 'imap <buffer> <nowait><expr> <silent>'.prevkey." coc#snippet#_expr('snippetPrev')"
-  execute 'smap <buffer> <nowait> <silent>'.prevkey." <Esc>:call coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'imap <buffer> <nowait><expr> <silent>'.nextkey." coc#snippet#_expr('snippetNext')"
-  execute 'smap <buffer> <nowait> <silent>'.nextkey." <Esc>:call coc#rpc#request('snippetNext', [])<cr>"
+  execute 'imap <buffer><nowait><silent>'.prevkey." <C-R>=coc#rpc#request('snippetPrev', [])<cr>"
+  execute 'smap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#rpc#request('snippetPrev', [])<cr>"
+  execute 'imap <buffer><nowait><silent>'.nextkey." <C-R>=coc#rpc#request('snippetNext', [])<cr>"
+  execute 'smap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#rpc#request('snippetNext', [])<cr>"
 endfunction
 
 function! coc#snippet#disable()
