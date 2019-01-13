@@ -24,6 +24,7 @@ endfunction
 
 " hack method to avoid vim flicking
 function! coc#_reload()
+  if &paste | return | endif
   let items = get(g:coc#_context, 'candidates', [])
   if empty(items) | return '' | endif
   call feedkeys("\<Plug>_", 'i')
