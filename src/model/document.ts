@@ -89,7 +89,6 @@ export default class Document {
   }
 
   private generateWords(): void {
-    if (this.isIgnored) return
     let limit = this.configurations.get<number>('limitLines', 30000)
     let lines = this.lines.slice(0, limit)
     this._words = this.chars.matchKeywords(lines.join('\n'))
@@ -153,9 +152,8 @@ export default class Document {
     let config = this.configurations
     let hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
     if (hyphenAsKeyword) chars.addKeyword('-')
-    this.gitCheck().then(() => {
-      this.generateWords()
-    }, e => {
+    this.generateWords()
+    this.gitCheck().catch(e => {
       logger.error('git error', e.stack)
     })
   }
