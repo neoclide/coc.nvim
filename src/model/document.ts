@@ -68,6 +68,9 @@ export default class Document {
         }
       }
     })
+    this.gitCheck().catch(e => {
+      logger.error('git error', e.stack)
+    })
   }
 
   private shouldAttach(buftype: string): boolean {
@@ -147,15 +150,10 @@ export default class Document {
 
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
-    // normal buffer only
-    if (this.buftype !== '') return
     let config = this.configurations
     let hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
     if (hyphenAsKeyword) chars.addKeyword('-')
     this.generateWords()
-    this.gitCheck().catch(e => {
-      logger.error('git error', e.stack)
-    })
   }
 
   public async attach(): Promise<boolean> {
