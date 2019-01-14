@@ -52,7 +52,7 @@ export class Extensions {
 
   public async init(nvim: Neovim): Promise<void> {
     let root = this.root = await nvim.call('coc#util#extension_root')
-    this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, false)
+    this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, true)
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) {
       this._onReady.fire()
@@ -183,17 +183,21 @@ export class Extensions {
     this.activate(id)
   }
 
-  public async uninstallExtension(id: string): Promise<void> {
-    if (!this.isGlobalExtension(id)) {
-      workspace.showMessage(`Global extension '${id}' not found.`, 'error')
-      return
+  public async uninstallExtension(ids: string[]): Promise<void> {
+    for (let id of ids) {
+      if (!this.isGlobalExtension(id)) {
+        workspace.showMessage(`Global extension '${id}' not found.`, 'error')
+        return
+      }
+      this.deactivate(id)
     }
-    this.deactivate(id)
     await wait(100)
     try {
-      await workspace.runCommand(`yarn remove ${id}`, this.root)
-      this._onDidUnloadExtension.fire(id)
-      workspace.showMessage(`Extension ${id} removed`)
+      await workspace.runCommand(`yarn remove ${ids.join(' ')}`, this.root)
+      for (let id of ids) {
+        this._onDidUnloadExtension.fire(id)
+      }
+      workspace.showMessage(`Extensions ${ids.join(' ')} removed`)
     } catch (e) {
       workspace.showMessage(`Uninstall failed: ${e.message}`, 'error')
     }
@@ -241,10 +245,7 @@ export class Extensions {
   public async loadExtension(folder: string): Promise<void> {
     let jsonFile = path.join(folder, 'package.json')
     let stat = await statAsync(jsonFile)
-    if (!stat || !stat.isFile()) {
-      workspace.showMessage(`package.json not found in ${folder}`, 'error')
-      return
-    }
+    if (!stat || !stat.isFile()) return
     let content = await readFile(jsonFile, 'utf8')
     let packageJSON = JSON.parse(content)
     if (this.isActivted(packageJSON.name)) {

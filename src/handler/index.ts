@@ -539,7 +539,7 @@ export default class Handler {
         res.push(link)
       } else {
         link = await languages.resolveDocumentLink(link)
-        res.push()
+        res.push(link)
       }
     }
     return links

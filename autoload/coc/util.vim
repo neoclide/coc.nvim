@@ -19,6 +19,15 @@ elseif has('mac')
   let s:activate = 'activate'
 endif
 
+function! coc#util#has_preview()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, '&previewwindow')
+      return i
+    endif
+  endfor
+  return 0
+endfunction
+
 function! coc#util#version()
   let c = execute('version')
   return matchstr(c, 'NVIM v\zs[^\n-]*')
@@ -30,6 +39,11 @@ function! coc#util#valid_state()
     return line !~# 'Target key'
   endif
   return 1
+endfunction
+
+function! coc#util#open_file(cmd, file)
+  let file = fnameescape(a:file)
+  execute a:cmd .' '.file
 endfunction
 
 function! coc#util#platform()
@@ -45,7 +59,7 @@ endfunction
 function! coc#util#regist_extension(folder)
   if index(g:coc_local_extensions, a:folder) == -1
     call add(g:coc_local_extensions, a:folder)
-    if get(g:, 'coc_enabled', 0)
+    if get(g:, 'coc_service_initialized', 0)
       call coc#rpc#notify('registExtensions', [a:folder])
     endif
   endif
@@ -114,6 +128,12 @@ endfunction
 function! coc#util#echo_lines(lines)
   let msg = join(a:lines, "\n")
   echo msg
+endfunction
+
+function! coc#util#is_preview(bufnr)
+  let wnr = bufwinnr(a:bufnr)
+  if wnr == -1 | return 0 | endif
+  return getwinvar(wnr, '&previewwindow')
 endfunction
 
 function! coc#util#get_bufoptions(bufnr) abort

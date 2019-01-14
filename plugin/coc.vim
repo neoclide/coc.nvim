@@ -5,10 +5,13 @@ if has('nvim') && !has('nvim-0.3.0') | finish | endif
 if !has('nvim') && !has('patch-8.1.001') | finish | endif
 
 let g:did_coc_loaded = 1
+let g:coc_service_initialized = 0
 let s:is_vim = !has('nvim')
 
 if has('nvim')
-  call coc#rpc#start_server()
+  if get(g:, 'coc_start_at_startup', 1)
+    call coc#rpc#start_server()
+  endif
 endif
 
 function! CocAction(...) abort
@@ -83,10 +86,12 @@ function! s:Disable() abort
 endfunction
 
 function! s:Autocmd(...) abort
+  if !get(g:,'coc_workspace_initialized', 0) | return | endif
   call coc#rpc#notify('CocAutocmd', a:000)
 endfunction
 
 function! s:SyncAutocmd(...)
+  if !get(g:,'coc_workspace_initialized', 0) | return | endif
   call coc#rpc#request('CocAutocmd', a:000)
 endfunction
 
@@ -98,8 +103,8 @@ function! s:Enable()
 
   augroup coc_nvim
     autocmd!
-    if get(g:, 'coc_auto_copen', 1)
-      autocmd User CocQuickfixChange :copen
+    if get(g:,'coc_enable_locationlist', 1)
+      autocmd User CocLocationsChange CocList --normal location
     endif
     if s:is_vim
       autocmd DirChanged       * call s:Autocmd('DirChanged', expand('<afile>'))
@@ -136,29 +141,21 @@ function! s:Enable()
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
-
-  command! -nargs=0 CocDisable    :call s:Disable()
-  command! -nargs=0 CocEnable     :call s:Enable()
-  command! -nargs=0 CocOpenLog    :call coc#rpc#notify('openLog',  [])
-  command! -nargs=0 CocInfo       :call coc#rpc#notify('showInfo', [])
-  command! -nargs=0 CocListResume :call coc#rpc#notify('listResume', [])
-  command! -nargs=0 CocPrev       :call coc#rpc#notify('listPrev', [])
-  command! -nargs=0 CocNext       :call coc#rpc#notify('listNext', [])
-  command! -nargs=+ -complete=custom,coc#list#options  CocList    :call coc#rpc#notify('openList', [<f-args>])
-  command! -nargs=1 -complete=custom,s:ExtensionList  CocUninstall :call CocActionAsync('uninstallExtension', <f-args>)
-  command! -nargs=* -complete=custom,s:CommandList CocCommand :call CocActionAsync('runCommand', <f-args>)
 endfunction
 
-hi default CocUnderline   cterm=underline gui=underline
-hi default CocErrorSign   ctermfg=Red     guifg=#ff0000
-hi default CocWarningSign ctermfg=Brown   guifg=#ff922b
-hi default CocInfoSign    ctermfg=Yellow  guifg=#fab005
-hi default CocHintSign    ctermfg=Blue    guifg=#15aabf
-hi default CocCodeLens    ctermfg=Gray    guifg=#999999
+hi default CocUnderline    cterm=underline gui=underline
+hi default CocErrorSign    ctermfg=Red     guifg=#ff0000
+hi default CocWarningSign  ctermfg=Brown   guifg=#ff922b
+hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
+hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
+hi default CocSelectedText ctermfg=Red     guifg=#fb4934
+hi default CocCodeLens     ctermfg=Gray    guifg=#999999
 hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
+hi default link CocListMode ModeMsg
+hi default link CocListPath Comment
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText
@@ -184,9 +181,30 @@ function! s:OnVimEnter()
 endfunction
 
 function! s:OnInit()
-  call s:Enable()
+  let g:coc_service_initialized = 1
   let extensions = get(g:, 'coc_local_extensions', [])
   call coc#rpc#notify('registExtensions', extensions)
+endfunction
+
+function! s:Notification(name, args)
+  if get(g:, 'coc_service_initialized', 0)
+    call coc#rpc#notify(a:name, a:args)
+    return
+  endif
+  let name = a:name
+  let args = a:args
+  let c = 0
+  while 1
+    let c = c + 1
+    if get(g:, 'coc_service_initialized', 0)
+      call coc#rpc#notify(name, args)
+      break
+    endif
+    if c == 50
+      echohl Error | echon '[coc.nvim] service not started' | echohl None
+    endif
+    sleep 100m
+  endw
 endfunction
 
 augroup coc_init
@@ -194,15 +212,31 @@ augroup coc_init
   autocmd User     CocNvimInit call s:OnInit()
   autocmd VimEnter *           call s:OnVimEnter()
   if s:is_vim
-    autocmd User NvimRpcInit call coc#rpc#start_server()
+    autocmd User NvimRpcInit
+         \ if get(g:, 'coc_start_at_startup', 1)
+         \|   call coc#rpc#start_server()
+         \| endif
   endif
 augroup end
 
-command! -nargs=0 CocConfig    :call s:OpenConfig()
-command! -nargs=0 CocRestart   :call coc#rpc#restart()
-command! -nargs=+ CocInstall   :call coc#util#install_extension(<q-args>)
-command! -nargs=0 CocUpdate    :call coc#util#update()
-command! -nargs=0 CocRebuild   :call coc#util#rebuild()
+command! -nargs=0 CocOpenLog    :call s:Notification('openLog',  [])
+command! -nargs=0 CocInfo       :call s:Notification('showInfo', [])
+command! -nargs=0 CocListResume :call s:Notification('listResume', [])
+command! -nargs=0 CocPrev       :call s:Notification('listPrev', [])
+command! -nargs=0 CocNext       :call s:Notification('listNext', [])
+command! -nargs=0 CocDisable    :call s:Disable()
+command! -nargs=0 CocEnable     :call s:Enable()
+command! -nargs=0 CocConfig     :call s:OpenConfig()
+command! -nargs=0 CocRestart    :call coc#rpc#restart()
+command! -nargs=0 CocStart      :call coc#rpc#start_server()
+command! -nargs=+ CocInstall    :call coc#util#install_extension(<q-args>)
+command! -nargs=0 CocUpdate     :call coc#util#update()
+command! -nargs=0 CocRebuild    :call coc#util#rebuild()
+command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:Notification('openList', [<f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:Notification('CocAction', ['uninstallExtension', <f-args>])
+command! -nargs=* -complete=custom,s:CommandList CocCommand :call s:Notification('CocAction', ['runCommand', <f-args>])
+
+call s:Enable()
 
 nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)     :<C-u>call CocActionAsync('formatSelected', visualmode())<CR>

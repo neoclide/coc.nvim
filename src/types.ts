@@ -1,12 +1,12 @@
-import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, CreateFileOptions, RenameFileOptions, DeleteFileOptions, CompletionTriggerKind } from 'vscode-languageserver-protocol'
+import { Neovim, Window } from '@chemzqm/neovim'
+import log4js from 'log4js'
+import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range } from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import Configurations from './configuration'
+import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import { LanguageClient } from './language-client'
-import Uri from 'vscode-uri'
-import log4js from 'log4js'
-import { TextDocumentContentProvider } from './provider'
-import Configurations from './configuration'
+import { TextDocumentContentProvider, ProviderResult } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
@@ -166,6 +166,7 @@ export interface LocationListItem {
 }
 
 export interface QuickfixItem {
+  uri?: string
   filename?: string
   bufnr?: number
   lnum: number
@@ -212,6 +213,7 @@ export interface DiagnosticItem {
   message: string
   severity: string
   level: number
+  location: Location
 }
 
 // Config property of source
@@ -441,6 +443,67 @@ export interface IServiceProvider {
   stop(): Promise<void> | void
   restart(): Promise<void> | void
   onServiceReady: Event<void>
+}
+
+export interface ListItem {
+  label: string
+  filterText?: string
+  location?: Location
+  data?: any
+  recentScore?: number
+}
+
+export type ListMode = 'normal' | 'insert'
+
+export type Matcher = 'strict' | 'fuzzy' | 'regex'
+
+export interface ListOptions {
+  position: string
+  input: string
+  ignorecase: boolean
+  interactive: boolean
+  sort: boolean
+  mode: ListMode
+  matcher: Matcher
+  autoPreview: boolean
+  numberSelect: boolean
+}
+
+export interface ListContext {
+  args: string[]
+  input: string
+  cwd: string
+  options: ListOptions
+  window: Window
+  listWindow: Window
+}
+
+export interface ListAction {
+  name: string
+  persist?: boolean
+  reload?: boolean
+  parallel?: boolean
+  execute: (item: ListItem, context: ListContext) => ProviderResult<void>
+}
+
+export interface ListTask {
+  on(event: 'data', callback: (item: ListItem) => void)
+  on(event: 'end', callback: () => void)
+  dispose()
+}
+
+export interface IList {
+  name: string
+  // parse ansi codes form label
+  ansi?: boolean
+  // support interactive mode
+  interactive?: boolean
+  description?: string
+  defaultAction: string
+  actions: ListAction[]
+  loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
+  doHighlight(): void
+  dispose(): void
 }
 
 export interface ISource {

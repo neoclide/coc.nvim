@@ -68,9 +68,6 @@ export default class Document {
         }
       }
     })
-    this.gitCheck().catch(e => {
-      logger.error('git error', e.stack)
-    })
   }
 
   private shouldAttach(buftype: string): boolean {
@@ -145,6 +142,9 @@ export default class Document {
     this._filetype = convertFiletype(opts.filetype, this.env.filetypeMap)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
+    this.gitCheck().catch(e => {
+      logger.error('git error', e.stack)
+    })
     return true
   }
 
