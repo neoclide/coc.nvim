@@ -1,4 +1,4 @@
-import { getContentChanges, diffLines } from '../../util/diff'
+import { getContentChanges, patchLine, diffLines } from '../../util/diff'
 import { TextDocument } from 'vscode-languageserver-types'
 
 describe('diff lines', () => {
@@ -32,6 +32,14 @@ describe('diff lines', () => {
       end: 4,
       replacement: []
     })
+  })
+})
+
+describe('patch line', () => {
+  it('should patch line', () => {
+    let res = patchLine('foo', 'bar foo bar')
+    expect(res.length).toBe(11)
+    expect(res).toBe('\b\b\b\bfoo\b\b\b\b')
   })
 })
 

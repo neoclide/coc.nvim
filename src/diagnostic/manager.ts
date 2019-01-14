@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, Disposable, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument, Location } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -253,7 +253,8 @@ export class DiagnosticManager {
             col: start.character + 1,
             message: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
             severity: getSeverityName(diagnostic.severity),
-            level: diagnostic.severity || 0
+            level: diagnostic.severity || 0,
+            location: Location.create(uri, diagnostic.range)
           }
           res.push(o)
         }

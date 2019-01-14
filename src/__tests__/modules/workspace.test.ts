@@ -3,15 +3,14 @@ import fs from 'fs'
 import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
-import URI from 'vscode-uri'
+import { default as URI, default as Uri } from 'vscode-uri'
+import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
-import { ErrorItem, ConfigurationTarget } from '../../types'
+import { ConfigurationTarget } from '../../types'
 import { disposeAll } from '../../util'
 import { readFile, writeFile } from '../../util/fs'
 import workspace from '../../workspace'
-import events from '../../events'
 import helper, { createTmpFile } from '../helper'
-import Uri from 'vscode-uri'
 
 let nvim: Neovim
 let disposables: Disposable[] = []
@@ -554,6 +553,14 @@ describe('workspace utility', () => {
     expect(pos[2]).toBe(2)
   })
 
+  it('should jump without position', async () => {
+    let uri = URI.file('/tmp/foo').toString()
+    await workspace.jumpTo(uri)
+    let buf = await nvim.buffer
+    let name = await buf.name
+    expect(name).toMatch('/foo')
+  })
+
   it('should jumpTo custom uri scheme', async () => {
     let uri = 'jdt://foo'
     await workspace.jumpTo(uri, { line: 1, character: 1 })
@@ -817,17 +824,6 @@ describe('workspace private', () => {
     await nvim.call('coc#_hide')
     await helper.wait(100)
     expect(doc.getline(0)).toMatch('abcdef')
-  })
-
-  it('should show errors', async () => {
-    let errors: ErrorItem[] = []
-    errors.push({
-      location: Location.create('/tmp/foo', Range.create(0, 0, 0, 0)),
-      message: 'error'
-    })
-    await (workspace as any).showErrors(errors)
-    let res = await nvim.call('getqflist') as any
-    expect(res.length).toBe(1)
   })
 })
 

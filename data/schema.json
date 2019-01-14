@@ -369,11 +369,6 @@
       "default": "more",
       "enum": ["more", "warning", "error"]
     },
-    "coc.preferences.useQuickfixForLocations": {
-      "type": "boolean",
-      "description": "Use quickfix list for locations when there're more than one location, default: true",
-      "default": true
-    },
     "coc.preferences.formatOnType": {
       "type": "boolean",
       "description": "Set to true to enable format on type",
@@ -523,6 +518,61 @@
       "items": {
         "type": "string"
       }
+    },
+    "list.indicator": {
+      "type": "string",
+      "default": ">",
+      "description": "The characer used as first characer in prompt line"
+    },
+    "list.maxHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Maxmium height of list window."
+    },
+    "list.signOffset": {
+      "type": "number",
+      "default": 900,
+      "description": "Sign offset of list, should be different from other plugins."
+    },
+    "list.selectedSignText": {
+      "type": "string",
+      "default": "*",
+      "description": "Sign text for selected lines."
+    },
+    "list.autoResize": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto resize feature."
+    },
+    "list.limitLines": {
+      "type": "number",
+      "default": 3000,
+      "description": "Limit lines for list buffer."
+    },
+    "list.autoPreview": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto preview feature."
+    },
+    "list.nextKeymap": {
+      "type": "string",
+      "default": "<C-j>",
+      "description": "Key used for select next line on insert mode."
+    },
+    "list.previousKeymap": {
+      "type": "string",
+      "default": "<C-k>",
+      "description": "Key used for select previous line on insert mode."
+    },
+    "list.normalMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on normal mode."
+    },
+    "list.insertMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on insert mode."
     },
     "http.proxy": {
       "type": "string",

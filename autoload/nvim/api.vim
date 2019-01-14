@@ -6,6 +6,14 @@ set cpo&vim
 
 let s:funcs = {}
 
+pyx << EOF
+def find(f, seq):
+  for item in seq:
+    if f(item):
+      return item
+  return None
+EOF
+
 function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
@@ -297,13 +305,6 @@ EOF
 endfunction
 
 function! nvim#api#func_names() abort
-pyx << EOF
-def find(f, seq):
-  for item in seq:
-    if f(item):
-      return item
-  return None
-EOF
   return keys(s:funcs)
 endfunction
 

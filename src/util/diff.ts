@@ -1,6 +1,7 @@
 import fastDiff from 'fast-diff'
 import { Range, TextDocument, TextDocumentContentChangeEvent } from 'vscode-languageserver-protocol'
 import { ChangedLines } from '../types'
+import { byteLength } from './string'
 const logger = require('./logger')('util-diff')
 
 interface Change {
@@ -123,4 +124,23 @@ export function getContentChanges(document: TextDocument, content: string): Text
     }
   }
   return edits
+}
+
+export function patchLine(from: string, to: string, fill = ' ') {
+  if (from == to) return to
+  let idx = to.indexOf(from)
+  if (idx !== -1) return fill.repeat(idx) + from
+  let result = fastDiff(from, to)
+  let str = ''
+  for (let item of result) {
+    if (item[0] == fastDiff.DELETE) {
+      // not allowed
+      return to
+    } else if (item[0] == fastDiff.INSERT) {
+      str = str + fill.repeat(byteLength(item[1]))
+    } else {
+      str = str + item[1]
+    }
+  }
+  return str
 }
