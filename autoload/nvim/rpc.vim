@@ -42,14 +42,17 @@ function! s:on_notify(channel, result)
   endif
 endfunction
 
-function! s:on_exit(channel)
+function! s:on_exit(job, status)
+  if !get(g:, 'coc_vim_leaving', 0) && a:status != 0
+    echohl Error | echom 'vim-node-rpc exited with code: '.a:status | echohl None
+  endif
   let s:channel = v:null
-  doautocmd User NvimRpcExit
+  silent doautocmd User NvimRpcExit
 endfunction
 
 function! nvim#rpc#get_command() abort
   let folder = get(g:, 'vim_node_rpc_folder', '')
-  let file = empty(folder) ? '' : folder . '/lib/index.js'
+  let file = empty(folder) ? '' : expand(folder) . '/lib/index.js'
   if empty(file) && executable('yarn')
     let dir = expand('~').'/.config/yarn/global'
     if s:is_win
@@ -103,7 +106,7 @@ function! nvim#rpc#start_server() abort
         \ 'err_mode': 'nl',
         \ 'callback': function('s:on_notify'),
         \ 'err_cb': function('s:on_error'),
-        \ 'close_cb': function('s:on_exit'),
+        \ 'exit_cb': function('s:on_exit'),
         \ 'timeout': 3000,
         \ 'env': {
         \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS
