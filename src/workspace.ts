@@ -439,6 +439,7 @@ export class Workspace implements IWorkspace {
     let bufnr = await nvim.call('bufnr', bufname)
     text = text ? text : await this.getLine(uri, line)
     let item: QuickfixItem = {
+      uri,
       filename: bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname,
       lnum: line + 1,
       col: character + 1,
@@ -454,15 +455,8 @@ export class Workspace implements IWorkspace {
       return this.getQuickfixItem(loc)
     }))
     let { nvim } = this
-    let config = this.getConfiguration('coc.preferences')
-    let enableQuickfix = config.get<boolean>('useQuickfixForLocations', true)
-    if (enableQuickfix) {
-      await nvim.call('setqflist', [[], ' ', { title: 'Results of coc', items }])
-      await nvim.command('doautocmd User CocQuickfixChange')
-    } else {
-      await nvim.setVar('coc_jump_locations', items)
-      await nvim.command('doautocmd User CocLocationsChange')
-    }
+    await nvim.setVar('coc_jump_locations', items)
+    await nvim.command('doautocmd User CocLocationsChange')
   }
 
   public async getLine(uri: string, line: number): Promise<string> {
@@ -583,11 +577,11 @@ export class Workspace implements IWorkspace {
     return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name)
   }
 
-  public async jumpTo(uri: string, position: Position, openCommand?: string): Promise<void> {
+  public async jumpTo(uri: string, position?: Position | null, openCommand?: string): Promise<void> {
     const preferences = this.getConfiguration('coc.preferences')
     let jumpCommand = openCommand || preferences.get<string>('jumpCommand', 'edit')
     let { nvim } = this
-    let { line, character } = position
+    let { line, character } = position || { line: 0, character: 0 }
     let doc = this.getDocument(uri)
     let col = character + 1
     if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
@@ -596,15 +590,17 @@ export class Workspace implements IWorkspace {
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
     let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)
-    if (bufnr == this.bufnr) {
+    if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
       await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
-      await nvim.command(`buffer ${bufnr} | exe ${line + 1} | exe "normal ${col}|"`)
+      let moveCmd = position ? ` | call cursor(${line + 1}, ${col})` : ''
+      await nvim.command(`buffer ${bufnr} ${moveCmd}`)
     } else {
       let cwd = await nvim.call('getcwd')
       let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
-      await nvim.command(`${jumpCommand} ${file}| exe ${line + 1} | exe "normal ${col}|"`)
+      let moveCmd = position ? `| call cursor(${line + 1}, ${col})` : ''
+      await nvim.command(`${jumpCommand} ${file} ${moveCmd}`)
     }
   }
 
@@ -1167,12 +1163,12 @@ augroup end`
     if (!errors.length) return
     let items: QuickfixItem[] = []
     for (let err of errors) {
-      let item = await this.getQuickfixItem(err.location, err.message)
+      let item = await this.getQuickfixItem(err.location, err.message, 'Error')
       items.push(item)
     }
     let { nvim } = this
-    await nvim.call('setqflist', [[], ' ', { title: 'coc errors', items }])
-    await nvim.command('doautocmd User CocQuickfixChange')
+    await nvim.setVar('coc_jump_locations', items)
+    await nvim.command('doautocmd User CocLocationsChange')
   }
 
   private async resolveRoot(uri: string): Promise<string> {

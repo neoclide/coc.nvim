@@ -22,6 +22,9 @@ export default (opts: Attach): Plugin => {
       case 'OptionSet':
         await events.fire('OptionSet', args)
         break
+      case 'InputChar':
+        await events.fire('InputChar', args)
+        break
       case 'GlobalChange':
         await events.fire('GlobalChange', args)
         break

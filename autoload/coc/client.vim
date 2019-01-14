@@ -107,7 +107,7 @@ endfunction
 
 function! s:request(method, args) dict
   let chan_id = s:get_channel_id(self)
-  if !chan_id | return | endif
+  if !chan_id | return '' | endif
   try
     if s:is_vim
       return nvim#rpc#request(chan_id, a:method, a:args)

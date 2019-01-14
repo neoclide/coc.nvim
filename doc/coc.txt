@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for vim & neovim.
 
-Version: 0.0.40
+Version: 0.0.47
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -13,20 +13,28 @@ Configuration 					|coc-configuration|
 Completion   					|coc-completion|
 LanguageServer 					|coc-languageserver|
 Interface					|coc-interface|
-  Keymapings 					|coc-keymapings|
+  Keymapings 					|coc-keymappings|
   Variables					  |coc-variables|
   Functions					  |coc-functions|
   Commands					  |coc-commands|
   Autocmds 					  |coc-autocmds|
   Highlights 					  |coc-highlights|
-Denite support 					|coc-denite|
-  Denite extension  				|coc-denite-extension|
-  Denite source  				|coc-denite-source|
-  Denite diagnostic     			|coc-denite-diagnostic|
-  Denite symbols        			|coc-denite-symbols|
-  Denite workspace      			|coc-denite-workspace|
-  Denite service        			|coc-denite-service|
-  Denite command        			|coc-denite-command|
+List 						|coc-list|
+  List command 					|coc-list-command|
+  List configuration 				|coc-list-configuration|
+  List mappings 				|coc-list-mappings|
+  List sources 					|coc-list-sources|
+    Location 		   			 |coc-list-location|
+    Extensions 					 |coc-list-extensions|
+    Diagnostics					 |coc-list-diagnostics|
+    Outline 					 |coc-list-outline|
+    Symbols 					 |coc-list-symbols|
+    Services 					 |coc-list-services|
+    Commands 					 |coc-list-commands|
+    Links 					 |coc-list-links|
+    Output 					 |coc-list-output|
+    Sources 					 |coc-list-sources|
+    Lists 					 |coc-list-lists|
 Statueline support      			|coc-status|
   Manual                			|coc-status-manual|
   Airline 					|coc-status-airline|
@@ -143,7 +151,7 @@ INTERFACE					*coc-interface*
 
 Coc doesn't comes with default global keymap, you need to configure yourself.
 
-Keymapings 					*coc-keymapings*
+Keymapings 					*coc-keymappings*
 
 Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
 mode, 'v_' works for visual mode.
@@ -236,9 +244,10 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
-g:coc_auto_copen  				*g:coc_auto_copen*
+g:coc_start_at_startup 				*g:coc_start_at_startup*
 
-			Open quickfix window after quickfix changed by coc.
+			Start coc service on startup, use |CocStart| to start
+			server when you set it to 0.
 
 			Default: 1
 
@@ -253,6 +262,11 @@ g:coc_global_extensions 			*g:coc_global_extensions*
 			Global extension names, define this variable to
 			list of extension names when you can't use
 			|coc#add_extension()|
+g:coc_enable_locationlist 			*g:coc_enable_locationlist*
+
+			Open location list when locations changes.
+
+			Default: 1
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
@@ -350,19 +364,10 @@ g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
 
 			Default: undefined
 
-g:coc_denite_quickfix_action 			*g:coc_denite_quickfix_action*
-
-			Defaut action for open file in denite quickfix list.
-			Could be `open`, `drop`, `preview` and `cc` (use |:cc| command).
-
-			Defaut: 'open'
-
 g:coc_jump_locations 				*g:coc_jump_locations*
 
-			When setting `"coc.preferences.useQuickfixForLocations"`
-			is `false` , this variable would be set to jump
-			locations when autocmd |CocLocationsChange| fired
-			(quickfix of vim would be untouched).
+			This variable would be set to jump locations when
+			autocmd |CocLocationsChange| fired.
 
 			Each location item contains:
 
@@ -400,8 +405,7 @@ FUNCTIONS 					*coc-functions*
 Coc functions are normally used by user defined command/keymap or other
 plugins.
 
-Note: some functions only work after coc service initialized, it will
-silently fail if the service not started.
+Note: some functions only work after coc service initialized.
 
 To run a function on startup, use autocmd like: >
 
@@ -436,8 +440,7 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: optional command to open buffer, default to
-	|:edit| or `coc.preferences.openResourceCommand` in
-	`coc-settings.json`
+	`coc.preferences.openResourceCommand` (|:edit| by default)
 
 						*CocAction()*
 CocAction({action}, [...{args}])
@@ -448,8 +451,8 @@ CocAction({action}, [...{args}])
 
 CocActionAsync({action}, [...{args}, [{callback}]])
 
-	Call CocAction without bblock vim UI, callback is called
-	with `error` and `response`.
+	Call CocAction without block vim UI, callback is called
+	with `error` as first argument and `response` as second argument.
 
 ------------------------------------------------------------------------------
 
@@ -477,51 +480,42 @@ Available Actions ~
 
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
-	jump to definition position of current symbol. Use <C-o> and <C-i> to
-	jump forward and backward.
+	jump to definition position of current symbol.
 
-	Quickfix list is used when more than one position available.
+	|coc-list| is used when more than one position available.
 
 	{openCommand}: optional command to open buffer, default to
 	`coc.preferences.openResourceCommand` in `coc-settings.json`
 
 "jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
 
-	jump to declaration position of current symbol. Use <C-o> and <C-i> to
-	jump forward and backward.
+	jump to declaration position of current symbol.
 
-	Quickfix list is used when more than one position available.
-
-	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.openResourceCommand` in `coc-settings.json`
+	same behavior as "jumpDefinition"
 
 "jumpImplementation" [{openCommand}] 		*coc-action-jumpImplementation*
 
 	Jump to implementation position of current symbol.
 
-	Quickfix list is used when more than one position available.
-
-	{openCommand}: same as "jumpDefinition".
+	same behavior as "jumpDefinition"
 
 "jumpTypeDefinition" [{openCommand}] 		*coc-action-jumpTypeDefinition*
 
 	Jump to type definition position of current symbol.
 
-	Quickfix list is used when more than one position available.
-
-	{openCommand}: same as "jumpDefinition".
+	same behavior as "jumpDefinition"
 
 "jumpReferences" [{openCommand}]		*coc-action-jumpReferences*
 
 	Jump to references position of current symbol.
 
-	Quickfix list is used when more than one position available.
-
-	{openCommand}: same as "jumpDefinition".
+	same behavior as "jumpDefinition"
 
 "doHover" 					*coc-action-doHover*
 
 	Show documentation of current word at preview window.
+
+	Use `coc.preferences.hoverTarget` to change hover behavior.
 
 	Note: the behavior would change when floating windows available for
 	neovim.
@@ -538,8 +532,6 @@ Available Actions ~
 
 	Get symbol list of current document.
 
-	Used by |coc-denite-symbols|
-
 "rename" 					*coc-action-rename*
 
 	Do rename for symbol under cursor position, user would be prompted for
@@ -549,27 +541,17 @@ Available Actions ~
 
 	Search for workspace symbols.
 
-	Used for |coc-denite-workspace|.
-
-	Note: the experience would be improved when floating window feature
-	launched.
-
 "services" 					*coc-action-services*
 
 	Get all services information list.
 
-	Used for |coc-denite-service|
-
 "toggleService" {serviceId} 			*coc-action-toggleService*
 
-	Start or stop one service, used for |coc-denite-service|
+	Start or stop service.
 
 "format" 					*coc-action-format*
 
 	Format current buffer using language server.
-
-	Note: some format provider only does indent while others include
-	pretty functionality.
 
 "formatSelected" [{mode}] 			*coc-action-formatSelected*
 
@@ -596,7 +578,7 @@ Available Actions ~
 
 "commands" 					*coc-action-commands*
 
-	Get available global service command id list of current buffer.
+	Get available service command id list of current buffer.
 
 "runCommand" [{name}] 				*coc-action-runCommand*
 
@@ -748,11 +730,16 @@ nvim#rpc#open_log()
 
 COMMANDS 					*coc-commands*
 
+:CocStart 					*:CocStart*
+
+		Start coc server, do nothing if it's already started.
 
 :CocDisable 					*:CocDisable*
+
 		Disable all events of coc
 
 :CocEnable 					*:CocEnable*
+
 		Enable events of coc
 
 :CocRestart 					*:CocRestart*
@@ -820,36 +807,19 @@ COMMANDS 					*coc-commands*
 
 AUTOCMD 					*coc-autocmds*
 
-						*CocQuickfixChange*
-
-:autocmd User CocQuickfixChange {command}
-
-		Used for open a custom view for quickfix results, disable
-		default quickfix list open by set: >
-
-		let g:coc_auto_copen = 0
-<
-		To use |denite.nvim| for open quickfix list: >
-
-		autocmd User CocQuickfixChange :Denite -mode=normal quickfix
-<
-		To use |fzf| for open quickfix list: >
-
-		autocmd User CocQuickfixChange :call fzf_quickfix#run()
-		
-<
-		Note: quickfix source of denite and fzf already included.
-
 						*CocLocationsChange*
 
 
 :autocmd User CocLocationsChange {command}
 
-		When quickfix for locations is disabled by
-		`coc.preferences.useQuickfixForLocations` in
-		`coc-settings.json`, you can use this autocmd with
-		|g:coc_jump_locations| to build custom list view of jump
-		locations
+		For build custom view of locations, set |g:coc_enable_locationlist|
+		to 0 and use this autocmd with with |g:coc_jump_locations|
+
+		For example, to enable auto preview for coc list, use:
+>
+		let g:coc_enable_locationlist = 0
+		autocmd User CocLocationsChange CocList --normal -A location
+<
 
 						*CocNvimInit*
 :autocmd User CocNvimInit {command}
@@ -985,86 +955,388 @@ vimrc, like: >
 <
 
 ==============================================================================
-DENITE SUPPORT 					*coc-denite*
+LIST SUPPORT 					*coc-list*
 
-Coc provide some |denite.nvim| sources for better list filter & sort experience
-and actions.
+Build in list support make work with list of items easier.
+
+Following features are supported:
+
+* Two modes: insert & normal.
+* Default keymappings for insert & normal mode.
+* Cutomize keymappings for insert & normal mode.
+* Build in actions for locations.
+* Options for CocList command.
+* Select action by <tab>.
+* Multiple selection by <space> on normal mode.
 
 ------------------------------------------------------------------------------
-						*coc-denite-extension*
-:Denite coc-extension
 
-	Manage extensions using denite interface.
+LIST COMMAND 					*coc-list-command*
+
+:CocList [{...options}] [{source}] [{...args}] 		*CocList*
+
+		Open coc list of {source}, Ex: >
+
+		:CocList --normal location
+<
+		For current jump locations.
+
+		See |coc-list-command-options| for available list options, 
+
+		{args} are send to source during fetch list.
+
+		If {source} is empty, lists source is used.
+
+:CocListResume 						*CocListResume*
+
+		Reopen last opened list, input and cursor position would
+		be preserved.
+
+:CocPrev 						*CocPrev*
+
+		Invoke default action for previous item in last list.
+
+		Doesn't open list window if it's closed.
+
+:CocNext 						*CocNext*
+
+		Invoke default action for next item in last list.
+
+		Doesn't open list window if it's closed.
+
+Command options 			*coc-list-command-options*
+
+--top
+	Show list in top window.
+
+--normal
+	Start list in normal mode, recommended for short list.
+
+--no-sort
+	Disable sort by fuzzy score, useful for mru list.
+
+--input={input}
+	Specify input on session start.
+
+--strictMatch
+-S
+	Use strict match instead of fuzzy match.
+
+--regex
+-R
+	Use regex match instead of fuzzy match.
+
+--ignore-case
+	Ignore case when using strict match or regex match.
+
+--number-select
+-N
+	Type line number to select item and invoke default action on insert
+	mode.
+
+
+--interactive
+-I
+	Use interactive mode, list items would be reloaded on input
+	change, filter and sort would be done by list implementation.
+
+	Note: it won't work if list doesn't support interactive.
+
+	Note: filter and sort would be done by remote service.
+
+--auto-preview
+-A
+	Start preview for current item on list visible.
+
+------------------------------------------------------------------------------
+
+LIST CONFIGURATION 				*coc-list-configuration*
+
+
+Coc list just works, you can use `coc-settings.json` for configuration. For
+best experience, install `coc-json` extension is recommended.
+
+The following settings are available:
+
+- `"list.indicator"`: The characer used as first characer in prompt line
+
+	default: `>`
+
+- `"list.maxHeight"`: Maxmium height of list window.
+
+	default: 12
+
+- `"list.autoPreview"`: Enable auto preview on cursor move.
+
+	default: `true`
+
+- `"list.autoResize"`: Enable window auto resize on buffer change.
+
+	default: `true`
+
+- `"list.nextKeymap"`: Key used for select next line on insert mode.
+
+	default: <C-j>
+
+- `"list.previousKeymap"`: Key used for select previous line on insert mode.
+
+	default: <C-k>
+
+- `"list.normalMappings"`: User defined keymappings on normal mode.
+
+	defined: `{}`
+
+	Checkout |coc-list-mappings-custom| for detail.
+
+- `"list.insertMappings"`: User defined keymappings on insert mode.
+
+	defined: `{}`
+
+	Checkout |coc-list-mappings-custom| for detail.
+
+------------------------------------------------------------------------------
+
+LIST MAPPINGS 					*coc-list-mappings*
+
+Default mappings on insert mode:
+
+<Esc>       - cancel list session.
+<C-c>       - stop loading task.
+<C-l>       - reload list.
+<C-o>       - change to normal mode.
+<Down>      - select next line.
+<Up>        - select previous line.
+<Left>      - move cursor left.
+<Right>     - move cursor right.
+<End>       - move cursor to end of prompt.
+<C-e>       - same as <End >.
+<Home>      - move cursor to start of prompt.
+<C-a>       - same as <Home>.
+<C-f>       - scroll window forward.
+<C-b>       - scroll window backward.
+<Backspace> - remove previous characer of cursor.
+<C-h>       - remove previous characer of cursor.
+<C-w>       - remove previous word of cursor.
+<C-k>       - remove characers after cursor.
+<C-u>       - remove characers before cursor.
+<C-n>       - navigate to next input in history.
+<C-p>       - navigate to previous input in history.
+<Tab>       - select action.
+<Space>     - toggle select of current item.
+
+Default mappings on normal mode:
+
+<Esc>       - cancel list session.
+<C-c>       - stop source from fetching more items.
+<C-l>       - reload list.
+<Tab>       - select action.
+<Space>     - toggle select of current item.
+i,I,o,O,a,A - change to insert mode.
+p           - preview action.
+:           - cancel list session without closing window.
+
+Use |coc-list-mappings-custom| to override default mappings.
+
+						*coc-list-mappings-custom*
+
+Configurations `"list.normalMappings"` and `"list.insertMappings"` are used
+for customize list keymappings, ex: >
+
+	"list.insertMappings": {
+		"<C-r>": "do:refresh",
+		"<C-f>": "feedkeys:\\<C-f>",
+		"<C-b>": "feedkeys:\\<C-b>",
+		"<C-n>": "normal:j",
+		"<C-p>": "normal:k",
+		"<C-t>": "action:tabe",
+		"<C-x>": "call:MyFunc"
+	}
+	"list.normalMappings": {
+		"c": "expr:MyExprFunc"
+		"d": "action:delete"
+	}
+<
+Note: you should only use keys starts with `<C-` or `<A-` for insert mappings.
+
+The mapping expression should be `command:arguments`, available commands:
+
+'do' - special actions provided by coc list, including:
+	'refresh' - reload list.
+	'exit' -  exit list session.
+	'stop' - stop loading task.
+	'cancel' - cancel list session but leave list window open.
+	'toggle' - toggle selection of current item.
+	'previous' - move cursor to previous item.
+	'next' - move cursor to next item.
+	'defaultaction' - execute default action.
+'prompt' - do prompt action, including:
+	'previous' - change to previous input in history.
+	'next' - change to next input in history.
+	'start' - move cursor to start.
+	'end' - move cursor to end.
+	'left' - move cursor left.
+	'right' - move cursor right.
+	'deleteforward' - remove previous characer.
+	'deletebackward' - remove next characer.
+	'removetail' - remove characers afterwards.
+	'removeahead' - remove characer ahead.
+'action' - execute action of list, use <tab> to find available actions.
+'feedkeys' - feedkeys to list window, use `\\` in json to escape special characer.
+'normal' - execute normal command in list window.
+'normal!' -  execute normal command without remap.
+'call' - call vim function with |coc-list-context| as only argument.
+'expr' - same as 'call' but expect the function return action name.
+
+						*coc-list-context*
+
+Context argument contains following properties:
+
+'name' - name of list, ex: `'location'`.
+'args' - arguments of list.
+'input' - current input of prompt.
+'winid' - window id on list activated.
+'bufnr' - buffer number on list activated.
+'targets' - list of selected targets, checkout |coc-list-target| for properties.
+
+						*coc-list-target*
+
+Target contains following properties:
+
+'label' - mandatory properity that shown in buffer.
+'filtertext' - optional filter text used for filter items.
+'location' - optional location of item, checkout https://bit.ly/2Rtb6Bo
+'data' - optional additional properties.
+
+------------------------------------------------------------------------------
+
+LIST SOURCES 						*coc-list-sources*
+
+------------------------------------------------------------------------------
+
+location 			   			 *coc-list-location*
+
+	Last jump locations.
 
 	Actions:
 
-	'toggle': enable/disable selected extensions, it's persisted.
-
-	'activate': activate selected extension(s).
-
-	'deactivate': deactivate selected extension(s).
-
-	'reload': reload selected extension(s).
-
-	'uninstall': uninstall selected extension(s).
-
+	- 'preview' : preview location in preview window.
+	- 'open': open location by use
+		`"coc.preferences.openResourceCommand"`, default action
+	- 'tabe': Use |:tabe| to open location.
+	- 'drop': Use |:drop| to open location.
+	- 'vsplit': Use |:vsplit| to open location.
+	- 'split': Use |:split| to open location.
 
 ------------------------------------------------------------------------------
-						*coc-denite-source*
-:Denite coc-source
 
-	Show all sources of coc completion.
+extensions 						 *coc-list-extensions*
+
+	Manage coc extensions.
 
 	Actions:
 
-	'toggle': enable/disable the source(s) for current vim sesion.
-
-	'refresh': refresh selected source(s).
-
-------------------------------------------------------------------------------
-						*coc-denite-diagnostic*
-:Denite coc-diagnostic
-
-	Show all diagnostics of current vim sesion.
-
-	Actions: same as file kind.
+	- 'toggle' activate/deactivate extension, default action.
+	- 'disable' disable extension.
+	- 'enable' enable extension.
+	- 'reload' reload extension.
+	- 'uninstall' uninstall extension.
 
 ------------------------------------------------------------------------------
-:Denite coc-workspace 				*coc-denite-workspace*
 
-	Search workspace symbols using denite buffer.
+diagnostics 						 *coc-list-diagnostics*
 
-	Actions: same as file kind.
-
-------------------------------------------------------------------------------
-						*coc-denite-symbols*
-:Denite coc-symbols
-
-	Show symbols of current buffer.
-
-	Actions: same as file kind.
-
-------------------------------------------------------------------------------
-						*coc-denite-service*
-:Denite coc-service
-
-	Manage coc services.
+	All diagnostics of workspace.
 
 	Actions:
 
-	- 'toggle' : default action for start/stop service.
+	- See |coc-list-location|
 
 ------------------------------------------------------------------------------
-						*coc-denite-command*
-:Denite coc-command
 
-	Find and run commands contributed by extensions.
+outline 						 *coc-list-outline*
+
+	Symbols of current document.
 
 	Actions:
 
-	- 'run' : default action.
+	- See |coc-list-location|
+
+------------------------------------------------------------------------------
+
+symbols 						 *coc-list-symbols*
+
+	Search workspace symbols.
+
+	Actions:
+
+	- See |coc-list-location|
+
+------------------------------------------------------------------------------
+
+services 						 *coc-list-services*
+
+	Manage registed services.
+
+	Actions:
+
+	- 'toggle': toggle service state, default action.
+
+------------------------------------------------------------------------------
+
+commands 						 *coc-list-commands*
+
+	Workspace commands.
+
+	Actions:
+
+	- 'run': run selected command, default action.
+
+------------------------------------------------------------------------------
+
+links 							 *coc-list-links*
+
+	Links of current document.
+
+	Actions:
+
+	- 'open': open the link, default action.
+	- 'jump': jump to link definition.
+
+------------------------------------------------------------------------------
+
+output 							 *coc-list-output*
+
+	Current output channels
+
+	Actions:
+
+	- 'open': open output channel in split window, default action.
+
+------------------------------------------------------------------------------
+
+sources 						 *coc-list-sources*
+
+	Available completion sources.
+
+	Actions:
+
+	- 'toggle': activate/deactivate source, default action.
+	- 'refresh': refresh source.
+	- 'open': open the file where source defined.
+
+------------------------------------------------------------------------------
+
+lists 							 *coc-list-lists*
+
+	Get available lists.
+
+	Actions:
+
+	- 'open': open selected list, default action.
+
 
 ==============================================================================
+
 STATUSLINE SUPPORT 				*coc-status*
 
 Diagnostic info and other status info contributed by extensions could be shown
@@ -1153,6 +1425,10 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 
 ==============================================================================
 FAQ						*coc-faq*
+
+Q: 	I don't want preview window on completion.
+
+A: 	Use `set completeopt-=preview` in your `.vimrc`
 
 Q: 	I want to use ale for diagnostics.
 

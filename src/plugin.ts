@@ -9,6 +9,7 @@ import extensions from './extensions'
 import Handler from './handler'
 import services from './services'
 import snippetManager from './snippets/manager'
+import listManager from './list/manager'
 import sources from './sources'
 import clean from './util/clean'
 import workspace from './workspace'
@@ -42,7 +43,9 @@ export default class Plugin extends EventEmitter {
       }
       let pid = await nvim.call('getpid') as number
       this.checkProcess(pid)
+      await listManager.init(nvim)
       await workspace.init()
+      nvim.setVar('coc_workspace_initialized', 1, true)
       sources.init()
       completion.init(nvim)
       services.init()
@@ -84,6 +87,10 @@ export default class Plugin extends EventEmitter {
 
   public getCurrentIndex(): number {
     return completion.index
+  }
+
+  public listNames(): string[] {
+    return listManager.names
   }
 
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
@@ -159,20 +166,36 @@ export default class Plugin extends EventEmitter {
     return commandManager.commandList.map(o => o.id)
   }
 
+  public async openList(...args: string[]): Promise<void> {
+    await listManager.start(args)
+  }
+
   public async doKeymap(key: string): Promise<any> {
     let fn = workspace.keymaps.get(key)
     if (!fn) {
       logger.error(`keymap for ${key} not found`)
-      return 0
+      return ''
     }
     let res = await Promise.resolve(fn())
-    return res == null ? 0 : res
+    return res || ''
   }
 
   public async cocInstalled(names: string): Promise<void> {
     for (let name of names.split(/\s+/)) {
       await extensions.onExtensionInstall(name)
     }
+  }
+
+  public async listResume(): Promise<void> {
+    listManager.resume()
+  }
+
+  public async listPrev(): Promise<void> {
+    listManager.previous()
+  }
+
+  public async listNext(): Promise<void> {
+    listManager.next()
   }
 
   public async cocAction(...args: any[]): Promise<any> {
@@ -290,7 +313,7 @@ export default class Plugin extends EventEmitter {
         case 'toggleExtension':
           return await extensions.toggleExtension(args[1])
         case 'uninstallExtension':
-          return await extensions.uninstallExtension(args[1])
+          return await extensions.uninstallExtension(args.slice(1))
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
