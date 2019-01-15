@@ -200,6 +200,7 @@ export class SnippetSession {
       }
     } else {
       move_cmd += 'v'
+      endCol = await this.getVirtualCol(end.line + 1, endCol)
       if (selection == 'inclusive') {
         if (end.character == 0) {
           move_cmd += `${end.line}G`
@@ -211,11 +212,16 @@ export class SnippetSession {
       } else {
         move_cmd += `${end.line + 1}G${endCol + 1}|`
       }
+      col = await this.getVirtualCol(start.line + 1, col)
       move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
     }
-    logger.debug('move:', move_cmd)
     await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
     if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
+  }
+
+  private async getVirtualCol(line: number, col: number): Promise<number> {
+    let { nvim } = this
+    return await nvim.eval(`virtcol([${line}, ${col}])`) as number
   }
 
   private async documentSynchronize(): Promise<void> {
