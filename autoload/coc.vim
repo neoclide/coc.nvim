@@ -8,7 +8,7 @@ let s:is_vim = !has('nvim')
 function! coc#refresh() abort
   let expr = ''
   if pumvisible()
-    let expr .= "\<space>\<bs>"
+    let expr .= "\<Esc>a"
   endif
   return expr . "\<c-r>=coc#start()\<CR>"
 endfunction
@@ -17,7 +17,7 @@ function! coc#_insert_key(method, key) abort
   let expr = ''
   if pumvisible()
     " keep the line without <C-y>
-    let expr .= "\<space>\<bs>"
+    let expr .= "\<Esc>a"
   endif
   return expr . "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction

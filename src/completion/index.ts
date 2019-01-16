@@ -34,6 +34,7 @@ export class Completion implements Disposable {
   private changedTick = 0
   private currIndex = 0
   private insertCharTs = 0
+  private lastInsertleaveTs = 0
 
   constructor() {
     this.preferences = workspace.getConfiguration('coc.preferences')
@@ -339,6 +340,7 @@ export class Completion implements Disposable {
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
+    let now = Date.now()
     let { increment, document, nvim } = this
     if (!this.isActivted || !document || !item.word) return
     let opt = Object.assign({}, this.option)
@@ -352,11 +354,12 @@ export class Completion implements Disposable {
       await sources.doCompleteResolve(item)
       this.addRecent(item.word, document.bufnr)
       await wait(50)
+      let mode = await nvim.call('mode')
       if (this.insertCharTs != timestamp) return
+      if (mode != 'i' || this.lastInsertleaveTs >= now) return
       await document.patchChange()
       if (changedtick != document.changedtick) return
-      let { mode } = await nvim.mode
-      if (mode == 'i') await sources.doCompleteDone(item, opt)
+      await sources.doCompleteDone(item, opt)
       document.forceSync()
     } catch (e) {
       // tslint:disable-next-line:no-console
@@ -366,6 +369,7 @@ export class Completion implements Disposable {
   }
 
   private async onInsertLeave(): Promise<void> {
+    this.lastInsertleaveTs = Date.now()
     this.insertMode = false
     this.increment.stop()
   }
