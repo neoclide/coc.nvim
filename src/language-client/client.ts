@@ -3569,7 +3569,7 @@ export abstract class BaseLanguageClient {
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),
-      workspaceFolders: null
+      workspaceFolders: [workspace.workspaceFolder]
     }
     this.fillInitializeParams(initParams)
     return connection
