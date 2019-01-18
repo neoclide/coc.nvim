@@ -14,11 +14,7 @@ if !empty($NVIM_LISTEN_ADDRESS)
   let s:tempname = $NVIM_LISTEN_ADDRESS
 else
   let s:tempname = tempname()
-  if s:is_win
-    let $NVIM_LISTEN_ADDRESS = '\\?\pipe\'.s:tempname
-  else
-    let $NVIM_LISTEN_ADDRESS = s:tempname
-  endif
+  let $NVIM_LISTEN_ADDRESS = s:tempname
 endif
 
 if get(g:, 'coc_node_rpc_debug', 0)
