@@ -28,10 +28,15 @@
         "rootPatterns": {
           "type": "array",
           "default": [],
-          "description": "Root patterns used for reoslve rootPath from current file, default to g:rooter_patterns variable.",
+          "description": "Root patterns used for reoslve rootPath from current file, default to workspace root",
           "items": {
             "type": "string"
           }
+        },
+        "requireRootPattern": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, doesn't start server when root pattern not found."
         },
         "ignoredRootPaths": {
           "type": "array",
@@ -90,6 +95,7 @@
         },
         "enable": {},
         "rootPatterns": {},
+        "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
         "revealOutputChannelOn": {},
@@ -145,6 +151,7 @@
         "env": {},
         "enable": {},
         "rootPatterns": {},
+        "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
         "revealOutputChannelOn": {},
@@ -187,6 +194,7 @@
         "env": {},
         "enable": {},
         "rootPatterns": {},
+        "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
         "revealOutputChannelOn": {},

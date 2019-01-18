@@ -3547,13 +3547,19 @@ export abstract class BaseLanguageClient {
     } else {
       let config = workspace.getConfiguration(this.id)
       let rootPatterns = config.get<string[]>('rootPatterns', [])
+      let required = config.get<boolean>('requireRootPattern', false)
+      let resolved: string
       if (rootPatterns && rootPatterns.length) {
         let doc = workspace.getDocument(workspace.bufnr)
         if (doc && doc.schema == 'file') {
           let dir = path.dirname(Uri.parse(doc.uri).fsPath)
-          let resolved = resolveRoot(dir, rootPatterns)
-          if (resolved) rootPath = resolved
+          resolved = resolveRoot(dir, rootPatterns)
         }
+      }
+      if (resolved) rootPath = resolved
+      if (required && !resolved) {
+        logger.info(`No root pattern found for ${this.id}`, rootPatterns)
+        return
       }
     }
     let { ignoredRootPaths } = this._clientOptions

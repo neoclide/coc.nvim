@@ -162,7 +162,7 @@ export function createExtension(id: string, filename: string): ExtensionExport {
       deactivate: typeof defaultImport.deactivate === 'function' ? defaultImport.deactivate : null
     }
   } catch (err) {
-    workspace.showMessage(`Error loading extension from ${filename}: ${err.message}`)
+    workspace.showMessage(`Error loading extension from ${filename}: ${err.message}`, 'error')
     logger.error(err.stack)
   }
 
