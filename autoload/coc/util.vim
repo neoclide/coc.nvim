@@ -490,8 +490,7 @@ function! coc#util#install_extension(names) abort
   function! s:OnExtensionInstalled(status, names) closure
     if a:status == 0
       call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
-      let args = split(a:names, '\s\+')
-      call coc#rpc#notify('CocInstalled', args)
+      call coc#rpc#notify('CocInstalled', [a:names])
     else
       call coc#util#echo_messages('Error', ['extension '.a:names. ' install failed!'])
     endif

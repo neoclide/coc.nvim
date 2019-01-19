@@ -169,8 +169,8 @@ export default class Plugin extends EventEmitter {
     return res == null ? 0 : res
   }
 
-  public async cocInstalled(...names: string[]): Promise<void> {
-    for (let name of names) {
+  public async cocInstalled(names: string): Promise<void> {
+    for (let name of names.split(/\s+/)) {
       await extensions.onExtensionInstall(name)
     }
   }
