@@ -82,8 +82,9 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
   **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
 
-  Note: The first time of building from source code could be slow since some
-  dependencies need to be downloaded.
+  **Note:** to build from master, don't use `'tag': '*'` in `Plug` command.
+
+  **Note**: The first time of building from source code could be slow.
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
