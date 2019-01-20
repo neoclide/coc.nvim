@@ -3,28 +3,22 @@ import fs from 'fs'
 import path from 'path'
 import os from 'os'
 import util from 'util'
-import { ListItem, ListTask } from '../types'
+import { ListItem, ListTask, ListHighlights, ListItemsEvent } from '../types'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex } from '../util/string'
 import throttle from '../util/throttle'
 import { ListManager } from './manager'
-import ListUI from './ui'
 import Uri from 'vscode-uri'
 import uuidv1 = require('uuid/v1')
+import { Emitter, Event } from 'vscode-languageserver-protocol'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const maxLength = 1000
 const isWindows = process.platform == 'win32'
 const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
 const mruFile = path.join(root, 'mru')
 const logger = require('../util/logger')('list-worker')
-
-export interface Highlights {
-  lnum: number
-  // column indexes
-  spans: [number, number][]
-}
 
 export interface ExtendedItem extends ListItem {
   score: number
@@ -42,6 +36,8 @@ export default class Worker {
   private timer: NodeJS.Timer
   private interval: NodeJS.Timer
   private totalItems: ListItem[] = []
+  private _onDidChangeItems = new Emitter<ListItemsEvent>()
+  public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
 
   constructor(private nvim: Neovim, private manager: ListManager) {
     let { prompt } = manager
@@ -87,10 +83,6 @@ export default class Worker {
     }
   }
 
-  private get ui(): ListUI {
-    return this.manager.ui
-  }
-
   public async loadItems(reload = false): Promise<void> {
     let { context, list, listOptions } = this.manager
     if (!list) return
@@ -107,12 +99,19 @@ export default class Worker {
         })
       })
       this.loading = false
+      let highlights: ListHighlights[]
       if (!interactive) {
         let res = this.filterItems(items)
         items = res.items
-        this.ui.addHighlights(res.highlights)
+        highlights = res.highlights
+      } else {
+        highlights = this.getItemsHighlight(items)
       }
-      await this.ui.drawItems(items, list.name, listOptions.position, reload)
+      this._onDidChangeItems.fire({
+        items,
+        highlights,
+        reload
+      })
     } else {
       let task = this.task = items as ListTask
       let totalItems = this.totalItems = []
@@ -126,24 +125,29 @@ export default class Worker {
           currInput = this.input
           count = totalItems.length
           let arr: ListItem[]
+          let highlights: ListHighlights[] = []
           if (interactive) {
             arr = totalItems
+            highlights = this.getItemsHighlight(arr)
           } else {
             let res = this.filterItems(totalItems)
             arr = res.items
-            this.ui.addHighlights(res.highlights)
+            highlights = res.highlights
           }
-          await this.ui.drawItems(arr, list.name, listOptions.position, reload)
+          this._onDidChangeItems.fire({ items: arr, highlights, reload })
         } else {
           let remain = totalItems.slice(count)
-          count = count + remain.length
           let arr: ListItem[] = remain
+          let highlights: ListHighlights[] = []
           if (!interactive) {
-            let res = this.filterItems(remain, this.ui.length)
+            let res = this.filterItems(remain, count)
             arr = res.items
-            this.ui.addHighlights(res.highlights, true)
+            highlights = res.highlights
+          } else {
+            highlights = this.getItemsHighlight(arr, count)
           }
-          await this.ui.appendItems(arr)
+          count = count + remain.length
+          this._onDidChangeItems.fire({ items: arr, highlights, append: true })
         }
       }
       let onData = throttle(_onData, 50)
@@ -168,16 +172,19 @@ export default class Worker {
   // draw all items with filter if necessary
   public async drawItems(): Promise<void> {
     let { totalItems } = this
-    let { ui, listOptions, name, isActivated } = this.manager
+    let { listOptions, isActivated } = this.manager
     if (!isActivated) return
     let { interactive } = listOptions
     let items = totalItems
+    let highlights: ListHighlights[] = []
     if (!interactive) {
       let res = this.filterItems(totalItems)
       items = res.items
-      this.ui.addHighlights(res.highlights)
+      highlights = res.highlights
+    } else {
+      highlights = this.getItemsHighlight(items)
     }
-    await ui.drawItems(items, name, listOptions.position)
+    this._onDidChangeItems.fire({ items, highlights })
   }
 
   public stop(): void {
@@ -200,9 +207,20 @@ export default class Worker {
     return this.manager.prompt.input
   }
 
-  private filterItems(items: ListItem[], lnum = 0): { items: ListItem[], highlights: Highlights[] } {
+  private getItemsHighlight(items: ListItem[], lnum = 0): ListHighlights[] {
+    let { input } = this
+    if (!input) return []
+    return items.map((item, i) => {
+      let filterLabel = getFilterLabel(item)
+      let res = getMatchResult(filterLabel, input)
+      if (!res || !res.score) return null
+      return this.getHighlights(filterLabel, lnum + i, res.matches)
+    })
+  }
+
+  private filterItems(items: ListItem[], lnum = 0): { items: ListItem[], highlights: ListHighlights[] } {
     let { input } = this.manager.prompt
-    let highlights: Highlights[] = []
+    let highlights: ListHighlights[] = []
     let { sort, matcher, ignorecase } = this.manager.listOptions
     if (input.length == 0) {
       return {
@@ -288,7 +306,7 @@ export default class Worker {
     }
   }
 
-  private getHighlights(text: string, lnum: number, matches: number[]): Highlights {
+  private getHighlights(text: string, lnum: number, matches: number[]): ListHighlights {
     let spans: [number, number][] = []
     if (matches.length) {
       let start = matches.shift()

@@ -101,6 +101,16 @@ export class ListManager {
     this.ui.onDidDoubleClick(async () => {
       await this.doAction()
     }, null, this.disposables)
+    this.worker.onDidChangeItems(async ({ items, highlights, reload, append }) => {
+      if (!this.activated) return
+      if (append) {
+        this.ui.addHighlights(highlights, true)
+        this.ui.appendItems(items)
+      } else {
+        this.ui.addHighlights(highlights)
+        this.ui.drawItems(items, this.name, this.listOptions.position, reload)
+      }
+    })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('list')) {
         this.config = workspace.getConfiguration('list')

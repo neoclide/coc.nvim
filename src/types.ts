@@ -461,6 +461,19 @@ export interface ListItem {
   recentScore?: number
 }
 
+export interface ListHighlights {
+  lnum: number
+  // column indexes
+  spans: [number, number][]
+}
+
+export interface ListItemsEvent {
+  items: ListItem[]
+  highlights: ListHighlights[]
+  append?: boolean
+  reload?: boolean
+}
+
 export type ListMode = 'normal' | 'insert'
 
 export type Matcher = 'strict' | 'fuzzy' | 'regex'
