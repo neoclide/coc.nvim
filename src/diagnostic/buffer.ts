@@ -58,6 +58,7 @@ export class DiagnosticBuffer {
     })
     this.nvim.pauseNotification()
     sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
+    sequence.addFunction(this.addVTextDiagnostics.bind(this, diagnostics))
     sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
     sequence.addFunction(this.addSigns.bind(this, diagnostics))
     sequence.addFunction(this.addHighlight.bind(this, diagnostics))
@@ -150,9 +151,7 @@ export class DiagnosticBuffer {
 
   public async setDiagnosticInfo(diagnostics: Diagnostic[]): Promise<void> {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
-    let newVTextNameSpace = await workspace.createNameSpace();
     for (let diagnostic of diagnostics) {
-      this.addVTextDiagnostic(diagnostic, newVTextNameSpace)
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
           info.warning = info.warning + 1
@@ -168,9 +167,6 @@ export class DiagnosticBuffer {
       }
     }
     let buffer = this.nvim.createBuffer(this.bufnr)
-    buffer.clearNamespace(await this.vTextNameSpace)
-    this.vTextNameSpace = newVTextNameSpace
-
     buffer.setVar('coc_diagnostic_info', info, true)
     let bufnr = await this.nvim.call('bufnr', '%')
     if (!workspace.getDocument(this.bufnr)) return
@@ -179,27 +175,36 @@ export class DiagnosticBuffer {
   }
 
   // Add a virtual text diagnostic if in neovim
-  private async addVTextDiagnostic(diagnostic: Diagnostic, newVTextNameSpace:number) {
-    if (this.isVim) {
+  private async addVTextDiagnostics(diagnostics: Diagnostic[]) {
+    if (this.isVim || !this.config.virtualText) {
       return
     }
 
-    let highlight: String;
-    switch (diagnostic.severity) {
-      case DiagnosticSeverity.Warning:
-        highlight = "CocWarningLine"
-        break
-      case DiagnosticSeverity.Information:
-        highlight = "CocInfoLine"
-        break
-      case DiagnosticSeverity.Hint:
-        highlight = "CocHintLine"
-        break
-      default: { highlight = "CocErrorLine" }
-    }
+    let { bufnr, nvim, vTextNameSpace } = this
+    let newVTextNameSpace = await workspace.createNameSpace();
 
-    let { bufnr, nvim } = this
-    nvim.call("nvim_buf_set_virtual_text", [bufnr, newVTextNameSpace, diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
+    for (let diagnostic of diagnostics) {
+      let setVirtualText = (highlight:String) => {
+          nvim.call("nvim_buf_set_virtual_text", [bufnr, newVTextNameSpace, diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
+      }
+      switch (diagnostic.severity) {
+        case DiagnosticSeverity.Warning:
+          setVirtualText("CocWarningSign")
+          break
+        case DiagnosticSeverity.Information:
+          setVirtualText("CocInfoSign")
+          break
+        case DiagnosticSeverity.Hint:
+          setVirtualText("CocHintSign")
+          break
+        default: {
+          setVirtualText("CocErrorSign")
+        }
+      }
+    }
+    let buffer = this.nvim.createBuffer(bufnr)
+    buffer.clearNamespace(vTextNameSpace)
+    this.vTextNameSpace = newVTextNameSpace
   }
 
   public async clearHighlight(): Promise<void> {
