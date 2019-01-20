@@ -123,6 +123,7 @@ function! coc#util#echo_messages(hl, msgs)
     endif
   endfor
   echohl None
+  redraw
 endfunction
 
 function! coc#util#echo_lines(lines)

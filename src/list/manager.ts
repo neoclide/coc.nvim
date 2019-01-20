@@ -54,6 +54,9 @@ export class ListManager {
     Object.keys(chars).forEach(key => {
       this.charMap.set(chars[key], key)
     })
+    events.on('VimResized', () => {
+      if (this.isActivated) nvim.command('redraw!')
+    }, null, this.disposables)
     events.on('InputChar', this.onInputChar, this, this.disposables)
     events.on('FocusGained', debounce(async () => {
       if (this.activated) this.prompt.drawPrompt()
@@ -116,20 +119,26 @@ export class ListManager {
     if (this.activated) return
     let res = this.parseArgs(args)
     if (!res) return
-    this.args = args
-    let { list, options, listArgs } = res
-    this.reset()
-    this.listOptions = options
-    this.currList = list
-    if (!list.interactive) this.listOptions.interactive = false
-    this.listArgs = listArgs
-    this.cwd = workspace.cwd
-    this.window = await this.nvim.window
-    this.prompt.mode = options.mode
-    this.prompt.start(this.listOptions.input)
     this.activated = true
-    this.history.load()
-    await this.worker.loadItems()
+    this.args = args
+    try {
+      let { list, options, listArgs } = res
+      this.reset()
+      this.listOptions = options
+      this.currList = list
+      if (!list.interactive) this.listOptions.interactive = false
+      this.listArgs = listArgs
+      this.cwd = workspace.cwd
+      this.window = await this.nvim.window
+      this.prompt.mode = options.mode
+      this.prompt.start(this.listOptions.input)
+      this.history.load()
+      await this.worker.loadItems()
+    } catch (e) {
+      await this.cancel()
+      workspace.showMessage(e.message, 'error')
+      logger.error(e)
+    }
   }
 
   public async resume(): Promise<void> {
@@ -207,8 +216,11 @@ export class ListManager {
   }
 
   public async cancel(close = true): Promise<void> {
-    if (!this.activated) return
     let { nvim, ui } = this
+    if (!this.activated) {
+      nvim.call('coc#list#stop_prompt', [], true)
+      return
+    }
     this.activated = false
     this.worker.stop()
     this.history.add()
@@ -381,8 +393,11 @@ export class ListManager {
     if (this.listOptions.numberSelect) {
       let code = ch.charCodeAt(0)
       if (code >= 49 && code <= 57) {
-        await this.ui.setCursor(Number(ch), 0)
-        await this.doAction()
+        let n = Number(ch)
+        if (this.ui.length >= n) {
+          await this.ui.setCursor(Number(ch), 0)
+          await this.doAction()
+        }
         return
       }
     }
