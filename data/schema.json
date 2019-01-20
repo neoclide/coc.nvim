@@ -379,6 +379,11 @@
       "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics.",
       "default": false
     },
+    "coc.preferences.diagnostic.virtualText": {
+      "type": "boolean",
+      "description": "Use NeoVim virtual text to display diagnostics",
+      "default": false
+    },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "boolean",
       "description": "Set to false to disable echo message on CursorMove",
