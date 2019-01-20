@@ -18,7 +18,7 @@ export class DiagnosticBuffer {
   private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
   private isVim: boolean
-  public vTextNameSpace: number = null
+  public vTextNameSpaces = {index: true, ns: [null, null]}
   public readonly bufnr: number
   public readonly uri: string
   public refresh: (diagnosticItems: DiagnosticItems) => void
@@ -180,12 +180,16 @@ export class DiagnosticBuffer {
       return
     }
 
-    let { bufnr, nvim, vTextNameSpace } = this
-    let newVTextNameSpace = await workspace.createNameSpace();
+    let { bufnr, nvim, vTextNameSpaces } = this
+    let index:number = Number(vTextNameSpaces.index)
+
+    if (vTextNameSpaces[index] == null) {
+      vTextNameSpaces[index] = await workspace.createNameSpace()
+    }
 
     for (let diagnostic of diagnostics) {
       let setVirtualText = (highlight:String) => {
-          nvim.call("nvim_buf_set_virtual_text", [bufnr, newVTextNameSpace, diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
+          nvim.call("nvim_buf_set_virtual_text", [bufnr, vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
       }
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
@@ -203,8 +207,8 @@ export class DiagnosticBuffer {
       }
     }
     let buffer = this.nvim.createBuffer(bufnr)
-    buffer.clearNamespace(vTextNameSpace)
-    this.vTextNameSpace = newVTextNameSpace
+    buffer.clearNamespace(vTextNameSpaces[Number(!vTextNameSpaces.index)])
+    vTextNameSpaces.index = !vTextNameSpaces.index
   }
 
   public async clearHighlight(): Promise<void> {
