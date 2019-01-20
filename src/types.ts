@@ -308,6 +308,13 @@ export interface SourceStat {
 }
 
 export interface CompleteConfig {
+  autoTrigger: string
+  minTriggerInputLength: number
+  triggerAfterInsertEnter: boolean
+  acceptSuggestionOnCommitCharacter: boolean
+  noselect: boolean
+  numberSelect: boolean
+  invalidInsertCharacters: string[]
   maxItemCount: number
   timeout: number
   snippetIndicator: string

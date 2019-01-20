@@ -225,7 +225,7 @@
     "coc.preferences.snippetIndicator": {
       "type": "string",
       "default": "~",
-      "description": "The characer used in abbr of complete item to indicate the item could be expand as snippet."
+      "description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
     },
     "coc.preferences.snippetStatusText": {
       "type": "string",
@@ -242,9 +242,17 @@
       "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
       "default": false
     },
+    "coc.preferences.invalidInsertCharacters": {
+      "type": "array",
+      "default": ["<", "(", ":", " "],
+      "description": "Invalid character for strip valid word when inserting text of snippet complete item.",
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.preferences.fixInsertedWord": {
       "type": "boolean",
-      "description": "Make inserted word replace word characers after cursor position.",
+      "description": "Make inserted word replace word characters after cursor position.",
       "default": true
     },
     "coc.preferences.localityBonus": {
@@ -315,12 +323,12 @@
     },
     "coc.preferences.hyphenAsKeyword": {
       "type": "boolean",
-      "description": "Always consider `-` as keyword characer when parsing buffer for keywords.",
+      "description": "Always consider `-` as keyword character when parsing buffer for keywords.",
       "default": true
     },
     "coc.preferences.triggerSignatureHelp": {
       "type": "boolean",
-      "description": "Show signature help when trigger characer typed.",
+      "description": "Show signature help when trigger character typed.",
       "default": true
     },
     "coc.preferences.formatOnSaveFiletypes": {

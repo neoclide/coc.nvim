@@ -44,17 +44,15 @@ async function startCompletion(): Promise<void> {
 describe('completion events', () => {
 
   it('should load preferences', () => {
-    let preferences = (completion as any).preferences
-    let minTriggerInputLength = preferences.get('minTriggerInputLength', 1)
+    let minTriggerInputLength = completion.getPreference('minTriggerInputLength')
     expect(minTriggerInputLength).toBe(1)
   })
 
   it('should reload preferences onChange', () => {
     let { configurations } = workspace
-    configurations.updateUserConfig({ 'coc.preferences.snippetIndicator': '*' })
-    let preferences = (completion as any).preferences
-    let snippetIndicator = preferences.get('snippetIndicator', 1)
-    expect(snippetIndicator).toBe('*')
+    configurations.updateUserConfig({ 'coc.preferences.maxCompleteItemCount': 30 })
+    let snippetIndicator = completion.getPreference('maxItemCount')
+    expect(snippetIndicator).toBe(30)
   })
 })
 

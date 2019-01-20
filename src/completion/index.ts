@@ -19,6 +19,7 @@ export interface LastInsert {
 export class Completion implements Disposable {
   // current input string
   private input: string
+  private config: CompleteConfig
   private document: Document
   private increment: Increment
   private lastInsert?: LastInsert
@@ -29,20 +30,38 @@ export class Completion implements Disposable {
   private _completeItems: VimCompleteItem[] = []
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
-  private preferences: WorkspaceConfiguration
   private triggerCharacters: Set<string> = new Set()
   private changedTick = 0
   private currIndex = 0
   private insertCharTs = 0
   private lastInsertleaveTs = 0
 
-  constructor() {
-    this.preferences = workspace.getConfiguration('coc.preferences')
-    let noselect = this.preferences.get<boolean>('noselect')
-    if (!noselect) this.currIndex = 1
-
-    workspace.onDidChangeConfiguration(_e => {
-      this.preferences = workspace.getConfiguration('coc.preferences')
+  public init(nvim: Neovim): void {
+    this.nvim = nvim
+    this.config = this.getCompleteConfig()
+    let increment = this.increment = new Increment(nvim, this.config)
+    this.disposables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
+    this.disposables.push(events.on('InsertLeave', this.onInsertLeave, this))
+    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
+    this.disposables.push(events.on('TextChangedP', this.onTextChangedP, this))
+    this.disposables.push(events.on('TextChangedI', this.onTextChangedI, this))
+    this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
+    // stop change emit on completion
+    increment.on('start', () => {
+      this.currIndex = this.config.noselect ? 0 : 1
+      this.changedTick = 0
+      this._completeItems = []
+      this.document.paused = true
+    })
+    increment.on('stop', () => {
+      this.document.paused = false
+      this._completeItems = []
+      this.complete = null
+    })
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('coc.preferences')) {
+        this.config = this.getCompleteConfig()
+      }
     }, null, this.disposables)
   }
 
@@ -55,8 +74,8 @@ export class Completion implements Disposable {
     return this.currIndex !== 0
   }
 
-  public getPreference(key: string): any {
-    return this.preferences.get(key)
+  public getPreference<T extends keyof CompleteConfig>(key: T): any {
+    return this.config[key]
   }
 
   // vim's logic for filter items
@@ -101,30 +120,6 @@ export class Completion implements Disposable {
     return option ? option.bufnr : null
   }
 
-  public init(nvim: Neovim): void {
-    this.nvim = nvim
-    let increment = this.increment = new Increment(nvim, this.numberSelect)
-    this.disposables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
-    this.disposables.push(events.on('InsertLeave', this.onInsertLeave, this))
-    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
-    this.disposables.push(events.on('TextChangedP', this.onTextChangedP, this))
-    this.disposables.push(events.on('TextChangedI', this.onTextChangedI, this))
-    this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
-    // stop change emit on completion
-    increment.on('start', () => {
-      let noselect = this.preferences.get<boolean>('noselect')
-      this.currIndex = noselect ? 0 : 1
-      this.changedTick = 0
-      this._completeItems = []
-      this.document.paused = true
-    })
-    increment.on('stop', () => {
-      this.document.paused = false
-      this._completeItems = []
-      this.complete = null
-    })
-  }
-
   public get isActivted(): boolean {
     return this.increment.isActivted
   }
@@ -132,11 +127,18 @@ export class Completion implements Disposable {
   private getCompleteConfig(): CompleteConfig {
     let config = workspace.getConfiguration('coc.preferences')
     return {
+      autoTrigger: config.get<string>('autoTrigger', 'always'),
+      triggerAfterInsertEnter: config.get<boolean>('triggerAfterInsertEnter', false),
+      noselect: config.get<boolean>('noselect', true),
+      numberSelect: config.get<boolean>('noselect', false),
+      acceptSuggestionOnCommitCharacter: config.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
       timeout: config.get<number>('timeout', 500),
+      minTriggerInputLength: config.get<number>('minTriggerInputLength', 1),
       snippetIndicator: config.get<string>('snippetIndicator', '~'),
       fixInsertedWord: config.get<boolean>('fixInsertedWord', true),
-      localityBonus: config.get<boolean>('localityBonus', true)
+      localityBonus: config.get<boolean>('localityBonus', true),
+      invalidInsertCharacters: config.get<string[]>('invalidInsertCharacters', ["<", "(", ":", " "]),
     }
   }
 
@@ -191,7 +193,7 @@ export class Completion implements Disposable {
   }
 
   private appendNumber(items: VimCompleteItem[]): void {
-    if (!this.numberSelect) return
+    if (!this.config.numberSelect) return
     for (let i = 1; i <= 10; i++) {
       let item = items[i - 1]
       if (!item) break
@@ -202,7 +204,7 @@ export class Completion implements Disposable {
 
   private async onPumVisible(): Promise<void> {
     let first = this._completeItems[0]
-    let noselect = this.preferences.get<boolean>('noselect')
+    let noselect = this.config.noselect
     if (!noselect) await sources.doCompleteResolve(first)
   }
 
@@ -212,9 +214,8 @@ export class Completion implements Disposable {
 
   private async _doComplete(option: CompleteOption): Promise<void> {
     let { linenr, line } = option
-    let { nvim, increment } = this
+    let { nvim, increment, config } = this
     let arr = sources.getCompleteSources(option, this.triggerCharacters.has(option.triggerCharacter))
-    let config = this.getCompleteConfig()
     let document = workspace.getDocument(option.bufnr)
     this.complete = new Complete(option, document, this.recentScores, config, nvim)
     increment.start(option)
@@ -270,7 +271,7 @@ export class Completion implements Disposable {
     if (item) {
       if (item.isSnippet) {
         let { word } = item
-        let text = word.match(/^[\w\-$.@#:"]*/)[0]
+        let text = this.getValidWord(word)
         if (word != text) {
           let before = byteSlice(line, 0, option.col)
           let after = byteSlice(line, option.col + byteLength(word))
@@ -294,7 +295,7 @@ export class Completion implements Disposable {
     if (latestInsertChar && document) await document.patchChange()
     if (increment.isActivted) {
       if (bufnr !== this.bufnr) return
-      let checkCommit = this.preferences.get<boolean>('acceptSuggestionOnCommitCharacter', false)
+      let checkCommit = this.config.acceptSuggestionOnCommitCharacter
       if (checkCommit
         && latestInsertChar
         && !isWord(latestInsertChar)
@@ -376,9 +377,9 @@ export class Completion implements Disposable {
 
   private async onInsertEnter(): Promise<void> {
     this.insertMode = true
-    let trigger = this.preferences.get<boolean>('triggerAfterInsertEnter', false)
+    let trigger = this.config.triggerAfterInsertEnter
     if (!trigger || this.completing) return
-    let minLength = this.preferences.get<number>('minTriggerInputLength', 1)
+    let minLength = this.config.minTriggerInputLength
     let option = await this.nvim.call('coc#util#get_complete_option')
     if (option.input.length >= minLength) {
       await this.startCompletion(option)
@@ -417,28 +418,35 @@ export class Completion implements Disposable {
 
   public async shouldTrigger(character: string): Promise<boolean> {
     if (!character || character == ' ') return false
-    let autoTrigger = this.preferences.get<string>('autoTrigger', 'always')
+    let autoTrigger = this.config.autoTrigger
     if (autoTrigger == 'none') return false
     let doc = await workspace.document
     if (sources.shouldTrigger(character, doc.filetype)) return true
     if (autoTrigger !== 'always') return false
     if (doc.isWord(character)) {
-      if (character <= '9' && character >= '0' && this.numberSelect) {
+      if (character <= '9' && character >= '0' && this.config.numberSelect) {
         return false
       }
-      let minLength = this.preferences.get<number>('minTriggerInputLength', 1)
+      let minLength = this.config.minTriggerInputLength
       let input = await this.nvim.call('coc#util#get_input') as string
       return input.length >= minLength
     }
     return false
   }
 
-  private get numberSelect(): boolean {
-    return this.preferences.get<boolean>('numberSelect', false)
-  }
-
   public get completeItems(): VimCompleteItem[] {
     return this._completeItems
+  }
+
+  private getValidWord(text: string): string {
+    let invalidChars = this.config.invalidInsertCharacters
+    for (let i = 0; i < text.length; i++) {
+      let c = text[i]
+      if (invalidChars.indexOf(c) !== -1) {
+        return text.slice(0, i)
+      }
+    }
+    return text
   }
 
   public dispose(): void {

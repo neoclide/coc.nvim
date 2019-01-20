@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable } from 'vscode-languageserver-protocol'
-import { CompleteOption } from '../types'
+import { CompleteOption, CompleteConfig } from '../types'
 import workspace from '../workspace'
 import Emitter = require('events')
 const logger = require('../util/logger')('increment')
@@ -10,7 +10,7 @@ export default class Increment extends Emitter {
   private activted = false
   private completeOpt = 'noselect,noinsert,menuone'
 
-  constructor(private nvim: Neovim, private numberSelect: boolean) {
+  constructor(private nvim: Neovim, private config: CompleteConfig) {
     super()
     this.setCompleteOpt()
     workspace.onDidChangeConfiguration(this.setCompleteOpt, this, this.disposables)
@@ -33,7 +33,7 @@ export default class Increment extends Emitter {
       enablePreview = true
     }
     let opt = enablePreview ? `${this.completeOpt},preview` : this.completeOpt
-    if (this.numberSelect) {
+    if (this.config.numberSelect) {
       nvim.call('coc#_map', [], true)
     }
     nvim.command(`noa set completeopt=${opt}`, true)
@@ -45,7 +45,7 @@ export default class Increment extends Emitter {
     if (!activted) return
     this.activted = false
     nvim.pauseNotification()
-    if (this.numberSelect) {
+    if (this.config.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
     nvim.call('coc#_hide', [])
