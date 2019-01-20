@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Range, ApplyWorkspaceEditRequest } from 'vscode-languageserver-protocol'
 import { DiagnosticItems, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
@@ -18,6 +18,7 @@ export class DiagnosticBuffer {
   private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
   private isVim: boolean
+  public vTextNameSpace: number = null
   public readonly bufnr: number
   public readonly uri: string
   public refresh: (diagnosticItems: DiagnosticItems) => void
@@ -149,7 +150,9 @@ export class DiagnosticBuffer {
 
   public async setDiagnosticInfo(diagnostics: Diagnostic[]): Promise<void> {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
+    let newVTextNameSpace = await workspace.createNameSpace();
     for (let diagnostic of diagnostics) {
+      this.addVTextDiagnostic(diagnostic, newVTextNameSpace)
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
           info.warning = info.warning + 1
@@ -165,11 +168,38 @@ export class DiagnosticBuffer {
       }
     }
     let buffer = this.nvim.createBuffer(this.bufnr)
+    buffer.clearNamespace(await this.vTextNameSpace)
+    this.vTextNameSpace = newVTextNameSpace
+
     buffer.setVar('coc_diagnostic_info', info, true)
     let bufnr = await this.nvim.call('bufnr', '%')
     if (!workspace.getDocument(this.bufnr)) return
     if (bufnr == this.bufnr) this.nvim.command('redraws', true)
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
+  }
+
+  // Add a virtual text diagnostic if in neovim
+  private async addVTextDiagnostic(diagnostic: Diagnostic, newVTextNameSpace:number) {
+    if (this.isVim) {
+      return
+    }
+
+    let highlight: String;
+    switch (diagnostic.severity) {
+      case DiagnosticSeverity.Warning:
+        highlight = "CocWarningLine"
+        break
+      case DiagnosticSeverity.Information:
+        highlight = "CocInfoLine"
+        break
+      case DiagnosticSeverity.Hint:
+        highlight = "CocHintLine"
+        break
+      default: { highlight = "CocErrorLine" }
+    }
+
+    let { bufnr, nvim } = this
+    nvim.call("nvim_buf_set_virtual_text", [bufnr, newVTextNameSpace, diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
   }
 
   public async clearHighlight(): Promise<void> {
