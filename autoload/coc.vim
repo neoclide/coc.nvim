@@ -1,6 +1,6 @@
 let g:coc#_context = {}
-let g:coc_user_config = {}
-let g:coc_global_extensions = []
+let g:coc_user_config = get(g:, 'coc_user_config', {})
+let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
 let g:coc_selected_text = ''
 let s:watched_keys = []
 let s:is_vim = !has('nvim')
