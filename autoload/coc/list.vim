@@ -66,6 +66,10 @@ function! coc#list#get_chars()
         \ '<FocusGained>' : "\<FocusGained>",
         \ '<ScrollWheelUp>': "\<ScrollWheelUp>",
         \ '<ScrollWheelDown>': "\<ScrollWheelDown>",
+        \ '<LeftMouse>': "\<LeftMouse>",
+        \ '<LeftDrag>': "\<LeftDrag>",
+        \ '<LeftRelease>': "\<LeftRelease>",
+        \ '<2-LeftMouse>': "\<2-LeftMouse>"
         \}
 endfunction
 

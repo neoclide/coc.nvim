@@ -38,8 +38,8 @@ describe('diff lines', () => {
 describe('patch line', () => {
   it('should patch line', () => {
     let res = patchLine('foo', 'bar foo bar')
-    expect(res.length).toBe(11)
-    expect(res).toBe('\b\b\b\bfoo\b\b\b\b')
+    expect(res.length).toBe(7)
+    expect(res).toBe('    foo')
   })
 })
 

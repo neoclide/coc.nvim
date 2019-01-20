@@ -7,6 +7,8 @@ import { disposeAll } from '../util'
 import { Highlights } from './worker'
 const logger = require('../util/logger')('list-ui')
 
+export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
+
 export default class ListUI {
 
   public window: Window
@@ -19,17 +21,20 @@ export default class ListUI {
   private disposables: Disposable[] = []
   private signOffset: number
   private selected: number[] = []
+  private mouseDownLine: number
   private creating = false
   private _onDidChangeLine = new Emitter<number>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
   private _onDidChange = new Emitter<void>()
   private _onDidLineChange = new Emitter<number>()
+  private _onDoubleClick = new Emitter<void>()
   public readonly onDidChangeLine: Event<number> = this._onDidChangeLine.event
   public readonly onDidLineChange: Event<number> = this._onDidLineChange.event
   public readonly onDidOpen: Event<number> = this._onDidOpen.event
   public readonly onDidClose: Event<number> = this._onDidClose.event
   public readonly onDidChange: Event<void> = this._onDidChange.event
+  public readonly onDidDoubleClick: Event<void> = this._onDoubleClick.event
 
   constructor(private nvim: Neovim, private config: WorkspaceConfiguration) {
     let signText = config.get<string>('selectedSignText', '*')
@@ -108,8 +113,36 @@ export default class ListUI {
     return item == null ? [] : [item]
   }
 
+  public async onMouse(event: MouseEvent): Promise<void> {
+    let { nvim, window } = this
+    let winid = await nvim.getVvar('mouse_winid')
+    if (!window || winid != window.id) return
+    let lnum = await nvim.getVvar('mouse_lnum') as number
+    if (event == 'doubleClick') {
+      await this.setCursor(lnum, 0)
+      this._onDoubleClick.fire()
+    } else if (event == 'mouseDown') {
+      this.mouseDownLine = lnum
+    } else if (event == 'mouseDrag') {
+      if (this.mouseDownLine) {
+        await this.selectLines(this.mouseDownLine, lnum)
+      }
+    } else if (event == 'mouseUp') {
+      if (this.mouseDownLine && lnum == this.mouseDownLine) {
+        nvim.pauseNotification()
+        this.clearSelection()
+        this.setCursor(this.mouseDownLine, 0, true)
+        nvim.command('redraw', true)
+        await nvim.resumeNotification()
+      } else if (this.mouseDownLine) {
+        await this.selectLines(this.mouseDownLine, lnum)
+      }
+    }
+  }
+
   public reset(): void {
     this.items = []
+    this.mouseDownLine = null
     this.selected = []
     this._bufnr = 0
     this.window = null
@@ -153,6 +186,23 @@ export default class ListUI {
     await nvim.resumeNotification()
   }
 
+  public async selectLines(start: number, end: number): Promise<void> {
+    let { nvim, signOffset, bufnr, length } = this
+    this.clearSelection()
+    let { selected } = this
+    nvim.pauseNotification()
+    let reverse = start > end
+    if (reverse) [start, end] = [end, start]
+    for (let i = start; i <= end; i++) {
+      if (i > length) break
+      selected.push(i)
+      nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true)
+    }
+    this.setCursor(end, 0, true)
+    nvim.command('redraw', true)
+    await nvim.resumeNotification()
+  }
+
   public clearSelection(): void {
     let { selected, nvim, signOffset, bufnr } = this
     if (!bufnr) return
@@ -161,8 +211,8 @@ export default class ListUI {
       for (let lnum of selected) {
         signIds.push(signOffset + lnum)
       }
-      this.selected = []
       nvim.call('coc#util#unplace_signs', [bufnr, signIds], true)
+      this.selected = []
     }
   }
 
