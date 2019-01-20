@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Range, ApplyWorkspaceEditRequest } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import { DiagnosticItems, LocationListItem } from '../types'
 import { equals } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
@@ -180,7 +180,8 @@ export class DiagnosticBuffer {
       return
     }
 
-    let { bufnr, nvim, vTextNameSpaces } = this
+    let { bufnr, vTextNameSpaces } = this
+    let buffer = this.nvim.createBuffer(bufnr)
     let index:number = Number(vTextNameSpaces.index)
 
     if (vTextNameSpaces[index] == null) {
@@ -189,7 +190,7 @@ export class DiagnosticBuffer {
 
     for (let diagnostic of diagnostics) {
       let setVirtualText = (highlight:String) => {
-          nvim.call("nvim_buf_set_virtual_text", [bufnr, vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, highlight]], {}])
+          buffer.setVirtualText(vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, String(highlight)]], {})
       }
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
@@ -206,7 +207,6 @@ export class DiagnosticBuffer {
         }
       }
     }
-    let buffer = this.nvim.createBuffer(bufnr)
     buffer.clearNamespace(vTextNameSpaces[Number(!vTextNameSpaces.index)])
     vTextNameSpaces.index = !vTextNameSpaces.index
   }
