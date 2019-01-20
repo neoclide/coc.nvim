@@ -8,6 +8,7 @@ import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
 import { getNameFromSeverity, getLocationListItem } from './util'
 import Document from '../model/document'
+import { sort } from 'semver';
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 
@@ -182,15 +183,16 @@ export class DiagnosticBuffer {
 
     let { bufnr, vTextNameSpaces } = this
     let buffer = this.nvim.createBuffer(bufnr)
-    let index:number = Number(vTextNameSpaces.index)
+    let index: number = Number(vTextNameSpaces.index)
 
     if (vTextNameSpaces[index] == null) {
       vTextNameSpaces[index] = await workspace.createNameSpace()
     }
 
-    for (let diagnostic of diagnostics) {
-      let setVirtualText = (highlight:String) => {
-          buffer.setVirtualText(vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, String(highlight)]], {})
+    let sorted = diagnostics.sort((a, b) => { if (a.severity > b.severity) { return 1 } else { return -1 } })
+    for (let diagnostic of sorted) {
+      let setVirtualText = (highlight: String) => {
+        buffer.setVirtualText(vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, String(highlight)]], {})
       }
       switch (diagnostic.severity) {
         case DiagnosticSeverity.Warning:
