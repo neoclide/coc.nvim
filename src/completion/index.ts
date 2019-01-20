@@ -130,7 +130,7 @@ export class Completion implements Disposable {
       autoTrigger: config.get<string>('autoTrigger', 'always'),
       triggerAfterInsertEnter: config.get<boolean>('triggerAfterInsertEnter', false),
       noselect: config.get<boolean>('noselect', true),
-      numberSelect: config.get<boolean>('noselect', false),
+      numberSelect: config.get<boolean>('numberSelect', false),
       acceptSuggestionOnCommitCharacter: config.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
       timeout: config.get<number>('timeout', 500),
