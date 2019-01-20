@@ -64,9 +64,7 @@ export function getMatchResult(text: string, query: string, filename = ''): Matc
       }
     }
   }
-  console.log(2)
   if (idx == 0) return { score: 0 }
-  console.log(11)
   if (codes.length == 1) return { score, matches }
   return nextResult(codes.slice(1), text, idx, { score, matches })
 }

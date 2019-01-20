@@ -22,6 +22,8 @@ import UI from './ui'
 import Worker from './worker'
 const logger = require('../util/logger')('list-manager')
 
+const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
+
 export class ListManager {
   public prompt: Prompt
   public ui: UI
@@ -95,6 +97,9 @@ export class ListManager {
         this.updateStatus()
         this.prompt.drawPrompt()
       }
+    }, null, this.disposables)
+    this.ui.onDidDoubleClick(async () => {
+      await this.doAction()
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('list')) {
@@ -381,6 +386,10 @@ export class ListManager {
 
   private async onInputChar(ch: string, charmod: number): Promise<void> {
     let { mode } = this.prompt
+    if (!this.activated) {
+      this.nvim.call('coc#list#stop_prompt', [], true)
+      return
+    }
     if (mode == 'insert') {
       await this.onInsertInput(ch, charmod)
     } else {
@@ -390,6 +399,10 @@ export class ListManager {
 
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
     let inserted = this.charMap.get(ch) || ch
+    if (mouseKeys.indexOf(inserted) !== -1) {
+      await this.onMouseEvent(inserted)
+      return
+    }
     if (this.listOptions.numberSelect) {
       let code = ch.charCodeAt(0)
       if (code >= 49 && code <= 57) {
@@ -413,10 +426,26 @@ export class ListManager {
   }
 
   private async onNormalInput(ch: string, _charmod: number): Promise<void> {
-    if (!this.activated) return
     let inserted = this.charMap.get(ch) || ch
+    if (mouseKeys.indexOf(inserted) !== -1) {
+      await this.onMouseEvent(inserted)
+      return
+    }
     let done = await this.mappings.doNormalKeymap(inserted)
     if (!done) await this.feedkeys(inserted)
+  }
+
+  private onMouseEvent(key): Promise<void> {
+    switch (key) {
+      case '<LeftMouse>':
+        return this.ui.onMouse('mouseDown')
+      case '<LeftDrag>':
+        return this.ui.onMouse('mouseDrag')
+      case '<LeftRelease>':
+        return this.ui.onMouse('mouseUp')
+      case '<2-LeftMouse>':
+        return this.ui.onMouse('doubleClick')
+    }
   }
 
   public async feedkeys(key: string): Promise<void> {
