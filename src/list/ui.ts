@@ -101,6 +101,7 @@ export default class ListUI {
   }
 
   public async getItems(): Promise<ListItem[]> {
+    if (this.length == 0) return []
     let { selectedItems } = this
     if (selectedItems.length) return selectedItems
     let item = await this.item

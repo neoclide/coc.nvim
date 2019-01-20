@@ -121,7 +121,7 @@ function! coc#list#status(name)
 endfunction
 
 function! coc#list#setup(source)
-  setl buftype=nofile filetype=list nobuflisted nofen nowrap
+  setl buftype=nofile filetype=list nobuflisted nofen wrap
   setl number norelativenumber bufhidden=wipe cursorline winfixheight
   setl tabstop=1 nolist
   syntax case ignore
