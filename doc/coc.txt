@@ -242,6 +242,17 @@ g:coc_auto_copen  				*g:coc_auto_copen*
 
 			Default: 1
 
+g:coc_user_config 				*g:coc_user_config*
+
+
+			User configuration object, define this variable when
+			you can't use |coc#config()|
+
+g:coc_global_extensions 			*g:coc_global_extensions*
+
+			Global extension names, define this variable to
+			list of extension names when you can't use
+			|coc#add_extension()|
 
 g:coc_snippet_next                            	*g:coc_snippet_next*
 
