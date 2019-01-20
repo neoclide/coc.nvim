@@ -12,6 +12,7 @@ import { getSeverityName, getSeverityType, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
+  virtualText: boolean
   displayByAle: boolean
   srcId: number
   locationlist: boolean
@@ -348,6 +349,7 @@ export class DiagnosticManager {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this.config = {
+      virtualText: config.get<boolean>('virtualText', false),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),
