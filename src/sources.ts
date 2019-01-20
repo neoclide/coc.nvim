@@ -1,22 +1,22 @@
-import { attach, Neovim } from '@chemzqm/neovim'
-import cp from 'child_process'
+import fastDiff from 'fast-diff'
+import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
 import { Disposable } from 'vscode-jsonrpc'
-import which from 'which'
 import events from './events'
+import extensions from './extensions'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, Extension } from './types'
+import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem } from './types'
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
-import extensions from './extensions'
 const logger = require('./util/logger')('sources')
 
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []
+  private remoteSourcePaths: string[] = []
 
   private get nvim(): Neovim {
     return workspace.nvim
@@ -60,11 +60,13 @@ export class Sources {
               },
               [`coc.source.${name}.shortcut`]: {
                 type: 'string',
-                default: props.shortcut || name.slice(0, 3).toUpperCase()
+                default: props.shortcut || name.slice(0, 3).toUpperCase(),
+                description: 'Shortcut text shown in complete menu.'
               },
               [`coc.source.${name}.filetypes`]: {
                 type: 'array',
                 default: props.filetypes || null,
+                description: 'Enabled filetypes.',
                 items: {
                   type: 'string'
                 }
@@ -104,55 +106,28 @@ export class Sources {
     }
   }
 
-  private createNvimProcess(): cp.ChildProcess {
-    try {
-      let p = which.sync('nvim')
-      let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'])
-      return proc
-    } catch (e) {
-      return null
-    }
-  }
-
   private async createRemoteSources(): Promise<void> {
     let { nvim } = this
     let runtimepath = await nvim.eval('&runtimepath')
     let paths = (runtimepath as string).split(',')
-    paths = paths.map(p => {
-      return path.join(p, 'autoload/coc/source')
-    })
-    let files = []
-    for (let p of paths) {
-      let stat = await statAsync(p)
-      if (stat && stat.isDirectory()) {
-        let arr = await pify(fs.readdir)(p)
-        arr = arr.filter(s => s.slice(-4) == '.vim')
-        files = files.concat(arr.map(s => path.join(p, s)))
-      }
+    for (let path of paths) {
+      await this.createVimSources(path)
     }
-    let proc = this.createNvimProcess()
-    if (proc) {
-      try {
-        nvim = attach({ proc })
-        let utilPath = path.join(workspace.pluginRoot, 'autoload/coc/util.vim')
-        await nvim.command(`source ${utilPath}`)
-      } catch (e) {
-        nvim = this.nvim
-      }
-    }
-    await Promise.all(files.map(p => {
-      return this.createVimSourceExtension(nvim, p)
-    }))
-    if (proc) proc.kill()
   }
 
-  private onDocumentEnter(bufnr: number): void {
-    let { sources } = this
-    for (let s of sources) {
-      if (!s.enable) continue
-      if (typeof s.onEnter == 'function') {
-        s.onEnter(bufnr)
-      }
+  private async createVimSources(pluginPath: string): Promise<void> {
+    if (this.remoteSourcePaths.indexOf(pluginPath) != -1) return
+    this.remoteSourcePaths.push(pluginPath)
+    let folder = path.join(pluginPath, 'autoload/coc/source')
+    let stat = await statAsync(folder)
+    if (stat && stat.isDirectory()) {
+      let arr = await pify(fs.readdir)(folder)
+      arr = arr.filter(s => s.slice(-4) == '.vim')
+      let files = arr.map(s => path.join(folder, s))
+      if (files.length == 0) return
+      await Promise.all(files.map(p => {
+        return this.createVimSourceExtension(this.nvim, p)
+      }))
     }
   }
 
@@ -160,6 +135,17 @@ export class Sources {
     this.createNativeSources() // tslint:disable-line
     this.createRemoteSources() // tslint:disable-line
     events.on('BufEnter', this.onDocumentEnter, this, this.disposables)
+    workspace.watchOption('runtimepath', async (oldValue, newValue) => {
+      let result = fastDiff(oldValue, newValue)
+      for (let [changeType, value] of result) {
+        if (changeType == 1) {
+          let paths = value.replace(/,$/, '').split(',')
+          for (let p of paths) {
+            await this.createVimSources(p)
+          }
+        }
+      }
+    }, this.disposables)
   }
 
   public get names(): string[] {
@@ -305,6 +291,16 @@ export class Sources {
       })
     }
     return res
+  }
+
+  private onDocumentEnter(bufnr: number): void {
+    let { sources } = this
+    for (let s of sources) {
+      if (!s.enable) continue
+      if (typeof s.onEnter == 'function') {
+        s.onEnter(bufnr)
+      }
+    }
   }
 
   public dispose(): void {
