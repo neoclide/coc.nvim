@@ -38,7 +38,7 @@ export default class Mappings {
     })
     this.add('insert', '<C-c>', async () => {
       manager.stop()
-      nvim.call('coc#list#start_prompt', [], true)
+      manager.prompt.start()
       return
     })
     this.add('insert', '<esc>', () => {
