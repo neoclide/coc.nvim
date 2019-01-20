@@ -119,7 +119,7 @@ export default class Mappings {
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
-    let insertMappings = this.manager.getConfig('insertMappings', {})
+    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
     let expr = insertMappings[key]
     if (expr) {
       await this.evalExpression(expr, 'insert')
@@ -134,7 +134,7 @@ export default class Mappings {
   }
 
   public async doNormalKeymap(key: string): Promise<boolean> {
-    let normalMappings = this.manager.getConfig('normalMappings', {})
+    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
     let expr = normalMappings[key]
     if (expr) {
       await this.evalExpression(expr, 'normal')
@@ -148,7 +148,7 @@ export default class Mappings {
     return false
   }
 
-  private add(mode: ListMode, key: string | string[], fn: () => void | Promise<void>) {
+  private add(mode: ListMode, key: string | string[], fn: () => void | Promise<void>): void {
     let mappings = mode == 'insert' ? this.insertMappings : this.normalMappings
     if (Array.isArray(key)) {
       for (let k of key) {
@@ -183,7 +183,7 @@ export default class Mappings {
           await manager.cancel(true)
           return
         case 'stop':
-          await manager.stop()
+          manager.stop()
           return
         case 'cancel':
           await manager.cancel(false)

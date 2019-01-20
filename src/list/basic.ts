@@ -101,6 +101,7 @@ export default abstract class BasicList implements IList, Disposable {
   public abstract loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
 
   public doHighlight(): void {
+    // noop
   }
 
   public dispose(): void {

@@ -17,10 +17,11 @@ export default class ExtensionList extends BasicList {
       let { id, state } = item.data
       if (state == 'disabled') return
       if (state == 'activited') {
-        await extensions.deactivate(id)
+        extensions.deactivate(id)
       } else {
-        await extensions.activate(id)
+        extensions.activate(id)
       }
+      await wait(100)
     }, { persist: true, reload: true, parallel: true })
 
     this.addAction('disable', async item => {
@@ -37,10 +38,10 @@ export default class ExtensionList extends BasicList {
       let { id, state } = item.data
       if (state == 'disabled') return
       if (state == 'activited') {
-        await extensions.deactivate(id)
-        await wait(200)
+        extensions.deactivate(id)
       }
-      await extensions.activate(id)
+      extensions.activate(id)
+      await wait(100)
     }, { persist: true, reload: true })
 
     this.addAction('uninstall', async item => {

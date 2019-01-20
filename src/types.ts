@@ -508,9 +508,9 @@ export interface ListAction {
 }
 
 export interface ListTask {
-  on(event: 'data', callback: (item: ListItem) => void)
-  on(event: 'end', callback: () => void)
-  dispose()
+  on(event: 'data', callback: (item: ListItem) => void): void
+  on(event: 'end', callback: () => void): void
+  dispose(): void
 }
 
 export interface IList {

@@ -365,7 +365,7 @@ export default class ListUI {
     return Promise.resolve(window[notify ? 'notify' : 'request']('nvim_win_set_cursor', [window, [lnum, col]]))
   }
 
-  public addHighlights(highlights: ListHighlights[], append = false) {
+  public addHighlights(highlights: ListHighlights[], append = false): void {
     if (!append) {
       this.highlights = highlights
     } else {

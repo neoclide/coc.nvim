@@ -292,7 +292,9 @@ export class ListManager {
     }
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
-    await this.prompt.start()
+    nvim.pauseNotification()
+    this.prompt.start()
+    await nvim.resumeNotification()
     if (n) await this.doAction(names[n - 1])
   }
 
@@ -519,7 +521,7 @@ export class ListManager {
     return Array.from(this.listMap.keys())
   }
 
-  public toggleMode() {
+  public toggleMode(): void {
     let { mode } = this.prompt
     this.prompt.mode = mode == 'normal' ? 'insert' : 'normal'
     this.updateStatus()
