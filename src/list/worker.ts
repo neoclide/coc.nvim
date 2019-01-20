@@ -151,14 +151,14 @@ export default class Worker {
         }
       }
       let onData = throttle(_onData, 50)
-      task.on('data', async (item) => {
+      task.on('data', async item => {
         if (this.taskId != id || !this._loading) return
         if (interactive && this.input != currInput) return
         item.recentScore = this.recentScore(item)
         totalItems.push(item)
         onData()
       })
-      await new Promise(resolve => {
+      await new Promise<void>(resolve => {
         task.on('end', async () => {
           this.loading = false
           setTimeout(() => {

@@ -126,7 +126,7 @@ export function getContentChanges(document: TextDocument, content: string): Text
   return edits
 }
 
-export function patchLine(from: string, to: string, fill = ' ') {
+export function patchLine(from: string, to: string, fill = ' '): string {
   if (from == to) return to
   let idx = to.indexOf(from)
   if (idx !== -1) return fill.repeat(idx) + from

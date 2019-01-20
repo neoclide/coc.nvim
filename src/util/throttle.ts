@@ -8,10 +8,12 @@
  */
 
 export default function throttle(func: Function, wait: number): Function & { clear(): void; } {
-  let args, rtn, timeoutID; // caching
+  let args
+  let rtn
+  let timeoutID
   let last = 0
 
-  function fn() {
+  function fn(): any {
     args = arguments
     let delta = Date.now() - last
     if (!timeoutID)
@@ -20,7 +22,7 @@ export default function throttle(func: Function, wait: number): Function & { cle
     return rtn
   }
 
-  function call() {
+  function call(): any {
     timeoutID = 0
     last = +new Date()
     rtn = func.apply(null, args)
