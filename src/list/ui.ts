@@ -1,10 +1,9 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { ListItem, WorkspaceConfiguration } from '../types'
+import { ListItem, WorkspaceConfiguration, ListHighlights } from '../types'
 import workspace from '../workspace'
 import { disposeAll } from '../util'
-import { Highlights } from './worker'
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -16,7 +15,7 @@ export default class ListUI {
   private _bufnr = 0
   private srcId: number
   private currIndex = 0
-  private highlights: Highlights[] = []
+  private highlights: ListHighlights[] = []
   private items: ListItem[] = []
   private disposables: Disposable[] = []
   private signOffset: number
@@ -345,6 +344,7 @@ export default class ListUI {
     }
     if (!highlights.length) return
     for (let highlight of highlights) {
+      if (highlight == null) continue
       let { lnum, spans } = highlight
       if (lnum >= length) continue
       for (let span of spans) {
@@ -365,7 +365,7 @@ export default class ListUI {
     return Promise.resolve(window[notify ? 'notify' : 'request']('nvim_win_set_cursor', [window, [lnum, col]]))
   }
 
-  public addHighlights(highlights: Highlights[], append = false) {
+  public addHighlights(highlights: ListHighlights[], append = false) {
     if (!append) {
       this.highlights = highlights
     } else {

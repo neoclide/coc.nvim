@@ -45,7 +45,7 @@ export default class Mappings {
       return manager.cancel()
     })
     this.add('insert', '<C-l>', () => {
-      return manager.worker.loadItems()
+      return manager.worker.loadItems(true)
     })
     this.add('insert', '<left>', () => {
       return prompt.moveLeft()
@@ -102,7 +102,7 @@ export default class Mappings {
       return manager.cancel()
     })
     this.add('normal', '<C-l>', () => {
-      return manager.worker.loadItems()
+      return manager.worker.loadItems(true)
     })
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
       return manager.toggleMode()
