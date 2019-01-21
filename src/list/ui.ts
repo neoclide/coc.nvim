@@ -241,15 +241,15 @@ export default class ListUI {
     let height = Math.max(1, Math.min(items.length, maxHeight))
     let limitLines = config.get<number>('limitLines', 3000)
     let curr = this.items[this.index]
-    this.items = items
+    this.items = items.slice()
     if (bufnr == 0 && !this.creating) {
       this.creating = true
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
       await nvim.command(cmd)
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
-      this.creating = false
       this._onDidOpen.fire(this.bufnr)
+      this.creating = false
     } else {
       await this.ready
     }
@@ -276,7 +276,7 @@ export default class ListUI {
       return
     }
     let len = this.length
-    this.items.push(...items)
+    this.items = this.items.concat(items)
     if (this.creating) return
     if (this.items.length > limitLines) {
       items = items.slice(0, limitLines - curr)
@@ -292,8 +292,10 @@ export default class ListUI {
     nvim.pauseNotification()
     if (resize && window) {
       let maxHeight = config.get<number>('maxHeight', 12)
-      let height = this.height = Math.max(1, Math.min(this.items.length, maxHeight))
-      window.notify(`nvim_win_set_height`, [window, height])
+      if (!(append && this.length > maxHeight)) {
+        let height = this.height = Math.max(1, Math.min(this.items.length, maxHeight))
+        window.notify(`nvim_win_set_height`, [window, height])
+      }
     }
     nvim.command('setl modifiable', true)
     buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
@@ -333,6 +335,26 @@ export default class ListUI {
     return this._bufnr ? workspace.nvim.createBuffer(this._bufnr) : null
   }
 
+  private doAnsiHighlight(): void {
+    let { buffer, srcId, items } = this
+    let lnum = 0
+    for (let item of items) {
+      if (item.ansiHighlights && item.ansiHighlights.length) {
+        for (let hi of item.ansiHighlights) {
+          let { span, hlGroup } = hi
+          buffer.addHighlight({
+            hlGroup,
+            srcId,
+            line: lnum,
+            colStart: span[0],
+            colEnd: span[1]
+          })
+        }
+      }
+      lnum = lnum + 1
+    }
+  }
+
   private doHighlight(): void {
     if (workspace.isVim) return
     let { nvim } = workspace
@@ -342,14 +364,15 @@ export default class ListUI {
     } else {
       buffer.clearHighlight({ srcId })
     }
+    this.doAnsiHighlight()
     if (!highlights.length) return
     for (let highlight of highlights) {
       if (highlight == null) continue
-      let { lnum, spans } = highlight
+      let { lnum, spans, hlGroup } = highlight
       if (lnum >= length) continue
       for (let span of spans) {
         buffer.addHighlight({
-          hlGroup: 'Search',
+          hlGroup: hlGroup || 'Search',
           srcId,
           line: lnum,
           colStart: span[0],

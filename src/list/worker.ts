@@ -1,24 +1,26 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import path from 'path'
 import os from 'os'
+import path from 'path'
 import util from 'util'
-import { ListItem, ListTask, ListHighlights, ListItemsEvent } from '../types'
+import { Emitter, Event } from 'vscode-languageserver-protocol'
+import Uri from 'vscode-uri'
+import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
+import { wait } from '../util'
+import { ansiparse } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
-import { byteIndex } from '../util/string'
-import throttle from '../util/throttle'
+import { byteIndex, byteLength, upperFirst } from '../util/string'
 import { ListManager } from './manager'
-import Uri from 'vscode-uri'
 import uuidv1 = require('uuid/v1')
-import { Emitter, Event } from 'vscode-languageserver-protocol'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const maxLength = 1000
 const isWindows = process.platform == 'win32'
 const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
 const mruFile = path.join(root, 'mru')
 const logger = require('../util/logger')('list-worker')
+const controlCode = '\x1b'
 
 export interface ExtendedItem extends ListItem {
   score: number
@@ -94,7 +96,8 @@ export default class Worker {
     if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
-        return Object.assign({}, item, {
+        let parsed = this.parseListItemAnsi(item)
+        return Object.assign({}, parsed, {
           recentScore: this.recentScore(item)
         })
       })
@@ -119,6 +122,7 @@ export default class Worker {
       let currInput = context.input
       let _onData = async () => {
         if (this.taskId != id || !this.manager.isActivated) return
+        if (count >= totalItems.length) return
         let inputChanged = this.input != currInput
         if (interactive && inputChanged) return
         if (count == 0 || inputChanged || (currInput.length == 0 && list.name == 'files')) {
@@ -127,14 +131,14 @@ export default class Worker {
           let arr: ListItem[]
           let highlights: ListHighlights[] = []
           if (interactive) {
-            arr = totalItems
+            arr = totalItems.slice()
             highlights = this.getItemsHighlight(arr)
           } else {
             let res = this.filterItems(totalItems)
             arr = res.items
             highlights = res.highlights
           }
-          this._onDidChangeItems.fire({ items: arr, highlights, reload })
+          this._onDidChangeItems.fire({ items: arr, highlights, reload, append: false })
         } else {
           let remain = totalItems.slice(count)
           let arr: ListItem[] = remain
@@ -150,20 +154,35 @@ export default class Worker {
           this._onDidChangeItems.fire({ items: arr, highlights, append: true })
         }
       }
-      let onData = throttle(_onData, 50)
+      let lastTs: number
+      let interval = setInterval(() => {
+        lastTs = Date.now()
+        _onData()
+      }, 100)
       task.on('data', async item => {
         if (this.taskId != id || !this._loading) return
         if (interactive && this.input != currInput) return
         item.recentScore = this.recentScore(item)
-        totalItems.push(item)
-        onData()
+        let parsed = this.parseListItemAnsi(item)
+        totalItems.push(parsed)
       })
-      await new Promise<void>(resolve => {
+      await new Promise<void>((resolve, reject) => {
+        task.on('error', async msg => {
+          this.loading = false
+          clearInterval(interval)
+          reject(new Error(msg))
+        })
         task.on('end', async () => {
           this.loading = false
-          setTimeout(() => {
-            resolve()
-          }, 100)
+          clearInterval(interval)
+          if (count < totalItems.length) {
+            if (lastTs && Date.now() - lastTs < 100) {
+              await wait(100 - (Date.now() - lastTs))
+            }
+            _onData()
+            await wait(100)
+          }
+          resolve()
         })
       })
     }
@@ -337,6 +356,36 @@ export default class Worker {
       this.mruList = []
       // noop
     }
+  }
+
+  // set correct label, add ansi highlights
+  private parseListItemAnsi(item: ListItem): ListItem {
+    let { label } = item
+    if (label.indexOf(controlCode) == -1) return item
+    let ansiItems = ansiparse(label)
+    let newLabel = ''
+    let highlights: AnsiHighlight[] = []
+    for (let item of ansiItems) {
+      let old = newLabel
+      newLabel = newLabel + item.text
+      let { foreground, background } = item
+      if (foreground || background) {
+        let span: [number, number] = [byteLength(old), byteLength(newLabel)]
+        let hlGroup = ''
+        if (foreground && background) {
+          hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
+        } else if (foreground) {
+          hlGroup = `CocListFg${upperFirst(foreground)}`
+        } else if (background) {
+          hlGroup = `CocListBg${upperFirst(background)}`
+        }
+        highlights.push({ span, hlGroup })
+      }
+    }
+    return Object.assign({}, item, {
+      label: newLabel,
+      ansiHighlights: highlights
+    })
   }
 
   private recentScore(item: ListItem): number {

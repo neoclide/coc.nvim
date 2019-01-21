@@ -459,12 +459,20 @@ export interface ListItem {
   location?: Location
   data?: any
   recentScore?: number
+  ansiHighlights?: AnsiHighlight[]
 }
 
 export interface ListHighlights {
   lnum: number
   // column indexes
   spans: [number, number][]
+  hlGroup?: string
+}
+
+export interface AnsiHighlight {
+  // column indexes, end exclusive
+  span: [number, number]
+  hlGroup: string
 }
 
 export interface ListItemsEvent {
@@ -510,13 +518,12 @@ export interface ListAction {
 export interface ListTask {
   on(event: 'data', callback: (item: ListItem) => void): void
   on(event: 'end', callback: () => void): void
+  on(event: 'error', callback: (msg: string) => void): void
   dispose(): void
 }
 
 export interface IList {
   name: string
-  // parse ansi codes form label
-  ansi?: boolean
   // support interactive mode
   interactive?: boolean
   description?: string
@@ -525,6 +532,15 @@ export interface IList {
   loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
   doHighlight(): void
   dispose(): void
+}
+
+export interface AnsiItem {
+  foreground?: string
+  background?: string
+  bold?: boolean
+  italic?: boolean
+  underline?: boolean
+  text: string
 }
 
 export interface ISource {

@@ -4,6 +4,10 @@ export function byteLength(str: string): number {
   return Buffer.byteLength(str)
 }
 
+export function upperFirst(str: string): string {
+  return str ? str[0].toLowerCase() + str.slice(1) : ''
+}
+
 export function byteIndex(content: string, index: number): number {
   let s = content.slice(0, index)
   return Buffer.byteLength(s)

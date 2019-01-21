@@ -16,15 +16,19 @@ export default function throttle(func: Function, wait: number): Function & { cle
   function fn(): any {
     args = arguments
     let delta = Date.now() - last
-    if (!timeoutID)
-      if (last != 0 && delta >= wait) call()
-      else timeoutID = setTimeout(call, wait - delta)
+    if (!timeoutID) {
+      if (last != 0 && delta >= wait) {
+        call()
+      } else {
+        timeoutID = setTimeout(call, wait - delta)
+      }
+    }
     return rtn
   }
 
   function call(): any {
     timeoutID = 0
-    last = +new Date()
+    last = Date.now()
     rtn = func.apply(null, args)
     args = null
   }
