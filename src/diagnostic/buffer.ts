@@ -177,11 +177,10 @@ export class DiagnosticBuffer {
     if (!this.config.virtualText) return
     if (!nvim.hasFunction('nvim_buf_set_virtual_text')) return
     let buffer = this.nvim.createBuffer(bufnr)
-    let sorted = diagnostics.sort((a, b) => (a.severity || 1) - (b.severity || 1))
     let lines: Set<number> = new Set()
     let srcId = this.config.virtualTextSrcId
     buffer.clearNamespace(srcId)
-    for (let diagnostic of sorted) {
+    for (let diagnostic of diagnostics) {
       let { line } = diagnostic.range.start
       if (lines.has(line)) continue
       lines.add(line)
@@ -210,7 +209,7 @@ export class DiagnosticBuffer {
     this.clearHighlight()
     if (diagnostics.length == 0) return
     if (winid == -1 && workspace.isVim) return
-    for (let diagnostic of diagnostics.reverse()) {
+    for (let diagnostic of diagnostics.slice().reverse()) {
       let { range, severity } = diagnostic
       if (workspace.isVim) {
         this.addHighlightVim(winid, range, severity)
