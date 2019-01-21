@@ -20,6 +20,7 @@ import OutputList from './source/output'
 import ListsList from './source/lists'
 import UI from './ui'
 import Worker from './worker'
+import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -92,10 +93,12 @@ export class ListManager {
     this.ui.onDidClose(async () => {
       await this.cancel()
     }, null, this.disposables)
-    this.ui.onDidChange(() => {
+    this.ui.onDidChange(async () => {
       if (this.activated) {
         this.updateStatus()
-        this.prompt.drawPrompt()
+        if (!workspace.isVim) {
+          this.prompt.drawPrompt()
+        }
       }
     }, null, this.disposables)
     this.ui.onDidDoubleClick(async () => {
