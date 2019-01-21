@@ -22,6 +22,7 @@ export interface DiagnosticConfig {
   infoSign: string
   hintSign: string
   level: number
+  virtualTextSrcId: number
 }
 
 export class DiagnosticManager {
@@ -349,6 +350,7 @@ export class DiagnosticManager {
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this.config = {
+      virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
       virtualText: config.get<boolean>('virtualText', false),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),

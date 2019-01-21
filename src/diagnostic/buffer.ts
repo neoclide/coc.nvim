@@ -17,15 +17,12 @@ export class DiagnosticBuffer {
   private signIds: Set<number> = new Set()
   private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
-  private isVim: boolean
-  public vTextNameSpaces = {index: true, ns: [null, null]}
   public readonly bufnr: number
   public readonly uri: string
   public refresh: (diagnosticItems: DiagnosticItems) => void
 
   constructor(doc: Document, private config: DiagnosticConfig) {
     this.bufnr = doc.bufnr
-    this.isVim = workspace.isVim
     this.uri = doc.uri
     let timer: NodeJS.Timer = null
     let time = Date.now()
@@ -52,22 +49,27 @@ export class DiagnosticBuffer {
     let diagnostics = this.getDiagnostics(diagnosticItems)
     if (this.equalDiagnostics(diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
+    let winid: number
     sequence.addFunction(async () => {
       let valid = await this.nvim.call('coc#util#valid_state')
       return valid ? false : true
     })
-    this.nvim.pauseNotification()
-    sequence.addFunction(this.setDiagnosticInfo.bind(this, diagnostics))
-    sequence.addFunction(this.addVTextDiagnostics.bind(this, diagnostics))
-    sequence.addFunction(this.setLocationlist.bind(this, diagnostics))
-    sequence.addFunction(this.addSigns.bind(this, diagnostics))
-    sequence.addFunction(this.addHighlight.bind(this, diagnostics))
+    sequence.addFunction(async () => {
+      let { nvim, bufnr } = this
+      winid = await nvim.call('bufwinid', bufnr) as number
+    })
+    sequence.addFunction(async () => {
+      this.nvim.pauseNotification()
+      this.setDiagnosticInfo(diagnostics)
+      this.addDiagnosticVText(diagnostics)
+      this.setLocationlist(diagnostics, winid)
+      this.addSigns(diagnostics)
+      this.addHighlight(diagnostics, winid)
+      await this.nvim.resumeNotification()
+    })
     sequence.start().then(canceled => {
-      this.nvim.resumeNotification(canceled)
-      if (this.isVim) this.nvim.command('redraw', true)
-      if (!canceled) {
-        this._diagnosticItems = diagnosticItems
-      }
+      if (workspace.isVim) this.nvim.command('redraw', true)
+      if (!canceled) this._diagnosticItems = diagnosticItems
     }, e => {
       logger.error(e)
     })
@@ -87,10 +89,9 @@ export class DiagnosticBuffer {
     return true
   }
 
-  public async setLocationlist(diagnostics: Diagnostic[]): Promise<void> {
+  public async setLocationlist(diagnostics: Diagnostic[], winid: number): Promise<void> {
     if (!this.config.locationlist) return
     let { nvim, bufnr } = this
-    let winid = await nvim.call('bufwinid', bufnr) as number
     // not shown
     if (winid == -1) return
     let items: LocationListItem[] = []
@@ -98,9 +99,7 @@ export class DiagnosticBuffer {
       let item = getLocationListItem(diagnostic.source, bufnr, diagnostic)
       items.push(item)
     }
-    let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-    let action = (curr.title && curr.title.indexOf('Diagnostics of coc') != -1) ? 'r' : ' '
-    nvim.call('setloclist', [winid, [], action, { title: 'Diagnostics of coc', items }], true)
+    nvim.call('setloclist', [winid, [], ' ', { title: 'Diagnostics of coc', items }], true)
   }
 
   private clearSigns(): void {
@@ -149,7 +148,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  public async setDiagnosticInfo(diagnostics: Diagnostic[]): Promise<void> {
+  public setDiagnosticInfo(diagnostics: Diagnostic[]): void {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
     for (let diagnostic of diagnostics) {
       switch (diagnostic.severity) {
@@ -168,54 +167,34 @@ export class DiagnosticBuffer {
     }
     let buffer = this.nvim.createBuffer(this.bufnr)
     buffer.setVar('coc_diagnostic_info', info, true)
-    let bufnr = await this.nvim.call('bufnr', '%')
     if (!workspace.getDocument(this.bufnr)) return
-    if (bufnr == this.bufnr) this.nvim.command('redraws', true)
+    if (workspace.bufnr == this.bufnr) this.nvim.command('redraws', true)
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }
 
-  // Add a virtual text diagnostic if in neovim
-  private async addVTextDiagnostics(diagnostics: Diagnostic[]) {
-    if (this.isVim || !this.config.virtualText) {
-      return
-    }
-
-    let { bufnr, vTextNameSpaces } = this
+  private addDiagnosticVText(diagnostics: Diagnostic[]): void {
+    let { bufnr, nvim } = this
+    if (!this.config.virtualText) return
+    if (!nvim.hasFunction('nvim_buf_set_virtual_text')) return
     let buffer = this.nvim.createBuffer(bufnr)
-    let index: number = Number(vTextNameSpaces.index)
-
-    if (vTextNameSpaces[index] == null) {
-      vTextNameSpaces[index] = await workspace.createNameSpace()
-    }
-
-    let sorted = diagnostics.sort((a, b) => { if (a.severity > b.severity) { return 1 } else { return -1 } })
+    let sorted = diagnostics.sort((a, b) => (a.severity || 1) - (b.severity || 1))
+    let lines: Set<number> = new Set()
+    let srcId = this.config.virtualTextSrcId
+    buffer.clearNamespace(srcId)
     for (let diagnostic of sorted) {
-      let setVirtualText = (highlight: String) => {
-        buffer.setVirtualText(vTextNameSpaces[index], diagnostic.range.start.line, [[diagnostic.message, String(highlight)]], {})
-      }
-      switch (diagnostic.severity) {
-        case DiagnosticSeverity.Warning:
-          setVirtualText("CocWarningSign")
-          break
-        case DiagnosticSeverity.Information:
-          setVirtualText("CocInfoSign")
-          break
-        case DiagnosticSeverity.Hint:
-          setVirtualText("CocHintSign")
-          break
-        default: {
-          setVirtualText("CocErrorSign")
-        }
-      }
+      let { line } = diagnostic.range.start
+      if (lines.has(line)) continue
+      lines.add(line)
+      let highlight = getNameFromSeverity(diagnostic.severity) + 'Sign'
+      let msg = diagnostic.message.split(/\n/)[0]
+      buffer.setVirtualText(srcId, line, [[' ' + msg, highlight]], {})
     }
-    buffer.clearNamespace(vTextNameSpaces[Number(!vTextNameSpaces.index)])
-    vTextNameSpaces.index = !vTextNameSpaces.index
   }
 
-  public async clearHighlight(): Promise<void> {
+  public clearHighlight(): void {
     let { bufnr, nvim, matchIds } = this
-    if (this.isVim) {
-      await nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)])
+    if (workspace.isVim) {
+      nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)], true)
     } else {
       let buffer = nvim.createBuffer(bufnr)
       if (this.nvim.hasFunction('nvim_create_namespace')) {
@@ -227,22 +206,21 @@ export class DiagnosticBuffer {
     this.matchIds.clear()
   }
 
-  public async addHighlight(diagnostics: Diagnostic[]): Promise<void> {
-    await this.clearHighlight()
+  public addHighlight(diagnostics: Diagnostic[], winid): void {
+    this.clearHighlight()
     if (diagnostics.length == 0) return
-    let winid = await this.nvim.call('bufwinid', this.bufnr) as number
-    if (winid == -1 && this.isVim) return
+    if (winid == -1 && workspace.isVim) return
     for (let diagnostic of diagnostics.reverse()) {
       let { range, severity } = diagnostic
-      if (this.isVim) {
-        await this.addHighlightVim(winid, range, severity)
+      if (workspace.isVim) {
+        this.addHighlightVim(winid, range, severity)
       } else {
-        await this.addHighlightNvim(range, severity)
+        this.addHighlightNvim(range, severity)
       }
     }
   }
 
-  private async addHighlightNvim(range: Range, severity: DiagnosticSeverity): Promise<void> {
+  private addHighlightNvim(range: Range, severity: DiagnosticSeverity): void {
     let { srcId } = this.config
     let { start, end } = range
     let document = workspace.getDocument(this.bufnr)
@@ -253,7 +231,7 @@ export class DiagnosticBuffer {
       if (!line || !line.length) continue
       let s = i == start.line ? start.character : 0
       let e = i == end.line ? end.character : -1
-      await buffer.addHighlight({
+      buffer.addHighlight({
         srcId,
         hlGroup: getNameFromSeverity(severity) + 'Highlight',
         line: i,
@@ -264,7 +242,7 @@ export class DiagnosticBuffer {
     this.matchIds.add(srcId)
   }
 
-  private async addHighlightVim(winid: number, range: Range, severity: DiagnosticSeverity): Promise<void> {
+  private addHighlightVim(winid: number, range: Range, severity: DiagnosticSeverity): void {
     let { start, end } = range
     let { matchIds } = this
     let document = workspace.getDocument(this.bufnr)
@@ -290,7 +268,7 @@ export class DiagnosticBuffer {
           list.push(i + 1)
         }
       }
-      let id = await workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, -1, { window: winid }])
+      let id = workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, -1, { window: winid }], true)
       matchIds.add(id)
     } catch (e) {
       logger.error(e.stack)
@@ -328,7 +306,7 @@ export class DiagnosticBuffer {
     buffer.setVar('coc_diagnostic_info', info, true)
     let bufnr = await this.nvim.call('bufnr', '%')
     if (bufnr == this.bufnr) this.nvim.command('redraws', true)
-    await this.clearHighlight()
+    this.clearHighlight()
     this.clearSigns()
     // clear locationlist
     if (this.config.locationlist) {

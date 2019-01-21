@@ -4,9 +4,11 @@ import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { DiagnosticConfig } from '../../diagnostic/manager'
 import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
 import { DiagnosticItems } from '../../types'
+import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
+  virtualTextSrcId: 0,
   virtualText: false,
   displayByAle: false,
   srcId: 1000,
@@ -47,8 +49,8 @@ describe('diagnostic buffer', () => {
   it('should set locationlist', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
-    await buf.setLocationlist([diagnostic])
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
+    await buf.setLocationlist([diagnostic], winid)
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
     expect(curr.title).toBe('Diagnostics of coc')
   })
@@ -85,7 +87,7 @@ describe('diagnostic buffer', () => {
       createDiagnostic('bar', r, DiagnosticSeverity.Information)
     ]
     let buf = await createDiagnosticBuffer()
-    await buf.setDiagnosticInfo(diagnostics)
+    buf.setDiagnosticInfo(diagnostics)
     let buffer = await nvim.buffer
     let res = await buffer.getVar('coc_diagnostic_info')
     expect(res).toEqual({
@@ -99,24 +101,10 @@ describe('diagnostic buffer', () => {
   it('should add highlight neovim', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
-    await buf.addHighlight([diagnostic])
+    let winid = await nvim.call('bufwinid', buf.bufnr) as number
+    buf.addHighlight([diagnostic], winid)
+    await wait(100)
     expect(buf.hasMatch(1000)).toBe(true)
-  })
-
-  it('should add highlight vim', async () => {
-    let diagnostic = createDiagnostic('foo')
-    let buf = await createDiagnosticBuffer()
-      ; (buf as any).isVim = true
-    let buffer = await nvim.buffer
-    await buffer.setLines(['foo', 'bar', 'foo', 'bar'], {
-      start: 0,
-      end: -1,
-      strictIndexing: false
-    })
-    await buf.addHighlight([diagnostic, createDiagnostic('bar', Range.create(0, 0, 1, 2), DiagnosticSeverity.Warning)])
-    let { matchIds } = buf as any
-    expect(matchIds.size).toBe(2)
-      ; (buf as any).isVim = false
   })
 
   it('should clear all diagnostics', async () => {
