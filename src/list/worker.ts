@@ -175,7 +175,9 @@ export default class Worker {
         task.on('end', async () => {
           this.loading = false
           clearInterval(interval)
-          if (count < totalItems.length) {
+          if (totalItems.length == 0) {
+            this._onDidChangeItems.fire({ items: [], highlights: [] })
+          } else if (count < totalItems.length) {
             if (lastTs && Date.now() - lastTs < 100) {
               await wait(100 - (Date.now() - lastTs))
             }

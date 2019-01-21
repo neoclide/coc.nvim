@@ -60,11 +60,14 @@ export default class Prompt {
 
   public drawPrompt(): void {
     let { indicator, cusorIndex, input } = this
-    let cmds = ['echo ""']
+    let cmds = workspace.isVim ? ['redraw'] : ['echo ""']
     if (this.mode == 'insert') {
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)
+        if (workspace.isVim) {
+          cmds.push(`echohl Cursor | echon ' ' | echohl None`)
+        }
       } else {
         let pre = input.slice(0, cusorIndex)
         if (pre) cmds.push(`echon '${pre.replace(/'/g, "''")}'`)
@@ -73,6 +76,7 @@ export default class Prompt {
         cmds.push(`echon '${post.replace(/'/g, "''")}'`)
       }
     }
+    if (workspace.isVim) cmds.push('redraw')
     let cmd = cmds.join('|')
     this.nvim.command(cmd)
   }

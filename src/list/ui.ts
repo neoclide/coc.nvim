@@ -259,8 +259,8 @@ export default class ListUI {
       items = this.items
     }
     let lines = items.map(item => item.label)
-    await this.setLines(lines, false, resume ? this.currIndex : 0)
     this.clearSelection()
+    await this.setLines(lines, false, resume ? this.currIndex : 0)
     let item = this.items[this.index] || { label: '' }
     if (!curr || curr.label != item.label) {
       this._onDidLineChange.fire(this.index + 1)
@@ -294,16 +294,23 @@ export default class ListUI {
       let maxHeight = config.get<number>('maxHeight', 12)
       if (!(append && this.length > maxHeight)) {
         let height = this.height = Math.max(1, Math.min(this.items.length, maxHeight))
-        window.notify(`nvim_win_set_height`, [window, height])
+        if (workspace.isVim) {
+          nvim.command(`exe "normal! z${height}\\<CR>"`, true)
+        } else {
+          window.notify(`nvim_win_set_height`, [window, height])
+        }
       }
     }
     nvim.command('setl modifiable', true)
-    buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
+    if (workspace.isVim) {
+      nvim.call('coc#list#setlines', [lines, append], true)
+    } else {
+      buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
+    }
     nvim.command('setl nomodifiable', true)
     this.doHighlight()
     if (!append) nvim.call('cursor', [index + 1, 0], true)
     this._onDidChange.fire()
-    nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
 

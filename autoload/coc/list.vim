@@ -1,4 +1,6 @@
 let s:activated = 0
+let s:is_vim = !has('nvim')
+let s:saved_ve = &t_ve
 
 function! coc#list#get_chars()
   return {
@@ -80,6 +82,9 @@ endfunction
 
 function! coc#list#start_prompt()
   if s:activated | return | endif
+  if s:is_vim
+    set t_ve=
+  endif
   let s:activated = 1
   try
     while s:activated
@@ -101,6 +106,14 @@ function! coc#list#start_prompt()
   let s:activated = 0
 endfunction
 
+function! coc#list#setlines(lines, append)
+  let total = line('$')
+  call append(line('$'), a:lines)
+  if !a:append
+    call deletebufline('%', 1, total)
+  endif
+endfunction
+
 function! coc#list#options(...)
   let list = ['--top', '--normal', '--no-sort', '--input', '--strictMatch', '--regex', '--interactive', '--number-select']
   if get(g:, 'coc_enabled', 0)
@@ -115,6 +128,9 @@ function! coc#list#stop_prompt()
     call feedkeys("\u26d4", 'in')
     echo ""
     redraw
+  endif
+  if s:is_vim
+    let &t_ve = s:saved_ve
   endif
   let s:activated = 0
 endfunction
