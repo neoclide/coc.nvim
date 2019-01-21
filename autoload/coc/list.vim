@@ -143,3 +143,15 @@ function! coc#list#has_preview()
   endfor
   return 0
 endfunction
+
+function! coc#list#get_colors()
+  let color_map = {}
+  let colors = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+  let i = 0
+  for color in colors
+    let color_map[color] = get(g:, 'terminal_color_'.i, color)
+    let i = i + 1
+  endfor
+  let colors['gray'] =  '#928374'
+  return color_map
+endfunction
