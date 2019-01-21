@@ -8,6 +8,7 @@ import { DiagnosticItems } from '../../types'
 let nvim: Neovim
 const config: DiagnosticConfig = {
   virtualText: false,
+  onCursorHold: false,
   displayByAle: false,
   srcId: 1000,
   level: DiagnosticSeverity.Hint,

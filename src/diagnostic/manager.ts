@@ -13,6 +13,7 @@ const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
   virtualText: boolean
+  onCursorHold: boolean
   displayByAle: boolean
   srcId: number
   locationlist: boolean
@@ -60,7 +61,11 @@ export class DiagnosticManager {
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
       await wait(30)
-      this.refreshBuffer(doc.uri)
+
+      if (!this.config
+        || !this.config.onCursorHold) {
+        this.refreshBuffer(doc.uri)
+      }
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {
@@ -110,13 +115,25 @@ export class DiagnosticManager {
         clearTimeout(this.timer)
       }
     }))
+
+    let cursorHold = async (bufnr: number) => {
+      if (this.config !== null && this.config.onCursorHold) {
+        let doc = workspace.getDocument(bufnr)
+        this.refreshBuffer(doc.uri)
+      }
+    }
+
+    events.on('CursorHold', cursorHold)
+    events.on('CursorHoldI', cursorHold)
   }
 
   public create(name: string): DiagnosticCollection {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
     let disposable = collection.onDidDiagnosticsChange(uri => {
-      this.refreshBuffer(uri)
+      if (!this.config || !this.config.onCursorHold) {
+        this.refreshBuffer(uri)
+      }
     })
     collection.onDispose(() => {
       disposable.dispose()
@@ -350,6 +367,7 @@ export class DiagnosticManager {
     this.enableMessage = config.get<boolean>('enableMessage', true)
     this.config = {
       virtualText: config.get<boolean>('virtualText', false),
+      onCursorHold: config.get<boolean>('onCursorHold', false),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),

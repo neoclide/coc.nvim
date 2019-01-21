@@ -405,6 +405,11 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "coc.preferences.diagnostic.onCursorHold": {
+      "type": "boolean",
+      "description": "Wait until the cursor stays in a place to draw diagnostics",
+      "default": false
+    },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "boolean",
       "description": "Set to false to disable echo message on CursorMove",
