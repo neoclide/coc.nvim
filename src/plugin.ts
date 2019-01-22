@@ -51,9 +51,10 @@ export default class Plugin extends EventEmitter {
       services.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
-      nvim.setVar('coc_process_pid', process.pid, true)
       await this.addExtensions()
-      await nvim.command('doautocmd User CocNvimInit')
+      nvim.setVar('coc_process_pid', process.pid, true)
+      nvim.setVar('coc_service_initialized', 1, true)
+      await nvim.command('silent doautocmd User CocNvimInit')
       this.ready = true
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
@@ -152,6 +153,13 @@ export default class Plugin extends EventEmitter {
       list = list.filter(name => !extensions.has(name))
       if (list.length) {
         nvim.command(`CocInstall ${list.join(' ')}`, true)
+      }
+    }
+    let arr = await nvim.getVar('coc_local_extensions') as string[]
+    if (arr && arr.length) {
+      arr = distinct(arr)
+      for (let folder of arr) {
+        await extensions.loadExtension(folder)
       }
     }
   }
