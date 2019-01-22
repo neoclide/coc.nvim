@@ -8,10 +8,8 @@ let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:is_vim = !has('nvim')
 
-if has('nvim')
-  if get(g:, 'coc_start_at_startup', 1)
-    call coc#rpc#start_server()
-  endif
+if has('nvim') && get(g:, 'coc_start_at_startup', 1)
+  call coc#rpc#start_server()
 endif
 
 function! CocAction(...) abort
@@ -106,10 +104,17 @@ function! s:Enable()
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal location
     endif
+    autocmd VimEnter *           call s:OnVimEnter()
     if s:is_vim
-      autocmd DirChanged       * call s:Autocmd('DirChanged', expand('<afile>'))
+      autocmd User NvimRpcInit
+          \ if get(g:, 'coc_start_at_startup', 1)
+          \|   call coc#rpc#start_server()
+          \| endif
+    endif
+    if s:is_vim
+      autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
     else
-      autocmd DirChanged       * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
+      autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
@@ -119,9 +124,9 @@ function! s:Enable()
     autocmd InsertCharPre       * silent! call s:SyncAutocmd('InsertCharPre', v:char)
     " Must be sync to fix cursor disappear on vim
     if s:is_vim
-      autocmd TextChangedP        * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
+      autocmd TextChangedP      * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
     else
-      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
+      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'))
     endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave')
@@ -181,12 +186,6 @@ function! s:OnVimEnter()
   endif
 endfunction
 
-function! s:OnInit()
-  let g:coc_service_initialized = 1
-  let extensions = get(g:, 'coc_local_extensions', [])
-  call coc#rpc#notify('registExtensions', extensions)
-endfunction
-
 function! s:Notification(name, args)
   if get(g:, 'coc_service_initialized', 0)
     call coc#rpc#notify(a:name, a:args)
@@ -207,18 +206,6 @@ function! s:Notification(name, args)
     sleep 100m
   endw
 endfunction
-
-augroup coc_init
-  autocmd!
-  autocmd User     CocNvimInit call s:OnInit()
-  autocmd VimEnter *           call s:OnVimEnter()
-  if s:is_vim
-    autocmd User NvimRpcInit
-         \ if get(g:, 'coc_start_at_startup', 1)
-         \|   call coc#rpc#start_server()
-         \| endif
-  endif
-augroup end
 
 command! -nargs=0 CocOpenLog    :call s:Notification('openLog',  [])
 command! -nargs=0 CocInfo       :call s:Notification('showInfo', [])

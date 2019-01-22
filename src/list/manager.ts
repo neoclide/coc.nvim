@@ -20,6 +20,7 @@ import OutputList from './source/output'
 import ListsList from './source/lists'
 import UI from './ui'
 import Worker from './worker'
+import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -66,6 +67,10 @@ export class ListManager {
     events.on('BufEnter', debounce(async () => {
       let { bufnr } = this.ui
       if (!bufnr) return
+      if (!this.activated) {
+        this.ui.hide()
+        return
+      }
       if (workspace.bufnr == bufnr) {
         this.prompt.start()
       } else {
@@ -145,8 +150,8 @@ export class ListManager {
         let backgroundColor = map[key]
         nvim.command(`hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`, true)
       }
-      nvim.command(`hi default CocListFg${foreground} guifg=${foregroundColor}`)
-      nvim.command(`hi default CocListBg${foreground} guibg=${foregroundColor}`)
+      nvim.command(`hi default CocListFg${foreground} guifg=${foregroundColor}`, true)
+      nvim.command(`hi default CocListBg${foreground} guibg=${foregroundColor}`, true)
     }
     await nvim.resumeNotification()
   }
@@ -166,8 +171,7 @@ export class ListManager {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
-      this.prompt.mode = options.mode
-      this.prompt.start(this.listOptions.input)
+      this.prompt.start(this.listOptions.input, options.mode)
       this.history.load()
       await this.worker.loadItems()
     } catch (e) {
@@ -269,6 +273,11 @@ export class ListManager {
     nvim.command('pclose', true)
     nvim.command('echo ""', true)
     if (close) ui.hide()
+    nvim.command('redraw', true)
+    if (workspace.isVim) {
+      await nvim.call('coc#list#restore', [])
+      await wait(100)
+    }
     await nvim.resumeNotification()
   }
 
@@ -314,8 +323,8 @@ export class ListManager {
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
     nvim.pauseNotification()
-    this.prompt.start()
     await nvim.resumeNotification()
+    await this.prompt.start()
     if (n) await this.doAction(names[n - 1])
   }
 
@@ -401,7 +410,7 @@ export class ListManager {
       cwd: this.cwd,
     }
     buf.setVar('list_status', status, true)
-    nvim.command('redraws', true)
+    if (ui.window) nvim.command('redraws', true)
   }
 
   private buildStatusline(): string {
@@ -419,6 +428,7 @@ export class ListManager {
 
   private async onInputChar(ch: string, charmod: number): Promise<void> {
     let { mode } = this.prompt
+    if (!ch) return
     if (!this.activated) {
       this.nvim.call('coc#list#stop_prompt', [], true)
       return

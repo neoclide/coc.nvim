@@ -5,7 +5,7 @@ let g:did_node_rpc_loaded = 1
 
 let s:is_win = has("win32") || has("win64")
 let s:clientIds = []
-let s:logfile = tempname()
+let s:logfile = '/tmp/coc-vim-rpc.log'
 let s:channel = v:null
 
 " env used only for testing purpose

@@ -315,9 +315,14 @@ export default class ListUI {
   }
 
   public async restoreWindow(): Promise<void> {
-    let { window, height } = this
+    let { window, height, nvim } = this
     if (window && height) {
-      await window.request(`nvim_win_set_height`, [window, height])
+      if (workspace.isVim) {
+        nvim.call('win_gotoid', window.id, true)
+        nvim.command(`exe "normal! z${height}\\<CR>"`, true)
+      } else {
+        await window.request(`nvim_win_set_height`, [window, height])
+      }
     }
   }
 

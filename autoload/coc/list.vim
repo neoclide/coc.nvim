@@ -80,6 +80,10 @@ function! s:getchar()
   return (type(ch) == 0 ? nr2char(ch) : ch)
 endfunction
 
+function! coc#list#prompt_start()
+  call timer_start(0, {-> coc#list#start_prompt()})
+endfunction
+
 function! coc#list#start_prompt()
   if s:activated | return | endif
   if s:is_vim
@@ -125,14 +129,16 @@ endfunction
 
 function! coc#list#stop_prompt()
   if s:activated
-    call feedkeys("\u26d4", 'in')
+    let s:activated = 0
+    call feedkeys("\u26d4", 'int')
     echo ""
-    redraw
   endif
+endfunction
+
+function! coc#list#restore()
   if s:is_vim
     let &t_ve = s:saved_ve
   endif
-  let s:activated = 0
 endfunction
 
 function! coc#list#status(name)
@@ -162,12 +168,13 @@ endfunction
 
 function! coc#list#get_colors()
   let color_map = {}
-  let colors = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984']
+  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
   let i = 0
   for color in colors
-    let color_map[color] = get(g:, 'terminal_color_'.i, color)
+    let name = names[i]
+    let color_map[name] = get(g:, 'terminal_color_'.i, color)
     let i = i + 1
   endfor
-  let colors['gray'] =  '#928374'
   return color_map
 endfunction

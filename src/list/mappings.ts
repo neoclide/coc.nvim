@@ -56,7 +56,7 @@ export default class Mappings {
     this.add('insert', ['<end>', '<C-e>'], () => {
       return prompt.moveToEnd()
     })
-    this.add('insert', ['<home>', 'C-a'], () => {
+    this.add('insert', ['<home>', '<C-a>'], () => {
       return prompt.moveToStart()
     })
     this.add('insert', ['<C-h>', '<bs>'], () => {
