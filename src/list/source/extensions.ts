@@ -68,8 +68,9 @@ export default class ExtensionList extends BasicList {
       } else if (stat.state == 'unknown') {
         prefix = '?'
       }
+      let root = await this.nvim.call('resolve', stat.root)
       items.push({
-        label: `${prefix} ${stat.id}\t${stat.root.replace(os.homedir(), '~')}`,
+        label: `${prefix} ${stat.id}\t${root.replace(os.homedir(), '~')}`,
         filterText: stat.id,
         data: {
           id: stat.id,
