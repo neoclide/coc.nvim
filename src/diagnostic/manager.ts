@@ -148,6 +148,19 @@ export class DiagnosticManager {
     return res
   }
 
+  public getDiagnostics(uri: string): Diagnostic[] {
+    let collections = this.getCollections(uri)
+    let res: Diagnostic[] = []
+    for (let collection of collections) {
+      let items = collection.get(uri)
+      if (!items) continue
+      for (let item of items) {
+        res.push(item)
+      }
+    }
+    return res
+  }
+
   public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
     let collections = this.getCollections(document.uri)
     let si = document.offsetAt(range.start)
