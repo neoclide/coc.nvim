@@ -35,6 +35,17 @@ export default class Outline extends LocationList {
           filterText: `${s.name}`,
           location
         })
+        if (s.children && s.children.length) {
+          for (let item of s.children) {
+            let location = Location.create(document.uri, item.range)
+            let kind = getSymbolKind(item.kind)
+            items.push({
+              label: `${item.name} [${kind}]`,
+              filterText: `${item.name}`,
+              location
+            })
+          }
+        }
       }
     } else {
       (symbols as SymbolInformation[]).sort((a, b) => {
@@ -52,6 +63,7 @@ export default class Outline extends LocationList {
         })
       }
     }
+    logger.debug('items:', items)
     return items
   }
 
