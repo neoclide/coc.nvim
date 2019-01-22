@@ -66,7 +66,7 @@
     "@types/fb-watchman": "^2.0.0",
     "@types/find-up": "^2.1.1",
     "@types/glob": "^7.1.1",
-    "@types/jest": "^23.3.12",
+    "@types/jest": "^23.3.13",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
     "@types/node": "^10.12.18",
@@ -79,11 +79,11 @@
     "rimraf": "^2.6.3",
     "ts-jest": "^23.10.5",
     "tslint": "^5.12.1",
-    "typescript": "^3.2.2",
+    "typescript": "^3.2.4",
     "vscode-languageserver": "^5.2.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^4.3.41",
+    "@chemzqm/neovim": "^4.3.42",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
