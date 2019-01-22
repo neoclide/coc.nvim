@@ -20,7 +20,6 @@ import OutputList from './source/output'
 import ListsList from './source/lists'
 import UI from './ui'
 import Worker from './worker'
-import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
