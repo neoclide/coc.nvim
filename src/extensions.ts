@@ -424,9 +424,8 @@ export class Extensions {
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext = createExtension(id, filename)
     if (!ext) return
-    let subscriptions: Disposable[] = []
     let context: ExtensionContext = {
-      subscriptions,
+      subscriptions: [],
       extensionPath: root,
       asAbsolutePath: relativePath => {
         return path.join(root, relativePath)
@@ -475,8 +474,8 @@ export class Extensions {
             logger.error(`Error on ${id} deactivate: `, e.message)
           })
         }
+        disposeAll(context.subscriptions)
         context.subscriptions = []
-        disposeAll(subscriptions)
       }
     })
     let { contributes } = packageJSON
