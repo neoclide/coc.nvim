@@ -105,8 +105,9 @@ function! s:Enable()
       autocmd User CocLocationsChange CocList --normal location
     endif
     autocmd VimEnter *           call s:OnVimEnter()
-    autocmd User NvimRpcInit     call coc#rpc#stop() | call coc#rpc#start_server()
     if s:is_vim
+      autocmd User NvimRpcInit     call coc#rpc#stop() | call coc#rpc#start_server()
+      autocmd User NvimRpcExit     call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
