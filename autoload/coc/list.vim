@@ -121,7 +121,7 @@ function! coc#list#setlines(lines, append)
 endfunction
 
 function! coc#list#options(...)
-  let list = ['--top', '--normal', '--no-sort', '--input', '--strictMatch', '--regex', '--interactive', '--number-select']
+  let list = ['--top', '--normal', '--no-sort', '--input', '--strictMatch', '--regex', '--interactive', '--number-select', '--auto-preview']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
