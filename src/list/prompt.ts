@@ -2,7 +2,6 @@ import { Emitter, Event } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import { ListMode } from '../types'
 import { Neovim } from '@chemzqm/neovim'
-import { wait } from '../util'
 const logger = require('../util/logger')('list-prompt')
 
 export default class Prompt {
@@ -38,17 +37,7 @@ export default class Prompt {
   public set mode(val: ListMode) {
     if (val == this._mode) return
     this._mode = val
-    if (workspace.isNvim) {
-      this.drawPrompt()
-    } else {
-      setTimeout(() => {
-        // Don't know why vim need redraws!
-        this.nvim.command('redraws!', true)
-        if (val == 'insert') {
-          this.drawPrompt()
-        }
-      }, 10)
-    }
+    this.drawPrompt()
   }
 
   public async start(input?: string, mode?: ListMode): Promise<void> {
@@ -73,7 +62,7 @@ export default class Prompt {
 
   public drawPrompt(): void {
     let { indicator, cusorIndex, input } = this
-    let cmds = workspace.isVim ? [] : ['echo ""']
+    let cmds = ['echo ""']
     if (this.mode == 'insert') {
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
@@ -91,7 +80,7 @@ export default class Prompt {
     }
     if (workspace.isVim) cmds.push('redraw')
     let cmd = cmds.join('|')
-    this.nvim.command(cmd)
+    this.nvim.command(cmd, true)
   }
 
   public moveLeft(): void {

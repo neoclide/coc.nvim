@@ -294,11 +294,7 @@ export default class ListUI {
       let maxHeight = config.get<number>('maxHeight', 12)
       if (!(append && this.length > maxHeight)) {
         let height = this.height = Math.max(1, Math.min(this.items.length, maxHeight))
-        if (workspace.isVim) {
-          nvim.command(`exe "normal! z${height}\\<CR>"`, true)
-        } else {
-          window.notify(`nvim_win_set_height`, [window, height])
-        }
+        window.notify(`nvim_win_set_height`, [window, height])
       }
     }
     nvim.command('setl modifiable', true)
@@ -314,15 +310,10 @@ export default class ListUI {
     await nvim.resumeNotification()
   }
 
-  public async restoreWindow(): Promise<void> {
-    let { window, height, nvim } = this
+  public restoreWindow(): void {
+    let { window, height } = this
     if (window && height) {
-      if (workspace.isVim) {
-        nvim.call('win_gotoid', window.id, true)
-        nvim.command(`exe "normal! z${height}\\<CR>"`, true)
-      } else {
-        await window.request(`nvim_win_set_height`, [window, height])
-      }
+      window.notify(`nvim_win_set_height`, [window, height])
     }
   }
 
@@ -347,49 +338,71 @@ export default class ListUI {
     return this._bufnr ? workspace.nvim.createBuffer(this._bufnr) : null
   }
 
-  private doAnsiHighlight(): void {
-    let { buffer, srcId, items } = this
-    let lnum = 0
-    for (let item of items) {
-      if (item.ansiHighlights && item.ansiHighlights.length) {
-        for (let hi of item.ansiHighlights) {
-          let { span, hlGroup } = hi
-          buffer.addHighlight({
-            hlGroup,
-            srcId,
-            line: lnum,
-            colStart: span[0],
-            colEnd: span[1]
-          })
-        }
-      }
-      lnum = lnum + 1
+  private doHighlight(): void {
+    if (workspace.isVim) {
+      this.doHighlightVim()
+    } else {
+      this.doHighlightNvim()
     }
   }
 
-  private doHighlight(): void {
-    if (workspace.isVim) return
+  private doHighlightVim(): void {
     let { nvim } = workspace
-    let { highlights, buffer, srcId, length } = this
+    let { highlights, window, items } = this
+    nvim.call('win_gotoid', window.id, true)
+    nvim.call('clearmatches', [], true)
+    for (let i = 0; i < items.length; i++) {
+      let { ansiHighlights } = items[i]
+      let highlight = highlights[i]
+      if (ansiHighlights) {
+        for (let hi of ansiHighlights) {
+          let { span, hlGroup } = hi
+          nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true)
+        }
+      }
+      if (highlight) {
+        let { spans, hlGroup } = highlight
+        for (let span of spans) {
+          nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true)
+        }
+      }
+    }
+  }
+
+  private doHighlightNvim(): void {
+    let { nvim } = workspace
+    let { highlights, buffer, items, srcId } = this
     if (nvim.hasFunction('nvim_create_namespace')) {
       buffer.clearNamespace(srcId)
     } else {
       buffer.clearHighlight({ srcId })
     }
-    this.doAnsiHighlight()
-    if (!highlights.length) return
-    for (let highlight of highlights) {
-      if (highlight == null) continue
-      let { lnum, spans, hlGroup } = highlight
-      if (lnum >= length) continue
-      for (let span of spans) {
-        buffer.addHighlight({
-          hlGroup: hlGroup || 'Search',
-          srcId,
-          line: lnum,
-          colStart: span[0],
-          colEnd: span[1]
-        })
+    for (let i = 0; i < items.length; i++) {
+      let { ansiHighlights } = items[i]
+      let highlight = highlights[i]
+      if (ansiHighlights) {
+        for (let hi of ansiHighlights) {
+          let { span, hlGroup } = hi
+          buffer.addHighlight({
+            hlGroup,
+            srcId,
+            line: i,
+            colStart: span[0],
+            colEnd: span[1]
+          })
+        }
+      }
+      if (highlight) {
+        let { spans, hlGroup } = highlight
+        for (let span of spans) {
+          buffer.addHighlight({
+            hlGroup: hlGroup || 'Search',
+            srcId,
+            line: i,
+            colStart: span[0],
+            colEnd: span[1]
+          })
+        }
       }
     }
   }

@@ -112,9 +112,11 @@ endfunction
 
 function! coc#list#setlines(lines, append)
   let total = line('$')
-  call append(line('$'), a:lines)
-  if !a:append
-    call deletebufline('%', 1, total)
+  if a:append
+    call append(line('$'), a:lines)
+  else
+    call append(0, a:lines)
+    call deletebufline('%', len(a:lines) + 1, '$')
   endif
 endfunction
 

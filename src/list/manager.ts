@@ -2,25 +2,24 @@ import { Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { IList, Matcher, ListOptions, ListAction, ListContext, ListItem, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher, WorkspaceConfiguration } from '../types'
 import workspace from '../workspace'
 import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
-import LocationList from './source/location'
-import SymbolsList from './source/symbols'
-import OutlineList from './source/outline'
 import CommandsList from './source/commands'
-import ExtensionList from './source/extensions'
 import DiagnosticsList from './source/diagnostics'
+import ExtensionList from './source/extensions'
 import LinksList from './source/links'
-import SourcesList from './source/sources'
-import ServicesList from './source/services'
-import OutputList from './source/output'
 import ListsList from './source/lists'
+import LocationList from './source/location'
+import OutlineList from './source/outline'
+import OutputList from './source/output'
+import ServicesList from './source/services'
+import SourcesList from './source/sources'
+import SymbolsList from './source/symbols'
 import UI from './ui'
 import Worker from './worker'
-import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -100,7 +99,7 @@ export class ListManager {
     this.ui.onDidChange(async () => {
       if (this.activated) {
         this.updateStatus()
-        if (!workspace.isVim) {
+        if (workspace.isNvim) {
           this.prompt.drawPrompt()
         }
       }
@@ -221,14 +220,14 @@ export class ListManager {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (action.name == 'preview') {
-        await this.ui.restoreWindow()
-      }
-      if (action.persist && action.name != 'preview') {
+      if (action.persist || action.name == 'preview') {
         let { bufnr } = ui
         let winnr = bufnr ? await nvim.call('bufwinnr', bufnr) : -1
         if (winnr == -1) return
-        await this.nvim.command(`${winnr}wincmd w`)
+        nvim.pauseNotification()
+        this.nvim.command(`${winnr}wincmd w`, true)
+        this.ui.restoreWindow()
+        await nvim.resumeNotification()
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
@@ -274,10 +273,7 @@ export class ListManager {
     nvim.command('echo ""', true)
     if (close) ui.hide()
     nvim.command('redraw', true)
-    if (workspace.isVim) {
-      await nvim.call('coc#list#restore', [])
-      await wait(100)
-    }
+    nvim.call('coc#list#restore', [], true)
     await nvim.resumeNotification()
   }
 
@@ -409,8 +405,10 @@ export class ListManager {
       total: this.worker.length,
       cwd: this.cwd,
     }
+    nvim.pauseNotification()
     buf.setVar('list_status', status, true)
     if (ui.window) nvim.command('redraws', true)
+    nvim.resumeNotification()
   }
 
   private buildStatusline(): string {

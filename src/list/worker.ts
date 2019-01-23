@@ -148,7 +148,7 @@ export default class Worker {
             arr = res.items
             highlights = res.highlights
           } else {
-            highlights = this.getItemsHighlight(arr, count)
+            highlights = this.getItemsHighlight(arr)
           }
           count = count + remain.length
           this._onDidChangeItems.fire({ items: arr, highlights, append: true })
@@ -228,14 +228,14 @@ export default class Worker {
     return this.manager.prompt.input
   }
 
-  private getItemsHighlight(items: ListItem[], lnum = 0): ListHighlights[] {
+  private getItemsHighlight(items: ListItem[]): ListHighlights[] {
     let { input } = this
     if (!input) return []
-    return items.map((item, i) => {
+    return items.map(item => {
       let filterLabel = getFilterLabel(item)
       let res = getMatchResult(filterLabel, input)
       if (!res || !res.score) return null
-      return this.getHighlights(filterLabel, lnum + i, res.matches)
+      return this.getHighlights(filterLabel, res.matches)
     })
   }
 
@@ -264,7 +264,6 @@ export default class Worker {
             let idx = ignorecase ? filterLabel.toLocaleLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
             if (idx != -1) {
               highlights.push({
-                lnum,
                 spans: [[byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + input.length)]]
               })
             }
@@ -281,7 +280,6 @@ export default class Worker {
             let ms = filterLabel.match(regex)
             if (ms && ms.length) {
               highlights.push({
-                lnum,
                 spans: [[byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + ms[0].length)]]
               })
             }
@@ -312,7 +310,7 @@ export default class Worker {
         if (lnum < maxLength) {
           for (let item of arr) {
             if (!item.matches) continue
-            let hi = this.getHighlights(item.filterLabel, lnum, item.matches)
+            let hi = this.getHighlights(item.filterLabel, item.matches)
             highlights.push(hi)
             if (lnum == maxLength) break
             lnum++
@@ -327,7 +325,7 @@ export default class Worker {
     }
   }
 
-  private getHighlights(text: string, lnum: number, matches: number[]): ListHighlights {
+  private getHighlights(text: string, matches: number[]): ListHighlights {
     let spans: [number, number][] = []
     if (matches.length) {
       let start = matches.shift()
@@ -346,7 +344,7 @@ export default class Worker {
       }
       spans.push([byteIndex(text, start), byteIndex(text, curr) + 1])
     }
-    return { lnum, spans }
+    return { spans }
   }
 
   private async loadMruList(cwd: string): Promise<void> {
