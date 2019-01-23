@@ -345,14 +345,6 @@ g:coc_node_args 				*g:coc_node_exec_args*
 
 			Default: []
 
-g:coc_node_rpc_debug 				*g:coc_node_rpc_debug*
-
-			If truthy, log channel communication by using
-			|ch_logfile|. Vim only.
-
-			Use `:call nvim#rpc#open_log()` to open log file.
-
-			Default: 0
 
 g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
 
@@ -718,13 +710,6 @@ health#coc#check()
 	
 	Neovim only, run health check, triggered by ':checkhealth'
 	command.
-
-						*nvim#rpc#open_log*
-
-nvim#rpc#open_log()
-
-	Open channel log, vim only. Set |g:coc_node_rpc_debug| to 1 to
-	enable log.
 
 ------------------------------------------------------------------------------
 

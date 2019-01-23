@@ -29,8 +29,8 @@ function! s:start() dict
   if self.running | return | endif
   if s:is_vim
     if empty($NVIM_LISTEN_ADDRESS)
-      let command = nvim#rpc#get_command()
-      if empty(command) | return | endif
+      let folder = coc#rpc#vim_rpc_folder()
+      if empty(folder) | return | endif
       call nvim#rpc#start_server()
     endif
     let self.running = 1

@@ -94,3 +94,74 @@ function! coc#rpc#async_request(id, method, args)
     call coc#rpc#notify('nvim_async_response_event', [a:id, v:exception])
   endtry
 endfunction
+
+function! coc#rpc#vim_rpc_folder() abort
+  let folder = expand(get(g:, 'vim_node_rpc_folder', ''))
+  if isdirectory(folder)
+    return folder
+  endif
+  if executable('yarn')
+    let dir = expand('~').'/.config/yarn/global'
+    if s:is_win
+      let dir = $LOCALAPPDATA.'\Yarn\Data\global'
+    endif
+    if !isdirectory(dir)
+      let dir = trim(systemlist('yarn global dir --offline -s')[-1])
+    endif
+    let p = dir . '/node_modules/vim-node-rpc'
+    if isdirectory(p)
+      return p
+    endif
+  endif
+  if executable('npm')
+    let root = trim(system('npm --loglevel silent root -g'))
+    let p = root . '/vim-node-rpc'
+    if isdirectory(p)
+      return p
+    endif
+  endif
+  if !empty(p)
+    " resolve once
+    let g:vim_node_rpc_folder = p
+  endif
+  return ''
+endfunction
+
+function! coc#rpc#install_node_rpc(...) abort
+  let isUpdate = get(a:, 1, 0)
+  if isUpdate
+    let res = coc#util#prompt_confirm('Your vim-node-rpc need upgrade, upgrade?')
+  else
+    let res = coc#util#prompt_confirm('vim-node-rpc module not found, install?')
+  endif
+  if !res | return 0 | endif
+  if !executable('yarn')
+    echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
+    return 0
+  endif
+  let cmd = 'yarn global add vim-node-rpc'
+  execute '!'.cmd
+  return v:shell_error == 0
+endfunction
+
+function! coc#rpc#init_vim_rpc() abort
+  let folder = coc#rpc#vim_rpc_folder()
+  if empty(folder)
+    let installed = coc#rpc#install_node_rpc()
+    if !installed | return 0 | endif
+    let folder = coc#rpc#vim_rpc_folder()
+  endif
+  if !isdirectory(folder) | return 0 | endif
+  execute 'set rtp^='.expand(folder)
+  try
+    let started = nvim#rpc#start_server()
+    return started
+  catch /^Vim\%((\a\+)\)\=:E117/
+    let installed = coc#rpc#install_node_rpc(1)
+    if !installed | return 0 | endif
+    let folder = coc#rpc#vim_rpc_folder()
+    if !isdirectory(folder) | return 0 | endif
+    let started = nvim#rpc#start_server()
+    return started
+  endtry
+endfunction
