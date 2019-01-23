@@ -23,6 +23,7 @@ export interface DiagnosticConfig {
   hintSign: string
   level: number
   virtualTextSrcId: number
+  virtualTextPrefix: string
 }
 
 export class DiagnosticManager {
@@ -366,6 +367,7 @@ export class DiagnosticManager {
     this.config = {
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
       virtualText: config.get<boolean>('virtualText', false),
+      virtualTextPrefix: config.get('virtualTextPrefix', " "),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),
