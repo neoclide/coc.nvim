@@ -463,7 +463,6 @@ export interface ListItem {
 }
 
 export interface ListHighlights {
-  lnum: number
   // column indexes
   spans: [number, number][]
   hlGroup?: string

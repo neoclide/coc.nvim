@@ -89,8 +89,8 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command('pclose', true)
     nvim.call('coc#util#open_file', [`${mod} ${height}sp +${lnum}`, filepath], true)
     let cmd = 'setl previewwindow winfixheight'
-    // TODO not use cursorline
-    if (lnum != 1) cmd += ' cursorline'
+    // TODO use signs
+    // if (lnum != 1) cmd += ' cursorline'
     if (!workspace.getDocument(uri)) cmd += ' nobuflisted bufhidden=wipe'
     nvim.command(cmd, true)
     nvim.command('normal! zt', true)
