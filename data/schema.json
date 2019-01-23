@@ -400,6 +400,11 @@
       "description": "Use NeoVim virtual text to display diagnostics",
       "default": false
     },
+    "coc.preferences.diagnostic.virtualTextPrefix": {
+      "type":"string",
+      "description": "The prefix added virtual text diagnostics",
+      "default": " "
+    },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "boolean",
       "description": "Set to false to disable echo message on CursorMove",

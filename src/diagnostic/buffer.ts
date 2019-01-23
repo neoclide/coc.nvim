@@ -179,6 +179,7 @@ export class DiagnosticBuffer {
     let buffer = this.nvim.createBuffer(bufnr)
     let lines: Set<number> = new Set()
     let srcId = this.config.virtualTextSrcId
+    let prefix = this.config.virtualTextPrefix
     buffer.clearNamespace(srcId)
     for (let diagnostic of diagnostics) {
       let { line } = diagnostic.range.start
@@ -186,7 +187,7 @@ export class DiagnosticBuffer {
       lines.add(line)
       let highlight = getNameFromSeverity(diagnostic.severity) + 'Sign'
       let msg = diagnostic.message.split(/\n/)[0]
-      buffer.setVirtualText(srcId, line, [[' ' + msg, highlight]], {})
+      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {})
     }
   }
 

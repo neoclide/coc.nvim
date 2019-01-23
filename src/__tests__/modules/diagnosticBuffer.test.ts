@@ -10,6 +10,7 @@ let nvim: Neovim
 const config: DiagnosticConfig = {
   virtualTextSrcId: 0,
   virtualText: false,
+  virtualTextPrefix: " ",
   displayByAle: false,
   srcId: 1000,
   level: DiagnosticSeverity.Hint,
