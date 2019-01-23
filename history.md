@@ -1,3 +1,23 @@
+# 2019-01-24
+
+- **Break change:** python code for denite support moved to seperated repo.
+- **Break change:** Quickfix list no longer used.
+- Add list support.
+- Add configuration: `coc.preferences.diagnostic.virtualText`.
+- Add watch for `&rtp` change.
+- Add support for configure `g:coc_user_config` and `g:coc_global_extensions`
+- Add support for send request to coc on vim start.
+- Add `g:coc_start_at_startup` support.
+- Add configuration: `coc.preferences.invalidInsertCharacters`.
+- Add configuration: `coc.preferences.snippetStatusText`.
+- Add `coc#_insert_key()` for insert keymap.
+- Add `workspace.registerExprKeymap()`.
+- Add detect for `vim-node-rpc` abnormal exist.
+- Add `requireRootPattern` to languageserver configuration.
+- Fix git check, always generate keywords.
+- Fix crash when `righleft` set to 1 on neovim.
+- Fix snippet position could be wrong.
+
 # 2019-01-09
 
 - **Break change:** throw error when languageserver id is invalid.
