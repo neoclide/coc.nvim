@@ -440,14 +440,10 @@ function! coc#util#install() abort
   function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
     if s:is_vim
-      let cmd = nvim#rpc#get_command()
-      if empty(cmd)
-        let installed = nvim#rpc#install_node_rpc()
-        if !installed | return | endif
-        sleep 200m
-      endif
+      call coc#rpc#init_vim_rpc()
+    else
+      call coc#rpc#restart()
     endif
-    call coc#rpc#restart()
     let dir = coc#util#extension_root()
     if !isdirectory(dir) && empty(get(g:, 'coc_global_extensions', []))
       echohl WarningMsg | echom 'No extensions found' | echohl None

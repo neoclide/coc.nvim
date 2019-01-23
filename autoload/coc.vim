@@ -8,7 +8,8 @@ let s:is_vim = !has('nvim')
 function! coc#refresh() abort
   let expr = ''
   if pumvisible()
-    let expr .= "\<Esc>a"
+    let g:coc#_context['candidates'] = []
+    call feedkeys("\<Plug>_", 'i')
   endif
   return expr . "\<c-r>=coc#start()\<CR>"
 endfunction
@@ -17,14 +18,14 @@ function! coc#_insert_key(method, key) abort
   let expr = ''
   if pumvisible()
     " keep the line without <C-y>
-    let expr .= "\<Esc>a"
+    let g:coc#_context['candidates'] = []
+    call feedkeys("\<Plug>_", 'i')
   endif
   return expr . "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
 
 function! coc#_complete() abort
   let items = get(g:coc#_context, 'candidates', [])
-  if empty(items) | return '' | endif
   call complete(
         \ g:coc#_context.start + 1,
         \ items)

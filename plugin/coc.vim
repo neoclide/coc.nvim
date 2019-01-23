@@ -105,12 +105,7 @@ function! s:Enable()
       autocmd User CocLocationsChange CocList --normal location
     endif
     autocmd VimEnter *           call s:OnVimEnter()
-    if s:is_vim
-      autocmd User NvimRpcInit
-          \ if get(g:, 'coc_start_at_startup', 1)
-          \|   call coc#rpc#start_server()
-          \| endif
-    endif
+    autocmd User NvimRpcInit     call coc#rpc#stop() | call coc#rpc#start_server()
     if s:is_vim
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
     else
@@ -179,7 +174,9 @@ endfunction
 
 function! s:OnVimEnter()
   if s:is_vim
-    call nvim#rpc#start_server()
+    if get(g:, 'coc_start_at_startup', 1)
+      call coc#rpc#init_vim_rpc()
+    endif
   else
     " it's possible that client is not ready
     call coc#rpc#notify('VimEnter', [])
