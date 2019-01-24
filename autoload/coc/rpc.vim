@@ -152,7 +152,7 @@ function! coc#rpc#init_vim_rpc() abort
     let folder = coc#rpc#vim_rpc_folder()
   endif
   if !isdirectory(folder) | return 0 | endif
-  execute 'set rtp^='.expand(folder)
+  execute 'set rtp^='.fnameescape(folder)
   try
     let started = nvim#rpc#start_server()
     return started
