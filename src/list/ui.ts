@@ -23,12 +23,14 @@ export default class ListUI {
   private mouseDownLine: number
   private creating = false
   private _onDidChangeLine = new Emitter<number>()
+  private _onDidChangeHeight = new Emitter<void>()
   private _onDidOpen = new Emitter<number>()
   private _onDidClose = new Emitter<number>()
   private _onDidChange = new Emitter<void>()
   private _onDidLineChange = new Emitter<number>()
   private _onDoubleClick = new Emitter<void>()
   public readonly onDidChangeLine: Event<number> = this._onDidChangeLine.event
+  public readonly onDidChangeHeight: Event<void> = this._onDidChangeHeight.event
   public readonly onDidLineChange: Event<number> = this._onDidLineChange.event
   public readonly onDidOpen: Event<number> = this._onDidOpen.event
   public readonly onDidClose: Event<number> = this._onDidClose.event
@@ -244,6 +246,7 @@ export default class ListUI {
     this.items = items.slice()
     if (bufnr == 0 && !this.creating) {
       this.creating = true
+      this.height = height
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
       await nvim.command(cmd)
       this._bufnr = await nvim.call('bufnr', '%')
@@ -292,9 +295,11 @@ export default class ListUI {
     nvim.pauseNotification()
     if (resize && window) {
       let maxHeight = config.get<number>('maxHeight', 12)
-      if (!(append && this.length > maxHeight)) {
-        let height = this.height = Math.max(1, Math.min(this.items.length, maxHeight))
+      let height = Math.max(1, Math.min(this.items.length, maxHeight))
+      if (height != this.height) {
+        this.height = height
         window.notify(`nvim_win_set_height`, [window, height])
+        this._onDidChangeHeight.fire()
       }
     }
     nvim.command('setl modifiable', true)
@@ -305,15 +310,19 @@ export default class ListUI {
     }
     nvim.command('setl nomodifiable', true)
     this.doHighlight()
-    if (!append) nvim.call('cursor', [index + 1, 0], true)
+    if (!append) window.notify(`nvim_win_set_cursor`, [window, [index + 1, 0]])
     this._onDidChange.fire()
     await nvim.resumeNotification()
   }
 
-  public restoreWindow(): void {
+  public async restoreWindow(): Promise<void> {
     let { window, height } = this
     if (window && height) {
-      window.notify(`nvim_win_set_height`, [window, height])
+      let curr = await window.height
+      if (curr != height) {
+        window.notify(`nvim_win_set_height`, [window, height])
+        this._onDidChangeHeight.fire()
+      }
     }
   }
 

@@ -230,6 +230,8 @@ export default class Mappings {
         default:
           await this.onError(`prompt '${action}' not supported`)
       }
+    } else if (key == 'command') {
+      await manager.command(action)
     } else if (key == 'action') {
       await manager.doAction(action)
     } else if (key == 'feedkeys') {

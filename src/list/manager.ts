@@ -96,12 +96,14 @@ export class ListManager {
     this.ui.onDidClose(async () => {
       await this.cancel()
     }, null, this.disposables)
+    this.ui.onDidChangeHeight(() => {
+      if (workspace.isNvim) {
+        this.prompt.drawPrompt()
+      }
+    })
     this.ui.onDidChange(async () => {
       if (this.activated) {
         this.updateStatus()
-        if (workspace.isNvim) {
-          this.prompt.drawPrompt()
-        }
       }
     }, null, this.disposables)
     this.ui.onDidDoubleClick(async () => {
@@ -226,7 +228,7 @@ export class ListManager {
         if (winnr == -1) return
         nvim.pauseNotification()
         this.nvim.command(`${winnr}wincmd w`, true)
-        this.ui.restoreWindow()
+        await this.ui.restoreWindow()
         await nvim.resumeNotification()
         if (action.reload) await this.worker.loadItems(true)
       }
@@ -494,6 +496,13 @@ export class ListManager {
     key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
     await nvim.call('coc#list#stop_prompt', [])
     await nvim.eval(`feedkeys("${key}")`)
+    this.prompt.start()
+  }
+
+  public async command(command: string): Promise<void> {
+    let { nvim } = this
+    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.command(command)
     this.prompt.start()
   }
 

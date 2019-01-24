@@ -1169,6 +1169,7 @@ The mapping expression should be `command:arguments`, available commands:
 'feedkeys' - feedkeys to list window, use `\\` in json to escape special characer.
 'normal' - execute normal command in list window.
 'normal!' -  execute normal command without remap.
+'command' - execute command.
 'call' - call vim function with |coc-list-context| as only argument.
 'expr' - same as 'call' but expect the function return action name.
 

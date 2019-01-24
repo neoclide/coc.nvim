@@ -133,7 +133,6 @@ function! coc#list#stop_prompt()
   if s:activated
     let s:activated = 0
     call feedkeys("\u26d4", 'int')
-    echo ""
   endif
 endfunction
 

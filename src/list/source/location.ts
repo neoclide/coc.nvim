@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Position, Range } from 'vscode-languageserver-types'
 import { ListItem, QuickfixItem, ListContext } from '../../types'
+import workspace from '../../workspace'
 import BasicList from '../basic'
 
 export default class LocationList extends BasicList {
@@ -16,16 +17,24 @@ export default class LocationList extends BasicList {
     return 'location'
   }
 
-  public async loadItems(_context: ListContext): Promise<ListItem[]> {
+  public async loadItems(context: ListContext): Promise<ListItem[]> {
     let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
     locs = locs || []
+    let bufnr: number
+    let valid = await context.window.valid
+    if (valid) {
+      let buf = await context.window.buffer
+      bufnr = buf.id
+    }
+    let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
       let pos: Position = Position.create(loc.lnum - 1, loc.col - 1)
       let end = pos.line == 0 && pos.character == 0 ? { line: 0, character: 1 } : pos
       let range = Range.create(pos, end)
-      let filterText = `${loc.filename || loc.uri}${loc.text.trim()}`
+      let filename = ignoreFilepath ? '' : loc.filename || loc.uri
+      let filterText = `${filename}${loc.text.trim()}`
       return {
-        label: `${loc.filename || loc.uri} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
+        label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
         location: Location.create(loc.uri!, range),
         filterText
       } as ListItem
