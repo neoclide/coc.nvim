@@ -70,10 +70,13 @@ export class ListManager {
         this.ui.hide()
         return
       }
+      let { isVim } = workspace
       if (workspace.bufnr == bufnr) {
         this.prompt.start()
+        if (isVim) nvim.command(`set t_ve=`)
       } else {
         this.prompt.cancel()
+        if (isVim) nvim.call('coc#list#restore', [], true)
       }
     }, 200), null, this.disposables)
     this.ui.onDidChangeLine(async () => {

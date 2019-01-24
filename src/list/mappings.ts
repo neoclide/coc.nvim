@@ -74,8 +74,8 @@ export default class Mappings {
     this.add('insert', ['<up>', previousKey], () => {
       return manager.normal('k')
     })
-    this.add('insert', ['<ScrollWheelUp>'], this.onScroll.bind(this, '<ScrollWheelUp>'))
-    this.add('insert', ['<ScrollWheelDown>'], this.onScroll.bind(this, '<ScrollWheelDown>'))
+    this.add('insert', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
+    this.add('insert', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
     this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
 
@@ -112,8 +112,8 @@ export default class Mappings {
       await nvim.eval('feedkeys(":")')
       return
     })
-    this.add('normal', ['<ScrollWheelUp>'], this.onScroll.bind(this, '<ScrollWheelUp>'))
-    this.add('normal', ['<ScrollWheelDown>'], this.onScroll.bind(this, '<ScrollWheelDown>'))
+    this.add('normal', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
+    this.add('normal', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
@@ -250,10 +250,5 @@ export default class Mappings {
 
   private async doScroll(key: string): Promise<void> {
     await this.manager.feedkeys(key)
-  }
-
-  private async onScroll(key: string): Promise<void> {
-    let { manager } = this
-    await manager.feedkeys(key)
   }
 }

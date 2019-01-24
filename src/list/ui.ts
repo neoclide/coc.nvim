@@ -8,6 +8,13 @@ const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
 
+export interface MousePosition {
+  winid: number
+  lnum: number
+  col: number
+  current: boolean
+}
+
 export default class ListUI {
 
   public window: Window
@@ -20,7 +27,7 @@ export default class ListUI {
   private disposables: Disposable[] = []
   private signOffset: number
   private selected: number[] = []
-  private mouseDownLine: number
+  private mouseDown: MousePosition
   private creating = false
   private _onDidChangeLine = new Emitter<number>()
   private _onDidChangeHeight = new Emitter<void>()
@@ -116,34 +123,43 @@ export default class ListUI {
 
   public async onMouse(event: MouseEvent): Promise<void> {
     let { nvim, window } = this
-    let winid = await nvim.getVvar('mouse_winid')
-    if (!window || winid != window.id) return
+    let winid = await nvim.getVvar('mouse_winid') as number
+    if (!window) return
     let lnum = await nvim.getVvar('mouse_lnum') as number
-    if (event == 'doubleClick') {
+    let col = await nvim.getVvar('mouse_col') as number
+    if (event == 'mouseDown') {
+      this.mouseDown = { winid, lnum, col, current: winid == window.id }
+      return
+    }
+    let current = winid == window.id
+    if (current && event == 'doubleClick') {
       await this.setCursor(lnum, 0)
       this._onDoubleClick.fire()
-    } else if (event == 'mouseDown') {
-      this.mouseDownLine = lnum
-    } else if (event == 'mouseDrag') {
-      if (this.mouseDownLine) {
-        await this.selectLines(this.mouseDownLine, lnum)
-      }
-    } else if (event == 'mouseUp') {
-      if (this.mouseDownLine && lnum == this.mouseDownLine) {
+    }
+    if (!this.mouseDown || this.mouseDown.winid != this.mouseDown.winid) return
+    if (current && event == 'mouseDrag') {
+      await this.selectLines(this.mouseDown.lnum, lnum)
+    } else if (current && event == 'mouseUp') {
+      if (this.mouseDown.lnum == lnum) {
         nvim.pauseNotification()
         this.clearSelection()
-        this.setCursor(this.mouseDownLine, 0, true)
+        this.setCursor(lnum, 0, true)
         nvim.command('redraw', true)
         await nvim.resumeNotification()
-      } else if (this.mouseDownLine) {
-        await this.selectLines(this.mouseDownLine, lnum)
+      } else {
+        await this.selectLines(this.mouseDown.lnum, lnum)
       }
+    } else if (!current && event == 'mouseUp') {
+      nvim.pauseNotification()
+      nvim.call('win_gotoid', winid, true)
+      nvim.call('cursor', [lnum, col], true)
+      await nvim.resumeNotification()
     }
   }
 
   public reset(): void {
     this.items = []
-    this.mouseDownLine = null
+    this.mouseDown = null
     this.selected = []
     this._bufnr = 0
     this.window = null
@@ -296,7 +312,7 @@ export default class ListUI {
     if (resize && window) {
       let maxHeight = config.get<number>('maxHeight', 12)
       let height = Math.max(1, Math.min(this.items.length, maxHeight))
-      if (height != this.height) {
+      if (height != this.height || !append) {
         this.height = height
         window.notify(`nvim_win_set_height`, [window, height])
         this._onDidChangeHeight.fire()
@@ -416,10 +432,18 @@ export default class ListUI {
     }
   }
 
-  public setCursor(lnum: number, col: number, notify = false): Promise<void> {
+  public async setCursor(lnum: number, col: number, notify = false): Promise<void> {
     let { window, bufnr } = this
     if (!bufnr || !window) return Promise.resolve()
-    return Promise.resolve(window[notify ? 'notify' : 'request']('nvim_win_set_cursor', [window, [lnum, col]]))
+    if (notify) {
+      window.notify('nvim_win_set_cursor', [window, [lnum, col]])
+    } else {
+      await window.request('nvim_win_set_cursor', [window, [lnum, col]])
+    }
+    if (this.currIndex + 1 != lnum) {
+      this.currIndex = lnum - 1
+      this._onDidChangeLine.fire(lnum)
+    }
   }
 
   public addHighlights(highlights: ListHighlights[], append = false): void {
