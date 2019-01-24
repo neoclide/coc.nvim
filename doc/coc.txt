@@ -13,7 +13,7 @@ Configuration 					|coc-configuration|
 Completion   					|coc-completion|
 LanguageServer 					|coc-languageserver|
 Interface					|coc-interface|
-  Keymapings 					|coc-keymappings|
+  Keymapings 					|coc-key-mappings|
   Variables					  |coc-variables|
   Functions					  |coc-functions|
   Commands					  |coc-commands|
@@ -151,7 +151,7 @@ INTERFACE					*coc-interface*
 
 Coc doesn't comes with default global keymap, you need to configure yourself.
 
-Keymapings 					*coc-keymappings*
+Keymapings 					*coc-key-mappings*
 
 Note: Mapping starts with 'i_' works for insert mode 'n_' works for normal
 mode, 'v_' works for visual mode.
@@ -946,11 +946,17 @@ Build in list support make work with list of items easier.
 
 Following features are supported:
 
-* Two modes: insert & normal.
-* Default keymappings for insert & normal mode.
-* Cutomize keymappings for insert & normal mode.
+* Insert & normal mode.
+* Default key-mappings for insert & normal mode.
+* Cutomize key-mappings for insert & normal mode.
+* Commands for reopen & do action with previous list.
+* Different match modes.
+* Interactive mode.
+* Auto preview on cursor move.
+* Number select support.
 * Build in actions for locations.
-* Options for CocList command.
+* Parse ansi code.
+* Mouse support.
 * Select action by <tab>.
 * Multiple selection by <space> on normal mode.
 
@@ -1063,13 +1069,13 @@ The following settings are available:
 
 	default: <C-k>
 
-- `"list.normalMappings"`: User defined keymappings on normal mode.
+- `"list.normalMappings"`: User defined key-mappings on normal mode.
 
 	defined: `{}`
 
 	Checkout |coc-list-mappings-custom| for detail.
 
-- `"list.insertMappings"`: User defined keymappings on insert mode.
+- `"list.insertMappings"`: User defined key-mappings on insert mode.
 
 	defined: `{}`
 
@@ -1121,7 +1127,7 @@ Use |coc-list-mappings-custom| to override default mappings.
 						*coc-list-mappings-custom*
 
 Configurations `"list.normalMappings"` and `"list.insertMappings"` are used
-for customize list keymappings, ex: >
+for customize list key-mappings, ex: >
 
 	"list.insertMappings": {
 		"<C-r>": "do:refresh",

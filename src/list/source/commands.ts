@@ -1,40 +1,37 @@
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
+import workspace from '../../workspace'
 import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
+import Mru from '../../model/mru'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
   public description = 'search for commands'
-  private recentCommands: string[] = []
+  public readonly name = 'commands'
+  private mru: Mru
 
   constructor(nvim: Neovim) {
     super(nvim)
-
+    this.mru = workspace.createMru('commands')
     this.addAction('run', async item => {
       let { cmd } = item.data
       commandManager.executeCommand(cmd)
-      let idx = this.recentCommands.indexOf(cmd)
-      if (idx != -1) this.recentCommands.splice(idx, 1)
-      this.recentCommands.push(cmd)
+      await this.mru.add(cmd)
     })
-  }
-
-  public get name(): string {
-    return 'commands'
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: ListItem[] = []
     let list = commandManager.commandList
     let { commands } = extensions
-    let { recentCommands } = this
+    let mruList = await this.mru.load()
     for (let key of Object.keys(commands)) {
       items.push({
         label: `${key}\t${commands[key]}`,
         filterText: key,
-        data: { cmd: key, score: recentCommands.indexOf(key) }
+        data: { cmd: key, score: score(mruList, key) }
       })
     }
     for (let o of list) {
@@ -43,7 +40,7 @@ export default class CommandsList extends BasicList {
         items.push({
           label: id,
           filterText: id,
-          data: { cmd: id, score: recentCommands.indexOf(id) }
+          data: { cmd: id, score: score(mruList, id) }
         })
       }
     }
@@ -60,4 +57,9 @@ export default class CommandsList extends BasicList {
     nvim.command('highlight default link CocCommandsTitle Comment', true)
     nvim.resumeNotification()
   }
+}
+
+function score(list: string[], key: string): number {
+  let idx = list.indexOf(key)
+  return idx == -1 ? -1 : list.length - idx
 }

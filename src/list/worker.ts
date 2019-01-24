@@ -1,8 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import fs from 'fs'
-import os from 'os'
 import path from 'path'
-import util from 'util'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
@@ -12,13 +9,11 @@ import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength, upperFirst } from '../util/string'
+import workspace from '../workspace'
 import { ListManager } from './manager'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const maxLength = 1000
-const isWindows = process.platform == 'win32'
-const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
-const mruFile = path.join(root, 'mru')
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 
@@ -349,8 +344,8 @@ export default class Worker {
 
   private async loadMruList(cwd: string): Promise<void> {
     try {
-      let content = await util.promisify(fs.readFile)(mruFile, 'utf8')
-      let files = content.trim().split('\n')
+      let mru = workspace.createMru('mru')
+      let files = await mru.load()
       this.mruList = files.filter(s => s.startsWith(cwd))
     } catch (e) {
       this.mruList = []

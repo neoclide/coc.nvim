@@ -12,6 +12,7 @@ import which from 'which'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
+import Mru from './model/mru'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
@@ -449,6 +450,10 @@ export class Workspace implements IWorkspace {
     if (type) item.type = type
     if (bufnr != -1) item.bufnr = bufnr
     return item
+  }
+
+  public createMru(name: string): Mru {
+    return new Mru(name)
   }
 
   public async showLocations(locations: Location[]): Promise<void> {
