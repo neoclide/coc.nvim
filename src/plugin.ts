@@ -101,12 +101,26 @@ export default class Plugin extends EventEmitter {
       textDocument: { uri: document.uri },
       position
     })
-    let res: Location[] | null = await services.sendRequest(id, method, params)
-    if (!res || res.length == 0) {
+    let res: any = await services.sendRequest(id, method, params)
+    if (!res) {
       workspace.showMessage(`Location of "${method}" not found!`, 'warning')
       return
     }
-    await this.handler.handleLocations(res, openCommand)
+    let locations: Location[]
+    if (Array.isArray(res)) {
+      locations = res as Location[]
+    } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
+      function getLocation(item: any) {
+        res.push(item.location as Location)
+        if (item.children && item.children.length) {
+          for (let loc of item.children) {
+            getLocation(loc)
+          }
+        }
+      }
+      getLocation(res)
+    }
+    await this.handler.handleLocations(locations, openCommand)
   }
 
   public async openLog(): Promise<void> {
