@@ -110,7 +110,7 @@ export default class Plugin extends EventEmitter {
     if (Array.isArray(res)) {
       locations = res as Location[]
     } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
-      function getLocation(item: any) {
+      function getLocation(item: any): void {
         res.push(item.location as Location)
         if (item.children && item.children.length) {
           for (let loc of item.children) {

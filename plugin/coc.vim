@@ -102,7 +102,7 @@ function! s:Enable()
   augroup coc_nvim
     autocmd!
     if get(g:,'coc_enable_locationlist', 1)
-      autocmd User CocLocationsChange CocList --normal location
+      autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
     autocmd VimEnter *           call s:OnVimEnter()
     if s:is_vim

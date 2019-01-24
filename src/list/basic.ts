@@ -7,6 +7,7 @@ import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask } from '../types'
 import { comparePosition } from '../util/position'
 import { disposeAll } from '../util'
+import { byteIndex } from '../util/string'
 const logger = require('../util/logger')('list-basic')
 
 interface ActionOptions {
@@ -21,8 +22,11 @@ export default abstract class BasicList implements IList, Disposable {
   public readonly actions: ListAction[] = []
   protected previewHeight = 12
   protected disposables: Disposable[] = []
+  private hlGroup: string
 
   constructor(protected nvim: Neovim) {
+    let config = workspace.getConfiguration('list')
+    this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
   }
 
   protected addAction(name: string, fn: (item: ListItem, context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
@@ -89,8 +93,13 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command('pclose', true)
     nvim.call('coc#util#open_file', [`${mod} ${height}sp +${lnum}`, filepath], true)
     let cmd = 'setl previewwindow winfixheight'
-    // TODO use signs
-    // if (lnum != 1) cmd += ' cursorline'
+    if (range.start.line == range.end.line && range.start.character != range.end.character) {
+      let line = await workspace.getLine(uri, range.start.line)
+      let { hlGroup } = this
+      let start = byteIndex(line, range.start.character) + 1
+      let end = byteIndex(line, range.end.character) + 1
+      nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true)
+    }
     if (!workspace.getDocument(uri)) cmd += ' nobuflisted bufhidden=wipe'
     nvim.command(cmd, true)
     nvim.command('normal! zt', true)

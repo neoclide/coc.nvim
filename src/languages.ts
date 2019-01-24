@@ -1,12 +1,13 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, LocationLink } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider, DeclarationProvider } from './provider'
+import Document from './model/document'
+import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
 import CodeLensManager from './provider/codeLensManager'
-import DefinitionManager from './provider/definitionManager'
 import DeclarationManager from './provider/declarationManager'
+import DefinitionManager from './provider/definitionManager'
 import DocumentColorManager from './provider/documentColorManager'
 import DocumentHighlightManager from './provider/documentHighlightManager'
 import DocumentLinkManager from './provider/documentLinkManager'
@@ -28,9 +29,7 @@ import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection
 import { echoMessage, wait } from './util'
 import * as complete from './util/complete'
 import { mixin } from './util/object'
-import { byteLength } from './util/string'
 import workspace from './workspace'
-import Document from './model/document'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {

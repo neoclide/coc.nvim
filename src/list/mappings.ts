@@ -114,8 +114,6 @@ export default class Mappings {
     })
     this.add('normal', ['<ScrollWheelUp>'], this.onScroll.bind(this, '<ScrollWheelUp>'))
     this.add('normal', ['<ScrollWheelDown>'], this.onScroll.bind(this, '<ScrollWheelDown>'))
-    this.add('normal', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
-    this.add('normal', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
@@ -251,18 +249,7 @@ export default class Mappings {
   }
 
   private async doScroll(key: string): Promise<void> {
-    let { nvim, manager } = this
-    let winid = manager.ui.window.id
-    let winnr = await nvim.call('coc#util#has_preview')
-    if (winnr) {
-      await nvim.call('coc#list#stop_prompt', [])
-      await nvim.command(`${winnr}wincmd w`)
-      await nvim.command(`call eval('feedkeys("\\${key}")')`)
-      await nvim.call('win_gotoid', winid)
-      this.manager.prompt.start()
-    } else {
-      await manager.feedkeys(key)
-    }
+    await this.manager.feedkeys(key)
   }
 
   private async onScroll(key: string): Promise<void> {

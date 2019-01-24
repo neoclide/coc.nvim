@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Location, Position, Range } from 'vscode-languageserver-types'
-import { ListItem, QuickfixItem, ListContext } from '../../types'
-import workspace from '../../workspace'
+import { Location } from 'vscode-languageserver-types'
+import { ListContext, ListItem, QuickfixItem } from '../../types'
 import BasicList from '../basic'
+const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
@@ -28,14 +28,11 @@ export default class LocationList extends BasicList {
     }
     let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
-      let pos: Position = Position.create(loc.lnum - 1, loc.col - 1)
-      let end = pos.line == 0 && pos.character == 0 ? { line: 0, character: 1 } : pos
-      let range = Range.create(pos, end)
       let filename = ignoreFilepath ? '' : loc.filename || loc.uri
       let filterText = `${filename}${loc.text.trim()}`
       return {
         label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
-        location: Location.create(loc.uri!, range),
+        location: Location.create(loc.uri!, loc.range),
         filterText
       } as ListItem
     })

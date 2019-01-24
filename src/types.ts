@@ -166,12 +166,13 @@ export interface LocationListItem {
 }
 
 export interface QuickfixItem {
-  uri?: string
+  uri: string
   filename?: string
   bufnr?: number
   lnum: number
   col: number
   text: string
+  range: Range
   type?: string,
   valid?: boolean
   nr?: number

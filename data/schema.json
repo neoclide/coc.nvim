@@ -554,10 +554,10 @@
       "default": 3000,
       "description": "Limit lines for list buffer."
     },
-    "list.autoPreview": {
-      "type": "boolean",
-      "default": true,
-      "description": "Enable auto preview feature."
+    "list.previewHighlightGroup": {
+      "type": "string",
+      "default": "Search",
+      "description": "Highlight group used for highlight the range in preview window."
     },
     "list.nextKeymap": {
       "type": "string",

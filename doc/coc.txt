@@ -1051,10 +1051,6 @@ The following settings are available:
 
 	default: 12
 
-- `"list.autoPreview"`: Enable auto preview on cursor move.
-
-	default: `true`
-
 - `"list.autoResize"`: Enable window auto resize on buffer change.
 
 	default: `true`

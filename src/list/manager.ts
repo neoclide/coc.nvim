@@ -77,8 +77,7 @@ export class ListManager {
       }
     }, 200), null, this.disposables)
     this.ui.onDidChangeLine(async () => {
-      let autoPreview = this.config.get<boolean>('autoPreview', true)
-      if (!autoPreview || !this.activated) return
+      if (!this.activated) return
       let previewing = await nvim.call('coc#util#has_preview')
       if (previewing) await this.doAction('preview')
     }, null, this.disposables)
@@ -280,18 +279,13 @@ export class ListManager {
   }
 
   public async togglePreview(): Promise<void> {
-    let autoPreview = this.config.get<boolean>('autoPreview', true)
-    if (!autoPreview) {
-      await this.doAction('preview')
+    let { nvim } = this
+    let has = await nvim.call('coc#list#has_preview')
+    if (has) {
+      await nvim.command('pclose')
+      await nvim.command('redraw')
     } else {
-      let { nvim } = this
-      let has = await nvim.call('coc#list#has_preview')
-      if (has) {
-        await nvim.command('pclose')
-        await nvim.command('redraw')
-      } else {
-        await this.doAction('preview')
-      }
+      await this.doAction('preview')
     }
   }
 

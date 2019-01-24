@@ -443,7 +443,8 @@ export class Workspace implements IWorkspace {
       filename: bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname,
       lnum: line + 1,
       col: character + 1,
-      text
+      text,
+      range
     }
     if (type) item.type = type
     if (bufnr != -1) item.bufnr = bufnr
