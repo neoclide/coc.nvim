@@ -252,7 +252,6 @@ export interface CompletionContext {
 export interface CompleteOption {
   readonly bufnr: number
   readonly line: string
-  readonly rightleft: number
   col: number
   input: string
   filetype: string

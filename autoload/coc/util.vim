@@ -210,7 +210,6 @@ function! coc#util#get_complete_option()
   endwhile
   let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
   return {
-        \ 'rightleft': &rightleft,
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
         \ 'line': line,
