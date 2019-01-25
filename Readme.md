@@ -92,6 +92,8 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
 - [Using extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
+- [Using list](https://github.com/neoclide/coc.nvim/wiki/Using-coc-list)
+
 - [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
 
 - [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
@@ -126,6 +128,8 @@ For other completion sources, check out:
 - [coc-sources](https://github.com/neoclide/coc-sources): includes some common
   completion source extensions.
 - [coc-neco](https://github.com/neoclide/coc-neco): viml completion support.
+- [coc-neoinclude](https://github.com/jsfaint/coc-neoinclude): neoinclude
+  integration.
 
 Or you can [create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
