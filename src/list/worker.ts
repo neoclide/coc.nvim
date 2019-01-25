@@ -92,12 +92,12 @@ export default class Worker {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
         let parsed = this.parseListItemAnsi(item)
-        return Object.assign({}, parsed, {
+        return Object.assign(item, parsed, {
           recentScore: this.recentScore(item)
         })
       })
       this.loading = false
-      let highlights: ListHighlights[]
+      let highlights: ListHighlights[] = []
       if (!interactive) {
         let res = this.filterItems(items)
         items = res.items
@@ -228,6 +228,7 @@ export default class Worker {
     if (!input) return []
     return items.map(item => {
       let filterLabel = getFilterLabel(item)
+      if (filterLabel == '') return null
       let res = getMatchResult(filterLabel, input)
       if (!res || !res.score) return null
       return this.getHighlights(filterLabel, res.matches)
@@ -394,5 +395,5 @@ export default class Worker {
 }
 
 function getFilterLabel(item: ListItem): string {
-  return item.filterText ? patchLine(item.filterText, item.label) : item.label
+  return item.filterText != null ? patchLine(item.filterText, item.label) : item.label
 }

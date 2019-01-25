@@ -169,8 +169,8 @@ endfunction
 
 function! coc#list#get_colors()
   let color_map = {}
-  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984']
-  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
+  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
   let i = 0
   for color in colors
     let name = names[i]
