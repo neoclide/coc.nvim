@@ -32,7 +32,7 @@ export class DiagnosticManager {
   public readonly buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private enableMessage = true
+  private enableMessage = 'always'
   private timer: NodeJS.Timer
   private lastMessage = ''
   private insertMode = false
@@ -297,8 +297,8 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async echoMessage(truncate = false): Promise<void> {
-    if (!this.enabled) return
-    if (truncate && !this.enableMessage) return
+    if (!this.enabled || this.enableMessage == 'never') return
+    if (truncate && this.enableMessage == 'jump') return
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
@@ -363,7 +363,7 @@ export class DiagnosticManager {
   private async setConfiguration(event?: ConfigurationChangeEvent): Promise<void> {
     if (event && !event.affectsConfiguration('coc.preferences.diagnostic')) return
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
-    this.enableMessage = config.get<boolean>('enableMessage', true)
+    this.enableMessage = config.get<string>('enableMessage', 'always')
     this.config = {
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
       virtualText: config.get<boolean>('virtualText', false),

@@ -401,14 +401,15 @@
       "default": false
     },
     "coc.preferences.diagnostic.virtualTextPrefix": {
-      "type":"string",
+      "type": "string",
       "description": "The prefix added virtual text diagnostics",
       "default": " "
     },
     "coc.preferences.diagnostic.enableMessage": {
-      "type": "boolean",
-      "description": "Set to false to disable echo message on CursorMove",
-      "default": true
+      "type": "string",
+      "default": "always",
+      "description": "When to enable echo messages of diagnostics.",
+      "enum": ["always", "jump", "never"]
     },
     "coc.preferences.diagnostic.locationlist": {
       "type": "boolean",
