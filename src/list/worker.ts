@@ -377,6 +377,7 @@ export default class Worker {
         highlights.push({ span, hlGroup })
       }
     }
+    item.label = newLabel
     return highlights
   }
 
