@@ -22,6 +22,7 @@ export interface DiagnosticConfig {
   infoSign: string
   hintSign: string
   level: number
+  refreshOnInsertMode: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
 }
@@ -377,6 +378,7 @@ export class DiagnosticManager {
       warningSign: config.get<string>('warningSign', '>>'),
       infoSign: config.get<string>('infoSign', '>>'),
       hintSign: config.get<string>('hintSign', '>>'),
+      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
     }
     let srcId = await workspace.createNameSpace('coc-diagnostic')
     if (srcId) this.config.srcId = srcId
@@ -444,7 +446,7 @@ export class DiagnosticManager {
 
   private refreshBuffer(uri: string): boolean {
     // vim has issue with diagnostic update
-    if (workspace.isVim && this.insertMode) return
+    if (this.insertMode && !this.config.refreshOnInsertMode) return
     let buf = this.buffers.find(buf => buf.uri == uri)
     if (buf) {
       let items = this.getBufferDiagnostic(uri)
