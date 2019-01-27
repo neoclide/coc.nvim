@@ -526,6 +526,7 @@ export interface IList {
   // support interactive mode
   interactive?: boolean
   description?: string
+  searchHighlight?: boolean
   defaultAction: string
   actions: ListAction[]
   loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>

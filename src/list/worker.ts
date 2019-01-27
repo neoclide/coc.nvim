@@ -91,10 +91,9 @@ export default class Worker {
     if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
-        let parsed = this.parseListItemAnsi(item)
-        return Object.assign(item, parsed, {
-          recentScore: this.recentScore(item)
-        })
+        item.ansiHighlights = item.ansiHighlights || this.parseListItemAnsi(item)
+        item.recentScore = item.recentScore || this.recentScore(item)
+        return item
       })
       this.loading = false
       let highlights: ListHighlights[] = []
@@ -157,9 +156,9 @@ export default class Worker {
       task.on('data', async item => {
         if (this.taskId != id || !this._loading) return
         if (interactive && this.input != currInput) return
-        item.recentScore = this.recentScore(item)
-        let parsed = this.parseListItemAnsi(item)
-        totalItems.push(parsed)
+        item.ansiHighlights = item.ansiHighlights || this.parseListItemAnsi(item)
+        item.recentScore = item.recentScore || this.recentScore(item)
+        totalItems.push(item)
       })
       await new Promise<void>((resolve, reject) => {
         task.on('error', async msg => {
@@ -355,9 +354,9 @@ export default class Worker {
   }
 
   // set correct label, add ansi highlights
-  private parseListItemAnsi(item: ListItem): ListItem {
+  private parseListItemAnsi(item: ListItem): AnsiHighlight[] {
     let { label } = item
-    if (label.indexOf(controlCode) == -1) return item
+    if (label.indexOf(controlCode) == -1) return null
     let ansiItems = ansiparse(label)
     let newLabel = ''
     let highlights: AnsiHighlight[] = []
@@ -378,10 +377,7 @@ export default class Worker {
         highlights.push({ span, hlGroup })
       }
     }
-    return Object.assign({}, item, {
-      label: newLabel,
-      ansiHighlights: highlights
-    })
+    return highlights
   }
 
   private recentScore(item: ListItem): number {
