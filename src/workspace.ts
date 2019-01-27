@@ -1126,14 +1126,12 @@ augroup end`
     if (bufnr == this.bufnr && this.env.isVim) {
       nvim.call('clearmatches', [], true)
     }
-    if (doc) {
-      let event: TextDocumentWillSaveEvent = {
-        document: doc.textDocument,
-        reason: TextDocumentSaveReason.Manual
-      }
-      this._onWillSaveDocument.fire(event)
-      await this.willSaveUntilHandler.handeWillSaveUntil(event)
+    let event: TextDocumentWillSaveEvent = {
+      document: doc.textDocument,
+      reason: TextDocumentSaveReason.Manual
     }
+    this._onWillSaveDocument.fire(event)
+    await this.willSaveUntilHandler.handeWillSaveUntil(event)
   }
 
   private onDirChanged(cwd: string): void {

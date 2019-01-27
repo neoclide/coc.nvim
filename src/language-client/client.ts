@@ -1343,6 +1343,9 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
           )
           .then(edits => {
             return edits ? edits : []
+          }, e => {
+            workspace.showMessage(`Error on willSaveWaitUntil: ${e.message}`, 'error')
+            return []
           })
       }
       event.waitUntil(
