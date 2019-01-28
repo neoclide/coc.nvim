@@ -109,7 +109,9 @@ export class SnippetSession {
   }
 
   public async synchronizeUpdatedPlaceholders(change: TextDocumentContentChangeEvent): Promise<void> {
+    logger.debug(555555)
     if (!this.isActive || !this.document) return
+    logger.debug('version:', this.document.version, this.version)
     if (this.version && this.document.version - this.version == 1) return
     let edit: TextEdit = { range: change.range, newText: change.text }
     let { snippet } = this

@@ -239,10 +239,18 @@ describe('SnippetParser', () => {
 
   })
 
+  test('Parser, placeholder with transform', () => {
+    const p = new SnippetParser()
+    const snippet = p.parse('${1:type}${1/(.+)/ /}')
+    let s = snippet.toString()
+    assert.equal(s.length, 5)
+  })
+
   test('Parser, placeholder transforms', function() {
     assertTextAndMarker('${1///}', '', Placeholder)
     assertTextAndMarker('${1/regex/format/gmi}', '', Placeholder)
     assertTextAndMarker('${1/([A-Z][a-z])/format/}', '', Placeholder)
+    assertTextAndMarker('${1///}', '', Placeholder)
 
     // tricky regex
     assertTextAndMarker('${1/m\\/atch/$1/i}', '', Placeholder)
@@ -460,7 +468,7 @@ describe('SnippetParser', () => {
 
     assert.equal((<Placeholder>p4).index, '1')
     assert.equal((<Placeholder>p4).children.length, '1')
-    assert.equal((<Text>(<Placeholder>p4).children[0]), 'err')
+    assert.equal((<Text>(<Placeholder>p4).children[0]), 'ok')
     assert.notEqual((<Placeholder>p4).transform, undefined)
   })
 

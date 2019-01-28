@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { comparePosition, isSingleLine, rangeInRange, getChangedPosition } from '../util/position'
+import { getChangedPosition, rangeInRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -13,6 +13,7 @@ export interface CocSnippetPlaceholder {
   range: Range
   value: string
   isFinalTabstop: boolean
+  transform: boolean
   choice?: string[]
   snippet: CocSnippet
 }
@@ -82,7 +83,9 @@ export class CocSnippet {
   }
 
   public getPlaceholder(index: number): CocSnippetPlaceholder {
-    return this._placeholders.find(o => o.index == index)
+    let placeholders = this._placeholders.filter(o => o.index == index)
+    let filtered = placeholders.filter(o => !o.transform)
+    return filtered.length ? filtered[0] : placeholders[0]
   }
 
   public getPrevPlaceholder(index: number): CocSnippetPlaceholder {
@@ -105,7 +108,9 @@ export class CocSnippet {
   }
 
   public getPlaceholderByRange(range: Range): CocSnippetPlaceholder {
+    logger.debug('range:', range)
     return this._placeholders.find(o => {
+      logger.debug('p:', o.range)
       return rangeInRange(range, o.range)
     })
   }
@@ -136,15 +141,17 @@ export class CocSnippet {
     this.setPlaceholderValue(id, newText)
     let placeholders = this._placeholders.filter(o => o.index == index && o.id != id)
     if (!placeholders.length) return []
-    let edits: TextEdit[] = placeholders.map(p => {
-      return {
-        range: p.range,
-        newText
-      }
-    })
+    let edits: TextEdit[] = []
     // update with others
     placeholders.forEach(p => {
-      this.tmSnippet.updatePlaceholder(p.id, newText)
+      let { range, value } = p
+      let text = this.tmSnippet.updatePlaceholder(p.id, newText)
+      if (text != value) {
+        edits.push({
+          range,
+          newText: text
+        })
+      }
     })
     this.update()
     return edits
@@ -169,6 +176,7 @@ export class CocSnippet {
           line: start.line,
           character: start.character + value.length
         }),
+        transform: p.transform != null,
         line: start.line,
         id: idx,
         index: p.index,

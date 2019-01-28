@@ -327,7 +327,7 @@ export class Transform extends Marker {
   public resolve(value: string): string {
     const _this = this
     let didMatch = false
-    let ret = value.replace(this.regexp, function() { // tslint:disable-line
+    let ret = value.replace(this.regexp, function () { // tslint:disable-line
       didMatch = true
       return _this._replace(Array.prototype.slice.call(arguments, 0, -2))
     })
@@ -558,12 +558,12 @@ export class TextmateSnippet extends Marker {
     return index + 1
   }
 
-  public updatePlaceholder(id: number, val: string): void {
-    const rep = this.placeholders[id]
-    const placeholder = new Placeholder(rep.index)
-    const text = new Text(val)
-    placeholder.appendChild(text)
-    this.replace(rep, [placeholder])
+  public updatePlaceholder(id: number, val: string): string {
+    const placeholder = this.placeholders[id]
+    let child = placeholder.children[0]
+    let newText = placeholder.transform ? placeholder.transform.resolve(val) : val
+    placeholder.replace(child, [new Text(newText)])
+    return newText
   }
 
   public offset(marker: Marker): number {
@@ -686,7 +686,20 @@ export class SnippetParser {
         const clone = new Placeholder(placeholder.index)
         clone.transform = placeholder.transform
         for (const child of placeholderDefaultValues.get(placeholder.index)) {
-          clone.appendChild(child.clone())
+          let marker = child.clone()
+          if (clone.transform) {
+            if (marker instanceof Text) {
+              marker = new Text(clone.transform.resolve(marker.value))
+            } else {
+              for (let child of marker.children) {
+                if (child instanceof Text) {
+                  marker.replace(child, [new Text(clone.transform.resolve(child.value))])
+                  break
+                }
+              }
+            }
+          }
+          clone.appendChild(marker)
         }
         snippet.replace(placeholder, [clone])
       }
