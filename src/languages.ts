@@ -507,9 +507,9 @@ class Languages {
       onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
         let item = completeItems[vimItem.index]
         if (!item) return
+        let line = opt.linenr - 1
         // use TextEdit for snippet item
         if (vimItem.isSnippet && !item.textEdit) {
-          let line = opt.linenr - 1
           item.textEdit = {
             range: Range.create(line, opt.col, line, colnr - 1),
             // tslint:disable-next-line: deprecation
@@ -519,7 +519,7 @@ class Languages {
         opt = Object.assign({}, opt, { line: currLine })
         let snippet = await this.applyTextEdit(item, opt)
         let { additionalTextEdits } = item
-        await this.applyAdditionaLEdits(additionalTextEdits, opt.bufnr)
+        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, line, colnr)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)
         completeItems = []
@@ -578,7 +578,11 @@ class Languages {
     return false
   }
 
-  private async applyAdditionaLEdits(textEdits: TextEdit[], bufnr: number): Promise<void> {
+  private async applyAdditionalEdits(
+    textEdits: TextEdit[],
+    bufnr: number,
+    line: number,
+    col: number): Promise<void> {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
@@ -587,7 +591,19 @@ class Languages {
       await document.fetchContent()
       await wait(50)
     }
+    let moveCur = 0
+    for (const ed of textEdits) {
+      if (ed.range.end.line === line
+        && ed.range.end.character <= col) {
+        moveCur += ed.newText.length
+      }
+    }
     await document.applyEdits(this.nvim, textEdits)
+    if (moveCur !== 0) {
+      let pos = await workspace.getCursorPosition()
+      pos.character += moveCur
+      await workspace.moveTo(pos)
+    }
     if (workspace.isVim) await document.fetchContent()
     await wait(50)
   }
