@@ -33,9 +33,9 @@ List 						|coc-list|
     Commands 					 |coc-list-commands|
     Links 					 |coc-list-links|
     Output 					 |coc-list-output|
-    Sources 					 |coc-list-sources|
+    Sources 					 |coc-list-completion-sources|
     Lists 					 |coc-list-lists|
-Statueline support      			|coc-status|
+Statusline support      			|coc-status|
   Manual                			|coc-status-manual|
   Airline 					|coc-status-airline|
   Lightline  					|coc-stauts-lightline|
@@ -1302,7 +1302,7 @@ output 							 *coc-list-output*
 
 ------------------------------------------------------------------------------
 
-sources 						 *coc-list-sources*
+sources 						 *coc-list-completion-sources*
 
 	Available completion sources.
 
