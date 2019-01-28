@@ -6,7 +6,7 @@ import languages from '../../languages'
 import sources from '../../sources'
 import { CompleteOption, ISource, CompleteResult, SourceType, CompletionContext } from '../../types'
 import { CompletionItemProvider } from '../../provider'
-import { TextDocument, Position, CompletionItem, InsertTextFormat } from 'vscode-languageserver-types'
+import { TextDocument, Position, CompletionItem, InsertTextFormat, TextEdit } from 'vscode-languageserver-types'
 import { CancellationToken } from 'vscode-jsonrpc'
 
 let nvim: Neovim
@@ -227,6 +227,38 @@ describe('completion#TextChangedP', () => {
     await nvim.input('<backspace>')
     await helper.wait(100)
     expect(completion.isActivted).toBe(false)
+  })
+
+  it('should fix cursor position on additionalTextEdits', async () => {
+    let provider: CompletionItemProvider = {
+      provideCompletionItems: async (
+        _document: TextDocument,
+        _position: Position,
+        _token: CancellationToken,
+        _context: CompletionContext
+      ): Promise<CompletionItem[]> => {
+        return [{
+          label: 'foo',
+          filterText: 'foo',
+          additionalTextEdits: [TextEdit.insert(Position.create(0, 0), 'a\nbar')]
+        }]
+      }
+    }
+    let disposable = languages.registerCompletionItemProvider('edits', 'edit', null, provider)
+    await nvim.input('if')
+    await helper.waitPopup()
+    await helper.wait(100)
+    await nvim.input('<C-n>')
+    await helper.wait(100)
+    await nvim.input('<C-y>')
+    await helper.wait(200)
+    let line = await nvim.line
+    expect(line).toBe('barfoo')
+    let [, lnum, col] = await nvim.call('getcurpos')
+    expect(lnum).toBe(2)
+    expect(col).toBe(7)
+    disposable.dispose()
+
   })
 
   it('should fix input for snippet item', async () => {

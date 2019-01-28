@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { comparePosition, isSingleLine, rangeInRange } from '../util/position'
+import { comparePosition, isSingleLine, rangeInRange, getChangedPosition } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -45,20 +45,12 @@ export class CocSnippet {
   public adjustTextEdit(edit: TextEdit): boolean {
     let { range, newText } = edit
     let { start } = this.range
-    if (comparePosition(range.end, start) <= 0) {
-      let lines = newText.split('\n')
-      let lineCount = lines.length - (range.end.line - range.start.line) - 1
-      let characterCount = 0
-      if (range.end.line == start.line) {
-        let single = isSingleLine(range) && lineCount == 0
-        let removed = single ? range.end.character - range.start.character : range.end.character
-        let added = single ? newText.length : lines[lines.length - 1].length
-        characterCount = added - removed
-      }
-      this.adjustPosition(characterCount, lineCount)
-      return true
+    let changed = getChangedPosition(start, edit)
+    if (changed.line == 0 && changed.character == 0) {
+      return false
     }
-    return false
+    this.adjustPosition(changed.character, changed.line)
+    return true
   }
 
   public get isPlainText(): boolean {

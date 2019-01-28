@@ -1,5 +1,4 @@
-import { Position, Range } from 'vscode-languageserver-protocol'
-import { equals } from './object'
+import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 
 export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
@@ -23,10 +22,19 @@ export function isSingleLine(range: Range): boolean {
   return range.start.line == range.end.line
 }
 
-export function rangeEqual(r: Range, range: Range): boolean {
-  return equals(r, range)
-}
-
-export function emptyRange(range: Range): boolean {
-  return equals(range.start, range.end)
+export function getChangedPosition(start: Position, edit: TextEdit): { line: number, character: number } {
+  let { range, newText } = edit
+  if (comparePosition(range.end, start) <= 0) {
+    let lines = newText.split('\n')
+    let lineCount = lines.length - (range.end.line - range.start.line) - 1
+    let characterCount = 0
+    if (range.end.line == start.line) {
+      let single = isSingleLine(range) && lineCount == 0
+      let removed = single ? range.end.character - range.start.character : range.end.character
+      let added = single ? newText.length : lines[lines.length - 1].length
+      characterCount = added - removed
+    }
+    return { line: lineCount, character: characterCount }
+  }
+  return { line: 0, character: 0 }
 }

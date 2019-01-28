@@ -27,6 +27,7 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage, wait } from './util'
+import { getChangedPosition } from './util/position'
 import * as complete from './util/complete'
 import { mixin } from './util/object'
 import workspace from './workspace'
@@ -519,7 +520,7 @@ class Languages {
         opt = Object.assign({}, opt, { line: currLine })
         let snippet = await this.applyTextEdit(item, opt)
         let { additionalTextEdits } = item
-        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, line, colnr)
+        await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)
         completeItems = []
@@ -574,6 +575,9 @@ class Languages {
           strictIndexing: false
         })
       }
+      let line = linenr - 1 + newLines.length - 1
+      let character = newLines[newLines.length - 1].length - end.length
+      await workspace.moveTo({ line, character })
     }
     return false
   }
@@ -581,31 +585,23 @@ class Languages {
   private async applyAdditionalEdits(
     textEdits: TextEdit[],
     bufnr: number,
-    line: number,
-    col: number): Promise<void> {
+    snippet: boolean): Promise<void> {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    if (workspace.isNvim) await this.nvim.input('<C-g>u')
-    if (workspace.isVim) {
-      await document.fetchContent()
-      await wait(50)
-    }
-    let moveCur = 0
-    for (const ed of textEdits) {
-      if (ed.range.end.line === line
-        && ed.range.end.character <= col) {
-        moveCur += ed.newText.length
+    if (workspace.isVim) await document.fetchContent()
+    let changed = { line: 0, character: 0 }
+    let pos = await workspace.getCursorPosition()
+    if (!snippet) {
+      for (let edit of textEdits) {
+        let d = getChangedPosition(pos, edit)
+        changed = { line: changed.line + d.line, character: changed.character + d.character }
       }
     }
     await document.applyEdits(this.nvim, textEdits)
-    if (moveCur !== 0) {
-      let pos = await workspace.getCursorPosition()
-      pos.character += moveCur
-      await workspace.moveTo(pos)
+    if (changed.line != 0 || changed.character != 0) {
+      await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
     }
-    if (workspace.isVim) await document.fetchContent()
-    await wait(50)
   }
 }
 
