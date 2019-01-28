@@ -1,3 +1,13 @@
+# 2019-01-28
+
+- **Break change:** `coc.preferences.diagnostic.echoMessage` changed to enum.
+- Add mru support for commands and lists list.
+- Add `coc.preferences.diagnostic.refreshOnInsertMode`
+- Add `Mru` module.
+- Improve highlight for lists, support empty `filterLabel`.
+- Fix `findLocations` not work with nest locations.
+- Fix cursor position after apply additionalTextEdits.
+
 # 2019-01-24
 
 - **Break change:** python code for denite support moved to seperated repo.
