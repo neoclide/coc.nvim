@@ -325,11 +325,10 @@ export class Transform extends Marker {
   public regexp: RegExp
 
   public resolve(value: string): string {
-    const _this = this
     let didMatch = false
-    let ret = value.replace(this.regexp, function () { // tslint:disable-line
+    let ret = value.replace(this.regexp, (...args) => { // tslint:disable-line
       didMatch = true
-      return _this._replace(Array.prototype.slice.call(arguments, 0, -2))
+      return this._replace(args.slice(0, -2))
     })
     // when the regex didn't match and when the transform has
     // else branches, then run those
@@ -562,7 +561,11 @@ export class TextmateSnippet extends Marker {
     const placeholder = this.placeholders[id]
     let child = placeholder.children[0]
     let newText = placeholder.transform ? placeholder.transform.resolve(val) : val
-    placeholder.replace(child, [new Text(newText)])
+    if (child) {
+      placeholder.replace(child, [new Text(newText)])
+    } else {
+      placeholder.appendChild(new Text(newText))
+    }
     return newText
   }
 
