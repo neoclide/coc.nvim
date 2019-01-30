@@ -12,6 +12,8 @@ const config: DiagnosticConfig = {
   virtualTextSrcId: 0,
   virtualText: false,
   virtualTextPrefix: " ",
+  virtualTextLines: 1,
+  virtualTextLineSeparator: " \\ ",
   displayByAle: false,
   srcId: 1000,
   level: DiagnosticSeverity.Hint,
