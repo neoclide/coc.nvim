@@ -4,7 +4,6 @@ import { Color, ColorInformation, Disposable, Range } from 'vscode-languageserve
 import { equals } from '../util/object'
 import { Neovim } from '@chemzqm/neovim'
 import { group } from '../util/array'
-import { wait } from '../util'
 
 export interface ColorRanges {
   color: Color
@@ -21,7 +20,7 @@ export default class Highlighter implements Disposable {
   constructor(
     private nvim: Neovim,
     private document: Document,
-    private srcId = 0) {
+    private srcId) {
   }
 
   public get version(): number {
@@ -39,6 +38,7 @@ export default class Highlighter implements Disposable {
   public async highlight(colors: ColorInformation[]): Promise<void> {
     colors = colors || []
     this._version = this.document.version
+    if (workspace.isVim && workspace.bufnr != this.document.bufnr) return
     this.clearHighlight()
     if (colors.length) {
       this._colors = colors
@@ -48,18 +48,17 @@ export default class Highlighter implements Disposable {
         let colorRanges = this.getColorRanges(colors)
         this.addColors(colors.map(o => o.color))
         for (let o of colorRanges) {
-          await this.addHighlight(o.ranges, o.color)
+          this.addHighlight(o.ranges, o.color)
         }
-        this.nvim.resumeNotification()
-        await wait(50)
+        await this.nvim.resumeNotification()
       }
     }
   }
 
-  private async addHighlight(ranges: Range[], color: Color): Promise<void> {
+  private addHighlight(ranges: Range[], color: Color): void {
     let { red, green, blue } = toHexColor(color)
     let hlGroup = `BG${toHexString(color)}`
-    let ids = await this.document.highlightRanges(ranges, hlGroup, this.srcId)
+    let ids = this.document.highlightRanges(ranges, hlGroup, this.srcId)
     if (workspace.isVim) this.matchIds.push(...ids)
   }
 

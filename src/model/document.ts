@@ -473,12 +473,10 @@ export default class Document {
     return col
   }
 
-  public async highlightRanges(ranges: Range[], hlGroup: string, srcId: number): Promise<number[]> {
-    let { nvim, bufnr } = this
+  public highlightRanges(ranges: Range[], hlGroup: string, srcId: number): number[] {
+    let { nvim } = this
     let res: number[] = []
     if (this.env.isVim) {
-      let curr = await nvim.call('bufnr', '%') as number
-      if (bufnr != curr) return []
       let group: Range[] = []
       for (let i = 0, l = ranges.length; i < l; i++) {
         if (group.length < 8) {
@@ -505,21 +503,16 @@ export default class Document {
         }
       }
     } else {
-      if (srcId == 0) {
-        srcId = await this.buffer.addHighlight({ hlGroup: '', srcId, line: 0, colStart: 0, colEnd: 0 })
-      }
-      if (srcId) {
-        for (let range of ranges) {
-          let { start, end } = range
-          let line = this.getline(start.line)
-          await this.buffer.addHighlight({
-            hlGroup,
-            srcId,
-            line: start.line,
-            colStart: byteIndex(line, start.character),
-            colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
-          })
-        }
+      for (let range of ranges) {
+        let { start, end } = range
+        let line = this.getline(start.line)
+        this.buffer.addHighlight({
+          hlGroup,
+          srcId,
+          line: start.line,
+          colStart: byteIndex(line, start.character),
+          colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
+        })
         res.push(srcId)
       }
     }

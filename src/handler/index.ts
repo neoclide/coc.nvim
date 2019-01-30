@@ -44,7 +44,7 @@ export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
   /*bufnr and srcId list*/
   private highlightsMap: Map<number, number[]> = new Map()
-  private highlightNamespace = 0
+  private highlightNamespace = 1080
   private colors: Colors
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
@@ -58,7 +58,7 @@ export default class Handler {
       })
     }, 100)
     workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
-      this.highlightNamespace = id
+      if (id) this.highlightNamespace = id
     })
 
     let timer: NodeJS.Timer
@@ -94,8 +94,10 @@ export default class Handler {
       if (/^\s*$/.test(line)) return
       await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
-    events.on('BufWinLeave', bufnr => {
-      this.clearHighlight(bufnr)
+    events.on('BufWinEnter', () => {
+      if (workspace.isVim) {
+        nvim.call('clearmatches', [], true)
+      }
     }, null, this.disposables)
     events.on('BufUnload', async bufnr => {
       this.clearHighlight(bufnr)
@@ -496,6 +498,7 @@ export default class Handler {
       return
     }
     let ids = this.highlightsMap.get(document.bufnr)
+    if (workspace.isVim && workspace.bufnr != document.bufnr) return
     this.nvim.pauseNotification()
     if (ids && ids.length) {
       this.clearHighlight(document.bufnr)
@@ -512,7 +515,7 @@ export default class Handler {
       let ids = []
       for (let hlGroup of Object.keys(groups)) {
         let ranges = groups[hlGroup]
-        let arr = await document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
+        let arr = document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
         ids.push(...arr)
         this.highlightsMap.set(document.bufnr, ids)
       }

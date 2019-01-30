@@ -14,7 +14,7 @@ const logger = require('../util/logger')('colors')
 
 export default class Colors {
   private _enabled = true
-  private srcId = 0
+  private srcId = 1090
   private disposables: Disposable[] = []
   private highlighters: Map<number, Highlighter> = new Map()
   private highlightCurrent: Function & { clear(): void }
@@ -36,15 +36,20 @@ export default class Colors {
     let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    this.srcId = await workspace.createNameSpace('coc-colors')
-    if (workspace.isNvim && this.srcId == 0) {
-      this.srcId = 1090
-    }
+    let srcId = await workspace.createNameSpace('coc-colors')
+    if (srcId) this.srcId = srcId
     this._highlightCurrent()
 
     events.on('BufEnter', async () => {
       if (!global.hasOwnProperty('__TEST__')) {
         this.highlightCurrent()
+      }
+    }, null, this.disposables)
+
+    events.on('BufWinEnter', async bufnr => {
+      if (workspace.isVim) {
+        let doc = workspace.getDocument(bufnr)
+        if (doc) await this.highlightColors(doc, true)
       }
     }, null, this.disposables)
 
@@ -95,7 +100,7 @@ export default class Colors {
     try {
       colors = await languages.provideDocumentColors(document.textDocument)
       colors = colors || []
-      if (equals(highlighter.colors, colors)) return
+      if (!force && equals(highlighter.colors, colors)) return
       await highlighter.highlight(colors)
     } catch (e) {
       logger.error(e.stack)
