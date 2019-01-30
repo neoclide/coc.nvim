@@ -104,6 +104,7 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command(cmd, true)
     nvim.command('normal! zt', true)
     nvim.call('win_gotoid', [winid], true)
+    nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
 
