@@ -413,7 +413,7 @@
     "coc.preferences.diagnostic.virtualTextLines": {
       "type":"number",
       "description": "The number of non empty lines from a diagnostic to display",
-      "default": 1
+      "default": 3
     },
     "coc.preferences.diagnostic.virtualTextLineSeparator": {
       "type":"string",

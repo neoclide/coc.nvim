@@ -12,7 +12,7 @@ const config: DiagnosticConfig = {
   virtualTextSrcId: 0,
   virtualText: false,
   virtualTextPrefix: " ",
-  virtualTextLines: 1,
+  virtualTextLines: 3,
   virtualTextLineSeparator: " \\ ",
   displayByAle: false,
   srcId: 1000,
