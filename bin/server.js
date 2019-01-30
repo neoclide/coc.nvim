@@ -1,3 +1,9 @@
+const semver = require('semver')
+const version = process.version.replace('v', '')
+if (!semver.gt(version, '8.0.0')) {
+  console.error('node 8.0 required, please upgrade nodejs.')
+  process.exit(1)
+}
 Object.defineProperty(console, 'log', {
   value: () => { }
 })
