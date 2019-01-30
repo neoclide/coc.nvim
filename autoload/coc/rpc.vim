@@ -18,7 +18,9 @@ function! coc#rpc#start_server()
     let $VIMCONFIG = coc#util#get_config_home()
     let s:client = coc#client#create(s:name, cmd)
   endif
-  call s:client['start']()
+  if !coc#client#is_running('coc')
+    call s:client['start']()
+  endif
 endfunction
 
 function! coc#rpc#ready()

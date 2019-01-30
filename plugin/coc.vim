@@ -106,7 +106,7 @@ function! s:Enable()
     endif
     autocmd VimEnter *           call s:OnVimEnter()
     if s:is_vim
-      autocmd User NvimRpcInit     call coc#rpc#stop() | call coc#rpc#start_server()
+      autocmd User NvimRpcInit     call coc#rpc#start_server()
       autocmd User NvimRpcExit     call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
     else
