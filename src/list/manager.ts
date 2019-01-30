@@ -176,6 +176,12 @@ export class ListManager {
       this.window = await this.nvim.window
       this.prompt.start(this.listOptions.input, options.mode)
       this.history.load()
+      setTimeout(async () => {
+        let line = await this.nvim.call('coc#util#echo_line') as string
+        if (line.startsWith('[coc.nvim]')) {
+          await this.cancel()
+        }
+      }, 40)
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()
@@ -274,9 +280,7 @@ export class ListManager {
     }
     this.prompt.cancel()
     nvim.command('pclose', true)
-    nvim.command('echo ""', true)
     if (close) ui.hide()
-    nvim.command('redraw', true)
     nvim.call('coc#list#restore', [], true)
     await nvim.resumeNotification()
   }

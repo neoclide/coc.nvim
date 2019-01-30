@@ -1,13 +1,14 @@
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import workspace from '../workspace'
-import { ListMode } from '../types'
 import { Neovim } from '@chemzqm/neovim'
+import { Emitter, Event } from 'vscode-languageserver-protocol'
+import { ListMode } from '../types'
+import workspace from '../workspace'
 const logger = require('../util/logger')('list-prompt')
 
 export default class Prompt {
   private indicator: string
   private cusorIndex = 0
   private _input = ''
+  private timer: NodeJS.Timer
   private _mode: ListMode
 
   private _onDidChangeInput = new Emitter<string>()
@@ -48,11 +49,21 @@ export default class Prompt {
     if (mode) this._mode = mode
     let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
     this.nvim.call(method, [], true)
-    this.drawPrompt()
+    this.timer = setTimeout(() => {
+      this.timer = null
+      this.drawPrompt()
+    }, 60)
   }
 
   public cancel(): void {
-    this.nvim.call('coc#list#stop_prompt', [], true)
+    let { nvim } = this
+    if (this.timer) {
+      clearTimeout(this.timer)
+    } else {
+      nvim.command('echo ""', true)
+      nvim.command('redraw', true)
+    }
+    nvim.call('coc#list#stop_prompt', [], true)
   }
 
   public reset(): void {
@@ -61,6 +72,7 @@ export default class Prompt {
   }
 
   public drawPrompt(): void {
+    if (this.timer) return
     let { indicator, cusorIndex, input } = this
     let cmds = ['echo ""']
     if (this.mode == 'insert') {

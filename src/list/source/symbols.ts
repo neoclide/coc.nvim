@@ -22,6 +22,10 @@ export default class Symbols extends LocationList {
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let { input } = context
+    if (!context.options.interactive) {
+      workspace.showMessage('Symbols only works on interactive mode', 'error')
+      return
+    }
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return []
