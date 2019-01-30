@@ -188,11 +188,11 @@ export class DiagnosticBuffer {
       let highlight = getNameFromSeverity(diagnostic.severity) + 'Sign'
       let msgLines = diagnostic.message.split(/\n/)
       let msg = msgLines[0]
-      for (let i = 1; i < Math.min(this.config.virtualTextLines, msgLines.length); i++) {
-        if (msgLines[i] != '') {
-          msg += this.config.virtualTextLineSeparator + msgLines[i].trim()
-        }
-      }
+      msgLines
+        .map((l: string) => l.trim())
+        .filter((l: string) => l !== '')
+        .slice(1, this.config.virtualTextLines)
+        .forEach((l: string) => msg += this.config.virtualTextLineSeparator + l)
       buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {})
     }
   }
