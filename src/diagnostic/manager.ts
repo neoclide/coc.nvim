@@ -372,7 +372,7 @@ export class DiagnosticManager {
       virtualText: config.get<boolean>('virtualText', false),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
-      virtualTextLines: config.get<number>('virtualTextLines', 1),
+      virtualTextLines: config.get<number>('virtualTextLines', 3),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),
