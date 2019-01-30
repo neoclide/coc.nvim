@@ -410,6 +410,16 @@
       "description": "The prefix added virtual text diagnostics",
       "default": " "
     },
+    "coc.preferences.diagnostic.virtualTextLines": {
+      "type":"number",
+      "description": "The number of lines from a diagnostic to display",
+      "default": 1
+    },
+    "coc.preferences.diagnostic.virtualTextLineSeparator": {
+      "type":"string",
+      "description": "The text that will mark a line end from the diagnostic message",
+      "default": " \\ "
+    },
     "coc.preferences.diagnostic.enableMessage": {
       "type": "string",
       "default": "always",

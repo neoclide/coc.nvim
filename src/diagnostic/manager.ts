@@ -25,6 +25,8 @@ export interface DiagnosticConfig {
   refreshOnInsertMode: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
+  virtualTextLines: number
+  virtualTextLineSeparator: string
 }
 
 export class DiagnosticManager {
@@ -368,7 +370,9 @@ export class DiagnosticManager {
     this.config = {
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
       virtualText: config.get<boolean>('virtualText', false),
-      virtualTextPrefix: config.get('virtualTextPrefix', " "),
+      virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
+      virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
+      virtualTextLines: config.get<number>('virtualTextLines', 1),
       displayByAle: config.get<boolean>('displayByAle', false),
       srcId: config.get<number>('highlightOffset', 1000),
       level: severityLevel(config.get<string>('level', 'hint')),
