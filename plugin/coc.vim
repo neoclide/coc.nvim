@@ -90,7 +90,11 @@ endfunction
 
 function! s:SyncAutocmd(...)
   if !get(g:,'coc_workspace_initialized', 0) | return | endif
-  call coc#rpc#request('CocAutocmd', a:000)
+  if get(g:, 'coc_service_initialized', 0)
+    call coc#rpc#request('CocAutocmd', a:000)
+  else
+    call coc#rpc#notify('CocAutocmd', a:000)
+  endif
 endfunction
 
 function! s:Enable()
