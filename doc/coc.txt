@@ -401,7 +401,7 @@ Note: some functions only work after coc service initialized.
 
 To run a function on startup, use autocmd like: >
 
- 	autocmd User CocNvimInit call s:CocAction('runCommand',
+ 	autocmd User CocNvimInit call CocAction('runCommand',
 						\ 'tsserver.watchBuild')
 <
 						*CocRequest()*
@@ -579,7 +579,7 @@ Available Actions ~
 
 	You can bind your custom command like: >
 
-	command! -nargs=0 OrganizeImport :call CocAction('runCommand', 'typescript.organizeImports')
+	command! -nargs=0 OrganizeImport :call CocActionAsync('runCommand', 'typescript.organizeImports')
 
 "fold" {{kind}} 				*coc-action-fold*
 
@@ -594,7 +594,7 @@ Available Actions ~
 
 	To enable highlight on CursorHold, create autocmd like: >
 
-	autocmd CursorHold * silent call CocAction('highlight')
+	autocmd CursorHold * silent call CocActionAsync('highlight')
 <
 "openLink" [{command}] 				*coc-action-openlink*
 
