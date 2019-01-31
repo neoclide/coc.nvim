@@ -20,6 +20,7 @@ import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
 import UI from './ui'
 import Worker from './worker'
+import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
@@ -321,8 +322,7 @@ export class ListManager {
     }
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
-    nvim.pauseNotification()
-    await nvim.resumeNotification()
+    await wait(10)
     await this.prompt.start()
     if (n) await this.doAction(names[n - 1])
   }
