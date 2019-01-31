@@ -2,21 +2,20 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import os from 'os'
 import path from 'path'
+import { Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
 import extensions from './extensions'
 import Handler from './handler'
+import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
-import listManager from './list/manager'
 import sources from './sources'
-import clean from './util/clean'
-import workspace from './workspace'
-import { Location } from 'vscode-languageserver-types'
 import { OutputChannel } from './types'
 import { isRunning } from './util'
-import { distinct } from './util/array'
+import clean from './util/clean'
+import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -51,7 +50,6 @@ export default class Plugin extends EventEmitter {
       services.init()
       this.handler = new Handler(nvim)
       await extensions.init(nvim)
-      await this.addExtensions()
       nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('coc_service_initialized', 1, true)
       await nvim.command('silent doautocmd User CocNvimInit')
@@ -160,22 +158,7 @@ export default class Plugin extends EventEmitter {
   }
 
   public async addExtensions(): Promise<void> {
-    let { nvim } = this
-    let list = await nvim.getVar('coc_global_extensions') as string[]
-    if (list && list.length) {
-      list = distinct(list)
-      list = list.filter(name => !extensions.has(name))
-      if (list.length) {
-        nvim.command(`CocInstall ${list.join(' ')}`, true)
-      }
-    }
-    let arr = await nvim.getVar('coc_local_extensions') as string[]
-    if (arr && arr.length) {
-      arr = distinct(arr)
-      for (let folder of arr) {
-        await extensions.loadExtension(folder)
-      }
-    }
+    await extensions.addExtensions()
   }
 
   public async registExtensions(...folders: string[]): Promise<void> {

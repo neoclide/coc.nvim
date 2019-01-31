@@ -12,6 +12,7 @@ import { disposeAll, wait } from './util'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
+import { distinct } from './util/array'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -58,15 +59,17 @@ export class Extensions {
       this._onReady.fire()
       return
     }
-    for (let stat of stats) {
+    stats = stats.filter(o => o.state != 'disabled')
+    Promise.all(stats.map(stat => {
       let folder = stat.root
-      let id = path.dirname(folder)
-      if (this.isDisabled(id)) return null
-      this.loadExtension(folder).catch(e => {
+      return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
-    }
-    this._onReady.fire()
+    })).then(() => {
+      return this.addExtensions()
+    }).then(() => {
+      this._onReady.fire()
+    })
     let config = workspace.getConfiguration('coc.preferences')
     let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
     if (interval == 'never') return
@@ -117,6 +120,27 @@ export class Extensions {
       }
     }
     return false
+  }
+
+  public async addExtensions(): Promise<void> {
+    let { nvim } = workspace
+    let list = await nvim.getVar('coc_global_extensions') as string[]
+    if (list && list.length) {
+      list = distinct(list)
+      list = list.filter(name => !this.has(name) && !this.isDisabled(name))
+      if (list.length) {
+        nvim.command(`CocInstall ${list.join(' ')}`, true)
+      }
+    }
+    let arr = await nvim.getVar('coc_local_extensions') as string[]
+    if (arr && arr.length) {
+      arr = distinct(arr)
+      await Promise.all(arr.map(folder => {
+        return this.loadExtension(folder).catch(e => {
+          workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
+        })
+      }))
+    }
   }
 
   public get all(): Extension<API>[] {
