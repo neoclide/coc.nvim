@@ -262,11 +262,12 @@ export default class ListUI {
     this.items = items.slice()
     if (bufnr == 0 && !this.creating) {
       this.creating = true
-      this.height = height
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
       await nvim.command(cmd)
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
+      await this.window.request(`nvim_win_set_height`, [this.window, height])
+      this.height = height
       this._onDidOpen.fire(this.bufnr)
       this.creating = false
     } else {
@@ -312,7 +313,7 @@ export default class ListUI {
     if (resize && window) {
       let maxHeight = config.get<number>('maxHeight', 12)
       let height = Math.max(1, Math.min(this.items.length, maxHeight))
-      if (height != this.height || !append) {
+      if (height != this.height) {
         this.height = height
         window.notify(`nvim_win_set_height`, [window, height])
         this._onDidChangeHeight.fire()

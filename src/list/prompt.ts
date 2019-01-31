@@ -41,7 +41,8 @@ export default class Prompt {
     this.drawPrompt()
   }
 
-  public async start(input?: string, mode?: ListMode): Promise<void> {
+  public async start(input?: string, mode?: ListMode, delay = false): Promise<void> {
+    if (this.timer) clearTimeout(this.timer)
     if (input != null) {
       this._input = input
       this.cusorIndex = input.length
@@ -49,10 +50,14 @@ export default class Prompt {
     if (mode) this._mode = mode
     let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
     this.nvim.call(method, [], true)
-    this.timer = setTimeout(() => {
-      this.timer = null
+    if (delay) {
+      this.timer = setTimeout(() => {
+        this.timer = null
+        this.drawPrompt()
+      }, 60)
+    } else {
       this.drawPrompt()
-    }, 60)
+    }
   }
 
   public cancel(): void {
@@ -74,7 +79,7 @@ export default class Prompt {
   public drawPrompt(): void {
     if (this.timer) return
     let { indicator, cusorIndex, input } = this
-    let cmds = ['echo ""']
+    let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
     if (this.mode == 'insert') {
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {

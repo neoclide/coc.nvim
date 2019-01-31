@@ -74,7 +74,7 @@ export class ListManager {
       let { isVim } = workspace
       if (workspace.bufnr == bufnr) {
         this.prompt.start()
-        if (isVim) nvim.command(`set t_ve=`)
+        if (isVim) nvim.command(`set t_ve=`, true)
       } else {
         this.prompt.cancel()
         if (isVim) nvim.call('coc#list#restore', [], true)
@@ -175,7 +175,7 @@ export class ListManager {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
-      this.prompt.start(this.listOptions.input, options.mode)
+      this.prompt.start(this.listOptions.input, options.mode, true)
       this.history.load()
       setTimeout(async () => {
         let line = await this.nvim.call('coc#util#echo_line') as string
@@ -192,9 +192,10 @@ export class ListManager {
   }
 
   public async resume(): Promise<void> {
-    let { name, ui, currList } = this
+    let { name, ui, currList, nvim } = this
     if (!currList) return
     this.activated = true
+    this.window = await nvim.window
     this.prompt.start()
     await ui.resume(name, this.listOptions.position)
   }

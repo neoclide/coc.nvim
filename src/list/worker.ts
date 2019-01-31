@@ -88,7 +88,8 @@ export default class Worker {
     let { interactive } = listOptions
     await this.loadMruList(context.cwd)
     let items = await list.loadItems(context)
-    if (!items || Array.isArray(items)) {
+    if (items == null) return
+    if (Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
         item.ansiHighlights = item.ansiHighlights || this.parseListItemAnsi(item)

@@ -37,7 +37,7 @@ export default class LinksList extends BasicList {
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let doc = workspace.getDocument(buf.id)
-    if (!doc) return []
+    if (!doc) return null
     let items: ListItem[] = []
     let links = await languages.getDocumentLinks(doc.textDocument)
     links = links || []

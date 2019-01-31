@@ -24,11 +24,11 @@ export default class Symbols extends LocationList {
     let { input } = context
     if (!context.options.interactive) {
       workspace.showMessage('Symbols only works on interactive mode', 'error')
-      return
+      return null
     }
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
-    if (!document) return []
+    if (!document) return null
     let symbols = await languages.getWorkspaceSymbols(document.textDocument, input)
     if (!symbols) return []
     let items: ListItem[] = []

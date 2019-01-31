@@ -20,7 +20,7 @@ export default class Outline extends LocationList {
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
-    if (!document) return []
+    if (!document) return null
     let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols || symbols.length == 0) return []
     let items: ListItem[] = []
