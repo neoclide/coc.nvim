@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
+import isuri from 'isuri'
 import glob from 'glob'
 import JsonDB from 'node-json-db'
 import path from 'path'
@@ -8,7 +9,7 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, wait } from './util'
+import { disposeAll, wait, runCommand } from './util'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
@@ -35,7 +36,6 @@ function loadJson(file: string): any {
 }
 
 export class Extensions {
-  private disposables: Disposable[] = []
   private list: ExtensionItem[] = []
   private root: string
   private interval: string
@@ -69,57 +69,79 @@ export class Extensions {
       return this.addExtensions()
     }).then(() => {
       this._onReady.fire()
+      let config = workspace.getConfiguration('coc.preferences')
+      let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
+      if (interval == 'never') return
+      return this.updateExtensions(stats)
     })
-    let config = workspace.getConfiguration('coc.preferences')
-    let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
-    if (interval == 'never') return
-    this.onDidActiveExtension(async extension => {
-      let { id, packageJSON } = extension
-      if (!this.isGlobalExtension(id) || this.isExoticExtension(id)) return
-      let update = await this.checkUpdate(id, packageJSON.version)
-      if (update) await workspace.nvim.command(`CocInstall ${id}`)
-    }, null, this.disposables)
     if (workspace.isVim) this.updateNodeRpc() // tslint:disable-line
   }
 
-  public async updateNodeRpc(): Promise<void> {
-    let filepath = await workspace.resolveModule('vim-node-rpc')
-    if (filepath) {
-      let jsonFile = path.join(filepath, 'package.json')
-      let obj = loadJson(jsonFile)
-      let update = await this.checkUpdate('vim-node-rpc', obj.version, false)
-      if (update) {
-        let status = workspace.createStatusBarItem(99, { progress: true })
-        status.text = 'Upgrading vim-node-rpc'
-        status.show()
-        await workspace.runCommand('yarn global add vim-node-rpc', process.cwd(), 30000)
-        status.dispose()
-      }
-    }
-  }
-
-  public async checkUpdate(moduleName: string, oldVersion: string, prompt = true): Promise<boolean> {
+  private async updateExtensions(stats: ExtensionInfo[]): Promise<void> {
     let now = new Date()
     let { interval, db } = this
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
-    let key = `/extension/${moduleName}/ts`
+    let key = '/lastUpdate'
     let ts = (db as any).exists(key) ? db.getData(key) : null
-    if (!ts || Number(ts) < day.getTime()) {
-      db.push(key, Date.now())
+    if (ts && Number(ts) > day.getTime()) return
+    db.push(key, Date.now())
+    let versionInfo: { [index: string]: string } = {}
+    stats = stats.filter(o => !o.exotic)
+    for (let stat of stats) {
+      if (stat.exotic) continue
+      let file = path.join(stat.root, 'package.json')
       try {
-        let res = await workspace.runCommand(`yarn info ${moduleName} version --json`)
-        let version = JSON.parse(res).data
-        if (semver.gt(version, oldVersion)) {
-          if (!prompt) return true
-          let res = await workspace.showPrompt(`a new version: ${version} of ${moduleName} available, update?`)
-          if (res) return true
-        }
+        let content = await readFile(file, 'utf8')
+        let obj = JSON.parse(content)
+        versionInfo[stat.id] = obj.version
       } catch (e) {
         logger.error(e.stack)
-        // noop
       }
     }
-    return false
+    let outdated: string[] = []
+    await Promise.all(Object.keys(versionInfo).map(id => {
+      let curr = versionInfo[id]
+      return runCommand(`yarn info ${id} --json`, process.cwd()).then(content => {
+        let json = JSON.parse(content)
+        let { version, engines } = json.data
+        if (version == curr) return
+        let required = engines.coc.replace(/^\^/, '>=')
+        if (!semver.satisfies(workspace.version, required)) return
+        if (semver.gt(version, curr)) {
+          outdated.push(id)
+        }
+      })
+    }))
+    if (!outdated.length) return
+    let status = workspace.createStatusBarItem(99, { progress: true })
+    status.text = `Upgrading ${outdated.join(' ')}`
+    status.show()
+    await runCommand(`yarn upgrade ${outdated.join(' ')} --latest --ignore-engines`, this.root)
+    status.dispose()
+  }
+
+  public async updateNodeRpc(): Promise<void> {
+    let now = new Date()
+    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    let key = `/lastCheckVimNodeRpc`
+    let ts = this.db.exists(key) ? this.db.getData(key) : null
+    if (ts && Number(ts) > day.getTime()) return
+    this.db.push(key, Date.now())
+    let filepath = await workspace.resolveModule('vim-node-rpc')
+    if (filepath) {
+      let jsonFile = path.join(filepath, 'package.json')
+      let { version } = loadJson(jsonFile)
+      let res = await runCommand(`yarn info vim-node-rpc version --json`, process.cwd(), 30000)
+      let newVersion = JSON.parse(res).data
+      logger.debug('version:', newVersion, version)
+      if (!semver.gt(newVersion, version)) return
+    }
+    let status = workspace.createStatusBarItem(99, { progress: true })
+    status.text = 'Upgrading vim-node-rpc'
+    status.show()
+    await runCommand('yarn global add vim-node-rpc', process.cwd())
+    status.dispose()
+    logger.info(`Upgrade vim-node-rpc succeed`)
   }
 
   public async addExtensions(): Promise<void> {
@@ -128,9 +150,7 @@ export class Extensions {
     if (list && list.length) {
       list = distinct(list)
       list = list.filter(name => !this.has(name) && !this.isDisabled(name))
-      if (list.length) {
-        nvim.command(`CocInstall ${list.join(' ')}`, true)
-      }
+      if (list.length) nvim.command(`CocInstall ${list.join(' ')}`, true)
     }
     let arr = await nvim.getVar('coc_local_extensions') as string[]
     if (arr && arr.length) {
@@ -542,15 +562,19 @@ export class Extensions {
 
   private globalExtensionStats(): ExtensionInfo[] {
     let { root } = this
-    let names = this.globalExtensions
-    if (!names.length) return []
-    return names.map(name => {
-      return {
-        id: name,
-        root: path.join(root, 'node_modules', name),
-        state: this.getExtensionState(name)
-      }
-    })
+    let json = this.loadJson()
+    if (!json || !json.dependencies) return []
+    let res: ExtensionInfo[] = []
+    for (let key of Object.keys(json.dependencies)) {
+      let val = json.dependencies[key]
+      res.push({
+        id: key,
+        exotic: isuri.isValid(val),
+        root: path.join(root, 'node_modules', key),
+        state: this.getExtensionState(key)
+      })
+    }
+    return res
   }
 
   private localExtensionStats(): ExtensionInfo[] {
@@ -562,6 +586,7 @@ export class Extensions {
       res.push({
         id: packageJSON.name,
         root: extensionPath,
+        exotic: false,
         state: this.getExtensionState(item.id)
       })
     })
@@ -570,19 +595,6 @@ export class Extensions {
 
   private isGlobalExtension(id: string): boolean {
     return this.globalExtensions.indexOf(id) !== -1
-  }
-
-  private isExoticExtension(id: string): boolean {
-    let json = this.loadJson()
-    if (!json || !json.dependencies) {
-      return true
-    }
-    let { dependencies } = json
-    let val = dependencies[id]
-    if (!val || /^(https?|git):/.test(val)) {
-      return true
-    }
-    return false
   }
 
   public get globalExtensions(): string[] {

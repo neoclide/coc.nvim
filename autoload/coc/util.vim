@@ -514,7 +514,7 @@ function! coc#util#install_extension(names) abort
   endfunction
   call coc#util#open_terminal({
         \ 'cwd': dir,
-        \ 'cmd': 'yarn add '.a:names,
+        \ 'cmd': 'yarn add '.a:names.' --ignore-engines',
         \ 'keepfocus': 1,
         \ 'Callback': {status -> s:OnExtensionInstalled(status, a:names)},
         \})

@@ -14,6 +14,7 @@ export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 export interface ExtensionInfo {
   id: string
   root: string
+  exotic: boolean
   state: ExtensionState
 }
 
