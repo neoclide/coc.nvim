@@ -672,6 +672,7 @@ export default class Handler {
     for (let signature of signatures) {
       let parts: SignaturePart[] = []
       let { label } = signature
+      label = label.replace(/\n/g, ' ')
       if (label.length >= columns) {
         label = label.slice(0, columns - 4) + '...'
       }
