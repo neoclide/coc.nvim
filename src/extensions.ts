@@ -62,7 +62,7 @@ export class Extensions {
       let folder = stat.root
       let id = path.dirname(folder)
       if (this.isDisabled(id)) return null
-      this.loadExtension(folder).catch(e => {
+      await this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
       })
     }
