@@ -60,7 +60,7 @@ export class Extensions {
       return
     }
     stats = stats.filter(o => o.state != 'disabled')
-    Promise.all(stats.map(stat => {
+    await Promise.all(stats.map(stat => {
       let folder = stat.root
       return this.loadExtension(folder).catch(e => {
         workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
@@ -72,7 +72,9 @@ export class Extensions {
       let config = workspace.getConfiguration('coc.preferences')
       let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
       if (interval == 'never') return
-      return this.updateExtensions(stats)
+      this.updateExtensions(stats).catch(e => {
+        workspace.showMessage(`Error on update extensions: ${e.message}`, 'error')
+      })
     })
     if (workspace.isVim) this.updateNodeRpc() // tslint:disable-line
   }

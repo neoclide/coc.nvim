@@ -35,11 +35,9 @@ export default class Plugin extends EventEmitter {
 
   public async init(): Promise<void> {
     let { nvim } = this
-    let config = await nvim.getVar('coc_user_config') as { [key: string]: any } || {}
     try {
-      if (Object.keys(config).length) {
-        workspace.configurations.updateUserConfig(config)
-      }
+      let config = await nvim.getVar('coc_user_config') as { [key: string]: any } || {}
+      workspace.configurations.updateUserConfig(config)
       let pid = await nvim.call('getpid') as number
       this.checkProcess(pid)
       await listManager.init(nvim)

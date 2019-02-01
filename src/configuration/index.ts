@@ -79,6 +79,7 @@ export default class Configurations {
 
   // change user configuration, without change file
   public updateUserConfig(props: { [key: string]: any }): void {
+    if (!props || Object.keys(props).length == 0) return
     let { user } = this._configuration
     let model = user.clone()
     Object.keys(props).forEach(key => {
