@@ -11,6 +11,9 @@ let s:is_vim = !has('nvim')
 if has('nvim') && get(g:, 'coc_start_at_startup', 1)
   call coc#rpc#start_server()
 endif
+if s:is_vim
+  call coc#rpc#init_vim_rpc()
+endif
 
 function! CocAction(...) abort
   if !coc#rpc#ready()
@@ -108,11 +111,16 @@ function! s:Enable()
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
-    autocmd VimEnter *           call s:OnVimEnter()
+
+    autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim
-      autocmd User NvimRpcInit     call coc#rpc#start_server()
-      autocmd User NvimRpcExit     call coc#rpc#stop()
+      autocmd User NvimRpcInit
+            \ if get(g:, 'coc_start_at_startup', 1) |
+            \   call coc#rpc#start_server() |
+            \ endif
+      autocmd User NvimRpcExit    call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
+      autocmd BufWinEnter       * call clearmatches()
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
     endif
@@ -175,17 +183,6 @@ endfunction
 function! s:CodeActionFromSelected(type)
   if !coc#rpc#ready() | return '' | endif
   call CocAction('codeAction', a:type)
-endfunction
-
-function! s:OnVimEnter()
-  if s:is_vim
-    if get(g:, 'coc_start_at_startup', 1)
-      call coc#rpc#init_vim_rpc()
-    endif
-  else
-    " it's possible that client is not ready
-    call coc#rpc#notify('VimEnter', [])
-  endif
 endfunction
 
 function! s:Notification(name, args)
