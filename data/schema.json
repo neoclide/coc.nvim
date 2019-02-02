@@ -411,12 +411,12 @@
       "default": " "
     },
     "coc.preferences.diagnostic.virtualTextLines": {
-      "type":"number",
+      "type": "number",
       "description": "The number of non empty lines from a diagnostic to display",
       "default": 3
     },
     "coc.preferences.diagnostic.virtualTextLineSeparator": {
-      "type":"string",
+      "type": "string",
       "description": "The text that will mark a line end from the diagnostic message",
       "default": " \\ "
     },
@@ -567,7 +567,7 @@
     },
     "list.limitLines": {
       "type": "number",
-      "default": 3000,
+      "default": 1000,
       "description": "Limit lines for list buffer."
     },
     "list.previewHighlightGroup": {

@@ -257,7 +257,7 @@ export default class ListUI {
     let { bufnr, config, nvim } = this
     let maxHeight = config.get<number>('maxHeight', 12)
     let height = Math.max(1, Math.min(items.length, maxHeight))
-    let limitLines = config.get<number>('limitLines', 3000)
+    let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items[this.index]
     this.items = items.slice()
     if (bufnr == 0 && !this.creating) {
@@ -289,7 +289,7 @@ export default class ListUI {
 
   public async appendItems(items: ListItem[]): Promise<void> {
     let { config } = this
-    let limitLines = config.get<number>('limitLines', 3000)
+    let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items.length
     if (curr >= limitLines) {
       this._onDidChange.fire()

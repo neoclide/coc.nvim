@@ -46,7 +46,7 @@ export default class Worker {
           await this.loadItems()
         }, 100)
       } else if (!this._loading && this.length) {
-        let wait = Math.max(Math.floor(this.length / 200), 50)
+        let wait = Math.min(Math.floor(this.length / 200), 200)
         this.timer = setTimeout(async () => {
           if (this._loading) return
           await this.drawItems()
@@ -158,6 +158,8 @@ export default class Worker {
         totalItems.push(item)
         if ((!lastTs && this.totalItems.length == 500)
           || Date.now() - lastTs > 500) {
+          _onData()
+        } else if (lastTs && this.input != currInput) {
           _onData()
         } else {
           timer = setTimeout(_onData, 50)
