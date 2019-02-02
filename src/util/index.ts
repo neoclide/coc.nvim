@@ -62,7 +62,8 @@ export function getUri(bufname: string, id: number, buftype: string): string {
     return Uri.parse(bufname).toString()
   }
   if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
-  if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
+  // consider it as file when it's normal buffer
+  if (isuri.isValid(bufname) && buftype != '') return Uri.parse(bufname).toString()
   return Uri.file(bufname).toString()
 }
 
