@@ -4,6 +4,7 @@ import { Color, ColorInformation, Disposable, Range } from 'vscode-languageserve
 import { equals } from '../util/object'
 import { Neovim } from '@chemzqm/neovim'
 import { group } from '../util/array'
+const logger = require('../util/logger')('highlighter')
 
 export interface ColorRanges {
   color: Color
@@ -39,19 +40,27 @@ export default class Highlighter implements Disposable {
     colors = colors || []
     this._version = this.document.version
     if (workspace.isVim && workspace.bufnr != this.document.bufnr) return
-    this.clearHighlight()
-    if (colors.length) {
-      this._colors = colors
-      let groups = group(colors, 100)
-      for (let colors of groups) {
-        this.nvim.pauseNotification()
-        let colorRanges = this.getColorRanges(colors)
-        this.addColors(colors.map(o => o.color))
-        for (let o of colorRanges) {
-          this.addHighlight(o.ranges, o.color)
+    if (colors.length == 0) return this.clearHighlight()
+    this._colors = colors
+    let groups = group(colors, 100)
+    let cleared = false
+    for (let colors of groups) {
+      this.nvim.pauseNotification()
+      if (!cleared) {
+        cleared = true
+        if (workspace.isVim) {
+          this.document.clearMatchIds(this.matchIds)
+          this.matchIds = []
+        } else {
+          this.document.clearMatchIds([this.srcId])
         }
-        await this.nvim.resumeNotification()
       }
+      let colorRanges = this.getColorRanges(colors)
+      this.addColors(colors.map(o => o.color))
+      for (let o of colorRanges) {
+        this.addHighlight(o.ranges, o.color)
+      }
+      await this.nvim.resumeNotification()
     }
   }
 

@@ -94,11 +94,6 @@ export default class Handler {
       if (/^\s*$/.test(line)) return
       await this.onCharacterType('\n', buf.id, true)
     }, null, this.disposables)
-    events.on('BufWinEnter', () => {
-      if (workspace.isVim) {
-        nvim.call('clearmatches', [], true)
-      }
-    }, null, this.disposables)
     events.on('BufUnload', async bufnr => {
       this.clearHighlight(bufnr)
     }, null, this.disposables)

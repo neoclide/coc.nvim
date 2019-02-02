@@ -1119,13 +1119,9 @@ augroup end`
   }
 
   private async onBufWritePre(bufnr: number): Promise<void> {
-    let { nvim } = this
     let doc = this.buffers.get(bufnr)
     if (!doc) return
     await doc.checkDocument()
-    if (bufnr == this.bufnr && this.env.isVim) {
-      nvim.call('clearmatches', [], true)
-    }
     let event: TextDocumentWillSaveEvent = {
       document: doc.textDocument,
       reason: TextDocumentSaveReason.Manual

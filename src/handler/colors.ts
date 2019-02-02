@@ -46,12 +46,12 @@ export default class Colors {
       }
     }, null, this.disposables)
 
-    events.on('BufWinEnter', async bufnr => {
-      if (workspace.isVim) {
+    if (workspace.isVim) {
+      events.on('BufWinEnter', async bufnr => {
         let doc = workspace.getDocument(bufnr)
         if (doc) await this.highlightColors(doc, true)
-      }
-    }, null, this.disposables)
+      }, null, this.disposables)
+    }
 
     events.on('InsertLeave', async () => {
       this.highlightCurrent()
@@ -93,13 +93,14 @@ export default class Colors {
 
   public async highlightColors(document: Document, force = false): Promise<void> {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
-    let { version } = document
+    let { version, changedtick } = document
     let highlighter = this.getHighlighter(document.bufnr)
     if (!highlighter && (highlighter.version == version && !force)) return
     let colors: ColorInformation[]
     try {
       colors = await languages.provideDocumentColors(document.textDocument)
       colors = colors || []
+      if (changedtick != document.changedtick) return
       if (!force && equals(highlighter.colors, colors)) return
       await highlighter.highlight(colors)
     } catch (e) {
