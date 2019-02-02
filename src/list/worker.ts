@@ -3,7 +3,6 @@ import path from 'path'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
-import { wait } from '../util'
 import { ansiparse } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
@@ -13,7 +12,6 @@ import workspace from '../workspace'
 import { ListManager } from './manager'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
-const maxLength = 1000
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
 
@@ -88,12 +86,11 @@ export default class Worker {
     let { interactive } = listOptions
     await this.loadMruList(context.cwd)
     let items = await list.loadItems(context)
-    if (items == null) return
-    if (Array.isArray(items)) {
+    if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
-        item.ansiHighlights = item.ansiHighlights || this.parseListItemAnsi(item)
-        item.recentScore = item.recentScore || this.recentScore(item)
+        this.parseListItemAnsi(item)
+        this.recentScore(item)
         return item
       })
       this.loading = false
@@ -115,69 +112,70 @@ export default class Worker {
       let totalItems = this.totalItems = []
       let count = 0
       let currInput = context.input
+      let timer: NodeJS.Timer
+      let lastTs: number
       let _onData = async () => {
+        lastTs = Date.now()
         if (this.taskId != id || !this.manager.isActivated) return
         if (count >= totalItems.length) return
         let inputChanged = this.input != currInput
         if (interactive && inputChanged) return
-        if (count == 0 || inputChanged || (currInput.length == 0 && list.name == 'files')) {
+        if (count == 0 || inputChanged) {
           currInput = this.input
           count = totalItems.length
-          let arr: ListItem[]
+          let items: ListItem[]
           let highlights: ListHighlights[] = []
           if (interactive) {
-            arr = totalItems.slice()
-            highlights = this.getItemsHighlight(arr)
+            items = totalItems.slice()
+            highlights = this.getItemsHighlight(items)
           } else {
             let res = this.filterItems(totalItems)
-            arr = res.items
+            items = res.items
             highlights = res.highlights
           }
-          this._onDidChangeItems.fire({ items: arr, highlights, reload, append: false })
+          this._onDidChangeItems.fire({ items, highlights, reload, append: false })
         } else {
           let remain = totalItems.slice(count)
-          let arr: ListItem[] = remain
+          count = totalItems.length
+          let items: ListItem[]
           let highlights: ListHighlights[] = []
           if (!interactive) {
-            let res = this.filterItems(remain, count)
-            arr = res.items
+            let res = this.filterItems(remain)
+            items = res.items
             highlights = res.highlights
           } else {
-            highlights = this.getItemsHighlight(arr)
+            highlights = this.getItemsHighlight(remain)
           }
-          count = count + remain.length
-          this._onDidChangeItems.fire({ items: arr, highlights, append: true })
+          this._onDidChangeItems.fire({ items, highlights, append: true })
         }
       }
-      let lastTs: number
-      let interval = setInterval(() => {
-        lastTs = Date.now()
-        _onData()
-      }, 100)
       task.on('data', async item => {
+        if (timer) clearTimeout(timer)
         if (this.taskId != id || !this._loading) return
         if (interactive && this.input != currInput) return
-        item.ansiHighlights = item.ansiHighlights || this.parseListItemAnsi(item)
-        item.recentScore = item.recentScore || this.recentScore(item)
+        this.parseListItemAnsi(item)
+        this.recentScore(item)
         totalItems.push(item)
+        if ((!lastTs && this.totalItems.length == 500)
+          || Date.now() - lastTs > 500) {
+          _onData()
+        } else {
+          timer = setTimeout(_onData, 50)
+        }
       })
       await new Promise<void>((resolve, reject) => {
         task.on('error', async msg => {
+          if (timer) clearTimeout(timer)
           this.loading = false
-          clearInterval(interval)
           reject(new Error(msg))
         })
         task.on('end', async () => {
           this.loading = false
-          clearInterval(interval)
+          if (timer) clearTimeout(timer)
           if (totalItems.length == 0) {
             this._onDidChangeItems.fire({ items: [], highlights: [] })
-          } else if (count < totalItems.length) {
-            if (lastTs && Date.now() - lastTs < 100) {
-              await wait(100 - (Date.now() - lastTs))
-            }
+          } else {
             _onData()
-            await wait(100)
           }
           resolve()
         })
@@ -235,58 +233,51 @@ export default class Worker {
     })
   }
 
-  private filterItems(items: ListItem[], lnum = 0): { items: ListItem[], highlights: ListHighlights[] } {
+  private filterItems(items: ListItem[]): { items: ListItem[], highlights: ListHighlights[] } {
     let { input } = this.manager.prompt
     let highlights: ListHighlights[] = []
     let { sort, matcher, ignorecase } = this.manager.listOptions
     if (input.length == 0) {
+      let filtered = items.slice()
+      let sort = filtered.length && typeof filtered[0].recentScore == 'number'
       return {
-        items: items.sort((a, b) => {
-          return b.recentScore - a.recentScore
-        }),
+        items: sort ? filtered.sort((a, b) => b.recentScore - a.recentScore) : filtered,
         highlights
       }
     }
+    let filtered: ListItem[] | ExtendedItem[]
     if (input.length > 0) {
       if (matcher == 'strict') {
-        items = items.filter(item => {
+        filtered = items.filter(item => {
           let text = item.filterText || item.label
           if (!ignorecase) return text.indexOf(input) !== -1
           return text.toLowerCase().indexOf(input.toLowerCase()) !== -1
         })
-        if (lnum < maxLength) {
-          for (let item of items) {
-            let filterLabel = getFilterLabel(item)
-            let idx = ignorecase ? filterLabel.toLocaleLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
-            if (idx != -1) {
-              highlights.push({
-                spans: [[byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + input.length)]]
-              })
-            }
-            if (lnum == maxLength) break
-            lnum++
+        for (let item of filtered) {
+          let filterLabel = getFilterLabel(item)
+          let idx = ignorecase ? filterLabel.toLocaleLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input)
+          if (idx != -1) {
+            highlights.push({
+              spans: [[byteIndex(filterLabel, idx), byteIndex(filterLabel, idx + input.length)]]
+            })
           }
         }
       } else if (matcher == 'regex') {
         let regex = new RegExp(input, ignorecase ? 'i' : '')
-        items = items.filter(item => regex.test(item.filterText || item.label))
-        if (lnum < maxLength) {
-          for (let item of items) {
-            let filterLabel = getFilterLabel(item)
-            let ms = filterLabel.match(regex)
-            if (ms && ms.length) {
-              highlights.push({
-                spans: [[byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + ms[0].length)]]
-              })
-            }
-            if (lnum == maxLength) break
-            lnum++
+        filtered = items.filter(item => regex.test(item.filterText || item.label))
+        for (let item of filtered) {
+          let filterLabel = getFilterLabel(item)
+          let ms = filterLabel.match(regex)
+          if (ms && ms.length) {
+            highlights.push({
+              spans: [[byteIndex(filterLabel, ms.index), byteIndex(filterLabel, ms.index + ms[0].length)]]
+            })
           }
         }
       } else {
         let codes = getCharCodes(input)
-        items = items.filter(item => fuzzyMatch(codes, item.filterText || item.label))
-        let arr = items.map(item => {
+        filtered = items.filter(item => fuzzyMatch(codes, item.filterText || item.label))
+        filtered = filtered.map(item => {
           let filename = item.location ? path.basename(item.location.uri) : null
           let filterLabel = getFilterLabel(item)
           let res = getMatchResult(filterLabel, input, filename)
@@ -297,26 +288,21 @@ export default class Worker {
           })
         }) as ExtendedItem[]
         if (sort && items.length) {
-          arr.sort((a, b) => {
+          (filtered as ExtendedItem[]).sort((a, b) => {
             if (a.score != b.score) return b.score - a.score
             if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
             return a.label.length - b.label.length
           })
         }
-        if (lnum < maxLength) {
-          for (let item of arr) {
-            if (!item.matches) continue
-            let hi = this.getHighlights(item.filterLabel, item.matches)
-            highlights.push(hi)
-            if (lnum == maxLength) break
-            lnum++
-          }
+        for (let item of filtered as ExtendedItem[]) {
+          if (!item.matches) continue
+          let hi = this.getHighlights(item.filterLabel, item.matches)
+          highlights.push(hi)
         }
-        items = arr
       }
     }
     return {
-      items: items.slice(),
+      items: filtered,
       highlights
     }
   }
@@ -355,9 +341,9 @@ export default class Worker {
   }
 
   // set correct label, add ansi highlights
-  private parseListItemAnsi(item: ListItem): AnsiHighlight[] {
+  private parseListItemAnsi(item: ListItem): void {
     let { label } = item
-    if (label.indexOf(controlCode) == -1) return null
+    if (item.ansiHighlights || label.indexOf(controlCode) == -1) return
     let ansiItems = ansiparse(label)
     let newLabel = ''
     let highlights: AnsiHighlight[] = []
@@ -379,16 +365,16 @@ export default class Worker {
       }
     }
     item.label = newLabel
-    return highlights
+    item.ansiHighlights = highlights
   }
 
-  private recentScore(item: ListItem): number {
+  private recentScore(item: ListItem): void {
     let { location } = item
-    if (!location) return -1
+    if (!location || item.recentScore) return
     let list = this.mruList
     let len = list.length
     let idx = list.indexOf(Uri.parse(location.uri).fsPath)
-    return idx == -1 ? -1 : len - idx
+    item.recentScore = idx == -1 ? -1 : len - idx
   }
 }
 

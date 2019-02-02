@@ -253,7 +253,7 @@ export default class ListUI {
     }
   }
 
-  public async drawItems(items: ListItem[], name: string, position = 'bottom', resume = false): Promise<void> {
+  public async drawItems(items: ListItem[], name: string, position = 'bottom', reload = false): Promise<void> {
     let { bufnr, config, nvim } = this
     let maxHeight = config.get<number>('maxHeight', 12)
     let height = Math.max(1, Math.min(items.length, maxHeight))
@@ -280,7 +280,7 @@ export default class ListUI {
     }
     let lines = items.map(item => item.label)
     this.clearSelection()
-    await this.setLines(lines, false, resume ? this.currIndex : 0)
+    await this.setLines(lines, false, reload ? this.currIndex : 0)
     let item = this.items[this.index] || { label: '' }
     if (!curr || curr.label != item.label) {
       this._onDidLineChange.fire(this.index + 1)
@@ -327,7 +327,7 @@ export default class ListUI {
     }
     nvim.command('setl nomodifiable', true)
     this.doHighlight()
-    if (!append) window.notify(`nvim_win_set_cursor`, [window, [index + 1, 0]])
+    if (!append && window) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
     this._onDidChange.fire()
     await nvim.resumeNotification()
   }

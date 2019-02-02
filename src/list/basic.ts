@@ -91,8 +91,9 @@ export default abstract class BasicList implements IList, Disposable {
     let winid = context.listWindow.id
     nvim.pauseNotification()
     nvim.command('pclose', true)
-    nvim.call('coc#util#open_file', [`${mod} ${height}sp +${lnum}`, filepath], true)
-    let cmd = 'setl previewwindow winfixheight'
+    nvim.command(`${mod} ${height}new +setl\\ previewwindow`, true)
+    nvim.command('setl winfixheight', true)
+    nvim.call('coc#util#open_file', [`edit +${lnum}`, filepath], true)
     if (range.start.line == range.end.line && range.start.character != range.end.character) {
       let line = await workspace.getLine(uri, range.start.line)
       let { hlGroup } = this
@@ -100,8 +101,7 @@ export default abstract class BasicList implements IList, Disposable {
       let end = byteIndex(line, range.end.character) + 1
       nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true)
     }
-    if (!workspace.getDocument(uri)) cmd += ' nobuflisted bufhidden=wipe'
-    nvim.command(cmd, true)
+    if (!workspace.getDocument(uri)) nvim.command('setl nobuflisted bufhidden=wipe')
     nvim.command('normal! zt', true)
     nvim.call('win_gotoid', [winid], true)
     nvim.command('redraw', true)
