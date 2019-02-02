@@ -156,6 +156,7 @@ export class ListManager {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
+      await this.nvim.command('echo ""')
       this.prompt.start(this.listOptions.input, options.mode, true)
       this.history.load()
       setTimeout(async () => {
