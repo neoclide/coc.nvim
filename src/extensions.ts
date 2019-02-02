@@ -104,7 +104,8 @@ export class Extensions {
     await Promise.all(Object.keys(versionInfo).map(id => {
       let curr = versionInfo[id]
       return runCommand(`yarn info ${id} --json`, process.cwd()).then(content => {
-        let json = JSON.parse(content)
+        let lines = content.trim().split('\n')
+        let json = JSON.parse(lines[lines.length - 1])
         let { version, engines } = json.data
         if (version == curr) return
         let required = engines.coc.replace(/^\^/, '>=')
