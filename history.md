@@ -1,3 +1,17 @@
+# 2019-02-02
+
+- **Break change:** extentions now update automatically, prompt is removed.
+- Add check for extention compatibility.
+- Add transform support for placeholder.
+- Add check for node version.
+- Add error check for list.
+- Add settings: `coc.preferences.diagnostic.virtualTextLines`.
+- Fix preview window not shown.
+- Fix highlight not cleared on vim.
+- Fix highlight commands of list block vim on start.
+- Improve extention load.
+- Improve list experience.
+
 # 2019-01-28
 
 - **Break change:** `coc.preferences.diagnostic.echoMessage` changed to enum.
