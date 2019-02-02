@@ -87,6 +87,7 @@ endfunction
 function! coc#list#start_prompt()
   if s:activated | return | endif
   if s:is_vim
+    let s:saved_ve = &t_ve
     set t_ve=
   endif
   let s:activated = 1
@@ -171,11 +172,9 @@ function! coc#list#get_colors()
   let color_map = {}
   let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
   let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
-  let i = 0
-  for color in colors
+  for i in range(0, len(names) - 1)
     let name = names[i]
-    let color_map[name] = get(g:, 'terminal_color_'.i, color)
-    let i = i + 1
+    let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
   endfor
   return color_map
 endfunction

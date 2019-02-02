@@ -127,7 +127,6 @@ export class ListManager {
         this.config = workspace.getConfiguration('list')
       }
     }, null, this.disposables)
-    await this.defineHighlights()
 
     this.registerList(new LinksList(nvim))
     this.registerList(new LocationList(nvim))
@@ -140,24 +139,6 @@ export class ListManager {
     this.registerList(new ServicesList(nvim))
     this.registerList(new OutputList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
-  }
-
-  public async defineHighlights(): Promise<void> {
-    let { nvim } = this
-    let map = await nvim.call('coc#list#get_colors')
-    nvim.pauseNotification()
-    for (let key of Object.keys(map)) {
-      let foreground = key[0].toUpperCase() + key.slice(1)
-      let foregroundColor = map[key]
-      for (let key of Object.keys(map)) {
-        let background = key[0].toUpperCase() + key.slice(1)
-        let backgroundColor = map[key]
-        nvim.command(`hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`, true)
-      }
-      nvim.command(`hi default CocListFg${foreground} guifg=${foregroundColor}`, true)
-      nvim.command(`hi default CocListBg${foreground} guibg=${foregroundColor}`, true)
-    }
-    await nvim.resumeNotification()
   }
 
   public async start(args: string[]): Promise<void> {

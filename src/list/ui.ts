@@ -36,6 +36,7 @@ export default class ListUI {
   private _onDidChange = new Emitter<void>()
   private _onDidLineChange = new Emitter<number>()
   private _onDoubleClick = new Emitter<void>()
+  private hlGroupMap: Map<string, string> = new Map()
   public readonly onDidChangeLine: Event<number> = this._onDidChangeLine.event
   public readonly onDidChangeHeight: Event<void> = this._onDidChangeHeight.event
   public readonly onDidLineChange: Event<number> = this._onDidLineChange.event
@@ -50,6 +51,20 @@ export default class ListUI {
     this.signOffset = config.get<number>('signOffset')
     workspace.createNameSpace('list-ui').then(srcId => {
       this.srcId = srcId || 998
+    })
+    nvim.call('coc#list#get_colors').then(map => {
+      for (let key of Object.keys(map)) {
+        let foreground = key[0].toUpperCase() + key.slice(1)
+        let foregroundColor = map[key]
+        for (let key of Object.keys(map)) {
+          let background = key[0].toUpperCase() + key.slice(1)
+          let backgroundColor = map[key]
+          let group = `CocList${foreground}${background}`
+          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
+        }
+        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
+        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
+      }
     })
 
     events.on('BufUnload', async bufnr => {
@@ -372,6 +387,15 @@ export default class ListUI {
     }
   }
 
+  private setHighlightGroup(hlGroup: string): void {
+    let { nvim } = workspace
+    if (this.hlGroupMap.has(hlGroup)) {
+      let cmd = this.hlGroupMap.get(hlGroup)
+      this.hlGroupMap.delete(hlGroup)
+      nvim.command(cmd, true)
+    }
+  }
+
   private doHighlightVim(): void {
     let { nvim } = workspace
     let { highlights, window, items } = this
@@ -383,6 +407,7 @@ export default class ListUI {
       if (ansiHighlights) {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
+          this.setHighlightGroup(hlGroup)
           nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true)
         }
       }
@@ -409,6 +434,7 @@ export default class ListUI {
       if (ansiHighlights) {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
+          this.setHighlightGroup(hlGroup)
           buffer.addHighlight({
             hlGroup,
             srcId,
