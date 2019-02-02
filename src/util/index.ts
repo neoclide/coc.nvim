@@ -1,4 +1,5 @@
 import { attach, Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import cp, { exec } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
@@ -62,9 +63,9 @@ export function getUri(bufname: string, id: number, buftype: string): string {
     return Uri.parse(bufname).toString()
   }
   if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
-  // consider it as file when it's normal buffer
-  if (isuri.isValid(bufname) && buftype != '') return Uri.parse(bufname).toString()
-  return Uri.file(bufname).toString()
+  if (path.isAbsolute(bufname)) return Uri.file(bufname).toString()
+  if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
+  return Uri.parse(`nofile:${bufname}/${id}`).toString()
 }
 
 export function disposeAll(disposables: Disposable[]): void {
