@@ -61,7 +61,7 @@ function! s:start() dict
           \ 'on_stderr': {channel, msgs -> s:on_stderr(self.name, msgs)},
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
           \})
-    if chan_id <= 0 || jobwait([chan_id], 10)[0] != -1
+    if chan_id <= 0
       echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
       return
     endif
