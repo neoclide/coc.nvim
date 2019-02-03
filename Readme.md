@@ -293,9 +293,13 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ## Feedback
 
-If you like this plugin, star it! It's a great way of getting feedback. The same goes for reporting issues or feature requests.
+- If you think it's useful, give it a star.
 
-Contact: [Gitter](https://gitter.im/coc-nvim/Lobby) [Twitter](https://twitter.com/chemzqm)
+- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim).
+
+- If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
+
+- If you want to help, but don't have time, [consider donate to neovim](https://salt.bountysource.com/teams/neovim).
 
 ## LICENSE
 
