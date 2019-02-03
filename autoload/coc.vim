@@ -4,6 +4,8 @@ let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
 let g:coc_selected_text = ''
 let s:watched_keys = []
 let s:is_vim = !has('nvim')
+let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
+let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 
 function! coc#refresh() abort
   if pumvisible()
@@ -76,10 +78,10 @@ function! coc#status()
   let info = get(b:, 'coc_diagnostic_info', {})
   let msgs = []
   if get(info, 'error', 0)
-    call add(msgs, (has('mac') ? '❌ ' : 'E') . info['error'])
+    call add(msgs, s:error_sign . info['error'])
   endif
   if get(info, 'warning', 0)
-    call add(msgs, (has('mac') ? '⚠️ ' : 'W') . info['warning'])
+    call add(msgs, s:warning_sign . info['warning'])
   endif
   return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
 endfunction

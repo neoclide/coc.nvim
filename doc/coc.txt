@@ -372,6 +372,14 @@ g:coc_process_pid 				*g:coc_process_pid*
 
 			Process pid of coc service.
 
+g:coc_status_error_sign 			*g:coc_status_error_sign*
+
+			Error characer used for statusline, default: `E`
+
+g:coc_status_warning_sign 			*g:coc_status_warning_sign*
+
+			Warning characer used for statusline, default: `W`
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so your can use them in your
