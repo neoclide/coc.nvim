@@ -1121,6 +1121,7 @@ Default mappings on normal mode:
 i,I,o,O,a,A - change to insert mode.
 p           - preview action.
 :           - cancel list session without closing window.
+?           - show help of current list.
 
 Use |coc-list-mappings-custom| to override default mappings.
 

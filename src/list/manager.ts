@@ -255,16 +255,18 @@ export class ListManager {
       return
     }
     this.activated = false
+    nvim.command('pclose', true)
     this.worker.stop()
     this.history.add()
     nvim.pauseNotification()
-    if (this.window) {
-      let valid = await this.window.valid
-      if (valid) nvim.call('win_gotoid', this.window.id, true)
-    }
     this.prompt.cancel()
-    nvim.command('pclose', true)
-    if (close) ui.hide()
+    if (close) {
+      ui.hide()
+      if (this.window) {
+        let valid = await this.window.valid
+        if (valid) nvim.call('win_gotoid', this.window.id, true)
+      }
+    }
     nvim.call('coc#list#restore', [], true)
     await nvim.resumeNotification()
   }
