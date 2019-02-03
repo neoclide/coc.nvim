@@ -185,7 +185,8 @@ export default class Handler {
     let document = await workspace.document
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document.textDocument)
-    if (!symbols || symbols.length == 0) return []
+    if (!symbols) return null
+    if (symbols.length == 0) return []
     let isSymbols = !symbols[0].hasOwnProperty('location')
     let level = 0
     let res: SymbolInfo[] = []
