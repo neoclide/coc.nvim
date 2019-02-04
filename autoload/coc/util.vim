@@ -110,6 +110,10 @@ function! coc#util#echo_hover(msg)
   echohl None
 endfunction
 
+function! coc#util#execute(cmd)
+  exe a:cmd
+endfunction
+
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   execute 'echohl '.a:hl

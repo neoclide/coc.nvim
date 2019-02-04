@@ -7,14 +7,11 @@ const logger = require('../../util/logger')('list-location')
 export default class LocationList extends BasicList {
   public defaultAction = 'open'
   public description = 'last jump locations'
+  public name = 'location'
 
   constructor(nvim: Neovim) {
     super(nvim)
     this.addLocationActions()
-  }
-
-  public get name(): string {
-    return 'location'
   }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {

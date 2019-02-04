@@ -1003,7 +1003,7 @@ LIST COMMAND 					*coc-list-command*
 
 		Doesn't open list window if it's closed.
 
-Command options 			*coc-list-command-options*
+Command options 					*coc-list-options*
 
 --top
 	Show list in top window.
@@ -1165,6 +1165,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'previous' - move cursor to previous item.
 	'next' - move cursor to next item.
 	'defaultaction' - execute default action.
+	'help' - show help.
 'prompt' - do prompt action, including:
 	'previous' - change to previous input in history.
 	'next' - change to next input in history.

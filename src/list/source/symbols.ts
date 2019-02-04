@@ -1,36 +1,29 @@
-import { Neovim } from '@chemzqm/neovim'
-import { ListContext, ListItem } from '../../types'
-import LocationList from './location'
 import path from 'path'
-import languages from '../../languages'
-import workspace from '../../workspace'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import Uri from 'vscode-uri'
+import languages from '../../languages'
+import { ListContext, ListItem } from '../../types'
+import workspace from '../../workspace'
+import LocationList from './location'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
   public readonly interactive = true
-  public readonly description = 'search for workspace symbols'
-
-  constructor(nvim: Neovim) {
-    super(nvim)
-  }
-
-  public get name(): string {
-    return 'symbols'
-  }
+  public readonly description = 'search workspace symbols'
+  public name = 'symbols'
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
-    let { input } = context
-    if (!context.options.interactive) {
-      workspace.showMessage('Symbols only works on interactive mode', 'error')
-      return null
-    }
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
+    let { input } = context
+    if (!context.options.interactive) {
+      throw new Error('Symbols only works on interactive mode')
+    }
     let symbols = await languages.getWorkspaceSymbols(document.textDocument, input)
-    if (!symbols) return []
+    if (!symbols) {
+      throw new Error('Workspace symbols provider not found for current document')
+    }
     let items: ListItem[] = []
     for (let s of symbols) {
       if (!this.validWorkspaceSymbol(s)) continue

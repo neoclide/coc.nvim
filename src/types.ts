@@ -522,11 +522,18 @@ export interface ListTask {
   dispose(): void
 }
 
+export interface ListArgument {
+  name: string
+  description: string
+}
+
 export interface IList {
   name: string
   // support interactive mode
   interactive?: boolean
   description?: string
+  detail?: string
+  options?: ListArgument[]
   searchHighlight?: boolean
   defaultAction: string
   actions: ListAction[]

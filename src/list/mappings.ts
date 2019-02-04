@@ -84,33 +84,35 @@ export default class Mappings {
       return
     })
     this.add('normal', ['<cr>', '<C-m>'], () => {
-      return manager.doAction()
+      manager.doAction()
     })
     this.add('normal', ' ', () => {
-      return manager.ui.toggleSelection()
+      manager.ui.toggleSelection()
     })
     this.add('normal', 'p', () => {
-      return manager.togglePreview()
+      manager.togglePreview()
     })
     this.add('normal', ['\t', '<C-i>'], () => {
-      return manager.chooseAction()
+      manager.chooseAction()
     })
     this.add('normal', '<C-c>', () => {
-      return manager.stop()
+      manager.stop()
     })
     this.add('normal', '<esc>', () => {
-      return manager.cancel()
+      manager.cancel()
     })
     this.add('normal', '<C-l>', () => {
-      return manager.worker.loadItems(true)
+      manager.worker.loadItems(true)
     })
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
-      return manager.toggleMode()
+      manager.toggleMode()
+    })
+    this.add('normal', '?', async () => {
+      await manager.showHelp()
     })
     this.add('normal', ':', async () => {
       await manager.cancel(false)
       await nvim.eval('feedkeys(":")')
-      return
     })
     this.add('normal', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
     this.add('normal', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
@@ -174,6 +176,9 @@ export default class Mappings {
     let [key, action] = expr.split(':', 2)
     if (key == 'do') {
       switch (action) {
+        case 'help':
+          await manager.showHelp()
+          return
         case 'refresh':
           await manager.worker.loadItems()
           return

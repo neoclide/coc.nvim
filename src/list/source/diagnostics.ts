@@ -8,13 +8,10 @@ const logger = require('../../util/logger')('list-symbols')
 export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
   public readonly description = 'diagnostics of current workspace'
+  public name = 'diagnostics'
 
   constructor(nvim: Neovim) {
     super(nvim)
-  }
-
-  public get name(): string {
-    return 'diagnostics'
   }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {

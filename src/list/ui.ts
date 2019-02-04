@@ -321,17 +321,25 @@ export default class ListUI {
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
     let { nvim, bufnr, window, config } = this
-    if (!bufnr) return
+    if (!bufnr || !window) return
     let resize = config.get<boolean>('autoResize', true)
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
-    if (resize && window) {
+    nvim.call('win_gotoid', window.id, true)
+    if (resize) {
       let maxHeight = config.get<number>('maxHeight', 12)
       let height = Math.max(1, Math.min(this.items.length, maxHeight))
       if (height != this.height) {
         this.height = height
         window.notify(`nvim_win_set_height`, [window, height])
         this._onDidChangeHeight.fire()
+      }
+    }
+    if (!append) {
+      nvim.call('clearmatches', [], true)
+      if (!lines.length) {
+        lines = ['Press ? on normal mode to get help.']
+        nvim.call('matchaddpos', ['Comment', [[1]], 99], true)
       }
     }
     nvim.command('setl modifiable', true)
@@ -342,7 +350,7 @@ export default class ListUI {
     }
     nvim.command('setl nomodifiable', true)
     this.doHighlight()
-    if (!append && window) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
+    if (!append) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
     this._onDidChange.fire()
     await nvim.resumeNotification()
   }
@@ -375,32 +383,9 @@ export default class ListUI {
     return res
   }
 
-  private get buffer(): Buffer {
-    return this._bufnr ? workspace.nvim.createBuffer(this._bufnr) : null
-  }
-
   private doHighlight(): void {
-    if (workspace.isVim) {
-      this.doHighlightVim()
-    } else {
-      this.doHighlightNvim()
-    }
-  }
-
-  private setHighlightGroup(hlGroup: string): void {
     let { nvim } = workspace
-    if (this.hlGroupMap.has(hlGroup)) {
-      let cmd = this.hlGroupMap.get(hlGroup)
-      this.hlGroupMap.delete(hlGroup)
-      nvim.command(cmd, true)
-    }
-  }
-
-  private doHighlightVim(): void {
-    let { nvim } = workspace
-    let { highlights, window, items } = this
-    nvim.call('win_gotoid', window.id, true)
-    nvim.call('clearmatches', [], true)
+    let { highlights, items } = this
     for (let i = 0; i < items.length; i++) {
       let { ansiHighlights } = items[i]
       let highlight = highlights[i]
@@ -420,42 +405,12 @@ export default class ListUI {
     }
   }
 
-  private doHighlightNvim(): void {
+  private setHighlightGroup(hlGroup: string): void {
     let { nvim } = workspace
-    let { highlights, buffer, items, srcId } = this
-    if (nvim.hasFunction('nvim_create_namespace')) {
-      buffer.clearNamespace(srcId)
-    } else {
-      buffer.clearHighlight({ srcId })
-    }
-    for (let i = 0; i < items.length; i++) {
-      let { ansiHighlights } = items[i]
-      let highlight = highlights[i]
-      if (ansiHighlights) {
-        for (let hi of ansiHighlights) {
-          let { span, hlGroup } = hi
-          this.setHighlightGroup(hlGroup)
-          buffer.addHighlight({
-            hlGroup,
-            srcId,
-            line: i,
-            colStart: span[0],
-            colEnd: span[1]
-          })
-        }
-      }
-      if (highlight) {
-        let { spans, hlGroup } = highlight
-        for (let span of spans) {
-          buffer.addHighlight({
-            hlGroup: hlGroup || 'Search',
-            srcId,
-            line: i,
-            colStart: span[0],
-            colEnd: span[1]
-          })
-        }
-      }
+    if (this.hlGroupMap.has(hlGroup)) {
+      let cmd = this.hlGroupMap.get(hlGroup)
+      this.hlGroupMap.delete(hlGroup)
+      nvim.command(cmd, true)
     }
   }
 

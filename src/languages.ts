@@ -277,10 +277,6 @@ class Languages {
   @check
   public async getWorkspaceSymbols(document: TextDocument, query: string): Promise<SymbolInformation[]> {
     query = query || ''
-    if (!this.workspaceSymbolsManager.hasProvider(document)) {
-      workspace.showMessage('Workspace symbols provider not found for current document', 'error')
-      return null
-    }
     return await this.workspaceSymbolsManager.provideWorkspaceSymbols(document, query, this.token)
   }
 

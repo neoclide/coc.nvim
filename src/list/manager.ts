@@ -2,6 +2,7 @@ import { Neovim, Window } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
+import extensions from '../extensions'
 import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher, WorkspaceConfiguration } from '../types'
 import workspace from '../workspace'
 import History from './history'
@@ -515,6 +516,73 @@ export class ListManager {
     let res = await this.nvim.call(fname, [context])
     this.prompt.start()
     return res
+  }
+
+  public async showHelp(): Promise<void> {
+    // echo help
+    await this.cancel()
+    let { list, nvim } = this
+    if (!list) return
+    let cmds: string[] = []
+    let echoHl = (msg: string, group: string) => {
+      cmds.push(`echohl ${group} | echon "${msg.replace(/"/g, '\\"')}\\n" | echohl None`)
+    }
+    echoHl('NAME', 'Label')
+    cmds.push(`echon "  ${list.name} - ${list.description || ''}\\n\\n"`)
+    echoHl('SYNOPSIS', 'Label')
+    cmds.push(`echon "  :CocList [LIST OPTIONS] ${list.name} [OPTIONS]\\n\\n"`)
+    if (list.detail) {
+      echoHl('DESCRIPTION', 'Label')
+      let lines = list.detail.split('\n').map(s => '  ' + s)
+      cmds.push(`echon "${lines.join('\\n')}"`)
+      cmds.push(`echon "\\n"`)
+    }
+    if (list.options) {
+      echoHl('OPTIONS', 'Label')
+      cmds.push(`echon "\\n"`)
+      for (let opt of list.options) {
+        echoHl(opt.name, 'Special')
+        cmds.push(`echon "  ${opt.description}"`)
+        cmds.push(`echon "\\n\\n"`)
+      }
+    }
+    let config = workspace.getConfiguration(`list.source.${list.name}`)
+    if (Object.keys(config).length) {
+      echoHl('CONFIGURATIONS', 'Label')
+      cmds.push(`echon "\\n"`)
+      let props = {}
+      extensions.all.forEach(extension => {
+        let { packageJSON } = extension
+        let { contributes } = packageJSON
+        if (!contributes) return
+        let { configuration } = contributes
+        if (configuration) {
+          let { properties } = configuration
+          if (properties) {
+            for (let key of Object.keys(properties)) {
+              props[key] = properties[key]
+            }
+          }
+        }
+      })
+      for (let key of Object.keys(config)) {
+        let val = config[key]
+        let name = `list.source.${list.name}.${key}`
+        let description = props[name] && props[name].description ? props[name].description : ''
+        cmds.push(`echohl MoreMsg | echon "'${name}'"| echohl None`)
+        cmds.push(`echon " - "`)
+        if (description) cmds.push(`echon "${description}, "`)
+        cmds.push(`echon "current value: ${JSON.stringify(val).replace(/"/g, '\\"')}"`)
+        cmds.push(`echon "\\n"`)
+      }
+      cmds.push(`echon "\\n"`)
+    }
+    echoHl('ACTIONS', 'Label')
+    cmds.push(`echon "\\n"`)
+    cmds.push(`echon "  ${list.actions.map(o => o.name).join(', ')}\\n"`)
+    cmds.push(`echon "\\n"`)
+    cmds.push(`echon "see ':h coc-list--options' for available list options.\\n"`)
+    nvim.call('coc#util#execute', cmds.join('|'), true)
   }
 
   public get context(): ListContext {

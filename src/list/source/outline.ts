@@ -8,13 +8,10 @@ const logger = require('../../util/logger')('list-symbols')
 
 export default class Outline extends LocationList {
   public readonly description = 'symbols of current document'
+  public name = 'outline'
 
   constructor(nvim: Neovim) {
     super(nvim)
-  }
-
-  public get name(): string {
-    return 'outline'
   }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
