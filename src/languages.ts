@@ -270,7 +270,6 @@ class Languages {
 
   @check
   public async getDocumentSymbol(document: TextDocument): Promise<SymbolInformation[] | DocumentSymbol[]> {
-    if (!this.documentSymbolManager.hasProvider(document)) return null
     return await this.documentSymbolManager.provideDocumentSymbols(document, this.token)
   }
 

@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import { DocumentSymbol, Location, SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
 import languages from '../../languages'
 import { ListContext, ListItem } from '../../types'
@@ -10,16 +9,14 @@ export default class Outline extends LocationList {
   public readonly description = 'symbols of current document'
   public name = 'outline'
 
-  constructor(nvim: Neovim) {
-    super(nvim)
-  }
-
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
     let symbols = await languages.getDocumentSymbol(document.textDocument)
-    if (!symbols || symbols.length == 0) return []
+    // TODO use ctags when possible
+    if (!symbols) throw new Error('document symbol provider not found for current document')
+    if (symbols.length == 0) return []
     let items: ListItem[] = []
     let isSymbols = !symbols[0].hasOwnProperty('location')
     if (isSymbols) {
@@ -60,7 +57,6 @@ export default class Outline extends LocationList {
         })
       }
     }
-    logger.debug('items:', items)
     return items
   }
 

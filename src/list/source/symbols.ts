@@ -10,6 +10,7 @@ const logger = require('../../util/logger')('list-symbols')
 export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
+  public readonly detail = 'Symbols list if provided by server, it works on interactive mode only.\n'
   public name = 'symbols'
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {

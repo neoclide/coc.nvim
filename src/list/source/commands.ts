@@ -8,7 +8,7 @@ import Mru from '../../model/mru'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
-  public description = 'search for commands'
+  public description = 'registed commands of coc.nvim'
   public readonly name = 'commands'
   private mru: Mru
 

@@ -6,6 +6,7 @@ import Mru from '../../model/mru'
 export default class LinksList extends BasicList {
   public readonly name = 'lists'
   public readonly defaultAction = 'open'
+  public readonly description = 'registed lists of coc.nvim'
   private mru: Mru = new Mru('lists')
 
   constructor(nvim: Neovim, private readonly listMap: Map<string, IList>) {

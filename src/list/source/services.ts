@@ -6,7 +6,8 @@ import { wait } from '../../util'
 
 export default class ServicesList extends BasicList {
   public defaultAction = 'toggle'
-  public description = 'search for service'
+  public description = 'registed services of coc.nvim'
+  public name = 'services'
 
   constructor(nvim: Neovim) {
     super(nvim)
@@ -16,10 +17,6 @@ export default class ServicesList extends BasicList {
       await services.toggle(id)
       await wait(100)
     }, { persist: true, reload: true })
-  }
-
-  public get name(): string {
-    return 'services'
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {

@@ -7,7 +7,7 @@ import { DocumentLink, Location } from 'vscode-languageserver-types'
 export default class OutputList extends BasicList {
   public defaultAction = 'open'
   public name = 'output'
-  public description = 'list of output channels'
+  public description = 'output channels of coc.nvim'
 
   constructor(nvim: Neovim) {
     super(nvim)

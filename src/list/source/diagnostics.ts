@@ -1,4 +1,3 @@
-import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import diagnosticManager from '../../diagnostic/manager'
 import { DiagnosticItem, ListContext, ListItem } from '../../types'
@@ -9,10 +8,6 @@ export default class DiagnosticsList extends LocationList {
   public readonly defaultAction = 'open'
   public readonly description = 'diagnostics of current workspace'
   public name = 'diagnostics'
-
-  constructor(nvim: Neovim) {
-    super(nvim)
-  }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let list: DiagnosticItem[] = diagnosticManager.getDiagnosticList()

@@ -8,8 +8,9 @@ import workspace from '../../workspace'
 import BasicList from '../basic'
 
 export default class SourcesList extends BasicList {
-  public defaultAction = 'toggle'
-  public description = 'loaded completion sources'
+  public readonly defaultAction = 'toggle'
+  public readonly description = 'registed completion sources'
+  public readonly name = 'sources'
 
   constructor(nvim: Neovim) {
     super(nvim)
@@ -28,10 +29,6 @@ export default class SourcesList extends BasicList {
       let { location } = item
       if (location) await workspace.jumpTo(location.uri, location.range.start)
     })
-  }
-
-  public get name(): string {
-    return 'sources'
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {

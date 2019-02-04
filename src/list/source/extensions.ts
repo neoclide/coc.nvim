@@ -8,7 +8,8 @@ const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
   public defaultAction = 'toggle'
-  public description = 'manage extensions'
+  public description = 'manage coc extensions'
+  public name = 'extensions'
 
   constructor(nvim: Neovim) {
     super(nvim)
@@ -50,10 +51,6 @@ export default class ExtensionList extends BasicList {
         logger.error(e)
       })
     })
-  }
-
-  public get name(): string {
-    return 'extensions'
   }
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
