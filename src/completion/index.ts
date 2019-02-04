@@ -60,7 +60,7 @@ export class Completion implements Disposable {
     })
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('coc.preferences')) {
-        this.config = this.getCompleteConfig()
+        Object.assign(this.config, this.getCompleteConfig())
       }
     }, null, this.disposables)
   }
@@ -218,7 +218,7 @@ export class Completion implements Disposable {
     let arr = sources.getCompleteSources(option, this.triggerCharacters.has(option.triggerCharacter))
     let document = workspace.getDocument(option.bufnr)
     this.complete = new Complete(option, document, this.recentScores, config, nvim)
-    increment.start(option)
+    increment.start()
     let items = await this.complete.doComplete(arr)
     if (items.length == 0 || !this.insertMode) {
       increment.stop()
@@ -388,8 +388,7 @@ export class Completion implements Disposable {
 
   private async onInsertCharPre(character: string): Promise<void> {
     // hack to make neovim not flicking
-    if (workspace.isNvim &&
-      this.isActivted &&
+    if (this.isActivted &&
       !global.hasOwnProperty('__TEST__') &&
       !this.triggerCharacters.has(character) &&
       isWord(character)) {
