@@ -83,6 +83,15 @@ export default class Mappings {
     this.add('normal', '<C-o>', () => {
       return
     })
+    this.add('normal', 't', () => {
+      manager.doAction('tabe')
+    })
+    this.add('normal', 's', () => {
+      manager.doAction('split')
+    })
+    this.add('normal', 'd', () => {
+      manager.doAction('drop')
+    })
     this.add('normal', ['<cr>', '<C-m>'], () => {
       manager.doAction()
     })
