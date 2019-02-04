@@ -10,6 +10,7 @@ import { getNameFromSeverity, getLocationListItem } from './util'
 import Document from '../model/document'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
+const STARTMATCHID = 1090
 
 // maintains sign and highlightId
 export class DiagnosticBuffer {
@@ -17,6 +18,7 @@ export class DiagnosticBuffer {
   private signIds: Set<number> = new Set()
   private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
+  private matchId = STARTMATCHID
   public readonly bufnr: number
   public readonly uri: string
   public refresh: (diagnosticItems: DiagnosticItems) => void
@@ -200,6 +202,7 @@ export class DiagnosticBuffer {
     let { bufnr, nvim, matchIds } = this
     if (workspace.isVim) {
       nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)], true)
+      this.matchId = STARTMATCHID
     } else {
       let buffer = nvim.createBuffer(bufnr)
       if (this.nvim.hasFunction('nvim_create_namespace')) {
@@ -273,8 +276,9 @@ export class DiagnosticBuffer {
           list.push(i + 1)
         }
       }
-      let id = workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, -1, { window: winid }], true)
-      matchIds.add(id)
+      workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, this.matchId, { window: winid }], true)
+      matchIds.add(this.matchId)
+      this.matchId = this.matchId + 1
     } catch (e) {
       logger.error(e.stack)
     }
