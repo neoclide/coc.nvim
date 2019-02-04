@@ -299,7 +299,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 - If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
 
-- If you want to help, but don't have time, [consider donate to neovim](https://salt.bountysource.com/teams/neovim).
+- If you want to help, but don't have time, [consider donate to neovim](https://salt.bountysource.com/teams/neovim) or [sponsor vim](https://www.vim.org/sponsor/index.php).
 
 ## LICENSE
 
