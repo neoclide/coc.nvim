@@ -1,3 +1,14 @@
+# 2019-02-04
+
+- **Break change:** no messages when documentSymbol and workspaceSymbol provider
+  not found.
+- Add support for configure sign in statusline.
+- Add help action for list.
+- Fix parse error on extentions update.
+- Fix wrong uri on windows.
+- Fix cancel list without close ui.
+- Improve startup time by remove jobwait.
+
 # 2019-02-02
 
 - **Break change:** extentions now update automatically, prompt is removed.
