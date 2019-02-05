@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { getChangedPosition, rangeInRange } from '../util/position'
+import { getChangedPosition, rangeInRange, comparePosition } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -44,12 +44,10 @@ export class CocSnippet {
   }
 
   public adjustTextEdit(edit: TextEdit): boolean {
-    let { range, newText } = edit
-    let { start } = this.range
-    let changed = getChangedPosition(start, edit)
-    if (changed.line == 0 && changed.character == 0) {
-      return false
-    }
+    let { range } = edit
+    if (comparePosition(this.range.start, range.end) < 0) return false
+    let changed = getChangedPosition(this.range.start, edit)
+    if (changed.line == 0 && changed.character == 0) return true
     this.adjustPosition(changed.character, changed.line)
     return true
   }
@@ -108,9 +106,7 @@ export class CocSnippet {
   }
 
   public getPlaceholderByRange(range: Range): CocSnippetPlaceholder {
-    logger.debug('range:', range)
     return this._placeholders.find(o => {
-      logger.debug('p:', o.range)
       return rangeInRange(range, o.range)
     })
   }

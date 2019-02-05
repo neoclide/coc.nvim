@@ -233,6 +233,21 @@ describe('SnippetSession#previousPlaceholder', () => {
 
 describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
 
+  it('should adjust with line changed before start position', async () => {
+    let buf = await helper.edit()
+    await nvim.setLine('abd')
+    await nvim.input('o')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('${1:foo}')
+    await helper.wait(30)
+    expect(res).toBe(true)
+    await session.synchronizeUpdatedPlaceholders({
+      range: Range.create(0, 0, 0, 3),
+      text: 'def'
+    })
+    expect(session.isActive).toBe(true)
+  })
+
   it('should adjust with previous line change', async () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
