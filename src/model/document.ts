@@ -210,7 +210,9 @@ export default class Document {
     } else {
       this._lastChange = 'change'
     }
-    this.lines.splice(firstline, lastline - firstline, ...linedata)
+    let lines = this.lines.slice(0, firstline)
+    lines = lines.concat(linedata, this.lines.slice(lastline))
+    this.lines = lines
     this._fireContentChanges()
   }
 

@@ -87,6 +87,7 @@ export default class Complete {
       result.duplicate = source.duplicate
       return result
     } catch (err) {
+      if (err.message.indexOf('Cancelled Request') != -1) return null
       echoErr(this.nvim, `${source.name} complete error: ${err}`)
       logger.error('Complete error:', source.name, err)
       return null
