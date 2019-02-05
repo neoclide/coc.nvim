@@ -11,6 +11,10 @@ let s:is_vim = !has('nvim')
 if has('nvim') && get(g:, 'coc_start_at_startup', 1)
   call coc#rpc#start_server()
 endif
+if s:is_vim && !has('python') && !has('python3')
+  echohl Error | echon 'coc.nvim require python or python3 on vim' | echohl None
+  finish
+endif
 if s:is_vim
   call coc#rpc#init_vim_rpc()
 endif
