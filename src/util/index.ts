@@ -127,13 +127,6 @@ export function watchFile(filepath: string, onChange: () => void): Disposable {
   })
 }
 
-export function convertFiletype(filetype: string, map: { [index: string]: string }): string {
-  if (filetype == 'javascript.jsx') return 'javascriptreact'
-  if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
-  if (map[filetype]) return map[filetype]
-  return filetype
-}
-
 export function isRunning(pid: number): boolean {
   try {
     let res: any = process.kill(pid, 0)

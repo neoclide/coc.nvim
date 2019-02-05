@@ -6,7 +6,7 @@ import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env, WorkspaceConfiguration } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
-import { convertFiletype, getUri, wait } from '../util/index'
+import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-document')
@@ -31,6 +31,7 @@ export default class Document {
   private attached = false
   // real current lines
   private lines: string[] = []
+  private _uri: string
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -96,10 +97,21 @@ export default class Document {
 
   public setFiletype(filetype: string): void {
     let { uri, version } = this
-    this._filetype = convertFiletype(filetype, this.env.filetypeMap)
+    this._filetype = this.convertFiletype(filetype)
     version = version ? version + 1 : 1
     let textDocument = TextDocument.create(uri, this.filetype, version, this.content)
     this.textDocument = textDocument
+  }
+
+  private convertFiletype(filetype: string): string {
+    let map = this.env.filetypeMap
+    if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
+      return 'jsonc'
+    }
+    if (filetype == 'javascript.jsx') return 'javascriptreact'
+    if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
+    if (map[filetype]) return map[filetype]
+    return filetype
   }
 
   /**
@@ -129,7 +141,7 @@ export default class Document {
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
     let bufname = buftype == 'nofile' || opts.bufname == '' ? opts.bufname : opts.fullpath
-    let uri = getUri(bufname, buffer.id, buftype)
+    let uri = this._uri = getUri(bufname, buffer.id, buftype)
     if (this.shouldAttach(buftype)) {
       if (!this.env.isVim) {
         let res = await this.attach()
@@ -139,7 +151,7 @@ export default class Document {
       }
       this.attached = true
     }
-    this._filetype = convertFiletype(opts.filetype, this.env.filetypeMap)
+    this._filetype = this.convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
     this.gitCheck().catch(e => {
@@ -274,7 +286,7 @@ export default class Document {
   }
 
   public get uri(): string {
-    return this.textDocument ? this.textDocument.uri : null
+    return this._uri
   }
 
   public get version(): number {
