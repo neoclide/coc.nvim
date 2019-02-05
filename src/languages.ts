@@ -410,11 +410,7 @@ class Languages {
     // track them for resolve
     let completeItems: CompletionItem[] = []
     let resolveInput: string
-    let option: CompleteOption
-    // column number on doComplete
-    let colnr: number
     // line used for TextEdit
-    let currLine: string
     let preferences = workspace.getConfiguration('coc.preferences')
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
     priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
@@ -423,8 +419,7 @@ class Languages {
     // index set of resolved items
     let resolvedIndexes: Set<number> = new Set()
     let doc: Document = null
-    waitTime = Math.max(50, waitTime)
-    waitTime = Math.min(300, waitTime)
+    waitTime = Math.min(Math.max(50, waitTime), 300)
     let cancellSource: CancellationTokenSource
     let resolveTokenSource: CancellationTokenSource
     let source: ISource = {
@@ -441,9 +436,6 @@ class Languages {
         doc = workspace.getDocument(bufnr)
         if (!doc) return null
         resolvedIndexes = new Set()
-        option = opt
-        colnr = option.colnr
-        currLine = option.line
         let isTrigger = triggerCharacters && triggerCharacters.indexOf(triggerCharacter) != -1
         let triggerKind: CompletionTriggerKind = CompletionTriggerKind.Invoked
         if (opt.triggerForInComplete) {
@@ -459,8 +451,10 @@ class Languages {
         let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, cancellSource.token, context))
         if (!result || cancellSource.token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
-        if (!completeItems) return null
-        if ((result as any).startcol != null) {
+        if (!completeItems || completeItems.length == 0) return null
+        // used for fixed col
+        let option: CompleteOption = Object.assign({}, opt)
+        if (typeof (result as any).startcol == 'number') {
           option.col = (result as any).startcol
         }
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
@@ -484,7 +478,7 @@ class Languages {
           let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
           if (resolveTokenSource.token.isCancellationRequested) return
           resolvedIndexes.add(item.index)
-          if (resolved) mixin(item, resolved)
+          if (resolved) mixin(resolving, resolved)
         }
         if (resolveInput != item.word) return
         let str = resolving.detail ? resolving.detail.trim() : ''
@@ -504,18 +498,16 @@ class Languages {
         // use TextEdit for snippet item
         if (vimItem.isSnippet && !item.textEdit) {
           item.textEdit = {
-            range: Range.create(line, opt.col, line, colnr - 1),
+            range: Range.create(line, opt.col, line, opt.colnr - 1),
             // tslint:disable-next-line: deprecation
             newText: item.insertText || item.label
           }
         }
-        opt = Object.assign({}, opt, { line: currLine })
         let snippet = await this.applyTextEdit(item, opt)
         let { additionalTextEdits } = item
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)
-        completeItems = []
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]

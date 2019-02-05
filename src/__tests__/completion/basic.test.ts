@@ -155,4 +155,53 @@ describe('completion', () => {
     let res = await helper.visible('foo', 'trigger')
     expect(res).toBe(true)
   })
+
+  it('should trigger when backspace to triggerCharacter', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'trigger',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.setLine('.a')
+    await nvim.input('A')
+    await nvim.eval('feedkeys("\\<bs>")')
+    let res = await helper.visible('foo', 'trigger')
+    expect(res).toBe(true)
+    sources.removeSource(source)
+  })
+
+  it('should not trigger when cursor moved', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'trigger',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.setLine('.a')
+    await nvim.input('A')
+    await nvim.eval('feedkeys("\\<bs>")')
+    await helper.wait(10)
+    await nvim.eval('feedkeys("\\<left>")')
+    await helper.wait(200)
+    let visible = await nvim.call('pumvisible')
+    expect(visible).toBe(0)
+    sources.removeSource(source)
+  })
 })
