@@ -286,7 +286,7 @@ export class Completion implements Disposable {
           let before = byteSlice(line, 0, option.col)
           let after = byteSlice(line, option.col + byteLength(word))
           line = `${before}${text}${after}`
-          await this.nvim.call('coc#util#setline', [option.linenr, line])
+          await this.nvim.call('setline', [option.linenr, line])
           if (workspace.isNvim) this.changedTick = document.changedtick
           await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
           if (workspace.isVim) await document.patchChange()
@@ -316,7 +316,7 @@ export class Completion implements Disposable {
           await this.stop()
           let { word } = item
           let newLine = `${line.slice(0, col)}${word}${latestInsertChar}${line.slice(colnr - 1)}`
-          await nvim.call('coc#util#setline', [linenr, newLine])
+          await nvim.call('setline', [linenr, newLine])
           let curcol = col + word.length + 2
           await nvim.call('cursor', [linenr, curcol])
         }

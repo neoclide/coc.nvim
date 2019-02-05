@@ -316,7 +316,7 @@ export default class Document {
     if (cur == buf.id) {
       let d = diffLines(orig, content)
       if (d.end - d.start == 1 && d.replacement.length == 1) {
-        await nvim.call('coc#util#setline', [d.start + 1, d.replacement[0]])
+        await nvim.call('setline', [d.start + 1, d.replacement[0]])
       } else {
         await buf.setLines(d.replacement, {
           start: d.start,
