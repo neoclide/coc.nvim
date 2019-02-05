@@ -7,7 +7,7 @@ import { omit } from '../util/lodash'
 import Document from '../model/document'
 import { Chars } from '../model/chars'
 import { matchScore } from './match'
-import { Position } from 'vscode-languageserver-types'
+import { Position, CancellationTokenSource } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('completion-complete')
 
 export type Callback = () => void
@@ -18,6 +18,7 @@ export default class Complete {
   public readonly recentScores: RecentScore
   private sources: ISource[]
   private localBonus: Map<string, number>
+  private tokenSources: Set<CancellationTokenSource> = new Set()
   constructor(public option: CompleteOption,
     private document: Document,
     recentScores: RecentScore | null,
@@ -54,19 +55,24 @@ export default class Complete {
         if (!shouldRun) return null
       }
       let start = Date.now()
+      let tokenSource = new CancellationTokenSource()
+      this.tokenSources.add(tokenSource)
       let result = await new Promise<CompleteResult>((resolve, reject) => {
         let timer = setTimeout(() => {
+          tokenSource.cancel()
           echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
           resolve(null)
         }, timeout)
-        source.doComplete(opt).then(result => {
+        source.doComplete(opt, tokenSource.token).then(result => {
           clearTimeout(timer)
           resolve(result)
         }, err => {
+          this.tokenSources.delete(tokenSource)
           clearTimeout(timer)
           reject(err)
         })
       })
+      this.tokenSources.delete(tokenSource)
       let dt = Date.now() - start
       logger[dt > 1000 ? 'warn' : 'debug'](`Complete source "${source.name}" takes ${dt}ms`)
       if (result == null || result.items.length == 0) {
@@ -239,5 +245,12 @@ export default class Complete {
     let { colnr, line } = this.option
     if (!fixInsertedWord) return ''
     return Chars.getContentAfterCharacter(line, colnr - 1)
+  }
+
+  public cancel(): void {
+    for (let tokenSource of this.tokenSources) {
+      tokenSource.cancel()
+    }
+    this.tokenSources.clear()
   }
 }

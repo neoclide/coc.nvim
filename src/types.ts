@@ -1,6 +1,6 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range } from 'vscode-languageserver-protocol'
+import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range, CancellationToken } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
@@ -589,7 +589,7 @@ export interface ISource {
    * @param {CompleteOption} opt
    * @returns {Promise<CompleteResult | null>}
    */
-  doComplete(opt: CompleteOption): Promise<CompleteResult | null>
+  doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null>
   /**
    * Action for complete item on complete item selected
    *

@@ -64,7 +64,7 @@ export class DiagnosticManager {
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
-      await wait(30)
+      await wait(50)
       this.refreshBuffer(doc.uri)
     }, null, this.disposables)
 
@@ -435,9 +435,7 @@ export class DiagnosticManager {
   }
 
   private shouldValidate(doc: Document | null): boolean {
-    if (doc == null) return false
-    let { buftype } = doc
-    return ['terminal', 'quickfix', 'help'].indexOf(buftype) == -1
+    return doc != null && doc.buftype == ''
   }
 
   private _echoMessage(): void {

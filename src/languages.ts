@@ -420,7 +420,6 @@ class Languages {
     let resolvedIndexes: Set<number> = new Set()
     let doc: Document = null
     waitTime = Math.min(Math.max(50, waitTime), 300)
-    let cancellSource: CancellationTokenSource
     let resolveTokenSource: CancellationTokenSource
     let source: ISource = {
       name,
@@ -429,9 +428,7 @@ class Languages {
       sourceType: SourceType.Service,
       filetypes: languageIds,
       triggerCharacters: triggerCharacters || [],
-      doComplete: async (opt: CompleteOption): Promise<CompleteResult | null> => {
-        if (cancellSource) cancellSource.cancel()
-        cancellSource = new CancellationTokenSource()
+      doComplete: async (opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> => {
         let { triggerCharacter, bufnr } = opt
         doc = workspace.getDocument(bufnr)
         if (!doc) return null
@@ -444,12 +441,12 @@ class Languages {
           triggerKind = CompletionTriggerKind.TriggerCharacter
         }
         if (opt.triggerCharacter) await wait(waitTime)
-        if (cancellSource.token.isCancellationRequested) return null
+        if (token.isCancellationRequested) return null
         let position = complete.getPosition(opt)
         let context: CompletionContext = { triggerKind, option: opt }
         if (isTrigger) context.triggerCharacter = triggerCharacter
-        let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, cancellSource.token, context))
-        if (!result || cancellSource.token.isCancellationRequested) return null
+        let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
+        if (!result || token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
         if (!completeItems || completeItems.length == 0) return null
         // used for fixed col

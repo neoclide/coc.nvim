@@ -480,6 +480,9 @@ export class Completion implements Disposable {
     if (!activted) return
     this.activted = false
     this.document.paused = false
+    if (this.complete) {
+      this.complete.cancel()
+    }
     this.complete = null
     // TODO cancel sources
     nvim.pauseNotification()
