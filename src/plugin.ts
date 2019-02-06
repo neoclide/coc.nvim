@@ -1,7 +1,9 @@
+import https from 'https'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import os from 'os'
 import path from 'path'
+import semver from 'semver'
 import { Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
@@ -16,6 +18,7 @@ import { OutputChannel } from './types'
 import { isRunning } from './util'
 import clean from './util/clean'
 import workspace from './workspace'
+import { URL } from 'url'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -199,6 +202,36 @@ export default class Plugin extends EventEmitter {
 
   public async listNext(): Promise<void> {
     listManager.next()
+  }
+
+  public upgrade(): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', (res) => {
+        let content: string = ''
+        res.on('data', d => {
+          content = content + d
+        })
+        res.on('end', () => {
+          try {
+            let obj = JSON.parse(content)
+            let latest = obj.tag_name.replace(/^v/, '')
+            if (semver.gt(latest, workspace.version)) {
+              workspace.showMessage(`Please upgrade coc.nvim to latest version: ${latest}`, 'warning')
+            } else {
+              this.nvim.call('coc#util#update', [], true)
+            }
+            resolve()
+          } catch (e) {
+            reject(e)
+          }
+        })
+      })
+      req.on('error', (e) => {
+        reject(e)
+      })
+      req.setHeader('User-Agent', 'NodeJS')
+      req.end()
+    })
   }
 
   public async cocAction(...args: any[]): Promise<any> {

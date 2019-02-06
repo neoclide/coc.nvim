@@ -1,7 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Location } from 'vscode-languageserver-types'
+import { Location, Range } from 'vscode-languageserver-types'
+import path from 'path'
 import { ListContext, ListItem, QuickfixItem } from '../../types'
 import BasicList from '../basic'
+import workspace from '../../workspace'
+import Uri from 'vscode-uri'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
@@ -15,8 +18,22 @@ export default class LocationList extends BasicList {
   }
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
+    // filename, lnum, col, text, type
     let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
     locs = locs || []
+    locs.forEach(loc => {
+      if (!loc.uri) {
+        let fullpath = path.isAbsolute(loc.filename) ? loc.filename : path.join(context.cwd, loc.filename)
+        loc.uri = Uri.file(fullpath).toString()
+      }
+      if (!loc.bufnr && workspace.getDocument(loc.uri) != null) {
+        loc.bufnr = workspace.getDocument(loc.uri).bufnr
+      }
+      if (!loc.range) {
+        let { lnum, col } = loc
+        loc.range = Range.create(lnum - 1, col - 1, lnum - 1, col - 1)
+      }
+    })
     let bufnr: number
     let valid = await context.window.valid
     if (valid) {
@@ -25,8 +42,11 @@ export default class LocationList extends BasicList {
     }
     let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
-      let filename = ignoreFilepath ? '' : loc.filename || loc.uri
+      let filename = ignoreFilepath ? '' : loc.filename
       let filterText = `${filename}${loc.text.trim()}`
+      if (path.isAbsolute(filename)) {
+        filename = filename.startsWith(context.cwd) ? path.relative(context.cwd, filename) : filename
+      }
       return {
         label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
         location: Location.create(loc.uri!, loc.range),
