@@ -76,7 +76,7 @@ export default class Outline extends LocationList {
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
     let uri = Uri.parse(document.uri)
     let extname = path.extname(uri.fsPath)
-    let content: string
+    let content = ''
     let tempname = await this.nvim.call('tempname')
     let filepath = `${tempname}.${extname}`
     let escaped = await this.nvim.call('fnameescape', filepath)
@@ -95,6 +95,7 @@ export default class Outline extends LocationList {
     let items: ListItem[] = []
     for (let line of lines) {
       let parts = line.split('\t')
+      if (parts.length < 4) continue
       let lnum = Number(parts[2].replace(/;"$/, ''))
       let text = document.getline(lnum - 1)
       if (!text) continue
