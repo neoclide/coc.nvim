@@ -545,7 +545,7 @@ class Languages {
     }
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {
-      await nvim.call('setline', [linenr, newLines[0]])
+      await nvim.call('coc#util#setline', [linenr, newLines[0]])
       await workspace.moveTo(Position.create(linenr - 1, (start + newText).length))
     } else {
       let document = workspace.getDocument(bufnr)

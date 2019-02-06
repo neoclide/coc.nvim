@@ -295,15 +295,11 @@ export default class Document {
     return this.textDocument ? this.textDocument.version : null
   }
 
-  public equalTo(doc: TextDocument): boolean {
-    return doc.uri == this.uri
-  }
-
   public setKeywordOption(option: string): void {
     this.chars = new Chars(option)
   }
 
-  public async applyEdits(nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
+  public async applyEdits(_nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
     let orig = this.lines.join('\n')
     let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig + (this.eol ? '\n' : ''))
@@ -313,26 +309,12 @@ export default class Document {
     }
     // could be equal sometimes
     if (orig === content) return
-    let cur = await nvim.call('bufnr', '%') as number
-    let buf = this.buffer
-    if (cur == buf.id) {
-      let d = diffLines(orig, content)
-      if (d.end - d.start == 1 && d.replacement.length == 1) {
-        await nvim.call('setline', [d.start + 1, d.replacement[0]])
-      } else {
-        await buf.setLines(d.replacement, {
-          start: d.start,
-          end: d.end,
-          strictIndexing: false
-        })
-      }
-    } else {
-      await buf.setLines(content.split(/\r?\n/), {
-        start: 0,
-        end: -1,
-        strictIndexing: false
-      })
-    }
+    let d = diffLines(orig, content)
+    await this.buffer.setLines(d.replacement, {
+      start: d.start,
+      end: d.end,
+      strictIndexing: false
+    })
     // can't wait vim sync buffer
     this.lines = content.split(/\r?\n/)
     if (sync) this.forceSync()

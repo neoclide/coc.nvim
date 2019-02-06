@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Position, Range } from 'vscode-languageserver-protocol'
+import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import workspace from '../../workspace'
 import helper from '../helper'
 
@@ -26,6 +26,22 @@ describe('document model properties', () => {
     await helper.wait(200)
     let words = doc.words
     expect(words).toEqual(['foo', 'bar'])
+  })
+
+  it('should applyEdits', async () => {
+    let doc = await helper.createDocument()
+    let edits: TextEdit[] = []
+    edits.push({
+      range: Range.create(0, 0, 0, 0),
+      newText: 'a\n'
+    })
+    edits.push({
+      range: Range.create(0, 0, 0, 0),
+      newText: 'b\n'
+    })
+    await doc.applyEdits(nvim, edits)
+    let content = doc.getDocumentContent()
+    expect(content).toBe('a\nb\n\n')
   })
 
   it('should parse iskeyword of character range', async () => {
