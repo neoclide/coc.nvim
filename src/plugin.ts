@@ -173,14 +173,14 @@ export default class Plugin extends EventEmitter {
     await listManager.start(args)
   }
 
-  public async doKeymap(key: string): Promise<any> {
+  public async doKeymap(key: string, defaultReturn = ''): Promise<any> {
     let fn = workspace.keymaps.get(key)
     if (!fn) {
       logger.error(`keymap for ${key} not found`)
-      return ''
+      return defaultReturn
     }
     let res = await Promise.resolve(fn())
-    return res || ''
+    return res || defaultReturn
   }
 
   public async cocInstalled(names: string): Promise<void> {

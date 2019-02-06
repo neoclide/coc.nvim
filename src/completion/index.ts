@@ -331,7 +331,7 @@ export class Completion implements Disposable {
       if (search == null
         || search.endsWith(' ')
         || search.length < this.option.input.length) {
-        await this.stop()
+        this.stop()
         return
       }
       return await this.resumeCompletion(search)
