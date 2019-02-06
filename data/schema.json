@@ -483,6 +483,13 @@
       "type": "integer",
       "default": 1
     },
+    "coc.source.around.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.source.buffer.enable": {
       "type": "boolean",
       "default": true
@@ -500,6 +507,13 @@
       "default": true,
       "description": "Ignore git ignored files for buffer words"
     },
+    "coc.source.buffer.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
     "coc.source.file.enable": {
       "type": "boolean",
       "default": true
@@ -511,6 +525,13 @@
     "coc.source.file.priority": {
       "type": "integer",
       "default": 10
+    },
+    "coc.source.file.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
     },
     "coc.source.file.triggerCharacters": {
       "type": "array",

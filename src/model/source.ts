@@ -44,6 +44,10 @@ export default abstract class Source implements ISource {
     return this.getConfig('filetypes', null)
   }
 
+  public get disableSyntaxes(): string[] {
+    return this.getConfig('disableSyntaxes', [])
+  }
+
   public getConfig<T>(key: string, defaultValue?: T): T | null {
     let config = workspace.getConfiguration(`coc.source.${this.name}`)
     return config.get(key, defaultValue)
@@ -106,6 +110,15 @@ export default abstract class Source implements ISource {
 
   public async refresh(): Promise<void> {
     // do nothing
+  }
+
+  public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+    let { disableSyntaxes } = this
+    let synname = opt.synname.toLowerCase()
+    if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
+      return false
+    }
+    return true
   }
 
   public async onCompleteResolve(_item: VimCompleteItem): Promise<void> {

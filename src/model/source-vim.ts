@@ -22,6 +22,8 @@ export default class VimSource extends Source {
   }
 
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
+    let shouldRun = await super.shouldComplete(opt)
+    if (!shouldRun) return false
     if (this.optionalFns.indexOf('should_complete') === -1) return true
     let res = await this.callOptinalFunc('should_complete', [opt])
     return !!res

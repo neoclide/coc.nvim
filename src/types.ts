@@ -558,6 +558,7 @@ export interface ISource {
   priority: number
   sourceType: SourceType
   triggerCharacters?: string[]
+  disableSyntaxes?: string[]
   duplicate?: boolean
   isSnippet?: boolean
   filetypes?: string[]

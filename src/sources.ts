@@ -63,6 +63,13 @@ export class Sources {
                 default: props.shortcut || name.slice(0, 3).toUpperCase(),
                 description: 'Shortcut text shown in complete menu.'
               },
+              [`coc.source.${name}.disableSyntaxes`]: {
+                type: 'array',
+                default: [],
+                items: {
+                  type: 'string'
+                }
+              },
               [`coc.source.${name}.filetypes`]: {
                 type: 'array',
                 default: props.filetypes || null,
