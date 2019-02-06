@@ -38,7 +38,7 @@ export interface StatusBarItem {
    */
   readonly priority: number
 
-  readonly isProgress: boolean
+  isProgress: boolean
 
   /**
    * The text to show for the entry. You can embed icons in the text by leveraging the syntax:
