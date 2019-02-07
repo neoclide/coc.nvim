@@ -1,6 +1,6 @@
-import https from 'https'
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
+import https from 'https'
 import os from 'os'
 import path from 'path'
 import semver from 'semver'
@@ -18,7 +18,6 @@ import { OutputChannel } from './types'
 import { isRunning } from './util'
 import clean from './util/clean'
 import workspace from './workspace'
-import { URL } from 'url'
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -206,8 +205,8 @@ export default class Plugin extends EventEmitter {
 
   public upgrade(): Promise<void> {
     return new Promise((resolve, reject) => {
-      const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', (res) => {
-        let content: string = ''
+      const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', res => {
+        let content = ''
         res.on('data', d => {
           content = content + d
         })
@@ -226,7 +225,7 @@ export default class Plugin extends EventEmitter {
           }
         })
       })
-      req.on('error', (e) => {
+      req.on('error', e => {
         reject(e)
       })
       req.setHeader('User-Agent', 'NodeJS')

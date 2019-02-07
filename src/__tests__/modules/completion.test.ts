@@ -63,21 +63,19 @@ describe('completion getResumeInput', () => {
     expect(input).toBeNull()
   })
 
-  it('should deactivate when cursor col below col of option', async () => {
+  it('should return null when cursor col below col of option', async () => {
     await startCompletion()
     let opt = completion.option
     await nvim.call('cursor', [opt.linenr, opt.col - 1])
     let input = await completion.getResumeInput()
     expect(input).toBeNull()
-    expect(completion.isActivted).toBe(false)
   })
 
-  it('should deactivate when cursor line not equal option linenr', async () => {
+  it('should return null when cursor line not equal option linenr', async () => {
     await startCompletion()
     await nvim.call('cursor', [2, 0])
     let input = await completion.getResumeInput()
     expect(input).toBeNull()
-    expect(completion.isActivted).toBe(false)
   })
 })
 

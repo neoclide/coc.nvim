@@ -208,7 +208,7 @@ export class Sources {
     if (isTriggered) {
       return this.getTriggerSources(triggerCharacter, filetype)
     }
-    return this.getSourcesForFiletype(filetype, false)
+    return this.getSourcesForFiletype(filetype)
   }
 
   public shouldTrigger(character: string, languageId: string): boolean {
@@ -223,7 +223,7 @@ export class Sources {
 
   public getTriggerCharacters(languageId: string): Set<string> {
     let res: Set<string> = new Set()
-    let sources = this.getSourcesForFiletype(languageId, false)
+    let sources = this.getSourcesForFiletype(languageId)
     for (let s of sources) {
       for (let c of s.triggerCharacters) {
         res.add(c)
@@ -233,17 +233,16 @@ export class Sources {
   }
 
   public getTriggerSources(character: string, languageId: string): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId, false)
+    let sources = this.getSourcesForFiletype(languageId)
     return sources.filter(o => {
       return o.triggerCharacters.indexOf(character) !== -1
     })
   }
 
-  public getSourcesForFiletype(filetype: string, includeDisabled = false): ISource[] {
+  public getSourcesForFiletype(filetype: string): ISource[] {
     return this.sources.filter(source => {
       let { filetypes } = source
-      if (!includeDisabled && !source.enable) return false
-      if (!filetypes || filetypes.indexOf(filetype) !== -1) {
+      if (source.enable && (!filetypes || filetypes.indexOf(filetype) !== -1)) {
         return true
       }
       return false
