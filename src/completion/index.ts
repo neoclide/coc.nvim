@@ -132,10 +132,12 @@ export class Completion implements Disposable {
 
   private getCompleteConfig(): CompleteConfig {
     let config = workspace.getConfiguration('coc.preferences')
+    let autoTrigger = config.get<string>('autoTrigger', 'always')
     return {
-      autoTrigger: config.get<string>('autoTrigger', 'always'),
+      autoTrigger,
       triggerAfterInsertEnter: config.get<boolean>('triggerAfterInsertEnter', false),
       noselect: config.get<boolean>('noselect', true),
+      noinsert: autoTrigger === 'none' ? config.get<boolean>('noinsert', true) : true,
       numberSelect: config.get<boolean>('numberSelect', false),
       acceptSuggestionOnCommitCharacter: config.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
@@ -203,8 +205,8 @@ export class Completion implements Disposable {
 
   private async onPumVisible(): Promise<void> {
     let first = this._completeItems[0]
-    let noselect = this.config.noselect
-    if (!noselect) await sources.doCompleteResolve(first)
+    let { noselect, noinsert } = this.config
+    if (!noselect || !noinsert) await sources.doCompleteResolve(first)
   }
 
   public hasSelected(): boolean {
@@ -467,7 +469,7 @@ export class Completion implements Disposable {
     if (activted) return
     this.activted = true
     nvim.command(`noa set completeopt=${this.completeOpt}`, true)
-    this.currIndex = this.config.noselect ? 0 : 1
+    this.currIndex = (this.config.noselect && this.config.noinsert) ? 0 : 1
     this.changedTick = this.document.changedtick
     this._completeItems = []
     this.document.paused = true
@@ -490,9 +492,9 @@ export class Completion implements Disposable {
   }
 
   private get completeOpt(): string {
-    let { noselect } = this.config
+    let { noselect, noinsert } = this.config
     let preview = workspace.completeOpt.indexOf('preview') !== -1
-    return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview ? ',preview' : ''}`
+    return `${noselect ? 'noselect,' : ''}${noinsert ? 'noinsert' : ''},menuone${preview ? ',preview' : ''}`
   }
 
   public dispose(): void {

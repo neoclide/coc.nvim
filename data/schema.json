@@ -299,6 +299,11 @@
       "description": "Not make vim select first item on completion start",
       "default": true
     },
+    "coc.preferences.noinsert": {
+      "type": "boolean",
+      "description": "When enabled, automatically inserts first item. Works only for manual completion (autoTrigger: 'none').",
+      "default": true
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",

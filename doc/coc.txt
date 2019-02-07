@@ -108,6 +108,10 @@ To change the timeout of completion, use: >
 To make the first complete item selected automatically, use: >
 
 	"coc.preferences.noselect": false,
+
+To make the first complete item inserted automatically (only when `autoTrigger` is `none`), use: >
+
+	"coc.preferences.noinsert": false,
 <
 To make completion triggered with two input characters, use: >
 
