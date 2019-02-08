@@ -192,7 +192,7 @@ endfunction
 function! s:SendRequest(name, args, ...)
   let isRequest = get(a:, 1, 0)
   let method = 'coc#rpc#' . (isRequest ? 'request' : 'notify')
-  if get(g:, 'coc_service_initialized', 0)
+  if get(g:, 'coc_workspace_initialized', 0)
     call call(method, [a:name, a:args])
     return
   endif
@@ -201,7 +201,7 @@ function! s:SendRequest(name, args, ...)
   let c = 0
   while 1
     let c = c + 1
-    if get(g:, 'coc_service_initialized', 0)
+    if get(g:, 'coc_workspace_initialized', 0)
       call call(method, [a:name, a:args])
       break
     endif
@@ -224,7 +224,7 @@ command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=+ CocInstall      :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate       :call s:SendRequest('updateExtension', [])
-command! -nargs=0 CocUpdateSync   :call s:SendRequest('updateExtension', [], 1)
+command! -nargs=0 CocUpdateSync   :call coc#rpc#request('updateExtension', [])
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:SendRequest('openList', [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:SendRequest('CocAction', ['uninstallExtension', <f-args>])
