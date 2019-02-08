@@ -15,7 +15,7 @@ export type LastChangeType = 'insert' | 'change' | 'delete'
 
 // wrapper class of TextDocument
 export default class Document {
-  public paused: boolean
+  public paused = false
   public buftype: string
   public isIgnored = false
   public chars: Chars
@@ -50,25 +50,6 @@ export default class Document {
         // noop
       })
     }, 50)
-    let paused = false
-    Object.defineProperty(this, 'paused', {
-      get: () => {
-        return paused
-      },
-      set: (val: boolean) => {
-        if (val == paused) return
-        if (val) {
-          // fire immediatelly
-          this._fireContentChanges.clear()
-          this.fireContentChanges()
-          paused = true
-        } else {
-          paused = false
-          // not send immediatelly
-          this.fireContentChanges()
-        }
-      }
-    })
   }
 
   private shouldAttach(buftype: string): boolean {

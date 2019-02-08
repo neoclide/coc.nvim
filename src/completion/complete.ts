@@ -16,6 +16,7 @@ export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
   public readonly recentScores: RecentScore
+  private _canceled = false
   private sources: ISource[]
   private localBonus: Map<string, number>
   private tokenSources: Set<CancellationTokenSource> = new Set()
@@ -29,6 +30,10 @@ export default class Complete {
         return recentScores || {}
       }
     })
+  }
+
+  public get isCanceled(): boolean {
+    return this._canceled
   }
 
   public get startcol(): number {
@@ -87,7 +92,7 @@ export default class Complete {
       result.duplicate = source.duplicate
       return result
     } catch (err) {
-      if (err.message.indexOf('Cancelled Request') != -1) return null
+      if (err.message.indexOf('Cancelled') != -1) return null
       echoErr(this.nvim, `${source.name} complete error: ${err}`)
       logger.error('Complete error:', source.name, err)
       return null
@@ -249,6 +254,7 @@ export default class Complete {
   }
 
   public cancel(): void {
+    this._canceled = true
     for (let tokenSource of this.tokenSources) {
       tokenSource.cancel()
     }

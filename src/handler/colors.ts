@@ -1,14 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { ColorInformation, Disposable } from 'vscode-languageserver-protocol'
+import { ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
+import extensions from '../extensions'
 import languages from '../languages'
 import Document from '../model/document'
-import extensions from '../extensions'
 import { disposeAll, wait } from '../util'
+import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
-import { equals } from '../util/object'
 
 const logger = require('../util/logger')('colors')
 
@@ -162,6 +162,12 @@ export default class Colors {
     let highlighter = this.highlighters.get(bufnr)
     if (!highlighter) return false
     return highlighter.hasColor()
+  }
+
+  public hasColorAtPostion(bufnr: number, position: Position) {
+    let highlighter = this.highlighters.get(bufnr)
+    if (!highlighter) return false
+    return highlighter.hasColorAtPostion(position)
   }
 
   public dispose(): void {

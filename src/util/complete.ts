@@ -1,8 +1,7 @@
 import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from 'vscode-languageserver-types'
-import { CompleteOption, VimCompleteItem } from '../types'
 import { SnippetParser } from '../snippets/parser'
+import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
-import { objectLiteral } from './is'
 const logger = require('./logger')('util-complete')
 
 export function getPosition(opt: CompleteOption): Position {
@@ -124,42 +123,6 @@ export function completionKindString(kind: CompletionItemKind): string {
     default:
       return ''
   }
-}
-
-export function convertVimCompleteItem(item: CompletionItem, shortcut: string, echodocSupport = false, opt: CompleteOption): VimCompleteItem {
-  let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-  let label = item.label.trim()
-  // tslint:disable-next-line:deprecation
-  if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1) {
-    // fix wrong insert format
-    isSnippet = false
-    item.insertTextFormat = InsertTextFormat.PlainText
-  }
-  let obj: VimCompleteItem = {
-    word: getWord(item, opt),
-    abbr: label,
-    menu: item.detail ? `${item.detail.replace(/(\n|\t)/g, '').slice(0, 30)} [${shortcut}]` : `[${shortcut}]`,
-    kind: completionKindString(item.kind),
-    sortText: item.sortText || null,
-    filterText: item.filterText || label,
-    isSnippet
-  }
-  if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
-    let fields = [item.detail || '', obj.abbr, obj.word]
-    for (let s of fields) {
-      if (s.indexOf('(') !== -1) {
-        obj.signature = s
-        break
-      }
-    }
-  }
-  if (item.preselect) obj.preselect = true
-  item.data = item.data || {}
-  if (item.data.optional) obj.abbr = obj.abbr + '?'
-  if (objectLiteral(item.data)) Object.assign(item.data, { word: obj.word })
-  let document = getDocumentation(item)
-  if (document) obj.info = document
-  return obj
 }
 
 export function getSnippetDocumentation(languageId: string, body: string): string {

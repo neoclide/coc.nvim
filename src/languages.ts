@@ -27,9 +27,9 @@ import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { echoMessage, wait } from './util'
-import { getChangedPosition } from './util/position'
 import * as complete from './util/complete'
 import { mixin } from './util/object'
+import { getChangedPosition } from './util/position'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
@@ -37,6 +37,13 @@ export interface CompletionSource {
   id: string
   source: ISource
   languageIds: string[]
+}
+
+interface CompleteConfig {
+  priority: number
+  echodocSupport: boolean
+  waitTime: number
+  detailMaxLength: number
 }
 
 export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
@@ -66,6 +73,7 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, ke
 }
 
 class Languages {
+  private completeConfig: CompleteConfig
   private onTypeFormatManager = new OnTypeFormatManager()
   private documentLinkManager = new DocumentLinkManager()
   private documentColorManager = new DocumentColorManager()
@@ -101,10 +109,24 @@ class Languages {
         event.waitUntil(willSaveWaitUntil())
       }
     }, null, 'languageserver')
+    workspace.ready.then(() => {
+      this.loadCompleteConfig()
+    })
+    workspace.onDidChangeConfiguration(this.loadCompleteConfig, this)
   }
 
   private get nvim(): Neovim {
     return workspace.nvim
+  }
+
+  private loadCompleteConfig(): void {
+    let config = workspace.getConfiguration('coc.preferences')
+    this.completeConfig = {
+      priority: config.get<number>('languageSourcePriority', 99),
+      echodocSupport: config.get<boolean>('echodocSupport', false),
+      waitTime: config.get<number>('triggerCompletionWait', 60),
+      detailMaxLength: config.get<number>('detailMaxLength', 60)
+    }
   }
 
   public registerOnTypeFormattingEditProvider(
@@ -411,15 +433,12 @@ class Languages {
     let completeItems: CompletionItem[] = []
     let resolveInput: string
     // line used for TextEdit
-    let preferences = workspace.getConfiguration('coc.preferences')
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
-    priority = priority == null ? preferences.get<number>('languageSourcePriority', 99) : priority
-    let echodocSupport = preferences.get<boolean>('echodocSupport', false)
-    let waitTime = preferences.get<number>('triggerCompletionWait', 60)
+    priority = priority == null ? this.completeConfig.priority : priority
     // index set of resolved items
     let resolvedIndexes: Set<number> = new Set()
     let doc: Document = null
-    waitTime = Math.min(Math.max(50, waitTime), 300)
+    let waitTime = Math.min(Math.max(50, this.completeConfig.waitTime), 300)
     let resolveTokenSource: CancellationTokenSource
     let source: ISource = {
       name,
@@ -455,7 +474,7 @@ class Languages {
           option.col = (result as any).startcol
         }
         let items: VimCompleteItem[] = completeItems.map((o, index) => {
-          let item = complete.convertVimCompleteItem(o, shortcut, echodocSupport, option)
+          let item = this.convertVimCompleteItem(o, shortcut, option)
           item.index = index
           return item
         })
@@ -583,6 +602,44 @@ class Languages {
     if (changed.line != 0 || changed.character != 0) {
       await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
     }
+  }
+
+  private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
+    let { detailMaxLength, echodocSupport } = this.completeConfig
+    let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+    let label = item.label.trim()
+    // tslint:disable-next-line:deprecation
+    if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1) {
+      // fix wrong insert format
+      isSnippet = false
+      item.insertTextFormat = InsertTextFormat.PlainText
+    }
+    let detail = item.detail || ''
+    if (detail.length > detailMaxLength) detail = detail.slice(0, detailMaxLength) + '...'
+    let obj: VimCompleteItem = {
+      word: complete.getWord(item, opt),
+      abbr: label,
+      menu: detail ? `${detail} [${shortcut}]` : `[${shortcut}]`,
+      kind: complete.completionKindString(item.kind),
+      sortText: item.sortText || null,
+      filterText: item.filterText || label,
+      isSnippet
+    }
+    if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
+      let fields = [item.detail || '', obj.abbr, obj.word]
+      for (let s of fields) {
+        if (s.indexOf('(') !== -1) {
+          obj.signature = s
+          break
+        }
+      }
+    }
+    if (item.preselect) obj.preselect = true
+    item.data = item.data || {}
+    if (item.data.optional) obj.abbr = obj.abbr + '?'
+    let document = complete.getDocumentation(item)
+    if (document) obj.info = document
+    return obj
   }
 }
 

@@ -30,7 +30,7 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkInitailize() abort
-  if get(g:, 'coc_enabled', 0)
+  if coc#rpc#ready()
     call health#report_ok('Service started')
     return 1
   endif

@@ -1,9 +1,10 @@
 import Document from '../model/document'
 import workspace from '../workspace'
-import { Color, ColorInformation, Disposable, Range } from 'vscode-languageserver-protocol'
+import { Color, ColorInformation, Disposable, Range, Position } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
 import { Neovim } from '@chemzqm/neovim'
 import { group } from '../util/array'
+import { rangeInRange, positionInRange } from '../util/position'
 const logger = require('../util/logger')('highlighter')
 
 export interface ColorRanges {
@@ -113,6 +114,11 @@ export default class Highlighter implements Disposable {
       }
     }
     return res
+  }
+
+  public hasColorAtPostion(position: Position): boolean {
+    let { colors } = this
+    return colors.some(o => positionInRange(position, o.range) == 0)
   }
 
   public dispose(): void {

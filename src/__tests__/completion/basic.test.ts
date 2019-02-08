@@ -2,6 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { ISource, SourceType, CompleteResult } from '../../types'
 import helper from '../helper'
 import sources from '../../sources'
+import { CancellationToken } from 'vscode-jsonrpc'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -159,7 +160,7 @@ describe('completion', () => {
   it('should trigger when backspace to triggerCharacter', async () => {
     await helper.edit()
     let source: ISource = {
-      name: 'trigger',
+      name: 'backspace',
       priority: 10,
       enable: true,
       sourceType: SourceType.Native,
@@ -174,8 +175,9 @@ describe('completion', () => {
     await nvim.setLine('.a')
     await nvim.input('A')
     await nvim.eval('feedkeys("\\<bs>")')
-    let res = await helper.visible('foo', 'trigger')
-    expect(res).toBe(true)
+    await helper.wait(400)
+    let res = await nvim.call('pumvisible')
+    expect(res).toBe(1)
     sources.removeSource(source)
   })
 
@@ -203,5 +205,42 @@ describe('completion', () => {
     let visible = await nvim.call('pumvisible')
     expect(visible).toBe(0)
     sources.removeSource(source)
+  })
+
+  it('should trigger when completion is not completed', async () => {
+    await helper.edit()
+    let token: CancellationToken
+    let source: ISource = {
+      name: 'completion',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (opt, cancellationToken): Promise<CompleteResult> => {
+        if (opt.triggerCharacter != '.') {
+          token = cancellationToken
+          return new Promise((resolve, reject) => {
+            let timer = setTimeout(() => {
+              resolve({ items: [{ word: 'foo' }] })
+            }, 200)
+            if (cancellationToken.isCancellationRequested) {
+              clearTimeout(timer)
+              reject(new Error('Cancelled'))
+            }
+          })
+        }
+        return Promise.resolve({
+          items: [{ word: 'bar' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('f')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.visible('bar', 'completion')
+    expect(token.isCancellationRequested).toBe(true)
   })
 })
