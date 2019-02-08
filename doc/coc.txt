@@ -109,9 +109,9 @@ To make the first complete item selected automatically, use: >
 
 	"coc.preferences.noselect": false,
 
-To make the first complete item inserted automatically (only when `autoTrigger` is `none`), use: >
+To prevent overriding `completeopt`, use:
 
-	"coc.preferences.noinsert": false,
+	"coc.preferences.keepCompleteopt": true,
 <
 To make completion triggered with two input characters, use: >
 

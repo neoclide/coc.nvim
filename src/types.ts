@@ -317,7 +317,7 @@ export interface CompleteConfig {
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean
   noselect: boolean
-  noinsert: boolean
+  keepCompleteopt: boolean
   numberSelect: boolean
   invalidInsertCharacters: string[]
   maxItemCount: number
