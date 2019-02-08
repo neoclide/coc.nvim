@@ -352,6 +352,11 @@
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": null
     },
+    "coc.preferences.detailMaxLength": {
+      "type": "number",
+      "description": "Max length of detail that should be shown in popup menu.",
+      "default": 60
+    },
     "coc.preferences.jumpCommand": {
       "type": "string",
       "description": "Command used for location jump, like goto definition, goto references etc.",
