@@ -440,7 +440,7 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.openResourceCommand` (|:edit| by default)
+	`coc.preferences.jumpCommand` (|:edit| by default)
 
 						*CocAction()*
 CocAction({action}, [...{args}])
@@ -485,7 +485,7 @@ Available Actions ~
 	|coc-list| is used when more than one position available.
 
 	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.openResourceCommand` in `coc-settings.json`
+	`coc.preferences.jumpCommand` in `coc-settings.json`
 
 "jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
 
@@ -1222,7 +1222,7 @@ location 			   			 *coc-list-location*
 
 	- 'preview' : preview location in preview window.
 	- 'open': open location by use
-		`"coc.preferences.openResourceCommand"`, default action
+		`"coc.preferences.jumpCommand"`, default action
 	- 'tabe': Use |:tabe| to open location.
 	- 'drop': Use |:drop| to open location.
 	- 'vsplit': Use |:vsplit| to open location.

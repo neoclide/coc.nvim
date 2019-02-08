@@ -704,29 +704,9 @@ export class Workspace implements IWorkspace {
       await nvim.call('coc#util#open_url', uri)
       return
     }
-    let u = Uri.parse(uri)
-    let doc = this.getDocument(uri)
-    if (doc) {
-      let winid = await nvim.call('bufwinid', doc.bufnr)
-      if (winid == -1) {
-        await nvim.command(`buffer ${doc.bufnr}`)
-      } else {
-        await nvim.call('win_gotoid', winid)
-      }
-      return
-    }
-    let config = this.getConfiguration('coc.preferences')
-    let cmd = config.get<string>('openResourceCommand', 'edit')
-    let bufname: string
-    if (u.scheme != 'file') {
-      bufname = uri
-    } else {
-      bufname = u.fsPath
-    }
-    // bufname = await nvim.call('fnameescape', bufname)
     let wildignore = await nvim.getOption('wildignore')
     await nvim.setOption('wildignore', '')
-    await nvim.command(`${cmd} ${bufname}`)
+    await this.jumpTo(uri)
     await nvim.setOption('wildignore', wildignore)
   }
 
