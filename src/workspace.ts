@@ -107,6 +107,21 @@ export class Workspace implements IWorkspace {
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
     events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
     this._env = await this.nvim.call('coc#util#vim_info') as Env
+    if (this.isNvim) {
+      let timer: NodeJS.Timeout
+      let { nvim } = this
+      let updatetime = await nvim.getOption('updatetime') as number
+      events.on(['CursorMovedI', 'InsertEnter'], () => {
+        if (timer) clearTimeout(timer)
+        setTimeout(async () => {
+          let m = await nvim.call('mode') as string
+          if (m.startsWith('i')) nvim.command('doautocmd CursorHoldI', true)
+        }, updatetime)
+      }, null, this.disposables)
+      events.on('InsertLeave', () => {
+        if (timer) clearTimeout(timer)
+      }, null, this.disposables)
+    }
     await this.attach()
     if (this.isVim) this.initVimEvents()
     let { errorItems } = this.configurations
