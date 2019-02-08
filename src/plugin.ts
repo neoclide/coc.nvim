@@ -104,7 +104,7 @@ export default class Plugin extends EventEmitter {
       workspace.showMessage(`Location of "${method}" not found!`, 'warning')
       return
     }
-    let locations: Location[]
+    let locations: Location[] = []
     if (Array.isArray(res)) {
       locations = res as Location[]
     } else if (res.hasOwnProperty('location') && res.hasOwnProperty('children')) {
