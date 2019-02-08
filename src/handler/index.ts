@@ -489,6 +489,7 @@ export default class Handler {
       this.clearHighlight(document.bufnr)
       return
     }
+    if (this.colors.hasColorAtPostion(document.bufnr, position)) return
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
     let newPosition = await workspace.getCursorPosition()
     if (position.line != newPosition.line || position.character != newPosition.character) {
