@@ -428,6 +428,7 @@ export default class Document {
   }
 
   public getSymbolRanges(word: string): Range[] {
+    this.forceSync()
     let { textDocument } = this
     let res: Range[] = []
     let content = textDocument.getText()

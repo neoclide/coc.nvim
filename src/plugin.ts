@@ -216,14 +216,14 @@ export default class Plugin extends EventEmitter {
             let obj = JSON.parse(content)
             let latest = obj.tag_name.replace(/^v/, '')
             if (semver.gt(latest, workspace.version)) {
-              console.error(`Please upgrade coc.nvim to latest version: ${latest}`)
+              console.error(`Please upgrade coc.nvim to latest version: ${latest}`) // tslint:disable-line
             } else {
               let cwd = await nvim.call('coc#util#extension_root') as string
               await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 120000)
             }
             resolve()
           } catch (e) {
-            console.error(`Update error: ${e.message}`)
+            console.error(`Update error: ${e.message}`) // tslint:disable-line
             resolve()
           }
         })

@@ -164,7 +164,7 @@ export default class Colors {
     return highlighter.hasColor()
   }
 
-  public hasColorAtPostion(bufnr: number, position: Position) {
+  public hasColorAtPostion(bufnr: number, position: Position): boolean {
     let highlighter = this.highlighters.get(bufnr)
     if (!highlighter) return false
     return highlighter.hasColorAtPostion(position)

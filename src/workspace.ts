@@ -115,7 +115,7 @@ export class Workspace implements IWorkspace {
         if (timer) clearTimeout(timer)
         setTimeout(async () => {
           let m = await nvim.call('mode') as string
-          if (m.startsWith('i')) nvim.command('doautocmd CursorHoldI', true)
+          if (m && m.startsWith('i')) nvim.command('doautocmd CursorHoldI', true)
         }, updatetime)
       }, null, this.disposables)
       events.on('InsertLeave', () => {

@@ -64,8 +64,9 @@ export class DiagnosticManager {
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
-      await wait(50)
-      this.refreshBuffer(doc.uri)
+      doc.forceSync()
+      await wait(100)
+      // if (!this.insertMode) this.refreshBuffer(doc.uri)
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {
@@ -123,15 +124,19 @@ export class DiagnosticManager {
     let disposable = collection.onDidDiagnosticsChange(uri => {
       this.refreshBuffer(uri)
     })
-    collection.onDispose(() => {
-      disposable.dispose()
-      let idx = this.collections.findIndex(o => o == collection)
-      if (idx !== -1) this.collections.splice(idx, 1)
-    })
-    collection.onDidDiagnosticsClear(uris => {
+    let dispose = collection.onDidDiagnosticsClear(uris => {
       for (let uri of uris) {
         this.refreshBuffer(uri)
       }
+    })
+    collection.onDispose(() => {
+      disposable.dispose()
+      dispose.dispose()
+      let idx = this.collections.findIndex(o => o == collection)
+      if (idx !== -1) this.collections.splice(idx, 1)
+      collection.forEach((uri, diagnostics) => {
+        if (diagnostics && diagnostics.length) this.refreshBuffer(uri)
+      })
     })
     return collection
   }
