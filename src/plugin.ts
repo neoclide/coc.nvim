@@ -203,25 +203,34 @@ export default class Plugin extends EventEmitter {
     listManager.next()
   }
 
-  public upgrade(): Promise<void> {
+  public updateExtension(): Promise<void> {
+    let { nvim } = this
+    let statusItem = workspace.createStatusBarItem(0, { progress: true })
+    statusItem.text = 'Checking version of coc.nvim'
+    statusItem.show()
     return new Promise((resolve, reject) => {
       const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', res => {
         let content = ''
         res.on('data', d => {
           content = content + d
         })
-        res.on('end', () => {
+        res.on('end', async () => {
           try {
             let obj = JSON.parse(content)
             let latest = obj.tag_name.replace(/^v/, '')
             if (semver.gt(latest, workspace.version)) {
               workspace.showMessage(`Please upgrade coc.nvim to latest version: ${latest}`, 'warning')
             } else {
-              this.nvim.call('coc#util#update', [], true)
+              statusItem.text = 'updating extensions'
+              let cwd = await nvim.call('coc#util#extension_root') as string
+              await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 120000)
             }
+            statusItem.dispose()
             resolve()
           } catch (e) {
-            reject(e)
+            workspace.showMessage(`Update error: ${e.message}`, 'error')
+            statusItem.dispose()
+            resolve()
           }
         })
       })

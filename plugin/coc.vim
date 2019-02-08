@@ -189,9 +189,11 @@ function! s:CodeActionFromSelected(type)
   call CocAction('codeAction', a:type)
 endfunction
 
-function! s:Notification(name, args)
+function! s:SendRequest(name, args, ...)
+  let isRequest = get(a:, 1, 0)
+  let method = 'coc#rpc#' . (isRequest ? 'request' : 'notify')
   if get(g:, 'coc_service_initialized', 0)
-    call coc#rpc#notify(a:name, a:args)
+    call call(method, [a:name, a:args])
     return
   endif
   let name = a:name
@@ -200,7 +202,7 @@ function! s:Notification(name, args)
   while 1
     let c = c + 1
     if get(g:, 'coc_service_initialized', 0)
-      call coc#rpc#notify(name, args)
+      call call(method, [a:name, a:args])
       break
     endif
     if c == 50
@@ -210,22 +212,23 @@ function! s:Notification(name, args)
   endw
 endfunction
 
-command! -nargs=0 CocOpenLog    :call s:Notification('openLog',  [])
-command! -nargs=0 CocInfo       :call s:Notification('showInfo', [])
-command! -nargs=0 CocListResume :call s:Notification('listResume', [])
-command! -nargs=0 CocPrev       :call s:Notification('listPrev', [])
-command! -nargs=0 CocNext       :call s:Notification('listNext', [])
-command! -nargs=0 CocDisable    :call s:Disable()
-command! -nargs=0 CocEnable     :call s:Enable()
-command! -nargs=0 CocConfig     :call s:OpenConfig()
-command! -nargs=0 CocRestart    :call coc#rpc#restart()
-command! -nargs=0 CocStart      :call coc#rpc#start_server()
-command! -nargs=+ CocInstall    :call coc#util#install_extension(<q-args>)
-command! -nargs=0 CocUpdate     :call s:Notification('upgrade', [])
-command! -nargs=0 CocRebuild    :call coc#util#rebuild()
-command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:Notification('openList', [<f-args>])
-command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:Notification('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,s:CommandList CocCommand :call s:Notification('CocAction', ['runCommand', <f-args>])
+command! -nargs=0 CocOpenLog      :call s:SendRequest('openLog',  [])
+command! -nargs=0 CocInfo         :call s:SendRequest('showInfo', [])
+command! -nargs=0 CocListResume   :call s:SendRequest('listResume', [])
+command! -nargs=0 CocPrev         :call s:SendRequest('listPrev', [])
+command! -nargs=0 CocNext         :call s:SendRequest('listNext', [])
+command! -nargs=0 CocDisable      :call s:Disable()
+command! -nargs=0 CocEnable       :call s:Enable()
+command! -nargs=0 CocConfig       :call s:OpenConfig()
+command! -nargs=0 CocRestart      :call coc#rpc#restart()
+command! -nargs=0 CocStart        :call coc#rpc#start_server()
+command! -nargs=+ CocInstall      :call coc#util#install_extension(<q-args>)
+command! -nargs=0 CocUpdate       :call s:SendRequest('updateExtension', [])
+command! -nargs=0 CocUpdateSync   :call s:SendRequest('updateExtension', [], 1)
+command! -nargs=0 CocRebuild      :call coc#util#rebuild()
+command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:SendRequest('openList', [<f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:SendRequest('CocAction', ['uninstallExtension', <f-args>])
+command! -nargs=* -complete=custom,s:CommandList CocCommand :call s:SendRequest('CocAction', ['runCommand', <f-args>])
 
 call s:Enable()
 

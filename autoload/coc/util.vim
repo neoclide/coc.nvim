@@ -437,7 +437,8 @@ function! coc#util#open_url(url)
   endif 
 endfunction
 
-function! coc#util#install() abort
+function! coc#util#install(...) abort
+  let l:terminal = get(get(a:, 1, {}), 'terminal', 0)
   let obj = json_decode(join(readfile(s:package_file)))
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
   function! s:OnInstalled(status, ...) closure
@@ -454,13 +455,21 @@ function! coc#util#install() abort
     endif
   endfunction
   " install.cmd would always exited with code 0 with/without errors.
-  call coc#util#open_terminal({
-        \ 'cmd': cmd,
-        \ 'autoclose': 1,
-        \ 'cwd': s:root,
-        \ 'Callback': funcref('s:OnInstalled')
-        \})
-  wincmd p
+  if l:terminal
+    call coc#util#open_terminal({
+          \ 'cmd': cmd,
+          \ 'autoclose': 1,
+          \ 'cwd': s:root,
+          \ 'Callback': funcref('s:OnInstalled')
+          \})
+    wincmd p
+  else
+    let cwd = getcwd()
+    exe 'lcd '.s:root
+    exe '!'.cmd
+    exe 'lcd '.cwd
+    call s:OnInstalled(0)
+  endif
 endfunction
 
 " build coc from source code
@@ -470,6 +479,9 @@ function! coc#util#build()
     return 0
   endif
   let cwd = getcwd()
+  if s:is_win
+    call system('taskkill /F /Im coc-win.exe')
+  endif
   execute 'lcd '.s:root
   execute '!yarn install'
   execute 'lcd '.cwd
@@ -576,10 +588,6 @@ function! coc#util#echo_line()
     let str = str . nr2char(nr)
   endfor
   return str
-endfunction
-
-function! coc#util#cc(index)
-  call timer_start(60, { -> execute('cc! '.a:index)})
 endfunction
 
 " [r, g, b] ['255', '255', '255']

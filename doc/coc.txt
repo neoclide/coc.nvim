@@ -719,6 +719,51 @@ health#coc#check()
 	Neovim only, run health check, triggered by ':checkhealth'
 	command.
 
+						*coc#util#job_command()*
+
+coc#util#job_command()
+
+	Get the job command used for start coc service.
+
+						*coc#util#get_config_home()*
+coc#util#get_config_home()
+
+	Get config directory that contains user's coc-settings.json.
+
+						*coc#util#install()*
+coc#util#install([{config}])
+
+	Install binary version of coc.nvim.
+
+	{config} could be `{terminal: 1}` to use terminal for shell
+	script.
+
+						*coc#util#build()*
+
+coc#util#build()
+
+	Build coc.nvim from source code, restart vim required after
+	build.
+
+						*coc#util#extension_root()*
+
+coc#util#extension_root()
+	
+	Return extensions root of coc.nvim.
+
+						*coc#util#rebuild()*
+
+coc#util#rebuild()
+
+	Rebuild coc extensions.
+
+						*coc#util#update()*
+
+coc#util#update()
+
+	Update extensions by use terminal feature.
+
+
 ------------------------------------------------------------------------------
 
 COMMANDS 					*coc-commands*
@@ -759,6 +804,10 @@ COMMANDS 					*coc-commands*
 :CocUpdate 					*:CocUpdate*
 
 		Update all coc extensions to latest version.
+
+:CocUpdateSync 					*:CocUpdatSynce*
+
+		Block version of update coc extensions.
 
 :CocRebuild 					*:CocRebuild*
 
