@@ -277,19 +277,25 @@ export default class Handler {
       workspace.showMessage('Invalid position for rename', 'error')
       return
     }
+    let doc = workspace.getDocument(document.uri)
+    if (!doc) return
+    doc.forceSync()
     let curname: string
     if (res == null) {
-      curname = await nvim.call('expand', '<cword>')
+      let range = doc.getWordRangeAtPosition(position)
+      if (range) curname = document.getText(range)
     } else {
       if (Range.is(res)) {
-        let doc = workspace.getDocument(document.uri)
         let line = doc.getline(res.start.line)
         curname = line.slice(res.start.character, res.end.character)
       } else {
         curname = res.placeholder
       }
     }
-    if (!curname) return
+    if (!curname) {
+      workspace.showMessage('Invalid position', 'warning')
+      return
+    }
     let newName = await nvim.call('input', ['new name:', curname])
     nvim.command('normal! :<C-u>', true)
     if (!newName) {

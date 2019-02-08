@@ -349,7 +349,7 @@ export default class Document {
    * @returns {Range}
    */
   public getWordRangeAtPosition(position: Position, extraChars?: string, current = true): Range | null {
-    let chars = new Chars('@,48-57,_')
+    let chars = this.chars.clone()
     if (extraChars && extraChars.length) {
       for (let ch of extraChars) {
         chars.addKeyword(ch)
@@ -425,6 +425,30 @@ export default class Document {
     this._lastChange = 'change'
     lines[lnum - 1] = line
     this.fireContentChanges()
+  }
+
+  public getSymbolRanges(word: string): Range[] {
+    let { textDocument } = this
+    let res: Range[] = []
+    let content = textDocument.getText()
+    let str = ''
+    for (let i = 0, l = content.length; i < l; i++) {
+      let ch = content[i]
+      if ('-' == ch && str.length == 0) {
+        continue
+      }
+      let isKeyword = this.chars.isKeywordChar(ch)
+      if (isKeyword) {
+        str = str + ch
+      }
+      if (str.length > 0 && !isKeyword && str == word) {
+        res.push(Range.create(textDocument.positionAt(i - str.length), textDocument.positionAt(i)))
+      }
+      if (!isKeyword) {
+        str = ''
+      }
+    }
+    return res
   }
 
   public async patchChangedTick(): Promise<void> {

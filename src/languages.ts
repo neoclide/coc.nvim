@@ -309,8 +309,23 @@ class Languages {
   @check
   public async provideRenameEdits(document: TextDocument, position: Position, newName: string): Promise<WorkspaceEdit> {
     if (!this.renameManager.hasProvider(document)) {
-      workspace.showMessage('Rename provider not found for current document', 'error')
-      return null
+      let doc = workspace.getDocument(document.uri)
+      if (!doc) return null
+      let range = doc.getWordRangeAtPosition(position)
+      if (!range) return null
+      let word = doc.textDocument.getText(range)
+      let ranges = doc.getSymbolRanges(word)
+      if (!ranges.length) return null
+      return {
+        changes: {
+          [doc.uri]: ranges.map(r => {
+            return {
+              range: r,
+              newText: newName
+            }
+          })
+        }
+      }
     }
     return await this.renameManager.provideRenameEdits(document, position, newName, this.token)
   }

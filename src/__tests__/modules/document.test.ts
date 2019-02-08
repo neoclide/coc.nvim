@@ -71,6 +71,13 @@ describe('document model properties', () => {
     expect(range).toBeNull()
   })
 
+  it('should get symbol ranges', async () => {
+    let doc = await helper.createDocument()
+    await nvim.setLine('foo bar foo')
+    let ranges = doc.getSymbolRanges('foo')
+    expect(ranges.length).toBe(2)
+  })
+
   it('should get localify bonus', async () => {
     let doc = await helper.createDocument()
     let { buffer } = doc
