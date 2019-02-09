@@ -326,6 +326,11 @@
       "description": "Always consider `-` as keyword character when parsing buffer for keywords.",
       "default": true
     },
+    "coc.preferences.previewAutoClose": {
+      "type": "boolean",
+      "description": "Auto close preview window on cursor move.",
+      "default": true
+    },
     "coc.preferences.triggerSignatureHelp": {
       "type": "boolean",
       "description": "Show signature help when trigger character typed.",

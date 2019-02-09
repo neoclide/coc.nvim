@@ -41,8 +41,16 @@ interface SignaturePart {
   type: 'Label' | 'MoreMsg' | 'Normal'
 }
 
+interface Preferences {
+  triggerSignatureHelp: boolean
+  formatOnType: boolean
+  hoverTarget: string
+  previewAutoClose: boolean
+}
+
 export default class Handler {
   public showSignatureHelp: Function & { clear: () => void }
+  private preferences: Preferences
   /*bufnr and srcId list*/
   private highlightsMap: Map<number, number[]> = new Map()
   private highlightNamespace = 1080
@@ -53,6 +61,12 @@ export default class Handler {
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
+    this.getPreferences()
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('coc.preferences')) {
+        this.getPreferences()
+      }
+    })
     this.showSignatureHelp = debounce(() => {
       this._showSignatureHelp().catch(e => {
         logger.error(e.stack)
@@ -67,8 +81,7 @@ export default class Handler {
       if (isWord(ch)) return
       let doc = await workspace.document
       if (doc && languages.shouldTriggerSignatureHelp(doc.textDocument, ch)) {
-        let config = workspace.getConfiguration('coc.preferences')
-        let triggerSignatureHelp = config.get<boolean>('triggerSignatureHelp', true)
+        let { triggerSignatureHelp } = this.preferences
         if (triggerSignatureHelp) {
           await wait(100)
           this.showSignatureHelp()
@@ -100,6 +113,14 @@ export default class Handler {
     }, null, this.disposables)
     events.on('InsertEnter', () => {
       this.clearHighlight(workspace.bufnr)
+    }, null, this.disposables)
+
+    events.on(['CursorMoved', 'CursorMovedI'], async () => {
+      if (!this.preferences.previewAutoClose) return
+      let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
+      if (doc && doc.bufnr != workspace.bufnr) {
+        nvim.command('pclose', true)
+      }
     }, null, this.disposables)
 
     let provider: TextDocumentContentProvider = {
@@ -614,8 +635,7 @@ export default class Handler {
   }
 
   private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
-    let config = workspace.getConfiguration('coc.preferences')
-    let formatOnType = config.get<boolean>('formatOnType')
+    let { formatOnType } = this.preferences
     if (!formatOnType || snippetManager.session) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || doc.paused || workspace.bufnr != bufnr) return
@@ -776,8 +796,7 @@ export default class Handler {
   private async previewHover(hover: Hover): Promise<void> {
     let { contents } = hover
     let lines: string[] = []
-    let config = workspace.getConfiguration('coc.preferences')
-    let target = config.get<string>('hoverTarget', 'preview')
+    let target = this.preferences.hoverTarget
     if (Array.isArray(contents)) {
       for (let item of contents) {
         if (typeof item === 'string') {
@@ -815,6 +834,16 @@ export default class Handler {
     if (ids && ids.length) {
       this.highlightsMap.delete(bufnr)
       if (doc) doc.clearMatchIds(ids)
+    }
+  }
+
+  private getPreferences(): void {
+    let config = workspace.getConfiguration('coc.preferences')
+    this.preferences = {
+      triggerSignatureHelp: config.get<boolean>('triggerSignatureHelp', true),
+      formatOnType: config.get<boolean>('formatOnType', false),
+      hoverTarget: config.get<string>('hoverTarget', 'preview'),
+      previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
   }
 }

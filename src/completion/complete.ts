@@ -64,20 +64,30 @@ export default class Complete {
       this.tokenSources.add(tokenSource)
       let result = await new Promise<CompleteResult>((resolve, reject) => {
         let timer = setTimeout(() => {
-          tokenSource.cancel()
+          tokenSource.dispose()
           echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
           resolve(null)
         }, timeout)
-        source.doComplete(opt, tokenSource.token).then(result => {
+        let called = false
+        let onFinished = () => {
+          if (called) return
+          called = true
+          disposable.dispose()
           clearTimeout(timer)
+          this.tokenSources.delete(tokenSource)
+        }
+        let disposable = tokenSource.token.onCancellationRequested(() => {
+          onFinished()
+          reject(new Error('Cancelled request'))
+        })
+        source.doComplete(opt, tokenSource.token).then(result => {
+          onFinished()
           resolve(result)
         }, err => {
-          this.tokenSources.delete(tokenSource)
-          clearTimeout(timer)
+          onFinished()
           reject(err)
         })
       })
-      this.tokenSources.delete(tokenSource)
       let dt = Date.now() - start
       logger[dt > 1000 ? 'warn' : 'debug'](`Complete source "${source.name}" takes ${dt}ms`)
       if (result == null || result.items.length == 0) {
@@ -92,7 +102,7 @@ export default class Complete {
       result.duplicate = source.duplicate
       return result
     } catch (err) {
-      if (err.message.indexOf('Cancelled') != -1) return null
+      if (err.message && err.message.indexOf('Cancelled') != -1) return null
       echoErr(this.nvim, `${source.name} complete error: ${err}`)
       logger.error('Complete error:', source.name, err)
       return null
