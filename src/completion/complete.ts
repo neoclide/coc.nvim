@@ -64,7 +64,8 @@ export default class Complete {
       this.tokenSources.add(tokenSource)
       let result = await new Promise<CompleteResult>((resolve, reject) => {
         let timer = setTimeout(() => {
-          tokenSource.dispose()
+          disposable.dispose()
+          tokenSource.cancel()
           echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
           resolve(null)
         }, timeout)
