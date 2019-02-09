@@ -292,8 +292,13 @@ export default class Worker {
         if (sort && items.length) {
           (filtered as ExtendedItem[]).sort((a, b) => {
             if (a.score != b.score) return b.score - a.score
-            if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-            return a.label.length - b.label.length
+            if (a.location && b.location) {
+              if (a.location.uri.length != b.location.uri.length) {
+                return a.location.uri.length - b.location.uri.length
+              }
+              return a.location.uri > b.location.uri ? 1 : -1
+            }
+            return a.label > b.label ? 1 : -1
           })
         }
         for (let item of filtered as ExtendedItem[]) {
