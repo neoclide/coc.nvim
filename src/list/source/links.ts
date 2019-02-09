@@ -10,6 +10,7 @@ import Uri from 'vscode-uri'
 export default class LinksList extends BasicList {
   public defaultAction = 'open'
   public description = 'links of current buffer'
+  public name = 'links'
 
   constructor(nvim: Neovim) {
     super(nvim)
@@ -30,17 +31,15 @@ export default class LinksList extends BasicList {
     })
   }
 
-  public get name(): string {
-    return 'links'
-  }
-
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     let buf = await context.window.buffer
     let doc = workspace.getDocument(buf.id)
     if (!doc) return null
     let items: ListItem[] = []
     let links = await languages.getDocumentLinks(doc.textDocument)
-    links = links || []
+    if (links == null) {
+      throw new Error('Links provider not found.')
+    }
     let res: DocumentLink[] = []
     for (let link of links) {
       if (link.target) {

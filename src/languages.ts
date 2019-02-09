@@ -379,10 +379,9 @@ class Languages {
   @check
   public async getDocumentLinks(document: TextDocument): Promise<DocumentLink[]> {
     if (!this.documentLinkManager.hasProvider(document)) {
-      workspace.showMessage('Document link provider not found for current document', 'error')
       return null
     }
-    return await this.documentLinkManager.provideDocumentLinks(document, this.token)
+    return (await this.documentLinkManager.provideDocumentLinks(document, this.token)) || []
   }
 
   @check
