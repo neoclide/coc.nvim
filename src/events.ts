@@ -7,10 +7,10 @@ const logger = require('./util/logger')('events')
 export type Result = void | Promise<void>
 
 export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
-  | 'TextChanged' | 'BufWritePost' | 'CursorMoved' | 'CursorHold'
+  | 'TextChanged' | 'BufWritePost' | 'CursorMoved' | 'CursorHold' | 'InsertLeave'
   | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP'
 
-export type EmptyEvents = 'InsertLeave' | 'InsertEnter' | 'CursorMovedI' | 'FocusGained' | 'VimResized'
+export type EmptyEvents = 'InsertEnter' | 'CursorMovedI' | 'FocusGained' | 'VimResized'
 
 export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' |
   'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' |

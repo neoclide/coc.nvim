@@ -64,9 +64,9 @@ export class DiagnosticManager {
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
-      doc.forceSync()
-      await wait(100)
-      // if (!this.insertMode) this.refreshBuffer(doc.uri)
+      if (!this.config.refreshOnInsertMode) {
+        this.refreshBuffer(doc.uri)
+      }
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {

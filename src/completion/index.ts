@@ -382,8 +382,10 @@ export class Completion implements Disposable {
     }
   }
 
-  private async onInsertLeave(): Promise<void> {
+  private async onInsertLeave(bufnr: number): Promise<void> {
     this.insertLeaveTs = Date.now()
+    let doc = workspace.getDocument(bufnr)
+    if (doc) doc.forceSync(true)
     this.stop()
   }
 
@@ -476,7 +478,7 @@ export class Completion implements Disposable {
     if (!this.activted) return
     this.activted = false
     this.document.paused = false
-    this.document.forceSync()
+    this.document.fireContentChanges()
     this._completeItems = []
     if (this.complete) {
       this.complete.cancel()

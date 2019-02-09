@@ -21,12 +21,12 @@ export default class Document {
   public chars: Chars
   public textDocument: TextDocument
   public fetchContent: Function & { clear(): void }
+  public fireContentChanges: Function & { clear(): void }
   // vim only, for matchaddpos
   private colorId = 1080
   private nvim: Neovim
   private _lastChange: LastChangeType = 'insert'
   private eol = true
-  private _fireContentChanges: Function & { clear(): void }
   private _filetype: string
   private attached = false
   // real current lines
@@ -42,8 +42,8 @@ export default class Document {
     public readonly buffer: Buffer,
     private configurations: WorkspaceConfiguration,
     private env: Env) {
-    this._fireContentChanges = debounce(() => {
-      this.fireContentChanges()
+    this.fireContentChanges = debounce(() => {
+      this._fireContentChanges()
     }, 100)
     this.fetchContent = debounce(() => {
       this._fetchContent().catch(_e => {
@@ -168,7 +168,7 @@ export default class Document {
       this._changedtick = tick
     })
     if (this.textDocument) {
-      this._fireContentChanges()
+      this.fireContentChanges()
     }
     return true
   }
@@ -194,7 +194,7 @@ export default class Document {
     let lines = this.lines.slice(0, firstline)
     lines = lines.concat(linedata, this.lines.slice(lastline))
     this.lines = lines
-    this._fireContentChanges()
+    this.fireContentChanges()
   }
 
   /**
@@ -208,15 +208,15 @@ export default class Document {
     let { buffer } = this
     this._changedtick = await buffer.changedtick
     this.lines = await buffer.lines
-    this._fireContentChanges.clear()
-    this.fireContentChanges()
+    this.fireContentChanges.clear()
+    this._fireContentChanges()
   }
 
   public get dirty(): boolean {
     return this.content != this.getDocumentContent()
   }
 
-  private fireContentChanges(force = false): void {
+  private _fireContentChanges(force = false): void {
     let { paused, textDocument } = this
     if (paused && !force) return
     try {
@@ -251,7 +251,7 @@ export default class Document {
       // noop
     })
     this.fetchContent.clear()
-    this._fireContentChanges.clear()
+    this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
     this._onDocumentDetach.dispose()
   }
@@ -302,8 +302,8 @@ export default class Document {
   }
 
   public forceSync(ignorePause = true): void {
-    this._fireContentChanges.clear()
-    this.fireContentChanges(ignorePause)
+    this.fireContentChanges.clear()
+    this._fireContentChanges(ignorePause)
   }
 
   public getOffset(lnum: number, col: number): number {
@@ -412,7 +412,7 @@ export default class Document {
       this._lastChange = 'change'
     }
     this.lines = newLines
-    this.fireContentChanges()
+    this._fireContentChanges()
   }
 
   public async patchChange(): Promise<void> {
@@ -424,7 +424,7 @@ export default class Document {
     this._changedtick = changedtick
     this._lastChange = 'change'
     lines[lnum - 1] = line
-    this.fireContentChanges()
+    this._fireContentChanges()
   }
 
   public getSymbolRanges(word: string): Range[] {

@@ -47,6 +47,25 @@ async function createDocument(): Promise<Document> {
 }
 
 describe('diagnostic manager', () => {
+  it('should refresh on InsertLeave', async () => {
+    let doc = await helper.createDocument()
+    await nvim.input('i')
+    let collection = manager.create('test')
+    let diagnostics: Diagnostic[] = []
+    await doc.buffer.setLines(['foo bar foo bar', 'foo bar', 'foo', 'bar'], {
+      start: 0,
+      end: -1,
+      strictIndexing: false
+    })
+    diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
+    collection.set(doc.uri, diagnostics)
+    await helper.wait(30)
+    nvim.input('<esc>')
+    await helper.wait(300)
+    let res = await doc.buffer.getVar('coc_diagnostic_info') as any
+    expect(res.error).toBe(1)
+  })
+
   it('should create diagnostic collection', async () => {
     let doc = await helper.createDocument()
     let collection = manager.create('test')

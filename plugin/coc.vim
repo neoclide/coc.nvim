@@ -141,7 +141,7 @@ function! s:Enable()
       autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'))
     endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
-    autocmd InsertLeave         * call s:Autocmd('InsertLeave')
+    autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter')
     autocmd BufHidden           * call s:Autocmd('BufHidden', +expand('<abuf>'))
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
