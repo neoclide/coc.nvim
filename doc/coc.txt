@@ -638,6 +638,9 @@ Available Actions ~
 
 	Requires language server support document color request.
 
+	Note: only works on mac or when you have python support on vim and
+	have gtk module installed.
+
 "colorPresentation"  				*coc-action-colorPresentation*
 
 	Change color presentation at current color position.
@@ -892,6 +895,13 @@ AUTOCMD 					*coc-autocmds*
 
 HIGHLIGHTS 					*coc-highlights*
 
+You can overwrite highlight provided by coc with |:hi| command.
+
+To make sure your overwrite could work after coc restarted, you can use
+|CocNvimInit| autocmd.
+
+Note: don't use `:hi default` for overwrite highlight.
+
 CocErrorSign 					*CocErrorSign*
 
   Default: `hi CocErrorSign  ctermfg=Red guifg=#ff0000`
@@ -963,19 +973,19 @@ CocErrorLine 					*CocErrorLine*
 
   Default `undefined`
 
-  Highlight for line with diagnostic error.
+  Line highlight of sign for line contains error diagnostic.
 
 CocWarningLine 					*CocWarningLine*
 
   Default `undefined`
 
-  Highlight for line with diagnostic warning.
+  Line highlight of sign for line contains warning diagnostic.
 
 CocInfoLine 					*CocInfoLine*
 
   Default `undefined`
 
-  Highlight for line with diagnostic information.
+  Line highlight of sign for line contains info diagnostic.
 
 CocHintLine 					*CocHintLine*
 
@@ -1465,6 +1475,9 @@ Use configuration like: >
 	\ }
 <
 To your .vimrc
+
+Use autocmd |CocDiagnosticChange| to force lightline refresh on diagnostics
+change.
 
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
