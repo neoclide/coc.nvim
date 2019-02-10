@@ -1,3 +1,26 @@
+# 2019-02-11
+
+- **Break change:** internal filetype of settings file changed to jsonc.
+- **Break change:** `coc#util#install` changed to synchronize by default.
+- **Break change:** no document highlight would be added for colored symbol.
+- **Break change:** remove `coc.preferences.openResourceCommand`.
+- Add fallback rename implementation which rename symbols on current buffer.
+- Add command `:CocUpdateSync`.
+- Add `coc.preferences.detailMaxLength` for slice detail on completion menu.
+- Add cancel support for completion.
+- Add `ctags` as fallback of document symbols list.
+- Add default key-mappings for location actions.
+- Add python check on vim.
+- Add `disableSyntaxes` support for completion sources.
+- Add support for change `isProgress` of `StatusBarItem`
+- Add check of coc.nvim version for `CocUpdate`
+- Add `coc.preferences.previewAutoClose`, default true.
+- Add `workspace.add registerAutocmd`.
+- Fix highlight not cleared on vim
+- Fix health check of service state.
+- Fix CursorHoldI not triggered on neovim.
+- Fix sort of list not stable.
+
 # 2019-02-04
 
 - **Break change:** no messages when documentSymbol and workspaceSymbol provider
