@@ -466,14 +466,16 @@ export class Completion implements Disposable {
   }
 
   public start(complete: Complete): void {
-    let { nvim, activted } = this
+    let { activted } = this
     this.activted = true
     if (activted) {
       this.complete.cancel()
     }
     this.complete = complete
     this._completeItems = []
-    this.setCompleteopt(this.completeOpt)
+    if (!this.config.keepCompleteopt) {
+      this.nvim.command(`noa set completeopt=${this.completeOpt}`, true)
+    }
     this.currIndex = !this.autoSelectFirstItem ? 0 : 1
     this.changedTick = this.document.changedtick
     this.document.forceSync(true)
@@ -495,25 +497,15 @@ export class Completion implements Disposable {
       nvim.call('coc#_unmap', [], true)
     }
     nvim.call('coc#_hide', [], true)
-    this.setCompleteopt(workspace.completeOpt)
+    if (!this.config.keepCompleteopt) {
+      this.nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+    }
   }
 
   private get completeOpt(): string {
     let { noselect } = this.config
     let preview = workspace.completeOpt.indexOf('preview') !== -1
     return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview ? ',preview' : ''}`
-  }
-
-  private setCompleteopt(completeOpt): void {
-    if (this.config.keepCompleteopt) {
-      return
-    }
-
-    this.nvim.command(`noa set completeopt=${completeOpt}`, true)
-  }
-
-  public dispose(): void {
-    disposeAll(this.disposables)
   }
 
   private get autoSelectFirstItem(): boolean {
@@ -523,6 +515,10 @@ export class Completion implements Disposable {
 
     let { completeOpt } = workspace
     return !completeOpt.includes('noselect') && !completeOpt.includes('noinsert')
+  }
+
+  public dispose(): void {
+    disposeAll(this.disposables)
   }
 }
 
