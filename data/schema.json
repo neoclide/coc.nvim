@@ -299,6 +299,11 @@
       "description": "Not make vim select first item on completion start",
       "default": true
     },
+    "coc.preferences.keepCompleteopt": {
+      "type": "boolean",
+      "description": "When enabled, completeopt is not overriden.",
+      "default": false
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",

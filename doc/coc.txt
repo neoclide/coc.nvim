@@ -108,6 +108,10 @@ To change the timeout of completion, use: >
 To make the first complete item selected automatically, use: >
 
 	"coc.preferences.noselect": false,
+
+To prevent overriding `completeopt`, use:
+
+	"coc.preferences.keepCompleteopt": true,
 <
 To make completion triggered with two input characters, use: >
 

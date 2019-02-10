@@ -122,10 +122,18 @@ export class Completion implements Disposable {
 
   private getCompleteConfig(): CompleteConfig {
     let config = workspace.getConfiguration('coc.preferences')
+    let keepCompleteopt = config.get<boolean>('keepCompleteopt', false)
+    let autoTrigger = config.get<string>('autoTrigger', 'always')
+
+    if (keepCompleteopt && !workspace.completeOpt.includes('noinsert')) {
+      autoTrigger = 'none'
+    }
+
     return {
-      autoTrigger: config.get<string>('autoTrigger', 'always'),
+      autoTrigger,
       triggerAfterInsertEnter: config.get<boolean>('triggerAfterInsertEnter', false),
       noselect: config.get<boolean>('noselect', true),
+      keepCompleteopt,
       numberSelect: config.get<boolean>('numberSelect', false),
       acceptSuggestionOnCommitCharacter: config.get<boolean>('acceptSuggestionOnCommitCharacter', false),
       maxItemCount: config.get<number>('maxCompleteItemCount', 50),
@@ -197,8 +205,7 @@ export class Completion implements Disposable {
 
   private async onPumVisible(): Promise<void> {
     let first = this._completeItems[0]
-    let noselect = this.config.noselect
-    if (!noselect) await sources.doCompleteResolve(first)
+    if (this.autoSelectFirstItem) await sources.doCompleteResolve(first)
   }
 
   public hasSelected(): boolean {
@@ -466,8 +473,8 @@ export class Completion implements Disposable {
     }
     this.complete = complete
     this._completeItems = []
-    nvim.command(`noa set completeopt=${this.completeOpt}`, true)
-    this.currIndex = this.config.noselect ? 0 : 1
+    this.setCompleteopt(this.completeOpt)
+    this.currIndex = !this.autoSelectFirstItem ? 0 : 1
     this.changedTick = this.document.changedtick
     this.document.forceSync(true)
     this.document.paused = true
@@ -488,7 +495,7 @@ export class Completion implements Disposable {
       nvim.call('coc#_unmap', [], true)
     }
     nvim.call('coc#_hide', [], true)
-    nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
+    this.setCompleteopt(workspace.completeOpt)
   }
 
   private get completeOpt(): string {
@@ -497,8 +504,25 @@ export class Completion implements Disposable {
     return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview ? ',preview' : ''}`
   }
 
+  private setCompleteopt(completeOpt): void {
+    if (this.config.keepCompleteopt) {
+      return
+    }
+
+    this.nvim.command(`noa set completeopt=${completeOpt}`, true)
+  }
+
   public dispose(): void {
     disposeAll(this.disposables)
+  }
+
+  private get autoSelectFirstItem(): boolean {
+    if (!this.config.keepCompleteopt) {
+      return !this.config.noselect
+    }
+
+    let { completeOpt } = workspace
+    return !completeOpt.includes('noselect') && !completeOpt.includes('noinsert')
   }
 }
 
