@@ -189,7 +189,9 @@ export default class Complete {
           }
         }
         words.add(word)
-        if (!filtering && item.preselect) {
+        if (item.isSnippet && item.word == input) {
+          preselect = item
+        } else if (!filtering && item.preselect) {
           preselect = item
           continue
         }
