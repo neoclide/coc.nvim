@@ -638,6 +638,25 @@ describe('workspace utility', () => {
     expect(res).toBeNull()
   })
 
+  it('should regist autocmd', async () => {
+    let event
+    let disposable = workspace.registerAutocmd({
+      event: 'TextYankPost',
+      arglist: ['v:event'],
+      callback: ev => {
+        event = ev
+      }
+    })
+    await nvim.setLine('foo')
+    await helper.wait(30)
+    await nvim.command('normal! yy')
+    await helper.wait(30)
+    expect(event.regtype).toBe('V')
+    expect(event.operator).toBe('y')
+    expect(event.regcontents).toEqual(['foo'])
+    disposable.dispose()
+  })
+
   it('should regist keymap', async () => {
     let fn = jest.fn()
     await nvim.command('nmap go <Plug>(coc-echo)')

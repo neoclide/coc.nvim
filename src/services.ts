@@ -295,7 +295,7 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     return null
   }
   if (!command && !module && !port) {
-    workspace.showMessage(`Wrong configuration of LS "${name}"`, 'error')
+    workspace.showMessage(`Wrong configuration of LS "${name}", no command or module specified.`, 'error')
     return null
   }
   if (module && !fs.existsSync(module as string)) {

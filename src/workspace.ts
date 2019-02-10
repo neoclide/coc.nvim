@@ -20,7 +20,7 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd } from './types'
 import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier } from './util/index'
 import { score } from './util/match'
@@ -48,6 +48,7 @@ export class Workspace implements IWorkspace {
   private _initialized = false
   private _attached = false
   private buffers: Map<number, Document> = new Map()
+  private autocmds: Map<number, Autocmd> = new Map()
   private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
@@ -152,6 +153,16 @@ export class Workspace implements IWorkspace {
 
   public getConfigFile(target: ConfigurationTarget): string {
     return this.configurations.getConfigFile(target)
+  }
+
+  public registerAutocmd(autocmd: Autocmd): Disposable {
+    let id = this.autocmds.size + 1
+    this.autocmds.set(id, autocmd)
+    this.setupDynamicAutocmd()
+    return Disposable.create(() => {
+      this.autocmds.delete(id)
+      this.setupDynamicAutocmd()
+    })
   }
 
   public watchOption(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
@@ -853,6 +864,10 @@ export class Workspace implements IWorkspace {
     let cmds: string[] = []
     for (let scheme of schemes) {
       cmds.push(`autocmd BufReadCmd,FileReadCmd,SourceCmd ${scheme}://* call coc#rpc#request('CocAutocmd', ['BufReadCmd','${scheme}', expand('<amatch>')])`)
+    }
+    for (let [id, autocmd] of this.autocmds.entries()) {
+      let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : ''
+      cmds.push(`autocmd ${autocmd.event} * call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`)
     }
     for (let key of this.watchedOptions) {
       cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`)

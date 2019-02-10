@@ -11,6 +11,14 @@ import { TextDocumentContentProvider, ProviderResult } from './provider'
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 
+export interface Autocmd {
+  event: string
+  arglist?: string[]
+  request?: boolean
+  thisArg?: any
+  callback: Function
+}
+
 export interface ExtensionInfo {
   id: string
   root: string

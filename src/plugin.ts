@@ -14,7 +14,7 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { OutputChannel } from './types'
+import { OutputChannel, Autocmd } from './types'
 import { isRunning } from './util'
 import clean from './util/clean'
 import workspace from './workspace'
@@ -74,6 +74,11 @@ export default class Plugin extends EventEmitter {
       return
     }
     return await services.sendRequest(id, method, params)
+  }
+
+  public async doAutocmd(id: number, ...args: []): Promise<void> {
+    let autocmd = (workspace as any).autocmds.get(id) as Autocmd
+    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
   }
 
   public updateConfig(section: string, val: any): void {
