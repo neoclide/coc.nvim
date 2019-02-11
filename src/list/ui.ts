@@ -20,7 +20,6 @@ export default class ListUI {
   public window: Window
   private height: number
   private _bufnr = 0
-  private srcId: number
   private currIndex = 0
   private highlights: ListHighlights[] = []
   private items: ListItem[] = []
@@ -49,9 +48,6 @@ export default class ListUI {
     let signText = config.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     this.signOffset = config.get<number>('signOffset')
-    workspace.createNameSpace('list-ui').then(srcId => {
-      this.srcId = srcId || 998
-    })
     nvim.call('coc#list#get_colors').then(map => {
       for (let key of Object.keys(map)) {
         let foreground = key[0].toUpperCase() + key.slice(1)
