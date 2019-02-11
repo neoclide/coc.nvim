@@ -76,7 +76,9 @@ export class Extensions {
         workspace.showMessage(`Error on update extensions: ${e.message}`, 'error')
       })
     })
-    if (workspace.isVim) this.updateNodeRpc() // tslint:disable-line
+    if (workspace.isVim) this.updateNodeRpc().catch(e => {
+      workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
+    })
   }
 
   private async updateExtensions(stats: ExtensionInfo[]): Promise<void> {
@@ -136,7 +138,6 @@ export class Extensions {
       let { version } = loadJson(jsonFile)
       let res = await runCommand(`yarn info vim-node-rpc version --json`, process.cwd(), 30000)
       let newVersion = JSON.parse(res).data
-      logger.debug('version:', newVersion, version)
       if (!semver.gt(newVersion, version)) return
     }
     let status = workspace.createStatusBarItem(99, { progress: true })

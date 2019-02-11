@@ -25,13 +25,13 @@ export default class Resolver {
   public async resolveModule(mod: string): Promise<string> {
     let nodeFolder = await this.nodeFolder
     let yarnFolder = await this.yarnFolder
-    if (nodeFolder) {
-      let s = await statAsync(path.join(nodeFolder, mod, 'package.json'))
-      if (s && s.isFile()) return path.join(nodeFolder, mod)
-    }
     if (yarnFolder) {
       let s = await statAsync(path.join(yarnFolder, mod, 'package.json'))
       if (s && s.isFile()) return path.join(yarnFolder, mod)
+    }
+    if (nodeFolder) {
+      let s = await statAsync(path.join(nodeFolder, mod, 'package.json'))
+      if (s && s.isFile()) return path.join(nodeFolder, mod)
     }
     return null
   }
