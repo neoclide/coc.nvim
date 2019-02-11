@@ -273,7 +273,7 @@ export class DiagnosticManager {
             file,
             lnum: start.line + 1,
             col: start.character + 1,
-            message: `[${collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
+            message: `[${diagnostic.source || collection.name}${diagnostic.code ? ' ' + diagnostic.code : ''}] ${diagnostic.message}`,
             severity: getSeverityName(diagnostic.severity),
             level: diagnostic.severity || 0,
             location: Location.create(uri, diagnostic.range)
