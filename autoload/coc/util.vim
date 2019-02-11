@@ -606,6 +606,16 @@ function! coc#util#pick_color(default_color)
   endif
   let default_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
   let rgb = []
+  if !has('python')
+    echohl Error | echon 'python support required, checkout :echo has(''python'')' | echohl None
+    return
+  endif
+  try
+    execute 'py import gtk'
+  catch /.*/
+    echohl Error | echon 'python gtk module not found' | echohl None
+    return
+  endtry
 python << endpython
 
 import vim
