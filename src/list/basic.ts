@@ -85,18 +85,17 @@ export default abstract class BasicList implements IList, Disposable {
     let u = URI.parse(uri)
     let filepath = u.scheme == 'file' ? u.fsPath : u.toString()
     let cwd = workspace.cwd
-    let escaped = await nvim.call('fnameescape', [filepath])
+    let escaped = await nvim.call('fnameescape', filepath)
     filepath = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
     let lnum = range.start.line + 1
     let mod = context.options.position == 'top' ? 'below' : ''
     let winid = context.listWindow.id
+    await nvim.command('pclose')
+    let exists = await nvim.call('bufloaded', filepath)
     nvim.pauseNotification()
-    nvim.command('pclose', true)
     nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
     nvim.command(`exe ${lnum}`, true)
-    nvim.command('setl bufhidden=wipe', true)
     nvim.command('setl winfixheight', true)
-    let exists = workspace.getDocument(uri) != null
     if (range.start.line == range.end.line && range.start.character != range.end.character) {
       let line = await workspace.getLine(uri, range.start.line)
       let { hlGroup } = this
@@ -105,7 +104,6 @@ export default abstract class BasicList implements IList, Disposable {
       nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true)
     }
     if (!exists) {
-      logger.debug('not exists:', uri)
       nvim.command('setl nobuflisted bufhidden=wipe', true)
     }
     nvim.command('normal! zt', true)

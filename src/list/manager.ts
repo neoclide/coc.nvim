@@ -216,11 +216,11 @@ export class ListManager {
         }
       }
       if (action.persist || action.name == 'preview') {
-        let { bufnr } = ui
-        let winnr = bufnr ? await nvim.call('bufwinnr', bufnr) : -1
-        if (winnr == -1) return
+        let { window } = ui
+        let valid = await window.valid
+        if (!valid) return
         nvim.pauseNotification()
-        this.nvim.command(`${winnr}wincmd w`, true)
+        nvim.call('win_gotoid', [window.id], true)
         await this.ui.restoreWindow()
         await nvim.resumeNotification()
         if (action.reload) await this.worker.loadItems(true)
