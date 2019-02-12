@@ -67,11 +67,13 @@ export class DiagnosticBuffer {
       this.setLocationlist(diagnostics, winid)
       this.addSigns(diagnostics)
       this.addHighlight(diagnostics, winid)
+      if (workspace.isVim) this.nvim.command('redraw', true)
       await this.nvim.resumeNotification()
     })
-    sequence.start().then(canceled => {
-      if (workspace.isVim) this.nvim.command('redraw', true)
-      if (!canceled) this._diagnosticItems = diagnosticItems
+    sequence.start().then(async canceled => {
+      if (!canceled) {
+        this._diagnosticItems = diagnosticItems
+      }
     }, e => {
       logger.error(e)
     })

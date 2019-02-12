@@ -143,11 +143,6 @@ export class SnippetSession {
   public async selectCurrentPlaceholder(): Promise<void> {
     let placeholder = this.snippet.getPlaceholderById(this._currId)
     if (placeholder) await this.selectPlaceholder(placeholder)
-    if (workspace.env.isMacvim) {
-      setTimeout(() => {
-        this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'], true)
-      }, 30)
-    }
   }
 
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {

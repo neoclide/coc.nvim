@@ -397,7 +397,7 @@
     },
     "coc.preferences.diagnostic.refreshOnInsertMode": {
       "type": "boolean",
-      "description": "Enable diagnostic refresh on insert mode",
+      "description": "Enable diagnostic refresh on insert mode, only works on neovim.",
       "default": false
     },
     "coc.preferences.diagnostic.enable": {

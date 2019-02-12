@@ -54,6 +54,10 @@ export class DiagnosticManager {
       this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
     }, null, this.disposables)
 
+    events.on('TextChanged', () => {
+      if (this.timer) clearTimeout(this.timer)
+    }, null, this.disposables)
+
     events.on('InsertEnter', async () => {
       this.insertMode = true
       if (this.timer) clearTimeout(this.timer)
@@ -309,6 +313,10 @@ export class DiagnosticManager {
     if (truncate && this.enableMessage == 'jump') return
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
+    if (truncate) {
+      let mode = await this.nvim.call('mode') as string
+      if (mode != 'n') return
+    }
     let document = workspace.getDocument(buffer.id)
     if (!document || !this.shouldValidate(document)) return
     let offset = await workspace.getOffset()
@@ -319,8 +327,7 @@ export class DiagnosticManager {
     if (diagnostics.length == 0) {
       let echoLine = await this.nvim.call('coc#util#echo_line') as string
       if (this.lastMessage && this.lastMessage == echoLine.trim()) {
-        this.nvim.command('echo ""', true)
-        this.nvim.command('redraw', true)
+        await this.nvim.command('echo ""')
       }
       this.lastMessage = ''
       return
@@ -434,8 +441,6 @@ export class DiagnosticManager {
 
   private async onHold(bufnr: number): Promise<void> {
     if (workspace.bufnr != bufnr) return
-    let mode = await this.nvim.call('mode') as string
-    if (mode != 'n') return
     await this.echoMessage(true)
   }
 
