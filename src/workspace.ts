@@ -112,12 +112,14 @@ export class Workspace implements IWorkspace {
       let timer: NodeJS.Timeout
       let { nvim } = this
       let updatetime = await nvim.getOption('updatetime') as number
-      events.on(['CursorMovedI', 'InsertEnter'], () => {
+      events.on(['CursorHoldI', 'InsertLeave'], () => {
         if (timer) clearTimeout(timer)
-        setTimeout(async () => {
-          let m = await nvim.call('mode') as string
-          if (m && m.startsWith('i')) nvim.command('doautocmd CursorHoldI', true)
-        }, updatetime)
+      }, null, this.disposables)
+      events.on(['InsertEnter', 'TextChangedI'], () => {
+        if (timer) clearTimeout(timer)
+        timer = setTimeout(() => {
+          nvim.command('doautocmd CursorHoldI', true)
+        }, Math.max(updatetime + 50, 300))
       }, null, this.disposables)
       events.on('InsertLeave', () => {
         if (timer) clearTimeout(timer)
