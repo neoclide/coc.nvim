@@ -256,10 +256,10 @@ export class ListManager {
       return
     }
     this.activated = false
-    nvim.command('pclose', true)
     this.worker.stop()
     this.history.add()
     nvim.pauseNotification()
+    nvim.command('pclose', true)
     this.prompt.cancel()
     if (close) {
       ui.hide()
