@@ -201,7 +201,7 @@ export class DiagnosticBuffer {
   public clearHighlight(): void {
     let { bufnr, nvim, matchIds } = this
     if (workspace.isVim) {
-      nvim.call('coc#util#clearmatches', [bufnr, Array.from(matchIds)], true)
+      nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true)
       this.matchId = STARTMATCHID
     } else {
       let buffer = nvim.createBuffer(bufnr)

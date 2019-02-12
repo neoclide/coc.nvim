@@ -523,7 +523,7 @@ export default class Document {
 
   public clearMatchIds(ids: Set<number> | number[]): void {
     if (this.env.isVim) {
-      this.nvim.call('coc#util#clearmatches', [this.bufnr, Array.from(ids)], true)
+      this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true)
     } else {
       for (let id of ids) {
         if (this.nvim.hasFunction('nvim_create_namespace')) {

@@ -413,12 +413,10 @@ function! coc#util#clear_signs()
   endfor
 endfunction
 
-function! coc#util#clearmatches(bufnr, ids)
-  if bufnr('%') == a:bufnr
-    for id in a:ids
-      silent! call matchdelete(id)
-    endfor
-  endif
+function! coc#util#clearmatches(ids)
+  for id in a:ids
+    silent! call matchdelete(id)
+  endfor
 endfunction
 
 function! coc#util#open_url(url)
