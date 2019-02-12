@@ -1,3 +1,12 @@
+# 2019-02-12
+
+- **Break change** function `coc#util#clearmatches` signature changed.
+- Add check for python gtk module.
+- Add check for vim-node-rpc update error.
+- Fix source name of diagnostics.
+- Fix empty buffers created on preview.
+- Fix trigger of `CursorHoldI`.
+
 # 2019-02-11
 
 - **Break change:** internal filetype of settings file changed to jsonc.
