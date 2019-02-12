@@ -140,8 +140,11 @@ export class Workspace implements IWorkspace {
       let doc = this.getDocument(this.bufnr)
       if (doc) doc.setIskeyword(newValue)
     }, this.disposables)
-    this.watchOption('completeopt', (_, newValue) => {
+    this.watchOption('completeopt', async (_, newValue) => {
       this.env.completeOpt = newValue
+      if (!this._attached) return
+      let mode = await this.nvim.call('mode') as string
+      if (mode.startsWith('i')) console.error(`Some plugin change completeopt on insert mode!`) // tslint:disable-line
     }, this.disposables)
     this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
       if (newValue == oldValue) return
