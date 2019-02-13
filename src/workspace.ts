@@ -580,7 +580,7 @@ export class Workspace implements IWorkspace {
   }
 
   public async getCursorPosition(): Promise<Position> {
-    let [, lnum, col] = await this.nvim.call('getcurpos')
+    let [, lnum, col] = await this.nvim.call('getpos', ['.'])
     let line = await this.nvim.call('getline', '.')
     return Position.create(lnum - 1, byteIndex(line, col - 1))
   }

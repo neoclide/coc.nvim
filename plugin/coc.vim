@@ -192,7 +192,7 @@ endfunction
 function! s:SendRequest(name, args, ...)
   let isRequest = get(a:, 1, 0)
   let method = 'coc#rpc#' . (isRequest ? 'request' : 'notify')
-  if get(g:, 'coc_workspace_initialized', 0)
+  if get(g:, 'coc_service_initialized', 0)
     call call(method, [a:name, a:args])
     return
   endif
@@ -201,7 +201,7 @@ function! s:SendRequest(name, args, ...)
   let c = 0
   while 1
     let c = c + 1
-    if get(g:, 'coc_workspace_initialized', 0)
+    if get(g:, 'coc_service_initialized', 0)
       call call(method, [a:name, a:args])
       break
     endif

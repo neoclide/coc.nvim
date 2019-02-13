@@ -87,7 +87,6 @@ endfunction
 function! coc#list#start_prompt()
   if s:activated | return | endif
   if s:is_vim
-    let s:saved_ve = &t_ve
     set t_ve=
   endif
   let s:activated = 1
