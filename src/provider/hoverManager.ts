@@ -22,10 +22,16 @@ export default class HoverManager extends Manager<HoverProvider> implements Disp
     position: Position,
     token: CancellationToken
   ): Promise<Hover | null> {
-    let item = this.getProvider(document)
-    if (!item) return null
-    let hover = await Promise.resolve(item.provider.provideHover(document, position, token))
-    return hover || null
+    let items = this.getProviders(document)
+    if (items.length === 0) return null
+    for (let i = 0, len = items.length; i < len; i += 1) {
+      const item = items[i]
+      let hover = await Promise.resolve(item.provider.provideHover(document, position, token))
+      if (hover) {
+        return hover
+      }
+    }
+    return null
   }
 
   public dispose(): void {
