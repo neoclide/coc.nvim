@@ -13,7 +13,7 @@ import languages from '../languages'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import { disposeAll, wait } from '../util'
-import { isWord, indexOf } from '../util/string'
+import { isWord, indexOf, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Document from '../model/document'
 import { getSymbolKind } from '../util/convert'
@@ -49,7 +49,6 @@ interface Preferences {
 }
 
 export default class Handler {
-  public showSignatureHelp: Function & { clear: () => void }
   private preferences: Preferences
   /*bufnr and srcId list*/
   private highlightsMap: Map<number, number[]> = new Map()
@@ -67,29 +66,16 @@ export default class Handler {
         this.getPreferences()
       }
     })
-    this.showSignatureHelp = debounce(() => {
-      this._showSignatureHelp().catch(e => {
-        logger.error(e.stack)
-      })
-    }, 100)
     workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
       if (id) this.highlightNamespace = id
     })
 
     let timer: NodeJS.Timer
     events.on('InsertCharPre', async ch => {
-      if (isWord(ch)) return
-      let doc = await workspace.document
-      if (doc && languages.shouldTriggerSignatureHelp(doc.textDocument, ch)) {
-        let { triggerSignatureHelp } = this.preferences
-        if (triggerSignatureHelp) {
-          await wait(100)
-          this.showSignatureHelp()
-        }
-      }
       if (timer) clearTimeout(timer)
+      if (isWord(ch)) return
       timer = setTimeout(async () => {
-        await this.onCharacterType(ch, doc.bufnr)
+        await this.onCharacterType(ch, workspace.bufnr)
       }, 40)
     }, null, this.disposables)
     events.on('TextChangedI', async bufnr => {
@@ -99,6 +85,18 @@ export default class Handler {
         let line: string = await nvim.call('getline', '.')
         if (line.trim() == '') await this.onCharacterType('\n', bufnr)
       }
+      let { triggerSignatureHelp } = this.preferences
+      if (!triggerSignatureHelp) return
+      let { changedtick } = doc
+      let pre = await this.getPreviousCharacter(doc)
+      if (isWord(pre) || doc.paused) return
+      if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
+      if (doc.dirty) {
+        doc.forceSync()
+        await wait(60)
+      }
+      if (doc.changedtick != changedtick) return
+      await this.showSignatureHelp()
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       let buf = await nvim.buffer
@@ -136,9 +134,6 @@ export default class Handler {
       }
     }
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
-    this.disposables.push(Disposable.create(() => {
-      this.showSignatureHelp.clear()
-    }))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
   }
@@ -356,6 +351,7 @@ export default class Handler {
     let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
     if (!textEdits) return - 1
     await document.applyEdits(this.nvim, textEdits)
+    return 0
   }
 
   public async runCommand(id?: string, ...args: any[]): Promise<void> {
@@ -645,7 +641,7 @@ export default class Handler {
     let { changedtick, dirty } = doc
     if (dirty) {
       doc.forceSync()
-      await wait(30)
+      await wait(60)
     }
     let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
     try {
@@ -666,17 +662,18 @@ export default class Handler {
         }
       }
     } catch (e) {
-      if (!/timeout\safter/.test(e.message)) {
-        throw e
+      if (!/timeout\s/.test(e.message)) {
+        console.error(`Error on formatOnType: ${e.message}`)
       }
     }
   }
 
-  private async _showSignatureHelp(): Promise<void> {
+  public async showSignatureHelp(): Promise<void> {
+    let bufnr = await this.nvim.call('bufnr', '%')
+    let document = workspace.getDocument(bufnr)
+    if (!document) return
+    let { changedtick } = document
     let position = await workspace.getCursorPosition()
-    let document = await workspace.document
-    let visible = await this.nvim.call('pumvisible')
-    if (visible) return
     let part = document.getline(position.line).slice(0, position.character)
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
@@ -688,10 +685,11 @@ export default class Handler {
       let [active] = signatures.splice(activeSignature, 1)
       if (active) signatures.unshift(active)
     }
+    if (signatures.length == 0) return
     let height = await this.nvim.getOption('cmdheight') as number
     let columns = await this.nvim.getOption('columns') as number
+    if (document.changedtick != changedtick) return
     signatures = signatures.slice(0, height)
-    if (signatures.length == 0) return
     let signatureList: SignaturePart[][] = []
     for (let signature of signatures) {
       let parts: SignaturePart[] = []
@@ -744,8 +742,7 @@ export default class Handler {
       }
       signatureList.push(parts)
     }
-    this.nvim.command('echo ""', true)
-    await this.nvim.call('coc#util#echo_signatures', [signatureList])
+    this.nvim.call('coc#util#echo_signatures', [signatureList], true)
   }
 
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string): Promise<void> {
@@ -845,6 +842,12 @@ export default class Handler {
       hoverTarget: config.get<string>('hoverTarget', 'preview'),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
+  }
+
+  private async getPreviousCharacter(document: Document): Promise<string> {
+    let [, lnum, col] = await this.nvim.call('getcurpos')
+    let line = document.getline(lnum - 1)
+    return col == 1 ? '' : byteSlice(line, col - 2, col - 1)
   }
 }
 

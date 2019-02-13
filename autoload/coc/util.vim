@@ -253,18 +253,14 @@ function! coc#util#get_syntax_name(lnum, col)
 endfunction
 
 function! coc#util#echo_signatures(signatures) abort
-  let showcmd = &showcmd
-  let ruler = &ruler
-  noa set noruler
-  noa set noshowcmd
+  if pumvisible() | return | endif
+  echo ""
   for i in range(len(a:signatures))
     call s:echo_signature(a:signatures[i])
     if i != len(a:signatures) - 1
       echon "\n"
     endif
   endfor
-  if showcmd | noa set showcmd | endif
-  if ruler | noa set ruler | endif
 endfunction
 
 function! s:echo_signature(parts)
