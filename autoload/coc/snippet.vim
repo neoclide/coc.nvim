@@ -23,17 +23,6 @@ function! coc#snippet#_select_mappings()
   snoremap <c-r> <c-g>"_c<c-r>
 endfunction
 
-function! coc#snippet#range_select(lnum, col, len)
-  call cursor(a:lnum, a:col)
-  if a:len > 0
-    let len = &selection ==# 'exclusive' ? a:len + 1: a:len
-    let m = len == 1 ? '' : (len - 1).'l'
-    execute 'normal! v'.m. "\<C-g>"
-  endif
-  redraw
-  silent doautocmd User CocJumpPlaceholder
-endfunction
-
 function! coc#snippet#show_choices(lnum, col, len, values) abort
   let m = mode()
   call cursor(a:lnum, a:col + a:len)

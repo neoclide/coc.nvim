@@ -212,6 +212,7 @@ export class SnippetSession {
     }
     await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
     if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
+    nvim.command('silent doautocmd User CocJumpPlaceholder', true)
   }
 
   private async getVirtualCol(line: number, col: number): Promise<number> {
