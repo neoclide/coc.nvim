@@ -8,6 +8,7 @@ import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
+  enableMessage: 'always',
   refreshOnInsertMode: false,
   virtualTextSrcId: 0,
   virtualText: false,

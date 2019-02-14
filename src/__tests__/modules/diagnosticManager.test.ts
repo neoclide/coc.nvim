@@ -144,7 +144,7 @@ describe('diagnostic manager', () => {
 
   it('should echo messages on cursor hold', async () => {
     await createDocument()
-    await nvim.call('cursor', [1, 2])
+    await nvim.call('cursor', [1, 3])
     await helper.wait(600)
     let line = await helper.getCmdline()
     expect(line).toMatch('error')

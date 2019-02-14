@@ -658,7 +658,7 @@ export default class Handler {
       }
     } catch (e) {
       if (!/timeout\s/.test(e.message)) {
-        console.error(`Error on formatOnType: ${e.message}`)
+        console.error(`Error on formatOnType: ${e.message}`) // tslint:disable-line
       }
     }
   }
