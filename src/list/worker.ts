@@ -25,6 +25,7 @@ export interface ExtendedItem extends ListItem {
 // perform loading task
 export default class Worker {
   private _loading = false
+  private columns: number
   private taskId: string
   private task: ListTask = null
   private mruList: string[] = []
@@ -81,6 +82,7 @@ export default class Worker {
   public async loadItems(reload = false): Promise<void> {
     let { context, list, listOptions } = this.manager
     if (!list) return
+    this.columns = await this.nvim.getOption('columns') as number
     let id = this.taskId = uuidv1()
     this.loading = true
     let { interactive } = listOptions
@@ -89,6 +91,7 @@ export default class Worker {
     if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
+        item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
         this.recentScore(item)
         return item
@@ -153,6 +156,7 @@ export default class Worker {
         if (timer) clearTimeout(timer)
         if (this.taskId != id || !this._loading) return
         if (interactive && this.input != currInput) return
+        item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
         this.recentScore(item)
         totalItems.push(item)
@@ -382,6 +386,12 @@ export default class Worker {
     let len = list.length
     let idx = list.indexOf(Uri.parse(location.uri).fsPath)
     item.recentScore = idx == -1 ? -1 : len - idx
+  }
+
+  private fixLabel(label: string): string {
+    let { columns } = this
+    label = label.split('\n').join(' ')
+    return label.slice(0, columns)
   }
 }
 
