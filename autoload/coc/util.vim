@@ -134,8 +134,15 @@ function! coc#util#echo_messages(hl, msgs)
 endfunction
 
 function! coc#util#echo_lines(lines)
-  let msg = join(a:lines, "\n")
-  echo msg
+  echo join(a:lines, "\n")
+endfunction
+
+function! coc#util#timer(method, args)
+  if !s:is_vim
+    call call(a:method, a:args)
+  else
+    call timer_start(0, { -> call(a:method, a:args)})
+  endif
 endfunction
 
 function! coc#util#is_preview(bufnr)
@@ -276,8 +283,9 @@ function! s:echo_signature(parts)
 endfunction
 
 function! coc#util#unplace_signs(bufnr, sign_ids)
+  if !bufloaded(a:bufnr) | return | endif
   for id in a:sign_ids
-    execute 'sign unplace '.id.' buffer='.a:bufnr
+    execute 'silent! sign unplace '.id.' buffer='.a:bufnr
   endfor
 endfunction
 

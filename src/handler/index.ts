@@ -1,5 +1,4 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import debounce from 'debounce'
 import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind, LocationLink } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
@@ -87,15 +86,14 @@ export default class Handler {
       }
       let { triggerSignatureHelp } = this.preferences
       if (!triggerSignatureHelp) return
-      let { changedtick } = doc
-      let pre = await this.getPreviousCharacter(doc)
+      let pre = await this.getPreviousCharacter()
       if (isWord(pre) || doc.paused) return
       if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
+      if (workspace.isVim) await wait(30)
       if (doc.dirty) {
         doc.forceSync()
         await wait(60)
       }
-      if (doc.changedtick != changedtick) return
       await this.showSignatureHelp()
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
@@ -542,9 +540,6 @@ export default class Handler {
       }
     }
     this.nvim.resumeNotification()
-    if (workspace.isVim) {
-      this.nvim.command('redraw', true)
-    }
   }
 
   public async highlight(): Promise<void> {
@@ -742,7 +737,7 @@ export default class Handler {
       }
       signatureList.push(parts)
     }
-    this.nvim.call('coc#util#echo_signatures', [signatureList], true)
+    this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
   }
 
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string): Promise<void> {
@@ -844,9 +839,9 @@ export default class Handler {
     }
   }
 
-  private async getPreviousCharacter(document: Document): Promise<string> {
-    let [, lnum, col] = await this.nvim.call('getcurpos')
-    let line = document.getline(lnum - 1)
+  private async getPreviousCharacter(): Promise<string> {
+    let col = await this.nvim.call('col', '.')
+    let line = await this.nvim.call('getline', '.')
     return col == 1 ? '' : byteSlice(line, col - 2, col - 1)
   }
 }

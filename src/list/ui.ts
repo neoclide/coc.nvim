@@ -121,7 +121,7 @@ export default class ListUI {
     let { items } = this
     let idx = items.indexOf(item)
     let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`
-    await this.nvim.call('coc#util#echo_lines', [[msg]])
+    this.nvim.callTimer('coc#util#echo_lines', [[msg]], true)
   }
 
   public async getItems(): Promise<ListItem[]> {

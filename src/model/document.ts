@@ -500,7 +500,7 @@ export default class Document {
           }
           let id = this.colorId
           this.colorId = this.colorId + 1
-          nvim.call('matchaddpos', [hlGroup, arr, 9, id], true)
+          nvim.callTimer('matchaddpos', [hlGroup, arr, 9, id], true)
           res.push(id)
         }
       }

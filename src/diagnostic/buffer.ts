@@ -72,7 +72,6 @@ export class DiagnosticBuffer {
     sequence.start().then(async canceled => {
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
-        if (workspace.isVim) this.nvim.command('redraw', true)
       }
     }, e => {
       logger.error(e)
@@ -109,7 +108,7 @@ export class DiagnosticBuffer {
   private clearSigns(): void {
     let { nvim, signIds, bufnr } = this
     if (signIds.size > 0) {
-      nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
+      nvim.callTimer('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
       signIds.clear()
     }
   }
@@ -278,7 +277,7 @@ export class DiagnosticBuffer {
           list.push(i + 1)
         }
       }
-      workspace.nvim.call('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, this.matchId, { window: winid }], true)
+      this.nvim.callTimer('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, this.matchId, { window: winid }], true)
       matchIds.add(this.matchId)
       this.matchId = this.matchId + 1
     } catch (e) {

@@ -50,7 +50,7 @@ export function wait(ms: number): Promise<any> {
 }
 
 function echoMsg(nvim: Neovim, msg: string, hl: string): void {
-  nvim.call('coc#util#echo_messages', [hl, msg.split('\n')], true)
+  nvim.callTimer('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
 export function getUri(bufname: string, id: number, buftype: string): string {

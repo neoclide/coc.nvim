@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, Disposable, Range, TextDocument, Location } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument, Location, Position } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -9,9 +9,11 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
+import { positionInRange } from '../util/position'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
+  enableMessage: string
   virtualText: boolean
   displayByAle: boolean
   srcId: number
@@ -35,7 +37,6 @@ export class DiagnosticManager {
   public readonly buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private enableMessage = 'always'
   private timer: NodeJS.Timer
   private lastMessage = ''
   private insertMode = false
@@ -48,10 +49,9 @@ export class DiagnosticManager {
       await this.init()
     })
 
-    events.on('CursorMoved', bufnr => {
-      if (!this.enabled) return
-      if (this.timer) clearTimeout(this.timer)
-      this.timer = setTimeout(this.onHold.bind(this, bufnr), 500)
+    events.on('CursorHold', async () => {
+      if (this.config.enableMessage != 'always') return
+      await this.echoMessage(true)
     }, null, this.disposables)
 
     events.on('TextChanged', () => {
@@ -309,25 +309,17 @@ export class DiagnosticManager {
    * @returns {Promise<void>}
    */
   public async echoMessage(truncate = false): Promise<void> {
-    if (!this.enabled || this.enableMessage == 'never') return
-    if (truncate && this.enableMessage == 'jump') return
+    if (!this.enabled || this.config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
-    if (truncate) {
-      let mode = await this.nvim.call('mode') as string
-      if (mode != 'n') return
-    }
     let document = workspace.getDocument(buffer.id)
     if (!document || !this.shouldValidate(document)) return
-    let offset = await workspace.getOffset()
-    let diagnostics = this.diagnosticsAtOffset(offset, document.textDocument)
-    if (diagnostics.length == 0) {
-      diagnostics = this.diagnosticsAtOffset(offset + 1, document.textDocument)
-    }
+    let pos = await workspace.getCursorPosition()
+    let diagnostics = this.diagnosticsAtPosition(pos, document.textDocument)
     if (diagnostics.length == 0) {
       let echoLine = await this.nvim.call('coc#util#echo_line') as string
       if (this.lastMessage && this.lastMessage == echoLine.trim()) {
-        await this.nvim.command('echo ""')
+        this.nvim.command('echo ""', true)
       }
       this.lastMessage = ''
       return
@@ -340,6 +332,7 @@ export class DiagnosticManager {
       lines.push(...str.split('\n'))
     })
     this.lastMessage = lines[0]
+    this.nvim.command('echo ""', true)
     await workspace.echoLines(lines, truncate)
   }
 
@@ -352,7 +345,7 @@ export class DiagnosticManager {
     disposeAll(this.disposables)
   }
 
-  private diagnosticsAtOffset(offset: number, textDocument: TextDocument): Diagnostic[] {
+  private diagnosticsAtPosition(position: Position, textDocument: TextDocument): Diagnostic[] {
     let res: Diagnostic[] = []
     let { uri } = textDocument
     let collections = this.getCollections(uri)
@@ -361,9 +354,7 @@ export class DiagnosticManager {
       for (let diagnostic of diagnostics) {
         let { range } = diagnostic
         diagnostic.source = diagnostic.source || collection.name
-        let start = textDocument.offsetAt(range.start)
-        let end = textDocument.offsetAt(range.end)
-        if (start <= offset && end >= offset) {
+        if (positionInRange(position, range) == 0) {
           res.push(diagnostic)
         }
       }
@@ -378,9 +369,9 @@ export class DiagnosticManager {
   private async setConfiguration(event?: ConfigurationChangeEvent): Promise<void> {
     if (event && !event.affectsConfiguration('coc.preferences.diagnostic')) return
     let config = workspace.getConfiguration('coc.preferences.diagnostic')
-    this.enableMessage = config.get<string>('enableMessage', 'always')
     this.config = {
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      enableMessage: config.get<string>('enableMessage', 'always'),
       virtualText: config.get<boolean>('virtualText', false),
       virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
@@ -439,21 +430,8 @@ export class DiagnosticManager {
     return this.collections.filter(c => c.has(uri))
   }
 
-  private async onHold(bufnr: number): Promise<void> {
-    if (workspace.bufnr != bufnr) return
-    await this.echoMessage(true)
-  }
-
   private shouldValidate(doc: Document | null): boolean {
     return doc != null && doc.buftype == ''
-  }
-
-  private _echoMessage(): void {
-    setTimeout(() => {
-      this.echoMessage().catch(e => {
-        logger.error(e)
-      })
-    }, 100)
   }
 
   private refreshBuffer(uri: string): boolean {
@@ -493,7 +471,7 @@ export class DiagnosticManager {
     if (!range) return
     let { start } = range
     await this.nvim.call('cursor', [start.line + 1, start.character + 1])
-    this._echoMessage()
+    await this.echoMessage()
   }
 }
 
