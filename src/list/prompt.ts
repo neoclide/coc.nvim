@@ -95,7 +95,6 @@ export default class Prompt {
         cmds.push(`echon '${post.replace(/'/g, "''")}'`)
       }
     }
-    if (workspace.isVim) cmds.push('redraw')
     let cmd = cmds.join('|')
     this.nvim.command(cmd, true)
   }

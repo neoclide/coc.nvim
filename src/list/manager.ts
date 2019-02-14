@@ -73,24 +73,25 @@ export class ListManager {
         return
       }
       let { isVim } = workspace
-      if (workspace.bufnr == bufnr) {
+      let curr = await nvim.call('bufnr', '%')
+      if (curr == bufnr) {
         this.prompt.start()
         if (isVim) nvim.command(`set t_ve=`, true)
       } else {
         this.prompt.cancel()
         if (isVim) nvim.call('coc#list#restore', [], true)
       }
-    }, 200), null, this.disposables)
-    this.ui.onDidChangeLine(async () => {
+    }, 100), null, this.disposables)
+    this.ui.onDidChangeLine(debounce(async () => {
       if (!this.activated) return
       let previewing = await nvim.call('coc#util#has_preview')
       if (previewing) await this.doAction('preview')
-    }, null, this.disposables)
-    this.ui.onDidLineChange(async () => {
+    }, 100), null, this.disposables)
+    this.ui.onDidLineChange(debounce(async () => {
       let { autoPreview } = this.listOptions
       if (!autoPreview || !this.activated) return
       await this.doAction('preview')
-    }, null, this.disposables)
+    }, 100), null, this.disposables)
     this.ui.onDidOpen(async () => {
       if (this.currList) {
         this.currList.doHighlight()
@@ -199,13 +200,13 @@ export class ListManager {
     if (this.executing) return
     this.executing = true
     let { nvim, ui } = this
+    let shouldCancel = action.persist !== true && action.name != 'preview'
     try {
-      if (action.persist !== true && action.name != 'preview') {
-        await this.cancel()
-      }
+      if (shouldCancel) await this.cancel()
       if (action.name == 'preview') {
         items = items.slice(0, 1)
       }
+      if (!shouldCancel && !this.isActivated) return
       if (action.parallel) {
         await Promise.all(items.map(item => {
           return Promise.resolve(action.execute(item, this.context))
@@ -215,8 +216,13 @@ export class ListManager {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
+      if (!shouldCancel && !this.isActivated) {
+        this.nvim.command('pclose', true)
+        return
+      }
       if (action.persist || action.name == 'preview') {
         let { window } = ui
+        if (!window) return
         let valid = await window.valid
         if (!valid) return
         nvim.pauseNotification()

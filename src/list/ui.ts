@@ -78,11 +78,7 @@ export default class ListUI {
       let lnum = await nvim.call('line', '.')
       if (this.currIndex + 1 == lnum) return
       this.currIndex = lnum - 1
-      timer = setTimeout(() => {
-        if (workspace.bufnr == this.bufnr) {
-          this._onDidChangeLine.fire(lnum)
-        }
-      }, 100)
+      this._onDidChangeLine.fire(lnum)
     }, null, this.disposables)
   }
 

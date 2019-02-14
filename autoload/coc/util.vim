@@ -141,8 +141,16 @@ function! coc#util#timer(method, args)
   if !s:is_vim
     call call(a:method, a:args)
   else
-    call timer_start(0, { -> call(a:method, a:args)})
+    call timer_start(0, { -> s:Call(a:method, a:args)})
   endif
+endfunction
+
+function! s:Call(method, args)
+  try
+    call call(a:method, a:args)
+  catch /.*/
+    return 0
+  endtry
 endfunction
 
 function! coc#util#is_preview(bufnr)
