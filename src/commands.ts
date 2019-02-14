@@ -5,6 +5,7 @@ import { wait } from './util'
 import workspace from './workspace'
 import snipetsManager from './snippets/manager'
 import { comparePosition } from './util/position'
+import URI from 'vscode-uri'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -39,8 +40,8 @@ export class CommandManager implements Disposable {
   public init(nvim: Neovim, plugin: any): void {
     this.register({
       id: 'vscode.open',
-      execute: async (url: string) => {
-        nvim.call('coc#util#open_url', url, true)
+      execute: async (url: string | URI) => {
+        nvim.call('coc#util#open_url', url.toString(), true)
       }
     }, true)
     this.register({
