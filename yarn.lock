@@ -17,10 +17,10 @@
     esutils "^2.0.2"
     js-tokens "^4.0.0"
 
-"@chemzqm/neovim@^4.3.44":
-  version "4.3.44"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.44.tgz#67739b0f5a6bdde5e30a7a489b28fb5316472cae"
-  integrity sha512-DNSOuppwsT9z5a1TJG6RbDK/hnwfxhca7BRVjnAW0A1YiGCSdjIf/+g06RLHd1JJZisSj5uQSPGrnO8uVEg4Xw==
+"@chemzqm/neovim@^4.3.42":
+  version "4.3.42"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.3.42.tgz#5ea801815d0ae7f7157ef06b9ce2f742081e11f8"
+  integrity sha512-93knLA/OFytPSbOuvDFkBcUdMPSlMtTQsnoMzt+26wjKDmtfnhGJmSn0H5wJ8Y6W+IoiXyqvS2MQjvLCyDxY6g==
   dependencies:
     msgpack-lite "^0.1.26"
     traverse "^0.6.6"
@@ -88,10 +88,10 @@
   version "10.10.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.10.3.tgz#09c75a4ad84d6a3d286790bdd9489a4f8ee9906c"
 
-"@types/node@^10.12.19":
-  version "10.12.19"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-10.12.19.tgz#ca1018c26be01f07e66ac7fefbeb6407e4490c61"
-  integrity sha512-2NVovndCjJQj6fUUn9jCgpP4WSqr+u1SoUZMZyJkhGeBFsm6dE46l31S7lPUYt9uQ28XI+ibrJA1f5XyH5HNtA==
+"@types/node@^11.9.4":
+  version "11.9.4"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-11.9.4.tgz#ceb0048a546db453f6248f2d1d95e937a6f00a14"
+  integrity sha512-Zl8dGvAcEmadgs1tmSPcvwzO1YRsz38bVJQvH1RvRqSR9/5n61Q1ktcDL0ht3FXWR+ZpVmXVwN1LuH4Ax23NsA==
 
 "@types/pify@^3.0.2":
   version "3.0.2"
