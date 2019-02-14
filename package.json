@@ -69,7 +69,7 @@
     "@types/jest": "^23.3.13",
     "@types/minimatch": "^3.0.3",
     "@types/mkdirp": "^0.5.2",
-    "@types/node": "^10.12.19",
+    "@types/node": "^11.9.4",
     "@types/node-json-db": "^0.0.1",
     "@types/pify": "^3.0.2",
     "@types/semver": "^5.5.0",
@@ -83,7 +83,7 @@
     "vscode-languageserver": "^5.2.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "^4.3.44",
+    "@chemzqm/neovim": "^4.3.42",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
