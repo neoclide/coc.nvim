@@ -11,7 +11,7 @@ let s:is_vim = !has('nvim')
 if has('nvim') && get(g:, 'coc_start_at_startup', 1)
   call coc#rpc#start_server()
 endif
-if s:is_vim && !has('python') && !has('python3')
+if s:is_vim && !has('pythonx')
   echohl Error | echon 'coc.nvim require python or python3 on vim' | echohl None
   finish
 endif
@@ -135,11 +135,7 @@ function! s:Enable()
     " Must be sync to fix flicking on neovim
     autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
     " Must be sync to fix cursor disappear on vim
-    if s:is_vim
-      autocmd TextChangedP      * call s:SyncAutocmd('TextChangedP', +expand('<abuf>'))
-    else
-      autocmd TextChangedP      * call s:Autocmd('TextChangedP', +expand('<abuf>'))
-    endif
+    autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter')
