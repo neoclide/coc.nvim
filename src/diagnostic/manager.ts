@@ -50,7 +50,7 @@ export class DiagnosticManager {
     })
 
     events.on('CursorHold', async () => {
-      if (this.config.enableMessage != 'always') return
+      if (!this.config || this.config.enableMessage != 'always') return
       await this.echoMessage(true)
     }, null, this.disposables)
 

@@ -517,7 +517,7 @@ export class Workspace implements IWorkspace {
 
   public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
-    let cmdHeight = (await nvim.getOption('cmdheight') as number)
+    let cmdHeight = await nvim.getOption('cmdheight') as number
     if (lines.length > cmdHeight && truncate) {
       lines = lines.slice(0, cmdHeight)
       let last = lines[cmdHeight - 1]

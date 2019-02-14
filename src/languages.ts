@@ -498,9 +498,10 @@ class Languages {
           items
         }
       },
-      onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
+      onCompleteResolve: async (item: VimCompleteItem, done: boolean): Promise<void> => {
         let resolving = completeItems[item.index]
         if (!resolving) return
+        let { nvim } = this
         resolveInput = item.word
         if (resolveTokenSource) resolveTokenSource.cancel()
         if (hasResolve && !resolvedIndexes.has(item.index)) {
@@ -510,10 +511,17 @@ class Languages {
           resolvedIndexes.add(item.index)
           if (resolved) mixin(resolving, resolved)
         }
-        if (resolveInput != item.word) return
+        if (resolveInput != item.word || done) return
         let str = resolving.detail ? resolving.detail.trim() : ''
         str = str.replace(/\n\s*/g, ' ')
-        if (str) echoMessage(this.nvim, str)
+        if (str) {
+          let cmdHeight = await nvim.getOption('cmdheight') as number
+          let columns = await nvim.getOption('columns') as number
+          let max = cmdHeight * columns - 16
+          if (str.length > max) str = str.slice(0, max) + '...'
+          await nvim.command('echo ""')
+          nvim.command(`echohl MoreMsg | echom '${str.replace(/'/g, "''")}' | echohl None`, true)
+        }
         let documentation = complete.getDocumentation(resolving)
         if (doc) str += '\n\n' + documentation
         if (str.length) {

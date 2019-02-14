@@ -171,7 +171,7 @@ export class Sources {
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
+  public async doCompleteResolve(item: VimCompleteItem, done = false): Promise<void> {
     let { user_data } = item
     if (!user_data) return
     try {
@@ -179,7 +179,7 @@ export class Sources {
       if (!data.source) return
       let source = this.getSource(data.source)
       if (source && typeof source.onCompleteResolve == 'function') {
-        await source.onCompleteResolve(item)
+        await source.onCompleteResolve(item, done)
       }
     } catch (e) {
       logger.error(e.stack)

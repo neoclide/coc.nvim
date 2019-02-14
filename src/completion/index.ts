@@ -373,7 +373,7 @@ export class Completion implements Disposable {
     await document.patchChangedTick()
     let { changedtick } = document
     try {
-      await sources.doCompleteResolve(item)
+      await sources.doCompleteResolve(item, true)
       this.addRecent(item.word, document.bufnr)
       await wait(50)
       let mode = await nvim.call('mode')

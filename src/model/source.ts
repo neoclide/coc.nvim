@@ -121,7 +121,7 @@ export default abstract class Source implements ISource {
     return true
   }
 
-  public async onCompleteResolve(_item: VimCompleteItem): Promise<void> {
+  public async onCompleteResolve(_item: VimCompleteItem, _done?: boolean): Promise<void> {
     // do nothing
   }
 
