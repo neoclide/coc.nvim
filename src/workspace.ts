@@ -376,14 +376,8 @@ export class Workspace implements IWorkspace {
 
   public async getOffset(): Promise<number> {
     let document = await this.document
-    let [, lnum, col] = await this.nvim.call('getcurpos')
-    let line = document.getline(lnum - 1)
-    if (line == null) return -1
-    let character = col == 1 ? 0 : byteIndex(line, col - 1)
-    return document.textDocument.offsetAt({
-      line: lnum - 1,
-      character
-    })
+    let pos = await this.getCursorPosition()
+    return document.textDocument.offsetAt(pos)
   }
 
   public async applyEdit(edit: WorkspaceEdit): Promise<boolean> {
@@ -469,13 +463,15 @@ export class Workspace implements IWorkspace {
     let u = Uri.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : uri
     let bufnr = await nvim.call('bufnr', bufname)
-    text = text ? text : await this.getLine(uri, line)
+    if (!text && u.scheme == 'file') {
+      text = await this.getLine(uri, line)
+    }
     let item: QuickfixItem = {
       uri,
       filename: bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname,
       lnum: line + 1,
       col: character + 1,
-      text,
+      text: text || '',
       range
     }
     if (type) item.type = type
@@ -499,6 +495,7 @@ export class Workspace implements IWorkspace {
   public async getLine(uri: string, line: number): Promise<string> {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''
+    if (!uri.startsWith('file:')) return ''
     return await readFileLine(Uri.parse(uri).fsPath, line)
   }
 
@@ -532,7 +529,7 @@ export class Workspace implements IWorkspace {
       if (truncate) line = line.slice(0, (columns as number) - 1)
       return line
     })
-    await nvim.call('coc#util#echo_lines', [lines])
+    nvim.callTimer('coc#util#echo_lines', [lines], true)
   }
 
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
