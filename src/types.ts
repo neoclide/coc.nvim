@@ -304,7 +304,6 @@ export interface VimCompleteItem {
 export interface CompleteResult {
   items: VimCompleteItem[]
   completeInComplete?: boolean
-  duplicate?: boolean
   isIncomplete?: boolean
   engross?: boolean
   startcol?: number
@@ -327,7 +326,6 @@ export interface CompleteConfig {
   noselect: boolean
   keepCompleteopt: boolean
   numberSelect: boolean
-  invalidInsertCharacters: string[]
   maxItemCount: number
   timeout: number
   snippetIndicator: string

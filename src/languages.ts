@@ -26,7 +26,7 @@ import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
-import { echoMessage, wait } from './util'
+import { wait } from './util'
 import * as complete from './util/complete'
 import { mixin } from './util/object'
 import { getChangedPosition } from './util/position'
@@ -44,6 +44,7 @@ interface CompleteConfig {
   echodocSupport: boolean
   waitTime: number
   detailMaxLength: number
+  invalidInsertCharacters: string[]
 }
 
 export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
@@ -125,7 +126,8 @@ class Languages {
       priority: config.get<number>('languageSourcePriority', 99),
       echodocSupport: config.get<boolean>('echodocSupport', false),
       waitTime: config.get<number>('triggerCompletionWait', 60),
-      detailMaxLength: config.get<number>('detailMaxLength', 60)
+      detailMaxLength: config.get<number>('detailMaxLength', 60),
+      invalidInsertCharacters: config.get<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
     }
   }
 
@@ -628,10 +630,11 @@ class Languages {
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
     let { detailMaxLength, echodocSupport } = this.completeConfig
-    let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+    let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
+    let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
     // tslint:disable-next-line:deprecation
-    if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1) {
+    if (isSnippet && item.insertText && item.insertText.indexOf('$') == -1 && !hasAdditionalEdit) {
       // fix wrong insert format
       isSnippet = false
       item.insertTextFormat = InsertTextFormat.PlainText
@@ -639,12 +642,13 @@ class Languages {
     let detail = item.detail || ''
     if (detail.length > detailMaxLength) detail = detail.slice(0, detailMaxLength) + '...'
     let obj: VimCompleteItem = {
-      word: complete.getWord(item, opt),
+      word: complete.getWord(item, opt, this.completeConfig.invalidInsertCharacters),
       abbr: label,
       menu: detail ? `${detail} [${shortcut}]` : `[${shortcut}]`,
       kind: complete.completionKindString(item.kind),
       sortText: item.sortText || null,
       filterText: item.filterText || label,
+      dup: 1,
       isSnippet
     }
     if (echodocSupport && item.kind >= 2 && item.kind <= 4) {

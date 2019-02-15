@@ -157,30 +157,6 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
-  it('should trigger when backspace to triggerCharacter', async () => {
-    await helper.edit()
-    let source: ISource = {
-      name: 'backspace',
-      priority: 10,
-      enable: true,
-      sourceType: SourceType.Native,
-      triggerCharacters: ['.'],
-      doComplete: async (): Promise<CompleteResult> => {
-        return Promise.resolve({
-          items: [{ word: 'foo' }]
-        })
-      }
-    }
-    sources.addSource(source)
-    await nvim.setLine('.a')
-    await nvim.input('A')
-    await nvim.eval('feedkeys("\\<bs>")')
-    await helper.wait(400)
-    let res = await nvim.call('pumvisible')
-    expect(res).toBe(1)
-    sources.removeSource(source)
-  })
-
   it('should not trigger when cursor moved', async () => {
     await helper.edit()
     let source: ISource = {

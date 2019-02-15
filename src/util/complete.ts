@@ -13,50 +13,47 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem, opt: CompleteOption): string {
+export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsertCharacters: string[]): string {
   // tslint:disable-next-line: deprecation
   let { label, insertTextFormat, insertText, textEdit } = item
   let word: string
+  let newText: string
   if (textEdit) {
-    let { range, newText } = textEdit
+    let { range } = textEdit
+    newText = textEdit.newText
     if (range && range.start.line == range.end.line) {
       let { line, col, colnr } = opt
       let character = characterIndex(line, col)
       if (range.start.character > character) {
         let before = line.slice(character - range.start.character)
-        textEdit = Object.assign({}, textEdit, {
-          newText: before + textEdit.newText
-        })
+        newText = before + newText
       } else {
         let start = line.slice(range.start.character, character)
         if (start.length && newText.startsWith(start)) {
-          textEdit = Object.assign({}, textEdit, {
-            newText: newText.slice(start.length)
-          })
+          newText = newText.slice(start.length)
         }
       }
       character = characterIndex(line, colnr - 1)
       if (range.end.character > character) {
         let end = line.slice(character, range.end.character)
         if (newText.endsWith(end)) {
-          textEdit = Object.assign({}, textEdit, {
-            newText: textEdit.newText.slice(0, - end.length)
-          })
+          newText = newText.slice(0, - end.length)
         }
       }
     }
+  } else {
+    newText = insertText
   }
   if (insertTextFormat == InsertTextFormat.Snippet) {
-    let snippet = textEdit ? textEdit.newText : insertText
-    if (snippet) {
+    if (newText) {
       let parser = new SnippetParser()
-      let lines = parser.text(snippet.trim()).split('\n')
-      word = lines[0] || label
+      let snippet = parser.text(newText.trim())
+      word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label
     } else {
       word = label
     }
   } else {
-    word = textEdit ? textEdit.newText : insertText || label
+    word = getValidWord(newText, invalidInsertCharacters) || label
   }
   return word
 }
@@ -130,4 +127,15 @@ export function getSnippetDocumentation(languageId: string, body: string): strin
   let str = body.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1')
   str = '``` ' + languageId + '\n' + str + '\n' + '```'
   return str
+}
+
+export function getValidWord(text: string, invalidChars: string[]): string {
+  if (!text) return ''
+  for (let i = 0; i < text.length; i++) {
+    let c = text[i]
+    if (invalidChars.indexOf(c) !== -1 || c == '\r' || c == '\n') {
+      return text.slice(0, i)
+    }
+  }
+  return text
 }

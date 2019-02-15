@@ -180,6 +180,8 @@ export class Sources {
       let source = this.getSource(data.source)
       if (source && typeof source.onCompleteResolve == 'function') {
         await source.onCompleteResolve(item, done)
+      } else if (!done) {
+        await this.nvim.command('echo ""')
       }
     } catch (e) {
       logger.error(e.stack)

@@ -115,6 +115,9 @@ function! s:Enable()
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
+    if exists('##CompleteChange')
+      autocmd CompleteChange *   call s:Autocmd('CompleteChange', get(v:event, 'completeindex', -1))
+    endif
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim

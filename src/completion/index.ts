@@ -5,7 +5,7 @@ import Document from '../model/document'
 import sources from '../sources'
 import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
-import { byteLength, byteSlice, isWord } from '../util/string'
+import { byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 const logger = require('../util/logger')('completion')
@@ -37,14 +37,15 @@ export class Completion implements Disposable {
   public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = this.getCompleteConfig()
-    this.disposables.push(events.on('CursorMoved', this.onCursorMove, this))
-    this.disposables.push(events.on('CursorMovedI', this.onCursorMove, this))
-    this.disposables.push(events.on('InsertCharPre', this.onInsertCharPre, this))
-    this.disposables.push(events.on('InsertLeave', this.onInsertLeave, this))
-    this.disposables.push(events.on('InsertEnter', this.onInsertEnter, this))
-    this.disposables.push(events.on('TextChangedP', this.onTextChangedP, this))
-    this.disposables.push(events.on('TextChangedI', this.onTextChangedI, this))
-    this.disposables.push(events.on('CompleteDone', this.onCompleteDone, this))
+    events.on('CursorMoved', this.onCursorMove, this, this.disposables)
+    events.on('CursorMovedI', this.onCursorMove, this, this.disposables)
+    events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
+    events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
+    events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
+    events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
+    events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
+    events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
+    events.on('CompleteChange', this.onPumChange, this, this.disposables)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('coc.preferences')) {
         Object.assign(this.config, this.getCompleteConfig())
@@ -70,15 +71,6 @@ export class Completion implements Disposable {
     return this._completeItems.filter(item => {
       return item.word.startsWith(input)
     })
-  }
-
-  // TODO this is incorrect sometimes
-  private getCompleteItem(word: string): VimCompleteItem | null {
-    let items = this._completeItems || []
-    let idx = items.findIndex(o => o.word == word)
-    this.currIndex = idx + 1
-    if (idx == -1) return null
-    return items[idx]
   }
 
   public get index(): number {
@@ -142,7 +134,6 @@ export class Completion implements Disposable {
       snippetIndicator: config.get<string>('snippetIndicator', '~'),
       fixInsertedWord: config.get<boolean>('fixInsertedWord', true),
       localityBonus: config.get<boolean>('localityBonus', true),
-      invalidInsertCharacters: config.get<string[]>('invalidInsertCharacters', ["<", "(", ":", " "]),
     }
   }
 
@@ -279,23 +270,6 @@ export class Completion implements Disposable {
       await this.resumeCompletion(search, true)
       return
     }
-    let item = this.getCompleteItem(search)
-    if (item) {
-      if (item.isSnippet) {
-        let { word } = item
-        let text = this.getValidWord(word)
-        if (word != text) {
-          let before = byteSlice(line, 0, option.col)
-          let after = byteSlice(line, option.col + byteLength(word))
-          line = `${before}${text}${after}`
-          await this.nvim.call('coc#util#setline', [option.linenr, line])
-          if (workspace.isNvim) this.changedTick = document.changedtick
-          await this.nvim.call('cursor', [option.linenr, col - byteLength(word.slice(text.length))])
-          if (workspace.isVim) await document.patchChange()
-        }
-      }
-      await sources.doCompleteResolve(item)
-    }
   }
 
   private async onTextChangedI(bufnr: number): Promise<void> {
@@ -340,15 +314,7 @@ export class Completion implements Disposable {
     }
     let character = await this.getPreviousCharacter(document)
     if (!character) return
-    if (latestInsertChar) {
-      await this.triggerCompletion(document, character)
-    } else if (sources.shouldTrigger(character, document.filetype)) {
-      let now = Date.now()
-      let changedtick = document.changedtick
-      await wait(100)
-      if (this.isActivted || document.changedtick != changedtick || this.lastMoveTs >= now) return
-      await this.triggerCompletion(document, character)
-    }
+    if (latestInsertChar) await this.triggerCompletion(document, character)
   }
 
   private async triggerCompletion(document: Document, character: string): Promise<void> {
@@ -454,17 +420,6 @@ export class Completion implements Disposable {
     return this._completeItems
   }
 
-  private getValidWord(text: string): string {
-    let invalidChars = this.config.invalidInsertCharacters
-    for (let i = 0; i < text.length; i++) {
-      let c = text[i]
-      if (invalidChars.indexOf(c) !== -1) {
-        return text.slice(0, i)
-      }
-    }
-    return text
-  }
-
   public start(complete: Complete): void {
     let { activted } = this
     this.activted = true
@@ -480,6 +435,14 @@ export class Completion implements Disposable {
     this.changedTick = this.document.changedtick
     this.document.forceSync(true)
     this.document.paused = true
+  }
+
+  public async onPumChange(idx: number): Promise<void> {
+    this.currIndex = idx + 1
+    if (idx == -1) return
+    let item = (this._completeItems || [])[idx]
+    if (!item) return
+    await sources.doCompleteResolve(item)
   }
 
   public stop(): void {

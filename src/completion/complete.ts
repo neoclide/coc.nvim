@@ -100,7 +100,6 @@ export default class Complete {
       result.priority = source.priority
       result.source = source.name
       result.completeInComplete = completeInComplete
-      result.duplicate = source.duplicate
       return result
     } catch (err) {
       if (err.message && err.message.indexOf('Cancelled') != -1) return null
@@ -150,10 +149,10 @@ export default class Complete {
     let preselect: VimCompleteItem = null
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
-      let { items, source, priority, duplicate } = res
+      let { items, source, priority } = res
       for (let item of items) {
         let { word } = item
-        if (words.has(word) && !duplicate) continue
+        if (words.has(word) && !item.dup) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
@@ -191,6 +190,7 @@ export default class Complete {
         words.add(word)
         if (item.isSnippet && item.word == input) {
           preselect = item
+          continue
         } else if (!filtering && item.preselect) {
           preselect = item
           continue
