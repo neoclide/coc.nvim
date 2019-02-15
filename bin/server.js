@@ -9,7 +9,7 @@ Object.defineProperty(console, 'log', {
 })
 const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
-const isVim = process.env.VIM_NODE_RPC == 1
+const isVim = process.env.VIM_NODE_RPC == '1'
 const isWindows = process.platform == 'win32'
 let address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
