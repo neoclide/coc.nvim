@@ -1,3 +1,5 @@
+let s:root = expand('<sfile>:h:h:h')
+
 function! s:checkEnvironment() abort
   let valid = 1
   if !has('nvim-0.3.0')
@@ -29,8 +31,22 @@ function! s:checkEnvironment() abort
   return valid
 endfunction
 
+function! s:checkCommand()
+  let binary = coc#util#binary()
+  if executable(binary) && !get(g:, 'coc_force_debug', 0)
+    call health#report_ok('Binary found')
+    return
+  endif
+  let file = s:root.'/lib/attach.js'
+  if !filereadable(file)
+    call health#report_error('Build javascript not found, run '':call coc#util#build()'' to fix it.')
+  else
+    call health#report_ok('Build javascript found')
+  endif
+endfunction
+
 function! s:checkInitailize() abort
-  if coc#rpc#ready()
+  if coc#client#is_running('coc')
     call health#report_ok('Service started')
     return 1
   endif
@@ -43,5 +59,6 @@ endfunction
 
 function! health#coc#check() abort
     call s:checkEnvironment()
+    call s:checkCommand()
     call s:checkInitailize()
 endfunction
