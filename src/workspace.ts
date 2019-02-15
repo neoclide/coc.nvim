@@ -627,15 +627,15 @@ export class Workspace implements IWorkspace {
     if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
       await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
-      let moveCmd = position ? ` | call cursor(${line + 1}, ${col})` : ''
-      await nvim.command(`buffer ${bufnr} ${moveCmd}`)
+      let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
+      await nvim.callTimer('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
     } else {
-      let cwd = await nvim.call('getcwd')
-      let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
+      let file = bufname.startsWith(this.cwd) ? path.relative(this.cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
-      let moveCmd = position ? `| call cursor(${line + 1}, ${col})` : ''
-      await nvim.command(`${jumpCommand} ${file} ${moveCmd}`)
+      let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
+      await nvim.callTimer('coc#util#execute', [`${jumpCommand} ${moveCmd} ${file}`])
     }
+    if (this.isVim) await wait(100)
   }
 
   public async moveTo(position: Position): Promise<void> {
