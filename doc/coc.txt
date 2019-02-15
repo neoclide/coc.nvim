@@ -1094,7 +1094,7 @@ Command options 					*coc-list-options*
 --number-select
 -N
 	Type line number to select item and invoke default action on insert
-	mode.
+	mode. Type `0` to select 10th line.
 
 
 --interactive

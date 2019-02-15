@@ -441,8 +441,9 @@ export class ListManager {
     }
     if (this.listOptions.numberSelect) {
       let code = ch.charCodeAt(0)
-      if (code >= 49 && code <= 57) {
+      if (code >= 48 && code <= 57) {
         let n = Number(ch)
+        if (n == 0) n = 10
         if (this.ui.length >= n) {
           await this.ui.setCursor(Number(ch), 0)
           await this.doAction()

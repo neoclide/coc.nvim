@@ -1,13 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
-import path from 'path'
 import { Disposable, Location } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
-import workspace from '../workspace'
 import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask } from '../types'
-import { comparePosition } from '../util/position'
 import { disposeAll } from '../util'
+import { comparePosition } from '../util/position'
 import { byteIndex } from '../util/string'
+import workspace from '../workspace'
 const logger = require('../util/logger')('list-basic')
 
 interface ActionOptions {
@@ -27,6 +26,13 @@ export default abstract class BasicList implements IList, Disposable {
   constructor(protected nvim: Neovim) {
     let config = workspace.getConfiguration('list')
     this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
+    this.previewHeight = config.get<number>('maxPreviewHeight', 12)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('list')) {
+        this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
+        this.previewHeight = config.get<number>('maxPreviewHeight', 12)
+      }
+    })
   }
 
   protected addAction(name: string, fn: (item: ListItem, context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
@@ -80,15 +86,15 @@ export default abstract class BasicList implements IList, Disposable {
   protected async previewLocation(location: Location, context: ListContext): Promise<void> {
     let { nvim } = this
     let { uri, range } = location
-    let lineCount = range.end.line - range.start.line + 1
-    let height = Math.max(this.previewHeight, lineCount)
+    let lineCount = Infinity
+    let doc = workspace.getDocument(location.uri)
+    if (doc) lineCount = doc.lineCount
+    let height = Math.min(this.previewHeight, lineCount)
     let u = URI.parse(uri)
     let filepath = u.scheme == 'file' ? u.fsPath : u.toString()
-    let cwd = workspace.cwd
     let escaped = await nvim.call('fnameescape', filepath)
-    filepath = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
     let lnum = range.start.line + 1
-    let mod = context.options.position == 'top' ? 'below' : ''
+    let mod = context.options.position == 'top' ? 'below' : 'above'
     let winid = context.listWindow.id
     await nvim.command('pclose')
     let exists = await nvim.call('bufloaded', filepath)
@@ -103,10 +109,8 @@ export default abstract class BasicList implements IList, Disposable {
       let end = byteIndex(line, range.end.character) + 1
       nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true)
     }
-    if (!exists) {
-      nvim.command('setl nobuflisted bufhidden=wipe', true)
-    }
-    nvim.command('normal! zt', true)
+    if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
+    nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
     nvim.command('redraw', true)
     await nvim.resumeNotification()

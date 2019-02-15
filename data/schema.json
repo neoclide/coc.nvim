@@ -578,7 +578,7 @@
     },
     "list.maxHeight": {
       "type": "number",
-      "default": 12,
+      "default": 10,
       "description": "Maxmium height of list window."
     },
     "list.signOffset": {
@@ -600,6 +600,11 @@
       "type": "number",
       "default": 1000,
       "description": "Limit lines for list buffer."
+    },
+    "list.maxPreviewHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height for preview window of list."
     },
     "list.previewHighlightGroup": {
       "type": "string",

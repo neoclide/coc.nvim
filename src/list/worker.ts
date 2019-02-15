@@ -391,7 +391,7 @@ export default class Worker {
   private fixLabel(label: string): string {
     let { columns } = this
     label = label.split('\n').join(' ')
-    return label.slice(0, columns)
+    return label.slice(0, columns * 2)
   }
 }
 
