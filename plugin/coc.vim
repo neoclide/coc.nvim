@@ -74,6 +74,9 @@ endfunction
 
 function! s:OpenConfig()
   let home = coc#util#get_config_home()
+  if !isdirectory(home)
+    call mkdir(home, 'p')
+  endif
   execute 'edit '.home.'/coc-settings.json'
 endfunction
 
