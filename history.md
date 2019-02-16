@@ -1,3 +1,15 @@
+# 2019-02-17
+
+- **Break change** completion resolve requires CompleteChanged autocmd.
+- **Break change** mapping of space on insert mode of list removed.
+- **Break change** kind of completion item use single letter.
+- Fix snippet not works on GUI vim.
+- Fix cursor vanish on vim by use timer hacks.
+- Fix behavior of list preview window.
+- Fix python check on vim.
+- Fix CocJumpPlaceholder not fired.
+- Fix vscode-open command not work.
+
 # 2019-02-12
 
 - **Break change** function `coc#util#clearmatches` signature changed.
