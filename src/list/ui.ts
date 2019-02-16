@@ -83,7 +83,7 @@ export default class ListUI {
   }
 
   public set index(n: number) {
-    if (n == 0 || n >= this.items.length) return
+    if (n < 0 || n >= this.items.length) return
     this.currIndex = n
     if (this.window) {
       this.setCursor(n + 1, 0, true)
