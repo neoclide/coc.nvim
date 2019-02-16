@@ -416,6 +416,121 @@ To run a function on startup, use autocmd like: >
  	autocmd User CocNvimInit call CocAction('runCommand',
 						\ 'tsserver.watchBuild')
 <
+						*coc#config()*
+coc#config({section}, {value})
+
+	Change user configuration by vim script, no changes would be made to
+	user configuration file. ex: >
+
+	call coc#config('coc.preferences', {
+		\ 'timeout': 1000,
+		\ 'hoverTarget': 'echo',
+		\})
+	call coc#config('languageserver', {
+		\ 'ccls': {
+		\   "command": "ccls",
+		\   "trace.server": "verbose",
+		\   "filetypes": ["c", "cpp", "objc", "objcpp"]
+		\ }
+		\})
+<
+
+	Note: this function could be called multiple times.
+
+	Note: this function could be called before service initialized.
+
+	Note: this function could works with user configuration file, but it's
+	not recommended to use both.
+
+coc#add_extension({name}, ...)
+
+	Config extensions to install, a terminal buffer would be opened to
+	install missing extensions after service started, ex: >
+
+  	call coc#add_extension('coc-json', 'coc-tsserver', 'coc-rls')
+<
+	This function could be called before service initialized.
+	This function could be called multiple times.
+
+						*coc#refresh()*
+coc#refresh()
+
+	Start or refresh completion at current cursor position, bind this to
+	'imap' for trigger completion, ex: >
+
+	inoremap <silent><expr> <c-space> coc#refresh()
+<
+						*coc#status()*
+coc#status()
+
+	Return status string for used in status line, the status
+	including diagnostic information from `b:coc_diagnostic_info`
+	and extension contributed status from `g:coc_status`,
+	for statusline integration, see |coc-status|
+
+
+						*coc#_select_confirm()*
+coc#_select_confirm()
+
+	Select first complete item if no complete item selected, then do
+	confirm completion.
+
+	Note: for this function work as expected, either need
+	|CompleteChanged| autocmd exists or only use <C-n> and <C-p> to
+	select complete item.
+
+						*health#coc#check()*
+health#coc#check()
+	
+	Neovim only, run health check, triggered by ':checkhealth'
+	command.
+
+						*coc#util#job_command()*
+
+coc#util#job_command()
+
+	Get the job command used for start coc service.
+
+						*coc#util#get_config_home()*
+coc#util#get_config_home()
+
+	Get config directory that contains user's coc-settings.json.
+
+						*coc#util#install()*
+coc#util#install([{config}])
+
+	Install binary version of coc.nvim.
+
+	{config} could be `{terminal: 1}` to use terminal for shell
+	script.
+
+						*coc#util#build()*
+
+coc#util#build()
+
+	Build coc.nvim from source code, restart vim required after
+	build.
+
+						*coc#util#extension_root()*
+
+coc#util#extension_root()
+	
+	Return extensions root of coc.nvim.
+
+						*coc#util#rebuild()*
+
+coc#util#rebuild()
+
+	Rebuild coc extensions.
+
+						*coc#util#update()*
+
+coc#util#update()
+
+	Update extensions by use terminal feature.
+
+
+<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 
@@ -444,7 +559,7 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.jumpCommand` (|:edit| by default)
+	`coc.preferences.jumpCommand` , |:edit| by default
 
 						*CocAction()*
 CocAction({action}, [...{args}])
@@ -591,7 +706,8 @@ Available Actions ~
 
 	You can bind your custom command like: >
 
-	command! -nargs=0 OrganizeImport :call CocActionAsync('runCommand', 'typescript.organizeImports')
+	command! -nargs=0 OrganizeImport
+		\ :call CocActionAsync('runCommand', 'tsserver.organizeImports')
 
 "fold" {{kind}} 				*coc-action-fold*
 
@@ -600,9 +716,9 @@ Available Actions ~
 
 "highlight" 					*coc-action-highlight*
 
-	Highlight symbols under cursor.  To use different colors, overwrite
-	highlight groups: `CocHighlightText`, `CocHighlightRead` and
-	`CocHighlightWrite`
+	Highlight symbols under cursor.
+	Overwrite highlight group: `CocHighlightText`, `CocHighlightRead
+	and `CocHighlightWrite` for different colors.
 
 	To enable highlight on CursorHold, create autocmd like: >
 
@@ -664,112 +780,7 @@ Available Actions ~
 
 "doQuickfix" 					*coc-action-doQuickfix*
 
-	Run quickfix actions of current line.
-
-------------------------------------------------------------------------------
-
-						*coc#config()*
-coc#config({section}, {value})
-
-	Change user configuration by vim script, no changes would be made to
-	user configuration file. ex: >
-
-	call coc#config('coc.preferences', {
-		\ 'timeout': 1000,
-		\ 'hoverTarget': 'echo',
-		\})
-	call coc#config('languageserver', {
-		\ 'ccls': {
-		\   "command": "ccls",
-		\   "trace.server": "verbose",
-		\   "filetypes": ["c", "cpp", "objc", "objcpp"]
-		\ }
-		\})
-<
-
-	Note: this function could be called multiple times.
-
-	Note: this function could be called before service initialized.
-
-	Note: this function could works with user configuration file, but it's
-	not recommended to use both.
-
-coc#add_extension({name}, ...)
-
-	Config extensions to install, a terminal buffer would be opened to
-	install missing extensions after service started, ex: >
-
-  	call coc#add_extension('coc-json', 'coc-tsserver', 'coc-rls')
-<
-	This function could be called before service initialized.
-	This function could be called multiple times.
-
-						*coc#refresh()*
-coc#refresh()
-
-	Start or refresh completion at current cursor position, bind this to
-	'imap' for trigger completion, ex: >
-
-	inoremap <silent><expr> <c-space> coc#refresh()
-<
-						*coc#status()*
-coc#status()
-
-	Return status string for used in status line, the status
-	including diagnostic information from `b:coc_diagnostic_info`
-	and extension contributed status from `g:coc_status`,
-	for statusline integration, see |coc-status|
-
-						*health#coc#check()*
-health#coc#check()
-	
-	Neovim only, run health check, triggered by ':checkhealth'
-	command.
-
-						*coc#util#job_command()*
-
-coc#util#job_command()
-
-	Get the job command used for start coc service.
-
-						*coc#util#get_config_home()*
-coc#util#get_config_home()
-
-	Get config directory that contains user's coc-settings.json.
-
-						*coc#util#install()*
-coc#util#install([{config}])
-
-	Install binary version of coc.nvim.
-
-	{config} could be `{terminal: 1}` to use terminal for shell
-	script.
-
-						*coc#util#build()*
-
-coc#util#build()
-
-	Build coc.nvim from source code, restart vim required after
-	build.
-
-						*coc#util#extension_root()*
-
-coc#util#extension_root()
-	
-	Return extensions root of coc.nvim.
-
-						*coc#util#rebuild()*
-
-coc#util#rebuild()
-
-	Rebuild coc extensions.
-
-						*coc#util#update()*
-
-coc#util#update()
-
-	Update extensions by use terminal feature.
-
+	Do first quickfix actions of current line.
 
 ------------------------------------------------------------------------------
 

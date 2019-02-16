@@ -12,7 +12,7 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
 
 export type EmptyEvents = 'InsertEnter' | 'CursorMovedI' | 'FocusGained' | 'VimResized'
 
-export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' | 'CompleteChange' |
+export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' | 'CompleteChanged' |
   'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' |
   'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
 
@@ -41,8 +41,7 @@ class Events {
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteChange', handler: (index: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone' | 'CompleteChanged', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -168,23 +168,18 @@ export class Sources {
   }
 
   public getSource(name: string): ISource | null {
+    if (!name) return null
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: VimCompleteItem, done = false): Promise<void> {
-    let { user_data } = item
-    if (!user_data) return
+  public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
     try {
-      let data = JSON.parse(user_data)
-      if (!data.source) return
-      let source = this.getSource(data.source)
+      let source = this.getSource(item.source)
       if (source && typeof source.onCompleteResolve == 'function') {
-        await source.onCompleteResolve(item, done)
-      } else if (!done) {
-        await this.nvim.command('echo ""')
+        await source.onCompleteResolve(item)
       }
     } catch (e) {
-      logger.error(e.stack)
+      logger.error('Error on complete resolve:', e.stack)
     }
   }
 

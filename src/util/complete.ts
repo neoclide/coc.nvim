@@ -58,9 +58,9 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   return word
 }
 
-export function getDocumentation(item: CompletionItem): string | null {
+export function getDocumentation(item: CompletionItem): string {
   let { documentation } = item
-  if (!documentation) return null
+  if (!documentation) return ''
   if (typeof documentation === 'string') return documentation
   return documentation.value
 }
@@ -68,55 +68,55 @@ export function getDocumentation(item: CompletionItem): string | null {
 export function completionKindString(kind: CompletionItemKind): string {
   switch (kind) {
     case CompletionItemKind.Text:
-      return 'Text'
+      return 'v'
     case CompletionItemKind.Method:
-      return 'Method'
+      return 'f'
     case CompletionItemKind.Function:
-      return 'Function'
+      return 'f'
     case CompletionItemKind.Constructor:
-      return 'Constructor'
+      return 'f'
     case CompletionItemKind.Field:
-      return 'Field'
+      return 'm'
     case CompletionItemKind.Variable:
-      return 'Variable'
+      return 'v'
     case CompletionItemKind.Class:
-      return 'Class'
+      return 'C'
     case CompletionItemKind.Interface:
-      return 'Interface'
+      return 'I'
     case CompletionItemKind.Module:
-      return 'Module'
+      return 'M'
     case CompletionItemKind.Property:
-      return 'Property'
+      return 'm'
     case CompletionItemKind.Unit:
-      return 'Unit'
+      return 'U'
     case CompletionItemKind.Value:
-      return 'Value'
+      return 'v'
     case CompletionItemKind.Enum:
-      return 'Enum'
+      return 'E'
     case CompletionItemKind.Keyword:
-      return 'Keyword'
+      return 'k'
     case CompletionItemKind.Snippet:
-      return 'Snippet'
+      return 'S'
     case CompletionItemKind.Color:
-      return 'Color'
+      return 'v'
     case CompletionItemKind.File:
-      return 'File'
+      return 'F'
     case CompletionItemKind.Reference:
-      return 'Reference'
+      return 'r'
     case CompletionItemKind.Folder:
-      return 'Folder'
+      return 'F'
     case CompletionItemKind.EnumMember:
-      return 'EnumMember'
+      return 'm'
     case CompletionItemKind.Constant:
-      return 'Constant'
+      return 'v'
     case CompletionItemKind.Struct:
-      return 'Struct'
+      return 'S'
     case CompletionItemKind.Event:
-      return 'Event'
+      return 'E'
     case CompletionItemKind.Operator:
-      return 'Operator'
+      return 'O'
     case CompletionItemKind.TypeParameter:
-      return 'TypeParameter'
+      return 'T'
     default:
       return ''
   }

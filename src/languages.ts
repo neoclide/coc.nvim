@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, CompletionItemKind } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import Document from './model/document'
@@ -28,7 +28,6 @@ import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
 import { wait } from './util'
 import * as complete from './util/complete'
-import { mixin } from './util/object'
 import { getChangedPosition } from './util/position'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
@@ -447,7 +446,6 @@ class Languages {
   ): ISource {
     // track them for resolve
     let completeItems: CompletionItem[] = []
-    let resolveInput: string
     // line used for TextEdit
     let hasResolve = typeof provider.resolveCompletionItem === 'function'
     priority = priority == null ? this.completeConfig.priority : priority
@@ -500,35 +498,18 @@ class Languages {
           items
         }
       },
-      onCompleteResolve: async (item: VimCompleteItem, done: boolean): Promise<void> => {
+      onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
         let resolving = completeItems[item.index]
         if (!resolving) return
-        let { nvim } = this
-        resolveInput = item.word
         if (resolveTokenSource) resolveTokenSource.cancel()
         if (hasResolve && !resolvedIndexes.has(item.index)) {
           resolveTokenSource = new CancellationTokenSource()
           let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
           if (resolveTokenSource.token.isCancellationRequested) return
           resolvedIndexes.add(item.index)
-          if (resolved) mixin(resolving, resolved)
-        }
-        if (resolveInput != item.word || done) return
-        let str = resolving.detail ? resolving.detail.trim() : ''
-        str = str.replace(/\n\s*/g, ' ')
-        if (str) {
-          let cmdHeight = await nvim.getOption('cmdheight') as number
-          let columns = await nvim.getOption('columns') as number
-          let max = cmdHeight * columns - 16
-          if (str.length > max) str = str.slice(0, max) + '...'
-          await nvim.command('echo ""')
-          nvim.command(`echohl MoreMsg | echom '${str.replace(/'/g, "''")}' | echohl None`, true)
-        }
-        let documentation = complete.getDocumentation(resolving)
-        if (doc) str += '\n\n' + documentation
-        if (str.length) {
-          // TODO vim has bug with layout change on pumvisible
-          // this.nvim.call('coc#util#preview_info', [str]) // tslint:disable-line
+          if (resolved) Object.assign(resolving, resolved)
+          let doc = resolving.detail ? resolving.detail.trim().replace(/\n\s*/g, ' ') : ''
+          item.info = `${doc ? doc + '\n\n' : ''}${complete.getDocumentation(resolving)}`.trim()
         }
       },
       onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
@@ -639,8 +620,7 @@ class Languages {
       isSnippet = false
       item.insertTextFormat = InsertTextFormat.PlainText
     }
-    let detail = item.detail || ''
-    if (detail.length > detailMaxLength) detail = detail.slice(0, detailMaxLength) + '...'
+    let detail = item.detail && item.detail.length < detailMaxLength ? item.detail : ''
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, this.completeConfig.invalidInsertCharacters),
       abbr: label,
@@ -650,6 +630,9 @@ class Languages {
       filterText: item.filterText || label,
       dup: 1,
       isSnippet
+    }
+    if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
+      obj.abbr = obj.abbr + '/'
     }
     if (echodocSupport && item.kind >= 2 && item.kind <= 4) {
       let fields = [item.detail || '', obj.abbr, obj.word]
@@ -663,8 +646,8 @@ class Languages {
     if (item.preselect) obj.preselect = true
     item.data = item.data || {}
     if (item.data.optional) obj.abbr = obj.abbr + '?'
-    let document = complete.getDocumentation(item)
-    if (document) obj.info = document
+    let text = item.detail && !detail ? item.detail.trim().replace(/\n\s*/g, ' ') : ''
+    obj.info = `${text ? text + '\n\n' : ''}${complete.getDocumentation(item)}`.trim()
     return obj
   }
 }
