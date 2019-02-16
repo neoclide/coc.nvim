@@ -4,11 +4,12 @@
 | --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- |
 | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] |
 
-Coc is an intellisense engine for vim8 & neovim. It only works on `vim >= 8.1`
-and `neovim >= 0.3.1`
+Coc is an intellisense engine for vim8 & neovim.
 
-It's a completion framework, language server client which
-[support extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+It works on `vim >= 8.1` and `neovim >= 0.3.1`.
+
+It's a completion framework, language server client which support
+[extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 ![example.gif](https://user-images.githubusercontent.com/251450/50468690-25083880-09e4-11e9-8d8c-38b789bbfab2.gif)
 
@@ -34,9 +35,14 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 - **Full LSP completion support**, especially snippet and `additionalTextEdit`
   feature, you'll understand why it's awesome when you experience it with
   coc extension like `coc-tsserver`.
+- **Asynchronous and parallel completion request**, unless using vim sources,
+  your vim will never blocked.
 - **Does completion resolve on completion item change**. The detail from complete
-  item is echoed after selected, we will have floating window for documentation
-  when floating window is supported.
+  item is echoed after selected, this feature requires `CompleteChanged` autocmd
+  to work.
+- **Incomplete request and cancel request support**, only incomplete complete
+  request would be trigger on filter complete items and cancellation request is
+  send to servers when necessary.
 - **Start completion without timer**. The completion would start after you type
   first letter of word by default, and filtered with new input when completion
   finished, while some completion engine use timer to trigger completion and you
@@ -46,10 +52,9 @@ Below is the reasons that lead to coc.nvim build it's own engine:
   be wrong sometimes. And [Locality bonus feature](https://code.visualstudio.com/docs/editor/intellisense#_locality-bonus)
   from VSCode is enabled by default.
 - **Filter completion items when possible.** When your does fuzzy filter with
-  completion items (which would trigger TextChangedI during completion), some
-  completion engines would trigger new completion, but coc filter the items when
-  possible which makes coc much faster. Filter completion items on backspace is
-  also supported.
+  completion items, some completion engines would trigger new completion, but
+  coc.nvim filter the items when possible which makes it much faster. Filter
+  completion items on backspace is also supported.
 
 ## Table of contents
 
