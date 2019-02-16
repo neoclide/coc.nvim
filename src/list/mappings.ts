@@ -16,7 +16,7 @@ export default class Mappings {
     let { prompt } = manager
 
     this.add('insert', ' ', () => {
-      return manager.ui.toggleSelection()
+      return prompt.insertCharacter(' ')
     })
     this.add('insert', '<C-k>', () => {
       return prompt.removeTail()

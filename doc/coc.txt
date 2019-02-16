@@ -1180,7 +1180,6 @@ Default mappings on insert mode:
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.
 <Tab>       - select action.
-<Space>     - toggle select of current item.
 
 Default mappings on normal mode:
 
