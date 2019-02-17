@@ -61,6 +61,8 @@ function! coc#rpc#stop()
 endfunction
 
 function! coc#rpc#restart()
+  call coc#rpc#request('detach', [])
+  sleep 100m
   call coc#client#restart(s:name)
 endfunction
 

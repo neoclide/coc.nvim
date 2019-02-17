@@ -208,6 +208,10 @@ export default class Plugin extends EventEmitter {
     listManager.next()
   }
 
+  public async detach(): Promise<void> {
+    await workspace.detach()
+  }
+
   public updateExtension(): Promise<void> {
     let { nvim } = this
     return new Promise((resolve, reject) => {

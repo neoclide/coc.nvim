@@ -308,25 +308,23 @@ export class DiagnosticBuffer {
    * @returns {Promise<void>}
    */
   public async clear(): Promise<void> {
-    let info = { error: 0, warning: 0, information: 0, hint: 0 }
-    if (this.sequence) {
-      await this.sequence.cancel()
-    }
-    let buffer = this.nvim.createBuffer(this.bufnr)
-    buffer.setVar('coc_diagnostic_info', info, true)
-    let bufnr = await this.nvim.call('bufnr', '%')
-    if (bufnr == this.bufnr) this.nvim.command('redraws', true)
+    if (this.sequence) await this.sequence.cancel()
+    this.setDiagnosticInfo([])
     this.clearHighlight()
     this.clearSigns()
     // clear locationlist
     if (this.config.locationlist) {
-      let winid = await this.nvim.call('bufwinid', bufnr) as number
+      let winid = await this.nvim.call('bufwinid', this.bufnr) as number
       // not shown
       if (winid == -1) return
       let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
       if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
         this.nvim.call('setloclist', [winid, [], 'f'], true)
       }
+    }
+    if (this.config.virtualText) {
+      let buffer = this.nvim.createBuffer(this.bufnr)
+      buffer.clearNamespace(this.config.virtualTextSrcId)
     }
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }

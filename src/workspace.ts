@@ -195,7 +195,6 @@ export class Workspace implements IWorkspace {
 
   public watchGlobal(key: string, callback?: (oldValue: any, newValue: any) => Thenable<void> | void, disposables?: Disposable[]): void {
     let { nvim } = this
-    if (this.isVim) return
     nvim.call('coc#_watch', key, true)
     let disposable = events.on('GlobalChange', async (changed: string, oldValue: any, newValue: any) => {
       if (changed == key && callback) {
@@ -943,7 +942,7 @@ augroup end`
     await events.fire('BufWinEnter', [bufnr, winid])
   }
 
-  private async detach(): Promise<void> {
+  public async detach(): Promise<void> {
     if (!this._attached) return
     this._attached = false
     for (let bufnr of this.buffers.keys()) {
