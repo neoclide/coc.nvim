@@ -275,6 +275,14 @@ export interface CompleteOption {
   triggerForInComplete?: boolean
 }
 
+export interface PumBounding {
+  readonly height: number
+  readonly width: number
+  readonly line: number
+  readonly col: number
+  readonly scrollbar: number
+}
+
 export interface VimCompleteItem {
   word: string
   abbr?: string

@@ -1,5 +1,5 @@
 import { Disposable } from 'vscode-languageserver-protocol'
-import { VimCompleteItem } from './types'
+import { VimCompleteItem, PumBounding } from './types'
 import workspace from './workspace'
 import { disposeAll } from './util'
 const logger = require('./util/logger')('events')
@@ -41,7 +41,8 @@ class Events {
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'CompleteDone' | 'CompleteChanged', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteChanged', handler: (item: VimCompleteItem, bounding: PumBounding) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufWinEnter' | 'BufWinLeave', handler: (bufnr: number, winid: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

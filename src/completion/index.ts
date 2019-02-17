@@ -3,7 +3,7 @@ import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem } from '../types'
+import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, PumBounding } from '../types'
 import { disposeAll, wait } from '../util'
 import { byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
@@ -403,7 +403,7 @@ export class Completion implements Disposable {
     return false
   }
 
-  public async onCompleteChanged(item: VimCompleteItem): Promise<void> {
+  public async onCompleteChanged(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
     this.complteChangeTs = Date.now()
     let resolveId = this.resolveId = Date.now()
     if (this.resolveTimer) clearTimeout(this.resolveTimer)
