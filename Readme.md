@@ -11,7 +11,7 @@ It works on `vim >= 8.1` and `neovim >= 0.3.1`.
 It's a completion framework, language server client which support
 [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-![example.gif](https://user-images.githubusercontent.com/251450/50468690-25083880-09e4-11e9-8d8c-38b789bbfab2.gif)
+<img src="https://user-images.githubusercontent.com/251450/52922829-23614e00-335f-11e9-8d33-3dae30ea4a9a.gif" width="400" height="255">
 
 _True snippet and additional text edit support_
 
