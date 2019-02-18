@@ -17,6 +17,18 @@ _True snippet and additional text edit support_
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
+
+## Warning
+
+**This is floating branch, which not merged into neovim master yet.**
+
+For floating features to work, you need compile neovim with
+[PR 6619](https://github.com/neovim/neovim/pull/6619) and
+[PR 9616](https://github.com/neovim/neovim/pull/9616) or use my fork at
+[chemzqm/neovim](https://github.com/chemzqm/neovim)
+
+Be aware that the API could change any time.
+
 ## Why?
 
 - 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#highlights-of-coc-completion), increment buffer sync using buffer update events.
