@@ -858,6 +858,7 @@ export class Workspace implements IWorkspace {
   }
 
   public createStatusBarItem(priority = 0, opt: StatusItemOption = {}): StatusBarItem {
+    if (!this.statusLine) return null
     return this.statusLine.createStatusBarItem(priority, opt.progress || false)
   }
 

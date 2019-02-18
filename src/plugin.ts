@@ -214,6 +214,11 @@ export default class Plugin extends EventEmitter {
 
   public updateExtension(): Promise<void> {
     let { nvim } = this
+    let statusItem = workspace.createStatusBarItem(0, { progress: true })
+    if (statusItem) {
+      statusItem.text = 'Checking latest release'
+      statusItem.show()
+    }
     return new Promise((resolve, reject) => {
       const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', res => {
         let content = ''
@@ -228,11 +233,14 @@ export default class Plugin extends EventEmitter {
               console.error(`Please upgrade coc.nvim to latest version: ${latest}`) // tslint:disable-line
             } else {
               let cwd = await nvim.call('coc#util#extension_root') as string
-              await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 120000)
+              if (statusItem) statusItem.text = 'Upgrading coc extensions...'
+              await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 300000)
+              if (statusItem) statusItem.dispose()
             }
             resolve()
           } catch (e) {
             console.error(`Update error: ${e.message}`) // tslint:disable-line
+            if (statusItem) statusItem.hide()
             resolve()
           }
         })
