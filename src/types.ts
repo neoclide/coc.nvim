@@ -607,6 +607,7 @@ export interface ISource {
    *
    * @public
    * @param {CompleteOption} opt
+   * @param {CancellationToken} token
    * @returns {Promise<CompleteResult | null>}
    */
   doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null>
@@ -615,9 +616,10 @@ export interface ISource {
    *
    * @public
    * @param {VimCompleteItem} item
+   * @param {CancellationToken} token
    * @returns {Promise<void>}
    */
-  onCompleteResolve?(item: VimCompleteItem): Promise<void> | void
+  onCompleteResolve?(item: VimCompleteItem, token: CancellationToken): Promise<void> | void
   /**
    * Action for complete item on complete done
    *

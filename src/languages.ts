@@ -457,7 +457,6 @@ class Languages {
     let resolvedIndexes: Set<number> = new Set()
     let doc: Document = null
     let waitTime = Math.min(Math.max(50, this.completeConfig.waitTime), 300)
-    let resolveTokenSource: CancellationTokenSource
     let source: ISource = {
       name,
       priority,
@@ -502,24 +501,28 @@ class Languages {
           items
         }
       },
-      onCompleteResolve: async (item: VimCompleteItem): Promise<void> => {
+      onCompleteResolve: async (item: VimCompleteItem, token: CancellationToken): Promise<void> => {
         let resolving = completeItems[item.index]
         if (!resolving) return
-        if (resolveTokenSource) resolveTokenSource.cancel()
         if (hasResolve && !resolvedIndexes.has(item.index)) {
-          resolveTokenSource = new CancellationTokenSource()
-          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, resolveTokenSource.token))
-          if (resolveTokenSource.token.isCancellationRequested) return
+          let resolved = await Promise.resolve(provider.resolveCompletionItem(resolving, token))
+          if (token.isCancellationRequested) return
           resolvedIndexes.add(item.index)
           if (resolved) Object.assign(resolving, resolved)
         }
-        if (!item.documentation) {
+        if (item.documentation == null) {
           let { documentation, detail } = resolving
           if (!documentation && !detail) return
+          // detail should be single line
           if (detail) detail = detail.trim().replace(/\n\s*/g, ' ')
           let content = documentation && MarkupContent.is(documentation) ? documentation.value : documentation || ''
           let isMarkdown = documentation && MarkupContent.is(documentation) && documentation.kind == 'markdown'
-          let value = `${detail ? detail + '\n\n' : ''}${content}`.trim()
+          let sep = detail && content ? '\n---\n' : ''
+          let value = `${detail || ''}${sep}${content || ''}`.trim()
+          if (value == item.word) {
+            item.documentation = { kind: 'plaintext', value: '' }
+            return
+          }
           item.documentation = { kind: isMarkdown ? 'markdown' : 'plaintext', value }
           item.hasDetail = detail && detail.length > 0
         }
