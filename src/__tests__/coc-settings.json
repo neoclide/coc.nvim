@@ -1,6 +1,4 @@
 {
-  "coc.preferences.timeout": 5000,
-  "coc.preferences.acceptSuggestionOnCommitCharacter": true,
-  "coc.preferences.snippets.loadFromExtensions": false,
+  "suggest.timeout": 5000,
   "tslint.enable": false
 }

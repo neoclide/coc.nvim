@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, CompletionItemKind } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, MarkupContent, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import Document from './model/document'
@@ -121,12 +121,16 @@ class Languages {
 
   private loadCompleteConfig(): void {
     let config = workspace.getConfiguration('coc.preferences')
+    let suggest = workspace.getConfiguration('suggest')
+    function getConfig<T>(key, defaultValue: T): T {
+      return config.get<T>(key, suggest.get<T>(key, defaultValue))
+    }
     this.completeConfig = {
-      priority: config.get<number>('languageSourcePriority', 99),
-      echodocSupport: config.get<boolean>('echodocSupport', false),
-      waitTime: config.get<number>('triggerCompletionWait', 60),
-      detailMaxLength: config.get<number>('detailMaxLength', 60),
-      invalidInsertCharacters: config.get<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
+      priority: getConfig<number>('languageSourcePriority', 99),
+      echodocSupport: getConfig<boolean>('echodocSupport', false),
+      waitTime: getConfig<number>('triggerCompletionWait', 60),
+      detailMaxLength: getConfig<number>('detailMaxLength', 60),
+      invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
     }
   }
 
@@ -508,8 +512,16 @@ class Languages {
           if (resolveTokenSource.token.isCancellationRequested) return
           resolvedIndexes.add(item.index)
           if (resolved) Object.assign(resolving, resolved)
-          let doc = resolving.detail ? resolving.detail.trim().replace(/\n\s*/g, ' ') : ''
-          item.info = `${doc ? doc + '\n\n' : ''}${complete.getDocumentation(resolving)}`.trim()
+        }
+        if (!item.documentation) {
+          let { documentation, detail } = resolving
+          if (!documentation && !detail) return
+          if (detail) detail = detail.trim().replace(/\n\s*/g, ' ')
+          let content = documentation && MarkupContent.is(documentation) ? documentation.value : documentation || ''
+          let isMarkdown = documentation && MarkupContent.is(documentation) && documentation.kind == 'markdown'
+          let value = `${detail ? detail + '\n\n' : ''}${content}`.trim()
+          item.documentation = { kind: isMarkdown ? 'markdown' : 'plaintext', value }
+          item.hasDetail = detail && detail.length > 0
         }
       },
       onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
@@ -610,7 +622,7 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
-    let { detailMaxLength, echodocSupport } = this.completeConfig
+    let { echodocSupport } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -620,16 +632,15 @@ class Languages {
       isSnippet = false
       item.insertTextFormat = InsertTextFormat.PlainText
     }
-    let detail = item.detail && item.detail.length < detailMaxLength ? item.detail : ''
     let obj: VimCompleteItem = {
       word: complete.getWord(item, opt, this.completeConfig.invalidInsertCharacters),
       abbr: label,
-      menu: detail ? `${detail} [${shortcut}]` : `[${shortcut}]`,
+      menu: `[${shortcut}]`,
       kind: complete.completionKindString(item.kind),
       sortText: item.sortText || null,
       filterText: item.filterText || label,
-      dup: 1,
-      isSnippet
+      isSnippet,
+      dup: 1
     }
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
       obj.abbr = obj.abbr + '/'
@@ -646,8 +657,6 @@ class Languages {
     if (item.preselect) obj.preselect = true
     item.data = item.data || {}
     if (item.data.optional) obj.abbr = obj.abbr + '?'
-    let text = item.detail && !detail ? item.detail.trim().replace(/\n\s*/g, ' ') : ''
-    obj.info = `${text ? text + '\n\n' : ''}${complete.getDocumentation(item)}`.trim()
     return obj
   }
 }

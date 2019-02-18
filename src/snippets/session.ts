@@ -22,7 +22,8 @@ export class SnippetSession {
 
   constructor(private nvim: Neovim, public readonly bufnr: number) {
     let config = workspace.getConfiguration('coc.preferences')
-    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', false)
+    let suggest = workspace.getConfiguration('suggest')
+    this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', suggest.get('preferCompleteThanJumpPlaceholder', false))
   }
 
   public async start(snippetString: string, select = true, position?: Position): Promise<boolean> {

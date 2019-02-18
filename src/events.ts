@@ -10,10 +10,10 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
   | 'TextChanged' | 'BufWritePost' | 'CursorMoved' | 'CursorHold' | 'InsertLeave'
   | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP'
 
-export type EmptyEvents = 'InsertEnter' | 'CursorMovedI' | 'FocusGained' | 'VimResized'
+export type EmptyEvents = 'InsertEnter' | 'CursorMovedI' | 'FocusGained'
 
 export type AllEvents = BufEvents | EmptyEvents | 'CompleteDone' | 'CompleteChanged' |
-  'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' |
+  'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' |
   'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
 
 export type OptionValue = string | number | boolean
@@ -40,6 +40,7 @@ class Events {
   public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteChanged', handler: (item: VimCompleteItem, bounding: PumBounding) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

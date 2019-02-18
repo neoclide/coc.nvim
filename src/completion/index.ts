@@ -1,13 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, MarkupKind } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, RecentScore, VimCompleteItem, PumBounding } from '../types'
+import { CompleteConfig, CompleteOption, PumBounding, RecentScore, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
 import { byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
+import FloatingWindow, { FloatingConfig } from './floating'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -19,6 +20,7 @@ export class Completion implements Disposable {
   public completeItems: VimCompleteItem[] = []
   public config: CompleteConfig
   private document: Document
+  private floating: FloatingWindow
   // current input string
   private activted = false
   private input: string
@@ -37,8 +39,9 @@ export class Completion implements Disposable {
   // only used when hasChangedEvent is false
   private isResolving = false
   private resolveTimer: NodeJS.Timer
+  private floatingConfig: FloatingConfig
 
-  public init(nvim: Neovim): void {
+  public async init(nvim: Neovim): Promise<void> {
     this.nvim = nvim
     this.config = this.getCompleteConfig()
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
@@ -49,10 +52,19 @@ export class Completion implements Disposable {
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
     events.on('CompleteChanged', this.onCompleteChanged, this, this.disposables)
     workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('coc.preferences')) {
+      if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())
+        this.floatingConfig.maxPreviewWidth = this.config.maxPreviewWidth
       }
     }, null, this.disposables)
+    let columns = await nvim.getOption('columns') as number
+    let lines = await nvim.getOption('lines') as number
+    let cmdheight = await nvim.getOption('cmdheight') as number
+    let srcId = await workspace.createNameSpace('coc-detail')
+    this.floatingConfig = { srcId, lines, columns, cmdheight, maxPreviewWidth: this.config.maxPreviewWidth }
+    events.on('VimResized', (columns, lines) => {
+      Object.assign(this.floatingConfig, { columns, lines })
+    })
   }
 
   public get option(): CompleteOption {
@@ -108,26 +120,29 @@ export class Completion implements Disposable {
 
   private getCompleteConfig(): CompleteConfig {
     let config = workspace.getConfiguration('coc.preferences')
-    let keepCompleteopt = config.get<boolean>('keepCompleteopt', false)
-    let autoTrigger = config.get<string>('autoTrigger', 'always')
-
+    let suggest = workspace.getConfiguration('suggest')
+    function getConfig<T>(key, defaultValue: T): T {
+      return config.get<T>(key, suggest.get<T>(key, defaultValue))
+    }
+    let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)
+    let autoTrigger = getConfig<string>('autoTrigger', 'always')
     if (keepCompleteopt && !workspace.completeOpt.includes('noinsert')) {
       autoTrigger = 'none'
     }
-
     return {
       autoTrigger,
-      triggerAfterInsertEnter: config.get<boolean>('triggerAfterInsertEnter', false),
-      noselect: config.get<boolean>('noselect', true),
       keepCompleteopt,
-      numberSelect: config.get<boolean>('numberSelect', false),
-      acceptSuggestionOnCommitCharacter: config.get<boolean>('acceptSuggestionOnCommitCharacter', false),
-      maxItemCount: config.get<number>('maxCompleteItemCount', 50),
-      timeout: config.get<number>('timeout', 500),
-      minTriggerInputLength: config.get<number>('minTriggerInputLength', 1),
-      snippetIndicator: config.get<string>('snippetIndicator', '~'),
-      fixInsertedWord: config.get<boolean>('fixInsertedWord', true),
-      localityBonus: config.get<boolean>('localityBonus', true),
+      maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
+      triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
+      noselect: getConfig<boolean>('noselect', true),
+      numberSelect: getConfig<boolean>('numberSelect', false),
+      acceptSuggestionOnCommitCharacter: getConfig<boolean>('acceptSuggestionOnCommitCharacter', false),
+      maxItemCount: getConfig<number>('maxCompleteItemCount', 50),
+      timeout: getConfig<number>('timeout', 500),
+      minTriggerInputLength: getConfig<number>('minTriggerInputLength', 1),
+      snippetIndicator: getConfig<string>('snippetIndicator', '~'),
+      fixInsertedWord: getConfig<boolean>('fixInsertedWord', true),
+      localityBonus: getConfig<boolean>('localityBonus', true),
     }
   }
 
@@ -409,10 +424,12 @@ export class Completion implements Disposable {
     if (this.resolveTimer) clearTimeout(this.resolveTimer)
     if (Object.keys(item).length == 0) {
       this.currIndex = 0
+      this.closePreviewWindow()
     } else {
       let idx = this.completeItems.findIndex(o => o.word == item.word && o.user_data == item.user_data)
       if (idx == -1) {
         this.currIndex = 0
+        this.closePreviewWindow()
         return
       }
       this.currIndex = idx + 1
@@ -420,7 +437,17 @@ export class Completion implements Disposable {
       this.resolveTimer = setTimeout(async () => {
         await sources.doCompleteResolve(item)
         if (this.resolveId == resolveId && this.isActivted) {
-          await this.showDocumentation(item.info)
+          // await this.showDocumentation(item.info, bounding)
+          let content = item.documentation ? item.documentation.value : item.info
+          let kind: MarkupKind = item.documentation && item.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
+          let { nvim, floating } = this
+          if (!content) {
+            this.closePreviewWindow()
+          } else {
+            if (!floating) floating = this.floating = new FloatingWindow(nvim, this.floatingConfig)
+            floating.chars = this.document.chars
+            await floating.show(content, bounding, kind, item.hasDetail)
+          }
         }
       }, 50)
     }
@@ -430,6 +457,7 @@ export class Completion implements Disposable {
     let { activted } = this
     this.activted = true
     this.isResolving = false
+    this.closePreviewWindow()
     if (activted) {
       this.complete.cancel()
     }
@@ -449,6 +477,7 @@ export class Completion implements Disposable {
     this.document.paused = false
     this.document.fireContentChanges()
     this.completeItems = []
+    this.closePreviewWindow()
     if (this.complete) {
       this.complete.cancel()
       this.complete = null
@@ -462,25 +491,16 @@ export class Completion implements Disposable {
     }
   }
 
-  private get completeOpt(): string {
-    let { noselect } = this.config
-    let preview = workspace.completeOpt.indexOf('preview') !== -1
-    return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview ? ',preview' : ''}`
+  private closePreviewWindow(): void {
+    if (this.floating) {
+      this.floating.close()
+      this.floating = null
+    }
   }
 
-  private async showDocumentation(content: string): Promise<void> {
-    // TODO use previewwindow
-    let { nvim } = this
-    if (!content) {
-      await nvim.command('echo ""')
-    } else {
-      let cmdHeight = await nvim.getOption('cmdheight') as number
-      let columns = await nvim.getOption('columns') as number
-      let max = cmdHeight * columns - 16
-      let line = content.split('\n')[0]
-      if (content.length > max) line = line.slice(0, max) + '...'
-      nvim.command(`echohl MoreMsg | echom '${line.replace(/'/g, "''")}' | echohl None`, true)
-    }
+  private get completeOpt(): string {
+    let { noselect } = this.config
+    return `${noselect ? 'noselect,' : ''}noinsert,menuone`
   }
 
   public dispose(): void {

@@ -206,43 +206,43 @@
     }
   },
   "properties": {
-    "coc.preferences.autoTrigger": {
+    "suggest.maxPreviewWidth": {
+      "type": "number",
+      "default": 50,
+      "description": "Maxmium width of floating preview window."
+    },
+    "suggest.autoTrigger": {
       "type": "string",
       "default": "always",
       "description": "How should completion be triggered",
       "enum": ["always", "trigger", "none"]
     },
-    "coc.preferences.languageSourcePriority": {
+    "suggest.languageSourcePriority": {
       "type": "number",
       "default": 99,
       "description": "Priority of language sources."
     },
-    "coc.preferences.numberSelect": {
+    "suggest.numberSelect": {
       "type": "boolean",
       "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
       "default": false
     },
-    "coc.preferences.snippetIndicator": {
+    "suggest.snippetIndicator": {
       "type": "string",
       "default": "~",
       "description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
     },
-    "coc.preferences.snippetStatusText": {
-      "type": "string",
-      "default": "SNIP",
-      "description": "Text shown in statusline to indicate snippet session is activated."
-    },
-    "coc.preferences.maxCompleteItemCount": {
+    "suggest.maxCompleteItemCount": {
       "type": "number",
       "default": 50,
       "description": "Maxmium number of complete items shown in vim"
     },
-    "coc.preferences.preferCompleteThanJumpPlaceholder": {
+    "suggest.preferCompleteThanJumpPlaceholder": {
       "type": "boolean",
       "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
       "default": false
     },
-    "coc.preferences.invalidInsertCharacters": {
+    "suggest.invalidInsertCharacters": {
       "type": "array",
       "default": ["<", "(", ":", " "],
       "description": "Invalid character for strip valid word when inserting text of snippet complete item.",
@@ -250,65 +250,75 @@
         "type": "string"
       }
     },
-    "coc.preferences.fixInsertedWord": {
+    "suggest.fixInsertedWord": {
       "type": "boolean",
       "description": "Make inserted word replace word characters after cursor position.",
       "default": true
     },
-    "coc.preferences.localityBonus": {
+    "suggest.localityBonus": {
       "type": "boolean",
       "description": "Boost suggestions that appear closer to the cursor position.",
       "default": true
     },
-    "coc.preferences.triggerAfterInsertEnter": {
+    "suggest.triggerAfterInsertEnter": {
       "type": "boolean",
       "description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
       "default": false
     },
-    "coc.preferences.timeout": {
+    "suggest.timeout": {
       "type": "integer",
       "default": 2000,
       "minimum": 500,
       "maximum": 5000,
       "description": "Timeout for completion, in miliseconds."
     },
-    "coc.preferences.minTriggerInputLength": {
+    "suggest.minTriggerInputLength": {
       "type": "number",
       "default": 1,
       "description": "Mininal input length for trigger completion, default 1"
     },
-    "coc.preferences.triggerCompletionWait": {
+    "suggest.triggerCompletionWait": {
       "type": "integer",
       "default": 60,
       "minimum": 50,
       "maximum": 300,
       "description": "Wait time between trigger character type and completion start, for wait server content synchronize."
     },
-    "coc.preferences.echodocSupport": {
+    "suggest.echodocSupport": {
       "type": "boolean",
       "default": false,
       "description": "When enabled, add function signature to user_data.signature to support echodoc.vim"
     },
-    "coc.preferences.acceptSuggestionOnCommitCharacter": {
+    "suggest.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",
       "default": false,
       "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character."
     },
-    "coc.preferences.noselect": {
+    "suggest.noselect": {
       "type": "boolean",
       "description": "Not make vim select first item on completion start",
       "default": true
     },
-    "coc.preferences.keepCompleteopt": {
+    "suggest.keepCompleteopt": {
       "type": "boolean",
       "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert.",
       "default": false
+    },
+    "suggest.detailMaxLength": {
+      "type": "number",
+      "description": "Max length of detail that should be shown in popup menu.",
+      "default": 60
     },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",
       "description": "Interval for check extension update, could be daily, weekly, never",
       "enum": ["daily", "weekly", "never"]
+    },
+    "coc.preferences.snippetStatusText": {
+      "type": "string",
+      "default": "SNIP",
+      "description": "Text shown in statusline to indicate snippet session is activated."
     },
     "coc.preferences.hoverTarget": {
       "type": "string",
@@ -361,11 +371,6 @@
       "type": "string",
       "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
       "default": null
-    },
-    "coc.preferences.detailMaxLength": {
-      "type": "number",
-      "description": "Max length of detail that should be shown in popup menu.",
-      "default": 60
     },
     "coc.preferences.jumpCommand": {
       "type": "string",

@@ -1,6 +1,6 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range, CancellationToken } from 'vscode-languageserver-protocol'
+import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range, CancellationToken, MarkupContent } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
@@ -278,7 +278,7 @@ export interface CompleteOption {
 export interface PumBounding {
   readonly height: number
   readonly width: number
-  readonly line: number
+  readonly row: number
   readonly col: number
   readonly scrollbar: number
 }
@@ -307,6 +307,9 @@ export interface VimCompleteItem {
   signature?: string
   localBonus?: number
   index?: number
+  // used for preview
+  documentation?: MarkupContent
+  hasDetail?: boolean
 }
 
 export interface CompleteResult {
@@ -327,6 +330,7 @@ export interface SourceStat {
 }
 
 export interface CompleteConfig {
+  maxPreviewWidth: number
   autoTrigger: string
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
