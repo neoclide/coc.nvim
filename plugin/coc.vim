@@ -156,7 +156,7 @@ function! s:Enable()
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
     autocmd FocusGained         * call s:Autocmd('FocusGained')
-    autocmd VimResized          * call s:Autocmd('VimResized')
+    autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
@@ -175,6 +175,8 @@ hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
 hi default link CocListMode ModeMsg
 hi default link CocListPath Comment
+hi default link CocPumFloating Pmenu
+hi default link CocPumFloatingDetail NonText
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText

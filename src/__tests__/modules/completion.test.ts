@@ -50,7 +50,7 @@ describe('completion events', () => {
 
   it('should reload preferences onChange', () => {
     let { configurations } = workspace
-    configurations.updateUserConfig({ 'coc.preferences.maxCompleteItemCount': 30 })
+    configurations.updateUserConfig({ 'suggest.maxCompleteItemCount': 30 })
     let snippetIndicator = completion.config.maxItemCount
     expect(snippetIndicator).toBe(30)
   })
@@ -393,7 +393,7 @@ describe('completion#TextChangedI', () => {
 describe('completion#shouldTrigger', () => {
 
   it('should not trigger if autoTrigger is none', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('autoTrigger', 'none')
     let autoTrigger = completion.config.autoTrigger
     expect(autoTrigger).toBe('none')
@@ -409,7 +409,7 @@ describe('completion#shouldTrigger', () => {
 describe('completion#InsertEnter', () => {
 
   it('should trigger completion if triggerAfterInsertEnter is true', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('triggerAfterInsertEnter', true)
     await helper.wait(100)
     let triggerAfterInsertEnter = completion.config.triggerAfterInsertEnter
@@ -422,7 +422,7 @@ describe('completion#InsertEnter', () => {
   })
 
   it('should not trigger when input length too small', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('triggerAfterInsertEnter', true)
     await helper.wait(100)
     let triggerAfterInsertEnter = completion.config.triggerAfterInsertEnter

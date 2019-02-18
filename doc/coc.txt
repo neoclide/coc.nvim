@@ -95,35 +95,35 @@ some of completion behavior be using configuration file.
 
 To disable automatic trigger, use: >
 
-	"coc.preferences.autoTrigger": "none",
+	"suggest.autoTrigger": "none",
 <
 To enable trigger after insert enter, use: >
 
-	"coc.preferences.triggerAfterInsertEnter": true,
+	"suggest.triggerAfterInsertEnter": true,
 
 To change the timeout of completion, use: >
 
-	"coc.preferences.timeout": 500,
+	"suggest.timeout": 500,
 <
 To make the first complete item selected automatically, use: >
 
-	"coc.preferences.noselect": false,
+	"suggest.noselect": false,
 
 To prevent overriding `completeopt`, use:
 
-	"coc.preferences.keepCompleteopt": true,
+	"suggest.keepCompleteopt": true,
 <
 To make completion triggered with two input characters, use: >
 
-	"coc.preferences.minTriggerInputLength": 2
+	"suggest.minTriggerInputLength": 2
 <
 To enable commit characters feature, use: >
 
-	"coc.preferences.acceptSuggestionOnCommitCharacter": true
+	"suggest.acceptSuggestionOnCommitCharacter": true
 <
 To change the indicator of snippet item, use: >
 
-	"coc.preferences.snippetIndicator": "⭐︎"
+	"suggest.snippetIndicator": "⭐︎"
 
 ------------------------------------------------------------------------------
 
