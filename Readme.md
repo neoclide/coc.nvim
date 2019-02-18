@@ -17,7 +17,6 @@ _True snippet and additional text edit support_
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
-
 ## Warning
 
 **This is floating branch, which using features not merged into neovim master yet.**
@@ -28,6 +27,13 @@ For floating features to work, you need compile neovim with
 [chemzqm/neovim](https://github.com/chemzqm/neovim)
 
 Be aware that the API could change any time.
+
+To make sure floating could work:
+
+- Add `let g:coc_force_debug = 1` to your `init.vim` which make sure your're
+  using code build by yourself.
+- `echo exists('##CompleteChanged')` should echo `1`.
+- `echo exists('*nvim_open_float_win')` should echo `1`.
 
 ## Why?
 
