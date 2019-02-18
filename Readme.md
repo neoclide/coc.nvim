@@ -20,7 +20,7 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 ## Warning
 
-**This is floating branch, which not merged into neovim master yet.**
+**This is floating branch, which using features not merged into neovim master yet.**
 
 For floating features to work, you need compile neovim with
 [PR 6619](https://github.com/neovim/neovim/pull/6619) and
