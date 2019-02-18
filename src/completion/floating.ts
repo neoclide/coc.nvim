@@ -3,6 +3,7 @@ import { PumBounding } from '../types'
 import { MarkupKind } from 'vscode-languageserver-types'
 import { byteLength } from '../util/string'
 import { Chars } from '../model/chars'
+const logger = require('../util/logger')('floating')
 
 interface Bounding {
   row: number
@@ -50,12 +51,11 @@ export default class FloatingWindow {
         unfocusable: true,
         standalone: true
       })
-      let nr = await win.number
       nvim.pauseNotification()
       win.setOption('signcolumn', 'no', true)
-      nvim.call('setwinvar', [nr, '&number', 0], true)
-      nvim.call('setwinvar', [nr, '&relativenumber', 0], true)
-      nvim.call('setwinvar', [nr, '&winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating'], true)
+      win.setOption('number', false, true)
+      win.setOption('relativenumber', false, true)
+      win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
       this.buffer.setLines(this.lines, { start: 0, end: -1, strictIndexing: false }, true)
       this.setFiletype()
       this.highlight()
