@@ -63,6 +63,10 @@ else
 fi
 
 download() {
+  if ! command -v yarn > /dev/null; then
+    info "Yarn not found, installing yarn."
+    fetch https://yarnpkg.com/install.sh | sh
+  fi
   mkdir -p build
   cd build
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
