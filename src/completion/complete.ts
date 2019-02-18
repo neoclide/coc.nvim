@@ -167,6 +167,7 @@ export default class Complete {
         }
         if (!item.user_data) {
           let user_data: any = { cid, source }
+          if (item.index != null) user_data.index = item.index
           if (item.isSnippet && cid != 0) {
             let abbr = item.abbr || item.word
             if (!abbr.endsWith(snippetIndicator)) {

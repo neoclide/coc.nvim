@@ -3,7 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
 import pify from 'pify'
-import { Disposable } from 'vscode-jsonrpc'
+import { Disposable, CancellationToken } from 'vscode-jsonrpc'
 import events from './events'
 import extensions from './extensions'
 import VimSource from './model/source-vim'
@@ -172,14 +172,14 @@ export class Sources {
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
-    try {
-      let source = this.getSource(item.source)
-      if (source && typeof source.onCompleteResolve == 'function') {
-        await source.onCompleteResolve(item)
+  public async doCompleteResolve(item: VimCompleteItem, token: CancellationToken): Promise<void> {
+    let source = this.getSource(item.source)
+    if (source && typeof source.onCompleteResolve == 'function') {
+      try {
+        await source.onCompleteResolve(item, token)
+      } catch (e) {
+        logger.error('Error on complete resolve:', e.stack)
       }
-    } catch (e) {
-      logger.error('Error on complete resolve:', e.stack)
     }
   }
 

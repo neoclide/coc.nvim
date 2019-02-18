@@ -1,5 +1,5 @@
-import { Neovim } from '@chemzqm/neovim'
-import { Disposable, MarkupKind } from 'vscode-languageserver-protocol'
+import { Neovim, Buffer } from '@chemzqm/neovim'
+import { Disposable, MarkupKind, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
@@ -30,16 +30,17 @@ export class Completion implements Disposable {
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
   private triggerCharacters: Set<string> = new Set()
+  private resolveTokenSource: CancellationTokenSource
   private changedTick = 0
   private currIndex = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
   private complteChangeTs = 0
-  private resolveId: number
   // only used when hasChangedEvent is false
   private isResolving = false
   private resolveTimer: NodeJS.Timer
   private floatingConfig: FloatingConfig
+  private previewBuffer: Buffer
 
   public async init(nvim: Neovim): Promise<void> {
     this.nvim = nvim
@@ -51,6 +52,11 @@ export class Completion implements Disposable {
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
     events.on('CompleteChanged', this.onCompleteChanged, this, this.disposables)
+    events.on('BufUnload', bufnr => {
+      if (this.previewBuffer && bufnr == this.previewBuffer.id) {
+        this.previewBuffer = null
+      }
+    }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())
@@ -341,7 +347,7 @@ export class Completion implements Disposable {
     await document.patchChangedTick()
     let { changedtick } = document
     try {
-      await sources.doCompleteResolve(item)
+      await sources.doCompleteResolve(item, (new CancellationTokenSource()).token)
       this.addRecent(item.word, document.bufnr)
       await wait(50)
       let mode = await nvim.call('mode')
@@ -420,37 +426,45 @@ export class Completion implements Disposable {
 
   public async onCompleteChanged(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
     this.complteChangeTs = Date.now()
-    let resolveId = this.resolveId = Date.now()
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource = null
+    }
     if (this.resolveTimer) clearTimeout(this.resolveTimer)
-    if (Object.keys(item).length == 0) {
+    let idx = item.word ? this.completeItems.findIndex(o => o.word == item.word && o.user_data == item.user_data) : -1
+    if (idx == -1) {
       this.currIndex = 0
       this.closePreviewWindow()
-    } else {
-      let idx = this.completeItems.findIndex(o => o.word == item.word && o.user_data == item.user_data)
-      if (idx == -1) {
-        this.currIndex = 0
-        this.closePreviewWindow()
-        return
-      }
-      this.currIndex = idx + 1
-      item = this.completeItems[idx]
-      this.resolveTimer = setTimeout(async () => {
-        await sources.doCompleteResolve(item)
-        if (this.resolveId == resolveId && this.isActivted) {
-          // await this.showDocumentation(item.info, bounding)
-          let content = item.documentation ? item.documentation.value : item.info
-          let kind: MarkupKind = item.documentation && item.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
-          let { nvim, floating } = this
-          if (!content) {
-            this.closePreviewWindow()
-          } else {
-            if (!floating) floating = this.floating = new FloatingWindow(nvim, this.floatingConfig)
-            floating.chars = this.document.chars
-            await floating.show(content, bounding, kind, item.hasDetail)
-          }
-        }
-      }, 50)
+      return
     }
+    this.currIndex = idx + 1
+    item = this.completeItems[idx]
+    // needed since we use reload hack
+    this.resolveTimer = setTimeout(async () => {
+      let source = this.resolveTokenSource = new CancellationTokenSource()
+      await sources.doCompleteResolve(item, source.token)
+      if (source.token.isCancellationRequested || !this.isActivted) return
+      let content = item.documentation ? item.documentation.value : item.info
+      let { nvim, floating } = this
+      if (!content) {
+        this.closePreviewWindow()
+      } else {
+        if (!this.previewBuffer) {
+          await this.createPreviewBuffer()
+          if (source.token.isCancellationRequested || !this.isActivted) return
+        }
+        if (!floating) floating = this.floating = new FloatingWindow(nvim, this.floatingConfig, this.previewBuffer)
+        floating.chars = this.document.chars
+        let kind: MarkupKind = item.documentation && item.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
+        await floating.show(content, bounding, kind, item.hasDetail)
+      }
+    }, 50)
+  }
+
+  private async createPreviewBuffer(): Promise<void> {
+    let buf = this.previewBuffer = await this.nvim.createNewBuffer(false)
+    await buf.setOption('buftype', 'nofile')
+    await buf.setOption('bufhidden', 'hide')
   }
 
   public start(complete: Complete): void {
@@ -473,11 +487,11 @@ export class Completion implements Disposable {
   public stop(): void {
     let { nvim } = this
     if (!this.activted) return
+    this.closePreviewWindow()
     this.activted = false
     this.document.paused = false
     this.document.fireContentChanges()
     this.completeItems = []
-    this.closePreviewWindow()
     if (this.complete) {
       this.complete.cancel()
       this.complete = null

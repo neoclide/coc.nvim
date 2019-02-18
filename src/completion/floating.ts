@@ -21,7 +21,6 @@ export interface FloatingConfig {
 }
 
 export default class FloatingWindow {
-  private buffer: Buffer
   private window: Window
   private creating = false
   private content: string
@@ -31,7 +30,7 @@ export default class FloatingWindow {
   private hasDetail: boolean
   public chars: Chars
 
-  constructor(private nvim: Neovim, private config: FloatingConfig) {
+  constructor(private nvim: Neovim, private config: FloatingConfig, private buffer: Buffer) {
   }
 
   public async show(content: string, bounding: PumBounding, kind?: MarkupKind, hasDetail = false): Promise<void> {
@@ -43,61 +42,67 @@ export default class FloatingWindow {
     let { nvim } = this
     if (!this.window) {
       this.creating = true
-      let b = this.calculateBounding()
-      let buf = this.buffer = await nvim.createNewBuffer(false)
-      let win = this.window = await nvim.openFloatWindow(buf, false, b.width, b.height, {
-        col: b.col,
-        row: b.row,
-        unfocusable: true,
-        standalone: true
-      })
-      nvim.pauseNotification()
-      win.setOption('signcolumn', 'no', true)
-      win.setOption('number', false, true)
-      win.setOption('relativenumber', false, true)
-      win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
-      this.buffer.setLines(this.lines, { start: 0, end: -1, strictIndexing: false }, true)
-      this.setFiletype()
-      this.highlight()
-      await nvim.resumeNotification()
-      this.creating = false
+      try {
+        let b = this.calculateBounding()
+        let win = this.window = await nvim.openFloatWindow(this.buffer, false, b.width, b.height, {
+          col: b.col,
+          row: b.row,
+          unfocusable: true
+        })
+        let winnr = await win.number
+        nvim.pauseNotification()
+        win.setOption('list', false, true)
+        win.setOption('number', false, true)
+        win.setOption('signcolumn', 'no', true)
+        win.setOption('conceallevel', 2, true)
+        win.setOption('relativenumber', false, true)
+        win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
+        this.configBuffer(winnr)
+        await nvim.resumeNotification()
+      } catch (e) {
+        logger.error(`Create preview error:`, e.stack)
+      } finally {
+        this.creating = false
+      }
     } else {
       let b = this.calculateBounding()
+      let winnr = await this.window.number
       nvim.pauseNotification()
       this.window.configFloat(b.width, b.height, {
         col: b.col,
         row: b.row,
-        unfocusable: true,
-        standalone: true
+        unfocusable: true
       }, true)
-      this.buffer.setLines(this.lines, { start: 0, end: -1, strictIndexing: false }, true)
-      this.setFiletype()
-      this.highlight()
+      this.configBuffer(winnr)
       await nvim.resumeNotification()
     }
   }
 
-  private setFiletype(): void {
-    let { buffer, kind } = this
-    buffer.setOption('filetype', kind == 'markdown' ? 'txt' : 'txt', true)
-  }
-
-  private highlight(): void {
-    let { buffer, hasDetail, lines } = this
+  private configBuffer(winnr: number) {
+    let { nvim, buffer, hasDetail, lines } = this
+    buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
+    nvim.command(`${winnr}wincmd w`, true)
+    nvim.command('exe 1', true)
+    nvim.command('syntax match Conceal /^\\s---$/ conceal', true)
+    if (this.kind == 'markdown') {
+      // TODO
+    }
+    nvim.command(`wincmd p`, true)
     let srcId = this.config.srcId || 990
     buffer.clearNamespace(srcId)
-    if (!hasDetail) return
-    let i = 0
-    for (let line of lines) {
-      if (!line.length) break
-      buffer.addHighlight({
-        srcId,
-        hlGroup: 'CocPumFloatingDetail',
-        line: i,
-        colStart: 0,
-        colEnd: -1
-      })
-      i = i + 1
+    if (hasDetail) {
+      let i = 0
+      for (let line of lines) {
+        if (line == ' ---') break
+        buffer.addHighlight({
+          srcId,
+          hlGroup: 'CocPumFloatingDetail',
+          line: i,
+          colStart: 0,
+          colEnd: -1
+        })
+        i = i + 1
+      }
     }
   }
 
@@ -112,7 +117,20 @@ export default class FloatingWindow {
       showRight = false
     }
     let maxWidth = !showRight || delta > maxPreviewWidth ? maxPreviewWidth : delta
-    let arr = content.replace(/\t/g, ' ').split('\n')
+    let arr = content.replace(/\t/g, '  ').split('\n')
+    // join the lines when necessary
+    arr = arr.reduce((list, curr) => {
+      if (list.length && curr) {
+        let pre = list[list.length - 1]
+        if (!isSingleLine(pre) && !isBreakCharacter(curr[0])) {
+          list[list.length - 1] = pre + ' ' + curr
+          return list
+        }
+      }
+      list.push(curr)
+      return list
+    }, [])
+
     let newLines: string[] = []
     for (let str of arr) {
       let len = byteLength(str)
@@ -172,17 +190,38 @@ export default class FloatingWindow {
   }
 
   public close(): void {
-    let { nvim } = this
-    if (!this.buffer) return
-    let id = this.buffer.id
-    this.buffer = null
+    let { nvim, window } = this
+    if (!window) return
+    let id = window.id
     this.window = null
-    let times = 0
+    let count = 0
     let interval = setInterval(async () => {
-      times = times + 1
-      await nvim.command(`silent! bdelete! ${id}`)
-      let loaded = await nvim.call('bufloaded', [id])
-      if (!loaded && times == 5) clearInterval(interval)
+      if (!this.creating) {
+        // command could fail on InsertCharPre
+        let found = await nvim.call('coc#util#close_win', id)
+        if (!found) return clearInterval(interval)
+        let valid = await nvim.call('nvim_win_is_valid', id)
+        if (!valid) return clearInterval(interval)
+      }
+      if (count == 5) clearInterval(interval)
+      count = count + 1
     }, 100)
   }
+}
+
+function isSingleLine(line: string) {
+  if (line.trim().length == 0) return true
+  if (/\s*---/.test(line)) return true
+  if (/^\s*(-|\*)\s/.test(line)) return true
+  if (line.startsWith('#')) return true
+  return false
+}
+
+function isBreakCharacter(ch: string): boolean {
+  let code = ch.charCodeAt(0)
+  if (code > 255) return false
+  if (code >= 48 && code <= 57) return false
+  if (code >= 97 && code <= 122) return false
+  if (code >= 65 && code <= 90) return false
+  return true
 }
