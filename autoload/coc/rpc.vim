@@ -113,20 +113,18 @@ function! coc#rpc#vim_rpc_folder() abort
       let dir = trim(systemlist('yarn global dir --offline -s')[-1])
     endif
     let p = dir . '/node_modules/vim-node-rpc'
-    if isdirectory(p)
+    if isdirectory(p) && filereadable(p.'/package.json')
+      let g:vim_node_rpc_folder = p
       return p
     endif
   endif
   if executable('npm')
     let root = trim(system('npm --loglevel silent root -g'))
     let p = root . '/vim-node-rpc'
-    if isdirectory(p)
+    if isdirectory(p) && filereadable(p.'/package.json')
+      let g:vim_node_rpc_folder = p
       return p
     endif
-  endif
-  if !empty(p)
-    " resolve once
-    let g:vim_node_rpc_folder = p
   endif
   return ''
 endfunction
