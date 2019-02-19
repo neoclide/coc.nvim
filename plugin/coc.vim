@@ -181,7 +181,7 @@ hi default link CocHintHighlight    CocUnderline
 hi default link CocListMode ModeMsg
 hi default link CocListPath Comment
 hi default link CocPumFloating Pmenu
-hi default link CocPumFloatingDetail NonText
+hi default link CocPumFloatingDetail Pmenu
 
 hi default CocHighlightText  guibg=#111111 ctermbg=223
 hi default link CocHighlightRead  CocHighlightText
