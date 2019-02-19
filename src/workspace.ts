@@ -113,23 +113,6 @@ export class Workspace implements IWorkspace {
     events.on('VimResized', (columns, lines) => {
       Object.assign(this._env, { columns, lines })
     }, null, this.disposables)
-    if (this.isNvim) {
-      let timer: NodeJS.Timeout
-      let { nvim } = this
-      let updatetime = await nvim.getOption('updatetime') as number
-      events.on(['CursorHoldI', 'InsertLeave'], () => {
-        if (timer) clearTimeout(timer)
-      }, null, this.disposables)
-      events.on(['InsertEnter', 'TextChangedI'], () => {
-        if (timer) clearTimeout(timer)
-        timer = setTimeout(() => {
-          nvim.command('doautocmd CursorHoldI', true)
-        }, Math.max(updatetime + 50, 300))
-      }, null, this.disposables)
-      events.on('InsertLeave', () => {
-        if (timer) clearTimeout(timer)
-      }, null, this.disposables)
-    }
     await this.attach()
     if (this.isVim) this.initVimEvents()
     let { errorItems } = this.configurations
