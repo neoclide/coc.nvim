@@ -912,10 +912,15 @@ HIGHLIGHTS 					*coc-highlights*
 
 You can overwrite highlight provided by coc with |:hi| command.
 
-To make sure your overwrite could work after coc restarted, you can use
-|CocNvimInit| autocmd.
-
+To customize the highlight, simply use |:highlight| command of vim in your
+vimrc, like: >
+	
+	" make error text to red color
+	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
+<
 Note: don't use `:hi default` for overwrite highlight.
+
+Note: highlight command should appear after |:colorscheme| command.
 
 CocErrorSign 					*CocErrorSign*
 
@@ -1014,12 +1019,17 @@ CocCodeLens 					*CocCodeLens*
 
   Highlight group of virtual text for codeLens.
 
-To customize the highlight, simply use |:highlight| command of vim in your
-vimrc, like: >
-	
-	" make error text to red color
-	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
-<
+CocPumFloating 					*CocPumFloating*
+
+  Default: `Pmenu`
+
+  Normal highlight group of floating preview window.
+
+CocPumFloatingDetail 				*CocPumFloatingDetail*
+
+  Default: `Pmenu`
+
+  Highlight group of detail in floating preview window.
 
 ==============================================================================
 LIST SUPPORT 					*coc-list*
