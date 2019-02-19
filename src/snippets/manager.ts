@@ -3,6 +3,8 @@ import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
 import { SnippetSession } from './session'
+import * as Snippets from "./parser"
+import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
@@ -111,6 +113,14 @@ export class SnippetManager implements types.SnippetManager {
 
   public getSession(bufnr: number): SnippetSession {
     return this.sessionMap.get(bufnr)
+  }
+
+  public resolveSnippet(body: string): Snippets.TextmateSnippet {
+    let parser = new Snippets.SnippetParser()
+    const snippet = parser.parse(body, true)
+    const resolver = new SnippetVariableResolver()
+    snippet.resolveVariables(resolver)
+    return snippet
   }
 
   public dispose(): void {

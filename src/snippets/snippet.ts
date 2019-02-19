@@ -27,8 +27,8 @@ export class CocSnippet {
     private position: Position,
     private _variableResolver?: VariableResolver) {
     const snippet = this._parser.parse(this._snippetString, true)
-    if (this._variableResolver) {
-      snippet.resolveVariables(this._variableResolver)
+    if (_variableResolver) {
+      snippet.resolveVariables(_variableResolver)
     }
     this.tmSnippet = snippet
     this.update()
