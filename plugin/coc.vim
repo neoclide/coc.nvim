@@ -142,7 +142,7 @@ function! s:Enable()
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
+    autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
     " Must be sync to fix flicking on neovim
     autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
     autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))

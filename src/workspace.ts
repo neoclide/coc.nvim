@@ -1012,26 +1012,14 @@ augroup end`
 
   // events for sync buffer of vim
   private initVimEvents(): void {
-    let lastChar = null
-    let lastTs = null
-    events.on('InsertCharPre', ch => {
-      lastChar = ch
-      lastTs = Date.now()
-    })
-    events.on('TextChangedI', async bufnr => {
-      let doc = this.getDocument(bufnr)
+    let self = this
+    async function onChange(bufnr) {
+      let doc = self.getDocument(bufnr)
       if (!doc) return
-      if (Date.now() - lastTs < 20 && lastChar) {
-        await doc.patchChange()
-      } else {
-        doc.fetchContent()
-      }
-      lastChar = null
-    })
-    events.on('TextChanged', bufnr => {
-      let doc = this.getDocument(bufnr)
-      if (doc) doc.fetchContent()
-    })
+      await doc.fetchContent()
+    }
+    events.on('TextChangedI', onChange, null, this.disposables)
+    events.on('TextChanged', onChange, null, this.disposables)
   }
 
   private async onBufCreate(buf: number | Buffer, initialize = false): Promise<void> {

@@ -340,6 +340,7 @@ export interface SourceStat {
 }
 
 export interface CompleteConfig {
+  enablePreview: boolean
   maxPreviewWidth: number
   autoTrigger: string
   minTriggerInputLength: number

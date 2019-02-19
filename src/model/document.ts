@@ -20,7 +20,6 @@ export default class Document {
   public isIgnored = false
   public chars: Chars
   public textDocument: TextDocument
-  public fetchContent: Function & { clear(): void }
   public fireContentChanges: Function & { clear(): void }
   // vim only, for matchaddpos
   private colorId = 1080
@@ -45,11 +44,6 @@ export default class Document {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
     }, 100)
-    this.fetchContent = debounce(() => {
-      this._fetchContent().catch(_e => {
-        // noop
-      })
-    }, 50)
   }
 
   private shouldAttach(buftype: string): boolean {
@@ -250,7 +244,6 @@ export default class Document {
     this.buffer.detach().catch(_e => {
       // noop
     })
-    this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
     this._onDocumentDetach.dispose()
@@ -394,12 +387,11 @@ export default class Document {
     )
   }
 
-  private async _fetchContent(ignorePause = false): Promise<void> {
+  public async fetchContent(): Promise<void> {
     if (!this.env.isVim || !this.attached) return
-    if (!ignorePause && this.paused) return
     let { nvim, buffer } = this
     let { id } = buffer
-    let o = (await nvim.call('coc#util#get_content', [id])) as any
+    let o = (await nvim.call('coc#util#get_content', id)) as any
     if (!o) return
     let { content, changedtick } = o
     this._changedtick = changedtick

@@ -211,6 +211,11 @@
       "default": 50,
       "description": "Maxmium width of floating preview window."
     },
+    "suggest.enablePreview": {
+      "type": "boolean",
+      "description": "Add preview option to completeopt, default: false.",
+      "default": false
+    },
     "suggest.autoTrigger": {
       "type": "string",
       "default": "always",
