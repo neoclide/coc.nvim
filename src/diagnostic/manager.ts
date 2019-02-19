@@ -98,12 +98,10 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.pauseNotification()
     nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
     nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
     nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
     nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-    await nvim.resumeNotification()
 
     // create buffers
     for (let doc of workspace.documents) {
@@ -363,35 +361,37 @@ export class DiagnosticManager {
   }
 
   private async setConfiguration(event?: ConfigurationChangeEvent): Promise<void> {
-    if (event && !event.affectsConfiguration('coc.preferences.diagnostic')) return
-    let config = workspace.getConfiguration('coc.preferences.diagnostic')
-    this.config = {
-      virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
-      enableMessage: config.get<string>('enableMessage', 'always'),
-      virtualText: config.get<boolean>('virtualText', false),
-      virtualTextPrefix: config.get<string>('virtualTextPrefix', " "),
-      virtualTextLineSeparator: config.get<string>('virtualTextLineSeparator', " \\ "),
-      virtualTextLines: config.get<number>('virtualTextLines', 3),
-      displayByAle: config.get<boolean>('displayByAle', false),
-      srcId: config.get<number>('highlightOffset', 1000),
-      level: severityLevel(config.get<string>('level', 'hint')),
-      locationlist: config.get<boolean>('locationlist', true),
-      signOffset: config.get<number>('signOffset', 1000),
-      errorSign: config.get<string>('errorSign', '>>'),
-      warningSign: config.get<string>('warningSign', '>>'),
-      infoSign: config.get<string>('infoSign', '>>'),
-      hintSign: config.get<string>('hintSign', '>>'),
-      refreshOnInsertMode: config.get<boolean>('refreshOnInsertMode', false),
+    if (event && !event.affectsConfiguration('diagnostic')) return
+    let preferences = workspace.getConfiguration('coc.preferences.diagnostic')
+    let config = workspace.getConfiguration('diagnostic')
+    function getConfig<T>(key: string, defaultValue: T): T {
+      return preferences.get<T>(key, config.get<T>(key, defaultValue))
     }
-    let srcId = await workspace.createNameSpace('coc-diagnostic')
-    if (srcId) this.config.srcId = srcId
-    this.enabled = config.get<boolean>('enable', true)
+    this.config = {
+      srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
+      virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      enableMessage: getConfig<string>('enableMessage', 'always'),
+      virtualText: getConfig<boolean>('virtualText', false),
+      virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
+      virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
+      virtualTextLines: getConfig<number>('virtualTextLines', 3),
+      displayByAle: getConfig<boolean>('displayByAle', false),
+      level: severityLevel(getConfig<string>('level', 'hint')),
+      locationlist: getConfig<boolean>('locationlist', true),
+      signOffset: getConfig<number>('signOffset', 1000),
+      errorSign: getConfig<string>('errorSign', '>>'),
+      warningSign: getConfig<string>('warningSign', '>>'),
+      infoSign: getConfig<string>('infoSign', '>>'),
+      hintSign: getConfig<string>('hintSign', '>>'),
+      refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
+    }
+    this.enabled = getConfig<boolean>('enable', true)
     if (this.config.displayByAle) {
       this.enabled = false
     }
     if (event) {
       for (let severity of ['error', 'info', 'warning', 'hint']) {
-        let key = `coc.preferences.diagnostic.${severity}Sign`
+        let key = `diagnostic.${severity}Sign`
         if (event.affectsConfiguration(key)) {
           let text = config.get<string>(`${severity}Sign`, '>>')
           let name = severity[0].toUpperCase() + severity.slice(1)

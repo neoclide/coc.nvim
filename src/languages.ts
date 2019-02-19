@@ -42,7 +42,6 @@ interface CompleteConfig {
   priority: number
   echodocSupport: boolean
   waitTime: number
-  detailMaxLength: number
   invalidInsertCharacters: string[]
 }
 
@@ -129,7 +128,6 @@ class Languages {
       priority: getConfig<number>('languageSourcePriority', 99),
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
-      detailMaxLength: getConfig<number>('detailMaxLength', 60),
       invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
     }
   }
