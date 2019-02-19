@@ -320,6 +320,8 @@ export interface VimCompleteItem {
   // used for preview
   documentation?: MarkupContent
   hasDetail?: boolean
+  // saved line for apply TextEdit
+  line?: string
 }
 
 export interface CompleteResult {

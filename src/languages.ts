@@ -537,6 +537,7 @@ class Languages {
             newText: item.insertText || item.label
           }
         }
+        if (vimItem.line) Object.assign(opt, { line: vimItem.line })
         let snippet = await this.applyTextEdit(item, opt)
         let { additionalTextEdits } = item
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
@@ -643,6 +644,7 @@ class Languages {
       isSnippet,
       dup: 1
     }
+    if (item.textEdit) obj.line = opt.line
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
       obj.abbr = obj.abbr + '/'
     }
