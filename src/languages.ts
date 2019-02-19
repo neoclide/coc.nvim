@@ -515,7 +515,7 @@ class Languages {
           if (detail) detail = detail.trim().replace(/\n\s*/g, ' ')
           let content = documentation && MarkupContent.is(documentation) ? documentation.value : documentation || ''
           let isMarkdown = documentation && MarkupContent.is(documentation) && documentation.kind == 'markdown'
-          let sep = detail && content ? '\n---\n' : ''
+          let sep = detail && content ? '\n\n' : ''
           let value = `${detail || ''}${sep}${content || ''}`.trim()
           if (value == item.word) {
             item.documentation = { kind: 'plaintext', value: '' }

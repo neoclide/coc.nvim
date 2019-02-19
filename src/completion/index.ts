@@ -1,5 +1,5 @@
-import { Neovim, Buffer } from '@chemzqm/neovim'
-import { Disposable, MarkupKind, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { Buffer, Neovim } from '@chemzqm/neovim'
+import { CancellationTokenSource, Disposable, MarkupKind } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
@@ -8,7 +8,8 @@ import { disposeAll, wait } from '../util'
 import { byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
-import FloatingWindow, { FloatingConfig } from './floating'
+import FloatingWindow from './floating'
+import { Chars } from '../model/chars'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -36,7 +37,6 @@ export class Completion implements Disposable {
   private insertLeaveTs = 0
   // only used when no pum change event
   private isResolving = false
-  private resolveTimer: NodeJS.Timer
   private previewBuffer: Buffer
 
   public init(nvim: Neovim): void {
@@ -49,9 +49,11 @@ export class Completion implements Disposable {
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
     events.on('CompleteChanged', this.onPumRedraw, this, this.disposables)
-    events.on('BufUnload', bufnr => {
+    events.on('BufUnload', async bufnr => {
       if (this.previewBuffer && bufnr == this.previewBuffer.id) {
-        this.previewBuffer = null
+        let buf = this.previewBuffer
+        await buf.setOption('buftype', 'nofile')
+        await buf.setOption('bufhidden', 'hide')
       }
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
@@ -124,6 +126,7 @@ export class Completion implements Disposable {
       autoTrigger,
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
+      previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
@@ -321,7 +324,6 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, nvim } = this
-    if (this.resolveTimer) clearTimeout(this.resolveTimer)
     if (!this.isActivted || !document || !item.word) return
     let opt = Object.assign({}, this.option)
     item = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
@@ -401,44 +403,39 @@ export class Completion implements Disposable {
   }
 
   public async onPumRedraw(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
-    logger.debug('lastInsert:', this.lastInsert)
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
-    if (this.resolveTimer) clearTimeout(this.resolveTimer)
-    let idx = item.word ? this.completeItems.findIndex(o => o.word == item.word && o.user_data == item.user_data) : -1
-    if (idx == -1) {
+    // it's pum change by vim, ignore it
+    if (this.lastInsert) return
+    let currItem = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
+    if (!currItem) {
       this.currIndex = 0
       this.closePreviewWindow()
       return
     }
-    this.currIndex = idx + 1
-    item = this.completeItems[idx]
-    // needed since we use reload hack
-    this.resolveTimer = setTimeout(async () => {
-      let source = this.resolveTokenSource = new CancellationTokenSource()
-      await sources.doCompleteResolve(item, source.token)
-      if (source.token.isCancellationRequested || !this.isActivted) return
-      let content = item.documentation ? item.documentation.value : item.info
-      let { nvim, floating } = this
-      if (!content) {
-        this.closePreviewWindow()
-      } else {
-        let config: FloatingConfig = {
-          srcId: await workspace.createNameSpace('coc-pum'),
-          maxPreviewWidth: this.config.maxPreviewWidth
-        }
-        if (!this.previewBuffer) {
-          await this.createPreviewBuffer()
-          if (source.token.isCancellationRequested || !this.isActivted) return
-        }
-        if (!floating) floating = this.floating = new FloatingWindow(nvim, config, this.previewBuffer)
-        floating.chars = this.document.chars
-        let kind: MarkupKind = item.documentation && item.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
-        await floating.show(content, bounding, kind, item.hasDetail)
+    this.currIndex = this.completeItems.indexOf(currItem) + 1
+    let source = this.resolveTokenSource = new CancellationTokenSource()
+    let { token } = source
+    await sources.doCompleteResolve(currItem, token)
+    if (token.isCancellationRequested) return
+    let content = currItem.documentation ? currItem.documentation.value : currItem.info
+    if (!content) {
+      this.closePreviewWindow()
+    } else {
+      if (!this.previewBuffer) await this.createPreviewBuffer()
+      if (!this.floating) {
+        let srcId = await workspace.createNameSpace('coc-pum')
+        let chars = new Chars(this.config.previewIsKeyword)
+        let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
+        this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
       }
-    }, 50)
+      if (token.isCancellationRequested) return
+      let kind: MarkupKind = currItem.documentation && currItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
+      await this.floating.show(content, bounding, kind, currItem.hasDetail)
+    }
+    this.resolveTokenSource = null
   }
 
   private async createPreviewBuffer(): Promise<void> {
@@ -467,6 +464,10 @@ export class Completion implements Disposable {
   public stop(): void {
     let { nvim } = this
     if (!this.activted) return
+    if (this.resolveTokenSource) {
+      this.resolveTokenSource.cancel()
+      this.resolveTokenSource = null
+    }
     this.closePreviewWindow()
     this.activted = false
     this.document.paused = false

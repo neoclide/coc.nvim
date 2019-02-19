@@ -52,6 +52,7 @@ export class Workspace implements IWorkspace {
   private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
+  private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
   private checkBuffer: Function & { clear(): void; }
   private setupDynamicAutocmd: Function & { clear(): void; }
@@ -254,8 +255,11 @@ export class Workspace implements IWorkspace {
   }
 
   public async createNameSpace(name = ''): Promise<number> {
+    if (this.namespaceMap.has(name)) return this.namespaceMap.get(name)
     if (this.nvim.hasFunction('nvim_create_namespace')) {
-      return await this.nvim.createNamespace(name)
+      let res = await this.nvim.createNamespace(name)
+      if (res) this.namespaceMap.set(name, res)
+      return res
     }
     return 0
   }

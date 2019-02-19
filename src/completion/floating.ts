@@ -16,6 +16,7 @@ interface Bounding {
 export interface FloatingConfig {
   srcId: number
   maxPreviewWidth: number
+  chars: Chars
 }
 
 export default class FloatingWindow {
@@ -26,9 +27,10 @@ export default class FloatingWindow {
   private bounding: PumBounding
   private lines: string[]
   private hasDetail: boolean
-  public chars: Chars
 
-  constructor(private nvim: Neovim, private config: FloatingConfig, private buffer: Buffer) {
+  constructor(private nvim: Neovim,
+    private buffer: Buffer,
+    private config: FloatingConfig) {
   }
 
   public async show(content: string, bounding: PumBounding, kind?: MarkupKind, hasDetail = false): Promise<void> {
@@ -83,7 +85,6 @@ export default class FloatingWindow {
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     nvim.command(`${winnr}wincmd w`, true)
     nvim.command('exe 1', true)
-    nvim.command('syntax match Conceal /^\\s---$/ conceal', true)
     if (this.kind == 'markdown') {
       // TODO
     }
@@ -93,7 +94,7 @@ export default class FloatingWindow {
     if (hasDetail) {
       let i = 0
       for (let line of lines) {
-        if (line == ' ---') break
+        if (!line.trim().length) break
         buffer.addHighlight({
           srcId,
           hlGroup: 'CocPumFloatingDetail',
@@ -157,7 +158,7 @@ export default class FloatingWindow {
   private softSplit(line: string, maxWidth: number): string[] {
     // let buf = global.Buffer.from(line, 'utf8')
     let res: string[] = []
-    let chars = this.chars
+    let chars = this.config.chars
     let finished = false
     let start = 0
     do {
@@ -212,7 +213,7 @@ export default class FloatingWindow {
 
 function isSingleLine(line: string): boolean {
   if (line.trim().length == 0) return true
-  if (/\s*---/.test(line)) return true
+  if (/^\s*$/.test(line)) return true
   if (/^\s*(-|\*)\s/.test(line)) return true
   if (line.startsWith('#')) return true
   return false
