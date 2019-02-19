@@ -514,37 +514,48 @@ function! coc#util#extension_root() abort
   return dir
 endfunction
 
-function! coc#util#install_extension(names) abort
+function! coc#util#install_extension(args) abort
   if !executable('yarn')
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
       call coc#util#open_terminal({
             \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh',
             \ 'keepfocus': 1,
-            \ 'Callback': { -> coc#util#install(a:names)},
+            \ 'Callback': { -> coc#util#install_extension(a:args)},
             \})
     else
       echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     endif
     return
   endif
+  let names = join(filter(copy(a:args), 'v:val !~# "^-"'), ' ')
+  if empty(names) | return | endif
+  let useTerminal = index(a:args, '-sync') == -1
+  let g:a = a:args
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
-  function! s:OnExtensionInstalled(status, names) closure
-    if a:status == 0
-      call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
-      call coc#rpc#notify('CocInstalled', [a:names])
-    else
-      call coc#util#echo_messages('Error', ['extension '.a:names. ' install failed!'])
-    endif
-  endfunction
-  call coc#util#open_terminal({
-        \ 'cwd': dir,
-        \ 'cmd': 'yarn add '.a:names.' --ignore-engines',
-        \ 'keepfocus': 1,
-        \ 'Callback': {status -> s:OnExtensionInstalled(status, a:names)},
-        \})
+  if useTerminal
+    function! s:OnExtensionInstalled(status, ...) closure
+      if a:status == 0
+        call coc#util#echo_messages('MoreMsg', ['extension '.names. ' installed!'])
+        call coc#rpc#notify('CocInstalled', [names])
+      else
+        call coc#util#echo_messages('Error', ['install extensions '.names. ' failed!'])
+      endif
+    endfunction
+    call coc#util#open_terminal({
+          \ 'cwd': dir,
+          \ 'cmd': 'yarn add '.names.' --ignore-engines',
+          \ 'keepfocus': 1,
+          \ 'Callback': funcref('s:OnExtensionInstalled'),
+          \})
+  else
+    let cwd = getcwd()
+    exe 'lcd '.dir
+    exe '!yarn add '.names.' --ignore-engines'
+    exe 'lcd '.cwd
+  endif
 endfunction
 
 function! coc#util#init_extension_root(root) abort

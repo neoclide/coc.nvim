@@ -72,6 +72,11 @@ function! s:ExtensionList(...) abort
   return join(list, "\n")
 endfunction
 
+function! s:InstallOptions(...)abort
+  let list = ['-terminal', '-sync']
+  return join(list, "\n")
+endfunction
+
 function! s:OpenConfig()
   let home = coc#util#get_config_home()
   if !isdirectory(home)
@@ -223,13 +228,13 @@ command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
-command! -nargs=+ CocInstall      :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate       :call s:SendRequest('updateExtension', [])
 command! -nargs=0 CocUpdateSync   :call coc#rpc#request('updateExtension', [])
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
-command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:SendRequest('openList', [<f-args>])
+command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
+command! -nargs=* -complete=custom,coc#list#options CocList      :call s:SendRequest('openList',  [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:SendRequest('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,s:CommandList CocCommand :call s:SendRequest('CocAction', ['runCommand', <f-args>])
+command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call s:SendRequest('CocAction', ['runCommand',         <f-args>])
 
 call s:Enable()
 
