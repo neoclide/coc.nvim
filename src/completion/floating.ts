@@ -51,6 +51,8 @@ export default class FloatingWindow {
         nvim.pauseNotification()
         win.setOption('list', false, true)
         win.setOption('number', false, true)
+        win.setOption('cursorline', false, true)
+        win.setOption('cursorcolumn', false, true)
         win.setOption('signcolumn', 'no', true)
         win.setOption('conceallevel', 2, true)
         win.setOption('relativenumber', false, true)
