@@ -116,9 +116,9 @@ export class Workspace implements IWorkspace {
     await this.attach()
     if (this.isVim) this.initVimEvents()
     let { errorItems } = this.configurations
-    await this.showErrors(errorItems)
+    this.showErrors(errorItems)
     this.configurations.onError(async errors => {
-      await this.showErrors(errors)
+      this.showErrors(errors)
     }, null, this.disposables)
     this.configurations.onDidChange(e => {
       this._onDidChangeConfiguration.fire(e)
@@ -1160,16 +1160,22 @@ augroup end`
     return encoding ? encoding : 'utf-8'
   }
 
-  private async showErrors(errors: ErrorItem[]): Promise<void> {
+  private showErrors(errors: ErrorItem[]): void {
     if (!errors.length) return
     let items: QuickfixItem[] = []
     for (let err of errors) {
-      let item = await this.getQuickfixItem(err.location, err.message, 'Error')
-      items.push(item)
+      items.push({
+        uri: err.location.uri,
+        range: err.location.range,
+        text: err.message,
+        type: 'Error'
+      })
     }
-    let { nvim } = this
-    await nvim.setVar('coc_jump_locations', items)
-    await nvim.command('doautocmd User CocLocationsChange')
+    setTimeout(async () => {
+      let { nvim } = this
+      await nvim.setVar('coc_jump_locations', items)
+      await nvim.command('doautocmd User CocLocationsChange')
+    }, 10)
   }
 
   private async resolveRoot(uri: string): Promise<string> {
