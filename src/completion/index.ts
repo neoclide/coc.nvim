@@ -35,14 +35,12 @@ export class Completion implements Disposable {
   private currIndex = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
-  private complteChangeTs = 0
   // only used when hasChangedEvent is false
   private isResolving = false
   private resolveTimer: NodeJS.Timer
-  private floatingConfig: FloatingConfig
   private previewBuffer: Buffer
 
-  public async init(nvim: Neovim): Promise<void> {
+  public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = this.getCompleteConfig()
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
@@ -51,7 +49,7 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
-    events.on('CompleteChanged', this.onCompleteChanged, this, this.disposables)
+    events.on('CompleteChanged', this.onPumRedraw, this, this.disposables)
     events.on('BufUnload', bufnr => {
       if (this.previewBuffer && bufnr == this.previewBuffer.id) {
         this.previewBuffer = null
@@ -60,17 +58,8 @@ export class Completion implements Disposable {
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())
-        this.floatingConfig.maxPreviewWidth = this.config.maxPreviewWidth
       }
     }, null, this.disposables)
-    let columns = await nvim.getOption('columns') as number
-    let lines = await nvim.getOption('lines') as number
-    let cmdheight = await nvim.getOption('cmdheight') as number
-    let srcId = await workspace.createNameSpace('coc-detail')
-    this.floatingConfig = { srcId, lines, columns, cmdheight, maxPreviewWidth: this.config.maxPreviewWidth }
-    events.on('VimResized', (columns, lines) => {
-      Object.assign(this.floatingConfig, { columns, lines })
-    })
   }
 
   public get option(): CompleteOption {
@@ -92,10 +81,6 @@ export class Completion implements Disposable {
   private addRecent(word: string, bufnr: number): void {
     if (!word) return
     this.recentScores[`${bufnr}|${word}`] = Date.now()
-  }
-
-  private get hasChangedEvent(): boolean {
-    return this.complteChangeTs != 0
   }
 
   private async getPreviousCharacter(document: Document): Promise<string> {
@@ -209,8 +194,8 @@ export class Completion implements Disposable {
     }
   }
 
-  public hasSelected(): boolean {
-    if (this.hasChangedEvent) return this.currIndex !== 0
+  public async hasSelected(): Promise<boolean> {
+    if (workspace.env.pumevent) return this.currIndex !== 0
     if (this.config.noselect === false) return true
     return this.isResolving
   }
@@ -254,20 +239,22 @@ export class Completion implements Disposable {
 
   private async onTextChangedP(): Promise<void> {
     let { option, document } = this
-    if (!document || !option) return
+    if (!option) return
     await document.patchChange()
+    let hasInsert = this.latestInsert != null
+    this.lastInsert = null
     // avoid trigger filter on pumvisible
     if (document.changedtick == this.changedTick) return
-    if (!this.latestInsert) {
+    if (!hasInsert) {
       // this could be wrong, but can't avoid.
       this.isResolving = true
       return
     }
-    this.lastInsert = null
     let col = await this.nvim.call('col', '.')
     let line = document.getline(option.linenr - 1)
     let ind = option.line.match(/^\s*/)[0]
     let curr = line.match(/^\s*/)[0]
+    // fix option when vim does indent
     if (ind.length != curr.length) {
       let newCol = option.col + curr.length - ind.length
       if (newCol > col - 1) return
@@ -292,7 +279,7 @@ export class Completion implements Disposable {
         && this.completeItems.length
         && latestInsertChar
         && !isWord(latestInsertChar)
-        && this.hasChangedEvent) {
+        && workspace.env.pumevent) {
         let item = this.currIndex ? this.completeItems[this.currIndex - 1] : this.completeItems[0]
         if (sources.shouldCommit(item, latestInsertChar)) {
           let { linenr, col, line, colnr } = this.option
@@ -379,15 +366,6 @@ export class Completion implements Disposable {
   }
 
   private async onInsertCharPre(character: string): Promise<void> {
-    // hack to make neovim not flicking
-    if (this.isActivted &&
-      workspace.isNvim &&
-      this.completeItems.length &&
-      !global.hasOwnProperty('__TEST__') &&
-      !this.triggerCharacters.has(character) &&
-      isWord(character)) {
-      this.nvim.call('coc#_reload', [], true)
-    }
     this.lastInsert = {
       character,
       timestamp: Date.now(),
@@ -424,8 +402,7 @@ export class Completion implements Disposable {
     return false
   }
 
-  public async onCompleteChanged(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
-    this.complteChangeTs = Date.now()
+  public async onPumRedraw(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
@@ -449,11 +426,15 @@ export class Completion implements Disposable {
       if (!content) {
         this.closePreviewWindow()
       } else {
+        let config: FloatingConfig = {
+          srcId: await workspace.createNameSpace('coc-pum'),
+          maxPreviewWidth: this.config.maxPreviewWidth
+        }
         if (!this.previewBuffer) {
           await this.createPreviewBuffer()
           if (source.token.isCancellationRequested || !this.isActivted) return
         }
-        if (!floating) floating = this.floating = new FloatingWindow(nvim, this.floatingConfig, this.previewBuffer)
+        if (!floating) floating = this.floating = new FloatingWindow(nvim, config, this.previewBuffer)
         floating.chars = this.document.chars
         let kind: MarkupKind = item.documentation && item.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
         await floating.show(content, bounding, kind, item.hasDetail)

@@ -379,11 +379,19 @@ endfunction
 
 function! coc#util#vim_info()
   return {
-        \ 'namespaceSupport': exists('*nvim_create_namespace') ? v:true : v:false,
-        \ 'virtualText': exists('*nvim_buf_set_virtual_text') ? v:true : v:false,
+        \ 'mode': mode(),
+        \ 'extensionRoot': coc#util#extension_root(),
+        \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
+        \ 'localExtensions': get(g:, 'coc_local_extensions', []),
+        \ 'config': get(g:, 'coc_user_config', {}),
+        \ 'pid': getpid(),
+        \ 'columns': &columns,
+        \ 'lines': &lines,
+        \ 'cmdheight': &cmdheight,
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
+        \ 'pumevent': exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \}

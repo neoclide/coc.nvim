@@ -4,7 +4,7 @@ import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import { ConfigurationChangeEvent, DiagnosticItem, DiagnosticItems } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
@@ -37,30 +37,19 @@ export class DiagnosticManager {
   public readonly buffers: DiagnosticBuffer[] = []
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
-  private timer: NodeJS.Timer
   private lastMessage = ''
   private insertMode = false
-  constructor() {
-    // tslint:disable-next-line:no-floating-promises
-    workspace.ready.then(async () => {
-      let mode = await this.nvim.call('mode') as string
-      this.insertMode = mode.startsWith('i')
-      await this.setConfiguration()
-      await this.init()
-    })
 
+  public async init(): Promise<void> {
+    let { nvim } = workspace
+    this.insertMode = workspace.env.mode.startsWith('i')
     events.on('CursorHold', async () => {
       if (!this.config || this.config.enableMessage != 'always') return
       await this.echoMessage(true)
     }, null, this.disposables)
 
-    events.on('TextChanged', () => {
-      if (this.timer) clearTimeout(this.timer)
-    }, null, this.disposables)
-
     events.on('InsertEnter', async () => {
       this.insertMode = true
-      if (this.timer) clearTimeout(this.timer)
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
@@ -73,28 +62,16 @@ export class DiagnosticManager {
       }
     }, null, this.disposables)
 
-    workspace.onDidChangeConfiguration(async e => {
-      await this.setConfiguration(e)
-    }, null, this.disposables)
-
     events.on('BufEnter', async bufnr => {
-      if (this.timer) clearTimeout(this.timer)
-      if (!this.config
-        || !this.enabled
-        || !this.config.locationlist) return
-      let winid = await this.nvim.call('win_getid') as number
-      let doc = workspace.getDocument(bufnr)
-      // wait buffer create
-      if (!doc) {
-        await wait(100)
-        doc = workspace.getDocument(bufnr)
-      }
-      if (!this.shouldValidate(doc)) return
+      if (!this.config || !this.enabled || !this.config.locationlist) return
+      let doc = await workspace.document
+      if (doc.bufnr != bufnr || !this.shouldValidate(doc)) return
       let refreshed = this.refreshBuffer(doc.uri)
       if (!refreshed) {
-        let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
+        let winid = await nvim.call('win_getid') as number
+        let curr = await nvim.call('getloclist', [winid, { title: 1 }])
         if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-          this.nvim.call('setloclist', [winid, [], 'f'], true)
+          nvim.call('setloclist', [winid, [], 'f'], true)
         }
       }
     }, null, this.disposables)
@@ -115,11 +92,31 @@ export class DiagnosticManager {
       if (buf) await buf.checkSigns()
     }, null, this.disposables)
 
-    this.disposables.push(Disposable.create(() => {
-      if (this.timer) {
-        clearTimeout(this.timer)
+    await this.setConfiguration()
+    workspace.onDidChangeConfiguration(async e => {
+      await this.setConfiguration(e)
+    }, null, this.disposables)
+
+    let { errorSign, warningSign, infoSign, hintSign } = this.config
+    nvim.pauseNotification()
+    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
+    await nvim.resumeNotification()
+
+    // create buffers
+    for (let doc of workspace.documents) {
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc, this.config))
       }
-    }))
+    }
+    workspace.onDidOpenTextDocument(textDocument => {
+      let doc = workspace.getDocument(textDocument.uri)
+      if (this.shouldValidate(doc)) {
+        this.buffers.push(new DiagnosticBuffer(doc, this.config))
+      }
+    }, null, this.disposables)
   }
 
   public create(name: string): DiagnosticCollection {
@@ -310,7 +307,6 @@ export class DiagnosticManager {
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
-    if (this.timer) clearTimeout(this.timer)
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document || !this.shouldValidate(document)) return
@@ -403,27 +399,6 @@ export class DiagnosticManager {
         }
       }
     }
-  }
-
-  private async init(): Promise<void> {
-    let { nvim } = workspace
-    let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-    // create buffers
-    for (let doc of workspace.documents) {
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc, this.config))
-      }
-    }
-    workspace.onDidOpenTextDocument(textDocument => {
-      let doc = workspace.getDocument(textDocument.uri)
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc, this.config))
-      }
-    }, null, this.disposables)
   }
 
   private getCollections(uri: string): DiagnosticCollection[] {

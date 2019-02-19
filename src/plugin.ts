@@ -15,7 +15,6 @@ import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
 import { OutputChannel, Autocmd } from './types'
-import { isRunning } from './util'
 import clean from './util/clean'
 import workspace from './workspace'
 const logger = require('./util/logger')('plugin')
@@ -24,7 +23,6 @@ export default class Plugin extends EventEmitter {
   private ready = false
   private handler: Handler
   private infoChannel: OutputChannel
-  private interval: NodeJS.Timeout
 
   constructor(public nvim: Neovim) {
     super()
@@ -38,18 +36,15 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     let { nvim } = this
     try {
-      let config = await nvim.getVar('coc_user_config') as { [key: string]: any } || {}
-      workspace.configurations.updateUserConfig(config)
-      let pid = await nvim.call('getpid') as number
-      this.checkProcess(pid)
-      await listManager.init(nvim)
       await workspace.init()
+      listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
-      await completion.init(nvim)
+      completion.init(nvim)
       sources.init()
       services.init()
       this.handler = new Handler(nvim)
-      await extensions.init(nvim)
+      await diagnosticManager.init()
+      await extensions.init()
       nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('coc_service_initialized', 1, true)
       await nvim.command('silent doautocmd User CocNvimInit')
@@ -85,8 +80,8 @@ export default class Plugin extends EventEmitter {
     workspace.configurations.updateUserConfig({ [section]: val })
   }
 
-  public hasSelected(): boolean {
-    return completion.hasSelected()
+  public async hasSelected(): Promise<boolean> {
+    return await completion.hasSelected()
   }
 
   public getCurrentIndex(): number {
@@ -380,15 +375,6 @@ export default class Plugin extends EventEmitter {
     }
   }
 
-  private checkProcess(pid: number): void {
-    if (global.hasOwnProperty('__TEST__')) return
-    this.interval = setInterval(() => {
-      if (!isRunning(pid)) {
-        process.exit()
-      }
-    }, 15000)
-  }
-
   public async snippetCancel(): Promise<void> {
     snippetManager.cancel()
   }
@@ -404,7 +390,6 @@ export default class Plugin extends EventEmitter {
   }
 
   public async dispose(): Promise<void> {
-    if (this.interval) clearInterval(this.interval)
     this.removeAllListeners()
     workspace.dispose()
     sources.dispose()

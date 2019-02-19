@@ -51,8 +51,8 @@ export class Extensions {
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
-  public async init(nvim: Neovim): Promise<void> {
-    let root = this.root = await nvim.call('coc#util#extension_root')
+  public async init(): Promise<void> {
+    let root = this.root = workspace.env.extensionRoot
     this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, true)
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) {
@@ -150,16 +150,16 @@ export class Extensions {
 
   public async addExtensions(): Promise<void> {
     let { nvim } = workspace
-    let list = await nvim.getVar('coc_global_extensions') as string[]
+    let { globalExtensions, localExtensions } = workspace.env
+    let list = globalExtensions
     if (list && list.length) {
       list = distinct(list)
       list = list.filter(name => !this.has(name) && !this.isDisabled(name))
       if (list.length) nvim.command(`CocInstall ${list.join(' ')}`, true)
     }
-    let arr = await nvim.getVar('coc_local_extensions') as string[]
-    if (arr && arr.length) {
-      arr = distinct(arr)
-      await Promise.all(arr.map(folder => {
+    if (localExtensions.length) {
+      localExtensions = distinct(localExtensions)
+      await Promise.all(localExtensions.map(folder => {
         return this.loadExtension(folder).catch(e => {
           workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
         })
