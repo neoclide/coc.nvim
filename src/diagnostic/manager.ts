@@ -65,7 +65,7 @@ export class DiagnosticManager {
     events.on('BufEnter', async bufnr => {
       if (!this.config || !this.enabled || !this.config.locationlist) return
       let doc = await workspace.document
-      if (doc.bufnr != bufnr || !this.shouldValidate(doc)) return
+      if (!this.shouldValidate(doc) || doc.bufnr != bufnr) return
       let refreshed = this.refreshBuffer(doc.uri)
       if (!refreshed) {
         let winid = await nvim.call('win_getid') as number
