@@ -1,5 +1,6 @@
 import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import { PumBounding } from '../types'
+import workspace from '../workspace'
 import { MarkupKind } from 'vscode-languageserver-types'
 import { byteLength } from '../util/string'
 import { Chars } from '../model/chars'
@@ -13,11 +14,8 @@ interface Bounding {
 }
 
 export interface FloatingConfig {
-  columns: number
-  lines: number
-  cmdheight: number
-  maxPreviewWidth: number
   srcId: number
+  maxPreviewWidth: number
 }
 
 export default class FloatingWindow {
@@ -78,7 +76,7 @@ export default class FloatingWindow {
     }
   }
 
-  private configBuffer(winnr: number) {
+  private configBuffer(winnr: number): void {
     let { nvim, buffer, hasDetail, lines } = this
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     nvim.command(`${winnr}wincmd w`, true)
@@ -108,7 +106,8 @@ export default class FloatingWindow {
 
   private calculateBounding(): Bounding {
     let { content, bounding, config } = this
-    let { columns, lines, maxPreviewWidth } = config
+    let { columns, lines } = workspace.env
+    let { maxPreviewWidth } = config
     let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0)
     let showRight = true
     let delta = columns - bounding.col - pumWidth
@@ -141,7 +140,7 @@ export default class FloatingWindow {
         newLines.push(str)
       }
     }
-    let maxHeight = lines - bounding.row - this.config.cmdheight - 1
+    let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
     this.lines = newLines.map(s => s.length ? ' ' + s : '')
     let width = Math.min(maxWidth, Math.max(...this.lines.map(s => byteLength(s) + 1)))
 
@@ -209,7 +208,7 @@ export default class FloatingWindow {
   }
 }
 
-function isSingleLine(line: string) {
+function isSingleLine(line: string): boolean {
   if (line.trim().length == 0) return true
   if (/\s*---/.test(line)) return true
   if (/^\s*(-|\*)\s/.test(line)) return true

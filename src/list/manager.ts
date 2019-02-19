@@ -36,7 +36,7 @@ export class ListManager {
   private disposables: Disposable[] = []
   private args: string[] = []
   private listArgs: string[] = []
-  private charMap: Map<string, string> = new Map()
+  private charMap: Map<string, string>
   private listMap: Map<string, IList> = new Map()
   private mappings: Mappings
   private currList: IList
@@ -46,7 +46,7 @@ export class ListManager {
   private executing = false
   private nvim: Neovim
 
-  public async init(nvim: Neovim): Promise<void> {
+  public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = workspace.getConfiguration('list')
     this.prompt = new Prompt(nvim)
@@ -54,10 +54,6 @@ export class ListManager {
     this.mappings = new Mappings(this, nvim, this.config)
     this.worker = new Worker(nvim, this)
     this.ui = new UI(nvim, this.config)
-    let chars = await this.nvim.call('coc#list#get_chars')
-    Object.keys(chars).forEach(key => {
-      this.charMap.set(chars[key], key)
-    })
     events.on('VimResized', () => {
       if (this.isActivated) nvim.command('redraw!')
     }, null, this.disposables)
@@ -434,7 +430,8 @@ export class ListManager {
   }
 
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
-    let inserted = this.charMap.get(ch) || ch
+    let charMap = await this.getCharMap()
+    let inserted = charMap.get(ch) || ch
     if (mouseKeys.indexOf(inserted) !== -1) {
       await this.onMouseEvent(inserted)
       return
@@ -452,7 +449,7 @@ export class ListManager {
       }
     }
     let done = await this.mappings.doInsertKeymap(inserted)
-    if (done || charmod || this.charMap.has(ch)) return
+    if (done || charmod || charMap.has(ch)) return
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return
@@ -463,7 +460,8 @@ export class ListManager {
   }
 
   private async onNormalInput(ch: string, _charmod: number): Promise<void> {
-    let inserted = this.charMap.get(ch) || ch
+    let charMap = await this.getCharMap()
+    let inserted = charMap.get(ch) || ch
     if (mouseKeys.indexOf(inserted) !== -1) {
       await this.onMouseEvent(inserted)
       return
@@ -644,6 +642,16 @@ export class ListManager {
     this.prompt.reset()
     this.worker.stop()
     this.ui.reset()
+  }
+
+  private async getCharMap(): Promise<Map<string, string>> {
+    if (this.charMap) return this.charMap
+    this.charMap = new Map()
+    let chars = await this.nvim.call('coc#list#get_chars')
+    Object.keys(chars).forEach(key => {
+      this.charMap.set(chars[key], key)
+    })
+    return this.charMap
   }
 }
 

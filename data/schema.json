@@ -309,6 +309,88 @@
       "description": "Max length of detail that should be shown in popup menu.",
       "default": 60
     },
+    "coc.preferences.diagnostic.level": {
+      "type": "string",
+      "description": "Used for filter diagnostics by diagnostic severity.",
+      "default": "hint",
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "coc.preferences.diagnostic.refreshOnInsertMode": {
+      "type": "boolean",
+      "description": "Enable diagnostic refresh on insert mode, only works on neovim.",
+      "default": false
+    },
+    "coc.preferences.diagnostic.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable diagnostic display",
+      "default": true
+    },
+    "coc.preferences.diagnostic.displayByAle": {
+      "type": "boolean",
+      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics.",
+      "default": false
+    },
+    "coc.preferences.diagnostic.virtualText": {
+      "type": "boolean",
+      "description": "Use NeoVim virtual text to display diagnostics",
+      "default": false
+    },
+    "coc.preferences.diagnostic.virtualTextPrefix": {
+      "type": "string",
+      "description": "The prefix added virtual text diagnostics",
+      "default": " "
+    },
+    "coc.preferences.diagnostic.virtualTextLines": {
+      "type": "number",
+      "description": "The number of non empty lines from a diagnostic to display",
+      "default": 3
+    },
+    "coc.preferences.diagnostic.virtualTextLineSeparator": {
+      "type": "string",
+      "description": "The text that will mark a line end from the diagnostic message",
+      "default": " \\ "
+    },
+    "coc.preferences.diagnostic.enableMessage": {
+      "type": "string",
+      "default": "always",
+      "description": "When to enable echo messages of diagnostics.",
+      "enum": ["always", "jump", "never"]
+    },
+    "coc.preferences.diagnostic.locationlist": {
+      "type": "boolean",
+      "description": "Create location list for error & warning",
+      "default": true
+    },
+    "coc.preferences.diagnostic.highlightOffset": {
+      "type": "number",
+      "description": "Offset number of buffer.addHighlight, neovim only.",
+      "default": 1000
+    },
+    "coc.preferences.diagnostic.signOffset": {
+      "type": "number",
+      "description": "Offset number of sign",
+      "default": 1000
+    },
+    "coc.preferences.diagnostic.errorSign": {
+      "type": "string",
+      "description": "Text of error sign",
+      "default": ">>"
+    },
+    "coc.preferences.diagnostic.warningSign": {
+      "type": "string",
+      "description": "Text of warning sign",
+      "default": "⚠"
+    },
+    "coc.preferences.diagnostic.infoSign": {
+      "type": "string",
+      "description": "Text of info sign",
+      "default": ">>"
+    },
+    "coc.preferences.diagnostic.hintSign": {
+      "type": "string",
+      "description": "Text of hint sign",
+      "default": ">>"
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",
@@ -393,88 +475,6 @@
       "type": "boolean",
       "description": "Set to false to disable snippets",
       "default": true
-    },
-    "coc.preferences.diagnostic.level": {
-      "type": "string",
-      "description": "Used for filter diagnostics by diagnostic severity.",
-      "default": "hint",
-      "enum": ["hint", "information", "warning", "error"]
-    },
-    "coc.preferences.diagnostic.refreshOnInsertMode": {
-      "type": "boolean",
-      "description": "Enable diagnostic refresh on insert mode, only works on neovim.",
-      "default": false
-    },
-    "coc.preferences.diagnostic.enable": {
-      "type": "boolean",
-      "description": "Set to false to disable diagnostic display",
-      "default": true
-    },
-    "coc.preferences.diagnostic.displayByAle": {
-      "type": "boolean",
-      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics.",
-      "default": false
-    },
-    "coc.preferences.diagnostic.virtualText": {
-      "type": "boolean",
-      "description": "Use NeoVim virtual text to display diagnostics",
-      "default": false
-    },
-    "coc.preferences.diagnostic.virtualTextPrefix": {
-      "type": "string",
-      "description": "The prefix added virtual text diagnostics",
-      "default": " "
-    },
-    "coc.preferences.diagnostic.virtualTextLines": {
-      "type": "number",
-      "description": "The number of non empty lines from a diagnostic to display",
-      "default": 3
-    },
-    "coc.preferences.diagnostic.virtualTextLineSeparator": {
-      "type": "string",
-      "description": "The text that will mark a line end from the diagnostic message",
-      "default": " \\ "
-    },
-    "coc.preferences.diagnostic.enableMessage": {
-      "type": "string",
-      "default": "always",
-      "description": "When to enable echo messages of diagnostics.",
-      "enum": ["always", "jump", "never"]
-    },
-    "coc.preferences.diagnostic.locationlist": {
-      "type": "boolean",
-      "description": "Create location list for error & warning",
-      "default": true
-    },
-    "coc.preferences.diagnostic.highlightOffset": {
-      "type": "number",
-      "description": "Offset number of buffer.addHighlight, neovim only.",
-      "default": 1000
-    },
-    "coc.preferences.diagnostic.signOffset": {
-      "type": "number",
-      "description": "Offset number of sign",
-      "default": 1000
-    },
-    "coc.preferences.diagnostic.errorSign": {
-      "type": "string",
-      "description": "Text of error sign",
-      "default": ">>"
-    },
-    "coc.preferences.diagnostic.warningSign": {
-      "type": "string",
-      "description": "Text of warning sign",
-      "default": "⚠"
-    },
-    "coc.preferences.diagnostic.infoSign": {
-      "type": "string",
-      "description": "Text of info sign",
-      "default": ">>"
-    },
-    "coc.preferences.diagnostic.hintSign": {
-      "type": "string",
-      "description": "Text of hint sign",
-      "default": ">>"
     },
     "coc.preferences.codeLens.enable": {
       "type": "boolean",

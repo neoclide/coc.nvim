@@ -77,6 +77,16 @@ export interface StatusBarItem {
 
 export interface Env {
   completeOpt: string
+  readonly mode: string
+  readonly extensionRoot: string
+  readonly globalExtensions: string[]
+  readonly localExtensions: string[]
+  readonly config: any
+  readonly pid: number
+  readonly columns: number
+  readonly lines: number
+  readonly pumevent: boolean
+  readonly cmdheight: number
   readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
   readonly isMacvim: boolean

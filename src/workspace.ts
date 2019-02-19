@@ -22,7 +22,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd } from './types'
 import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier, isRunning } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -97,6 +97,9 @@ export class Workspace implements IWorkspace {
 
   public async init(): Promise<void> {
     this.statusLine = new StatusLine(this.nvim)
+    this._env = await this.nvim.call('coc#util#vim_info') as Env
+    this.checkProcess()
+    this.configurations.updateUserConfig(this._env.config)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
@@ -107,7 +110,9 @@ export class Workspace implements IWorkspace {
     events.on('CursorHold', this.checkBuffer as any, this, this.disposables)
     events.on('TextChanged', this.checkBuffer as any, this, this.disposables)
     events.on('BufReadCmd', this.onBufReadCmd, this, this.disposables)
-    this._env = await this.nvim.call('coc#util#vim_info') as Env
+    events.on('VimResized', (columns, lines) => {
+      Object.assign(this._env, { columns, lines })
+    }, null, this.disposables)
     if (this.isNvim) {
       let timer: NodeJS.Timeout
       let { nvim } = this
@@ -1234,6 +1239,19 @@ augroup end`
     }
     res.push(...documentEdits)
     return res
+  }
+
+  private checkProcess(): void {
+    if (global.hasOwnProperty('__TEST__')) return
+    let pid = this._env.pid
+    let interval = setInterval(() => {
+      if (!isRunning(pid)) {
+        process.exit()
+      }
+    }, 15000)
+    process.on('exit', () => {
+      clearInterval(interval)
+    })
   }
 }
 
