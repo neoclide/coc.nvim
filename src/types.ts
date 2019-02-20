@@ -78,6 +78,7 @@ export interface StatusBarItem {
 export interface Env {
   completeOpt: string
   readonly mode: string
+  readonly floating: boolean
   readonly extensionRoot: string
   readonly globalExtensions: string[]
   readonly localExtensions: string[]

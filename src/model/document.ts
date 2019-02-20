@@ -290,7 +290,7 @@ export default class Document {
       strictIndexing: false
     })
     // can't wait vim sync buffer
-    this.lines = content.split(/\r?\n/)
+    this.lines = content.split('\n')
     if (sync) this.forceSync()
   }
 

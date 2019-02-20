@@ -18,6 +18,7 @@ export interface CodeLensInfo {
 export default class CodeLensManager {
   private separator: string
   private srcId: number
+  private enabled: boolean
   private fetching: Set<number> = new Set()
   private disposables: Disposable[] = []
   private codeLensMap: Map<number, CodeLensInfo> = new Map()
@@ -31,10 +32,8 @@ export default class CodeLensManager {
 
   private async init(): Promise<void> {
     let { nvim } = this
-    let config = workspace.getConfiguration('coc.preferences.codeLens')
-    this.separator = config.get<string>('separator', '‣')
-    let enable = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
-    if (!enable) return
+    this.setConfiguration()
+    if (!this.enabled) return
     this.srcId = await workspace.createNameSpace('coc-codelens')
     this.srcId = this.srcId || 1080
     services.on('ready', async id => {
@@ -57,6 +56,11 @@ export default class CodeLensManager {
         setTimeout(async () => {
           await this.fetchDocumentCodeLenes()
         }, 100)
+      }
+    }, null, this.disposables)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('codelens')) {
+        this.setConfiguration()
       }
     }, null, this.disposables)
 
@@ -105,6 +109,16 @@ export default class CodeLensManager {
         logger.error(e)
       })
     }, 200)
+  }
+
+  private setConfiguration(): void {
+    let { nvim } = this
+    let config = workspace.getConfiguration('coc.preferences.codeLens')
+    if (Object.keys(config).length == 0) {
+      config = workspace.getConfiguration('codeLens')
+    }
+    this.separator = config.get<string>('separator', '‣')
+    this.enabled = nvim.hasFunction('nvim_buf_set_virtual_text') && config.get<boolean>('enable', true)
   }
 
   private async fetchDocumentCodeLenes(retry = 0): Promise<void> {

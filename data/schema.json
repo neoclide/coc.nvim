@@ -218,7 +218,7 @@
     },
     "suggest.previewIsKeyword": {
       "type": "string",
-      "default": "@,48-57,_192-255,<,>",
+      "default": "@,48-57,_192-255,<,>,$,#",
       "description": "'iskeyword' option on floating preview buffer."
     },
     "suggest.autoTrigger": {
@@ -401,6 +401,16 @@
       "description": "Text of hint sign",
       "default": ">>"
     },
+    "codeLens.enable": {
+      "type": "boolean",
+      "description": "Enable codeLens feature, require neovim with set virtual text feature.",
+      "default": false
+    },
+    "codeLens.separator": {
+      "type": "string",
+      "description": "Separator text for codeLens in virtual text",
+      "default": "‣"
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",
@@ -483,18 +493,8 @@
     },
     "coc.preferences.snippets.enable": {
       "type": "boolean",
-      "description": "Set to false to disable snippets",
+      "description": "Set to false to disable snippets support.",
       "default": true
-    },
-    "coc.preferences.codeLens.enable": {
-      "type": "boolean",
-      "description": "Enable codeLens feature, require neovim with set virtual text feature.",
-      "default": false
-    },
-    "coc.preferences.codeLens.separator": {
-      "type": "string",
-      "description": "Separator text for codeLens in virtual text",
-      "default": "‣"
     },
     "coc.source.around.enable": {
       "type": "boolean",

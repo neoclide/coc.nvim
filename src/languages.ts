@@ -529,12 +529,12 @@ class Languages {
         let item = completeItems[vimItem.index]
         if (!item) return
         let line = opt.linenr - 1
-        // use TextEdit for snippet item
-        if (vimItem.isSnippet && !item.textEdit) {
+        // tslint:disable-next-line: deprecation
+        if (item.insertText && !item.textEdit) {
           item.textEdit = {
             range: Range.create(line, opt.col, line, opt.colnr - 1),
             // tslint:disable-next-line: deprecation
-            newText: item.insertText || item.label
+            newText: item.insertText
           }
         }
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })

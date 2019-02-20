@@ -380,6 +380,7 @@ endfunction
 function! coc#util#vim_info()
   return {
         \ 'mode': mode(),
+        \ 'floating': exists('*nvim_open_float_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
         \ 'localExtensions': get(g:, 'coc_local_extensions', []),

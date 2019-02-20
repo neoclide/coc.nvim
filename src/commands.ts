@@ -69,7 +69,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.triggerParameterHints',
       execute: async () => {
-        await wait(30)
+        await wait(60)
         await plugin.cocAction('showSignatureHelp')
       }
     }, true)

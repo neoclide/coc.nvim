@@ -403,6 +403,7 @@ export class Completion implements Disposable {
   }
 
   public async onPumRedraw(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
+    if (!workspace.env.floating) return
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null

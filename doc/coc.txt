@@ -58,6 +58,8 @@ Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
 If not satisfied, the plugin would not be loaded at all.
 
+Yarn: https://yarnpkg.com/en/docs/install used for manage coc extensions.
+
 ==============================================================================
 INSTALL						*coc-install*
 
@@ -72,6 +74,8 @@ to your `init.vim` and run: >
 For other plugin manager, run `:coc#util#install()` after plugin is loaded,
 this command would download latest coc binary from github release page.
 
+Use `coc#util#build` to build coc.nvim from source code.
+
 ==============================================================================
 CONFIGURATION					*coc-configuration*
 
@@ -79,9 +83,9 @@ The same as VSCode, Coc use jsonc formated file named `coc-settings.json` for
 configuration.
 
 Use command |:CocConfig| to open user configuration file, or create
-`.vim/coc-settings.json` for workspace configuration.
+`.vim/coc-settings.json` in your project root for folder configuration.
 
-Autocompletion of json file would be enabled after `coc-json` extension
+Auto completion of json file would be enabled after `coc-json` extension
 installed.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
@@ -90,8 +94,8 @@ for detail.
 ==============================================================================
 COMPLETION					*coc-completion*
 
-The completion of coc is triggered automatically by default, you can change
-some of completion behavior be using configuration file.
+Completion is triggered automatically by default, you can change completion
+behavior by use configuration file.
 
 To disable automatic trigger, use: >
 
@@ -110,9 +114,10 @@ To make the first complete item selected automatically, use: >
 	"suggest.noselect": false,
 
 To prevent overriding `completeopt`, use:
+>
 
 	"suggest.keepCompleteopt": true,
-<
+
 To make completion triggered with two input characters, use: >
 
 	"suggest.minTriggerInputLength": 2
@@ -124,6 +129,12 @@ To enable commit characters feature, use: >
 To change the indicator of snippet item, use: >
 
 	"suggest.snippetIndicator": "⭐︎"
+
+To enable preview in your completeopt, use:
+>
+	"suggest.enablePreview": true
+<
+Note: it's vim's preview window, not floating preview window.
 
 ------------------------------------------------------------------------------
 
@@ -378,11 +389,11 @@ g:coc_process_pid 				*g:coc_process_pid*
 
 g:coc_status_error_sign 			*g:coc_status_error_sign*
 
-			Error characer used for statusline, default: `E`
+			Error character used for statusline, default: `E`
 
 g:coc_status_warning_sign 			*g:coc_status_warning_sign*
 
-			Warning characer used for statusline, default: `W`
+			Warning character used for statusline, default: `W`
 
 ------------------------------------------------------------------------------
 
@@ -529,8 +540,6 @@ coc#util#update()
 
 	Update extensions by use terminal feature.
 
-
-<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 

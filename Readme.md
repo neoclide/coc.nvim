@@ -15,25 +15,9 @@ It's a completion framework, language server client which support
 
 _True snippet and additional text edit support_
 
+To make floating window works, [follow steps in faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
-
-## Warning
-
-**This is floating branch, which using features not merged into neovim master yet.**
-
-For floating features to work, you need compile neovim with
-[PR 6619](https://github.com/neovim/neovim/pull/6619) and
-[PR 9616](https://github.com/neovim/neovim/pull/9616) or use my fork at
-[chemzqm/neovim](https://github.com/chemzqm/neovim)
-
-Be aware that the API could change any time.
-
-To make sure floating could work:
-
-- Add `let g:coc_force_debug = 1` to your `init.vim` which make sure your're
-  using code build by yourself.
-- `echo exists('##CompleteChanged')` should echo `1`.
-- `echo exists('*nvim_open_float_win')` should echo `1`.
 
 ## Why?
 
