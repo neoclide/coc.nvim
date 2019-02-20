@@ -324,7 +324,7 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, nvim } = this
-    if (!this.isActivted || !document || !item.word) return
+    if (!this.isActivted || !document || item.word == null) return
     let opt = Object.assign({}, this.option)
     item = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
     this.stop()
@@ -432,8 +432,9 @@ export class Completion implements Disposable {
         let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
         this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
       }
-      if (token.isCancellationRequested) return
       let kind: MarkupKind = currItem.documentation && currItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
+      await wait(10)
+      if (token.isCancellationRequested || !this.isActivted) return
       await this.floating.show(content, bounding, kind, currItem.hasDetail)
     }
     this.resolveTokenSource = null

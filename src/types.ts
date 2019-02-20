@@ -340,6 +340,7 @@ export interface SourceStat {
   type: string
   filepath: string
   disabled: boolean
+  filetypes: string[]
 }
 
 export interface CompleteConfig {
