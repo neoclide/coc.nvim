@@ -2376,10 +2376,10 @@ node-int64@^0.4.0:
   version "0.4.0"
   resolved "https://registry.yarnpkg.com/node-int64/-/node-int64-0.4.0.tgz#87a9065cdb355d3182d8f94ce11188b825c68a3b"
 
-node-json-db@^0.9.2:
-  version "0.9.2"
-  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.9.2.tgz#b79eb61d6398476a39339a7a6d67df780f64bf15"
-  integrity sha512-vd8A6wznm3hi82IKlVKdomZvsEnASYWl0n4iwLkI7ukbIQkXTtFdJG8aZg0BNbEN+Vr/VktDFSqwWx/iSdf31Q==
+node-json-db@^0.10.0:
+  version "0.10.0"
+  resolved "https://registry.yarnpkg.com/node-json-db/-/node-json-db-0.10.0.tgz#be6a23d2372665aa825dcccdc83913874671c832"
+  integrity sha512-LOI02gm/Y9QEOpjHgbuwdQiT97AqdU9zl+ILfOBTjhLihZvReqWh68qjLfyWAS6m+Uh4JTQATQwqi2SP1T/xXA==
   dependencies:
     mkdirp "0.5.x"
 
