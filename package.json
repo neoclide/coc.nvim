@@ -94,7 +94,7 @@
     "log4js": "^4.0.2",
     "minimatch": "^3.0.4",
     "mkdirp": "^0.5.1",
-    "node-json-db": "^0.9.2",
+    "node-json-db": "^0.10.0",
     "pify": "^4.0.1",
     "semver": "^5.6.0",
     "tslib": "^1.9.3",
