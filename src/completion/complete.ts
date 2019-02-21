@@ -189,12 +189,14 @@ export default class Complete {
           }
         }
         words.add(word)
-        if (item.isSnippet && item.word == input) {
-          preselect = item
-          continue
-        } else if (!filtering && item.preselect) {
-          preselect = item
-          continue
+        if (!preselect) {
+          if (item.isSnippet && item.word == input) {
+            preselect = item
+            continue
+          } else if (!filtering && item.preselect) {
+            preselect = item
+            continue
+          }
         }
         if (filtering && item.sortText && input.length > 1) {
           arr.push(omit(item, ['sortText']))

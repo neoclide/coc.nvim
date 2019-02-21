@@ -301,6 +301,7 @@ export interface VimCompleteItem {
   info?: string
   kind?: string
   icase?: number
+  equal?: number
   dup?: number
   empty?: number
   user_data?: string

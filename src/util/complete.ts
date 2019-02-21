@@ -15,9 +15,10 @@ export function getPosition(opt: CompleteOption): Position {
 
 export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsertCharacters: string[]): string {
   // tslint:disable-next-line: deprecation
-  let { label, insertTextFormat, insertText, textEdit } = item
+  let { label, data, insertTextFormat, insertText, textEdit } = item
   let word: string
   let newText: string
+  if (data && data.word) return data.word
   if (textEdit) {
     let { range } = textEdit
     newText = textEdit.newText
