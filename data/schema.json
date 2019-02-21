@@ -317,7 +317,7 @@
     "suggest.detailMaxLength": {
       "type": "number",
       "description": "Max length of detail that should be shown in popup menu.",
-      "default": 60
+      "default": 50
     },
     "diagnostic.level": {
       "type": "string",

@@ -30,6 +30,7 @@ import { wait } from './util'
 import * as complete from './util/complete'
 import { getChangedPosition } from './util/position'
 import workspace from './workspace'
+import { byteLength } from './util/string'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {
@@ -42,6 +43,7 @@ interface CompleteConfig {
   priority: number
   echodocSupport: boolean
   waitTime: number
+  detailMaxLength: number
   invalidInsertCharacters: string[]
 }
 
@@ -128,6 +130,7 @@ class Languages {
       priority: getConfig<number>('languageSourcePriority', 99),
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
+      detailMaxLength: getConfig<number>('detailMaxLength', 50),
       invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
     }
   }
@@ -511,8 +514,11 @@ class Languages {
         if (item.documentation == null) {
           let { documentation, detail } = resolving
           if (!documentation && !detail) return
-          // detail should be single line
-          if (detail) detail = detail.trim().replace(/\n\s*/g, ' ')
+          if (item.detailShown) {
+            detail = null
+          } else if (detail) {
+            detail = detail.trim().replace(/\n\s*/g, ' ')
+          }
           let content = documentation && MarkupContent.is(documentation) ? documentation.value : documentation || ''
           let isMarkdown = documentation && MarkupContent.is(documentation) && documentation.kind == 'markdown'
           let sep = detail && content ? '\n\n' : ''
@@ -624,7 +630,7 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
-    let { echodocSupport } = this.completeConfig
+    let { echodocSupport, detailMaxLength } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -643,6 +649,13 @@ class Languages {
       filterText: item.filterText || label,
       isSnippet,
       dup: 1
+    }
+    if (item && item.detail) {
+      let { detail } = item
+      if (byteLength(detail) < detailMaxLength) {
+        obj.menu = `${detail.replace(/\n\s*/g, ' ')} ${obj.menu}`
+        obj.detailShown = 1
+      }
     }
     if (!obj.word) obj.empty = 1
     if (item.textEdit) obj.line = opt.line

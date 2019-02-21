@@ -322,6 +322,7 @@ export interface VimCompleteItem {
   // used for preview
   documentation?: MarkupContent
   hasDetail?: boolean
+  detailShown?: number
   // saved line for apply TextEdit
   line?: string
 }
