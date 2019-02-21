@@ -1017,7 +1017,7 @@ augroup end`
   // events for sync buffer of vim
   private initVimEvents(): void {
     let self = this
-    async function onChange(bufnr) {
+    async function onChange(bufnr): Promise<void> {
       let doc = self.getDocument(bufnr)
       if (!doc) return
       await doc.fetchContent()

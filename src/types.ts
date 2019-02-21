@@ -620,6 +620,14 @@ export interface ISource {
   onEnter?(bufnr: number): void
 
   /**
+   * Check if this source should doComplete
+   *
+   * @public
+   * @param {CompleteOption} opt
+   * @returns {Promise<boolean> }
+   */
+  shouldComplete?(opt: CompleteOption): Promise<boolean>
+  /**
    * Do completetion
    *
    * @public
@@ -645,14 +653,6 @@ export interface ISource {
    * @returns {Promise<void>}
    */
   onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): Promise<void>
-  /**
-   * Check if this source should work
-   *
-   * @public
-   * @param {CompleteOption} opt
-   * @returns {Promise<boolean> }
-   */
-  shouldComplete?(opt: CompleteOption): Promise<boolean>
 
   shouldCommit?(item: VimCompleteItem, character: string): boolean
 }
