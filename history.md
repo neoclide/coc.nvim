@@ -1,3 +1,16 @@
+# 2019-02-22
+
+- **Break change** some configurations have been renamed, checkout #462.
+- **Break change** no longer automatic trigger for CursorHoldI #452.
+- **Break change** add preview option of `completeopt` according to `suggest.enablePreview`.
+- Add statusItem for CocUpdate.
+- Add `-sycn` option for `:CocInstall`
+- Add support for floating preview window.
+- Add more module export.
+- Fix check of vim-node-rpc throw error.
+- Fix wrong line for TextEdit of complete item.
+- Fix diagnostics not cleared on service restart.
+
 # 2019-02-17
 
 - **Break change** completion resolve requires CompleteChanged autocmd.
