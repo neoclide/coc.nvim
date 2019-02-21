@@ -40,7 +40,7 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 - **Asynchronous and parallel completion request**, unless using vim sources,
   your vim will never blocked.
 - **Does completion resolve on completion item change**. The detail from complete
-  item is echoed after selected, this feature requires `CompleteChanged` autocmd
+  item is echoed after selected, this feature requires `PumRender` autocmd
   to work.
 - **Incomplete request and cancel request support**, only incomplete complete
   request would be trigger on filter complete items and cancellation request is

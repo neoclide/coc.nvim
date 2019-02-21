@@ -487,7 +487,7 @@ coc#_select_confirm()
 	confirm completion.
 
 	Note: for this function work as expected, either need
-	|CompleteChanged| autocmd exists or only use <C-n> and <C-p> to
+	|PumRender| autocmd exists or only use <C-n> and <C-p> to
 	select complete item.
 
 						*health#coc#check()*

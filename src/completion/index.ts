@@ -48,7 +48,7 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
-    events.on('CompleteChanged', this.onPumRedraw, this, this.disposables)
+    events.on('PumRender', this.onPumRedraw, this, this.disposables)
     events.on('BufUnload', async bufnr => {
       if (this.previewBuffer && bufnr == this.previewBuffer.id) {
         let buf = this.previewBuffer
@@ -66,13 +66,6 @@ export class Completion implements Disposable {
   public get option(): CompleteOption {
     if (!this.complete) return null
     return this.complete.option
-  }
-
-  // vim's logic for filter items
-  public filterItemsVim(input: string): VimCompleteItem[] {
-    return this.completeItems.filter(item => {
-      return item.word.startsWith(input)
-    })
   }
 
   public get index(): number {

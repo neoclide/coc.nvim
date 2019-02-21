@@ -309,7 +309,7 @@ describe('completion#TextChangedP', () => {
     await nvim.input('<C-n>')
     await helper.wait(100)
     // let items = completion.completeItems
-    // TODO wait for CompleteChanged event merged
+    // TODO wait for PumRender event merged
     // expect(items[0].info).toBe('detail')
     sources.removeSource(source)
   })
@@ -357,7 +357,7 @@ describe('completion#TextChangedI', () => {
     await helper.wait(100)
     await nvim.input('.')
     await helper.wait(100)
-    // TODO wait CompleteChanged autocmd
+    // TODO wait PumRender autocmd
     // let line = await nvim.line
     // expect(line).toBe('foo.')
     sources.removeSource(source)

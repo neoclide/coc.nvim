@@ -392,7 +392,7 @@ function! coc#util#vim_info()
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
-        \ 'pumevent': exists('##CompleteChanged'),
+        \ 'pumevent': exists('##PumRender'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \}
