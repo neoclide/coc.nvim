@@ -135,6 +135,7 @@ For other completion sources, check out:
 - [coc-sources](https://github.com/neoclide/coc-sources): includes some common
   completion source extensions.
 - [coc-neco](https://github.com/neoclide/coc-neco): viml completion support.
+- [coc-vimtex](https://github.com/neoclide/coc-vimtex): vimtex integration.
 - [coc-neoinclude](https://github.com/jsfaint/coc-neoinclude): neoinclude
   integration.
 
