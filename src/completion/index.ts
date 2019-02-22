@@ -209,11 +209,11 @@ export class Completion implements Disposable {
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
-    let { line, col, filetype } = option
+    let { line, colnr, filetype } = option
     let { nvim, config } = this
     // current input
     this.input = option.input
-    let pre = byteSlice(line, 0, col)
+    let pre = byteSlice(line, 0, colnr - 1)
     let isTriggered = pre && !this.document.isWord(pre[pre.length - 1]) && sources.shouldTrigger(pre, filetype)
     let arr = sources.getCompleteSources(option, isTriggered)
     if (!arr.length) return
