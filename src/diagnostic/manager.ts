@@ -326,7 +326,7 @@ export class DiagnosticManager {
       lines.push(...str.split('\n'))
     })
     this.lastMessage = lines[0]
-    this.nvim.command('echo ""', true)
+    await this.nvim.command('echo ""')
     await workspace.echoLines(lines, truncate)
   }
 

@@ -693,8 +693,8 @@ export default class Handler {
       let parts: SignaturePart[] = []
       let { label } = signature
       label = label.replace(/\n/g, ' ')
-      if (label.length >= columns) {
-        label = label.slice(0, columns - 4) + '...'
+      if (label.length >= columns - 16) {
+        label = label.slice(0, columns - 16) + '...'
       }
       let nameIndex = label.indexOf('(')
       if (nameIndex == -1) {
