@@ -317,7 +317,10 @@ export default class Handler {
       return
     }
     let edit = await languages.provideRenameEdits(document, position, newName)
-    if (!edit) return
+    if (!edit) {
+      workspace.showMessage('Server return empty response for rename', 'warning')
+      return
+    }
     await workspace.applyEdit(edit)
   }
 
