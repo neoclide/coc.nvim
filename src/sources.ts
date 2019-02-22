@@ -11,6 +11,7 @@ import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem } from
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
+import { byteSlice } from './util/string'
 const logger = require('./util/logger')('sources')
 
 export class Sources {
@@ -201,38 +202,30 @@ export class Sources {
   }
 
   public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
-    let { triggerCharacter, filetype } = opt
-    if (isTriggered) {
-      return this.getTriggerSources(triggerCharacter, filetype)
-    }
+    let { filetype } = opt
+    let pre = byteSlice(opt.line, 0, opt.col)
+    if (isTriggered) return this.getTriggerSources(pre, filetype)
     return this.getSourcesForFiletype(filetype)
   }
 
-  public shouldTrigger(character: string, languageId: string): boolean {
+  public shouldTrigger(pre: string, languageId: string): boolean {
+    if (pre.length == 0) return false
     let idx = this.sources.findIndex(s => {
-      let { enable, triggerCharacters, filetypes } = s
-      if (!enable) return false
-      if (filetypes && filetypes.indexOf(languageId) == -1) return false
-      return triggerCharacters && triggerCharacters.indexOf(character) !== -1
+      let { enable, triggerCharacters, triggerPatterns, filetypes } = s
+      if (!enable || (filetypes && filetypes.indexOf(languageId) == -1)) return false
+      if (triggerCharacters) return triggerCharacters.indexOf(pre[pre.length - 1]) !== -1
+      return triggerPatterns && triggerPatterns.findIndex(p => p.test(pre)) !== -1
     })
     return idx !== -1
   }
 
-  public getTriggerCharacters(languageId: string): Set<string> {
-    let res: Set<string> = new Set()
+  public getTriggerSources(pre: string, languageId: string): ISource[] {
     let sources = this.getSourcesForFiletype(languageId)
-    for (let s of sources) {
-      for (let c of s.triggerCharacters) {
-        res.add(c)
-      }
-    }
-    return res
-  }
-
-  public getTriggerSources(character: string, languageId: string): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId)
+    let character = pre[pre.length - 1]
     return sources.filter(o => {
-      return o.triggerCharacters.indexOf(character) !== -1
+      if (o.triggerCharacters && o.triggerCharacters.indexOf(character) !== -1) return true
+      if (o.triggerPatterns && o.triggerPatterns.findIndex(p => p.test(pre)) !== -1) return true
+      return false
     })
   }
 

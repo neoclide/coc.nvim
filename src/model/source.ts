@@ -30,6 +30,12 @@ export default abstract class Source implements ISource {
     return this.getConfig('priority', 1)
   }
 
+  public get triggerPatterns(): RegExp[] | null {
+    let patterns = this.getConfig<string[]>('triggerPatterns', null)
+    if (!patterns || patterns.length == 0) return null
+    return patterns.map(s => new RegExp(s + '$'))
+  }
+
   public get shortcut(): string {
     let shortcut = this.getConfig('shortcut', null)
     return shortcut ? shortcut : this.name.slice(0, 3)

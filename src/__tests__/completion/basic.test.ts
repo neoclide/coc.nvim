@@ -157,6 +157,37 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
+  it('should trigger on triggerPatterns', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'pattern',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerPatterns: [/\w+\.$/],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(10)
+    await nvim.input('.')
+    await helper.wait(30)
+    let pumvisible = await nvim.call('pumvisible')
+    expect(pumvisible).toBe(0)
+    await nvim.input('a')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    sources.removeSource(source)
+    let res = await helper.visible('foo', 'pattern')
+    expect(res).toBe(true)
+  })
+
+
   it('should not trigger when cursor moved', async () => {
     await helper.edit()
     let source: ISource = {
