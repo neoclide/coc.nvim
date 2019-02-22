@@ -45,6 +45,25 @@ function! s:checkCommand()
   endif
 endfunction
 
+function! s:checkAutocmd()
+  let cmds = ['CursorHold', 'CursorHoldI', 'CursorMovedI', 'InsertCharPre', 'TextChangedI']
+  for cmd in cmds
+    let lines = split(execute('verbose autocmd '.cmd), '\n')
+    let n = 0
+    for line in lines
+      if line =~# 'CocAction(' && n < len(lines) - 1
+        let next = lines[n + 1]
+        let ms = matchlist(next, 'Last set from \(.*\)')
+        if !empty(ms)
+          call health#report_warn('Use CocActionAsync to replace CocAction for better performance on '.cmd)
+          call health#report_warn('Checkout the file '.ms[1])
+        endif
+      endif
+      let n = n + 1
+    endfor
+  endfor
+endfunction
+
 function! s:checkInitailize() abort
   if coc#client#is_running('coc')
     call health#report_ok('Service started')
@@ -61,4 +80,5 @@ function! health#coc#check() abort
     call s:checkEnvironment()
     call s:checkCommand()
     call s:checkInitailize()
+    call s:checkAutocmd()
 endfunction
