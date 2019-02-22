@@ -219,7 +219,7 @@
     "suggest.detailMaxLength": {
       "type": "number",
       "description": "Max length of detail that should be shown in popup menu.",
-      "default": 50
+      "default": 100
     },
     "suggest.detailField": {
       "type": "string",
