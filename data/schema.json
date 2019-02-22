@@ -216,9 +216,20 @@
       "description": "Add preview option to completeopt, default: false.",
       "default": false
     },
+    "suggest.detailMaxLength": {
+      "type": "number",
+      "description": "Max length of detail that should be shown in popup menu.",
+      "default": 50
+    },
+    "suggest.detailField": {
+      "type": "string",
+      "default": "menu",
+      "description": "Where to show the detail when it's less than max length.",
+      "enum": ["abbr", "menu", "preview"]
+    },
     "suggest.previewIsKeyword": {
       "type": "string",
-      "default": "@,48-57,_192-255,<,>,$,#",
+      "default": "@,48-57,_192-255,<,>,$,#,-",
       "description": "'iskeyword' option on floating preview buffer."
     },
     "suggest.autoTrigger": {
@@ -313,11 +324,6 @@
       "type": "boolean",
       "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert.",
       "default": false
-    },
-    "suggest.detailMaxLength": {
-      "type": "number",
-      "description": "Max length of detail that should be shown in popup menu.",
-      "default": 50
     },
     "diagnostic.level": {
       "type": "string",

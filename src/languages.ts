@@ -44,6 +44,7 @@ interface CompleteConfig {
   echodocSupport: boolean
   waitTime: number
   detailMaxLength: number
+  detailField: string
   invalidInsertCharacters: string[]
 }
 
@@ -130,6 +131,7 @@ class Languages {
       priority: getConfig<number>('languageSourcePriority', 99),
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
+      detailField: getConfig<string>('detailField', 'abbr'),
       detailMaxLength: getConfig<number>('detailMaxLength', 50),
       invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
     }
@@ -630,7 +632,7 @@ class Languages {
   }
 
   private convertVimCompleteItem(item: CompletionItem, shortcut: string, opt: CompleteOption): VimCompleteItem {
-    let { echodocSupport, detailMaxLength } = this.completeConfig
+    let { echodocSupport, detailField, detailMaxLength } = this.completeConfig
     let hasAdditionalEdit = item.additionalTextEdits && item.additionalTextEdits.length > 0
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet || hasAdditionalEdit
     let label = item.label.trim()
@@ -650,10 +652,14 @@ class Languages {
       isSnippet,
       dup: 1
     }
-    if (item && item.detail) {
-      let { detail } = item
+    if (item && item.detail && detailField != 'preview') {
+      let detail = item.detail.replace(/\n\s*/g, ' ')
       if (byteLength(detail) < detailMaxLength) {
-        obj.menu = `${detail.replace(/\n\s*/g, ' ')} ${obj.menu}`
+        if (detailField == 'menu') {
+          obj.menu = `${detail} ${obj.menu}`
+        } else if (detailField == 'abbr') {
+          obj.abbr = `${obj.abbr} - ${detail}`
+        }
         obj.detailShown = 1
       }
     }
