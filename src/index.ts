@@ -12,12 +12,13 @@ import listManager from './list/manager'
 import snippetManager from './snippets/manager'
 import BasicList from './list/basic'
 import diagnosticManager from './diagnostic/manager'
+import Watchman from './watchman'
 import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 
 export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, Buffer, Window, Mru }
+export { Neovim, Buffer, Window, Mru, Watchman }
 export { workspace, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
 export { disposeAll } from './util'
