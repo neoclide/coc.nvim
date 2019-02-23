@@ -148,9 +148,9 @@ function! coc#list#status(name)
 endfunction
 
 function! coc#list#setup(source)
-  setl buftype=nofile filetype=list nobuflisted nofen wrap
+  setl buftype=nofile filetype=list nobuflisted nofen nowrap
   setl number norelativenumber bufhidden=wipe cursorline winfixheight
-  setl tabstop=1 nolist
+  setl tabstop=1 nolist nocursorcolumn
   syntax case ignore
   let source = a:source[7:]
   let name = toupper(source[0]).source[1:]
