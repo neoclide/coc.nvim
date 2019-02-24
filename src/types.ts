@@ -11,6 +11,12 @@ import { TextDocumentContentProvider, ProviderResult } from './provider'
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 
+export interface KeymapOption {
+  sync: boolean
+  cancel: boolean
+  silent: boolean
+}
+
 export interface Autocmd {
   event: string
   arglist?: string[]
@@ -283,6 +289,7 @@ export interface CompleteOption {
   colnr: number
   readonly linenr: number
   readonly synname: string
+  readonly source?: string
   triggerForInComplete?: boolean
 }
 

@@ -20,7 +20,7 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd } from './types'
+import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd, KeymapOption } from './types'
 import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier, isRunning } from './util/index'
 import { score } from './util/match'
@@ -814,22 +814,25 @@ export class Workspace implements IWorkspace {
     })
   }
 
-  public registerKeymap(modes: MapMode[], key: string, fn: Function, sync = true): Disposable {
+  public registerKeymap(modes: MapMode[], key: string, fn: Function,
+    opts: KeymapOption = { sync: true, cancel: true, silent: true }): Disposable {
     if (this.keymaps.has(key)) return
+    let { nvim } = this
     this.keymaps.set(key, fn)
-    let method = sync ? 'request' : 'notify'
+    let method = opts.sync ? 'request' : 'notify'
+    let silent = opts.silent ? '<silent>' : ''
     for (let m of modes) {
       if (m == 'i') {
-        this.nvim.command(`imap <silent><expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}')`, true)
+        nvim.command(`imap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true)
       } else {
         let modify = this.isNvim ? '<Cmd>' : getKeymapModifier(m)
-        this.nvim.command(`${m}map <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
+        nvim.command(`${m}map ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true)
       }
     }
     return Disposable.create(() => {
       this.keymaps.delete(key)
       for (let m of modes) {
-        this.nvim.command(`${m}unmap <Plug>(coc-${key})`, true)
+        nvim.command(`${m}unmap <Plug>(coc-${key})`, true)
       }
     })
   }
