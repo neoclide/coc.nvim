@@ -47,7 +47,8 @@ export default class FloatingWindow {
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, b.width, b.height, {
           col: b.col,
           row: b.row,
-          unfocusable: true
+          unfocusable: true,
+          relative: 'editor'
         })
         let winnr = await win.number
         nvim.pauseNotification()
@@ -73,7 +74,8 @@ export default class FloatingWindow {
       this.window.configFloat(b.width, b.height, {
         col: b.col,
         row: b.row,
-        unfocusable: true
+        unfocusable: true,
+        relative: 'editor'
       }, true)
       this.configBuffer(winnr)
       await nvim.resumeNotification()
