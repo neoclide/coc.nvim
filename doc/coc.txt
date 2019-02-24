@@ -151,13 +151,7 @@ Use `<cr>` for confirm completion, use: >
 Note: `snippet` and `additionalTextEdit` feature only work after completion is
 confirmed.
 
-Use <C-j> and <C-k> to jump forward and backward of snippet placeholders: >
-
-	let g:coc_snippet_next = '<c-j>'
-	let g:coc_snippet_prev = '<c-k>'
-
-Check out https://github.com/neoclide/coc.nvim/wiki/Configuration-of-completion
-for more tips.
+Check out https://bit.ly/2VaVQ9A for more tips.
 
 ==============================================================================
 INTERFACE					*coc-interface*
