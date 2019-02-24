@@ -15,8 +15,8 @@ function! coc#refresh() abort
   return "\<c-r>=coc#start()\<CR>"
 endfunction
 
-function! coc#_insert_key(method, key) abort
-  if pumvisible()
+function! coc#_insert_key(method, key, ...) abort
+  if get(a:, 1, 1) && pumvisible()
     " keep the line without <C-y>
     let g:coc#_context['candidates'] = []
     call feedkeys("\<Plug>_", 'i')
@@ -69,7 +69,7 @@ function! coc#start(...)
     return ''
   endif
   let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', opt)
+  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
   return ''
 endfunction
 

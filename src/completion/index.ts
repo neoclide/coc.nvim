@@ -3,7 +3,7 @@ import { CancellationTokenSource, Disposable, MarkupKind } from 'vscode-language
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, PumBounding, RecentScore, VimCompleteItem } from '../types'
+import { CompleteConfig, CompleteOption, PumBounding, RecentScore, VimCompleteItem, ISource } from '../types'
 import { disposeAll, wait } from '../util'
 import { byteSlice, isWord } from '../util/string'
 import workspace from '../workspace'
@@ -209,13 +209,19 @@ export class Completion implements Disposable {
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
-    let { line, colnr, filetype } = option
+    let { line, colnr, filetype, source } = option
     let { nvim, config } = this
     // current input
     this.input = option.input
     let pre = byteSlice(line, 0, colnr - 1)
-    let isTriggered = pre && !this.document.isWord(pre[pre.length - 1]) && sources.shouldTrigger(pre, filetype)
-    let arr = sources.getCompleteSources(option, isTriggered)
+    let isTriggered = source == null && pre && !this.document.isWord(pre[pre.length - 1]) && sources.shouldTrigger(pre, filetype)
+    let arr: ISource[] = []
+    if (source == null) {
+      arr = sources.getCompleteSources(option, isTriggered)
+    } else {
+      let s = sources.getSource(source)
+      if (s) arr.push(s)
+    }
     if (!arr.length) return
     let complete = new Complete(option, this.document, this.recentScores, config, nvim)
     this.start(complete)
