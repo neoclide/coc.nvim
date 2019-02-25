@@ -1,3 +1,14 @@
+# 2019-02-25
+
+- **Break change** default of `suggest.detailMaxLength` changed to 100.
+- **Break change** option of `workspace.registerKeymap` changed.
+- Add settings: `suggest.defailField`.
+- Add check for autocmd in health check.
+- Add trigger patterns support for complete sources.
+- Add support of `coc-snippets-expand-jump`
+- Add `source` option for completion start.
+- Add `sources.createSource` method.
+
 # 2019-02-22
 
 - **Break change** some configurations have been renamed, checkout #462.
