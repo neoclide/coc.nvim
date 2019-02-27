@@ -120,6 +120,8 @@ function! s:Enable()
 
   augroup coc_nvim
     autocmd!
+    autocmd User CocNvimInit let g:coc_service_initialized = 1
+
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif

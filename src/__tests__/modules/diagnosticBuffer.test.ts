@@ -23,6 +23,7 @@ const config: DiagnosticConfig = {
   errorSign: '>>',
   warningSign: '>>',
   infoSign: '>>',
+  refreshAfterSave: false,
   hintSign: '>>'
 }
 
