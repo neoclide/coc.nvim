@@ -95,20 +95,20 @@ https://github.com/neoclide/vim-node-rpc
 
   :PlugInstall
 
-如果使用其它插件进行配置，需要插件安装完成后手工执行 `:coc#util#install()`
+如果使用其它插件进行配置，需要插件安装完成后手工执行 `:call coc#util#install()`
 
 
-或者使用 `coc#util#build()` 方法从源码安装。
+或者使用 `:call coc#util#build()` 从源码安装。
 
 ==============================================================================
 
-配置					*coc-configuration*
+配置						*coc-configuration*
 
 可通过 `coc-settings.json` 文件进行配置，该文件为 jconc 格式，就是添加了
 注释格式支持的 json。
 
-使用命令 |:CocConfig| 打开用户配置文件，或者在项目目录下创建
-`.vim/coc-settings.json` 文件，或者优先级更高。
+使用命令 |:CocConfig| 打开用户配置文件，或者在项目根目录下创建
+`.vim/coc-settings.json` 文件，后者优先级更高。
 
 执行命令 `:CocInstall coc-json` 安装 json 语言支持，该插件可提供配置补全
 和验证等功能。
@@ -132,21 +132,22 @@ https://github.com/neoclide/vim-node-rpc
 
 	"suggest.timeout": 500,
 <
-补全时选中第一项： >
+补全开启时选中第一项： >
 
 	"suggest.noselect": false,
 
-使用当前的 `completeopt` ：
+保留使用当前的 `completeopt` ：
 >
 
 	"suggest.keepCompleteopt": true,
+<
+	注意： 如果你的 completeopt 包含 menu 选项，自动补全将被关闭。
 
 让 vim 弹出预览窗口: >
 
 	"suggest.enablePreview": true
 <
-
-输入两个单词字符触发补全： >
+设置最少补全触发字符数： >
 
 	"suggest.minTriggerInputLength": 2
 <
@@ -159,6 +160,8 @@ https://github.com/neoclide/vim-node-rpc
 	"suggest.snippetIndicator": "⭐︎"
 
 ------------------------------------------------------------------------------
+
+定制补全体验
 
 使用 <c-space> 强制触发补全: >
 
@@ -174,13 +177,15 @@ https://github.com/neoclide/vim-node-rpc
 
 ==============================================================================
 
-接口					*coc-interface*
+接口						*coc-interface*
 
 ------------------------------------------------------------------------------
 
 coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需要。
 
-快捷键 					*coc-key-mappings*
+------------------------------------------------------------------------------
+
+快捷键 						*coc-key-mappings*
 
 注意: `i_` 打头的映射仅在插入模式下工作，`n_ `打头的映射仅在正常模式下工作。
 
@@ -228,8 +233,8 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 	vmap <leader>p  <Plug>(coc-format-selected)
 	nmap <leader>p  <Plug>(coc-format-selected)
 <
-	使得 `<leader>p` 可视化选中区间，另外你可以使用
-	`<leader>pap` 格式化当前段落。
+	表示使用 `<leader>p` 格式化选中区间，使用 `<leader>pap` 格式化
+	当前段落。
 
 <Plug>(coc-format) 				*n_coc-format*
 
@@ -237,7 +242,7 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 <Plug>(coc-rename) 				*n_coc-rename*
 
-			重命名光标位置下的符号。
+			重命名光标所在位置符号。
 
 <Plug>(coc-codeaction) 				*n_coc-codeaction*
 
@@ -264,7 +269,7 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 <Plug>(coc-fix-current) 			*n_coc-fix-current*
 
-			修复当前行可修复的第一个错误。
+			修复当前行可修复的第一个错误修复操作。
 
 ==============================================================================
 
@@ -280,16 +285,16 @@ g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 g:coc_user_config 				*g:coc_user_config*
 
-			用于设置 coc 的配置，推荐使用 coc-setting.json 文件
-			或者使用接口 |coc#config()| 进行配置。
+			配置 coc 的用户配置，推荐使用 coc-setting.json 文件
+			进行配置，而不是该变量。
 
 			该设置仅在服务启动前有效。
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 
-			用户设置需要安装的插件，coc 会检测其中未安装的插件
-			帮助完成安装，或者使用 |coc#add_extension()|
-			函数进行配置。
+			用户设置需要安装的插件，coc 会检测其中未安装的插件在
+			vim 启动后使用异步方式进行安装，推荐使用
+			|coc#add_extension()| 函数进行配置。
 			
 			该设置仅在服务启动前有效。
 
@@ -341,6 +346,15 @@ g:coc_selectmode_mapping			*g:coc_selectmode_mapping*
 <
 			默认: 1
 
+
+g:coc_force_debug  				*g:coc_force_debug*
+
+
+			强制使用编译后的代码 javascript 代码，默认情况下如果存在
+			二进制版本， coc 将优先使用已编译版本。
+
+			默认: 0
+
 g:coc_node_path 				*g:coc_node_path*
 
 			启动 coc 服务的 node 路径，例如： >
@@ -349,20 +363,10 @@ g:coc_node_path 				*g:coc_node_path*
 <
 			该配置仅在手工编译代码时生效。
 
-g:coc_force_debug  				*g:coc_force_debug*
-
-
-			强制使用编译的代码，默认情况下如果存在已编译的版本，coc
-			将优先使用已编译版本。
-
-			默认: 0
-
 g:coc_node_args 				*g:coc_node_args*
 
 
-			node 命令额外参数。
-
-			启动 debug 模式可配置： >
+			服务启动时 node 命令额外参数。启动 debug 模式可配置： >
 			
 			let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
@@ -372,7 +376,6 @@ g:coc_node_args 				*g:coc_node_args*
 g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
 
 			包含 vim-node-rpc 模块的目录，用于加速 vim 启动时间。
-
 			默认从 yarn 的全局安装路径进行检测。
 
 
@@ -383,13 +386,11 @@ g:coc_process_pid 				*g:coc_process_pid*
 g:coc_status_error_sign 			*g:coc_status_error_sign*
 
 
-			状态栏使用的错误字符，默认 `E`
+			状态栏使用的错误提示字符，默认 `E`
 
 g:coc_status_warning_sign 			*g:coc_status_warning_sign*
 
 			状态栏使用的警告提示字符，默认 `W`
-
-------------------------------------------------------------------------------
 
 b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 
@@ -403,20 +404,22 @@ g:coc_status 					*g:coc_status*
 
 			插件给出的提示信息，用于状态栏使用。
 
-==============================================================================
+------------------------------------------------------------------------------
 
 函数 						*coc-functions*
 
-coc 在 vim 启动后异步启动服务，所以多数函数并不能在 vim 启动后立刻使用，
+coc 在 vim 启动后异步启动服务，多数函数并不能在 vim 启动后立刻使用，
 如果你想在服务启动调用函数，需要使用自动命令，例如： >
 
- 	autocmd User CocNvimInit call CocAction('runCommand',
+	autocmd User CocNvimInit call CocAction('runCommand',
 						\ 'tsserver.watchBuild')
 <
 						*coc#config()*
 coc#config({section}, {value})
 
-	设置用户配置，该函数不会修改配置文件。例如： >
+	设置用户配置，该函数不会修改配置文件，该函数可用于动态修改配置。
+	
+	例如： >
 
 	call coc#config('coc.preferences', {
 		\ 'timeout': 1000,
@@ -433,7 +436,7 @@ coc#config({section}, {value})
 
 	注意: 该函数可以多处或者在服务未启动时调用。
 
-	注意: 该函数可以同时和配置文件工作，但是不建议同时使用。
+	注意: 该函数可以同时和配置文件工作，建议主要使用配置文件。
 
 coc#add_extension({name}, ...)
 
@@ -449,7 +452,7 @@ coc#add_extension({name}, ...)
 coc#refresh()
 
 
-	开启或者刷新补全，用于绑定 'imap'，例如： >
+	开启或者刷新补全，返回 vim 表达式，用于绑定 'imap'，例如： >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
@@ -479,7 +482,7 @@ health#coc#check()
 
 coc#util#job_command()
 
-	获取服务启动执行的名林。
+	获取服务启动执行的命令。
 
 						*coc#util#get_config_home()*
 coc#util#get_config_home()
@@ -489,7 +492,7 @@ coc#util#get_config_home()
 						*coc#util#install()*
 coc#util#install([{config}])
 
-	安装二进制的分发版本。
+	安装 coc 的二进制的分发版本。
 
 	{config} 可以为 `{terminal: 1}` 来使用终端缓冲区异步安装。
 
@@ -497,24 +500,20 @@ coc#util#install([{config}])
 
 coc#util#build()
 
-	编译 coc.nvim，需重启 vim 生效。
+	编译 coc.nvim，需重启 vim 或者执行 |:CocRestart| 生效。
 
 						*coc#util#extension_root()*
-
 coc#util#extension_root()
 	
 	获取插件根目录。
 
 						*coc#util#rebuild()*
-
 coc#util#rebuild()
 
 	对插件执行 `npm rebuild` 命令。
 
 						*coc#util#update()*
-
 coc#util#update()
-
 
 	使用终端缓冲区更新插件。
 
@@ -523,7 +522,7 @@ CocRequest({id}, {method}, [{params}])
 
 	向指定 language server 发送请求。
 	
-	{id} - language server 唯一 id。
+	{id} - language server 唯一 id
 	{method} - 方法名称
 	{params} - 可选参数
  >
@@ -537,7 +536,7 @@ CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 
 	向指定 language server 发送异步请求。
 
-	{callback} 在请求完成后被调用，第一个参数总是 {error}, 
+	{callback} 在请求完成后被调用，第一个参数总是 {error},
 	第二个参数为响应结果。
 
 						*CocLocations()*
@@ -549,8 +548,8 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
-	{openCommand}: 缓冲区打开方法，默认为
-	`coc.preferences.jumpCommand` 
+	{openCommand}: 缓冲区打开方法，默认使用
+	`coc.preferences.jumpCommand` 打开。
 
 						*CocAction()*
 CocAction({action}, [...{args}])
@@ -627,14 +626,15 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	使用 `coc.preferences.hoverTarget` 改变信息显示方式，默认为预览窗口。
 
-	注意: 或许将支持浮动窗口。
+	后续将支持浮动窗口。
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
 
-	显示当前函数的函数签名，使用函数代码片段功能时可设置： >
+	显示当前函数的函数签名，推荐设置： >
 
 	autocmd CursorHoldI,CursorMovedI * call CocAction('showSignatureHelp')
 <
+	在代码片段跳转后显示函数签名。
 
 "documentSymbols" 				*coc-action-documentSymbols*
 
@@ -664,14 +664,14 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	格式化选中区间，{mode} 可以为 `v` , `V`, `char`, `line` 之一。
 
-	如果不提供 {mode}, 该函数应该设置为 |formatexpr| 使用。
+	如果不提供 {mode}, 该函数必须设置为 |formatexpr| 使用。
 	
 
 "codeAction" [{mode}] 				*coc-action-codeAction*
 
 	执行 codeAction。
 
-	{mode} 为 visualmode() 结果。
+	{mode} 为 visualmode() 返回结果。
 
 "codeLensAction" 				*coc-action-codeLensAction*
 
@@ -689,7 +689,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	对于常用命令，可以设置更方便使用的命令，例如： >
 
-	command! -nargs=0 OrganizeImport
+	command! -nargs=0 OR
 		\ :call CocActionAsync('runCommand', 'tsserver.organizeImports')
 
 "fold" {{kind}} 				*coc-action-fold*
@@ -706,6 +706,8 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	autocmd CursorHold * silent call CocActionAsync('highlight')
 <
+	注意： 请确保 'updatetime' 选项不要设置的太高。
+
 "openLink" [{command}] 				*coc-action-openlink*
 
 	打开光标所在位置的链接。{command} 默认为
@@ -741,14 +743,17 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	需要 language server 支持 document color 功能。
 
+	推荐安装 coc-highlight 插件在所有文件中支持该功能。
+
 	注意: 仅在 Mac 系统或者 vim 支持 python 且已安装 gtk 模块时可用。
 
 "colorPresentation"  				*coc-action-colorPresentation*
 
 	改变当前位置颜色显示方式。
 
-
 	需要 language server 支持 color representation 请求。
+
+	推荐安装 coc-highlight 插件在所有文件中支持该功能。
 
 "quickfixes" 					*coc-action-quickfixes*
 
@@ -808,7 +813,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 :CocUpdateSync 					*:CocUpdatSynce*
 
-		同步方式升级插件。
+		同步方式升级所有插件。
 
 :CocRebuild 					*:CocRebuild*
 
@@ -818,7 +823,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 :CocCommand {name} [{args}] ...			*:CocCommand*
 
-		执行某个插件提供的命令，支持使用 `<tab>` 对 {name} 补全。
+		执行某个插件提供的命令，支持使用 <tab> 对 {name} 补全。
 
 :CocOpenLog 					*:CocOpenLog*
 
@@ -838,7 +843,6 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
 <
-
 		获取日志地址。
 
 :CocInfo 					*:CocInfo*
@@ -856,11 +860,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		当地址列表变化时触发。
 
-		如果你不想用默认 |CocList| 来展示地址列表， 可用于该自动命令配
-		合其它插件来显示地址列表。
+		如果你不想用默认 |CocList| 或者想修改默认的选项来展示地址列表，
+		可用于自动命令配合其它插件来显示地址列表。
 
-		需配合 |g:coc_enable_locationlist| 设置为 0，同时使用
-		|g:coc_jump_locations| 做为地址列表，例如：
+		需同时将 |g:coc_enable_locationlist| 设置为 0，例如：
 >
 		let g:coc_enable_locationlist = 0
 		autocmd User CocLocationsChange CocList --normal -A location
@@ -913,7 +916,7 @@ CocInfoSign 					*CocInfoSign*
 
   默认: `hi CocInfoSign  ctermfg=Yellow guifg=#fab005`
 
-  警告标记符使用的高亮。
+  信息标记符使用的高亮。
 
 CocHintSign 					*CocHintSign*
 
@@ -923,38 +926,38 @@ CocHintSign 					*CocHintSign*
 
 CocErrorHighlight 				*CocErrorHighlight*
 
-  默认： `hi 默认 link CocErrorHighlight   CocUnderline`
+  默认： `hi default link CocErrorHighlight   CocUnderline`
 
   错误文本使用的高亮。
 
 CocWarningHighlight 				*CocWarningHighlight*
 
-  默认: `hi 默认 link CocWarningHighlight   CocUnderline`
+  默认: `hi default link CocWarningHighlight   CocUnderline`
 
   警告文本使用的高亮。
 
 CocInfoHighlight 				*CocInfoHighlight*
 
-  默认: `hi 默认 link CocInfoHighlight   CocUnderline`
+  默认: `hi default link CocInfoHighlight   CocUnderline`
 
   信息文本使用的高亮。
 
 CocHintHighlight 				*CocHintHighlight*
 
-  默认： `hi 默认 link CocHintHighlight   CocUnderline`
+  默认： `hi default link CocHintHighlight   CocUnderline`
 
-  提示文本使用的高亮。
+  提醒文本使用的高亮。
 
 CocHighlightText 				*CocHighlightText*
 
-  默认： `hi 默认 CocHighlightText  guibg=#111111 ctermbg=223`
+  默认： `hi default CocHighlightText  guibg=#111111 ctermbg=223`
 
-  document highlight 特性使用的高亮。用于高亮显示全部当前缓冲区的相同
+  Document highlight 特性使用的高亮。用于高亮显示全部当前缓冲区的相同
   变量。
 
 CocHighlightTextRead 				*CocHighlightTextRead*
 
-  默认： `hi 默认 link CocHighlightRead  CocHighlightText`
+  默认： `hi default link CocHighlightRead  CocHighlightText`
 
   用于显示 `Read` 类型的变量。
 
@@ -1012,7 +1015,7 @@ LIST SUPPORT 					*coc-list*
 
 自带列表功能可以更轻易与 coc 提供的不同列表进行交互。
 
-Coc 列表支持一下特性：
+Coc 列表支持以下特性：
 
 * 插入和正常模式。
 * 提供默认快捷键。
@@ -1022,7 +1025,7 @@ Coc 列表支持一下特性：
 * 实时交互模式。
 * 自动预览功能。
 * 数字键选择功能。
-* 自带多种操作。
+* 支持多种操作。
 * 解析 ansi 高亮。
 * 鼠标支持。
 * 使用 <tab> 选择操作。
@@ -1055,21 +1058,21 @@ LIST COMMAND 					*coc-list-command*
 
 		对之前列表的上一个选项执行默认操作。
 
-		改操作不会打开之前列表。
+		该操作不会打开之前列表。
 
 :CocNext 						*CocNext*
 
 		对之前列表的下一个选项执行默认操作。
 
-		改操作不会打开之前列表。
+		该操作不会打开之前列表。
 
 Command options 					*coc-list-options*
 
 --top
-	在上方显示列表分割窗口。默认为下方显示。
+	在上方显示列表分割窗口，默认为下方显示。
 
 --normal
-	打开后进入正常模式。默认为输入模式。
+	打开后进入正常模式，默认为输入模式。
 
 --no-sort
 	关闭 coc 提供排序，使用源本身给出的排序。
@@ -1090,7 +1093,8 @@ Command options 					*coc-list-options*
 
 --number-select
 -N
-	开启输入选择模式，可在正常模式下使用 1-9 选择对应行的项目。
+	开启数字选择模式，可在正常模式下使用 1-9 选择对应行的项目。
+	使用 0 选择第 10 行。
 
 --interactive
 -I
@@ -1110,8 +1114,6 @@ Command options 					*coc-list-options*
 LIST CONFIGURATION 				*coc-list-configuration*
 
 Coc 列表无需配置即可工作，同时提供了一些配置进行增强。
-
-推荐安装 coc-json 插件支持自动补全。
 
 - `"list.indicator"`: 输入栏提示字符。
 
@@ -1174,7 +1176,7 @@ LIST MAPPINGS 					*coc-list-mappings*
 <C-p>       - 切换到上一个历史匹配输入。
 <Tab>       - 选择操作项。
 
-正常模式快捷键：
+正常模式下默认快捷键：
 
 <Esc>       - 退出当前列表。
 <C-c>       - 停止后台任务。
@@ -1235,12 +1237,12 @@ s           - 执行 'split' 操作.
 	'removetail' - 删除后面全部字符
 	'removeahead' - 删除前面全部字符
 'action' - 执行特定操作，使用 <tab> 查看当前列表支持操作
-'feedkeys' - 发送按键到窗口
+'feedkeys' - 发送按键到列表窗口
 'normal' - 执行 normal 命令
 'normal!' - 执行 normal！ 命令
 'command' - 执行 vim 命令
 'call' - 调用 vim 函数，发送 |coc-list-context| 做为唯一参数
-'expr' - 与 'call' 相同，但是执行函数返回的操作名称
+'expr' - 与 'call' 相同，但是函数必须返回的待执行的操作名称
 
 						*coc-list-context*
 
@@ -1250,7 +1252,7 @@ Context 参数包含以下属性：
 'args' - 传递给列表源使用的参数
 'input' - 当前输入
 'winid' - 列表的 window id
-'bufnr' - 标签启动时的窗口 bufnr
+'bufnr' - 列表启动时的缓冲区的 bufnr
 'targets' - 当前选中项目列表, 详见： |coc-list-target|
 
 						*coc-list-target*
@@ -1306,7 +1308,7 @@ outline 						 *coc-list-outline*
 
 symbols 						 *coc-list-symbols*
 
-	项目内搜索符号，必须配置 `--interactive` 参数使用。
+	项目内搜索符号，必须配合 `--interactive` 参数使用。
 
 	可用操作查看  |coc-list-location|
 
@@ -1461,14 +1463,12 @@ A: 	CodeLens 特性需要支持虚拟文本特性的 neovim 版本，默认状�
 >
 	  "coc.preferences.codeLens.enable": true,
 <
-
 Q: 	我需要高亮 markdown 中的代码。
 
 A: 	可以使用支持代码高亮的 markdown 插件，例如：
 	https://github.com/tpope/vim-markdown, 在 vimrc 中添加如下配置：
 >
   	let g:markdown_fenced_languages = ['css', 'js=javascript']
-<
 
 ==============================================================================
 
