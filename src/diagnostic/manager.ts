@@ -4,7 +4,7 @@ import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import { ConfigurationChangeEvent, DiagnosticItem, DiagnosticItems } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
@@ -24,6 +24,7 @@ export interface DiagnosticConfig {
   infoSign: string
   hintSign: string
   level: number
+  refreshAfterSave: boolean
   refreshOnInsertMode: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
@@ -53,11 +54,12 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
+      let { refreshOnInsertMode, refreshAfterSave } = this.config
       this.insertMode = false
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
-      if (!this.config.refreshOnInsertMode) {
+      if (!refreshOnInsertMode && !refreshAfterSave) {
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
@@ -90,6 +92,10 @@ export class DiagnosticManager {
     events.on('BufWritePost', async bufnr => {
       let buf = this.buffers.find(buf => buf.bufnr == bufnr)
       if (buf) await buf.checkSigns()
+      await wait(100)
+      if (this.config.refreshAfterSave) {
+        this.refreshBuffer(buf.uri)
+      }
     }, null, this.disposables)
 
     await this.setConfiguration()
@@ -121,6 +127,7 @@ export class DiagnosticManager {
     let collection = new DiagnosticCollection(name)
     this.collections.push(collection)
     let disposable = collection.onDidDiagnosticsChange(uri => {
+      if (this.config.refreshAfterSave) return
       this.refreshBuffer(uri)
     })
     let dispose = collection.onDidDiagnosticsClear(uris => {
@@ -383,6 +390,7 @@ export class DiagnosticManager {
       warningSign: getConfig<string>('warningSign', '>>'),
       infoSign: getConfig<string>('infoSign', '>>'),
       hintSign: getConfig<string>('hintSign', '>>'),
+      refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
     }
     this.enabled = getConfig<boolean>('enable', true)

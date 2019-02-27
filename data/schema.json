@@ -333,7 +333,12 @@
     },
     "diagnostic.refreshOnInsertMode": {
       "type": "boolean",
-      "description": "Enable diagnostic refresh on insert mode, only works on neovim.",
+      "description": "Enable diagnostic refresh on insert mode, default false.",
+      "default": false
+    },
+    "diagnostic.refreshAfterSave": {
+      "type": "boolean",
+      "description": "Only refresh diagnostics after save, default false.",
       "default": false
     },
     "diagnostic.enable": {
