@@ -1,6 +1,6 @@
 *coc-nvim.txt*				LSP support for vim & neovim.
 
-Version: 0.0.53
+Version: 0.0.57
 Author: Qiming Zhao <chemzqm at gmail.com>
 License: MIT license
 
@@ -342,7 +342,7 @@ g:coc_force_debug  				*g:coc_force_debug*
 
 			Default: 0
 
-g:coc_node_args 				*g:coc_node_exec_args*
+g:coc_node_args 				*g:coc_node_args*
 
 			Arguments passed to node when starting coc
 			service from source code.
@@ -408,7 +408,7 @@ g:coc_status 					*g:coc_status*
 			Status string contributed by extensions, used for
 			status line.
 
-==============================================================================
+------------------------------------------------------------------------------
 FUNCTIONS 					*coc-functions*
 
 Coc functions are normally used by user defined command/keymap or other
@@ -786,7 +786,6 @@ Available Actions ~
 	Do first quickfix actions of current line.
 
 ------------------------------------------------------------------------------
-
 COMMANDS 					*coc-commands*
 
 :CocStart 					*:CocStart*
@@ -867,7 +866,6 @@ COMMANDS 					*coc-commands*
 		bug report.
 
 ------------------------------------------------------------------------------
-
 AUTOCMD 					*coc-autocmds*
 
 						*CocLocationsChange*
@@ -1166,13 +1164,13 @@ The following settings are available:
 
 - `"list.normalMappings"`: User defined key-mappings on normal mode.
 
-	defined: `{}`
+	default: `{}`
 
 	Checkout |coc-list-mappings-custom| for detail.
 
 - `"list.insertMappings"`: User defined key-mappings on insert mode.
 
-	defined: `{}`
+	default: `{}`
 
 	Checkout |coc-list-mappings-custom| for detail.
 
@@ -1314,8 +1312,6 @@ location 			   			 *coc-list-location*
 	- 'vsplit': Use |:vsplit| to open location.
 	- 'split': Use |:split| to open location.
 
-------------------------------------------------------------------------------
-
 extensions 						 *coc-list-extensions*
 
 	Manage coc extensions.
@@ -1328,8 +1324,6 @@ extensions 						 *coc-list-extensions*
 	- 'reload' reload extension.
 	- 'uninstall' uninstall extension.
 
-------------------------------------------------------------------------------
-
 diagnostics 						 *coc-list-diagnostics*
 
 	All diagnostics of workspace.
@@ -1337,8 +1331,6 @@ diagnostics 						 *coc-list-diagnostics*
 	Actions:
 
 	- See |coc-list-location|
-
-------------------------------------------------------------------------------
 
 outline 						 *coc-list-outline*
 
@@ -1348,8 +1340,6 @@ outline 						 *coc-list-outline*
 
 	- See |coc-list-location|
 
-------------------------------------------------------------------------------
-
 symbols 						 *coc-list-symbols*
 
 	Search workspace symbols.
@@ -1357,8 +1347,6 @@ symbols 						 *coc-list-symbols*
 	Actions:
 
 	- See |coc-list-location|
-
-------------------------------------------------------------------------------
 
 services 						 *coc-list-services*
 
@@ -1368,8 +1356,6 @@ services 						 *coc-list-services*
 
 	- 'toggle': toggle service state, default action.
 
-------------------------------------------------------------------------------
-
 commands 						 *coc-list-commands*
 
 	Workspace commands.
@@ -1377,8 +1363,6 @@ commands 						 *coc-list-commands*
 	Actions:
 
 	- 'run': run selected command, default action.
-
-------------------------------------------------------------------------------
 
 links 							 *coc-list-links*
 
@@ -1389,8 +1373,6 @@ links 							 *coc-list-links*
 	- 'open': open the link, default action.
 	- 'jump': jump to link definition.
 
-------------------------------------------------------------------------------
-
 output 							 *coc-list-output*
 
 	Current output channels
@@ -1398,8 +1380,6 @@ output 							 *coc-list-output*
 	Actions:
 
 	- 'open': open output channel in split window, default action.
-
-------------------------------------------------------------------------------
 
 sources 						 *coc-list-completion-sources*
 
@@ -1410,8 +1390,6 @@ sources 						 *coc-list-completion-sources*
 	- 'toggle': activate/deactivate source, default action.
 	- 'refresh': refresh source.
 	- 'open': open the file where source defined.
-
-------------------------------------------------------------------------------
 
 lists 							 *coc-list-lists*
 
@@ -1515,10 +1493,6 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 
 ==============================================================================
 FAQ						*coc-faq*
-
-Q: 	I don't want preview window on completion.
-
-A: 	Use `set completeopt-=preview` in your `.vimrc`
 
 Q: 	I want to use ale for diagnostics.
 

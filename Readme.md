@@ -1,8 +1,8 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
-| CI (Linux, macOS)                       | Coverage                               | Gitter                      | Doc                        |
-| --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- |
-| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] |
+| CI (Linux, macOS)                       | Coverage                               | Gitter                      | Doc                        | 中文文档                         |
+| --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- | -------------------------------- |
+| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] | [![Doc Badge cn][]][doc link cn] |
 
 Coc is an intellisense engine for vim8 & neovim.
 
@@ -320,4 +320,6 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 [gitter badge]: https://badges.gitter.im/neoclide/coc.nvim.svg
 [gitter]: https://gitter.im/neoclide/coc.nvim
 [doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
+[doc badge cn]: https://img.shields.io/badge/doc-%3Ah%20coc.cnx-red.svg
 [doc link]: doc/coc.txt
+[doc link cn]: doc/coc.cnx
