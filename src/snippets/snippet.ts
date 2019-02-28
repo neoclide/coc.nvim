@@ -62,9 +62,9 @@ export class CocSnippet {
 
   public get range(): Range {
     let { position } = this
-    let content = this.toString()
+    const content = this.toString()
     const doc = TextDocument.create('untitled:/1', 'snippet', 0, content)
-    let pos = doc.positionAt(content.length)
+    const pos = doc.positionAt(content.length)
     return Range.create(position, Position.create(position.line + pos.line, position.character + pos.character))
   }
 
@@ -127,30 +127,24 @@ export class CocSnippet {
   // update internal positions, no change of buffer
   // return TextEdit list when needed
   public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] {
-    let { range } = edit
-    let { start, end } = range
+    let { start, end } = edit.range
+    let { range } = this
     let pRange = placeholder.range
-    let { value, index, id } = placeholder
+    let { value, id } = placeholder
     let endPart = pRange.end.character > end.character ? value.slice(end.character - pRange.end.character) : ''
     let newText = `${value.slice(0, start.character - pRange.start.character)}${edit.newText}${endPart}`
-    // update with current change
-    this.setPlaceholderValue(id, newText)
-    let placeholders = this._placeholders.filter(o => o.index == index && o.id != id)
-    if (!placeholders.length) return []
-    let edits: TextEdit[] = []
-    // update with others
-    placeholders.forEach(p => {
-      let { range, value } = p
-      let text = this.tmSnippet.updatePlaceholder(p.id, newText)
-      if (text != value) {
-        edits.push({
-          range,
-          newText: text
-        })
-      }
-    })
+    this.tmSnippet.updatePlaceholder(id, newText)
+    let changed = 0
+    if (start.line == range.end.line) {
+      changed = newText.length - value.length
+    }
+    let endPosition = Position.create(range.end.line, range.end.character + changed)
+    let snippetEdit: TextEdit = {
+      range: Range.create(range.start, endPosition),
+      newText: this.tmSnippet.toString()
+    }
     this.update()
-    return edits
+    return [snippetEdit]
   }
 
   private update(): void {
@@ -191,10 +185,5 @@ export class CocSnippet {
       }
       return res
     })
-  }
-
-  private setPlaceholderValue(id: number, val: string): void {
-    this.tmSnippet.updatePlaceholder(id, val)
-    this.update()
   }
 }

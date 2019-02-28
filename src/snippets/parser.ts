@@ -149,6 +149,11 @@ export abstract class Marker {
     return this
   }
 
+  public setOnlyChild(child: Marker): void {
+    child.parent = this
+    this._children = [child]
+  }
+
   public replace(child: Marker, others: Marker[]): void {
     const { parent } = child
     const idx = parent.children.indexOf(child)
@@ -557,16 +562,20 @@ export class TextmateSnippet extends Marker {
     return index + 1
   }
 
-  public updatePlaceholder(id: number, val: string): string {
+  public updatePlaceholder(id: number, val: string): void {
     const placeholder = this.placeholders[id]
-    let child = placeholder.children[0]
-    let newText = placeholder.transform ? placeholder.transform.resolve(val) : val
-    if (child) {
-      placeholder.replace(child, [new Text(newText)])
-    } else {
-      placeholder.appendChild(new Text(newText))
+    this._placeholders = undefined
+    for (let p of this.placeholders) {
+      if (p.index == placeholder.index) {
+        let child = p.children[0]
+        let newText = p.transform ? p.transform.resolve(val) : val
+        if (child) {
+          p.setOnlyChild(new Text(newText))
+        } else {
+          p.appendChild(new Text(newText))
+        }
+      }
     }
-    return newText
   }
 
   public offset(marker: Marker): number {

@@ -45,7 +45,7 @@ describe('snippet provider', () => {
     expect(col).toBe(1)
   })
 
-  it('should remove kepmap on nextPlaceholder when session not exits', async () => {
+  it('should remove keymap on nextPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.nextPlaceholder()
@@ -54,7 +54,7 @@ describe('snippet provider', () => {
     expect(val).toBe(0)
   })
 
-  it('should remove kepmap on previousPlaceholder when session not exits', async () => {
+  it('should remove keymap on previousPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.previousPlaceholder()
@@ -129,5 +129,16 @@ describe('snippet provider', () => {
     await helper.wait(100)
     let active = await snippetManager.insertSnippet('${1:x} $1')
     expect(active).toBe(true)
+  })
+
+  it('should work with nest snippet', async () => {
+    let buf = await helper.edit()
+    let snip = '<a ${1:http://www.${2:example.com}}>\n$0\n</a>'
+    await snippetManager.insertSnippet(snip)
+    await helper.wait(30)
+    await nvim.input('abcde')
+    await helper.wait(100)
+    let lines = await buf.lines
+    expect(lines).toEqual(['<a abcde>', '', '</a>'])
   })
 })

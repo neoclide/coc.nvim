@@ -3,7 +3,7 @@ import { FormattingOptions } from 'jsonc-parser'
 import { Emitter, Event, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { wait } from '../util'
-import { comparePosition, positionInRange } from '../util/position'
+import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
@@ -139,6 +139,7 @@ export class SnippetSession {
     if (!edits.length) return
     this.version = this.document.version
     await this.document.applyEdits(this.nvim, edits)
+    this.version = 0
   }
 
   public async selectCurrentPlaceholder(): Promise<void> {
@@ -241,6 +242,8 @@ export class SnippetSession {
 
   public findPlaceholder(range: Range): CocSnippetPlaceholder | null {
     if (!this.snippet) return null
+    let { placeholder } = this
+    if (rangeInRange(range, placeholder.range)) return placeholder
     return this.snippet.getPlaceholderByRange(range) || null
   }
 
