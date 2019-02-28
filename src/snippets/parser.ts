@@ -564,7 +564,6 @@ export class TextmateSnippet extends Marker {
 
   public updatePlaceholder(id: number, val: string): void {
     const placeholder = this.placeholders[id]
-    this._placeholders = undefined
     for (let p of this.placeholders) {
       if (p.index == placeholder.index) {
         let child = p.children[0]
@@ -576,6 +575,7 @@ export class TextmateSnippet extends Marker {
         }
       }
     }
+    this._placeholders = undefined
   }
 
   public offset(marker: Marker): number {
