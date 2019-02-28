@@ -418,6 +418,10 @@ export class ListManager {
   private async onInputChar(ch: string, charmod: number): Promise<void> {
     let { mode } = this.prompt
     if (!ch) return
+    if (ch == '\x1b') {
+      await this.cancel()
+      return
+    }
     if (!this.activated) {
       this.nvim.call('coc#list#stop_prompt', [], true)
       return
