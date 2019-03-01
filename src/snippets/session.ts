@@ -156,19 +156,24 @@ export class SnippetSession {
     if (placeholder.choice) {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
-      await this.select(placeholder.range)
+      await this.select(placeholder.range, placeholder.value)
     }
   }
 
-  private async select(range: Range): Promise<void> {
+  private async select(range: Range, text: string): Promise<void> {
     let { document, nvim } = this
     let { start, end } = range
     let { textDocument } = document
     let len = textDocument.offsetAt(end) - textDocument.offsetAt(start)
     let line = document.getline(start.line)
+    let col = line ? byteLength(line.slice(0, start.character)) : 0
     let endLine = document.getline(end.line)
     let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
-    let col = line ? byteLength(line.slice(0, start.character)) : 0
+    nvim.setVar('coc_last_placeholder', {
+      current_text: text,
+      start: { line: start.line, col },
+      end: { line: end.line, col: endCol }
+    }, true)
     let ve = await nvim.getOption('virtualedit')
     let selection = await nvim.getOption('selection')
     let mode = await nvim.call('mode') as string
