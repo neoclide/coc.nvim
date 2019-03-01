@@ -282,16 +282,19 @@ export default class Document {
       content = content.slice(0, -1)
     }
     // could be equal sometimes
-    if (orig === content) return
-    let d = diffLines(orig, content)
-    await this.buffer.setLines(d.replacement, {
-      start: d.start,
-      end: d.end,
-      strictIndexing: false
-    })
-    // can't wait vim sync buffer
-    this.lines = content.split('\n')
-    if (sync) this.forceSync()
+    if (orig === content) {
+      this.createDocument()
+    } else {
+      let d = diffLines(orig, content)
+      await this.buffer.setLines(d.replacement, {
+        start: d.start,
+        end: d.end,
+        strictIndexing: false
+      })
+      // can't wait vim sync buffer
+      this.lines = content.split('\n')
+      if (sync) this.forceSync()
+    }
   }
 
   public forceSync(ignorePause = true): void {
