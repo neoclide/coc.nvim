@@ -49,6 +49,7 @@ export class CommandManager implements Disposable {
       execute: async (edit: TextEdit) => {
         let doc = workspace.getDocument(workspace.bufnr)
         if (!doc) return
+        nvim.call('coc#_cancel', [], true)
         let { start, end } = edit.range
         if (comparePosition(start, end) != 0) {
           await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }])

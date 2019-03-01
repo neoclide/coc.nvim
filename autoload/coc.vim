@@ -59,6 +59,13 @@ function! coc#_hide() abort
   call feedkeys("\<C-e>", 'in')
 endfunction
 
+function! coc#_cancel()
+  if pumvisible()
+    let g:coc#_context['candidates'] = []
+    call feedkeys("\<Plug>_", 'i')
+  endif
+endfunction
+
 function! coc#_select() abort
   if !pumvisible() | return | endif
   call feedkeys("\<C-y>", 'in')

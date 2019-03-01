@@ -62,10 +62,11 @@ export class CocSnippet {
 
   public get range(): Range {
     let { position } = this
-    const content = this.toString()
+    const content = this.tmSnippet.toString()
     const doc = TextDocument.create('untitled:/1', 'snippet', 0, content)
     const pos = doc.positionAt(content.length)
-    return Range.create(position, Position.create(position.line + pos.line, position.character + pos.character))
+    const end = pos.line == 0 ? position.character + pos.character : pos.character
+    return Range.create(position, Position.create(position.line + pos.line, end))
   }
 
   public get firstPlaceholder(): CocSnippetPlaceholder | null {
