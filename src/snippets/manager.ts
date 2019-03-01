@@ -115,7 +115,7 @@ export class SnippetManager implements types.SnippetManager {
     return this.sessionMap.get(bufnr)
   }
 
-  public resolveSnippet(body: string): Snippets.TextmateSnippet {
+  public async resolveSnippet(body: string): Promise<Snippets.TextmateSnippet> {
     let parser = new Snippets.SnippetParser()
     const snippet = parser.parse(body, true)
     const resolver = new SnippetVariableResolver()

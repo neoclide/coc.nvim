@@ -446,6 +446,21 @@ export class Variable extends TransformableMarker {
 
   public resolve(resolver: VariableResolver): boolean {
     let value = resolver.resolve(this)
+    if (value && value.indexOf('\n') !== -1) {
+      // get indent of previous Text child
+      let { children } = this.parent
+      let idx = children.indexOf(this)
+      let previous = children[idx - 1]
+      if (previous && previous instanceof Text) {
+        let ms = previous.value.match(/\n([ \t]*)$/)
+        if (ms) {
+          let newLines = value.split('\n').map((s, i) => {
+            return i == 0 ? s : ms[1] + s.replace(/^\s*/, '')
+          })
+          value = newLines.join('\n')
+        }
+      }
+    }
     if (this.transform) {
       value = this.transform.resolve(value || '')
     }
