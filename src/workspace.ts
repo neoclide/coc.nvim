@@ -1134,6 +1134,8 @@ augroup end`
   private onFileTypeChange(filetype: string, bufnr: number): void {
     let doc = this.getDocument(bufnr)
     if (!doc) return
+    let converted = doc.convertFiletype(filetype)
+    if (converted == doc.filetype) return
     this._onDidCloseDocument.fire(doc.textDocument)
     doc.setFiletype(filetype)
     this._onDidOpenDocument.fire(doc.textDocument)

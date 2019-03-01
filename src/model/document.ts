@@ -78,7 +78,7 @@ export default class Document {
     this.textDocument = textDocument
   }
 
-  private convertFiletype(filetype: string): string {
+  public convertFiletype(filetype: string): string {
     let map = this.env.filetypeMap
     if (filetype == 'json' && this.uri && this.uri.endsWith('coc-settings.json')) {
       return 'jsonc'
