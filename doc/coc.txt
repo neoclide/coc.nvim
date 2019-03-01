@@ -1241,6 +1241,8 @@ for customize list key-mappings, ex: >
 <
 Note: you should only use keys starts with `<C-` or `<A-` for insert mappings.
 
+Note: <Esc> can't be remapped for other action.
+
 The mapping expression should be `command:arguments`, available commands:
 
 'do' - special actions provided by coc list, including:
