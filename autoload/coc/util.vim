@@ -28,6 +28,16 @@ function! coc#util#has_preview()
   return 0
 endfunction
 
+function! coc#util#yarn_cmd()
+  if executable('yarnpkg')
+    return 'yarnpkg'
+  endif
+  if executable('yarn')
+    return 'yarn'
+  endif
+  return ''
+endfunction
+
 function! coc#util#close_win(id)
   let winnr = win_id2win(a:id)
   if winnr > 0
@@ -503,7 +513,8 @@ endfunction
 
 " build coc from source code
 function! coc#util#build()
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
     return 0
   endif
@@ -512,7 +523,7 @@ function! coc#util#build()
     call system('taskkill /F /Im coc-win.exe')
   endif
   execute 'lcd '.s:root
-  execute '!yarn install'
+  execute '!'.yarncmd.' install'
   execute 'lcd '.cwd
 endfunction
 
@@ -533,14 +544,12 @@ function! coc#util#extension_root() abort
 endfunction
 
 function! coc#util#install_extension(args) abort
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
-      call coc#util#open_terminal({
-            \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh',
-            \ 'keepfocus': 1,
-            \ 'Callback': { -> coc#util#install_extension(a:args)},
-            \})
+      echohl MoreMsg | echon 'Installing yarn' | echohl None
+      exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh'
     else
       echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     endif
@@ -549,7 +558,6 @@ function! coc#util#install_extension(args) abort
   let names = join(filter(copy(a:args), 'v:val !~# "^-"'), ' ')
   if empty(names) | return | endif
   let useTerminal = index(a:args, '-sync') == -1
-  let g:a = a:args
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
@@ -564,14 +572,14 @@ function! coc#util#install_extension(args) abort
     endfunction
     call coc#util#open_terminal({
           \ 'cwd': dir,
-          \ 'cmd': 'yarn add '.names.' --ignore-engines',
+          \ 'cmd': yarncmd.' add '.names.' --ignore-engines',
           \ 'keepfocus': 1,
           \ 'Callback': funcref('s:OnExtensionInstalled'),
           \})
   else
     let cwd = getcwd()
     exe 'lcd '.dir
-    exe '!yarn add '.names.' --ignore-engines'
+    exe '!'.yarncmd.' add '.names.' --ignore-engines'
     exe 'lcd '.cwd
   endif
 endfunction
@@ -600,7 +608,8 @@ function! coc#util#rebuild()
 endfunction
 
 function! coc#util#update()
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if !empty(yarncmd)
     echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     return
   endif
@@ -613,7 +622,7 @@ function! coc#util#update()
   endfunction
   call coc#util#open_terminal({
         \ 'cwd': dir,
-        \ 'cmd': 'yarn upgrade --latest --ignore-engines',
+        \ 'cmd': yarncmd.' upgrade --latest --ignore-engines',
         \ 'keepfocus': 1,
         \ 'Callback': funcref('s:OnUpdated'),
         \})

@@ -10,7 +10,7 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Environment node.js not found, install node.js from http://nodejs.org/')
   endif
-  if !executable('yarn')
+  if !executable('yarnpkg')
     let valid = 0
     call health#report_error('Environment executable yarn not found, check https://yarnpkg.com/en/docs/install for installation.')
     call health#report_info('yarn is required for install extensions.')

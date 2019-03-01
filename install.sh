@@ -10,6 +10,10 @@ RED="$(tput setaf 1 2>/dev/null || echo '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || echo '')"
 YELLOW="$(tput setaf 3 2>/dev/null || echo '')"
 
+command_exists() {
+  command -v "$1" >/dev/null 2>&1;
+}
+
 error() {
   printf "${RED} $@${NO_COLOR}\n" >&2
 }
@@ -49,6 +53,17 @@ fetch() {
   fi
 }
 
+install_yarn() {
+  if ! command_exists node && ! command_exists nodejs; then
+    info "Nodejs not found, installing latest LTS"
+    fetch install-node.now.sh/lts | sh
+  fi
+  if ! command_exists yarnpkg; then
+    info "Yarn not found, installing yarn."
+    fetch https://yarnpkg.com/install.sh | sh
+  fi
+}
+
 get_latest_release() {
   fetch "https://api.github.com/repos/neoclide/coc.nvim/releases/latest" |
     grep '"tag_name":' |
@@ -63,10 +78,7 @@ else
 fi
 
 download() {
-  if ! command -v yarn > /dev/null; then
-    info "Yarn not found, installing yarn."
-    fetch https://yarnpkg.com/install.sh | sh
-  fi
+  install_yarn
   mkdir -p build
   cd build
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
@@ -80,16 +92,9 @@ download() {
 }
 
 try_build() {
-  info "Try build from source code"
-  if ! command -v node > /dev/null; then
-    info "Node not found, installing nodejs v8.9.0"
-    fetch install-node.now.sh/v8.9.0 | sh
-  fi
-  if ! command -v yarn > /dev/null; then
-    info "Yarn not found, installing yarn."
-    fetch https://yarnpkg.com/install.sh | sh
-  fi
-  yarn install
+  install_yarn
+  info "Try build coc.nvim from source code"
+  yarnpkg install
 }
 
 arch=$(uname -sm)

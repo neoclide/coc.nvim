@@ -104,13 +104,14 @@ function! coc#rpc#vim_rpc_folder() abort
   if isdirectory(folder)
     return folder
   endif
-  if executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if !empty(yarncmd)
     let dir = expand('~').'/.config/yarn/global'
     if s:is_win
       let dir = $LOCALAPPDATA.'\Yarn\Data\global'
     endif
     if !isdirectory(dir)
-      let dir = trim(systemlist('yarn global dir --offline -s')[-1])
+      let dir = trim(systemlist(yarncmd.' global dir --offline -s')[-1])
     endif
     let p = dir . '/node_modules/vim-node-rpc'
     if isdirectory(p) && filereadable(p.'/package.json')
@@ -130,18 +131,12 @@ function! coc#rpc#vim_rpc_folder() abort
 endfunction
 
 function! coc#rpc#install_node_rpc(...) abort
-  let isUpdate = get(a:, 1, 0)
-  if isUpdate
-    let res = coc#util#prompt_confirm('Your vim-node-rpc need upgrade, upgrade?')
-  else
-    let res = coc#util#prompt_confirm('vim-node-rpc module not found, install?')
-  endif
-  if !res | return 0 | endif
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
     return 0
   endif
-  let cmd = 'yarn global add vim-node-rpc'
+  let cmd = yarncmd.' global add vim-node-rpc'
   execute '!'.cmd
   return v:shell_error == 0
 endfunction

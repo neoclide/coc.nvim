@@ -76,9 +76,11 @@ export class Extensions {
         workspace.showMessage(`Error on update extensions: ${e.message}`, 'error')
       })
     })
-    if (workspace.isVim) this.updateNodeRpc().catch(e => {
-      workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
-    })
+    if (workspace.isVim) {
+      this.updateNodeRpc().catch(e => {
+        workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
+      })
+    }
   }
 
   private async updateExtensions(stats: ExtensionInfo[]): Promise<void> {
@@ -91,6 +93,7 @@ export class Extensions {
     db.push(key, Date.now())
     let versionInfo: { [index: string]: string } = {}
     stats = stats.filter(o => !o.exotic)
+    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
     for (let stat of stats) {
       if (stat.exotic) continue
       let file = path.join(stat.root, 'package.json')
@@ -105,7 +108,7 @@ export class Extensions {
     let outdated: string[] = []
     await Promise.all(Object.keys(versionInfo).map(id => {
       let curr = versionInfo[id]
-      return runCommand(`yarn info ${id} --json`, process.cwd()).then(content => {
+      return runCommand(`${yarncmd} info ${id} --json`, process.cwd()).then(content => {
         let lines = content.trim().split('\n')
         let json = JSON.parse(lines[lines.length - 1])
         let { version, engines } = json.data
@@ -121,7 +124,7 @@ export class Extensions {
     let status = workspace.createStatusBarItem(99, { progress: true })
     status.text = `Upgrading ${outdated.join(' ')}`
     status.show()
-    await runCommand(`yarn upgrade ${outdated.join(' ')} --latest --ignore-engines`, this.root)
+    await runCommand(`${yarncmd} upgrade ${outdated.join(' ')} --latest --ignore-engines`, this.root)
     status.dispose()
   }
 
@@ -129,6 +132,8 @@ export class Extensions {
     let now = new Date()
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     let key = `/lastCheckVimNodeRpc`
+    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
+    if (!yarncmd) return
     let ts = this.db.exists(key) ? this.db.getData(key) : null
     if (ts && Number(ts) > day.getTime()) return
     this.db.push(key, Date.now())
@@ -136,14 +141,14 @@ export class Extensions {
     if (filepath) {
       let jsonFile = path.join(filepath, 'package.json')
       let { version } = loadJson(jsonFile)
-      let res = await runCommand(`yarn info vim-node-rpc version --json`, process.cwd(), 30000)
+      let res = await runCommand(`${yarncmd} info vim-node-rpc version --json`, process.cwd(), 30000)
       let newVersion = JSON.parse(res).data
       if (!semver.gt(newVersion, version)) return
     }
     let status = workspace.createStatusBarItem(99, { progress: true })
     status.text = 'Upgrading vim-node-rpc'
     status.show()
-    await runCommand('yarn global add vim-node-rpc', process.cwd())
+    await runCommand(`${yarncmd} global add vim-node-rpc`, process.cwd())
     status.dispose()
     logger.info(`Upgrade vim-node-rpc succeed`)
   }
@@ -240,8 +245,10 @@ export class Extensions {
       this.deactivate(id)
     }
     await wait(100)
+    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
+    if (!yarncmd) return
     try {
-      await workspace.runCommand(`yarn remove ${ids.join(' ')}`, this.root)
+      await workspace.runCommand(`${yarncmd} remove ${ids.join(' ')}`, this.root)
       for (let id of ids) {
         this._onDidUnloadExtension.fire(id)
       }

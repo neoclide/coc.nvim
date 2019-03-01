@@ -16,8 +16,8 @@ export default class Resolver {
 
   @memorize
   private get yarnFolder(): Promise<string> {
-    if (!executable('yarn')) return Promise.resolve('')
-    return runCommand('yarn global dir', process.cwd(), 3000).then(root => {
+    if (!executable('yarnpkg')) return Promise.resolve('')
+    return runCommand('yarnpkg global dir', process.cwd(), 3000).then(root => {
       return path.join(root.trim(), 'node_modules')
     })
   }

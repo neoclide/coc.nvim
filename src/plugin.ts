@@ -227,8 +227,10 @@ export default class Plugin extends EventEmitter {
               console.error(`Please upgrade coc.nvim to latest version: ${latest}`) // tslint:disable-line
             } else {
               let cwd = await nvim.call('coc#util#extension_root') as string
+              let yarncmd = await nvim.call('coc#util#yarn_cmd') as string
+              if (!yarncmd) return
               if (statusItem) statusItem.text = 'Upgrading coc extensions...'
-              await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 300000)
+              await workspace.runCommand(`${yarncmd} upgrade --latest --ignore-engines`, cwd, 300000)
               if (statusItem) statusItem.dispose()
             }
             resolve()
