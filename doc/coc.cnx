@@ -893,7 +893,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 使用 |:hi| 命令可以改变 coc 提供的高亮。例如： >
 	
-	" 然错误文本显示为红色
+	" 让错误文本显示为红色
 	highlight CocErrorHighlight ctermfg=Red  guifg=#ff0000
 <
 注意: highlight 命令必须在 |:colorscheme| 命令之后使用。

@@ -322,7 +322,7 @@
     },
     "suggest.keepCompleteopt": {
       "type": "boolean",
-      "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert.",
+      "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
       "default": false
     },
     "diagnostic.level": {
