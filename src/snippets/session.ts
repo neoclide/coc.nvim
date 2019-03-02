@@ -50,6 +50,8 @@ export class SnippetSession {
       await workspace.moveTo(placeholder.range.start)
       return this._isActive
     }
+    await document.patchChange()
+    document.forceSync()
     this.version = document.version
     await document.applyEdits(nvim, [edit])
     if (this._isActive) {
@@ -148,7 +150,6 @@ export class SnippetSession {
   public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {
     let { nvim, document } = this
     if (!document || !placeholder) return
-    await document.patchChange()
     let { start, end } = placeholder.range
     const len = end.character - start.character
     const col = byteLength(document.getline(start.line).slice(0, start.character)) + 1
@@ -228,10 +229,8 @@ export class SnippetSession {
   private async documentSynchronize(): Promise<void> {
     if (!this.isActive) return
     await this.document.patchChange()
-    if (this.document.dirty) {
-      this.document.forceSync()
-      await wait(40)
-    }
+    this.document.forceSync()
+    await wait(50)
   }
 
   public async checkPosition(): Promise<void> {

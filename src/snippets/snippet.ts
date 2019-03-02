@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { getChangedPosition, rangeInRange, comparePosition } from '../util/position'
+import { getChangedPosition, rangeInRange, comparePosition, adjustPosition, editRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -130,16 +130,10 @@ export class CocSnippet {
   public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] {
     let { start, end } = edit.range
     let { range } = this
-    let pRange = placeholder.range
     let { value, id } = placeholder
-    let endPart = pRange.end.character > end.character ? value.slice(end.character - pRange.end.character) : ''
-    let newText = `${value.slice(0, start.character - pRange.start.character)}${edit.newText}${endPart}`
+    let newText = editRange(placeholder.range, value, edit)
     this.tmSnippet.updatePlaceholder(id, newText)
-    let changed = 0
-    if (start.line == range.end.line) {
-      changed = newText.length - value.length
-    }
-    let endPosition = Position.create(range.end.line, range.end.character + changed)
+    let endPosition = adjustPosition(range.end, edit)
     let snippetEdit: TextEdit = {
       range: Range.create(range.start, endPosition),
       newText: this.tmSnippet.toString()
@@ -162,10 +156,11 @@ export class CocSnippet {
         character: position.line == 0 ? character + position.character : position.character
       }
       const value = p.toString()
+      const lines = value.split('\n')
       let res: CocSnippetPlaceholder = {
         range: Range.create(start, {
-          line: start.line,
-          character: start.character + value.length
+          line: start.line + lines.length - 1,
+          character: lines.length == 1 ? start.character + value.length : lines[lines.length - 1].length
         }),
         transform: p.transform != null,
         line: start.line,
