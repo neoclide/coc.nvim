@@ -473,7 +473,7 @@ function! coc#util#open_url(url)
   if v:shell_error
     echohl Error | echon 'Failed to open '.a:url | echohl None
     return
-  endif 
+  endif
 endfunction
 
 function! coc#util#install(...) abort
@@ -609,7 +609,7 @@ endfunction
 
 function! coc#util#update()
   let yarncmd = coc#util#yarn_cmd()
-  if !empty(yarncmd)
+  if empty(yarncmd)
     echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     return
   endif
