@@ -115,7 +115,7 @@ export class Workspace implements IWorkspace {
       Object.assign(this._env, { columns, lines })
     }, null, this.disposables)
     await this.attach()
-    if (this.isVim) this.initVimEvents()
+    this.initVimEvents()
     let { errorItems } = this.configurations
     this.showErrors(errorItems)
     this.configurations.onError(async errors => {
@@ -632,10 +632,8 @@ export class Workspace implements IWorkspace {
 
   public async moveTo(position: Position): Promise<void> {
     let { nvim } = this
-    let doc = this.getDocument(this.bufnr)
-    if (doc) await doc.patchChange()
-    let line = doc ? doc.getline(position.line) : ''
-    let col = line ? byteLength(line.slice(0, position.character)) + 1 : position.character + 1
+    let line = await nvim.call('getline', position.line + 1)
+    let col = byteLength(line.slice(0, position.character)) + 1
     await nvim.call('cursor', [position.line + 1, col])
   }
 
@@ -1019,11 +1017,10 @@ augroup end`
 
   // events for sync buffer of vim
   private initVimEvents(): void {
-    let self = this
-    async function onChange(bufnr): Promise<void> {
-      let doc = self.getDocument(bufnr)
-      if (!doc) return
-      await doc.fetchContent()
+    if (!this.isVim) return
+    const onChange = async bufnr => {
+      let doc = this.getDocument(bufnr)
+      if (doc) doc.fetchContent()
     }
     events.on('TextChangedI', onChange, null, this.disposables)
     events.on('TextChanged', onChange, null, this.disposables)

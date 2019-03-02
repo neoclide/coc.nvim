@@ -199,17 +199,23 @@ export default class FloatingWindow {
     let id = window.id
     this.window = null
     let count = 0
-    let interval = setInterval(async () => {
-      if (!this.creating) {
-        // command could fail on InsertCharPre
-        let found = await nvim.call('coc#util#close_win', id)
-        if (!found) return clearInterval(interval)
-        let valid = await nvim.call('nvim_win_is_valid', id)
-        if (!valid) return clearInterval(interval)
+    let close = async () => {
+      try {
+        if (!this.creating) {
+          // command could fail on InsertCharPre
+          let found = await nvim.call('coc#util#close_win', id)
+          if (!found) return clearInterval(interval)
+          let valid = await nvim.call('nvim_win_is_valid', id)
+          if (!valid) return clearInterval(interval)
+        }
+        if (count == 5) clearInterval(interval)
+      } catch (e) {
+        logger.error(e)
       }
-      if (count == 5) clearInterval(interval)
       count = count + 1
-    }, 100)
+    }
+    let interval = setInterval(close, 100)
+    close()
   }
 }
 

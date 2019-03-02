@@ -21,6 +21,7 @@ export default class Document {
   public chars: Chars
   public textDocument: TextDocument
   public fireContentChanges: Function & { clear(): void }
+  public fetchContent: Function & { clear(): void }
   // vim only, for matchaddpos
   private colorId = 1080
   private nvim: Neovim
@@ -43,7 +44,12 @@ export default class Document {
     private env: Env) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, 100)
+    }, 50)
+    this.fetchContent = debounce(() => {
+      this._fetchContent().catch(e => {
+        logger.error(`Error on fetch content:`, e)
+      })
+    }, 50)
   }
 
   private shouldAttach(buftype: string): boolean {
@@ -244,6 +250,7 @@ export default class Document {
     this.buffer.detach().catch(_e => {
       // noop
     })
+    this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
     this._onDocumentDetach.dispose()
@@ -390,7 +397,7 @@ export default class Document {
     )
   }
 
-  public async fetchContent(): Promise<void> {
+  private async _fetchContent(): Promise<void> {
     if (!this.env.isVim || !this.attached) return
     let { nvim, buffer } = this
     let { id } = buffer
@@ -419,7 +426,6 @@ export default class Document {
     this._changedtick = changedtick
     this._lastChange = 'change'
     lines[lnum - 1] = line
-    this._fireContentChanges()
   }
 
   public getSymbolRanges(word: string): Range[] {

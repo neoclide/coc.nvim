@@ -54,6 +54,11 @@ function! coc#_select_confirm()
   return "\<down>\<C-y>"
 endfunction
 
+function! coc#_selected()
+  if !pumvisible() | return 0 | endif
+  return coc#rpc#request('hasSelected', [])
+endfunction
+
 function! coc#_hide() abort
   if !pumvisible() | return | endif
   call feedkeys("\<C-e>", 'in')

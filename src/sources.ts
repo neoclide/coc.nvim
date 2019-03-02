@@ -218,9 +218,11 @@ export class Sources {
     if (pre.length == 0) return false
     let idx = this.sources.findIndex(s => {
       let { enable, triggerCharacters, triggerPatterns, filetypes } = s
-      if (!enable || (filetypes && filetypes.indexOf(languageId) == -1)) return false
-      if (triggerCharacters) return triggerCharacters.indexOf(pre[pre.length - 1]) !== -1
-      return triggerPatterns && triggerPatterns.findIndex(p => p.test(pre)) !== -1
+      if (!enable) return false
+      if ((filetypes && filetypes.indexOf(languageId) == -1)) return false
+      if (triggerCharacters) return triggerCharacters.indexOf(pre.slice(-1)) !== -1
+      if (triggerPatterns) return triggerPatterns.findIndex(p => p.test(pre)) !== -1
+      return false
     })
     return idx !== -1
   }

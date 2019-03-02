@@ -1496,6 +1496,17 @@ Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 ==============================================================================
 FAQ						*coc-faq*
 
+------------------------------------------------------------------------------
+Q: 	I need documentation for completion items.
+
+A: 	Preview window of vim is disabled by default. You can enable it by add
+	`"suggest.enablePreview":true` to your settings files.
+	
+	However, it doesn't work when the server only send documentation on
+	complete item change, you will need floating window support then,
+	checkout: https://bit.ly/2NCVh5P
+
+------------------------------------------------------------------------------
 Q: 	I want to use ale for diagnostics.
 
 A: 	Yes, you can make coc send diagnostics to ale, just add >
@@ -1504,6 +1515,7 @@ A: 	Yes, you can make coc send diagnostics to ale, just add >
 <
 	to your coc-settings.json
 
+------------------------------------------------------------------------------
 Q: 	I want codeLens feature of LSP.
 
 A: 	CodeLens support use virtual text feature of neovim, its's not enabled by
@@ -1513,6 +1525,7 @@ A: 	CodeLens support use virtual text feature of neovim, its's not enabled by
 <
 	to your coc-settings.json
 
+------------------------------------------------------------------------------
 Q: 	I want to highlight codes in markdown documentation.
 
 A: 	Use a markdown plugin which could provide fency code highlight,
