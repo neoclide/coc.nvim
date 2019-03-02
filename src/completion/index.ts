@@ -111,8 +111,11 @@ export class Completion implements Disposable {
     }
     let keepCompleteopt = getConfig<boolean>('keepCompleteopt', false)
     let autoTrigger = getConfig<string>('autoTrigger', 'always')
-    if (keepCompleteopt && !workspace.completeOpt.includes('noinsert')) {
-      autoTrigger = 'none'
+    if (keepCompleteopt) {
+      let { completeOpt } = workspace
+      if (!completeOpt.includes('noinsert') && !completeOpt.includes('noselect')) {
+        autoTrigger = 'none'
+      }
     }
     let acceptSuggestionOnCommitCharacter = workspace.env.pumevent && getConfig<boolean>('acceptSuggestionOnCommitCharacter', false)
     return {
@@ -517,7 +520,8 @@ export class Completion implements Disposable {
 
   private get completeOpt(): string {
     let { noselect, enablePreview } = this.config
-    return `${noselect ? 'noselect,' : ''}noinsert,menuone${enablePreview ? ',preview' : ''}`
+    if (noselect) return `noselect,menuone${enablePreview ? ',preview' : ''}`
+    return `noinsert,menuone${enablePreview ? ',preview' : ''}`
   }
 
   public dispose(): void {
