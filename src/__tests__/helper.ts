@@ -4,7 +4,7 @@ import Emitter from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import pify from 'pify'
+import util from 'util'
 import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
@@ -182,7 +182,7 @@ export async function createTmpFile(content: string): Promise<string> {
     fs.mkdirSync(tmpFolder)
   }
   let filename = path.join(tmpFolder, uuid())
-  await pify(fs.writeFile)(filename, content, 'utf8')
+  await util.promisify(fs.writeFile)(filename, content, 'utf8')
   return filename
 }
 

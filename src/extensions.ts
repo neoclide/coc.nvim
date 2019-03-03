@@ -1,19 +1,18 @@
-import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import isuri from 'isuri'
 import glob from 'glob'
-import JsonDB from 'node-json-db'
+import isuri from 'isuri'
 import path from 'path'
 import semver from 'semver'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
+import DB from './model/db'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, wait, runCommand } from './util'
+import { disposeAll, runCommand, wait } from './util'
+import { distinct } from './util/array'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
-import { distinct } from './util/array'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -39,7 +38,7 @@ export class Extensions {
   private list: ExtensionItem[] = []
   private root: string
   private interval: string
-  private db: JsonDB
+  private db: DB
   public isEmpty = false
 
   private _onReady = new Emitter<void>()
@@ -52,8 +51,8 @@ export class Extensions {
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   public async init(): Promise<void> {
-    let root = this.root = workspace.env.extensionRoot
-    this.db = new JsonDB(path.join(path.dirname(root), 'db'), true, true)
+    this.root = workspace.env.extensionRoot
+    this.db = workspace.createDatabase('db')
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) {
       this._onReady.fire()
@@ -87,10 +86,9 @@ export class Extensions {
     let now = new Date()
     let { interval, db } = this
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
-    let key = '/lastUpdate'
-    let ts = (db as any).exists(key) ? db.getData(key) : null
+    let ts = await db.fetch('lastUpdate')
     if (ts && Number(ts) > day.getTime()) return
-    db.push(key, Date.now())
+    await db.push('lastUpdate', Date.now())
     let versionInfo: { [index: string]: string } = {}
     stats = stats.filter(o => !o.exotic)
     let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
@@ -131,13 +129,13 @@ export class Extensions {
   public async updateNodeRpc(): Promise<void> {
     let now = new Date()
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    let key = `/lastCheckVimNodeRpc`
+    let key = 'lastCheckVimNodeRpc'
     let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
     if (!yarncmd) return
-    let ts = this.db.exists(key) ? this.db.getData(key) : null
+    let ts = await this.db.fetch(key)
     if (ts && Number(ts) > day.getTime()) return
-    this.db.push(key, Date.now())
-    let filepath = await workspace.resolveModule('vim-node-rpc')
+    await this.db.push(key, Date.now())
+    let filepath = await workspace.nvim.call('coc#rpc#vim_rpc_folder')
     if (filepath) {
       let jsonFile = path.join(filepath, 'package.json')
       let { version } = loadJson(jsonFile)
@@ -159,7 +157,7 @@ export class Extensions {
     let list = globalExtensions
     if (list && list.length) {
       list = distinct(list)
-      list = list.filter(name => !this.has(name) && !this.isDisabled(name))
+      list = list.filter(name => !this.has(name))
       if (list.length) nvim.command(`CocInstall ${list.join(' ')}`, true)
     }
     if (localExtensions.length) {
@@ -219,12 +217,12 @@ export class Extensions {
       this.list.splice(idx, 1)
     }
     let { db } = this
-    let key = `/extension/${id}/disabled`
-    db.push(key, state == 'disabled' ? false : true)
+    let key = `extension.${id}.disabled`
+    await db.push(key, state == 'disabled' ? false : true)
     if (state == 'disabled') {
       let folder = path.join(this.root, 'node_modules', id)
       this.loadExtension(folder).catch(e => {
-        workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
+        workspace.showMessage(`Can't load extension ${id}: ${e.message}'`, 'error')
       })
     }
     await wait(200)
@@ -260,8 +258,13 @@ export class Extensions {
 
   public isDisabled(id: string): boolean {
     let { db } = this
-    let key = `/extension/${id}/disabled`
-    return (db as any).exists(key) && db.getData(key) == true
+    try {
+      let { extension } = JSON.parse(fs.readFileSync(db.filepath, 'utf8'))
+      if (extension && extension[id]) return extension[id].disabled === true
+      return false
+    } catch (e) {
+      return false
+    }
   }
 
   public async onExtensionInstall(id: string): Promise<void> {

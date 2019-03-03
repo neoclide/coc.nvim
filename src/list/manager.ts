@@ -156,7 +156,7 @@ export class ListManager {
       this.window = await this.nvim.window
       await this.nvim.command('echo ""')
       this.prompt.start(this.listOptions.input, options.mode, true)
-      this.history.load()
+      await this.history.load()
       setTimeout(async () => {
         let line = await this.nvim.call('coc#util#echo_line') as string
         if (line.startsWith('[coc.nvim]')) {

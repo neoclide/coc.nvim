@@ -507,6 +507,13 @@ describe('workspace utility', () => {
     expect(bufnr).toBe(buf.id)
   })
 
+  it('should create database', async () => {
+    let db = workspace.createDatabase('test')
+    let res = await db.exists('xyz')
+    expect(res).toBe(false)
+    await db.destroy()
+  })
+
   it('should create outputChannel', () => {
     let channel = workspace.createOutputChannel('channel')
     expect(channel.name).toBe('channel')

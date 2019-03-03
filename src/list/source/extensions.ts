@@ -71,11 +71,15 @@ export default class ExtensionList extends BasicList {
         filterText: stat.id,
         data: {
           id: stat.id,
-          state: stat.state
+          state: stat.state,
+          priority: getPriority(stat.state)
         }
       })
     }
     items.sort((a, b) => {
+      if (a.data.priority != b.data.priority) {
+        return b.data.priority - a.data.priority
+      }
       return b.data.id - a.data.id ? 1 : -1
     })
     return items
@@ -95,5 +99,18 @@ export default class ExtensionList extends BasicList {
     nvim.command('highlight default link CocExtensionsName String', true)
     nvim.command('highlight default link CocExtensionsRoot Comment', true)
     nvim.resumeNotification()
+  }
+}
+
+function getPriority(stat: string): number {
+  switch (stat) {
+    case 'unknown':
+      return 2
+    case 'activited':
+      return 1
+    case 'disabled':
+      return -1
+    default:
+      return 0
   }
 }

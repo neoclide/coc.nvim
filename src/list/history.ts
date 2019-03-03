@@ -1,21 +1,17 @@
-import JsonDB from 'node-json-db'
-import os from 'os'
-import path from 'path'
-import { isWindows } from '../util/platform'
-import { ListManager } from './manager'
-import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
+import DB from '../model/db'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import workspace from '../workspace'
+import { ListManager } from './manager'
 const logger = require('../util/logger')('list-history')
 
 export default class History {
-  private db: JsonDB
+  private db: DB
   private index = -1
   private loaded: string[] = []
   private current: string[] = []
 
   constructor(private manager: ListManager) {
-    let root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.join(os.homedir(), '.config/coc')
-    this.db = new JsonDB(path.join(root, 'history'), true, true)
+    this.db = workspace.createDatabase('history')
     let { prompt } = manager
     prompt.onDidChangeInput(input => {
       if (input == this.curr) return
@@ -30,11 +26,11 @@ export default class History {
   }
 
   // on list activted
-  public load(): void {
+  public async load(): Promise<void> {
     let { db } = this
     let { input } = this.manager.prompt
     let { name } = this.manager
-    let arr = db.exists(`/${name}/${encodeURIComponent(workspace.cwd)}`) ? db.getData(`/${name}/${encodeURIComponent(workspace.cwd)}`) : null
+    let arr = await db.fetch(`${name}.${encodeURIComponent(workspace.cwd)}`)
     if (!arr || !Array.isArray(arr)) {
       this.loaded = []
     } else {
@@ -55,8 +51,7 @@ export default class History {
     if (loaded.length > 200) {
       loaded = loaded.slice(-200)
     }
-    let { cwd } = workspace
-    db.push(`/${name}/${encodeURIComponent(cwd)}`, loaded, true)
+    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded)
   }
 
   public previous(): void {

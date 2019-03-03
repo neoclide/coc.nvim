@@ -2,7 +2,7 @@ import fs from 'fs'
 import minimatch from 'minimatch'
 import os from 'os'
 import path from 'path'
-import pify from 'pify'
+import util from 'util'
 import { Disposable } from 'vscode-languageserver-protocol'
 import Source from '../model/source'
 import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../types'
@@ -69,7 +69,7 @@ export default class File extends Source {
     let dir = path.isAbsolute(pathstr) ? part : path.join(root, part)
     let stat = await statAsync(dir)
     if (stat && stat.isDirectory()) {
-      let files = await pify(fs.readdir)(dir)
+      let files = await util.promisify(fs.readdir)(dir)
       files = this.filterFiles(files)
       let items = await Promise.all(files.map(filename => {
         return this.getFileItem(dir, filename)

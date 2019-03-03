@@ -5,7 +5,7 @@ import findUp from 'find-up'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import pify from 'pify'
+import util from 'util'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, LocationLink } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
@@ -16,12 +16,13 @@ import Mru from './model/mru'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import BufferChannel from './model/outputChannel'
+import DB from './model/db'
 import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd, KeymapOption } from './types'
-import { isFile, mkdirAsync, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier, isRunning } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
@@ -646,7 +647,7 @@ export class Workspace implements IWorkspace {
     if (!stat || opts.overwrite) {
       if (filepath.endsWith('/')) {
         try {
-          await mkdirAsync(filepath)
+          await this.nvim.call('mkdir', [filepath, 'p', 0o700])
         } catch (e) {
           this.showMessage(`Can't create ${filepath}: ${e.message}`, 'error')
         }
@@ -702,7 +703,7 @@ export class Workspace implements IWorkspace {
     }
     try {
       let method = isDir ? 'rmdir' : 'unlink'
-      await pify(fs[method])(filepath)
+      await util.promisify(fs[method])(filepath)
       if (!isDir) {
         let uri = Uri.file(filepath).toString()
         let doc = this.getDocument(uri)
@@ -1013,6 +1014,12 @@ augroup end`
     }
     let userConfigFile = path.join(home, CONFIG_FILE_NAME)
     return new Configurations(userConfigFile, new ConfigurationShape(this))
+  }
+
+  public createDatabase(name: string): DB {
+    let root = path.dirname(this.env.extensionRoot)
+    let filepath = path.join(root, name + '.json')
+    return new DB(filepath)
   }
 
   // events for sync buffer of vim

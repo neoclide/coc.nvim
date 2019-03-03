@@ -2,7 +2,7 @@ import fastDiff from 'fast-diff'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import pify from 'pify'
+import util from 'util'
 import { Disposable, CancellationToken } from 'vscode-jsonrpc'
 import events from './events'
 import extensions from './extensions'
@@ -135,7 +135,7 @@ export class Sources {
     let folder = path.join(pluginPath, 'autoload/coc/source')
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
-      let arr = await pify(fs.readdir)(folder)
+      let arr = await util.promisify(fs.readdir)(folder)
       arr = arr.filter(s => s.slice(-4) == '.vim')
       let files = arr.map(s => path.join(folder, s))
       if (files.length == 0) return
