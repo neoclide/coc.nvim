@@ -86,6 +86,7 @@ export interface Env {
   readonly mode: string
   readonly floating: boolean
   readonly extensionRoot: string
+  readonly watchExtensions: string[]
   readonly globalExtensions: string[]
   readonly localExtensions: string[]
   readonly config: any

@@ -392,6 +392,7 @@ function! coc#util#vim_info()
         \ 'mode': mode(),
         \ 'floating': exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
+        \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
         \ 'localExtensions': get(g:, 'coc_local_extensions', []),
         \ 'config': get(g:, 'coc_user_config', {}),

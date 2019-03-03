@@ -389,6 +389,11 @@ g:coc_status_warning_sign 			*g:coc_status_warning_sign*
 
 			Warning character used for statusline, default: `W`
 
+g:coc_watch_extensions 				*g:coc_watch_extensions*
+			
+			Extensions to watch for reload, used for develop
+			extensions only, need watchman installed.
+
 ------------------------------------------------------------------------------
 
 Some variables are provided by coc.nvim so your can use them in your

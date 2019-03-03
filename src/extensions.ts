@@ -7,12 +7,15 @@ import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from './events'
 import DB from './model/db'
+import util from 'util'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
+import Watchman from './watchman'
+import { debounce } from 'debounce'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -23,6 +26,7 @@ export interface ExtensionItem {
   id: string
   extension: Extension<API>
   deactivate: () => void
+  directory?: string
 }
 
 function loadJson(file: string): any {
@@ -36,11 +40,8 @@ function loadJson(file: string): any {
 
 export class Extensions {
   private list: ExtensionItem[] = []
-  private root: string
   private interval: string
   private db: DB
-  public isEmpty = false
-
   private _onReady = new Emitter<void>()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
@@ -50,8 +51,11 @@ export class Extensions {
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
+  public get root(): string {
+    return workspace.env.extensionRoot
+  }
+
   public async init(): Promise<void> {
-    this.root = workspace.env.extensionRoot
     this.db = workspace.createDatabase('db')
     let stats = this.globalExtensionStats()
     if (global.hasOwnProperty('__TEST__')) {
@@ -153,7 +157,7 @@ export class Extensions {
 
   public async addExtensions(): Promise<void> {
     let { nvim } = workspace
-    let { globalExtensions, localExtensions } = workspace.env
+    let { globalExtensions, localExtensions, watchExtensions } = workspace.env
     let list = globalExtensions
     if (list && list.length) {
       list = distinct(list)
@@ -167,6 +171,19 @@ export class Extensions {
           workspace.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error')
         })
       }))
+    }
+    // watch for changes
+    if (watchExtensions.length) {
+      let watchmanPath = workspace.getWatchmanPath()
+      if (!watchmanPath || process.env.NODE_ENV == 'test') return
+      for (let name of watchExtensions) {
+        let directory = await util.promisify(fs.realpath)(path.join(this.root, 'node_modules', name))
+        let client = await Watchman.createClient(watchmanPath, directory)
+        client.subscribe('**/*.js', debounce(async () => {
+          await this.reloadExtension(name)
+          workspace.showMessage(`reloaded ${name}`)
+        }, 100))
+      }
     }
   }
 
@@ -229,9 +246,16 @@ export class Extensions {
   }
 
   public async reloadExtension(id: string): Promise<void> {
+    let idx = this.list.findIndex(o => o.id == id)
+    let directory = idx == -1 ? null : this.list[idx].directory
     this.deactivate(id)
+    if (idx != -1) this.list.splice(idx, 1)
     await wait(200)
-    this.activate(id)
+    if (directory) {
+      await this.loadExtension(directory)
+    } else {
+      this.activate(id)
+    }
   }
 
   public async uninstallExtension(ids: string[]): Promise<void> {
@@ -525,7 +549,10 @@ export class Extensions {
     })
 
     this.list.push({
-      id, extension, deactivate: () => {
+      id,
+      extension,
+      directory: root,
+      deactivate: () => {
         isActive = false
         if (ext.deactivate) {
           Promise.resolve(ext.deactivate()).catch(e => {
