@@ -1,3 +1,17 @@
+# 2019-03-03
+
+- **Break change** signature change of `workspace.registerKeymap`.
+- **Break change** `<esc>` of CocList can't be remapped any more.
+- **Break change** use `yarnpkg` command instead of `yarn` when possible.
+- **Break change** `noinsert` is removed from `completeopt` when `noselect` is
+  enabled, `<CR>` would break line by default.
+- Add setting `diagnostic.refreshAfterSave`.
+- Add chinese documentation.
+- Add support of multiple line placeholder.
+- Fix edit of nested snippet placeholders.
+- Fix possible infinite create of documents.
+- Fix check for resume completion.
+
 # 2019-02-25
 
 - **Break change** default of `suggest.detailMaxLength` changed to 100.
