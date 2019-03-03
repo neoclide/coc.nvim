@@ -130,10 +130,10 @@ export class Extensions {
     let now = new Date()
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     let key = 'lastCheckVimNodeRpc'
-    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
-    if (!yarncmd) return
     let ts = await this.db.fetch(key)
     if (ts && Number(ts) > day.getTime()) return
+    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
+    if (!yarncmd) return
     await this.db.push(key, Date.now())
     let filepath = await workspace.nvim.call('coc#rpc#vim_rpc_folder')
     if (filepath) {
