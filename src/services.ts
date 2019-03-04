@@ -192,6 +192,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+    if (!method) {
+      throw new Error(`method required for sendRequest`)
+    }
     let service = this.getService(id)
     // wait for extension activate
     if (!service) await wait(100)

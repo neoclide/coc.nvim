@@ -29,8 +29,89 @@ export default class Plugin extends EventEmitter {
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    this.addMethod('hasSelected', () => {
+      return completion.hasSelected()
+    })
+    this.addMethod('getCurrentIndex', () => {
+      return completion.index
+    })
+    this.addMethod('listNames', () => {
+      return listManager.names
+    })
+    this.addMethod('addExtensions', () => {
+      return extensions.addExtensions()
+    })
+    this.addMethod('commandList', () => {
+      return commandManager.commandList.map(o => o.id)
+    })
+    this.addMethod('openList', async (...args: string[]) => {
+      await listManager.start(args)
+    })
+    this.addMethod('listResume', () => {
+      return listManager.resume()
+    })
+    this.addMethod('listPrev', () => {
+      return listManager.previous()
+    })
+    this.addMethod('listNext', () => {
+      return listManager.next()
+    })
+    this.addMethod('detach', () => {
+      return workspace.detach()
+    })
+    this.addMethod('sendRequest', (id: string, method: string, params?: any) => {
+      return services.sendRequest(id, method, params)
+    })
+    this.addMethod('doAutocmd', async (id: number, ...args: []) => {
+      let autocmd = (workspace as any).autocmds.get(id) as Autocmd
+      if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+    })
+    this.addMethod('updateConfig', (section: string, val: any) => {
+      workspace.configurations.updateUserConfig({ [section]: val })
+    })
+    this.addMethod('snippetNext', async () => {
+      await snippetManager.nextPlaceholder()
+      return ''
+    })
+    this.addMethod('snippetPrev', async () => {
+      await snippetManager.previousPlaceholder()
+      return ''
+    })
+    this.addMethod('snippetCancel', () => {
+      snippetManager.cancel()
+    })
+    this.addMethod('cocInstalled', async (names: string) => {
+      for (let name of names.split(/\s+/)) {
+        await extensions.onExtensionInstall(name)
+      }
+    })
+    this.addMethod('openLog', async () => {
+      let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
+      let escaped = await this.nvim.call('fnameescape', file)
+      await this.nvim.command(`edit ${escaped}`)
+    })
+    this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
+      let fn = workspace.keymaps.get(key)
+      if (!fn) {
+        logger.error(`keymap for ${key} not found`)
+        return defaultReturn
+      }
+      let res = await Promise.resolve(fn())
+      return res || defaultReturn
+    })
+    this.addMethod('registExtensions', async (...folders: string[]) => {
+      for (let folder of folders) {
+        await extensions.loadExtension(folder)
+      }
+    })
     commandManager.init(nvim, this)
     clean() // tslint:disable-line
+  }
+
+  private addMethod(name: string, fn: Function): any {
+    Object.defineProperty(this, name, {
+      value: fn
+    })
   }
 
   public async init(): Promise<void> {
@@ -62,35 +143,6 @@ export default class Plugin extends EventEmitter {
     })
   }
 
-  public async sendRequest(id: string, method: string, params?: any): Promise<any> {
-    if (!method) {
-      workspace.showMessage('method required for send request', 'error')
-      return
-    }
-    return await services.sendRequest(id, method, params)
-  }
-
-  public async doAutocmd(id: number, ...args: []): Promise<void> {
-    let autocmd = (workspace as any).autocmds.get(id) as Autocmd
-    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
-  }
-
-  public updateConfig(section: string, val: any): void {
-    workspace.configurations.updateUserConfig({ [section]: val })
-  }
-
-  public async hasSelected(): Promise<boolean> {
-    return await completion.hasSelected()
-  }
-
-  public getCurrentIndex(): number {
-    return completion.index
-  }
-
-  public listNames(): string[] {
-    return listManager.names
-  }
-
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     params = params || {}
@@ -118,12 +170,6 @@ export default class Plugin extends EventEmitter {
       getLocation(res)
     }
     await this.handler.handleLocations(locations, openCommand)
-  }
-
-  public async openLog(): Promise<void> {
-    let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
-    let escaped = await this.nvim.call('fnameescape', file)
-    await this.nvim.command(`edit ${escaped}`)
   }
 
   public async showInfo(): Promise<void> {
@@ -154,56 +200,6 @@ export default class Plugin extends EventEmitter {
         channel.appendLine('')
       }
     }
-  }
-
-  public async addExtensions(): Promise<void> {
-    await extensions.addExtensions()
-  }
-
-  public async registExtensions(...folders: string[]): Promise<void> {
-    for (let folder of folders) {
-      await extensions.loadExtension(folder)
-    }
-  }
-
-  public async commandList(): Promise<string[]> {
-    return commandManager.commandList.map(o => o.id)
-  }
-
-  public async openList(...args: string[]): Promise<void> {
-    await listManager.start(args)
-  }
-
-  public async doKeymap(key: string, defaultReturn = ''): Promise<any> {
-    let fn = workspace.keymaps.get(key)
-    if (!fn) {
-      logger.error(`keymap for ${key} not found`)
-      return defaultReturn
-    }
-    let res = await Promise.resolve(fn())
-    return res || defaultReturn
-  }
-
-  public async cocInstalled(names: string): Promise<void> {
-    for (let name of names.split(/\s+/)) {
-      await extensions.onExtensionInstall(name)
-    }
-  }
-
-  public async listResume(): Promise<void> {
-    listManager.resume()
-  }
-
-  public async listPrev(): Promise<void> {
-    listManager.previous()
-  }
-
-  public async listNext(): Promise<void> {
-    listManager.next()
-  }
-
-  public async detach(): Promise<void> {
-    await workspace.detach()
   }
 
   public updateExtension(): Promise<void> {
@@ -374,20 +370,6 @@ export default class Plugin extends EventEmitter {
       }
       logger.error(e.stack)
     }
-  }
-
-  public async snippetCancel(): Promise<void> {
-    snippetManager.cancel()
-  }
-
-  public async snippetPrev(): Promise<string> {
-    await snippetManager.previousPlaceholder()
-    return ''
-  }
-
-  public async snippetNext(): Promise<string> {
-    await snippetManager.nextPlaceholder()
-    return ''
   }
 
   public async dispose(): Promise<void> {
