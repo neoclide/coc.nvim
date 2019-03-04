@@ -25,7 +25,6 @@ export default class Document {
   // vim only, for matchaddpos
   private colorId = 1080
   private nvim: Neovim
-  private _lastChange: LastChangeType = 'insert'
   private eol = true
   private _filetype: string
   private attached = false
@@ -64,10 +63,6 @@ export default class Document {
 
   public get words(): string[] {
     return this._words
-  }
-
-  public get lastChange(): LastChangeType {
-    return this._lastChange
   }
 
   private generateWords(): void {
@@ -183,14 +178,6 @@ export default class Document {
   ): void {
     if (buf.id !== this.buffer.id || tick == null) return
     this._changedtick = tick
-    let c = lastline - firstline - linedata.length
-    if (c > 0) {
-      this._lastChange = 'delete'
-    } else if (c < 0) {
-      this._lastChange = 'insert'
-    } else {
-      this._lastChange = 'change'
-    }
     let lines = this.lines.slice(0, firstline)
     lines = lines.concat(linedata, this.lines.slice(lastline))
     this.lines = lines
@@ -406,13 +393,6 @@ export default class Document {
     let { content, changedtick } = o
     this._changedtick = changedtick
     let newLines: string[] = content.split('\n')
-    if (newLines.length > this.lineCount) {
-      this._lastChange = 'insert'
-    } else if (newLines.length < this.lineCount) {
-      this._lastChange = 'delete'
-    } else {
-      this._lastChange = 'change'
-    }
     this.lines = newLines
     this._fireContentChanges()
   }
@@ -424,7 +404,6 @@ export default class Document {
     let { lines } = this
     let { lnum, line, changedtick } = change
     this._changedtick = changedtick
-    this._lastChange = 'change'
     lines[lnum - 1] = line
   }
 

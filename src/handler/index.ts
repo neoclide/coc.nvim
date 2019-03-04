@@ -16,6 +16,7 @@ import { isWord, indexOf, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Document from '../model/document'
 import { getSymbolKind } from '../util/convert'
+import { positionInRange } from '../util/position'
 const logger = require('../util/logger')('Handler')
 
 interface SymbolInfo {
@@ -69,40 +70,35 @@ export default class Handler {
       if (id) this.highlightNamespace = id
     })
 
-    let timer: NodeJS.Timer
-    events.on('InsertCharPre', async ch => {
-      if (timer) clearTimeout(timer)
-      if (isWord(ch)) return
-      timer = setTimeout(async () => {
-        await this.onCharacterType(ch, workspace.bufnr)
-      }, 40)
+    let lastInsert: number
+    events.on('InsertCharPre', async () => {
+      lastInsert = Date.now()
+    }, null, this.disposables)
+    events.on('Enter', async bufnr => {
+      await this.onCharacterType('\n', bufnr)
     }, null, this.disposables)
     events.on('TextChangedI', async bufnr => {
+      let curr = Date.now()
+      if (!lastInsert || curr - lastInsert > 50) return
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
-      if (doc.lastChange == 'insert') {
-        let line: string = await nvim.call('getline', '.')
-        if (line.trim() == '') await this.onCharacterType('\n', bufnr)
-      }
       let { triggerSignatureHelp } = this.preferences
       if (!triggerSignatureHelp) return
       let pre = await this.getPreviousCharacter()
-      if (isWord(pre) || doc.paused) return
-      if (!languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) return
-      if (workspace.isVim) await wait(30)
-      if (doc.dirty) {
-        doc.forceSync()
-        await wait(60)
+      if (!pre || isWord(pre) || doc.paused) return
+      await this.onCharacterType(pre, bufnr)
+      if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+        if (workspace.isVim) await wait(50)
+        if (doc.dirty) {
+          doc.forceSync()
+          await wait(60)
+        }
+        if (lastInsert > curr) return
+        await this.showSignatureHelp()
       }
-      await this.showSignatureHelp()
     }, null, this.disposables)
-    events.on('InsertLeave', async () => {
-      let buf = await nvim.buffer
-      let { mode } = await nvim.mode
-      if (mode != 'n') return
-      let line = await nvim.call('getline', '.')
-      if (/^\s*$/.test(line)) return
-      await this.onCharacterType('\n', buf.id, true)
+    events.on('InsertLeave', async bufnr => {
+      await this.onCharacterType('\n', bufnr, true)
     }, null, this.disposables)
     events.on('BufUnload', async bufnr => {
       this.clearHighlight(bufnr)
@@ -572,7 +568,7 @@ export default class Handler {
     let links = await languages.getDocumentLinks(document)
     if (!links || links.length == 0) return false
     for (let link of links) {
-      if (withIn(link.range, position)) {
+      if (positionInRange(position, link.range)) {
         let { target } = link
         if (!target) {
           link = await languages.resolveDocumentLink(link)
@@ -623,23 +619,17 @@ export default class Handler {
     return res
   }
 
-  public dispose(): void {
-    this.colors.dispose()
-    disposeAll(this.disposables)
-  }
-
   private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
-    let { formatOnType } = this.preferences
-    if (!formatOnType || snippetManager.session) return
+    if (!ch || isWord(ch) || !this.preferences.formatOnType || snippetManager.session) return
     let doc = workspace.getDocument(bufnr)
-    if (!doc || doc.paused || workspace.bufnr != bufnr) return
+    if (!doc || doc.paused) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return
     let position = await workspace.getCursorPosition()
     let origLine = doc.getline(position.line)
     let { changedtick, dirty } = doc
     if (dirty) {
       doc.forceSync()
-      await wait(60)
+      await wait(50)
     }
     let pos: Position = insertLeave ? { line: position.line + 1, character: 0 } : position
     try {
@@ -845,7 +835,13 @@ export default class Handler {
   private async getPreviousCharacter(): Promise<string> {
     let col = await this.nvim.call('col', '.')
     let line = await this.nvim.call('getline', '.')
-    return col == 1 ? '' : byteSlice(line, col - 2, col - 1)
+    let content = byteSlice(line, 0, col - 1)
+    return col == 1 ? '' : content[content.length - 1]
+  }
+
+  public dispose(): void {
+    this.colors.dispose()
+    disposeAll(this.disposables)
   }
 }
 
@@ -896,13 +892,4 @@ function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number
       addDoucmentSymbol(res, sym, level + 1)
     }
   }
-}
-
-function withIn(range: Range, position: Position): boolean {
-  let { start, end } = range
-  let { line, character } = position
-  if (line < start.line || line > end.line) return false
-  if (line == start.line && character < start.character) return false
-  if ((line == end.line && character > end.character)) return false
-  return true
 }

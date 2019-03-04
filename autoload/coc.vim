@@ -15,6 +15,14 @@ function! coc#refresh() abort
   return "\<c-r>=coc#start()\<CR>"
 endfunction
 
+function! coc#on_enter()
+  if !coc#rpc#ready()
+    return ''
+  endif
+  call coc#rpc#request('CocAutocmd', ['Enter', bufnr('%')])
+  return ''
+endfunction
+
 function! coc#_insert_key(method, key, ...) abort
   if get(a:, 1, 1) && pumvisible()
     " keep the line without <C-y>
