@@ -1,8 +1,8 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
-| CI (Linux, macOS)                       | Coverage                               | Gitter                      | Doc                        | 中文文档                         |
-| --------------------------------------- | -------------------------------------- | --------------------------- | -------------------------- | -------------------------------- |
-| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Doc Badge][]][doc link] | [![Doc Badge cn][]][doc link cn] |
+| CI (Linux, macOS)                       | Coverage                               | Gitter                      | 中文 Gitter                    |
+| --------------------------------------- | -------------------------------------- | --------------------------- | ------------------------------ |
+| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Gitter Badge][]][gitter cn] |
 
 Coc is an intellisense engine for vim8 & neovim.
 
@@ -303,7 +303,9 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 - If you think it's useful, give it a star.
 
-- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim).
+- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
+
+- 如果你是中文用户，请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 提问
 
 - If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
 
@@ -319,6 +321,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 [coverage report]: https://codecov.io/gh/neoclide/coc.nvim
 [gitter badge]: https://badges.gitter.im/neoclide/coc.nvim.svg
 [gitter]: https://gitter.im/neoclide/coc.nvim
+[gitter cn]: https://gitter.im/neoclide/coc-cn
 [doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
 [doc badge cn]: https://img.shields.io/badge/doc-%3Ah%20coc.cnx-red.svg
 [doc link]: doc/coc.txt
