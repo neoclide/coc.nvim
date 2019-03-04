@@ -114,17 +114,16 @@ describe('workspace applyEdits', () => {
     let changes = {
       [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
     }
-    let p = workspace.applyEdit({ changes })
-    await helper.wait(100)
-    await nvim.input('y')
-    let res = await p
+    let res = await workspace.applyEdit({ changes })
     expect(res).toBe(true)
-    let content = await readFile(filepath, 'utf8')
-    expect(content).toBe('foobar')
+    let doc = workspace.getDocument(uri)
+    let content = doc.getDocumentContent()
+    expect(content).toMatch(/^foobar/)
+    await nvim.command('silent! %bwipeout!')
   })
 
   it('should apply edits when file not exists', async () => {
-    let filepath = '/tmp/not_exists'
+    let filepath = path.join(__dirname, 'not_exists')
     let uri = URI.file(filepath).toString()
     let changes = {
       [uri]: [TextEdit.insert(Position.create(0, 0), 'foo')]
@@ -152,13 +151,11 @@ describe('workspace applyEdits', () => {
     let workspaceEdit: WorkspaceEdit = {
       documentChanges: [change]
     }
-    let p = workspace.applyEdit(workspaceEdit)
-    await helper.wait(50)
-    await nvim.input('y<enter>')
-    let res = await p
+    let res = await workspace.applyEdit(workspaceEdit)
     expect(res).toBe(true)
+    await nvim.command('wa')
     let content = await readFile(file, 'utf8')
-    expect(content).toBe('bar')
+    expect(content).toMatch(/^bar/)
     await workspace.deleteFile(file, { ignoreIfNotExists: true })
   })
 
@@ -369,14 +366,18 @@ describe('workspace methods', () => {
     expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
-
-  it('should get vim settings', () => {
-    let version = workspace.getVimSetting('version')
-    expect(typeof version).toBe('string')
-  })
 })
 
 describe('workspace utility', () => {
+
+  it('should loadFile', async () => {
+    let doc = await helper.createDocument()
+    let newFile = Uri.file(path.join(__dirname, 'abc')).toString()
+    let document = await workspace.loadFile(newFile)
+    let bufnr = await nvim.call('bufnr', '%')
+    expect(document.uri.endsWith('abc')).toBe(true)
+    expect(bufnr).toBe(doc.bufnr)
+  })
 
   it('should not create file if document exists', async () => {
     let doc = await helper.createDocument()
@@ -428,7 +429,6 @@ describe('workspace utility', () => {
 
   it('should rename buffer when necessary', async () => {
     let filepath = path.join(__dirname, 'old')
-    await workspace.createFile(filepath, { overwrite: true })
     await writeFile(filepath, 'bar')
     let uri = URI.file(filepath).toString()
     await workspace.openResource(uri)
