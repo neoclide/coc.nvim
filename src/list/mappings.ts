@@ -92,7 +92,7 @@ export default class Mappings {
     this.add('normal', 'd', () => {
       manager.doAction('drop')
     })
-    this.add('normal', ['<cr>', '<C-m>'], () => {
+    this.add('normal', ['<cr>', '<C-m>', '\r'], () => {
       manager.doAction()
     })
     this.add('normal', ' ', () => {
