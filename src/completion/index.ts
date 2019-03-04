@@ -377,14 +377,6 @@ export class Completion implements Disposable {
   }
 
   private async onInsertCharPre(character: string): Promise<void> {
-    if (this.isActivted
-      && !workspace.env.pumevent
-      && !workspace.env.isVim
-      && this.completeItems.length
-      && isWord(character)
-      && !global.hasOwnProperty('__TEST__')) {
-      await this.nvim.call('coc#_reload', [])
-    }
     this.lastInsert = {
       character,
       timestamp: Date.now(),
