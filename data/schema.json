@@ -422,6 +422,11 @@
       "description": "Separator text for codeLens in virtual text",
       "default": "‣"
     },
+    "coc.preferences.useQuickfixForLocations": {
+      "type": "boolean",
+      "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
+      "default": false
+    },
     "coc.preferences.extensionUpdateCheck": {
       "type": "string",
       "default": "daily",

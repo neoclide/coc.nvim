@@ -457,6 +457,7 @@ export class Workspace implements IWorkspace {
     let bufnr = await nvim.call('bufnr', bufname)
     if (!text && u.scheme == 'file') {
       text = await this.getLine(uri, line)
+      character = byteIndex(text, character)
     }
     let item: QuickfixItem = {
       uri,
@@ -480,8 +481,14 @@ export class Workspace implements IWorkspace {
       return this.getQuickfixItem(loc)
     }))
     let { nvim } = this
-    await nvim.setVar('coc_jump_locations', items)
-    await nvim.command('doautocmd User CocLocationsChange')
+    const preferences = this.getConfiguration('coc.preferences')
+    if (preferences.get<boolean>('useQuickfixForLocations', false)) {
+      await nvim.call('setqflist', [items])
+      nvim.command('copen', true)
+    } else {
+      await nvim.setVar('coc_jump_locations', items)
+      await nvim.command('doautocmd User CocLocationsChange')
+    }
   }
 
   public async getLine(uri: string, line: number): Promise<string> {
