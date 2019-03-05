@@ -129,7 +129,12 @@ export class Workspace implements IWorkspace {
       this.env.completeOpt = newValue
       if (!this._attached) return
       let mode = await this.nvim.call('mode') as string
-      if (mode.startsWith('i')) console.error(`Some plugin change completeopt on insert mode!`) // tslint:disable-line
+      if (mode.startsWith('i')) {
+        let suggest = this.getConfiguration('suggest')
+        if (suggest.get<string>('autoTrigger') == 'always') {
+          console.error(`Some plugin change completeopt on insert mode!`) // tslint:disable-line
+        }
+      }
     }, this.disposables)
     this.watchGlobal('coc_enabled', async (oldValue, newValue) => {
       if (newValue == oldValue) return
