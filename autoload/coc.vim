@@ -24,10 +24,8 @@ function! coc#on_enter()
 endfunction
 
 function! coc#_insert_key(method, key, ...) abort
-  if get(a:, 1, 1) && pumvisible()
-    " keep the line without <C-y>
-    let g:coc#_context['candidates'] = []
-    call feedkeys("\<Plug>_", 'i')
+  if get(a:, 1, 1)
+    call coc#_cancel()
   endif
   return "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
@@ -73,6 +71,12 @@ function! coc#_hide() abort
 endfunction
 
 function! coc#_cancel()
+  for winnr in range(1, winnr('$'))
+    let popup = getwinvar(winnr, 'popup')
+    if !empty(popup)
+      exe winnr.'close!'
+    endif
+  endfor
   if pumvisible()
     let g:coc#_context['candidates'] = []
     call feedkeys("\<Plug>_", 'i')

@@ -41,7 +41,7 @@ endfunction
 function! coc#util#close_win(id)
   let winnr = win_id2win(a:id)
   if winnr > 0
-    execute winnr.'wincmd c'
+    execute winnr.'close!'
     return 1
   endif
   return 0

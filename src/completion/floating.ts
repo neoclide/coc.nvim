@@ -52,6 +52,7 @@ export default class FloatingWindow {
         })
         let winnr = await win.number
         nvim.pauseNotification()
+        win.setVar('popup', 1, true)
         win.setOption('list', false, true)
         win.setOption('number', false, true)
         win.setOption('cursorline', false, true)
