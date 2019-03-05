@@ -52,6 +52,7 @@ export default class Configurations {
   }
 
   private parseContentFromFile(filepath: string): IConfigurationModel {
+    if (!filepath) return { contents: {} }
     let uri = Uri.file(filepath).toString()
     this._errorItems = this._errorItems.filter(o => o.location.uri != uri)
     let res = parseContentFromFile(filepath, errors => {
