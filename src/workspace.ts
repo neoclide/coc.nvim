@@ -716,7 +716,7 @@ export class Workspace implements IWorkspace {
     nvim.command('setl bufhidden=hide', true)
     nvim.command(`keepalt buffer ${bufnr}`, true)
     nvim.resumeNotification()
-    return await new Promise((resolve, reject) => {
+    return await new Promise<Document>((resolve, reject) => {
       let disposable = this.onDidOpenTextDocument(textDocument => {
         if (textDocument.uri == uri) {
           clearTimeout(timer)

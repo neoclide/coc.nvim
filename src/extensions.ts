@@ -46,6 +46,7 @@ export class Extensions {
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
+  private _ready = false
   public readonly onReady: Event<void> = this._onReady.event
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
@@ -72,6 +73,7 @@ export class Extensions {
       return this.addExtensions()
     }).then(() => {
       this._onReady.fire()
+      this._ready = true
       let config = workspace.getConfiguration('coc.preferences')
       let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
       if (interval == 'never') return
@@ -84,6 +86,16 @@ export class Extensions {
         workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
       })
     }
+  }
+
+  public get ready(): Promise<void> {
+    if (this._ready) return Promise.resolve()
+    return new Promise<void>(resolve => {
+      let disposable = this.onReady(() => {
+        disposable.dispose()
+        resolve()
+      })
+    })
   }
 
   private async updateExtensions(stats: ExtensionInfo[]): Promise<void> {
@@ -443,12 +455,15 @@ export class Extensions {
     }
     let { extension } = item
     if (extension.isActive) return
-    extension.activate().then(() => {
-      if (extension.isActive) {
-        this._onDidActiveExtension.fire(extension)
-      }
-    }, _e => {
-      // noop
+    this.ready.then(() => {
+      extension.activate().then(() => {
+        if (extension.isActive) {
+          this._onDidActiveExtension.fire(extension)
+        }
+      }, e => {
+        workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
+        logger.error(`Error on activate extension ${extension.id}:`, e)
+      })
     })
   }
 

@@ -50,8 +50,6 @@ export class DiagnosticBuffer {
 
   private _refresh(diagnosticItems: DiagnosticItems): void {
     let diagnostics = this.getDiagnostics(diagnosticItems)
-    logger.debug('items:', diagnosticItems)
-    logger.debug('curr:', this._diagnosticItems)
     if (this.equalDiagnostics(diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
     let winid: number
