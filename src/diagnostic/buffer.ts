@@ -1,13 +1,14 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
 import { DiagnosticItems, LocationListItem } from '../types'
-import { equals } from '../util/object'
+import { equals, deepClone } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
 import CallSequence from '../util/callSequence'
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
 import { getNameFromSeverity, getLocationListItem } from './util'
 import Document from '../model/document'
+import { comparePosition } from '../util/position'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 const STARTMATCHID = 1090
@@ -38,7 +39,7 @@ export class DiagnosticBuffer {
         }
         // staled
         if (current != time) return
-        this._refresh(diagnosticItems)
+        this._refresh(Object.freeze(deepClone(diagnosticItems)))
       }, global.hasOwnProperty('__TEST__') ? 30 : 50)
     }
   }
@@ -49,6 +50,8 @@ export class DiagnosticBuffer {
 
   private _refresh(diagnosticItems: DiagnosticItems): void {
     let diagnostics = this.getDiagnostics(diagnosticItems)
+    logger.debug('items:', diagnosticItems)
+    logger.debug('curr:', this._diagnosticItems)
     if (this.equalDiagnostics(diagnosticItems)) return
     let sequence = this.sequence = new CallSequence()
     let winid: number
@@ -79,6 +82,9 @@ export class DiagnosticBuffer {
   }
 
   private equalDiagnostics(diagnosticItems: DiagnosticItems): boolean {
+    if (Object.keys(this._diagnosticItems).length != Object.keys(diagnosticItems).length) {
+      return false
+    }
     for (let key of Object.keys(diagnosticItems)) {
       let diagnostics = diagnosticItems[key]
       let curr = this._diagnosticItems[key]
@@ -294,7 +300,7 @@ export class DiagnosticBuffer {
     }
     res.sort((a, b) => {
       if (a.severity == b.severity) {
-        return a.range.start.line - b.range.start.line
+        return comparePosition(a.range.start, b.range.start)
       }
       return a.severity - b.severity
     })

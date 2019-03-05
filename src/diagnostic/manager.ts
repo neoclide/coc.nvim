@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, Disposable, Range, TextDocument, Location, Position } from 'vscode-languageserver-protocol'
+import { Diagnostic, Disposable, Range, TextDocument, Location, Position, DiagnosticSeverity } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -121,6 +121,32 @@ export class DiagnosticManager {
         this.buffers.push(new DiagnosticBuffer(doc, this.config))
       }
     }, null, this.disposables)
+    this.setConfigurationErrors(true)
+    workspace.configurations.onError(async () => {
+      this.setConfigurationErrors()
+    }, null, this.disposables)
+  }
+
+  public setConfigurationErrors(init?: boolean): void {
+    let collections = this.collections
+    let collection = collections.find(o => o.name == 'config')
+    if (!collection) {
+      collection = this.create('config')
+    } else {
+      collection.clear()
+    }
+    let { errorItems } = workspace.configurations
+    if (errorItems && errorItems.length) {
+      if (init) workspace.showMessage(`settings file parse error, run ':CocList diagnostics'`, 'error')
+      let entries: Map<string, Diagnostic[]> = new Map()
+      for (let item of errorItems) {
+        let { uri } = item.location
+        let diagnostics: Diagnostic[] = entries.get(uri) || []
+        diagnostics.push(Diagnostic.create(item.location.range, item.message, DiagnosticSeverity.Error))
+        entries.set(uri, diagnostics)
+      }
+      collection.set(Array.from(entries))
+    }
   }
 
   public create(name: string): DiagnosticCollection {

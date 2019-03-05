@@ -6,24 +6,24 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, LocationLink } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
-import Mru from './model/mru'
+import DB from './model/db'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
+import Mru from './model/mru'
 import BufferChannel from './model/outputChannel'
-import DB from './model/db'
 import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, ErrorItem, IWorkspace, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Autocmd, KeymapOption } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, runCommand, wait, getKeymapModifier, isRunning } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -117,11 +117,6 @@ export class Workspace implements IWorkspace {
     }, null, this.disposables)
     await this.attach()
     this.initVimEvents()
-    let { errorItems } = this.configurations
-    this.showErrors(errorItems)
-    this.configurations.onError(async errors => {
-      this.showErrors(errors)
-    }, null, this.disposables)
     this.configurations.onDidChange(e => {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
@@ -1248,24 +1243,6 @@ augroup end`
     return encoding ? encoding : 'utf-8'
   }
 
-  private showErrors(errors: ErrorItem[]): void {
-    if (!errors.length) return
-    let items: QuickfixItem[] = []
-    for (let err of errors) {
-      items.push({
-        uri: err.location.uri,
-        range: err.location.range,
-        text: err.message,
-        type: 'Error'
-      })
-    }
-    setTimeout(async () => {
-      let { nvim } = this
-      await nvim.setVar('coc_jump_locations', items)
-      await nvim.command('doautocmd User CocLocationsChange')
-    }, 10)
-  }
-
   private async resolveRoot(uri: string): Promise<string> {
     let u = Uri.parse(uri)
     let dir = path.dirname(u.fsPath)
@@ -1276,12 +1253,6 @@ augroup end`
       roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
       return resolveRoot(dir, roots)
     }
-  }
-
-  private async getbufname(filepath: string): Promise<string> {
-    let { cwd } = this
-    let bufname = filepath.startsWith(cwd) ? path.relative(cwd, filepath) : filepath
-    return await this.nvim.call('fnameescape', bufname)
   }
 
   private setMessageLevel(): void {

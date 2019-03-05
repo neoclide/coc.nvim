@@ -41,7 +41,7 @@ export default class Configurations {
     private userConfigFile?: string | null,
     private readonly _proxy?: ConfigurationShape
   ) {
-    let user = parseContentFromFile(userConfigFile, this.handleErrors.bind(this))
+    let user = this.parseContentFromFile(userConfigFile)
     let data: IConfigurationData = {
       defaults: loadDefaultConfigurations(),
       user,
@@ -49,6 +49,16 @@ export default class Configurations {
     }
     this._configuration = Configurations.parse(data)
     this.watchFile(userConfigFile, ConfigurationTarget.User)
+  }
+
+  private parseContentFromFile(filepath: string): IConfigurationModel {
+    let uri = Uri.file(filepath).toString()
+    this._errorItems = this._errorItems.filter(o => o.location.uri != uri)
+    let res = parseContentFromFile(filepath, errors => {
+      this._errorItems.push(...errors)
+    })
+    this._onError.fire(this._errorItems)
+    return res
   }
 
   public get errorItems(): ErrorItem[] {
@@ -113,7 +123,7 @@ export default class Configurations {
     let { _folderConfigurations } = this
     if (_folderConfigurations.has(filepath)) return
     if (path.resolve(filepath, '../..') == os.homedir()) return
-    let model = parseContentFromFile(filepath, this.handleErrors.bind(this))
+    let model = this.parseContentFromFile(filepath)
     _folderConfigurations.set(filepath, new ConfigurationModel(model.contents))
     this.watchFile(filepath, ConfigurationTarget.Workspace)
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
@@ -123,7 +133,7 @@ export default class Configurations {
     if (!fs.existsSync(filepath)) return
     if (global.hasOwnProperty('__TEST__')) return
     let disposable = watchFile(filepath, () => {
-      let model = parseContentFromFile(filepath, this.handleErrors.bind(this))
+      let model = this.parseContentFromFile(filepath)
       this.changeConfiguration(target, model, filepath)
     })
     this.disposables.push(disposable)
@@ -289,13 +299,6 @@ export default class Configurations {
     const userConfiguration = new ConfigurationModel(data.user.contents)
     const workspaceConfiguration = new ConfigurationModel(data.workspace.contents)
     return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
-  }
-
-  private handleErrors(errors: ErrorItem[]): void {
-    if (errors && errors.length) {
-      this._errorItems.push(...errors)
-      this._onError.fire(errors)
-    }
   }
 
   public dispose(): void {

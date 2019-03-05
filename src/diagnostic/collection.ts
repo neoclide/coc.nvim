@@ -52,9 +52,9 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public clear(): void {
-    let uris = this.diagnosticsMap.keys()
+    let uris = Array.from(this.diagnosticsMap.keys())
     this.diagnosticsMap.clear()
-    this._onDidDiagnosticsClear.fire(Array.from(uris))
+    this._onDidDiagnosticsClear.fire(uris)
   }
 
   public forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void {
