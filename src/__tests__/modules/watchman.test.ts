@@ -103,15 +103,15 @@ describe('watchman', () => {
     let client = new Watchman(null)
     await client.watchProject('/tmp')
     let fn = jest.fn()
-    let uid = await client.subscribe('/tmp/*', fn)
-    expect(uid).toBeDefined()
+    let disposable = await client.subscribe('/tmp/*', fn)
     let changes: FileChangeItem[] = [createFileChange('/tmp/a')]
-    sendSubscription(uid, '/tmp', changes)
+    sendSubscription((global as any).subscribe, '/tmp', changes)
     await wait(100)
     expect(fn).toBeCalled()
     let call = fn.mock.calls[0][0]
+    disposable.dispose()
     expect(call).toEqual({
-      subscription: uid,
+      subscription: (global as any).subscribe,
       root: '/tmp',
       files: changes
     })
@@ -122,9 +122,8 @@ describe('watchman', () => {
     let client = new Watchman(null)
     await client.watchProject('/tmp')
     let fn = jest.fn()
-    let uid = await client.subscribe('/tmp/*', fn)
-    let res = await client.unsubscribe(uid)
-    expect(res).toEqual({ path: '/tmp' })
+    let disposable = await client.subscribe('/tmp/*', fn)
+    disposable.dispose()
     client.dispose()
   })
 })

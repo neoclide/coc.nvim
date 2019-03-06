@@ -3,21 +3,21 @@ import Uri from 'vscode-uri'
 import Watchman, { FileChange } from '../watchman'
 import path = require('path')
 import { RenameEvent } from '../types'
+import { disposeAll } from '../util'
 const logger = require('../util/logger')('filesystem-watcher')
 
 export default class FileSystemWatcher implements Disposable {
 
-  private subscription: string
   private _onDidCreate = new Emitter<Uri>()
   private _onDidChange = new Emitter<Uri>()
   private _onDidDelete = new Emitter<Uri>()
   private _onDidRename = new Emitter<RenameEvent>()
-  private watchmanClient: Watchman
 
   public readonly onDidCreate: Event<Uri> = this._onDidCreate.event
   public readonly onDidChange: Event<Uri> = this._onDidChange.event
   public readonly onDidDelete: Event<Uri> = this._onDidDelete.event
   public readonly onDidRename: Event<RenameEvent> = this._onDidRename.event
+  private disposables: Disposable[] = []
 
   constructor(
     clientPromise: Promise<Watchman> | null,
@@ -28,22 +28,19 @@ export default class FileSystemWatcher implements Disposable {
   ) {
     if (!clientPromise) return
     clientPromise.then(client => {
-      if (client) {
-        this.watchmanClient = client
-        return this.listen(client)
-      }
+      if (client) return this.listen(client)
     }).catch(error => {
       logger.error('watchman initialize failed')
       logger.error(error.stack)
     })
   }
 
-  private async listen(client: Watchman): Promise<void> {
+  private async listen(client: Watchman): Promise<Disposable> {
     let { globPattern,
       ignoreCreateEvents,
       ignoreChangeEvents,
       ignoreDeleteEvents } = this
-    this.subscription = await client.subscribe(globPattern, (change: FileChange) => {
+    let disposable = await client.subscribe(globPattern, (change: FileChange) => {
       let { root, files } = change
       files = files.filter(f => f.type == 'f')
       for (let file of files) {
@@ -69,13 +66,11 @@ export default class FileSystemWatcher implements Disposable {
         }
       }
     })
+    this.disposables.push(disposable)
+    return disposable
   }
 
   public dispose(): void {
-    if (this.watchmanClient && this.subscription) {
-      this.watchmanClient.unsubscribe(this.subscription).catch(e => {
-        logger.error(e.message)
-      })
-    }
+    disposeAll(this.disposables)
   }
 }
