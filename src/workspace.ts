@@ -1147,9 +1147,13 @@ augroup end`
       logger.error(e)
       return
     }
-    if (!initialize) this.bufnr = await this.nvim.call('bufnr', '%')
     this.creating.delete(bufnr)
     this.buffers.set(bufnr, document)
+    document.onDocumentDetach(uri => {
+      let doc = this.getDocument(uri)
+      if (doc) this.onBufUnload(doc.bufnr)
+    })
+    if (!initialize) this.bufnr = await this.nvim.call('bufnr', '%')
     if (bufnr == this.bufnr
       && document.buftype == ''
       && document.schema == 'file') {

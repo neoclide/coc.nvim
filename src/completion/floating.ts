@@ -40,6 +40,10 @@ export default class FloatingWindow {
     this.hasDetail = hasDetail
     if (this.creating) return
     let { nvim } = this
+    if (this.window) {
+      let valid = await this.window.valid
+      if (!valid) this.window = null
+    }
     if (!this.window) {
       this.creating = true
       try {
@@ -47,10 +51,8 @@ export default class FloatingWindow {
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, b.width, b.height, {
           col: b.col,
           row: b.row,
-          unfocusable: true,
           relative: 'editor'
         })
-        let winnr = await win.number
         nvim.pauseNotification()
         win.setVar('popup', 1, true)
         win.setOption('list', false, true)
@@ -61,7 +63,7 @@ export default class FloatingWindow {
         win.setOption('conceallevel', 2, true)
         win.setOption('relativenumber', false, true)
         win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
-        this.configBuffer(winnr)
+        this.configBuffer()
         await nvim.resumeNotification()
       } catch (e) {
         logger.error(`Create preview error:`, e.stack)
@@ -70,28 +72,24 @@ export default class FloatingWindow {
       }
     } else {
       let b = this.calculateBounding()
-      let winnr = await this.window.number
       nvim.pauseNotification()
       this.window.configFloat(b.width, b.height, {
         col: b.col,
         row: b.row,
-        unfocusable: true,
         relative: 'editor'
       }, true)
-      this.configBuffer(winnr)
+      this.configBuffer()
       await nvim.resumeNotification()
     }
   }
 
-  private configBuffer(winnr: number): void {
-    let { nvim, buffer, hasDetail, lines } = this
+  private configBuffer(): void {
+    let { buffer, window, hasDetail, lines } = this
+    window.notify('nvim_win_set_cursor', [window, [1, 1]])
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
-    nvim.command(`${winnr}wincmd w`, true)
-    nvim.command('exe 1', true)
     if (this.kind == 'markdown') {
-      // TODO
+      // TODO how to render markdown?
     }
-    nvim.command(`wincmd p`, true)
     let srcId = this.config.srcId || 990
     buffer.clearNamespace(srcId)
     if (hasDetail) {
@@ -192,31 +190,6 @@ export default class FloatingWindow {
       }
     } while (!finished)
     return res
-  }
-
-  public close(): void {
-    let { nvim, window } = this
-    if (!window) return
-    let id = window.id
-    this.window = null
-    let count = 0
-    let close = async () => {
-      try {
-        if (!this.creating) {
-          // command could fail on InsertCharPre
-          let found = await nvim.call('coc#util#close_win', id)
-          if (!found) return clearInterval(interval)
-          let valid = await nvim.call('nvim_win_is_valid', id)
-          if (!valid) return clearInterval(interval)
-        }
-        if (count == 5) clearInterval(interval)
-      } catch (e) {
-        logger.error(e)
-      }
-      count = count + 1
-    }
-    let interval = setInterval(close, 100)
-    close()
   }
 }
 

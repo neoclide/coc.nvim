@@ -41,10 +41,21 @@ endfunction
 function! coc#util#close_win(id)
   let winnr = win_id2win(a:id)
   if winnr > 0
-    execute winnr.'close!'
-    return 1
+    if exists('*nvim_win_close')
+      silent! call nvim_win_close(a:id)
+    else
+      execute winnr.'close!'
+    endif
   endif
-  return 0
+endfunction
+
+function! coc#util#close_popup()
+  for winnr in range(1, winnr('$'))
+    let popup = getwinvar(winnr, 'popup')
+    if !empty(popup)
+      exe winnr.'close!'
+    endif
+  endfor
 endfunction
 
 function! coc#util#version()
@@ -403,7 +414,7 @@ function! coc#util#vim_info()
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
-        \ 'pumevent': exists('##PumRender'),
+        \ 'pumevent': exists('##MenuPopupChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \}

@@ -204,7 +204,7 @@ describe('completion#resumeCompletion', () => {
     }
     sources.addSource(source)
     await helper.edit()
-    await nvim.input('i.f')
+    await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
     sources.removeSource(source)
@@ -308,9 +308,8 @@ describe('completion#TextChangedP', () => {
     await helper.wait(100)
     await nvim.input('<C-n>')
     await helper.wait(100)
-    // let items = completion.completeItems
-    // TODO wait for PumRender event merged
-    // expect(items[0].info).toBe('detail')
+    let items = completion.completeItems
+    expect(items[0].info).toBe('detail')
     sources.removeSource(source)
   })
 })
@@ -357,9 +356,6 @@ describe('completion#TextChangedI', () => {
     await helper.wait(100)
     await nvim.input('.')
     await helper.wait(100)
-    // TODO wait PumRender autocmd
-    // let line = await nvim.line
-    // expect(line).toBe('foo.')
     sources.removeSource(source)
   })
 

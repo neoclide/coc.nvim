@@ -486,7 +486,7 @@ coc#_select_confirm()
 	confirm completion.
 
 	Note: for this function work as expected, either need
-	|PumRender| autocmd exists or only use <C-n> and <C-p> to
+	|MenuPopupChanged| autocmd exists or only use <C-n> and <C-p> to
 	select complete item.
 
 						*health#coc#check()*

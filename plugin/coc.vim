@@ -125,8 +125,8 @@ function! s:Enable()
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
-    if exists('##PumRender')
-      autocmd PumRender *   call s:Autocmd('PumRender', get(v:event, 'completeitem', {}), get(v:event, 'pumbounding', {}))
+    if exists('##MenuPopupChanged') && exists('*nvim_open_win')
+      autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}))
     endif
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])

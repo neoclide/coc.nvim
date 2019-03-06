@@ -4,7 +4,7 @@ import events from '../events'
 import { Chars } from '../model/chars'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, ISource, PumBounding, RecentScore, VimCompleteItem } from '../types'
+import { CompleteConfig, CompleteOption, ISource, PumBounding, RecentScore, VimCompleteItem, PopupChangeEvent } from '../types'
 import { disposeAll, wait } from '../util'
 import { byteSlice, characterIndex, isTriggerCharacter, isWord } from '../util/string'
 import workspace from '../workspace'
@@ -48,7 +48,7 @@ export class Completion implements Disposable {
     events.on('TextChangedP', this.onTextChangedP, this, this.disposables)
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
-    events.on('PumRender', this.onPumRedraw, this, this.disposables)
+    events.on('MenuPopupChanged', this.onPumChange, this, this.disposables)
     events.on('BufUnload', async bufnr => {
       if (this.previewBuffer && bufnr == this.previewBuffer.id) {
         let buf = this.previewBuffer
@@ -63,6 +63,15 @@ export class Completion implements Disposable {
     }, null, this.disposables)
     if (this.config.reloadPumOnInsertChar) {
       this.enablePumReload()
+    }
+    if (workspace.env.pumevent) {
+      this.disposables.push(workspace.registerAutocmd({
+        event: 'CompleteDone',
+        request: true,
+        callback: async () => {
+          await this.nvim.call('coc#util#close_popup')
+        }
+      }))
     }
   }
 
@@ -433,15 +442,16 @@ export class Completion implements Disposable {
     return false
   }
 
-  public async onPumRedraw(item: VimCompleteItem, bounding: PumBounding): Promise<void> {
-    if (!workspace.env.floating) return
+  public async onPumChange(ev: PopupChangeEvent): Promise<void> {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
+    let { completed_item, col, row, height, width, scrollbar } = ev
+    let bounding: PumBounding = { col, row, height, width, scrollbar }
     // it's pum change by vim, ignore it
     if (this.lastInsert) return
-    let currItem = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
+    let currItem = this.completeItems.find(o => o.word == completed_item.word && o.user_data == completed_item.user_data)
     if (!currItem) {
       this.currIndex = 0
       this.closePreviewWindow()
@@ -464,7 +474,6 @@ export class Completion implements Disposable {
         this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
       }
       let kind: MarkupKind = currItem.documentation && currItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
-      await wait(10)
       if (token.isCancellationRequested || !this.isActivted) return
       await this.floating.show(content, bounding, kind, currItem.hasDetail)
     }
@@ -472,7 +481,7 @@ export class Completion implements Disposable {
   }
 
   private async createPreviewBuffer(): Promise<void> {
-    let buf = this.previewBuffer = await this.nvim.createNewBuffer(false)
+    let buf = this.previewBuffer = await this.nvim.createNewBuffer(false, true)
     await buf.setOption('buftype', 'nofile')
     await buf.setOption('bufhidden', 'hide')
   }
@@ -481,7 +490,6 @@ export class Completion implements Disposable {
     let { activted } = this
     this.activted = true
     this.isResolving = false
-    this.closePreviewWindow()
     if (activted) {
       this.complete.cancel()
     }
@@ -501,7 +509,6 @@ export class Completion implements Disposable {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
-    this.closePreviewWindow()
     this.activted = false
     this.document.paused = false
     this.document.fireContentChanges()
@@ -521,7 +528,7 @@ export class Completion implements Disposable {
 
   private closePreviewWindow(): void {
     if (this.floating) {
-      this.floating.close()
+      this.nvim.call('coc#util#close_popup', [], true)
       this.floating = null
     }
   }

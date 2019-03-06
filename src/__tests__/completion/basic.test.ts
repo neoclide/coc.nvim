@@ -187,7 +187,6 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
-
   it('should not trigger when cursor moved', async () => {
     await helper.edit()
     let source: ISource = {
@@ -226,7 +225,7 @@ describe('completion', () => {
       doComplete: async (opt, cancellationToken): Promise<CompleteResult> => {
         if (opt.triggerCharacter != '.') {
           token = cancellationToken
-          return new Promise((resolve, reject) => {
+          return new Promise<CompleteResult>((resolve, reject) => {
             let timer = setTimeout(() => {
               resolve({ items: [{ word: 'foo' }] })
             }, 200)

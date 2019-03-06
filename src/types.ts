@@ -299,7 +299,7 @@ export interface PumBounding {
   readonly width: number
   readonly row: number
   readonly col: number
-  readonly scrollbar: number
+  readonly scrollbar: boolean
 }
 
 export interface VimCompleteItem {
@@ -333,6 +333,16 @@ export interface VimCompleteItem {
   detailShown?: number
   // saved line for apply TextEdit
   line?: string
+}
+
+export interface PopupChangeEvent {
+  completed_item: VimCompleteItem,
+  height: number
+  width: number
+  row: number
+  col: number
+  size: number
+  scrollbar: boolean
 }
 
 export interface CompleteResult {

@@ -56,7 +56,7 @@ export class Helper extends Emitter {
 
   public async shutdown(): Promise<void> {
     await this.plugin.dispose()
-    this.nvim.quit()
+    await this.nvim.quit()
     if (this.proc) {
       this.proc.kill('SIGKILL')
     }

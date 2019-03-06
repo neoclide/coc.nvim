@@ -154,10 +154,10 @@ export default class Document {
       this.onChange.apply(this, args)
     })
     this.buffer.listen('detach', async () => {
-      await wait(30)
       if (!this.attached) return
       // it could be detached by `edit!`
-      await this.attach()
+      let attached = await this.attach()
+      if (!attached) this.detach()
     })
     this.buffer.listen('changedtick', (_buf: Buffer, tick: number) => {
       this._changedtick = tick
