@@ -57,8 +57,7 @@ export class CommandManager implements Disposable {
         } else if (doc.dirty) {
           doc.forceSync()
         }
-        await nvim.call('cursor', [start.line + 1, start.character + 1])
-        await snipetsManager.insertSnippet(edit.newText)
+        await snipetsManager.insertSnippet(edit.newText, true, start)
       }
     }, true)
     this.register({

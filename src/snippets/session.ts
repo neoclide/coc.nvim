@@ -82,11 +82,12 @@ export class SnippetSession {
   }
 
   public deactivate(): void {
-    if (!this._isActive) return
-    this._isActive = false
-    this._snippet = null
-    this.nvim.call('coc#snippet#disable', [], true)
-    logger.debug("[SnippetManager::cancel]")
+    if (this._isActive) {
+      this._isActive = false
+      this._snippet = null
+      this.nvim.call('coc#snippet#disable', [], true)
+      logger.debug("[SnippetManager::cancel]")
+    }
     this._onCancelEvent.fire(void 0)
     this._onCancelEvent.dispose()
   }

@@ -77,13 +77,15 @@ export default class Handler {
     events.on('Enter', async bufnr => {
       await this.onCharacterType('\n', bufnr)
     }, null, this.disposables)
+
     events.on('TextChangedI', async bufnr => {
       let curr = Date.now()
       if (!lastInsert || curr - lastInsert > 50) return
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
-      let { triggerSignatureHelp } = this.preferences
-      if (!triggerSignatureHelp) return
+      let { triggerSignatureHelp, formatOnType } = this.preferences
+      if (!triggerSignatureHelp && !formatOnType) return
+
       let pre = await this.getPreviousCharacter()
       if (!pre || isWord(pre) || doc.paused) return
       await this.onCharacterType(pre, bufnr)
@@ -97,6 +99,7 @@ export default class Handler {
         await this.showSignatureHelp()
       }
     }, null, this.disposables)
+
     events.on('InsertLeave', async bufnr => {
       await this.onCharacterType('\n', bufnr, true)
     }, null, this.disposables)
@@ -620,7 +623,8 @@ export default class Handler {
   }
 
   private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {
-    if (!ch || isWord(ch) || !this.preferences.formatOnType || snippetManager.session) return
+    if (!ch || isWord(ch) || !this.preferences.formatOnType) return
+    if (snippetManager.getSession(bufnr) != null) return
     let doc = workspace.getDocument(bufnr)
     if (!doc || doc.paused) return
     if (!languages.hasOnTypeProvider(ch, doc.textDocument)) return

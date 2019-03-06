@@ -34,7 +34,7 @@ export class SnippetManager implements types.SnippetManager {
       let doc = workspace.getDocument(textDocument.uri)
       if (!doc) return
       let session = this.getSession(doc.bufnr)
-      if (session) this.sessionMap.delete(session.bufnr)
+      if (session) session.deactivate()
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
@@ -60,10 +60,10 @@ export class SnippetManager implements types.SnippetManager {
   public async insertSnippet(snippet: string, select = true, position?: Position): Promise<boolean> {
     let bufnr = await workspace.nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
-    let disposable: Disposable
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
-      disposable = session.onCancel(() => {
+      this.sessionMap.set(bufnr, session)
+      session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         if (workspace.bufnr == bufnr) {
           this.statusItem.hide()
@@ -72,10 +72,9 @@ export class SnippetManager implements types.SnippetManager {
     }
     let isActive = await session.start(snippet, select, position)
     if (isActive) {
-      this.sessionMap.set(bufnr, session)
       this.statusItem.show()
-    } else if (disposable) {
-      disposable.dispose()
+    } else if (session) {
+      session.deactivate()
     }
     return isActive
   }
