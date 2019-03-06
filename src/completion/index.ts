@@ -1,15 +1,15 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, MarkupKind } from 'vscode-languageserver-protocol'
 import events from '../events'
+import { Chars } from '../model/chars'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, PumBounding, RecentScore, VimCompleteItem, ISource } from '../types'
-import { disposeAll, wait, echoErr } from '../util'
-import { byteSlice, isWord, isTriggerCharacter, characterIndex } from '../util/string'
+import { CompleteConfig, CompleteOption, ISource, PumBounding, RecentScore, VimCompleteItem } from '../types'
+import { disposeAll, wait } from '../util'
+import { byteSlice, characterIndex, isTriggerCharacter, isWord } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 import FloatingWindow from './floating'
-import { Chars } from '../model/chars'
 const logger = require('../util/logger')('completion')
 
 export interface LastInsert {
@@ -61,6 +61,25 @@ export class Completion implements Disposable {
         Object.assign(this.config, this.getCompleteConfig())
       }
     }, null, this.disposables)
+    if (this.config.reloadPumOnInsertChar) {
+      this.enablePumReload()
+    }
+  }
+
+  private enablePumReload(): void {
+    if (!workspace.isNvim) return
+    workspace.registerAutocmd({
+      event: 'InsertCharPre',
+      arglist: ['v:char'],
+      callback: async (ch: string) => {
+        if (
+          this.isActivted
+          && this.completeItems.length
+          && isWord(ch)) {
+          await this.nvim.call('coc#_reload', [])
+        }
+      }
+    })
   }
 
   public get option(): CompleteOption {
@@ -124,6 +143,7 @@ export class Completion implements Disposable {
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
+      reloadPumOnInsertChar: suggest.get<boolean>('reloadPumOnInsertChar', false),
       enablePreview: getConfig<boolean>('enablePreview', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
