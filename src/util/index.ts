@@ -1,6 +1,6 @@
 import { attach, Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import cp, { exec } from 'child_process'
+import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -94,7 +94,7 @@ export function createNvim(): Neovim {
   return attach({ proc })
 }
 
-export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<string> {
+export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
     if (timeout) {
@@ -102,7 +102,7 @@ export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<
         reject(new Error(`timeout after ${timeout}s`))
       }, timeout * 1000)
     }
-    exec(cmd, { cwd }, (err, stdout) => {
+    exec(cmd, opts, (err, stdout) => {
       if (timer) clearTimeout(timer)
       if (err) {
         reject(new Error(`exited with ${err.code}`))

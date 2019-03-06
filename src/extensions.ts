@@ -14,6 +14,7 @@ import { distinct } from './util/array'
 import { createExtension } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import workspace from './workspace'
+import { spawn } from 'child_process'
 import Watchman from './watchman'
 import { debounce } from 'debounce'
 
@@ -122,7 +123,7 @@ export class Extensions {
     let outdated: string[] = []
     await Promise.all(Object.keys(versionInfo).map(id => {
       let curr = versionInfo[id]
-      return runCommand(`${yarncmd} info ${id} --json`, process.cwd()).then(content => {
+      return runCommand(`${yarncmd} info ${id} --json`).then(content => {
         let lines = content.trim().split('\n')
         let json = JSON.parse(lines[lines.length - 1])
         let { version, engines } = json.data
@@ -136,10 +137,17 @@ export class Extensions {
     }))
     if (!outdated.length) return
     let status = workspace.createStatusBarItem(99, { progress: true })
+    logger.info(`Upgrading ${outdated.join(' ')}`)
     status.text = `Upgrading ${outdated.join(' ')}`
     status.show()
-    await runCommand(`${yarncmd} upgrade ${outdated.join(' ')} --latest --ignore-engines`, this.root)
-    status.dispose()
+    const child = spawn(yarncmd, ['upgrade', ...outdated, '--latest', '--ignore-engines'], {
+      detached: true,
+      stdio: 'ignore'
+    })
+    child.unref()
+    child.once('exit', () => {
+      status.dispose()
+    })
   }
 
   public async updateNodeRpc(): Promise<void> {
@@ -155,15 +163,12 @@ export class Extensions {
     if (filepath) {
       let jsonFile = path.join(filepath, 'package.json')
       let { version } = loadJson(jsonFile)
-      let res = await runCommand(`${yarncmd} info vim-node-rpc version --json`, process.cwd(), 30000)
+      let res = await runCommand(`${yarncmd} info vim-node-rpc version --json`)
       let newVersion = JSON.parse(res).data
       if (!semver.gt(newVersion, version)) return
     }
-    let status = workspace.createStatusBarItem(99, { progress: true })
-    status.text = 'Upgrading vim-node-rpc'
-    status.show()
-    await runCommand(`${yarncmd} global add vim-node-rpc`, process.cwd())
-    status.dispose()
+    workspace.showMessage(`Upgrading vim-node-rpc`)
+    await runCommand(`${yarncmd} global add vim-node-rpc`)
     logger.info(`Upgrade vim-node-rpc succeed`)
   }
 

@@ -9,7 +9,7 @@ export default class Resolver {
   @memorize
   private get nodeFolder(): Promise<string> {
     if (!executable('npm')) return Promise.resolve('')
-    return runCommand('npm --loglevel silent root -g', process.cwd(), 3000).then(root => {
+    return runCommand('npm --loglevel silent root -g', {}, 3000).then(root => {
       return root.trim()
     })
   }
@@ -17,7 +17,7 @@ export default class Resolver {
   @memorize
   private get yarnFolder(): Promise<string> {
     if (!executable('yarnpkg')) return Promise.resolve('')
-    return runCommand('yarnpkg global dir', process.cwd(), 3000).then(root => {
+    return runCommand('yarnpkg global dir', {}, 3000).then(root => {
       return path.join(root.trim(), 'node_modules')
     })
   }

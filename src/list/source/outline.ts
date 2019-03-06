@@ -82,12 +82,12 @@ export default class Outline extends LocationList {
     let escaped = await this.nvim.call('fnameescape', filepath)
     await writeFile(escaped, document.getDocumentContent())
     try {
-      content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`, process.cwd())
+      content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`)
     } catch (e) {
       // noop
     }
     if (!content.trim().length) {
-      content = await runCommand(`ctags -f - --excmd=number ${escaped}`, process.cwd())
+      content = await runCommand(`ctags -f - --excmd=number ${escaped}`)
     }
     content = content.trim()
     if (!content) return []
