@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable, Location, Position, TextEdit, CodeAction } from 'vscode-languageserver-protocol'
 import { wait } from './util'
 import workspace from './workspace'
+import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
 import { comparePosition } from './util/position'
 import URI from 'vscode-uri'
@@ -37,7 +38,7 @@ class CommandItem implements Disposable, Command {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
 
-  public init(nvim: Neovim, plugin: any): void {
+  public init(nvim: Neovim, plugin: Plugin): void {
     this.register({
       id: 'vscode.open',
       execute: async (url: string | URI) => {
@@ -58,6 +59,12 @@ export class CommandManager implements Disposable {
         }
         await nvim.call('cursor', [start.line + 1, start.character + 1])
         await snipetsManager.insertSnippet(edit.newText)
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.doCodeAction',
+      execute: async (action: CodeAction) => {
+        await plugin.cocAction('doCodeAction', action)
       }
     }, true)
     this.register({
@@ -101,12 +108,6 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
-      id: 'workspace.clearWatchman',
-      execute: async () => {
-        await workspace.runCommand('watchman watch-del-all')
-      }
-    })
-    this.register({
       id: 'workspace.diffDocument',
       execute: async () => {
         let document = await workspace.document
@@ -115,6 +116,12 @@ export class CommandManager implements Disposable {
         await nvim.call('coc#util#diff_content', [lines])
       }
     }, true)
+    this.register({
+      id: 'workspace.clearWatchman',
+      execute: async () => {
+        await workspace.runCommand('watchman watch-del-all')
+      }
+    })
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
