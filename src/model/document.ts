@@ -154,6 +154,7 @@ export default class Document {
       this.onChange.apply(this, args)
     })
     this.buffer.listen('detach', async () => {
+      await wait(30)
       if (!this.attached) return
       // it could be detached by `edit!`
       let attached = await this.attach()
