@@ -452,7 +452,7 @@ coc#config({section}, {value})
 	Note: this function could works with user configuration file, but it's
 	not recommended to use both.
 
-coc#add_extension({name}, ...)
+coc#add_extension({name}, ...) 			*coc#add_extension()*
 
 	Config extensions to install, a terminal buffer would be opened to
 	install missing extensions after service started, ex: >
