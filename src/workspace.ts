@@ -534,10 +534,16 @@ export class Workspace implements IWorkspace {
       let last = lines[cmdHeight - 1]
       lines[cmdHeight - 1] = `${last} ...`
     }
-    let columns = await nvim.getOption('columns')
+
+    // If an echoed line exceeds `columns - 9` for vim or `columns - 12` for nvim
+    // The "Press ENTER or type command to continue" prompt will trigger.
+    // This may be a bug in vim/nvim
+    // These numbers were found empirically.
+    let maxLength = await nvim.getOption('columns').then((c: number) => c - (this.isVim ? 9 : 12))
+
     lines = lines.map(line => {
       line = line.replace(/\n/g, ' ')
-      if (truncate) line = line.slice(0, (columns as number) - 1)
+      if (truncate) line = line.slice(0, maxLength)
       return line
     })
     nvim.callTimer('coc#util#echo_lines', [lines], true)
