@@ -58,7 +58,8 @@ export class SnippetManager implements types.SnippetManager {
    * Insert snippet at current cursor position
    */
   public async insertSnippet(snippet: string, select = true, position?: Position): Promise<boolean> {
-    let bufnr = await workspace.nvim.call('bufnr', '%')
+    let { nvim } = workspace
+    let bufnr = await nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
@@ -76,6 +77,7 @@ export class SnippetManager implements types.SnippetManager {
     } else if (session) {
       session.deactivate()
     }
+    nvim.command('silent! unlet g:coc_last_placeholder g:coc_selected_text', true)
     return isActive
   }
 
