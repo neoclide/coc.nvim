@@ -49,6 +49,12 @@ function! coc#util#close_win(id)
   endif
 endfunction
 
+function! coc#util#win_position()
+  let nr = winnr()
+  let [row, col] = win_screenpos(nr)
+  return [row + winline(), col + wincol()]
+endfunction
+
 function! coc#util#close_popup()
   for winnr in range(1, winnr('$'))
     let popup = getwinvar(winnr, 'popup')

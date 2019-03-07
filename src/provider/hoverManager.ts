@@ -21,17 +21,16 @@ export default class HoverManager extends Manager<HoverProvider> implements Disp
     document: TextDocument,
     position: Position,
     token: CancellationToken
-  ): Promise<Hover | null> {
+  ): Promise<Hover[] | null> {
     let items = this.getProviders(document)
     if (items.length === 0) return null
+    let res = []
     for (let i = 0, len = items.length; i < len; i += 1) {
       const item = items[i]
       let hover = await Promise.resolve(item.provider.provideHover(document, position, token))
-      if (hover) {
-        return hover
-      }
+      if (hover) res.push(hover)
     }
-    return null
+    return res
   }
 
   public dispose(): void {

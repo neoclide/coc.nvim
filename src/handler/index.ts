@@ -15,6 +15,7 @@ import { disposeAll, wait } from '../util'
 import { isWord, indexOf, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Document from '../model/document'
+import FloatFactory from '../model/float'
 import { getSymbolKind } from '../util/convert'
 import { positionInRange } from '../util/position'
 const logger = require('../util/logger')('Handler')
@@ -54,9 +55,11 @@ export default class Handler {
   private highlightsMap: Map<number, number[]> = new Map()
   private highlightNamespace = 1080
   private colors: Colors
+  private hoverFactory: FloatFactory
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
   private codeLensManager: CodeLensManager
+  private cursorMoveTs: number
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
@@ -69,6 +72,7 @@ export default class Handler {
     workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
       if (id) this.highlightNamespace = id
     })
+    this.hoverFactory = new FloatFactory(nvim, workspace.env)
 
     let lastInsert: number
     events.on('InsertCharPre', async () => {
@@ -112,36 +116,48 @@ export default class Handler {
 
     events.on(['CursorMoved', 'CursorMovedI'], async () => {
       if (!this.preferences.previewAutoClose) return
-      let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
-      if (doc && doc.bufnr != workspace.bufnr) {
-        nvim.command('pclose', true)
+      this.cursorMoveTs = Date.now()
+      if (workspace.env.floating) {
+        await this.hoverFactory.close()
+      } else {
+        this.hoverFactory.close()
+        let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
+        if (doc && doc.bufnr != workspace.bufnr) {
+          nvim.command('pclose', true)
+        }
       }
     }, null, this.disposables)
 
-    let provider: TextDocumentContentProvider = {
-      onDidChange: null,
-      provideTextDocumentContent: async () => {
-        nvim.pauseNotification()
-        nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
-        nvim.command('setlocal bufhidden=wipe nobuflisted', true)
-        nvim.command('setfiletype markdown', true)
-        nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
-        nvim.resumeNotification()
-        return this.documentLines.join('\n')
+    if (!workspace.env.floating) {
+      let provider: TextDocumentContentProvider = {
+        onDidChange: null,
+        provideTextDocumentContent: async () => {
+          nvim.pauseNotification()
+          nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
+          nvim.command('setlocal bufhidden=wipe nobuflisted', true)
+          nvim.command('setfiletype markdown', true)
+          nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
+          nvim.resumeNotification()
+          return this.documentLines.join('\n')
+        }
       }
+      this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     }
-    this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
   }
 
   public async onHover(): Promise<void> {
+    let now = Date.now()
     let { document, position } = await workspace.getCurrentState()
-    let hover = await languages.getHover(document, position)
-    if (hover) {
-      await this.previewHover(hover)
+    let hovers = await languages.getHover(document, position)
+    if (this.cursorMoveTs && this.cursorMoveTs > now) return
+    if (hovers && hovers.length) {
+      await this.previewHover(hovers)
     } else {
-      workspace.showMessage('Hover not found', 'warning')
+      if (workspace.env.floating) {
+        this.hoverFactory.close()
+      }
     }
   }
 
@@ -782,35 +798,47 @@ export default class Handler {
     }
   }
 
-  private async previewHover(hover: Hover): Promise<void> {
-    let { contents } = hover
+  private async previewHover(hovers: Hover[]): Promise<void> {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
-    if (Array.isArray(contents)) {
-      for (let item of contents) {
-        if (typeof item === 'string') {
-          lines.push(...item.split('\n'))
-        } else {
-          let content = item.value.trim()
-          if (target == 'preview') {
-            content = '``` ' + item.language + '\n' + content + '\n```'
+    if (workspace.env.floating) {
+      target = 'floating'
+    }
+    let i = 0
+    for (let hover of hovers) {
+      let { contents } = hover
+      if (i > 0) lines.push('---')
+      if (Array.isArray(contents)) {
+        for (let item of contents) {
+          if (typeof item === 'string') {
+            if (item.trim().length) {
+              lines.push(...item.split('\n'))
+            }
+          } else {
+            let content = item.value.trim()
+            if (target == 'preview') {
+              content = '``` ' + item.language + '\n' + content + '\n```'
+            }
+            lines.push(...content.trim().split('\n'))
           }
-          lines.push(...content.split('\n'))
         }
+      } else if (typeof contents == 'string') {
+        lines.push(...contents.split('\n'))
+      } else if (MarkedString.is(contents)) { // tslint:disable-line
+        let content = contents.value.trim()
+        if (target == 'preview') {
+          content = '``` ' + contents.language + '\n' + content + '\n```'
+        }
+        lines.push(...content.split('\n'))
+      } else if (MarkupContent.is(contents)) {
+        lines.push(...contents.value.split('\n'))
       }
-    } else if (typeof contents == 'string') {
-      lines.push(...contents.split('\n'))
-    } else if (MarkedString.is(contents)) { // tslint:disable-line
-      let content = contents.value.trim()
-      if (target == 'preview') {
-        content = '``` ' + contents.language + '\n' + content + '\n```'
-      }
-      lines.push(...content.split('\n'))
-    } else if (MarkupContent.is(contents)) {
-      lines.push(...contents.value.split('\n'))
+      i++
     }
     if (target == 'echo') {
       await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim())
+    } else if (target == 'floating') {
+      await this.hoverFactory.create(lines, 'markdown')
     } else {
       this.documentLines = lines
       await this.nvim.command(`pedit coc://document`)

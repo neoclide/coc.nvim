@@ -244,7 +244,7 @@ class Languages {
   }
 
   @check
-  public async getHover(document: TextDocument, position: Position): Promise<Hover> {
+  public async getHover(document: TextDocument, position: Position): Promise<Hover[]> {
     return await this.hoverManager.provideHover(document, position, this.token)
   }
 
