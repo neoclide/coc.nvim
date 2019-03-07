@@ -352,9 +352,10 @@ export class DiagnosticManager {
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
     let buffer = await this.nvim.buffer
+    if (!buffer) return
     let document = workspace.getDocument(buffer.id)
     if (!document || !this.shouldValidate(document)) return
-    let useFloat = workspace.env.floating
+    let useFloat = workspace.env.floating && !global.hasOwnProperty('__TEST__')
     let pos = await workspace.getCursorPosition()
     let diagnostics = this.diagnosticsAtPosition(pos, document.textDocument)
     if (diagnostics.length == 0) {
