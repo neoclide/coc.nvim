@@ -2,6 +2,7 @@ import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 import { Env } from '../types'
 import { byteLength } from '../util/string'
 import { Chars } from './chars'
+import { wait } from '../util'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -17,9 +18,10 @@ export default class FloatFactory {
   private window: Window
   private creating = false
   private chars = new Chars('@,48-57,_192-255,<,>,$,#,-')
+  private srcId: number
   constructor(private nvim: Neovim,
     private env: Env,
-    private highlight = 'CocFloating',
+    private name = '',
     private relative: 'cursor' | 'win' | 'editor' = 'cursor') {
   }
 
@@ -53,9 +55,12 @@ export default class FloatFactory {
     }
   }
 
-  public async create(lines: string[], filetype: string, config?: WindowConfig): Promise<Window | undefined> {
+  public async create(lines: string[], filetype: string, hlGroup = 'CocFloating', config?: WindowConfig): Promise<Window | undefined> {
     if (!this.env.floating || this.creating) return
     this.creating = true
+    if (this.name && !this.srcId) {
+      this.srcId = await this.nvim.createNamespace(this.name)
+    }
     lines = lines.reduce((p, c) => {
       return p.concat(this.softSplit(c, 78))
     }, [] as string[])
@@ -75,7 +80,7 @@ export default class FloatFactory {
       }
       nvim.pauseNotification()
       buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
-      buffer.setOption('filetype', filetype, true)
+      if (filetype) buffer.setOption('filetype', filetype, true)
       if (!window) {
         window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
           col: config.col,
@@ -98,8 +103,9 @@ export default class FloatFactory {
       window.setOption('signcolumn', 'no', true)
       window.setOption('conceallevel', 2, true)
       window.setOption('relativenumber', false, true)
-      window.setOption('winhl', `Normal:${this.highlight},NormalNC:${this.highlight}`, true)
+      window.setOption('winhl', `Normal:${hlGroup},NormalNC:${hlGroup}`, true)
       await nvim.resumeNotification()
+      await wait(50)
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.error(`error on create floating window:` + e.message)

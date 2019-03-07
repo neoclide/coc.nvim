@@ -10,6 +10,7 @@ import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
 import { positionInRange } from '../util/position'
+import FloatFactory from '../model/float'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -36,6 +37,7 @@ export class DiagnosticManager {
   public config: DiagnosticConfig
   public enabled = true
   public readonly buffers: DiagnosticBuffer[] = []
+  private floatFactory: FloatFactory
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private lastMessage = ''
@@ -44,9 +46,19 @@ export class DiagnosticManager {
   public async init(): Promise<void> {
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
-    events.on('CursorHold', async () => {
-      if (!this.config || this.config.enableMessage != 'always') return
-      await this.echoMessage(true)
+    this.floatFactory = new FloatFactory(nvim, workspace.env, 'diagnostic-float')
+    let timer: NodeJS.Timeout
+    events.on('CursorMoved', async () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(async () => {
+        if (this.insertMode) return
+        if (!this.config || this.config.enableMessage != 'always') return
+        await this.echoMessage(true)
+      }, 300)
+    }, null, this.disposables)
+
+    events.on(['CursorMoved', 'CursorMovedI'], async () => {
+      await this.floatFactory.close()
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
@@ -65,6 +77,7 @@ export class DiagnosticManager {
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
+      if (timer) clearTimeout(timer)
       if (!this.config || !this.enabled || !this.config.locationlist) return
       let doc = await workspace.document
       if (!this.shouldValidate(doc) || doc.bufnr != bufnr) return
@@ -341,14 +354,19 @@ export class DiagnosticManager {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document || !this.shouldValidate(document)) return
+    let useFloat = workspace.env.floating
     let pos = await workspace.getCursorPosition()
     let diagnostics = this.diagnosticsAtPosition(pos, document.textDocument)
     if (diagnostics.length == 0) {
-      let echoLine = await this.nvim.call('coc#util#echo_line') as string
-      if (this.lastMessage && this.lastMessage == echoLine.trim()) {
-        this.nvim.command('echo ""', true)
+      if (useFloat) {
+        await this.floatFactory.close()
+      } else {
+        let echoLine = await this.nvim.call('coc#util#echo_line') as string
+        if (this.lastMessage && this.lastMessage == echoLine.trim()) {
+          this.nvim.command('echo ""', true)
+        }
+        this.lastMessage = ''
       }
-      this.lastMessage = ''
       return
     }
     let lines: string[] = []
@@ -358,9 +376,25 @@ export class DiagnosticManager {
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
       lines.push(...str.split('\n'))
     })
-    this.lastMessage = lines[0]
-    await this.nvim.command('echo ""')
-    await workspace.echoLines(lines, truncate)
+    if (useFloat) {
+      let hlGroup = 'CocErrorSign'
+      switch (diagnostics[0].severity) {
+        case DiagnosticSeverity.Hint:
+          hlGroup = 'CocHintSign'
+          break
+        case DiagnosticSeverity.Warning:
+          hlGroup = 'CocWarningSign'
+          break
+        case DiagnosticSeverity.Information:
+          hlGroup = 'CocInfoSign'
+          break
+      }
+      this.floatFactory.create(lines, '', hlGroup)
+    } else {
+      this.lastMessage = lines[0]
+      await this.nvim.command('echo ""')
+      await workspace.echoLines(lines, truncate)
+    }
   }
 
   public dispose(): void {
@@ -451,6 +485,9 @@ export class DiagnosticManager {
       let items = this.getBufferDiagnostic(uri)
       if (this.enabled) {
         buf.refresh(items)
+        this.floatFactory.close().catch(_e => {
+          // noop
+        })
         return true
       }
       let { displayByAle } = this.config
