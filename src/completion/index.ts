@@ -514,7 +514,7 @@ export class Completion implements Disposable {
     if (!this.config.keepCompleteopt) {
       this.nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }
-    nvim.setVar('coc#_context', {}, true)
+    nvim.command(`let g:coc#_context['candidates'] = []`, true)
     nvim.call('coc#_hide', [], true)
     nvim.resumeNotification(false, true)
   }
