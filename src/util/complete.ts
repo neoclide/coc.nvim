@@ -3,6 +3,7 @@ import { SnippetParser } from '../snippets/parser'
 import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
 const logger = require('./logger')('util-complete')
+const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n']
 
 export function getPosition(opt: CompleteOption): Position {
   let { line, linenr, colnr } = opt
@@ -13,7 +14,7 @@ export function getPosition(opt: CompleteOption): Position {
   }
 }
 
-export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsertCharacters: string[]): string {
+export function getWord(item: CompletionItem, opt: CompleteOption): string {
   // tslint:disable-next-line: deprecation
   let { label, data, insertTextFormat, insertText, textEdit } = item
   let word: string
@@ -45,14 +46,12 @@ export function getWord(item: CompletionItem, opt: CompleteOption, invalidInsert
   } else {
     newText = insertText
   }
-  if (insertTextFormat == InsertTextFormat.Snippet) {
-    if (newText) {
-      let parser = new SnippetParser()
-      let snippet = parser.text(newText.trim())
-      word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label
-    } else {
-      word = label
-    }
+  if (insertTextFormat == InsertTextFormat.Snippet
+    && newText
+    && newText.indexOf('$') !== -1) {
+    let parser = new SnippetParser()
+    let snippet = parser.text(newText)
+    word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label
   } else {
     word = getValidWord(newText, invalidInsertCharacters) || label
   }
@@ -134,7 +133,7 @@ export function getValidWord(text: string, invalidChars: string[]): string {
   if (!text) return ''
   for (let i = 0; i < text.length; i++) {
     let c = text[i]
-    if (invalidChars.indexOf(c) !== -1 || c == '\r' || c == '\n') {
+    if (invalidChars.indexOf(c) !== -1) {
       return text.slice(0, i)
     }
   }

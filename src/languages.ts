@@ -45,7 +45,6 @@ interface CompleteConfig {
   waitTime: number
   detailMaxLength: number
   detailField: string
-  invalidInsertCharacters: string[]
 }
 
 export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
@@ -132,8 +131,7 @@ class Languages {
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
       detailField: getConfig<string>('detailField', 'abbr'),
-      detailMaxLength: getConfig<number>('detailMaxLength', 50),
-      invalidInsertCharacters: getConfig<string[]>('invalidInsertCharacters', ["<", "(", ":", " "])
+      detailMaxLength: getConfig<number>('detailMaxLength', 50)
     }
   }
 
@@ -643,7 +641,7 @@ class Languages {
       item.insertTextFormat = InsertTextFormat.PlainText
     }
     let obj: VimCompleteItem = {
-      word: complete.getWord(item, opt, this.completeConfig.invalidInsertCharacters),
+      word: complete.getWord(item, opt),
       abbr: label,
       menu: `[${shortcut}]`,
       kind: complete.completionKindString(item.kind),

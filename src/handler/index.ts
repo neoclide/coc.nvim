@@ -175,10 +175,7 @@ export default class Handler {
   public async gotoDeclaration(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDeclaration(document, position)
-    if (!definition) {
-      workspace.showMessage('Definition not found', 'warning')
-      return
-    }
+    if (!definition) return workspace.showMessage('Declaration not found', 'warning')
     await this.handleLocations(definition, openCommand)
   }
 

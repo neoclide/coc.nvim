@@ -268,14 +268,6 @@
       "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
       "default": false
     },
-    "suggest.invalidInsertCharacters": {
-      "type": "array",
-      "default": ["<", "(", ":", " "],
-      "description": "Invalid character for strip valid word when inserting text of snippet complete item.",
-      "items": {
-        "type": "string"
-      }
-    },
     "suggest.fixInsertedWord": {
       "type": "boolean",
       "description": "Make inserted word replace word characters after cursor position.",
