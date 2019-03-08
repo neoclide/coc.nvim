@@ -138,7 +138,7 @@ export default class Complete {
     let now = Date.now()
     let { bufnr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
-    let followPart = cid == 0 ? '' : this.getFollowPart()
+    let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     // max score of high priority source
     let maxScore = 0
@@ -160,7 +160,7 @@ export default class Complete {
         if (input.length && score == 0) continue
         if (priority > 90) maxScore = Math.max(maxScore, score)
         if (maxScore > 5 && priority <= 10 && score < maxScore) continue
-        if (fixInsertedWord && followPart.length && !item.isSnippet) {
+        if (followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
           }
@@ -168,7 +168,7 @@ export default class Complete {
         if (!item.user_data) {
           let user_data: any = { cid, source }
           if (item.index != null) user_data.index = item.index
-          if (item.isSnippet && cid != 0) {
+          if (item.isSnippet) {
             let abbr = item.abbr || item.word
             if (!abbr.endsWith(snippetIndicator)) {
               item.abbr = `${item.abbr || item.word}${snippetIndicator}`
@@ -189,6 +189,23 @@ export default class Complete {
           }
         }
         words.add(word)
+        if (!item.hasOwnProperty('toJSON')) {
+          Object.defineProperty(item, 'toJSON', {
+            value(): string {
+              return JSON.stringify({
+                word: this.word,
+                abbr: this.abbr,
+                menu: this.menu,
+                info: this.info,
+                kind: this.kind,
+                icase: this.icase,
+                dup: this.dup,
+                empty: this.empty,
+                user_data: this.user_data
+              })
+            }
+          })
+        }
         if (!preselect) {
           if (item.isSnippet && item.word == input) {
             preselect = item
@@ -217,7 +234,7 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'signature', 'localBonus']))
+    return items
   }
 
   public hasMatch(input: string): boolean {
@@ -260,6 +277,14 @@ export default class Complete {
     this.results = results
     logger.info(`Results from: ${results.map(s => s.source).join(',')}`)
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
+  }
+
+  public resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null {
+    let { results } = this
+    if (!results || !item.user_data) return null
+    let { source } = JSON.parse(item.user_data)
+    let result = results.find(res => res.source == source)
+    return result.items.find(o => o.user_data == item.user_data)
   }
 
   private getFollowPart(): string {

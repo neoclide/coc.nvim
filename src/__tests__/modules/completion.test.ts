@@ -125,7 +125,7 @@ describe('completion#startCompletion', () => {
     await nvim.input('f')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('foo')
     sources.removeSource(source)
@@ -151,13 +151,13 @@ describe('completion#startCompletion', () => {
     await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
+    let items = await helper.items()
     await nvim.input('a')
     await helper.wait(10)
     await nvim.input('b')
     await helper.wait(100)
     sources.removeSource(source)
-    items = completion.completeItems
+    items = await helper.items()
     expect(items[0].word).toBe('ab')
     await nvim.input('<esc>')
   })
@@ -183,7 +183,7 @@ describe('completion#resumeCompletion', () => {
     await helper.waitPopup()
     await nvim.input('c')
     await helper.wait(100)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(0)
     expect(completion.isActivted).toBe(false)
     await nvim.input('<esc>')
@@ -208,7 +208,7 @@ describe('completion#resumeCompletion', () => {
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
     sources.removeSource(source)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items[0].word).toBe('foo bar')
     await nvim.input(' ')
     await helper.wait(60)
@@ -270,7 +270,7 @@ describe('completion#TextChangedP', () => {
         return [{
           label: 'foo',
           filterText: 'foo',
-          insertText: '${1:foo} $1',
+          insertText: '${1:foo}($2)',
           insertTextFormat: InsertTextFormat.Snippet,
         }]
       }
@@ -278,7 +278,7 @@ describe('completion#TextChangedP', () => {
     let disposable = languages.registerCompletionItemProvider('snippets-test', 'st', null, provider)
     await nvim.input('if')
     await helper.waitPopup()
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items[0].isSnippet).toBe(true)
     await helper.wait(100)
     await nvim.input('<C-n>')
@@ -321,7 +321,7 @@ describe('completion#CompleteDone', () => {
     await nvim.call('cursor', [1, 2])
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(1)
     await nvim.input('<C-n>')
     await helper.wait(30)
@@ -380,7 +380,7 @@ describe('completion#TextChangedI', () => {
     await helper.pumvisible()
     await helper.wait(80)
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBeGreaterThan(0)
     sources.removeSource(source)
   })

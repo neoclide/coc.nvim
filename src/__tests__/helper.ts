@@ -166,6 +166,11 @@ export class Helper extends Emitter {
     await this.nvim.command(`source ${file}`)
   }
 
+  public async items(): Promise<VimCompleteItem[]> {
+    let context = await this.nvim.getVar('coc#_context')
+    return context['candidates'] || []
+  }
+
   public async screenLine(line: number): Promise<string> {
     let res = ''
     for (let i = 1; i <= 80; i++) {

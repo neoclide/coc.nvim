@@ -18,10 +18,10 @@ export interface LastInsert {
 }
 
 export class Completion implements Disposable {
-  public completeItems: VimCompleteItem[] = []
   public config: CompleteConfig
   private document: Document
   private floating: FloatingWindow
+  private currItem: VimCompleteItem
   // current input string
   private activted = false
   private input: string
@@ -32,7 +32,6 @@ export class Completion implements Disposable {
   private recentScores: RecentScore = {}
   private resolveTokenSource: CancellationTokenSource
   private changedTick = 0
-  private currIndex = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
   // only used when no pum change event
@@ -83,7 +82,6 @@ export class Completion implements Disposable {
       callback: async (ch: string) => {
         if (
           this.isActivted
-          && this.completeItems.length
           && isWord(ch)) {
           await this.nvim.call('coc#_reload', [])
         }
@@ -94,10 +92,6 @@ export class Completion implements Disposable {
   public get option(): CompleteOption {
     if (!this.complete) return null
     return this.complete.option
-  }
-
-  public get index(): number {
-    return this.currIndex
   }
 
   private addRecent(word: string, bufnr: number): void {
@@ -116,9 +110,7 @@ export class Completion implements Disposable {
     let { option, document, activted } = this
     if (!activted) return null
     let [, lnum, col] = await this.nvim.call('getcurpos')
-    if (lnum != option.linenr || col < option.col + 1) {
-      return null
-    }
+    if (lnum != option.linenr || col < option.col + 1) return null
     let line = document.getline(lnum - 1)
     return byteSlice(line, option.col, col - 1)
   }
@@ -186,10 +178,9 @@ export class Completion implements Disposable {
   private async resumeCompletion(search: string | null, _isChangedP = false): Promise<void> {
     let { document, complete, activted } = this
     if (!activted || !complete.results || search == this.input) return
-    let completeInput = complete.input
     if (search == null ||
       search.endsWith(' ') ||
-      search.length < completeInput.length) {
+      search.length < complete.input.length) {
       this.stop()
       return
     }
@@ -214,31 +205,30 @@ export class Completion implements Disposable {
     await this.showCompletion(this.option.col, items)
   }
 
-  private appendNumber(items: VimCompleteItem[]): void {
-    if (!this.config.numberSelect) return
-    for (let i = 1; i <= 10; i++) {
-      let item = items[i - 1]
-      if (!item) break
-      let idx = i == 10 ? 0 : i
-      item.abbr = item.abbr ? `${idx} ${item.abbr}` : `${idx} ${item.word}`
-    }
-  }
-
   public async hasSelected(): Promise<boolean> {
-    if (workspace.env.pumevent) return this.currIndex !== 0
+    if (workspace.env.pumevent) return this.currItem != null
     if (this.config.noselect === false) return true
     return this.isResolving
   }
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document } = this
-    this.appendNumber(items)
+    if (this.config.numberSelect) {
+      items = items.map((item, i) => {
+        let idx = i + 1
+        if (i < 9) {
+          return Object.assign({}, item, {
+            abbr: item.abbr ? `${idx} ${item.abbr}` : `${idx} ${item.word}`
+          })
+        }
+        return item
+      })
+    }
     this.changedTick = document.changedtick
     if (this.config.numberSelect) {
       nvim.call('coc#_map', [], true)
     }
     nvim.call('coc#_do_complete', [col, items], true)
-    this.completeItems = items
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
@@ -320,12 +310,13 @@ export class Completion implements Disposable {
     // check commit character
     if (this.config.acceptSuggestionOnCommitCharacter
       && latestInsertChar
-      && !this.document.isWord(latestInsertChar)) {
-      let item = this.currIndex ? this.completeItems[this.currIndex - 1] : this.completeItems[0]
-      if (sources.shouldCommit(item, latestInsertChar)) {
+      && !this.document.isWord(latestInsertChar)
+      && this.currItem) {
+      let resolvedItem = this.getCompleteItem(this.currItem)
+      if (sources.shouldCommit(resolvedItem, latestInsertChar)) {
         let { linenr, col, line, colnr } = this.option
         this.stop()
-        let { word } = item
+        let { word } = resolvedItem
         let newLine = `${line.slice(0, col)}${word}${latestInsertChar}${line.slice(colnr - 1)}`
         await nvim.call('coc#util#setline', [linenr, newLine])
         let curcol = col + word.length + 2
@@ -365,23 +356,23 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, nvim } = this
-    if (!this.isActivted || !document || item.word == null) return
+    if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
     let opt = Object.assign({}, this.option)
-    item = this.completeItems.find(o => o.word == item.word && o.user_data == item.user_data)
+    let resolvedItem = this.getCompleteItem(item)
     this.stop()
-    if (!item) return
+    if (!resolvedItem) return
     let timestamp = this.insertCharTs
     let insertLeaveTs = this.insertLeaveTs
     try {
-      await sources.doCompleteResolve(item, (new CancellationTokenSource()).token)
-      this.addRecent(item.word, document.bufnr)
+      await sources.doCompleteResolve(resolvedItem, (new CancellationTokenSource()).token)
+      this.addRecent(resolvedItem.word, document.bufnr)
       await wait(50)
       let mode = await nvim.call('mode')
       if (mode != 'i' || this.insertCharTs != timestamp || this.insertLeaveTs != insertLeaveTs) return
       await document.patchChange()
       let content = await this.getPreviousContent(document)
-      if (!content.endsWith(item.word)) return
-      await sources.doCompleteDone(item, opt)
+      if (!content.endsWith(resolvedItem.word)) return
+      await sources.doCompleteDone(resolvedItem, opt)
       document.forceSync()
     } catch (e) {
       // tslint:disable-next-line:no-console
@@ -443,26 +434,26 @@ export class Completion implements Disposable {
   }
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
+    if (!this.activted) return
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
+    this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null
     // it's pum change by vim, ignore it
     if (this.lastInsert) return
-    let currItem = this.completeItems.find(o => o.word == completed_item.word && o.user_data == completed_item.user_data)
-    if (!currItem) {
-      this.currIndex = 0
+    let resolvedItem = this.getCompleteItem(completed_item)
+    if (!resolvedItem) {
       this.closePreviewWindow()
       return
     }
-    this.currIndex = this.completeItems.indexOf(currItem) + 1
     let source = this.resolveTokenSource = new CancellationTokenSource()
     let { token } = source
-    await sources.doCompleteResolve(currItem, token)
+    await sources.doCompleteResolve(resolvedItem, token)
     if (token.isCancellationRequested) return
-    let content = currItem.documentation ? currItem.documentation.value : currItem.info
+    let content = resolvedItem.documentation ? resolvedItem.documentation.value : resolvedItem.info
     if (!content) {
       this.closePreviewWindow()
     } else {
@@ -473,9 +464,9 @@ export class Completion implements Disposable {
         let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
         this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
       }
-      let kind: MarkupKind = currItem.documentation && currItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
+      let kind: MarkupKind = resolvedItem.documentation && resolvedItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
       if (token.isCancellationRequested || !this.isActivted) return
-      await this.floating.show(content, bounding, kind, currItem.hasDetail)
+      await this.floating.show(content, bounding, kind, resolvedItem.hasDetail)
     }
     this.resolveTokenSource = null
   }
@@ -494,7 +485,6 @@ export class Completion implements Disposable {
       this.complete.cancel()
     }
     this.complete = complete
-    this.completeItems = []
     if (!this.config.keepCompleteopt) {
       this.nvim.command(`noa set completeopt=${this.completeOpt}`, true)
     }
@@ -509,21 +499,24 @@ export class Completion implements Disposable {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
+    this.currItem = null
     this.activted = false
     this.document.paused = false
     this.document.fireContentChanges()
-    this.completeItems = []
     if (this.complete) {
       this.complete.cancel()
       this.complete = null
     }
+    nvim.pauseNotification()
     if (this.config.numberSelect) {
       nvim.call('coc#_unmap', [], true)
     }
-    nvim.call('coc#_hide', [], true)
     if (!this.config.keepCompleteopt) {
       this.nvim.command(`noa set completeopt=${workspace.completeOpt}`, true)
     }
+    nvim.setVar('coc#_context', {}, true)
+    nvim.call('coc#_hide', [], true)
+    nvim.resumeNotification(false, true)
   }
 
   private closePreviewWindow(): void {
@@ -549,6 +542,11 @@ export class Completion implements Disposable {
     let { noselect, enablePreview } = this.config
     if (noselect) return `noselect,menuone${enablePreview ? ',preview' : ''}`
     return `noinsert,menuone${enablePreview ? ',preview' : ''}`
+  }
+
+  private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {
+    if (!this.isActivted) return null
+    return this.complete.resolveCompletionItem(item)
   }
 
   public dispose(): void {

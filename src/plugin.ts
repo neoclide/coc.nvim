@@ -32,9 +32,6 @@ export default class Plugin extends EventEmitter {
     this.addMethod('hasSelected', () => {
       return completion.hasSelected()
     })
-    this.addMethod('getCurrentIndex', () => {
-      return completion.index
-    })
     this.addMethod('listNames', () => {
       return listManager.names
     })
