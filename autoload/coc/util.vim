@@ -543,6 +543,11 @@ function! coc#util#build()
   execute 'lcd '.s:root
   execute '!'.yarncmd.' install'
   execute 'lcd '.cwd
+  if s:is_win
+    call coc#rpc#start_server()
+  else
+    call coc#rpc#restart()
+  endif
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort
