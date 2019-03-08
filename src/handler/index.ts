@@ -801,9 +801,6 @@ export default class Handler {
   private async previewHover(hovers: Hover[]): Promise<void> {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
-    if (workspace.env.floating) {
-      target = 'floating'
-    }
     let i = 0
     for (let hover of hovers) {
       let { contents } = hover
