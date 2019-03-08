@@ -110,15 +110,18 @@ export default class Handler {
     events.on('BufUnload', async bufnr => {
       this.clearHighlight(bufnr)
     }, null, this.disposables)
-    events.on('InsertEnter', () => {
+    events.on('InsertEnter', async () => {
       this.clearHighlight(workspace.bufnr)
+      await this.hoverFactory.close()
     }, null, this.disposables)
 
     events.on(['CursorMoved', 'CursorMovedI'], async () => {
       if (!this.preferences.previewAutoClose) return
       this.cursorMoveTs = Date.now()
       if (this.preferences.hoverTarget == 'float') {
-        await this.hoverFactory.close()
+        if (!this.hoverFactory.creating) {
+          await this.hoverFactory.close()
+        }
       } else {
         this.hoverFactory.close()
         let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))

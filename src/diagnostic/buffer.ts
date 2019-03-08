@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Range, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticItems, LocationListItem } from '../types'
 import { equals, deepClone } from '../util/object'
 import { byteIndex, byteLength } from '../util/string'
@@ -20,6 +20,8 @@ export class DiagnosticBuffer {
   private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
   private matchId = STARTMATCHID
+  private readonly _onDidRefresh = new Emitter<void>()
+  public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public readonly bufnr: number
   public readonly uri: string
   public refresh: (diagnosticItems: DiagnosticItems) => void
@@ -73,6 +75,7 @@ export class DiagnosticBuffer {
     sequence.start().then(async canceled => {
       if (!canceled) {
         this._diagnosticItems = diagnosticItems
+        this._onDidRefresh.fire(void 0)
       }
     }, e => {
       logger.error(e)

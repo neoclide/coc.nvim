@@ -50,19 +50,17 @@ export class DiagnosticManager {
     let timer: NodeJS.Timeout
     events.on('CursorMoved', async () => {
       if (timer) clearTimeout(timer)
+      if (this.floatFactory.creating) return
       timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
-      }, 300)
-    }, null, this.disposables)
-
-    events.on(['CursorMoved', 'CursorMovedI'], async () => {
-      await this.floatFactory.close()
+      }, 200)
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
       this.insertMode = true
+      await this.floatFactory.close()
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
@@ -390,7 +388,7 @@ export class DiagnosticManager {
           hlGroup = 'CocInfoSign'
           break
       }
-      this.floatFactory.create(lines, '', hlGroup)
+      await this.floatFactory.create(lines, '', hlGroup)
     } else {
       this.lastMessage = lines[0]
       await this.nvim.command('echo ""')
@@ -486,9 +484,6 @@ export class DiagnosticManager {
       let items = this.getBufferDiagnostic(uri)
       if (this.enabled) {
         buf.refresh(items)
-        this.floatFactory.close().catch(_e => {
-          // noop
-        })
         return true
       }
       let { displayByAle } = this.config

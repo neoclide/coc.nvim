@@ -1,7 +1,8 @@
-import { Neovim, Buffer, Window } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import { Env } from '../types'
 import { byteLength } from '../util/string'
 import { Chars } from './chars'
+import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { wait } from '../util'
 const logger = require('../util/logger')('model-float')
 
@@ -16,13 +17,18 @@ export interface WindowConfig {
 export default class FloatFactory {
   private buffer: Buffer
   private window: Window
-  private creating = false
+  private _creating = false
   private chars = new Chars('@,48-57,_192-255,<,>,$,#,-')
-  private srcId: number
+  private readonly _onWindowCreate = new Emitter<Window>()
+  public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
     private env: Env,
     private name = '',
     private relative: 'cursor' | 'win' | 'editor' = 'cursor') {
+  }
+
+  public get creating(): boolean {
+    return this._creating
   }
 
   private get columns(): number {
@@ -56,11 +62,9 @@ export default class FloatFactory {
   }
 
   public async create(lines: string[], filetype: string, hlGroup = 'CocFloating', config?: WindowConfig): Promise<Window | undefined> {
-    if (!this.env.floating || this.creating) return
-    this.creating = true
-    if (this.name && !this.srcId) {
-      this.srcId = await this.nvim.createNamespace(this.name)
-    }
+    if (!this.env.floating) return
+    if (this._creating) await wait(50)
+    this._creating = true
     lines = lines.reduce((p, c) => {
       return p.concat(this.softSplit(c, 78))
     }, [] as string[])
@@ -74,29 +78,22 @@ export default class FloatFactory {
         await buffer.setOption('buftype', 'nofile')
         await buffer.setOption('bufhidden', 'hide')
       }
-      if (window) {
-        let valid = await window.valid
-        if (!valid) window = null
-      }
       nvim.pauseNotification()
+      if (window) {
+        this.nvim.call('coc#util#close_win', [window.id], true)
+      }
       buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
       if (filetype) buffer.setOption('filetype', filetype, true)
-      if (!window) {
-        window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
-          col: config.col,
-          row: config.row,
-          relative: this.relative
-        })
-      } else {
-        window.configFloat(config.width, config.height, {
-          col: config.col,
-          row: config.row,
-          relative: this.relative
-        }, true)
-      }
+      logger.debug('lines:', lines)
+      window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
+        col: config.col,
+        row: config.row,
+        relative: this.relative
+      })
       window.setVar('popup', 1, true)
       window.setCursor([1, 1], true)
       window.setOption('list', false, true)
+      window.setOption('wrap', false, true)
       window.setOption('number', false, true)
       window.setOption('cursorline', false, true)
       window.setOption('cursorcolumn', false, true)
@@ -105,24 +102,28 @@ export default class FloatFactory {
       window.setOption('relativenumber', false, true)
       window.setOption('winhl', `Normal:${hlGroup},NormalNC:${hlGroup}`, true)
       await nvim.resumeNotification()
-      await wait(50)
+      await wait(30)
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.error(`error on create floating window:` + e.message)
     } finally {
-      this.creating = false
+      logger.debug('created:', this.window.id)
+      this._onWindowCreate.fire(this.window)
+      this._creating = false
     }
-    return window
   }
 
   public async close(): Promise<void> {
-    if (this.creating) return
-    let { window } = this
-    try {
-      if (window) await window.close(true)
-    } catch (_e) {
-      // noop
+    if (!this.env.floating) return
+    if (this._creating) {
+      return new Promise<void>((resolve, reject) => {
+        let disposable = this.onWindowCreate(() => {
+          disposable.dispose()
+          this.closeWindow().then(resolve, reject)
+        })
+      })
     }
+    await this.closeWindow()
   }
 
   private softSplit(line: string, maxWidth: number): string[] {
@@ -159,5 +160,16 @@ export default class FloatFactory {
       }
     } while (!finished)
     return res
+  }
+
+  private async closeWindow(): Promise<void> {
+    let { window } = this
+    if (!window) return
+    try {
+      await this.nvim.call('coc#util#close_win', window.id)
+      this.window = null
+    } catch (e) {
+      logger.error(`Error on close window:`, e)
+    }
   }
 }

@@ -42,7 +42,7 @@ function! coc#util#close_win(id)
   let winnr = win_id2win(a:id)
   if winnr > 0
     if exists('*nvim_win_close')
-      silent! call nvim_win_close(a:id)
+      call nvim_win_close(a:id, 1)
     else
       execute winnr.'close!'
     endif
