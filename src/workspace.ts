@@ -528,16 +528,16 @@ export class Workspace implements IWorkspace {
    */
   public async echoLines(lines: string[], truncate = false): Promise<void> {
     let { nvim } = this
-    let cmdHeight = await nvim.getOption('cmdheight') as number
+    let cmdHeight = this.env.cmdheight
     if (lines.length > cmdHeight && truncate) {
       lines = lines.slice(0, cmdHeight)
       let last = lines[cmdHeight - 1]
       lines[cmdHeight - 1] = `${last} ...`
     }
-    let columns = await nvim.getOption('columns')
+    let maxLen = this.env.columns - (this.isVim ? 9 : 12)
     lines = lines.map(line => {
       line = line.replace(/\n/g, ' ')
-      if (truncate) line = line.slice(0, (columns as number) - 1)
+      if (truncate) line = line.slice(0, maxLen)
       return line
     })
     nvim.callTimer('coc#util#echo_lines', [lines], true)
