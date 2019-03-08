@@ -117,7 +117,7 @@ export default class Handler {
     events.on(['CursorMoved', 'CursorMovedI'], async () => {
       if (!this.preferences.previewAutoClose) return
       this.cursorMoveTs = Date.now()
-      if (workspace.env.floating) {
+      if (this.preferences.hoverTarget == 'float') {
         await this.hoverFactory.close()
       } else {
         this.hoverFactory.close()
@@ -128,21 +128,19 @@ export default class Handler {
       }
     }, null, this.disposables)
 
-    if (!workspace.env.floating) {
-      let provider: TextDocumentContentProvider = {
-        onDidChange: null,
-        provideTextDocumentContent: async () => {
-          nvim.pauseNotification()
-          nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
-          nvim.command('setlocal bufhidden=wipe nobuflisted', true)
-          nvim.command('setfiletype markdown', true)
-          nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
-          nvim.resumeNotification()
-          return this.documentLines.join('\n')
-        }
+    let provider: TextDocumentContentProvider = {
+      onDidChange: null,
+      provideTextDocumentContent: async () => {
+        nvim.pauseNotification()
+        nvim.command('setlocal conceallevel=2 nospell nofoldenable wrap', true)
+        nvim.command('setlocal bufhidden=wipe nobuflisted', true)
+        nvim.command('setfiletype markdown', true)
+        nvim.command(`exe "normal! z${this.documentLines.length}\\<cr>"`, true)
+        await nvim.resumeNotification()
+        return this.documentLines.join('\n')
       }
-      this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     }
+    this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
   }
@@ -155,8 +153,11 @@ export default class Handler {
     if (hovers && hovers.length) {
       await this.previewHover(hovers)
     } else {
-      if (workspace.env.floating) {
+      let target = this.preferences.hoverTarget
+      if (target == 'float') {
         this.hoverFactory.close()
+      } else if (target == 'preview') {
+        this.nvim.command('pclose')
       }
     }
   }
@@ -801,9 +802,6 @@ export default class Handler {
   private async previewHover(hovers: Hover[]): Promise<void> {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
-    if (workspace.env.floating) {
-      target = 'floating'
-    }
     let i = 0
     for (let hover of hovers) {
       let { contents } = hover
@@ -837,7 +835,7 @@ export default class Handler {
     }
     if (target == 'echo') {
       await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim())
-    } else if (target == 'floating') {
+    } else if (target == 'float') {
       await this.hoverFactory.create(lines, 'markdown')
     } else {
       this.documentLines = lines
@@ -859,7 +857,7 @@ export default class Handler {
     this.preferences = {
       triggerSignatureHelp: config.get<boolean>('triggerSignatureHelp', true),
       formatOnType: config.get<boolean>('formatOnType', false),
-      hoverTarget: config.get<string>('hoverTarget', 'preview'),
+      hoverTarget: config.get<string>('hoverTarget', workspace.env.floating ? 'float' : 'preview'),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
   }

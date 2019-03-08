@@ -423,7 +423,6 @@ coc#config({section}, {value})
 
 	call coc#config('coc.preferences', {
 		\ 'timeout': 1000,
-		\ 'hoverTarget': 'echo',
 		\})
 	call coc#config('languageserver', {
 		\ 'ccls': {

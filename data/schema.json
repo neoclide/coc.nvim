@@ -445,8 +445,7 @@
     },
     "coc.preferences.hoverTarget": {
       "type": "string",
-      "default": "preview",
-      "description": "Target to show hover information, default is preview window, could also be echo",
+      "description": "Target to show hover information, default is floating window when possible.",
       "enum": ["preview", "echo"]
     },
     "coc.preferences.colorSupport": {
