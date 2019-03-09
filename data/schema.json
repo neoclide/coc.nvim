@@ -438,7 +438,7 @@
     "coc.preferences.hoverTarget": {
       "type": "string",
       "description": "Target to show hover information, default is floating window when possible.",
-      "enum": ["preview", "echo"]
+      "enum": ["preview", "echo", "float"]
     },
     "coc.preferences.colorSupport": {
       "type": "boolean",
