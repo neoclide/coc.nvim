@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Position, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -95,6 +95,7 @@ export class DiagnosticManager {
       let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
       if (idx == -1) return
       let buf = this.buffers[idx]
+      buf.dispose()
       this.buffers.splice(idx, 1)
       for (let collection of this.collections) {
         collection.delete(buf.uri)
@@ -124,20 +125,28 @@ export class DiagnosticManager {
 
     // create buffers
     for (let doc of workspace.documents) {
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc, this.config))
-      }
+      this.createDiagnosticBuffer(doc)
     }
     workspace.onDidOpenTextDocument(textDocument => {
       let doc = workspace.getDocument(textDocument.uri)
-      if (this.shouldValidate(doc)) {
-        this.buffers.push(new DiagnosticBuffer(doc, this.config))
-      }
+      this.createDiagnosticBuffer(doc)
     }, null, this.disposables)
     this.setConfigurationErrors(true)
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
     }, null, this.disposables)
+  }
+
+  private createDiagnosticBuffer(doc: Document): void {
+    if (!this.shouldValidate(doc)) return
+    let idx = this.buffers.findIndex(b => b.bufnr == doc.bufnr)
+    if (idx == -1) {
+      let buf = new DiagnosticBuffer(doc, this.config)
+      this.buffers.push(buf)
+      buf.onDidRefresh(() => {
+        this.echoMessage(true)
+      })
+    }
   }
 
   public setConfigurationErrors(init?: boolean): void {
@@ -382,6 +391,8 @@ export class DiagnosticManager {
           hlGroup = 'CocInfoSign'
           break
       }
+      let mode = await this.nvim.call('mode')
+      if (mode != 'n') return
       await this.floatFactory.create(lines, '', hlGroup)
     } else {
       this.lastMessage = lines[0]
@@ -450,7 +461,7 @@ export class DiagnosticManager {
   }
 
   private shouldValidate(doc: Document | null): boolean {
-    return doc != null && doc.buftype == '' && !doc.uri.startsWith('nofile')
+    return doc != null && doc.buftype == ''
   }
 
   private refreshBuffer(uri: string): boolean {

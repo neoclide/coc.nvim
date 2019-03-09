@@ -115,7 +115,7 @@ export default class Handler {
       await this.hoverFactory.close()
     }, null, this.disposables)
 
-    events.on(['CursorMoved', 'CursorMovedI'], async () => {
+    events.on('CursorMoved', async () => {
       if (!this.preferences.previewAutoClose) return
       this.cursorMoveTs = Date.now()
       if (this.preferences.hoverTarget == 'float') {

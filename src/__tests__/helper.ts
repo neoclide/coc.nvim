@@ -60,6 +60,7 @@ export class Helper extends Emitter {
     if (this.proc) {
       this.proc.kill('SIGKILL')
     }
+    await this.wait(60)
   }
 
   public async waitPopup(): Promise<void> {
@@ -74,8 +75,8 @@ export class Helper extends Emitter {
   public async reset(): Promise<void> {
     let mode = await this.nvim.call('mode')
     if (mode !== 'n') {
-      this.nvim.command('stopinsert', true)
-      this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'], true)
+      await this.nvim.command('stopinsert')
+      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'])
     }
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(60)

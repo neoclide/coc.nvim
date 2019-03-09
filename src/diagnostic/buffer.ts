@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range, Disposable } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { LocationListItem } from '../types'
 import CallSequence from '../util/callSequence'
@@ -13,7 +13,7 @@ const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 const STARTMATCHID = 1090
 
 // maintains sign and highlightId
-export class DiagnosticBuffer {
+export class DiagnosticBuffer implements Disposable {
   private matchIds: Set<number> = new Set()
   private signIds: Set<number> = new Set()
   private sequence: CallSequence = null
@@ -303,5 +303,12 @@ export class DiagnosticBuffer {
 
   public hasMatch(match: number): boolean {
     return this.matchIds.has(match)
+  }
+
+  public dispose(): void {
+    if (this.sequence) {
+      this.sequence.cancel()
+    }
+    this._onDidRefresh.dispose()
   }
 }

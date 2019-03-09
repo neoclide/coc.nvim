@@ -63,7 +63,6 @@ export default class FloatFactory {
 
   public async create(lines: string[], filetype: string, hlGroup = 'CocFloating', config?: WindowConfig): Promise<Window | undefined> {
     if (!this.env.floating) return
-    if (this._creating) await wait(50)
     this._creating = true
     lines = lines.reduce((p, c) => {
       return p.concat(this.softSplit(c, 78))
@@ -91,6 +90,7 @@ export default class FloatFactory {
       window.setCursor([1, 1], true)
       window.setOption('list', false, true)
       window.setOption('wrap', false, true)
+      window.setOption('previewwindow', true, true)
       window.setOption('number', false, true)
       window.setOption('cursorline', false, true)
       window.setOption('cursorcolumn', false, true)
