@@ -1,14 +1,13 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Range, Emitter, Event } from 'vscode-languageserver-protocol'
-import { DiagnosticItems, LocationListItem } from '../types'
-import { equals, deepClone } from '../util/object'
-import { byteIndex, byteLength } from '../util/string'
+import { Diagnostic, DiagnosticSeverity, Emitter, Event, Range } from 'vscode-languageserver-protocol'
+import Document from '../model/document'
+import { LocationListItem } from '../types'
 import CallSequence from '../util/callSequence'
+import { equals } from '../util/object'
+import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
 import { DiagnosticConfig } from './manager'
-import { getNameFromSeverity, getLocationListItem } from './util'
-import Document from '../model/document'
-import { comparePosition } from '../util/position'
+import { getLocationListItem, getNameFromSeverity } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
 const STARTMATCHID = 1090
@@ -17,21 +16,21 @@ const STARTMATCHID = 1090
 export class DiagnosticBuffer {
   private matchIds: Set<number> = new Set()
   private signIds: Set<number> = new Set()
-  private _diagnosticItems: DiagnosticItems = {}
   private sequence: CallSequence = null
   private matchId = STARTMATCHID
   private readonly _onDidRefresh = new Emitter<void>()
+  public diagnostics: ReadonlyArray<Diagnostic> = []
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public readonly bufnr: number
   public readonly uri: string
-  public refresh: (diagnosticItems: DiagnosticItems) => void
+  public refresh: (diagnosticItems: ReadonlyArray<Diagnostic>) => void
 
   constructor(doc: Document, private config: DiagnosticConfig) {
     this.bufnr = doc.bufnr
     this.uri = doc.uri
     let timer: NodeJS.Timer = null
     let time = Date.now()
-    this.refresh = (diagnosticItems: DiagnosticItems) => {
+    this.refresh = (diagnostics: ReadonlyArray<Diagnostic>) => {
       time = Date.now()
       if (timer) clearTimeout(timer)
       timer = setTimeout(async () => {
@@ -41,7 +40,7 @@ export class DiagnosticBuffer {
         }
         // staled
         if (current != time) return
-        this._refresh(Object.freeze(deepClone(diagnosticItems)))
+        this._refresh(diagnostics)
       }, global.hasOwnProperty('__TEST__') ? 30 : 50)
     }
   }
@@ -50,9 +49,8 @@ export class DiagnosticBuffer {
     return workspace.nvim
   }
 
-  private _refresh(diagnosticItems: DiagnosticItems): void {
-    let diagnostics = this.getDiagnostics(diagnosticItems)
-    if (this.equalDiagnostics(diagnosticItems)) return
+  private _refresh(diagnostics: ReadonlyArray<Diagnostic>): void {
+    if (equals(this.diagnostics, diagnostics)) return
     let sequence = this.sequence = new CallSequence()
     let winid: number
     sequence.addFunction(async () => {
@@ -74,7 +72,7 @@ export class DiagnosticBuffer {
     })
     sequence.start().then(async canceled => {
       if (!canceled) {
-        this._diagnosticItems = diagnosticItems
+        this.diagnostics = diagnostics
         this._onDidRefresh.fire(void 0)
       }
     }, e => {
@@ -82,24 +80,7 @@ export class DiagnosticBuffer {
     })
   }
 
-  private equalDiagnostics(diagnosticItems: DiagnosticItems): boolean {
-    if (Object.keys(this._diagnosticItems).length != Object.keys(diagnosticItems).length) {
-      return false
-    }
-    for (let key of Object.keys(diagnosticItems)) {
-      let diagnostics = diagnosticItems[key]
-      let curr = this._diagnosticItems[key]
-      if ((diagnostics == null || diagnostics.length == 0) && (!curr || curr.length == 0)) {
-        continue
-      }
-      if (!equals(diagnostics, curr)) {
-        return false
-      }
-    }
-    return true
-  }
-
-  public async setLocationlist(diagnostics: Diagnostic[], winid: number): Promise<void> {
+  public async setLocationlist(diagnostics: ReadonlyArray<Diagnostic>, winid: number): Promise<void> {
     if (!this.config.locationlist) return
     let { nvim, bufnr } = this
     // not shown
@@ -140,7 +121,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  public addSigns(diagnostics: Diagnostic[]): void {
+  public addSigns(diagnostics: ReadonlyArray<Diagnostic>): void {
     this.clearSigns()
     let { nvim, bufnr, signIds } = this
     let signId = this.config.signOffset
@@ -158,7 +139,7 @@ export class DiagnosticBuffer {
     }
   }
 
-  public setDiagnosticInfo(diagnostics: Diagnostic[]): void {
+  public setDiagnosticInfo(diagnostics: ReadonlyArray<Diagnostic>): void {
     let info = { error: 0, warning: 0, information: 0, hint: 0 }
     for (let diagnostic of diagnostics) {
       switch (diagnostic.severity) {
@@ -182,7 +163,7 @@ export class DiagnosticBuffer {
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
   }
 
-  private addDiagnosticVText(diagnostics: Diagnostic[]): void {
+  private addDiagnosticVText(diagnostics: ReadonlyArray<Diagnostic>): void {
     let { bufnr, nvim } = this
     if (!this.config.virtualText) return
     if (!nvim.hasFunction('nvim_buf_set_virtual_text')) return
@@ -222,7 +203,7 @@ export class DiagnosticBuffer {
     this.matchIds.clear()
   }
 
-  public addHighlight(diagnostics: Diagnostic[], winid): void {
+  public addHighlight(diagnostics: ReadonlyArray<Diagnostic>, winid): void {
     this.clearHighlight()
     if (diagnostics.length == 0) return
     if (winid == -1 && workspace.isVim) return
@@ -290,22 +271,6 @@ export class DiagnosticBuffer {
     } catch (e) {
       logger.error(e.stack)
     }
-  }
-
-  private getDiagnostics(diagnosticItems: DiagnosticItems): Diagnostic[] {
-    let res: Diagnostic[] = []
-    for (let owner of Object.keys(diagnosticItems)) {
-      for (let diagnostic of diagnosticItems[owner]) {
-        res.push(diagnostic)
-      }
-    }
-    res.sort((a, b) => {
-      if (a.severity == b.severity) {
-        return comparePosition(a.range.start, b.range.start)
-      }
-      return a.severity - b.severity
-    })
-    return res
   }
 
   /**

@@ -79,12 +79,9 @@ export default class FloatFactory {
         await buffer.setOption('bufhidden', 'hide')
       }
       nvim.pauseNotification()
-      if (window) {
-        this.nvim.call('coc#util#close_win', [window.id], true)
-      }
+      if (window) this.nvim.call('coc#util#close_win', [window.id], true)
       buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
       if (filetype) buffer.setOption('filetype', filetype, true)
-      logger.debug('lines:', lines)
       window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
         col: config.col,
         row: config.row,

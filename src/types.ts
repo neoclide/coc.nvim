@@ -37,10 +37,6 @@ export interface ErrorItem {
   message: string
 }
 
-export interface DiagnosticItems {
-  [owner: string]: Diagnostic[]
-}
-
 export interface StatusItemOption {
   progress?: boolean
 }

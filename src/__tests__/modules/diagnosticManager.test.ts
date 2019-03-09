@@ -61,7 +61,7 @@ describe('diagnostic manager', () => {
     collection.set(doc.uri, diagnostics)
     await helper.wait(30)
     nvim.input('<esc>')
-    await helper.wait(300)
+    await helper.wait(600)
     let res = await doc.buffer.getVar('coc_diagnostic_info') as any
     expect(res.error).toBe(1)
   })
@@ -83,7 +83,7 @@ describe('diagnostic manager', () => {
     diagnostics.push(createDiagnostic('y', Range.create(0, 1, 0, 2)))
     diagnostics.push(createDiagnostic('z', Range.create(1, 0, 1, 2)))
     collection.set(doc.uri, diagnostics)
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     expect(ranges[0]).toEqual(Range.create(0, 0, 0, 1))
     expect(ranges[1]).toEqual(Range.create(0, 1, 0, 2))
     expect(ranges[2]).toEqual(Range.create(1, 0, 1, 2))
@@ -110,7 +110,7 @@ describe('diagnostic manager', () => {
   it('should jump to previous', async () => {
     let doc = await createDocument()
     await nvim.command('normal! G')
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     ranges.reverse()
     for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
       await manager.jumpPrevious()
@@ -122,7 +122,7 @@ describe('diagnostic manager', () => {
   it('should jump to next', async () => {
     let doc = await createDocument()
     await nvim.call('cursor', [0, 0])
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
       await manager.jumpNext()
       let pos = await workspace.getCursorPosition()
