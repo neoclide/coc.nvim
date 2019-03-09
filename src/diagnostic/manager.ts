@@ -379,16 +379,16 @@ export class DiagnosticManager {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      let hlGroup = 'CocErrorSign'
+      let hlGroup = 'CocErrorFloat'
       switch (diagnostics[0].severity) {
         case DiagnosticSeverity.Hint:
-          hlGroup = 'CocHintSign'
+          hlGroup = 'CocHintFloat'
           break
         case DiagnosticSeverity.Warning:
-          hlGroup = 'CocWarningSign'
+          hlGroup = 'CocWarningFloat'
           break
         case DiagnosticSeverity.Information:
-          hlGroup = 'CocInfoSign'
+          hlGroup = 'CocInfoFloat'
           break
       }
       let mode = await this.nvim.call('mode')

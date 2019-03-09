@@ -951,6 +951,30 @@ CocHintSign 					*CocHintSign*
 
   The highlight used for hint signs.
 
+CocErrorFloat 					*CocErrorFloat*
+
+  Default: `hi default link CocErrorFloat CocErrorSign`
+
+  The highlight used for error float window.
+
+CocWarningFloat 					*CocWarningFloat*
+
+  Default: `hi default link CocWarningFloat CocWarningSign`
+
+  The highlight used for warning float window.
+
+CocInfoFloat 					*CocInfoFloat*
+
+  Default: `hi default link CocInfoFloat CocInfoSign`
+
+  The highlight used for information float window.
+
+CocHintFloat 					*CocHintFloat*
+
+  Default: `hi default link CocHintFloat CocHintSign`
+
+  The highlight used for hint float window.
+
 CocErrorHighlight 				*CocErrorHighlight*
 
   Default: `hi default link CocErrorHighlight   CocUnderline`

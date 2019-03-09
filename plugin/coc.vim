@@ -175,6 +175,10 @@ hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
 hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
 hi default CocSelectedText ctermfg=Red     guifg=#fb4934
 hi default CocCodeLens     ctermfg=Gray    guifg=#999999
+hi default link CocErrorFloat   CocErrorSign
+hi default link CocWarningFloat CocWarningSign
+hi default link CocInfoFloat    CocInfoSign
+hi default link CocHintFloat    CocHintSign
 hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline

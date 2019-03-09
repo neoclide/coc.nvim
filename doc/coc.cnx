@@ -923,6 +923,30 @@ CocHintSign 					*CocHintSign*
 
   提醒标记符使用的高亮。
 
+CocErrorFloat 					*CocErrorFloat*
+
+  默认: `hi default link CocErrorFloat CocErrorSign`
+
+  错误浮窗符使用的高亮。
+
+CocWarningFloat 					*CocWarningFloat*
+
+  默认: `hi default link CocWarningFloat CocWarningSign`
+
+  警告浮窗符使用的高亮。
+
+CocInfoFloat 					*CocInfoFloat*
+
+  默认: `hi default link CocInfoFloat CocInfoSign`
+
+  信息浮窗符使用的高亮。
+
+CocHintFloat 					*CocHintFloat*
+
+  默认: `hi default link CocHintFloat CocHintSign`
+
+  提醒浮窗符使用的高亮。
+
 CocErrorHighlight 				*CocErrorHighlight*
 
   默认： `hi default link CocErrorHighlight   CocUnderline`
