@@ -34,7 +34,7 @@ export default class FloatingWindow {
   }
 
   public async show(content: string, bounding: PumBounding, kind?: MarkupKind, hasDetail = false): Promise<void> {
-    this.content = content
+    this.content = content.replace(/\r/g, '')
     this.bounding = bounding
     this.kind = kind
     this.hasDetail = hasDetail
