@@ -55,7 +55,6 @@ export class Workspace implements IWorkspace {
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
   private disposables: Disposable[] = []
-  private checkBuffer: Function & { clear(): void; }
   private setupDynamicAutocmd: Function & { clear(): void; }
   private watchedOptions: Set<string> = new Set()
 
@@ -84,11 +83,6 @@ export class Workspace implements IWorkspace {
     this.version = json.version
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)
-    this.checkBuffer = debounce(() => {
-      this._checkBuffer().catch(e => {
-        logger.error(e)
-      })
-    }, 100)
     this.setupDynamicAutocmd = debounce(() => {
       this._setupDynamicAutocmd().catch(e => {
         logger.error(e)
@@ -597,9 +591,8 @@ export class Workspace implements IWorkspace {
    * Get current cursor position.
    */
   public async getCursorPosition(): Promise<Position> {
-    let [, lnum, col] = await this.nvim.call('getpos', ['.'])
-    let line = await this.nvim.call('getline', '.')
-    return Position.create(lnum - 1, byteIndex(line, col - 1))
+    let [line, character] = await this.nvim.call('coc#util#cursor')
+    return Position.create(line, character)
   }
 
   /**
@@ -976,7 +969,6 @@ export class Workspace implements IWorkspace {
     disposeAll(this.disposables)
     Watchman.dispose()
     this.configurations.dispose()
-    this.checkBuffer.clear()
     this.setupDynamicAutocmd.clear()
     this.buffers.clear()
     if (this.statusLine) this.statusLine.dispose()
@@ -1049,10 +1041,10 @@ augroup end`
   private async attach(): Promise<void> {
     if (this._attached) return
     this._attached = true
-    let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     let buffers = await this.nvim.buffers
+    let bufnr = this.bufnr = await this.nvim.call('bufnr', '%')
     await Promise.all(buffers.map(buf => {
-      return this.onBufCreate(buf, true)
+      return this.onBufCreate(buf)
     }))
     if (!this._initialized) {
       this._onDidWorkspaceInitialized.fire(void 0)
@@ -1120,40 +1112,29 @@ augroup end`
     events.on('TextChanged', onChange, null, this.disposables)
   }
 
-  private async onBufCreate(buf: number | Buffer, initialize = false): Promise<void> {
-    this.checkBuffer.clear()
+  private async onBufCreate(buf: number | Buffer): Promise<void> {
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
-    if (this.creating.has(buffer.id)) return
-    this.creating.add(buffer.id)
-    let loaded = await this.nvim.call('bufloaded', buffer.id)
-    if (!loaded) {
-      this.creating.delete(buffer.id)
-      return
-    }
     let bufnr = buffer.id
+    if (this.creating.has(bufnr)) return
+    this.creating.add(bufnr)
     let document = this.getDocument(bufnr)
     try {
       if (document) await events.fire('BufUnload', [bufnr])
-      document = new Document(buffer,
-        this.configurations.getConfiguration('coc.preferences'),
-        this._env)
+      let configuration = this.configurations.getConfiguration('coc.preferences')
+      document = new Document(buffer, configuration, this._env)
       let created = await document.init(this.nvim)
-      if (!created) {
-        this.creating.delete(bufnr)
-        return
-      }
+      if (!created) document = null
     } catch (e) {
-      this.creating.delete(bufnr)
       logger.error(e)
-      return
+    } finally {
+      this.creating.delete(bufnr)
     }
-    this.creating.delete(bufnr)
+    if (!document) return
     this.buffers.set(bufnr, document)
     document.onDocumentDetach(uri => {
       let doc = this.getDocument(uri)
       if (doc) this.onBufUnload(doc.bufnr)
     })
-    if (!initialize) this.bufnr = await this.nvim.call('bufnr', '%')
     if (bufnr == this.bufnr
       && document.buftype == ''
       && document.schema == 'file') {
@@ -1196,6 +1177,7 @@ augroup end`
   private async onBufWritePost(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
+    await doc.checkDocument()
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
@@ -1212,7 +1194,6 @@ augroup end`
   private async onBufWritePre(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
-    await doc.checkDocument()
     let event: TextDocumentWillSaveEvent = {
       document: doc.textDocument,
       reason: TextDocumentSaveReason.Manual
@@ -1236,13 +1217,8 @@ augroup end`
     this._onDidOpenDocument.fire(doc.textDocument)
   }
 
-  private async _checkBuffer(): Promise<void> {
-    await wait(30)
+  private async checkBuffer(bufnr): Promise<void> {
     if (this._disposed) return
-    let bufnr = await this.nvim.call('bufnr', '%')
-    // it's possible that vim exiting
-    if (!bufnr) return
-    this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
     if (!doc) await this.onBufCreate(bufnr)
   }
@@ -1257,8 +1233,7 @@ augroup end`
     let dir = path.dirname(u.fsPath)
     if (dir != os.homedir()) {
       const preferences = this.getConfiguration('coc.preferences')
-      let roots = preferences.get<string[]>('rootPatterns')
-      roots = roots || ['.vim', '.git', '.hg', '.projections.json']
+      let roots = preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json'])
       roots = roots.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
       return resolveRoot(dir, roots)
     }

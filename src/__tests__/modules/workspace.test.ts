@@ -537,6 +537,18 @@ describe('workspace utility', () => {
     expect(buf.id).toBe(bufnr)
   })
 
+  it('should get cursor position', async () => {
+    await helper.createDocument()
+    await nvim.setLine('测试')
+    await nvim.input('A')
+    await helper.wait(30)
+    let pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({
+      line: 0,
+      character: 2
+    })
+  })
+
   it('should get current state', async () => {
     let buf = await helper.edit()
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })

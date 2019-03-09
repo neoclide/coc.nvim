@@ -1,6 +1,5 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import semver from 'semver'
 import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env, WorkspaceConfiguration } from '../types'
@@ -52,13 +51,7 @@ export default class Document {
   }
 
   private shouldAttach(buftype: string): boolean {
-    let { isVim, version } = this.env
-    // no need to attach these buffers
-    if (['help', 'quickfix', 'nofile'].indexOf(buftype) != -1) return false
-    if (buftype == 'terminal' && !isVim) {
-      if (semver.lt(version, '0.3.2')) return false
-    }
-    return true
+    return buftype == '' || buftype == 'acwrite'
   }
 
   public get words(): string[] {
@@ -86,8 +79,7 @@ export default class Document {
     }
     if (filetype == 'javascript.jsx') return 'javascriptreact'
     if (filetype == 'typescript.jsx' || filetype == 'typescript.tsx') return 'typescriptreact'
-    if (map[filetype]) return map[filetype]
-    return filetype
+    return map[filetype] || filetype
   }
 
   /**
@@ -112,7 +104,7 @@ export default class Document {
     this.nvim = nvim
     let { buffer } = this
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
-    if (!opts) return false
+    if (opts == null) return false
     let buftype = this.buftype = opts.buftype
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
@@ -130,9 +122,7 @@ export default class Document {
     this._filetype = this.convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
-    this.gitCheck().catch(e => {
-      logger.error('git error', e.stack)
-    })
+    this.gitCheck()
     return true
   }
 
@@ -145,7 +135,6 @@ export default class Document {
   }
 
   public async attach(): Promise<boolean> {
-    if (this.buffer.isAttached) return false
     let attached = await this.buffer.attach(false)
     if (!attached) return false
     this.lines = (await this.buffer.lines) as string[]
@@ -231,13 +220,14 @@ export default class Document {
   }
 
   public detach(): void {
-    if (!this.attached) return
     // neovim not detach on `:checktime`
-    this.attached = false
-    this._onDocumentDetach.fire(this.uri)
-    this.buffer.detach().catch(_e => {
-      // noop
-    })
+    if (this.attached) {
+      this.attached = false
+      this._onDocumentDetach.fire(this.uri)
+      this.buffer.detach().catch(_e => {
+        // noop
+      })
+    }
     this.fetchContent.clear()
     this.fireContentChanges.clear()
     this._onDocumentChange.dispose()
@@ -367,11 +357,15 @@ export default class Document {
     return Range.create(position.line, start, position.line, end)
   }
 
-  private async gitCheck(): Promise<void> {
+  private gitCheck(): void {
     let { uri } = this
     if (!uri.startsWith('file')) return
     let filepath = Uri.parse(uri).fsPath
-    this.isIgnored = await isGitIgnored(filepath)
+    isGitIgnored(filepath).then(isIgnored => {
+      this.isIgnored = isIgnored
+    }, () => {
+      this.isIgnored = false
+    })
   }
 
   private createDocument(changeCount = 1): void {

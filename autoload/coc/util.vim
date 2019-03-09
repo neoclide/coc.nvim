@@ -38,6 +38,13 @@ function! coc#util#yarn_cmd()
   return ''
 endfunction
 
+" get cursor position
+function! coc#util#cursor()
+  let pos = getcurpos()
+  let content = pos[2] == 1 ? '' : getline('.')[0: pos[2] - 2]
+  return [pos[1] - 1, strchars(content)]
+endfunction
+
 function! coc#util#close_win(id)
   let winnr = win_id2win(a:id)
   if winnr > 0
@@ -194,7 +201,7 @@ function! coc#util#is_preview(bufnr)
 endfunction
 
 function! coc#util#get_bufoptions(bufnr) abort
-  if !bufloaded(a:bufnr) | return v:null| endif
+  if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   return {
         \ 'bufname': bufname,

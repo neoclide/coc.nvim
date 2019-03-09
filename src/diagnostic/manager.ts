@@ -33,7 +33,7 @@ export interface DiagnosticConfig {
   virtualTextLineSeparator: string
 }
 
-export class DiagnosticManager {
+export class DiagnosticManager implements Disposable {
   public config: DiagnosticConfig
   public enabled = true
   public readonly buffers: DiagnosticBuffer[] = []
@@ -48,6 +48,9 @@ export class DiagnosticManager {
     this.insertMode = workspace.env.mode.startsWith('i')
     this.floatFactory = new FloatFactory(nvim, workspace.env, 'diagnostic-float')
     let timer: NodeJS.Timeout
+    this.disposables.push(Disposable.create(() => {
+      if (timer) clearTimeout(timer)
+    }))
     events.on('CursorMoved', async () => {
       if (timer) clearTimeout(timer)
       if (this.floatFactory.creating) return
@@ -55,7 +58,7 @@ export class DiagnosticManager {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
-      }, 200)
+      }, 300)
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
@@ -347,9 +350,6 @@ export class DiagnosticManager {
 
   /**
    * Echo diagnostic message of currrent position
-   *
-   * @private
-   * @returns {Promise<void>}
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
