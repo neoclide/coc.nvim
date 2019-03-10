@@ -53,19 +53,12 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
   nvim.callTimer('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
-export function getUri(bufname: string, id: number, buftype: string): string {
-  if (buftype == 'quickfix') return Uri.parse(`quickfix:${process.cwd()}/${id}`).toString()
-  if (buftype == 'nofile') return Uri.parse(`nofile:${bufname}/${id}`).toString()
-  if (buftype == 'terminal') {
-    if (bufname.startsWith('!')) {
-      return Uri.parse(`term://${bufname.slice(1)}`).toString()
-    }
-    return Uri.parse(bufname).toString()
-  }
-  if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
-  if (path.isAbsolute(bufname)) return Uri.file(bufname).toString()
-  if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
-  return Uri.parse(`nofile:${bufname}/${id}`).toString()
+export function getUri(fullpath: string, id: number, buftype: string): string {
+  if (buftype != '') return `${buftype}:${id}`
+  if (!fullpath) return `untitled:${id}`
+  if (path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
+  if (isuri.isValid(fullpath)) return Uri.parse(fullpath).toString()
+  return `unknown:${id}`
 }
 
 export function disposeAll(disposables: Disposable[]): void {

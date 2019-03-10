@@ -20,7 +20,6 @@ export interface FileChangeItem {
   exists: boolean
   type: 'f' | 'd'
   mtime_ms: number
-  ['content.sha1hex']?: string
 }
 
 export interface FileChange {
@@ -102,7 +101,7 @@ export default class Watchman {
     let uid = uuidv1()
     let sub: any = {
       expression: ['allof', ['match', globPattern, 'wholename']],
-      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms', 'content.sha1hex'],
+      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
       since: clock,
     }
     let root = watch

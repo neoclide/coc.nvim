@@ -108,8 +108,7 @@ export default class Document {
     let buftype = this.buftype = opts.buftype
     this._changedtick = opts.changedtick
     this.eol = opts.eol == 1
-    let bufname = buftype == 'nofile' || opts.bufname == '' ? opts.bufname : opts.fullpath
-    let uri = this._uri = getUri(bufname, buffer.id, buftype)
+    let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
     if (this.shouldAttach(buftype)) {
       if (!this.env.isVim) {
         let res = await this.attach()

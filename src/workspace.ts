@@ -1125,10 +1125,11 @@ augroup end`
       let created = await document.init(this.nvim)
       if (!created) document = null
     } catch (e) {
-      logger.error(e)
-    } finally {
       this.creating.delete(bufnr)
+      logger.error('Error on create buffer:', e)
+      return
     }
+    this.creating.delete(bufnr)
     if (!document) return
     this.buffers.set(bufnr, document)
     document.onDocumentDetach(uri => {

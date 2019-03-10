@@ -206,7 +206,7 @@ function! coc#util#get_bufoptions(bufnr) abort
   return {
         \ 'bufname': bufname,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
-        \ 'fullpath': fnamemodify(bufname, ':p'),
+        \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'buftype': getbufvar(a:bufnr, '&buftype'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),

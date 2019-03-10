@@ -345,7 +345,7 @@
     },
     "diagnostic.displayByAle": {
       "type": "boolean",
-      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics.",
+      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
       "default": false
     },
     "diagnostic.virtualText": {
