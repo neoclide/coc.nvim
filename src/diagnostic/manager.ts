@@ -42,20 +42,19 @@ export class DiagnosticManager implements Disposable {
   private disposables: Disposable[] = []
   private lastMessage = ''
   private insertMode = false
+  private timer: NodeJS.Timer
 
   public async init(): Promise<void> {
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
     this.floatFactory = new FloatFactory(nvim, workspace.env, 'diagnostic-float')
-    let timer: NodeJS.Timeout
     this.disposables.push(Disposable.create(() => {
-      if (timer) clearTimeout(timer)
+      if (this.timer) clearTimeout(this.timer)
     }))
     events.on('CursorMoved', async () => {
-      if (timer) clearTimeout(timer)
+      if (this.timer) clearTimeout(this.timer)
       if (this.floatFactory.creating) return
-      this.floatFactory.close()
-      timer = setTimeout(async () => {
+      this.timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
@@ -63,9 +62,8 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
-      if (timer) clearTimeout(timer)
+      if (this.timer) clearTimeout(this.timer)
       this.insertMode = true
-      await this.floatFactory.close()
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
@@ -81,7 +79,7 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
-      if (timer) clearTimeout(timer)
+      if (this.timer) clearTimeout(this.timer)
       if (!this.config || !this.enabled || !this.config.locationlist) return
       let doc = await workspace.document
       if (!this.shouldValidate(doc) || doc.bufnr != bufnr) return
@@ -184,7 +182,6 @@ export class DiagnosticManager implements Disposable {
     let disposable = collection.onDidDiagnosticsChange(async uri => {
       if (this.config.refreshAfterSave) return
       this.refreshBuffer(uri)
-      this.echoMessage(true)
     })
     let dispose = collection.onDidDiagnosticsClear(uris => {
       for (let uri of uris) {
@@ -354,15 +351,17 @@ export class DiagnosticManager implements Disposable {
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
-    let bufnr = await this.nvim.call('bufnr', '%')
+    if (this.floatFactory.creating) return
+    if (this.timer) clearTimeout(this.timer)
+    let buf = await this.nvim.buffer
     let pos = await workspace.getCursorPosition()
-    let buffer = this.buffers.find(o => o.bufnr == bufnr)
+    let buffer = this.buffers.find(o => o.bufnr == buf.id)
     if (!buffer || this.insertMode) return
     let useFloat = workspace.env.floating && !global.hasOwnProperty('__TEST__')
     let diagnostics = buffer.diagnostics.filter(o => positionInRange(pos, o.range) == 0)
     if (diagnostics.length == 0) {
       if (useFloat) {
-        await this.floatFactory.close()
+        this.floatFactory.close()
       } else {
         let echoLine = await this.nvim.call('coc#util#echo_line') as string
         if (this.lastMessage && this.lastMessage == echoLine.trim()) {

@@ -112,22 +112,14 @@ export default class Handler {
     }, null, this.disposables)
     events.on('InsertEnter', async () => {
       this.clearHighlight(workspace.bufnr)
-      await this.hoverFactory.close()
     }, null, this.disposables)
-
-    events.on('CursorMoved', async () => {
+    events.on('CursorMoved', async bufnr => {
       if (!this.preferences.previewAutoClose) return
       this.cursorMoveTs = Date.now()
-      if (this.preferences.hoverTarget == 'float') {
-        if (!this.hoverFactory.creating) {
-          await this.hoverFactory.close()
-        }
-      } else {
-        this.hoverFactory.close()
-        let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
-        if (doc && doc.bufnr != workspace.bufnr) {
-          nvim.command('pclose', true)
-        }
+      if (this.preferences.hoverTarget == 'float') return
+      let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
+      if (doc && doc.bufnr != bufnr) {
+        nvim.command('pclose', true)
       }
     }, null, this.disposables)
 
