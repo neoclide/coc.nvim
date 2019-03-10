@@ -62,12 +62,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public regist(service: IServiceProvider): Disposable {
     let { id } = service
-    if (!id) logger.error('invalid service ', service.name)
-    if (this.registed.get(id)) {
-      workspace.showMessage(`Service ${id} already exists`, 'error')
-      return
-    }
+    if (!id) logger.error('invalid service configuration. ', service.name)
+    if (this.registed.get(id)) return
     this.registed.set(id, service)
+    logger.info(`registed service "${id}"`)
     if (this.shouldStart(service)) {
       service.start() // tslint:disable-line
     }
@@ -178,9 +176,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
     for (let key of Object.keys(lspConfig)) {
-      if (!/^\w+$/.test(key)) {
-        workspace.showMessage(`Invalid languageserver id: ${key}, only character allowed!`, 'error')
-      }
+      if (this.registed.get(key)) continue
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
       if (config.enable === false || this.hasService(id)) continue
