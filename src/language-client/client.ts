@@ -3570,6 +3570,10 @@ export abstract class BaseLanguageClient {
       workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
       return
     }
+    let workspaceFolder = this._clientOptions.workspaceFolder || {
+      uri: Uri.file(rootPath).toString(),
+      name: path.basename(rootPath)
+    }
 
     let initParams: InitializeParams = {
       processId: process.pid,
@@ -3578,9 +3582,8 @@ export abstract class BaseLanguageClient {
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),
-      workspaceFolders: null
+      workspaceFolders: [workspaceFolder]
     }
-    delete initParams.workspaceFolders
     this.fillInitializeParams(initParams)
     return connection
       .initialize(initParams)
