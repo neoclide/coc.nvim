@@ -442,7 +442,7 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new DeclarationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
-    this.registerFeature(new WorkspaceFoldersFeature(this))
+    // this.registerFeature(new WorkspaceFoldersFeature(this))
   }
 
   private _getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {

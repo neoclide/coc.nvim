@@ -3580,6 +3580,7 @@ export abstract class BaseLanguageClient {
       trace: Trace.toString(this._trace),
       workspaceFolders: null
     }
+    delete initParams.workspaceFolders
     this.fillInitializeParams(initParams)
     return connection
       .initialize(initParams)
