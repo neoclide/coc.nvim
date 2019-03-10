@@ -54,6 +54,7 @@ export class DiagnosticManager implements Disposable {
     events.on('CursorMoved', async () => {
       if (timer) clearTimeout(timer)
       if (this.floatFactory.creating) return
+      this.floatFactory.close()
       timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return

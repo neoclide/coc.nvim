@@ -295,6 +295,7 @@ export default class Complete {
   private getFollowPart(): string {
     let { colnr, line } = this.option
     let idx = characterIndex(line, colnr - 1)
+    if (idx == line.length) return ''
     let part = line.slice(idx - line.length)
     return part.match(/^\S?[\w\-]*/)[0]
   }

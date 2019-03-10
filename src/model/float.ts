@@ -99,7 +99,7 @@ export default class FloatFactory {
       window.setOption('relativenumber', false, true)
       window.setOption('winhl', `Normal:${hlGroup},NormalNC:${hlGroup}`, true)
       await nvim.resumeNotification()
-      await wait(30)
+      await wait(10)
       logger.debug('created:', this.window.id)
     } catch (e) {
       // tslint:disable-next-line: no-console
@@ -113,14 +113,15 @@ export default class FloatFactory {
   public async close(): Promise<void> {
     if (!this.env.floating) return
     if (this._creating) {
-      return new Promise<void>((resolve, reject) => {
+      return new Promise<void>(resolve => {
         let disposable = this.onWindowCreate(() => {
           disposable.dispose()
-          this.closeWindow().then(resolve, reject)
+          this.closeWindow()
+          resolve()
         })
       })
     }
-    await this.closeWindow()
+    this.closeWindow()
   }
 
   private softSplit(line: string, maxWidth: number): string[] {
@@ -159,14 +160,16 @@ export default class FloatFactory {
     return res
   }
 
-  private async closeWindow(): Promise<void> {
+  private closeWindow(): void {
     let { window } = this
     if (!window) return
-    try {
-      await this.nvim.call('coc#util#close_win', window.id)
-      this.window = null
-    } catch (e) {
-      logger.error(`Error on close window:`, e)
-    }
+    this.nvim.call('coc#util#close_win', window.id, true)
+    this.window = null
+    setTimeout(() => {
+      window.valid.then(valid => {
+        if (!valid) return
+        this.nvim.call('coc#util#close_win', window.id, true)
+      })
+    }, 50)
   }
 }
