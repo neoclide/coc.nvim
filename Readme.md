@@ -8,7 +8,7 @@ Coc is an intellisense engine for vim8 & neovim.
 
 It works on `vim >= 8.1` and `neovim >= 0.3.1`.
 
-It's a completion framework, language server client which support
+It's a completion framework and language server client which supports the
 [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 <img src="https://user-images.githubusercontent.com/251450/52922829-23614e00-335f-11e9-8d33-3dae30ea4a9a.gif" width="400" height="255">
@@ -28,11 +28,11 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
 ## Completion experience
 
-You might wondering why another completion engine since there're already
+You might be wondering why yet another completion engine since there is the already
 widely used [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim).
 
-Below is the reasons that lead to coc.nvim build it's own engine:
+Below are the reasons that lead coc.nvim to build it's own engine:
 
 - **Full LSP completion support**, especially snippet and `additionalTextEdit`
   feature, you'll understand why it's awesome when you experience it with
@@ -40,22 +40,22 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 - **Asynchronous and parallel completion request**, unless using vim sources,
   your vim will never blocked.
 - **Does completion resolve on completion item change**. The detail from complete
-  item is echoed after selected, this feature requires `MenuPopupChanged` autocmd
+  item is echoed after selected, this feature requires the `MenuPopupChanged` autocmd
   to work.
 - **Incomplete request and cancel request support**, only incomplete complete
-  request would be trigger on filter complete items and cancellation request is
+  request would be triggered on filter complete items and cancellation request is
   send to servers when necessary.
-- **Start completion without timer**. The completion would start after you type
-  first letter of word by default, and filtered with new input when completion
-  finished, while some completion engine use timer to trigger completion and you
-  always have to wait after type character.
-- **Realtime buffer keywords**. Coc generate buffer keywords on buffer change in
-  background (with debounce), while some completion engines use cache which could
+- **Start completion without timer**. The completion will start after you type the
+  first letter of a word by default and is filtered with new input after the completion
+  has finished. Other completion engines use a timer to trigger completion so you
+  always have to wait after the typed character.
+- **Realtime buffer keywords**. Coc will generate buffer keywords on buffer change in
+  background (with debounce), while some completion engines use a cache which could
   be wrong sometimes. And [Locality bonus feature](https://code.visualstudio.com/docs/editor/intellisense#_locality-bonus)
   from VSCode is enabled by default.
-- **Filter completion items when possible.** When your does fuzzy filter with
-  completion items, some completion engines would trigger new completion, but
-  coc.nvim filter the items when possible which makes it much faster. Filter
+- **Filter completion items when possible.** When you do a fuzzy filter with
+  completion items, some completion engines would trigger a new completion, but
+  coc.nvim will filter the items when possible which makes it much faster. Filtering
   completion items on backspace is also supported.
 
 ## Table of contents
@@ -84,14 +84,14 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
   to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
 
-  For other plugin manager, run command `:call coc#util#build()` to build
+  For other plugin managers, run command `:call coc#util#build()` to build
   coc from source code.
 
-  **Note:** for vim user, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module required.
+  **Note:** for vim users, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module is required.
 
   **Note:** to build from master, don't use `'tag': '*'` in `Plug` command.
 
-  **Note**: The first time of building from source code could be slow.
+  **Note**: The first time building from source code could be slow.
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
@@ -128,7 +128,7 @@ Below is the reasons that lead to coc.nvim build it's own engine:
 
 ## Completion sources
 
-Completion for words of buffers and file path are supported by default.
+Completion from words of buffers and file paths are supported by default.
 
 For other completion sources, check out:
 
@@ -143,7 +143,7 @@ Or you can [create custom source](https://github.com/neoclide/coc.nvim/wiki/Crea
 
 ## Extensions
 
-Extension are powerful than configured language server. Checkout
+Extensions are powerful than configured language server. Checkout
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
 - **[coc-json](https://github.com/neoclide/coc-json)** for `json`.
@@ -168,15 +168,15 @@ Extension are powerful than configured language server. Checkout
 - **[coc-snippets](https://github.com/neoclide/coc-snippets)** provide snippets
   solution.
 
-And more, to get full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
+And more, to get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
-**Note:** use `:CocConfig` to edit configuration file, auto completion is
-supported after `coc-json` installed.
+**Note:** use `:CocConfig` to edit the configuration file, auto completion is
+supported after `coc-json` has been installed.
 
 ## Example vim configuration
 
 ```vim
-" if hidden not set, TextEdit might fail.
+" if hidden is not set, TextEdit might fail.
 set hidden
 
 " Better display for messages
