@@ -469,16 +469,13 @@ export class DiagnosticManager implements Disposable {
     // vim has issue with diagnostic update
     if (this.insertMode && !this.config.refreshOnInsertMode) return
     let buf = this.buffers.find(buf => buf.uri == uri)
+    let { displayByAle } = this.config
     if (buf) {
-      let items = this.getDiagnostics(uri)
-      if (this.enabled) {
-        buf.refresh(items)
-        return true
-      }
-      let { displayByAle } = this.config
       if (displayByAle) {
-        Object.keys(items).forEach(key => {
-          let diagnostics = items[key]
+        let { nvim } = this
+        nvim.pauseNotification()
+        for (let collection of this.collections) {
+          let diagnostics = collection.get(uri)
           let aleItems = diagnostics.map(o => {
             let { range } = o
             return {
@@ -491,8 +488,15 @@ export class DiagnosticManager implements Disposable {
               type: getSeverityType(o.severity)
             }
           })
-          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, aleItems], true)
-        })
+          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
+        }
+        nvim.resumeNotification(false, true)
+      } else {
+        let diagnostics = this.getDiagnostics(uri)
+        if (this.enabled) {
+          buf.refresh(diagnostics)
+          return true
+        }
       }
     }
     return false
