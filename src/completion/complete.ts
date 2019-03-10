@@ -1,13 +1,12 @@
-import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
-import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
-import { byteSlice } from '../util/string'
-import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
-import { omit } from '../util/lodash'
+import { CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { Chars } from '../model/chars'
+import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
+import { echoErr, echoWarning } from '../util'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { omit } from '../util/lodash'
+import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
-import { Position, CancellationTokenSource } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('completion-complete')
 
 export type Callback = () => void
@@ -150,9 +149,11 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
-      for (let item of items) {
+      // tslint:disable-next-line: prefer-for-of
+      for (let idx = 0; idx < items.length; idx++) {
+        let item = items[idx]
         let { word } = item
-        if (words.has(word) && !item.dup) continue
+        if (!item.dup && words.has(word)) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
@@ -167,7 +168,7 @@ export default class Complete {
         }
         if (!item.user_data) {
           let user_data: any = { cid, source }
-          if (item.index != null) user_data.index = item.index
+          user_data.index = item.index || idx
           if (item.isSnippet) {
             let abbr = item.abbr || item.word
             if (!abbr.endsWith(snippetIndicator)) {
@@ -282,16 +283,20 @@ export default class Complete {
   public resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null {
     let { results } = this
     if (!results || !item.user_data) return null
-    let { source } = JSON.parse(item.user_data)
-    let result = results.find(res => res.source == source)
-    return result.items.find(o => o.user_data == item.user_data)
+    try {
+      let { source } = JSON.parse(item.user_data)
+      let result = results.find(res => res.source == source)
+      return result.items.find(o => o.user_data == item.user_data)
+    } catch (e) {
+      return null
+    }
   }
 
   private getFollowPart(): string {
-    let { fixInsertedWord } = this.config
     let { colnr, line } = this.option
-    if (!fixInsertedWord) return ''
-    return Chars.getContentAfterCharacter(line, colnr - 1)
+    let idx = characterIndex(line, colnr - 1)
+    let part = line.slice(idx - line.length)
+    return part.match(/^\S?[\w\-]*/)[0]
   }
 
   public cancel(): void {
