@@ -100,11 +100,11 @@ export default class FloatFactory {
       window.setOption('winhl', `Normal:${hlGroup},NormalNC:${hlGroup}`, true)
       await nvim.resumeNotification()
       await wait(30)
+      logger.debug('created:', this.window.id)
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.error(`error on create floating window:` + e.message)
     } finally {
-      logger.debug('created:', this.window.id)
       this._onWindowCreate.fire(this.window)
       this._creating = false
     }
