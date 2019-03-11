@@ -3,6 +3,7 @@ if exists('g:did_coc_loaded') || v:version < 800
 endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
 if !has('nvim') && !has('patch-8.1.001') | finish | endif
+let s:is_win = has('win32') || has('win64')
 
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
@@ -17,6 +18,13 @@ if s:is_vim && !has('pythonx')
 endif
 if s:is_vim
   call coc#rpc#init_vim_rpc()
+endif
+if s:is_vim && s:is_win
+  let file = $VIM."/vimfiles/coc-settings.json"
+  let dest = $HOME."/vimfiles/coc-settings.json"
+  if filereadable(file)
+    call rename(file, dest)
+  endif
 endif
 
 function! CocAction(...) abort

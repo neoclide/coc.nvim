@@ -248,9 +248,9 @@ function! coc#util#get_config_home()
     return resolve($HOME.'/.config/nvim')
   else
     if s:is_win
-      return $VIM."/vimfiles"
+      return resolve($HOME."/vimfiles")
     endif
-    return $HOME.'/.vim'
+    return resolve($HOME.'/.vim')
   endif
 endfunction
 
