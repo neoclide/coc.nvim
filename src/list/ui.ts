@@ -1,9 +1,9 @@
-import { Neovim, Window, Buffer } from '@chemzqm/neovim'
+import { Neovim, Window } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { ListItem, WorkspaceConfiguration, ListHighlights } from '../types'
-import workspace from '../workspace'
+import { ListHighlights, ListItem, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
+import workspace from '../workspace'
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -266,7 +266,7 @@ export default class ListUI {
     let height = Math.max(1, Math.min(items.length, maxHeight))
     let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items[this.index]
-    this.items = items.slice()
+    this.items = items.slice(0, limitLines)
     if (bufnr == 0 && !this.creating) {
       this.creating = true
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
@@ -280,12 +280,7 @@ export default class ListUI {
     } else {
       await this.ready
     }
-    if (this.items.length > limitLines) {
-      items = this.items.slice(0, limitLines)
-    } else {
-      items = this.items
-    }
-    let lines = items.map(item => item.label)
+    let lines = this.items.map(item => item.label)
     this.clearSelection()
     await this.setLines(lines, false, reload ? this.currIndex : 0)
     let item = this.items[this.index] || { label: '' }
@@ -302,13 +297,11 @@ export default class ListUI {
       this._onDidChange.fire()
       return
     }
-    let len = this.length
-    this.items = this.items.concat(items)
+    let max = limitLines - curr
+    let append = items.slice(0, max)
+    this.items = this.items.concat(append)
     if (this.creating) return
-    if (this.items.length > limitLines) {
-      items = items.slice(0, limitLines - curr)
-    }
-    await this.setLines(items.map(item => item.label), len > 0, this.currIndex)
+    await this.setLines(append.map(item => item.label), curr > 0, this.currIndex)
   }
 
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
@@ -327,8 +320,8 @@ export default class ListUI {
         this._onDidChangeHeight.fire()
       }
     }
+    nvim.call('clearmatches', [], true)
     if (!append) {
-      nvim.call('clearmatches', [], true)
       if (!lines.length) {
         lines = ['Press ? on normal mode to get help.']
         nvim.call('matchaddpos', ['Comment', [[1]], 99], true)
@@ -344,7 +337,7 @@ export default class ListUI {
     this.doHighlight()
     if (!append) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
     this._onDidChange.fire()
-    await nvim.resumeNotification()
+    nvim.resumeNotification(false, true)
   }
 
   public async restoreWindow(): Promise<void> {
@@ -421,10 +414,13 @@ export default class ListUI {
   }
 
   public addHighlights(highlights: ListHighlights[], append = false): void {
+    let limitLines = this.config.get<number>('limitLines', 1000)
     if (!append) {
-      this.highlights = highlights
+      this.highlights = highlights.slice(0, limitLines)
     } else {
-      this.highlights.push(...highlights)
+      if (this.highlights.length < limitLines) {
+        this.highlights = this.highlights.concat(highlights.slice(0, limitLines - this.highlights.length))
+      }
     }
   }
 }

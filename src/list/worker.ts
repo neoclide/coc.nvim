@@ -147,6 +147,7 @@ export default class Worker {
             items = res.items
             highlights = res.highlights
           } else {
+            items = remain
             highlights = this.getItemsHighlight(remain)
           }
           this._onDidChangeItems.fire({ items, highlights, append: true })
@@ -160,13 +161,13 @@ export default class Worker {
         this.parseListItemAnsi(item)
         this.recentScore(item)
         totalItems.push(item)
-        if ((!lastTs && this.totalItems.length == 500)
-          || Date.now() - lastTs > 500) {
+        if ((!lastTs && totalItems.length == 500)
+          || Date.now() - lastTs > 200) {
           _onData()
         } else if (lastTs && this.input != currInput) {
           _onData()
         } else {
-          timer = setTimeout(_onData, 50)
+          timer = setTimeout(_onData, 60)
         }
       })
       await new Promise<void>((resolve, reject) => {
