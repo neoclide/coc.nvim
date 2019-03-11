@@ -988,7 +988,7 @@ export class Workspace implements IWorkspace {
   public createDatabase(name: string): DB {
     let root = path.dirname(this.env.extensionRoot)
     let filepath = path.join(root, name + '.json')
-    return new DB(filepath)
+    return new DB(filepath, this.nvim)
   }
 
   private async _setupDynamicAutocmd(): Promise<void> {

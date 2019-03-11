@@ -1,7 +1,12 @@
+import { Neovim } from '@chemzqm/neovim'
+import path from 'path'
 import * as fs from '../util/fs'
 
 export default class DB {
-  constructor(public readonly filepath: string) {
+  constructor(
+    public readonly filepath: string,
+    private nvim: Neovim
+  ) {
   }
 
   public async fetch(key: string): Promise<any> {
@@ -50,10 +55,15 @@ export default class DB {
   }
 
   public async push(key: string, data: number | null | boolean | string | { [index: string]: any }): Promise<void> {
-    let obj = (await this.load()) || {}
-    let origin = obj
+    let obj = await this.load()
+    let origin = obj || {}
     let parts = key.split('.')
     let len = parts.length
+    if (obj == null) {
+      let dir = path.dirname(this.filepath)
+      await this.nvim.call('mkdir', [dir, 'p', 0o700])
+      obj = origin
+    }
     for (let i = 0; i < len; i++) {
       let key = parts[i]
       if (i == len - 1) {

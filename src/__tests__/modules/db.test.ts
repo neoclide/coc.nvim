@@ -1,9 +1,12 @@
 import DB from '../../model/db'
 import path from 'path'
+import helper from '../helper'
 
 let db: DB
-beforeAll(() => {
-  db = new DB(path.join(__dirname, 'test.json'))
+beforeAll(async () => {
+  await helper.setup()
+  let nvim = helper.nvim
+  db = new DB(path.join(__dirname, 'db/test.json'), nvim)
 })
 
 afterAll(async () => {
