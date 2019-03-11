@@ -550,6 +550,11 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	{openCommand}: 缓冲区打开方法，默认使用
 	`coc.preferences.jumpCommand` 打开。
 
+						*CocLocationsAsync()*
+CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
+
+	同 |CocLocations()| 一样，只是使用 notification 异步进行。
+
 						*CocAction()*
 CocAction({action}, [...{args}])
 

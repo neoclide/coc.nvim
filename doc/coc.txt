@@ -568,6 +568,12 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	{openCommand}: optional command to open buffer, default to
 	`coc.preferences.jumpCommand` , |:edit| by default
 
+						*CocLocationsAsync()*
+CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
+
+	Same as |CocLocations()|, but send notification to server instead
+	of request.
+
 						*CocAction()*
 CocAction({action}, [...{args}])
 

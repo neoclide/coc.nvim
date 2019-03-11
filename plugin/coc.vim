@@ -50,6 +50,11 @@ function! CocLocations(id, method, ...) abort
   call coc#rpc#request('findLocations', args)
 endfunction
 
+function! CocLocationsAsync(id, method, ...) abort
+  let args = [a:id, a:method] + copy(a:000)
+  call coc#rpc#request('findLocations', args)
+endfunction
+
 function! CocRequestAsync(...)
   return s:AsyncRequest('sendRequest', a:000)
 endfunction
