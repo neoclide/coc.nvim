@@ -131,10 +131,7 @@ function! s:Enable()
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim
-      autocmd User NvimRpcInit
-            \ if get(g:, 'coc_start_at_startup', 1) |
-            \   call coc#rpc#start_server() |
-            \ endif
+      autocmd User NvimRpcInit    call coc#rpc#start_server()
       autocmd User NvimRpcExit    call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
       autocmd BufWinEnter       * call clearmatches()
