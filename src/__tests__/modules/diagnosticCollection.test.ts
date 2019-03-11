@@ -33,6 +33,18 @@ describe('diagnostic collection', () => {
     expect(collection.get(uri).length).toBe(0)
   })
 
+  it('should clear diagnostics with undefined as diagnostics in entries', () => {
+    let collection = new DiagnosticCollection('test')
+    let diagnostic = createDiagnostic('error')
+    let entries: [string, Diagnostic[] | null][] = [
+      ['file:1', [diagnostic]],
+      ['file:1', undefined]
+    ]
+    let uri = 'file:///1'
+    collection.set(entries)
+    expect(collection.get(uri).length).toBe(0)
+  })
+
   it('should set diagnostics with entries', () => {
     let collection = new DiagnosticCollection('test')
     let diagnostic = createDiagnostic('error')

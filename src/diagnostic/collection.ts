@@ -26,11 +26,12 @@ export default class Collection implements DiagnosticCollection {
       for (let item of entries) {
         let [file, diagnostics] = item
         let exists = map.get(file) || []
-        if (diagnostics) {
+        if (diagnostics != null) {
           for (let diagnostic of diagnostics) {
-            diagnostic.source = diagnostic.source || this.name
             exists.push(diagnostic)
           }
+        } else {
+          exists = []
         }
         map.set(file, exists)
       }
@@ -41,6 +42,11 @@ export default class Collection implements DiagnosticCollection {
     }
     let uri = entries
     uri = URI.parse(uri).toString()
+    if (diagnostics) {
+      diagnostics.forEach(o => {
+        o.source = o.source || this.name
+      })
+    }
     this.diagnosticsMap.set(uri, diagnostics || [])
     this._onDidDiagnosticsChange.fire(uri)
     return
