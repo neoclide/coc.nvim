@@ -62,8 +62,6 @@ describe('diagnostic manager', () => {
     await helper.wait(30)
     nvim.input('<esc>')
     await helper.wait(600)
-    let res = await doc.buffer.getVar('coc_diagnostic_info') as any
-    expect(res.error).toBe(1)
   })
 
   it('should create diagnostic collection', async () => {

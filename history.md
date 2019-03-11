@@ -1,3 +1,21 @@
+# 2019-03-11
+
+- **Break change** change buffers instead of disk file for `workspace.applyEdits`.
+- **Break change** add config errors to diagnostic list instead of jump locations.
+- **Break change** hack for popup menu flicker is remvoed, use `suggest.reloadPumOnInsertChar` to enable it.
+- **Break change** use `nvim_select_popupmenu_item` for number select completion.
+- Add floating window for completion items.
+- Add floating window support for diagnostics.
+- Add floating window support for hover documentation.
+- Add `coc#on_enter()` for notify enter pressed.
+- Add setting `coc.preferences.useQuickfixForLocations`.
+- Add support of `g:coc_watch_extensions` for automatic reload extentions.
+- Add command: `editor.action.doCodeAction`.
+- Fix service on restarted on windows after rebuild.
+- Fix config of airline.
+- Fix relative path of watchman.
+- Improve Mru model.
+
 # 2019-03-03
 
 - **Break change** signature change of `workspace.registerKeymap`.

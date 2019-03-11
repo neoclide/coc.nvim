@@ -4,7 +4,7 @@ set -e
 [ "$TRACE" ] && set -x
 
 # Create tag and push
-git add package.json
+git add package.json history.md
 tag=v$(json -f package.json version)
 git commit -a -m "Release $tag" &> /dev/null
 git tag -a "$tag" -m "Release $tag"
