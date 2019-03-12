@@ -539,9 +539,11 @@ export class Completion implements Disposable {
   }
 
   private get completeOpt(): string {
-    let { noselect, enablePreview } = this.config
-    if (noselect) return `noselect,menuone${enablePreview ? ',preview' : ''}`
-    return `noinsert,menuone${enablePreview ? ',preview' : ''}`
+    let { noselect, enablePreview, reloadPumOnInsertChar } = this.config
+    let preview = enablePreview && !workspace.env.pumevent ? ',preview' : ''
+    if (reloadPumOnInsertChar) return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview}`
+    if (noselect) return `noselect,menuone${preview}`
+    return `noinsert,menuone${preview}`
   }
 
   private getCompleteItem(item: VimCompleteItem): VimCompleteItem | null {

@@ -16,6 +16,7 @@ export interface WindowConfig {
 
 // factory class for floating window
 export default class FloatFactory implements Disposable {
+  public static creating = false
   private buffer: Buffer
   private window: Window
   private _creating = false
@@ -79,6 +80,7 @@ export default class FloatFactory implements Disposable {
     if (!this.env.floating) return
     let now = Date.now()
     this._creating = true
+    FloatFactory.creating = true
     lines = lines.reduce((p, c) => {
       return p.concat(this.softSplit(c, 78))
     }, [] as string[])
@@ -101,9 +103,9 @@ export default class FloatFactory implements Disposable {
       if (!window || this.closeTs > now || this.insertTs > now) {
         this.closeWindow()
         this._creating = false
+        FloatFactory.creating = false
         return
       }
-      logger.debug('created:', window.id)
       this._onWindowCreate.fire(window)
       nvim.pauseNotification()
       buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
@@ -127,6 +129,7 @@ export default class FloatFactory implements Disposable {
       console.error(`error on create floating window:` + e.message)
       logger.error(e)
     } finally {
+      FloatFactory.creating = false
       this._creating = false
     }
   }
