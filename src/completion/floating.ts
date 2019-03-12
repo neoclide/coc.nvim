@@ -2,8 +2,10 @@ import { Neovim, Window, Buffer } from '@chemzqm/neovim'
 import { PumBounding } from '../types'
 import workspace from '../workspace'
 import { MarkupKind } from 'vscode-languageserver-types'
-import { byteLength } from '../util/string'
+import { byteLength, characterIndex } from '../util/string'
+import { Highlights, getHiglights } from '../util/highlight'
 import { Chars } from '../model/chars'
+import { group } from '../util/array'
 const logger = require('../util/logger')('floating')
 
 interface Bounding {
@@ -48,10 +50,12 @@ export default class FloatingWindow {
       this.creating = true
       try {
         let b = this.calculateBounding()
+        let highlights = await this.getMarkdownHighlights()
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, b.width, b.height, {
           col: b.col,
           row: b.row,
-          relative: 'editor'
+          relative: 'editor',
+          focusable: true
         })
         nvim.pauseNotification()
         win.setVar('popup', 1, true)
@@ -63,7 +67,9 @@ export default class FloatingWindow {
         win.setOption('conceallevel', 2, true)
         win.setOption('relativenumber', false, true)
         win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
-        this.configBuffer()
+        nvim.call('win_gotoid', [win.id], true)
+        this.configBuffer(highlights)
+        nvim.command('wincmd p', true)
         await nvim.resumeNotification()
       } catch (e) {
         logger.error(`Create preview error:`, e.stack)
@@ -72,24 +78,26 @@ export default class FloatingWindow {
       }
     } else {
       let b = this.calculateBounding()
+      let highlights = await this.getMarkdownHighlights()
       nvim.pauseNotification()
       this.window.configFloat(b.width, b.height, {
         col: b.col,
         row: b.row,
-        relative: 'editor'
+        relative: 'editor',
+        focusable: true
       }, true)
-      this.configBuffer()
+      nvim.call('win_gotoid', [this.window.id], true)
+      this.configBuffer(highlights)
+      nvim.command('wincmd p', true)
       await nvim.resumeNotification()
     }
   }
 
-  private configBuffer(): void {
-    let { buffer, window, hasDetail, lines } = this
+  private configBuffer(highlights: Highlights[]): void {
+    let { buffer, window, hasDetail, nvim, lines } = this
     window.notify('nvim_win_set_cursor', [window, [1, 1]])
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
-    if (this.kind == 'markdown') {
-      // TODO how to render markdown?
-    }
+    nvim.call('clearmatches', [], true)
     let srcId = this.config.srcId || 990
     buffer.clearNamespace(srcId)
     if (hasDetail) {
@@ -106,6 +114,47 @@ export default class FloatingWindow {
         i = i + 1
       }
     }
+    if (highlights.length) {
+      let positions: [number, number][] = []
+      for (let highlight of highlights) {
+        buffer.addHighlight({
+          srcId,
+          hlGroup: highlight.hlGroup,
+          line: highlight.line,
+          colStart: highlight.colStart,
+          colEnd: highlight.colEnd
+        })
+        let line = lines[highlight.line]
+        let before = line[characterIndex(line, highlight.colStart)]
+        let after = line[characterIndex(line, highlight.colEnd) - 1]
+        if (before == after && ['_', '`', '*'].indexOf(before) !== -1) {
+          positions.push([highlight.line + 1, highlight.colStart + 1])
+          positions.push([highlight.line + 1, highlight.colEnd])
+        }
+      }
+      for (let arr of group(positions, 8)) {
+        nvim.call('matchaddpos', ['Conceal', arr], true)
+      }
+    }
+  }
+
+  private async getMarkdownHighlights(): Promise<Highlights[]> {
+    if (this.kind != 'markdown') return []
+    let markdownLines: string[] = []
+    let { hasDetail, lines } = this
+    let accept = !hasDetail
+    for (let line of lines) {
+      if (accept) {
+        markdownLines.push(line)
+      } else {
+        markdownLines.push('')
+      }
+      if (hasDetail && !accept && !line.trim().length) {
+        accept = true
+      }
+    }
+    let highlights = await getHiglights(markdownLines, 'markdown', this.nvim)
+    return highlights
   }
 
   private calculateBounding(): Bounding {

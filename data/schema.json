@@ -234,7 +234,7 @@
     },
     "suggest.previewIsKeyword": {
       "type": "string",
-      "default": "@,48-57,_192-255,<,>,$,#,-",
+      "default": "@,48-57,_192-255,<,>,$,#,-,`,*",
       "description": "'iskeyword' option on floating preview buffer."
     },
     "suggest.autoTrigger": {
