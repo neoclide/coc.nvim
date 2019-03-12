@@ -636,7 +636,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	显示当前函数的函数签名，推荐设置： >
 
-	autocmd CursorHoldI,CursorMovedI * call CocAction('showSignatureHelp')
+	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
 	在代码片段跳转后显示函数签名。
 

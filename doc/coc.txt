@@ -657,7 +657,7 @@ Available Actions ~
 	Echo signature help of current function, you may want to setup autocmd
 	like this: >
 
-	autocmd CursorHoldI,CursorMovedI * call CocAction('showSignatureHelp')
+	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
 
 "documentSymbols" 				*coc-action-documentSymbols*
