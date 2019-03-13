@@ -253,6 +253,14 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+b:coc_suggest_disable 				*b:coc_suggest_disable*
+
+			Disable completion support of current buffer. ex: >
+			
+			" Disable completion for python
+			autocmd FileType python let b:coc_suggest_disable = 1
+
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 			Start coc service on startup, use |CocStart| to start

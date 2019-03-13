@@ -275,6 +275,14 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 变量 						*coc-variables*
 
+b:coc_suggest_disable 				*b:coc_suggest_disable*
+
+			用于针对特定 buffer 禁用补全，例如: >
+			
+			" 对 python 文件禁用补全
+			autocmd FileType python let b:coc_suggest_disable = 1
+
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 

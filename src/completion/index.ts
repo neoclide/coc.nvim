@@ -334,6 +334,7 @@ export class Completion implements Disposable {
     // check trigger character
     if (isTriggerCharacter(character) && sources.shouldTrigger(content, document.filetype)) {
       let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
+      if (!option) return
       option.triggerCharacter = character
       logger.debug('trigger completion with', option)
       await this.startCompletion(option)
@@ -349,6 +350,7 @@ export class Completion implements Disposable {
     let shouldTrigger = await this.shouldTrigger(document, pre)
     if (!shouldTrigger) return
     let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
+    if (!option) return
     option.triggerCharacter = pre[pre.length - 1]
     logger.debug('trigger completion with', option)
     await this.startCompletion(option)
@@ -391,7 +393,7 @@ export class Completion implements Disposable {
   private async onInsertEnter(): Promise<void> {
     if (!this.config.triggerAfterInsertEnter) return
     let option = await this.nvim.call('coc#util#get_complete_option')
-    if (option.input.length >= this.config.minTriggerInputLength) {
+    if (option && option.input.length >= this.config.minTriggerInputLength) {
       await this.startCompletion(option)
     }
   }

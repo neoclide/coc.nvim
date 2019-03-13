@@ -265,6 +265,8 @@ function! coc#util#get_input()
 endfunction
 
 function! coc#util#get_complete_option()
+  let disabled = get(b:, 'coc_suggest_disable', 0)
+  if disabled | return | endif
   let pos = getcurpos()
   let line = getline(pos[1])
   let l:start = pos[2] - 1
