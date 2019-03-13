@@ -140,7 +140,9 @@ export class Extensions {
     logger.info(`Upgrading ${outdated.join(' ')}`)
     status.text = `Upgrading ${outdated.join(' ')}`
     status.show()
+    await runCommand(`${yarncmd} install`, { cwd: this.root })
     const child = spawn(yarncmd, ['upgrade', ...outdated, '--latest', '--ignore-engines'], {
+      cwd: this.root,
       detached: true,
       stdio: 'ignore'
     })
