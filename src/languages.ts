@@ -482,7 +482,14 @@ class Languages {
         let position = complete.getPosition(opt)
         let context: CompletionContext = { triggerKind, option: opt }
         if (isTrigger) context.triggerCharacter = triggerCharacter
-        let result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
+        let result
+        try {
+          result = await Promise.resolve(provider.provideCompletionItems(doc.textDocument, position, token, context))
+        } catch (e) {
+          // don't disturb user
+          logger.error(`Source "${name}" complete error:`, e)
+          return null
+        }
         if (!result || token.isCancellationRequested) return null
         completeItems = Array.isArray(result) ? result : result.items
         if (!completeItems || completeItems.length == 0) return null
