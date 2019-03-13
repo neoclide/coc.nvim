@@ -157,3 +157,9 @@ function! coc#_unmap()
     exe 'iunmap <buffer> '.i
   endfor
 endfunction
+
+function! coc#_init()
+  if exists('#User#CocNvimInit')
+    doautocmd User CocNvimInit
+  endif
+endfunction

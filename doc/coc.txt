@@ -1072,7 +1072,7 @@ CocPumFloatingDetail 				*CocPumFloatingDetail*
 
   Default: `Pmenu`
 
-  Highlight group of detail in floating preview window.
+  Highlight group of detail text in floating preview window.
 
 ==============================================================================
 LIST SUPPORT 					*coc-list*
