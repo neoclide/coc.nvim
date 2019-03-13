@@ -25,6 +25,7 @@ export interface DiagnosticConfig {
   infoSign: string
   hintSign: string
   level: number
+  messageTarget: string
   refreshAfterSave: boolean
   refreshOnInsertMode: boolean
   virtualTextSrcId: number
@@ -357,7 +358,7 @@ export class DiagnosticManager implements Disposable {
     let pos = await workspace.getCursorPosition()
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
     if (!buffer || this.insertMode) return
-    let useFloat = workspace.env.floating && !global.hasOwnProperty('__TEST__')
+    let useFloat = workspace.env.floating && this.config.messageTarget == 'float' && !global.hasOwnProperty('__TEST__')
     let diagnostics = buffer.diagnostics.filter(o => positionInRange(pos, o.range) == 0)
     if (diagnostics.length == 0) {
       if (useFloat) {
@@ -425,6 +426,7 @@ export class DiagnosticManager implements Disposable {
       srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
       enableMessage: getConfig<string>('enableMessage', 'always'),
+      messageTarget: getConfig<string>('messageTarget', 'float'),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),
