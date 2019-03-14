@@ -186,6 +186,10 @@ function! coc#util#timer(method, args)
   endif
 endfunction
 
+function! coc#util#call_timer(method, args)
+  call timer_start(10, { -> s:Call(a:method, a:args)})
+endfunction
+
 function! s:Call(method, args)
   try
     call call(a:method, a:args)
@@ -432,6 +436,14 @@ function! coc#util#vim_info()
         \ 'pumevent': exists('##MenuPopupChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
+        \ 'colorscheme': get(g:, 'colors_name', ''),
+        \ 'background': &background,
+        \ 'runtimepath': &runtimepath,
+        \}
+endfunction
+
+function! coc#util#highlight_options()
+  return {
         \ 'colorscheme': get(g:, 'colors_name', ''),
         \ 'background': &background,
         \ 'runtimepath': &runtimepath,

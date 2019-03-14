@@ -60,7 +60,7 @@ export class DiagnosticManager implements Disposable {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         // make it sync
-        this.nvim.call('CocAction', 'diagnosticInfo', true)
+        this.nvim.call('coc#util#call_timer', ['CocAction', ['diagnosticInfo']], true)
       }, 300)
     }, null, this.disposables)
 

@@ -4,7 +4,7 @@ import { createHash } from 'crypto'
 import workspace from '../workspace'
 import { omit } from './lodash'
 import { byteLength } from './string'
-import uuid = require('uuid/v1')
+import { terminate } from './processes'
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {
@@ -18,17 +18,24 @@ export interface Highlight {
   isMarkdown?: boolean
 }
 
+interface Env {
+  readonly colorscheme: string
+  readonly background: string
+  readonly runtimepath: string
+}
+
 const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
 const cache: { [hash: string]: Highlight[] } = {}
+let env: Env = null
 
 // get highlights by send text to another neovim instance.
-export function getHiglights(lines: string[], filetype: string, startLine = 0): Promise<Highlight[]> {
+export function getHiglights(lines: string[], filetype: string): Promise<Highlight[]> {
   const hlMap: Map<number, string> = new Map()
   const content = lines.join('\n')
   if (diagnosticFiletypes.indexOf(filetype) != -1) {
     let highlights = lines.map((_line, i) => {
       return {
-        line: startLine + i,
+        line: i,
         colStart: 0,
         colEnd: -1,
         hlGroup: `Coc${filetype}Float`
@@ -36,26 +43,32 @@ export function getHiglights(lines: string[], filetype: string, startLine = 0): 
     })
     return Promise.resolve(highlights)
   }
-  const id = createHash('md5').update(content).digest('hex') + startLine.toFixed(0)
+  const id = createHash('md5').update(content).digest('hex')
   if (cache[id]) return Promise.resolve(cache[id])
   const res: Highlight[] = []
   let nvim: NeovimClient
-  return new Promise(async (resolve, reject) => {
+  return new Promise(async resolve => {
+    if (!env) env = await workspace.nvim.call('coc#util#highlight_options')
+    let killed = false
     let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed'], {
       shell: false,
       env: omit(process.env, ['NVIM_LISTEN_ADDRESS'])
     })
-    const exit = async () => {
-      if (!proc.killed) {
-        await nvim.quit()
-        proc.kill()
+    let timer: NodeJS.Timer
+    const exit = () => {
+      if (timer) clearTimeout(timer)
+      if (!killed) {
+        nvim.command('qa!', true)
+        killed = terminate(proc)
       }
     }
     try {
       proc.on('error', err => {
-        reject(err)
+        logger.error(`highlight error:`, err)
+        exit()
+        resolve([])
       })
-      setTimeout(() => {
+      timer = setTimeout(() => {
         exit()
         resolve([])
       }, 500)
@@ -89,8 +102,8 @@ export function getHiglights(lines: string[], filetype: string, startLine = 0): 
                   if (hlId == 0 || (hlId > 0 && hlId != currId)) {
                     if (hlGroup) {
                       res.push({
+                        line,
                         hlGroup,
-                        line: line + startLine,
                         colStart,
                         colEnd: col,
                         isMarkdown: filetype == 'markdown'
@@ -105,7 +118,7 @@ export function getHiglights(lines: string[], filetype: string, startLine = 0): 
                 if (hlGroup) {
                   res.push({
                     hlGroup,
-                    line: line + startLine,
+                    line,
                     colStart,
                     colEnd: col,
                     isMarkdown: filetype == 'markdown'
@@ -113,15 +126,13 @@ export function getHiglights(lines: string[], filetype: string, startLine = 0): 
                 }
               }
               cache[id] = res
-              // logger.debug('res:', res)
-              resolve(res)
               exit()
+              resolve(res)
             }
           }
         }
       }
       nvim.on('notification', callback)
-      let { env } = workspace
       await nvim.callAtomic([
         ['nvim_set_option', ['runtimepath', env.runtimepath]],
         ['nvim_command', [`runtime syntax/${filetype}.vim`]],
@@ -144,7 +155,7 @@ export function getHiglights(lines: string[], filetype: string, startLine = 0): 
     } catch (e) {
       logger.error(e)
       exit()
-      reject(e)
+      resolve([])
     }
   })
 }

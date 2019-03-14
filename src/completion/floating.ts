@@ -56,7 +56,7 @@ export default class FloatingWindow {
         win.setOption('signcolumn', 'no', true)
         win.setOption('conceallevel', 2, true)
         win.setOption('relativenumber', false, true)
-        win.setOption('winhl', 'Normal:CocPumFloating,NormalNC:CocPumFloating', true)
+        win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating', true)
         this.showBuffer()
         await nvim.resumeNotification()
       } catch (e) {

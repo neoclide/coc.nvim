@@ -16,7 +16,7 @@ import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
 import { DeclarationFeature } from './declaration'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
-import { terminate } from './utils/processes'
+import { terminate } from '../util/processes'
 import ChildProcess = cp.ChildProcess
 import { disposeAll } from '../util'
 

@@ -102,7 +102,7 @@ describe('getHiglights', () => {
   test('getHiglights', async () => {
     let res = await getHiglights([
       '*@param* `buffer`'
-    ], 'markdown', 0)
+    ], 'markdown')
     expect(res.length > 0).toBe(true)
   })
 })

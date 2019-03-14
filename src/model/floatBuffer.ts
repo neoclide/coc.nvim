@@ -74,7 +74,7 @@ export default class FloatBuffer {
     }
     let width = this.width = Math.max(...newLines.map(s => byteLength(s))) + 1
     this.lines = newLines.map(s => {
-      if (s == '-') return '—'.repeat(width)
+      if (s == '—') return '—'.repeat(width)
       if (fill) return s + ' '.repeat(width - byteLength(s))
       return s
     })
@@ -83,7 +83,11 @@ export default class FloatBuffer {
       return p
     }, [])
     let arr = await Promise.all(fragments.map(f => {
-      return getHiglights(f.lines, f.filetype, f.start)
+      return getHiglights(f.lines, f.filetype).then(highlights => {
+        return highlights.map(highlight => {
+          return Object.assign({}, highlight, { line: highlight.line + f.start })
+        })
+      })
     }))
     this.highlights = arr.reduce((p, c) => p.concat(c), [])
   }
@@ -132,9 +136,9 @@ export default class FloatBuffer {
 
   public setLines(): void {
     let { buffer, lines, nvim, highlights, srcId } = this
-    buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     nvim.call('clearmatches', [], true)
     buffer.clearNamespace(srcId)
+    buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
       let positions: [number, number][] = []
       for (let highlight of highlights) {

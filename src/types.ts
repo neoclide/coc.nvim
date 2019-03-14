@@ -100,9 +100,6 @@ export interface Env {
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
-  readonly colorscheme: string
-  readonly background: string
-  readonly runtimepath: string
 }
 
 export interface Fragment {
