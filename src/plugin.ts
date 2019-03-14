@@ -35,8 +35,8 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listNames', () => {
       return listManager.names
     })
-    this.addMethod('addExtensions', () => {
-      return extensions.addExtensions()
+    this.addMethod('installExtensions', () => {
+      return extensions.installExtensions()
     })
     this.addMethod('commandList', () => {
       return commandManager.commandList.map(o => o.id)

@@ -60,6 +60,7 @@ export class Extensions {
   public async init(): Promise<void> {
     this.db = workspace.createDatabase('db')
     let stats = this.globalExtensionStats()
+    this.installExtensions = debounce(this.installExtensions, 200)
     if (global.hasOwnProperty('__TEST__')) {
       this._onReady.fire()
       return
@@ -203,6 +204,15 @@ export class Extensions {
           workspace.showMessage(`reloaded ${name}`)
         }, 100))
       }
+    }
+  }
+
+  public async installExtensions(): Promise<void> {
+    let list = await workspace.nvim.getVar('coc_global_extensions') as string[]
+    if (list.length) {
+      list = distinct(list)
+      list = list.filter(name => !this.has(name))
+      if (list.length) workspace.nvim.command(`CocInstall ${list.join(' ')}`, true)
     }
   }
 

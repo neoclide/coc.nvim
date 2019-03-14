@@ -119,7 +119,7 @@ function! coc#add_extension(...)
   if a:0 == 0 | return | endif
   call extend(g:coc_global_extensions, a:000)
   if get(g:, 'coc_enabled', 0)
-    call coc#rpc#notify('addExtensions', [])
+    call coc#rpc#notify('installExtensions', [])
   endif
 endfunction
 
