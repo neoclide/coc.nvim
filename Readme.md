@@ -320,7 +320,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ## 扫码捐助
 
-![Qrcode](https://user-images.githubusercontent.com/251450/54328311-5e962a80-4648-11e9-9491-0712c7821326.png)
+<img src="https://user-images.githubusercontent.com/251450/54328311-5e962a80-4648-11e9-9491-0712c7821326.png" width="540" height="275">
 
 请备注是否需要加入支持者名单，默认添加。
 
