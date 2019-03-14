@@ -137,7 +137,7 @@ export default class FloatBuffer {
   public setLines(): void {
     let { buffer, lines, nvim, highlights, srcId } = this
     nvim.call('clearmatches', [], true)
-    buffer.clearNamespace(srcId)
+    buffer.clearNamespace(-1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
       let positions: [number, number][] = []
