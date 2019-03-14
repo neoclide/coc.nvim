@@ -1,5 +1,7 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
+### [Support on bountysource](https://salt.bountysource.com/teams/coc-nvim)
+
 | CI (Linux, macOS)                       | Coverage                               | Gitter                      | 中文 Gitter                    |
 | --------------------------------------- | -------------------------------------- | --------------------------- | ------------------------------ |
 | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Gitter Badge][]][gitter cn] |
@@ -301,7 +303,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ## Feedback
 
-- If you think it's useful, give it a star.
+- If you think it's useful, consider [❤️ support coc.nvim on bountysource❤️ ](https://salt.bountysource.com/teams/coc-nvim)
 
 - If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
 
@@ -309,7 +311,11 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 - If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
 
-- If you want to help, but don't have time, [consider donate to neovim](https://salt.bountysource.com/teams/neovim) or [sponsor vim](https://www.vim.org/sponsor/index.php).
+## 扫码捐助
+
+![Qrcode](https://user-images.githubusercontent.com/251450/54328311-5e962a80-4648-11e9-9491-0712c7821326.png)
+
+请备注是否需要加入支持者名单，默认添加。
 
 ## LICENSE
 
