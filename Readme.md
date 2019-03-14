@@ -301,15 +301,22 @@ nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
 nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 ```
 
-## Feedback
+## Backers
 
-- If you think it's useful, consider [❤️ support coc.nvim on bountysource❤️ ](https://salt.bountysource.com/teams/coc-nvim)
+♥ coc.nvim? Help us keep it alive by [donating funds](https://www.bountysource.com/teams/coc-nvim)😘!
 
-- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
-
-- 如果你是中文用户，请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 提问
-
-- If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
+<a href="https://github.com/free-easy" target="_blank" title="free-easy">
+  <img src="https://github.com/free-easy.png?size=64" width="64" height="64" alt="free-easy">
+</a>
+<a href="https://github.com/sarene" target="_blank" title="sarene">
+  <img src="https://github.com/sarene.png?size=64" width="64" height="64" alt="sarene">
+</a>
+<a href="https://github.com/robtrac" target="_blank" title="robtrac">
+  <img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals89_puer8v.png" width="64" height="64" alt="robtrac">
+</a>
+<a href="https://github.com/tomspeak" target="_blank" title="tomspeak">
+  <img src="https://github.com/tomspeak.png?size=64" width="64" height="64" alt="tomspeak">
+</a>
 
 ## 扫码捐助
 
@@ -317,9 +324,19 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 请备注是否需要加入支持者名单，默认添加。
 
+## Feedback
+
+- If you think it's useful, consider give it a star.
+
+- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
+
+- 如果你是中文用户，请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 提问
+
+- If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
+
 ## LICENSE
 
-[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fneoclide%2Fcoc.nvim?ref=badge_large)
+MIT
 
 [build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [build status]: https://travis-ci.org/neoclide/coc.nvim
