@@ -29,6 +29,7 @@ export default class FloatFactory implements Disposable {
     private env: Env,
     private srcId: number,
     private relative: 'cursor' | 'win' | 'editor' = 'cursor') {
+    if (!env.floating) return
 
     events.on('InsertEnter', async () => {
       this.insertTs = Date.now()
