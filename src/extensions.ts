@@ -129,9 +129,13 @@ export class Extensions {
         let json = JSON.parse(lines[lines.length - 1])
         let { version, engines } = json.data
         if (version == curr) return
-        let required = engines.coc.replace(/^\^/, '>=')
-        if (!semver.satisfies(workspace.version, required)) return
-        if (semver.gt(version, curr)) {
+        if (engines.hasOwnProperty('coc')) {
+          let required = engines.coc.replace(/^\^/, '>=')
+          if (!semver.satisfies(workspace.version, required)) return
+          if (semver.gt(version, curr)) {
+            outdated.push(id)
+          }
+        } else {
           outdated.push(id)
         }
       })

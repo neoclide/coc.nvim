@@ -17,7 +17,7 @@ It's a completion framework and language server client which supports the
 
 _True snippet and additional text edit support_
 
-To make floating the window work, [follow the steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+To make float preview of complete items work, [follow the steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
@@ -307,6 +307,9 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 <a href="https://github.com/free-easy" target="_blank" title="free-easy">
   <img src="https://github.com/free-easy.png?size=64" width="64" height="64" alt="free-easy">
+</a>
+<a href="https://github.com/iamcco" target="_blank" title="iamcco">
+  <img src="https://github.com/iamcco.png?size=64" width="64" height="64" alt="iamcco">
 </a>
 <a href="https://github.com/sarene" target="_blank" title="sarene">
   <img src="https://github.com/sarene.png?size=64" width="64" height="64" alt="sarene">

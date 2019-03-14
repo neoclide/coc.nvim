@@ -541,7 +541,7 @@ export class Workspace implements IWorkspace {
    * Show message in vim.
    */
   public showMessage(msg: string, identify: MsgTypes = 'more'): void {
-    if (this._blocking) return
+    if (this._blocking || !this.nvim) return
     let { messageLevel } = this
     let level = MessageLevel.Error
     let method = echoErr
