@@ -1,15 +1,20 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range, CancellationToken, MarkupContent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import { TextDocumentContentProvider, ProviderResult } from './provider'
+import { ProviderResult, TextDocumentContentProvider } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
+
+export interface Documentation {
+  filetype: string
+  content: string
+}
 
 export interface KeymapOption {
   sync: boolean
@@ -95,6 +100,15 @@ export interface Env {
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
+  readonly colorscheme: string
+  readonly background: string
+  readonly runtimepath: string
+}
+
+export interface Fragment {
+  start: number
+  lines: string[]
+  filetype: string
 }
 
 export interface EditerState {
@@ -324,8 +338,7 @@ export interface VimCompleteItem {
   localBonus?: number
   index?: number
   // used for preview
-  documentation?: MarkupContent
-  hasDetail?: boolean
+  documentation?: Documentation[]
   detailShown?: number
   // saved line for apply TextEdit
   line?: string

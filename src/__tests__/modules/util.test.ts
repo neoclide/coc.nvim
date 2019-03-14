@@ -6,6 +6,19 @@ import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score } from '../../util/match'
 import { mixin } from '../../util/object'
 import { indexOf } from '../../util/string'
+import { getHiglights } from '../../util/highlight'
+import helper from '../helper'
+import { Neovim } from '@chemzqm/neovim'
+
+let nvim: Neovim
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
 
 describe('score test', () => {
   test('should match schema', () => {
@@ -82,5 +95,14 @@ describe('resolveRoot', () => {
   test('resolve root consider root path', () => {
     let res = resolveRoot('/usr', ['.git'])
     expect(res).toBe('/usr')
+  })
+})
+
+describe('getHiglights', () => {
+  test('getHiglights', async () => {
+    let res = await getHiglights([
+      '*@param* `buffer`'
+    ], 'markdown', 0)
+    expect(res.length > 0).toBe(true)
   })
 })

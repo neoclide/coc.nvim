@@ -4,7 +4,7 @@ import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/float'
-import { ConfigurationChangeEvent, DiagnosticItem } from '../types'
+import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { comparePosition, positionInRange } from '../util/position'
 import workspace from '../workspace'
@@ -48,7 +48,8 @@ export class DiagnosticManager implements Disposable {
   public async init(): Promise<void> {
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
-    this.floatFactory = new FloatFactory(nvim, workspace.env, 'diagnostic-float')
+    let srcId = await workspace.createNameSpace('coc-diagnostic-float')
+    this.floatFactory = new FloatFactory(nvim, workspace.env, srcId)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -58,7 +59,8 @@ export class DiagnosticManager implements Disposable {
       this.timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
-        await this.echoMessage(true)
+        // make it sync
+        this.nvim.call('CocAction', 'diagnosticInfo', true)
       }, 300)
     }, null, this.disposables)
 
@@ -373,28 +375,30 @@ export class DiagnosticManager implements Disposable {
       return
     }
     let lines: string[] = []
+    let docs: Documentation[] = []
     diagnostics.forEach(diagnostic => {
       let { source, code, severity, message } = diagnostic
       let s = getSeverityName(severity)[0]
       let str = `[${source}${code ? ' ' + code : ''}] [${s}] ${message}`
+      let filetype = 'Error'
+      switch (diagnostic.severity) {
+        case DiagnosticSeverity.Hint:
+          filetype = 'Hint'
+          break
+        case DiagnosticSeverity.Warning:
+          filetype = 'Warning'
+          break
+        case DiagnosticSeverity.Information:
+          filetype = 'Info'
+          break
+      }
+      docs.push({ filetype, content: str })
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      let hlGroup = 'CocErrorFloat'
-      switch (diagnostics[0].severity) {
-        case DiagnosticSeverity.Hint:
-          hlGroup = 'CocHintFloat'
-          break
-        case DiagnosticSeverity.Warning:
-          hlGroup = 'CocWarningFloat'
-          break
-        case DiagnosticSeverity.Information:
-          hlGroup = 'CocInfoFloat'
-          break
-      }
       let mode = await this.nvim.call('mode')
       if (mode != 'n') return
-      await this.floatFactory.create(lines, '', hlGroup)
+      await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]
       await this.nvim.command('echo ""')

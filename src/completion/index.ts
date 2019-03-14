@@ -31,6 +31,7 @@ export class Completion implements Disposable {
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
   private resolveTokenSource: CancellationTokenSource
+  private floatTokenSource: CancellationTokenSource
   private changedTick = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
@@ -68,6 +69,10 @@ export class Completion implements Disposable {
         event: 'CompleteDone',
         request: true,
         callback: async () => {
+          if (this.floatTokenSource) {
+            this.floatTokenSource.cancel()
+            this.floatTokenSource = null
+          }
           await this.nvim.call('coc#util#close_popup')
         }
       }))
@@ -441,6 +446,10 @@ export class Completion implements Disposable {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
+    if (this.floatTokenSource) {
+      this.floatTokenSource.cancel()
+      this.floatTokenSource = null
+    }
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
     this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null
@@ -455,8 +464,8 @@ export class Completion implements Disposable {
     let { token } = source
     await sources.doCompleteResolve(resolvedItem, token)
     if (token.isCancellationRequested) return
-    let content = resolvedItem.documentation ? resolvedItem.documentation.value : resolvedItem.info
-    if (!content) {
+    let docs = resolvedItem.documentation
+    if (!docs || docs.length == 0) {
       this.closePreviewWindow()
     } else {
       if (!this.previewBuffer) await this.createPreviewBuffer()
@@ -466,9 +475,9 @@ export class Completion implements Disposable {
         let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
         this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
       }
-      let kind: MarkupKind = resolvedItem.documentation && resolvedItem.documentation.kind == 'markdown' ? 'markdown' : 'plaintext'
       if (token.isCancellationRequested || !this.isActivted) return
-      await this.floating.show(content, bounding, kind, resolvedItem.hasDetail)
+      this.floatTokenSource = new CancellationTokenSource()
+      await this.floating.show(docs, bounding, this.floatTokenSource.token)
     }
     this.resolveTokenSource = null
   }
@@ -500,6 +509,10 @@ export class Completion implements Disposable {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
+    }
+    if (this.floatTokenSource) {
+      this.floatTokenSource.cancel()
+      this.floatTokenSource = null
     }
     this.currItem = null
     this.activted = false

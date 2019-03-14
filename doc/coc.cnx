@@ -279,9 +279,8 @@ b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			用于针对特定 buffer 禁用补全，例如: >
 			
-			" 对 python 文件禁用补全
-			autocmd FileType python let b:coc_suggest_disable = 1
-
+	" 对 python 文件禁用补全
+	autocmd FileType python let b:coc_suggest_disable = 1
 
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
@@ -1038,12 +1037,6 @@ CocPumFloating 					*CocPumFloating*
   默认: `Pmenu`
 
   悬浮窗口背景高亮。
-
-CocPumFloatingDetail 				*CocPumFloatingDetail*
-
-  默认: `Pmenu`
-
-  悬浮窗口详情部分高亮。
 
 ==============================================================================
 

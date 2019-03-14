@@ -18,6 +18,7 @@ import Document from '../model/document'
 import FloatFactory from '../model/float'
 import { getSymbolKind } from '../util/convert'
 import { positionInRange } from '../util/position'
+import { Documentation } from '../types'
 const logger = require('../util/logger')('Handler')
 
 interface SymbolInfo {
@@ -72,7 +73,9 @@ export default class Handler {
     workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
       if (id) this.highlightNamespace = id
     })
-    this.hoverFactory = new FloatFactory(nvim, workspace.env)
+    workspace.createNameSpace('coc-hover-float').then(id => { // tslint:disable-line
+      this.hoverFactory = new FloatFactory(nvim, workspace.env, id)
+    })
 
     let lastInsert: number
     events.on('InsertCharPre', async () => {
@@ -795,6 +798,7 @@ export default class Handler {
     let lines: string[] = []
     let target = this.preferences.hoverTarget
     let i = 0
+    let docs: Documentation[] = []
     for (let hover of hovers) {
       let { contents } = hover
       if (i > 0) lines.push('---')
@@ -803,6 +807,7 @@ export default class Handler {
           if (typeof item === 'string') {
             if (item.trim().length) {
               lines.push(...item.split('\n'))
+              docs.push({ content: item, filetype: 'markdown' })
             }
           } else {
             let content = item.value.trim()
@@ -810,25 +815,29 @@ export default class Handler {
               content = '``` ' + item.language + '\n' + content + '\n```'
             }
             lines.push(...content.trim().split('\n'))
+            docs.push({ filetype: item.language, content: item.value })
           }
         }
       } else if (typeof contents == 'string') {
         lines.push(...contents.split('\n'))
+        docs.push({ content: contents, filetype: 'markdown' })
       } else if (MarkedString.is(contents)) { // tslint:disable-line
         let content = contents.value.trim()
         if (target == 'preview') {
           content = '``` ' + contents.language + '\n' + content + '\n```'
         }
         lines.push(...content.split('\n'))
+        docs.push({ filetype: contents.language, content: contents.value })
       } else if (MarkupContent.is(contents)) {
         lines.push(...contents.value.split('\n'))
+        docs.push({ filetype: contents.kind == 'markdown' ? 'markdown' : 'txt', content: contents.value })
       }
       i++
     }
     if (target == 'echo') {
       await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim())
     } else if (target == 'float') {
-      await this.hoverFactory.create(lines, 'markdown')
+      await this.hoverFactory.create(docs)
     } else {
       this.documentLines = lines
       await this.nvim.command(`pedit coc://document`)
@@ -846,10 +855,14 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
+    let hoverTarget = config.get<string>('hoverTarget', 'float')
+    if (hoverTarget == 'float' && !workspace.env.floating) {
+      hoverTarget = 'preview'
+    }
     this.preferences = {
+      hoverTarget,
       triggerSignatureHelp: config.get<boolean>('triggerSignatureHelp', true),
       formatOnType: config.get<boolean>('formatOnType', false),
-      hoverTarget: config.get<string>('hoverTarget', workspace.env.floating ? 'float' : 'preview'),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
   }

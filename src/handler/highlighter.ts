@@ -1,10 +1,10 @@
-import Document from '../model/document'
-import workspace from '../workspace'
-import { Color, ColorInformation, Disposable, Range, Position } from 'vscode-languageserver-protocol'
-import { equals } from '../util/object'
 import { Neovim } from '@chemzqm/neovim'
+import { Color, ColorInformation, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import Document from '../model/document'
 import { group } from '../util/array'
-import { rangeInRange, positionInRange } from '../util/position'
+import { equals } from '../util/object'
+import { positionInRange } from '../util/position'
+import workspace from '../workspace'
 const logger = require('../util/logger')('highlighter')
 
 export interface ColorRanges {

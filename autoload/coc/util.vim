@@ -432,6 +432,9 @@ function! coc#util#vim_info()
         \ 'pumevent': exists('##MenuPopupChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
+        \ 'colorscheme': get(g:, 'colors_name', ''),
+        \ 'background': &background,
+        \ 'runtimepath': &runtimepath,
         \}
 endfunction
 

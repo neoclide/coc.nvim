@@ -282,12 +282,7 @@ export default class Plugin extends EventEmitter {
           sources.toggleSource(args[1])
           break
         case 'diagnosticInfo':
-          // denite would clear message without timer
-          setTimeout(() => {
-            diagnosticManager.echoMessage().catch(e => {
-              logger.error(e)
-            })
-          }, 40)
+          diagnosticManager.echoMessage()
           break
         case 'diagnosticNext':
           await diagnosticManager.jumpNext()

@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, MarkupContent, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, MarkupContent } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import Document from './model/document'
@@ -25,7 +25,7 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem, Documentation } from './types'
 import { wait } from './util'
 import * as complete from './util/complete'
 import { getChangedPosition } from './util/position'
@@ -521,21 +521,19 @@ class Languages {
         if (item.documentation == null) {
           let { documentation, detail } = resolving
           if (!documentation && !detail) return
-          if (item.detailShown) {
-            detail = null
-          } else if (detail) {
-            detail = detail.trim().replace(/\n\s*/g, ' ')
+          let docs: Documentation[] = []
+          if (detail && !item.detailShown && detail != item.word) {
+            detail = detail.replace(/\n\s*/g, ' ')
+            let isText = /^[\w-\s.,\t]+$/.test(detail)
+            docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail })
           }
-          let content = documentation && MarkupContent.is(documentation) ? documentation.value : documentation || ''
-          let isMarkdown = documentation && MarkupContent.is(documentation) && documentation.kind == 'markdown'
-          let sep = detail && content ? '\n\n' : ''
-          let value = `${detail || ''}${sep}${content || ''}`.trim()
-          if (value == item.word) {
-            item.documentation = { kind: 'plaintext', value: '' }
-            return
+          if (documentation) {
+            docs.push({
+              filetype: MarkupContent.is(documentation) && documentation.kind == 'markdown' ? 'markdown' : 'txt',
+              content: MarkupContent.is(documentation) ? documentation.value : documentation
+            })
           }
-          item.documentation = { kind: isMarkdown ? 'markdown' : 'plaintext', value }
-          item.hasDetail = detail && detail.length > 0
+          item.documentation = docs
         }
       },
       onCompleteDone: async (vimItem: VimCompleteItem, opt: CompleteOption): Promise<void> => {
