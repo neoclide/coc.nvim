@@ -276,23 +276,20 @@ export class Completion implements Disposable {
     this.lastInsert = null
     // avoid trigger filter on pumvisible
     if (document.changedtick == this.changedTick) return
+    let ind = option.line.match(/^\s*/)[0]
+    let line = document.getline(option.linenr - 1)
+    let curr = line.match(/^\s*/)[0]
+    // indent change
+    if (ind.length != curr.length) {
+      this.stop()
+      return
+    }
     if (!hasInsert) {
       // this could be wrong, but can't avoid.
       this.isResolving = true
       return
     }
     let col = await this.nvim.call('col', '.')
-    let line = document.getline(option.linenr - 1)
-    let ind = option.line.match(/^\s*/)[0]
-    let curr = line.match(/^\s*/)[0]
-    // fix option when vim does indent
-    if (ind.length != curr.length) {
-      let newCol = option.col + curr.length - ind.length
-      if (newCol > col - 1) return
-      let newLine = curr + option.line.slice(ind.length)
-      let colnr = option.colnr + curr.length - ind.length
-      Object.assign(option, { col: newCol, line: newLine, colnr })
-    }
     let search = byteSlice(line, option.col, col - 1)
     await this.resumeCompletion(search, true)
   }
