@@ -2,9 +2,13 @@ import { attach, NeovimClient } from '@chemzqm/neovim'
 import * as cp from 'child_process'
 import { createHash } from 'crypto'
 import workspace from '../workspace'
+import path from 'path'
 import { omit } from './lodash'
+import os from 'os'
+import fs from 'fs'
 import { byteLength } from './string'
 import { terminate } from './processes'
+import { isDirectory } from './fs'
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {
@@ -21,7 +25,7 @@ export interface Highlight {
 interface Env {
   readonly colorscheme: string
   readonly background: string
-  readonly runtimepath: string
+  runtimepath: string
 }
 
 const diagnosticFiletypes = ['Error', 'Warning', 'Info', 'Hint']
@@ -48,19 +52,39 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
   const res: Highlight[] = []
   let nvim: NeovimClient
   return new Promise(async resolve => {
-    if (!env) env = await workspace.nvim.call('coc#util#highlight_options')
+    if (!env) {
+      env = await workspace.nvim.call('coc#util#highlight_options')
+      let { runtimepath } = env
+      let paths = runtimepath.split(',')
+      let dirs = await Promise.all(paths.map(p => {
+        let schemeFile = path.join(p, `colors/${env.colorscheme}.vim`)
+        if (fs.existsSync(schemeFile)) return Promise.resolve(p)
+        return isDirectory(path.join(p, 'syntax')).then(res => {
+          return res ? p : null
+        })
+      }))
+      dirs = dirs.filter(s => s != null)
+      env.runtimepath = dirs.join(',')
+    }
     let killed = false
-    let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed'], {
+    let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed', id], {
       shell: false,
+      cwd: os.tmpdir(),
       env: omit(process.env, ['NVIM_LISTEN_ADDRESS'])
     })
     let timer: NodeJS.Timer
     const exit = () => {
       if (timer) clearTimeout(timer)
       if (!killed) {
-        nvim.command('qa!', true)
-        killed = terminate(proc)
+        nvim.command('qa!').then(() => {
+          killed = terminate(proc)
+        }, () => {
+          killed = terminate(proc)
+        })
       }
+      setTimeout(() => {
+        if (!killed) terminate(proc)
+      }, 50)
     }
     try {
       proc.on('error', err => {

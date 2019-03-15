@@ -18,6 +18,11 @@ export async function statAsync(filepath: string): Promise<fs.Stats | null> {
   return stat
 }
 
+export async function isDirectory(filepath: string): Promise<boolean> {
+  let stat = await statAsync(filepath)
+  return stat && stat.isDirectory()
+}
+
 export async function unlinkAsync(filepath: string): Promise<void> {
   try {
     await util.promisify(fs.unlink)(filepath)
