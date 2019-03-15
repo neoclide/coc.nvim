@@ -554,6 +554,7 @@ class Languages {
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)
+        doc = null
       },
       shouldCommit: (item: VimCompleteItem, character: string): boolean => {
         let completeItem = completeItems[item.index]

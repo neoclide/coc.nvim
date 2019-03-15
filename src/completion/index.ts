@@ -464,6 +464,11 @@ export class Completion implements Disposable {
     await sources.doCompleteResolve(resolvedItem, token)
     if (token.isCancellationRequested) return
     let docs = resolvedItem.documentation
+    if (!docs && resolvedItem.info) {
+      let { info } = resolvedItem
+      let isText = /^[\w-\s.,\t]+$/.test(info)
+      docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
+    }
     if (!docs || docs.length == 0) {
       this.closePreviewWindow()
     } else {

@@ -47,6 +47,12 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
     })
     return Promise.resolve(highlights)
   }
+  if (filetype == 'javascriptreact') {
+    filetype = 'javascript'
+  }
+  if (filetype == 'typescriptreact') {
+    filetype = 'typescript'
+  }
   const id = createHash('md5').update(content).digest('hex')
   if (cache[id]) return Promise.resolve(cache[id])
   const res: Highlight[] = []
