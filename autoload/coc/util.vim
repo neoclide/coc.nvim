@@ -263,6 +263,7 @@ endfunction
 function! coc#util#get_complete_option()
   let disabled = get(b:, 'coc_suggest_disable', 0)
   if disabled | return | endif
+  let blacklist = get(b:, 'coc_suggest_blacklist', [])
   let pos = getcurpos()
   let line = getline(pos[1])
   let l:start = pos[2] - 1
@@ -270,6 +271,9 @@ function! coc#util#get_complete_option()
     let l:start -= 1
   endwhile
   let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+  if !empty(blacklist) && index(blacklist, input) >= 0
+    return
+  endif
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
@@ -280,7 +284,8 @@ function! coc#util#get_complete_option()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
-        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name")
+        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name"),
+        \ 'blacklist': blacklist,
         \}
 endfunction
 

@@ -282,6 +282,13 @@ b:coc_suggest_disable 				*b:coc_suggest_disable*
 	" 对 python 文件禁用补全
 	autocmd FileType python let b:coc_suggest_disable = 1
 
+b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*
+
+			禁用部分单词触发补全，例如： >
+			
+	" Disable completion for 'end' in lua file
+	autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 

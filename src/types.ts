@@ -298,6 +298,7 @@ export interface CompleteOption {
   readonly linenr: number
   readonly synname: string
   readonly source?: string
+  readonly blacklist: string[]
   triggerForInComplete?: boolean
 }
 

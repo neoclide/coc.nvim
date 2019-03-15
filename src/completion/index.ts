@@ -117,7 +117,9 @@ export class Completion implements Disposable {
     let [, lnum, col] = await this.nvim.call('getcurpos')
     if (lnum != option.linenr || col < option.col + 1) return null
     let line = document.getline(lnum - 1)
-    return byteSlice(line, option.col, col - 1)
+    let input = byteSlice(line, option.col, col - 1)
+    if (option.blacklist && option.blacklist.indexOf(input) !== -1) return null
+    return input
   }
 
   private get bufnr(): number {
