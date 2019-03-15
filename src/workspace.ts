@@ -709,7 +709,7 @@ export class Workspace implements IWorkspace {
     nvim.command(`keepalt edit ${escaped}`, true)
     nvim.command('setl bufhidden=hide', true)
     nvim.command(`keepalt buffer ${bufnr}`, true)
-    nvim.resumeNotification(false, true)
+    await nvim.resumeNotification()
     return await new Promise<Document>((resolve, reject) => {
       let disposable = this.onDidOpenTextDocument(textDocument => {
         if (textDocument.uri == uri) {

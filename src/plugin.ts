@@ -123,11 +123,9 @@ export default class Plugin extends EventEmitter {
       await diagnosticManager.init()
       services.init()
       await extensions.init()
-      nvim.pauseNotification()
       nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
-      nvim.resumeNotification(false, true)
       this.ready = true
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
