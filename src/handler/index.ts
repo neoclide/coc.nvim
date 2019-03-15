@@ -374,11 +374,7 @@ export default class Handler {
       }
       commandManager.executeCommand(id, ...args)
     } else {
-      let cmds = await this.getCommands()
-      let ids = cmds.map(o => o.id)
-      let idx = await workspace.showQuickpick(ids)
-      if (idx == -1) return
-      commandManager.executeCommand(ids[idx])
+      this.nvim.command(`CocList commands`, true)
     }
   }
 
