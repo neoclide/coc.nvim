@@ -638,17 +638,18 @@ export class Workspace implements IWorkspace {
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
     let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)
+    let method = this.isVim ? 'callTimer' : 'call'
     if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
       await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      await nvim.callTimer('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
+      await nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
     } else {
       let cwd = await nvim.call('getcwd')
       let file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
       file = await nvim.call('fnameescape', file)
       let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      await nvim.callTimer('coc#util#execute', [`${jumpCommand} ${moveCmd} ${file}`])
+      await nvim[method]('coc#util#execute', [`${jumpCommand} ${moveCmd} ${file}`])
     }
     if (this.isVim) await wait(100)
   }
