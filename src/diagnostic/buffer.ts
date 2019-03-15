@@ -96,7 +96,7 @@ export class DiagnosticBuffer implements Disposable {
   private clearSigns(): void {
     let { nvim, signIds, bufnr } = this
     if (signIds.size > 0) {
-      nvim.callTimer('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
+      nvim.call('coc#util#unplace_signs', [bufnr, Array.from(signIds)], true)
       signIds.clear()
     }
   }
