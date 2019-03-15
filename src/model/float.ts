@@ -18,7 +18,6 @@ export default class FloatFactory implements Disposable {
   public static creating = false
   private buffer: Buffer
   private window: Window
-  private _creating = false
   private closeTs = 0
   private insertTs = 0
   private readonly _onWindowCreate = new Emitter<Window>()
@@ -37,7 +36,7 @@ export default class FloatFactory implements Disposable {
     }, null, this.disposables)
     events.on('CursorMoved', async bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
-      if (this.creating) return
+      if (FloatFactory.creating) return
       this.close()
     }, null, this.disposables)
 
@@ -47,10 +46,6 @@ export default class FloatFactory implements Disposable {
       buf.setOption('bufhidden', 'hide', true)
       this.floatBuffer = new FloatBuffer(buf, nvim, srcId)
     })
-  }
-
-  public get creating(): boolean {
-    return this._creating
   }
 
   private get columns(): number {
@@ -86,9 +81,8 @@ export default class FloatFactory implements Disposable {
   public async create(docs: Documentation[]): Promise<Window | undefined> {
     if (!this.env.floating || docs.length == 0) return
     let now = Date.now()
-    this._creating = true
     FloatFactory.creating = true
-    this.closeWindow()
+    this.close()
     let { nvim } = this
     let config = await this.getBoundings(docs)
     try {
@@ -99,7 +93,7 @@ export default class FloatFactory implements Disposable {
       })
       this._onWindowCreate.fire(window)
       nvim.pauseNotification()
-      window.setVar('popup', 1, true)
+      window.setVar('float', 1, true)
       window.setCursor([1, 1], true)
       window.setOption('list', false, true)
       window.setOption('wrap', false, true)
@@ -116,10 +110,7 @@ export default class FloatFactory implements Disposable {
       nvim.command('wincmd p', true)
       await nvim.resumeNotification()
       if (this.closeTs > now || this.insertTs > now) {
-        this.closeWindow()
-        this._creating = false
-        FloatFactory.creating = false
-        return
+        this.closeWindow(window)
       }
       await wait(10)
     } catch (e) {
@@ -128,7 +119,6 @@ export default class FloatFactory implements Disposable {
       logger.error(e)
     } finally {
       FloatFactory.creating = false
-      this._creating = false
     }
   }
 
@@ -141,8 +131,8 @@ export default class FloatFactory implements Disposable {
     this.closeWindow()
   }
 
-  private closeWindow(): void {
-    let { window } = this
+  private closeWindow(window?: Window): void {
+    window = window || this.window
     if (!window) return
     this.nvim.call('coc#util#close_win', window.id, true)
     this.window = null
@@ -157,7 +147,7 @@ export default class FloatFactory implements Disposable {
           clearInterval(interval)
         }
       })
-    }, 100)
+    }, 200)
   }
 
   public dispose(): void {

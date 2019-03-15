@@ -179,15 +179,7 @@ function! coc#util#echo_lines(lines)
 endfunction
 
 function! coc#util#timer(method, args)
-  if !s:is_vim
-    call call(a:method, a:args)
-  else
-    call timer_start(0, { -> s:Call(a:method, a:args)})
-  endif
-endfunction
-
-function! coc#util#call_timer(method, args)
-  call timer_start(10, { -> s:Call(a:method, a:args)})
+  call timer_start(0, { -> s:Call(a:method, a:args)})
 endfunction
 
 function! s:Call(method, args)
