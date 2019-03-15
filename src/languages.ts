@@ -528,10 +528,19 @@ class Languages {
             docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail })
           }
           if (documentation) {
-            docs.push({
-              filetype: MarkupContent.is(documentation) && documentation.kind == 'markdown' ? 'markdown' : 'txt',
-              content: MarkupContent.is(documentation) ? documentation.value : documentation
-            })
+            if (typeof documentation == 'string') {
+              let isText = /^[\w-\s.,\t]+$/.test(documentation)
+              docs.push({
+                filetype: isText ? 'txt' : doc.filetype,
+                content: documentation
+              })
+            } else {
+              let isText = /^[\w-\s.,\t]+$/.test(documentation.value)
+              docs.push({
+                filetype: documentation.kind == 'markdown' ? 'markdown' : isText ? 'txt' : doc.filetype,
+                content: documentation.value
+              })
+            }
           }
           item.documentation = docs
         }
