@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
+import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
 import { ServiceStat } from '../types'
 import * as Is from '../util/is'
@@ -447,7 +448,8 @@ export class LanguageClient extends BaseLanguageClient {
 
   private _getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
     let cwd = options && options.cwd
-    if (!cwd) cwd = workspace.root
+    if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
+    if (!cwd) cwd = workspace.cwd
     if (cwd) {
       // make sure the folder exists otherwise creating the process will fail
       return new Promise(s => {

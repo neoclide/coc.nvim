@@ -391,7 +391,7 @@ export function getTransportKind(config: LanguageServerConfig): Transport {
 
 function getForkOptions(config: LanguageServerConfig): ForkOptions {
   return {
-    cwd: getCwd(config.cwd),
+    cwd: config.cwd,
     execArgv: config.execArgv || [],
     env: config.env || undefined
   }
@@ -399,20 +399,11 @@ function getForkOptions(config: LanguageServerConfig): ForkOptions {
 
 function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   return {
-    cwd: getCwd(config.cwd),
+    cwd: config.cwd,
     detached: !!config.detached,
     shell: !!config.shell,
     env: config.env || undefined
   }
-}
-
-function getCwd(cwd: string): string {
-  if (cwd) {
-    if (path.isAbsolute(cwd)) return cwd
-    let p = path.join(workspace.root, cwd)
-    if (fs.existsSync(p)) return p
-  }
-  return workspace.root
 }
 
 function stateString(state: State): string {
