@@ -151,6 +151,7 @@ export default class Handler {
 
   public async onHover(): Promise<void> {
     let now = Date.now()
+    if (this.hoverFactory.creating) return
     let { document, position } = await workspace.getCurrentState()
     let hovers = await languages.getHover(document, position)
     if (this.cursorMoveTs && this.cursorMoveTs > now) return

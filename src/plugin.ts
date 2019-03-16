@@ -306,9 +306,7 @@ export default class Plugin extends EventEmitter {
           await handler.gotoReferences(args[1])
           break
         case 'doHover':
-          handler.onHover().catch(e => {
-            logger.error(e.message)
-          })
+          await handler.onHover()
           break
         case 'showSignatureHelp':
           await handler.showSignatureHelp()

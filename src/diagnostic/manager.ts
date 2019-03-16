@@ -55,7 +55,7 @@ export class DiagnosticManager implements Disposable {
     }))
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
-      if (FloatFactory.creating) return
+      if (this.floatFactory.creating) return
       this.timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
@@ -353,7 +353,7 @@ export class DiagnosticManager implements Disposable {
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
-    if (FloatFactory.creating) return
+    if (this.floatFactory.creating) return
     if (this.timer) clearTimeout(this.timer)
     let buf = await this.nvim.buffer
     let pos = await workspace.getCursorPosition()
