@@ -17,7 +17,7 @@ It's a completion framework and language server client which supports the
 
 _True snippet and additional text edit support_
 
-To make float preview of complete items work, [follow the steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+Floating window requires master of neovim to work, [follow the steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
@@ -303,7 +303,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ## Backers
 
-♥ coc.nvim? Help us keep it alive by [donating funds](https://www.bountysource.com/teams/coc-nvim)😘!
+❤️ coc.nvim? Help us keep it alive by [donating funds](https://www.bountysource.com/teams/coc-nvim)😘!
 
 <a href="https://github.com/free-easy" target="_blank" title="free-easy">
   <img src="https://github.com/free-easy.png?size=64" width="64" height="64" alt="free-easy">
@@ -311,8 +311,8 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 <a href="https://github.com/ruanyl" target="_blank" title="ruanyl">
   <img src="https://github.com/ruanyl.png?size=64" width="64" height="64" alt="ruanyl">
 </a>
-<a href="https://github.com/taigacute" target="_blank" title="taigacute">
-  <img src="https://github.com/taigacute.png?size=64" width="64" height="64" alt="taigacute">
+<a href="https://github.com/robjuffermans" target="_blank" title="robjuffermans">
+  <img src="https://github.com/robjuffermans.png?size=64" width="64" height="64" alt="robjuffermans">
 </a>
 <a href="https://github.com/iamcco" target="_blank" title="iamcco">
   <img src="https://github.com/iamcco.png?size=64" width="64" height="64" alt="iamcco">
@@ -325,6 +325,12 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 </a>
 <a href="https://github.com/tomspeak" target="_blank" title="tomspeak">
   <img src="https://github.com/tomspeak.png?size=64" width="64" height="64" alt="tomspeak">
+</a>
+<a href="https://github.com/taigacute" target="_blank" title="taigacute">
+  <img src="https://github.com/taigacute.png?size=64" width="64" height="64" alt="taigacute">
+</a>
+<a href="https://github.com/weirongxu" target="_blank" title="weirongxu">
+  <img src="https://github.com/weirongxu.png?size=64" width="64" height="64" alt="weirongxu">
 </a>
 
 ## 扫码捐助
