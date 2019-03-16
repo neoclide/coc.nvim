@@ -59,7 +59,7 @@ endfunction
 function! coc#util#win_position()
   let nr = winnr()
   let [row, col] = win_screenpos(nr)
-  return [row + winline(), col + wincol()]
+  return [row + winline() - 2, col + wincol() - 2]
 endfunction
 
 function! coc#util#close_popup()
@@ -585,6 +585,21 @@ function! coc#util#extension_root() abort
     let dir = $HOME.'/.config/coc/extensions'
   endif
   return dir
+endfunction
+
+function! coc#util#update_extensions() abort
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
+    echohl Error | echon '[coc.nvim] yarn command not found!' | echohl None
+  endif
+  let dir = coc#util#extension_root()
+  if !isdirectory(dir)
+    echohl Error | echon '[coc.nvim] extension root '.dir.' not found!' | echohl None
+  endif
+  let cwd = getcwd()
+  exe 'lcd '.dir
+  exe '!'.yarncmd.' upgrade --latest --ignore-engines'
+  exe 'lcd '.cwd
 endfunction
 
 function! coc#util#install_extension(args) abort
