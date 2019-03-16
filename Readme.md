@@ -308,6 +308,12 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 <a href="https://github.com/free-easy" target="_blank" title="free-easy">
   <img src="https://github.com/free-easy.png?size=64" width="64" height="64" alt="free-easy">
 </a>
+<a href="https://github.com/ruanyl" target="_blank" title="ruanyl">
+  <img src="https://github.com/ruanyl.png?size=64" width="64" height="64" alt="ruanyl">
+</a>
+<a href="https://github.com/taigacute" target="_blank" title="taigacute">
+  <img src="https://github.com/taigacute.png?size=64" width="64" height="64" alt="taigacute">
+</a>
 <a href="https://github.com/iamcco" target="_blank" title="iamcco">
   <img src="https://github.com/iamcco.png?size=64" width="64" height="64" alt="iamcco">
 </a>

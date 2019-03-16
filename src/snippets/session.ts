@@ -266,9 +266,18 @@ export class SnippetSession {
 
 function normalizeSnippetString(snippet: string, indent: string, opts: FormattingOptions): string {
   let lines = snippet.split(/\r?\n/)
-  let ind = (new Array(opts.tabSize || 2)).fill(opts.insertSpaces ? ' ' : '\t').join('')
+  let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+  let tabSize = opts.tabSize || 2
   lines = lines.map((line, idx) => {
-    return (idx == 0 || line.length == 0 ? '' : indent) + line.split('\t').join(ind)
+    let space = line.match(/^\s*/)[0]
+    let pre = space
+    let isTab = space.startsWith('\t')
+    if (isTab && opts.insertSpaces) {
+      pre = ind.repeat(space.length)
+    } else if (!isTab && !opts.insertSpaces) {
+      pre = ind.repeat(space.length / tabSize)
+    }
+    return (idx == 0 || line.length == 0 ? '' : indent) + pre + line.slice(space.length)
   })
   return lines.join('\n')
 }
