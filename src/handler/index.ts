@@ -694,7 +694,7 @@ export default class Handler {
       if (active) signatures.unshift(active)
     }
     if (signatures.length == 0) return
-    if (this.preferences.signatureHelpTarget) {
+    if (this.preferences.signatureHelpTarget == 'float') {
       signatures.reverse()
       let len = signatures.length
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
