@@ -93,49 +93,46 @@ export default class FloatFactory implements Disposable {
     creatingSet.add(id)
     try {
       if (!this.buffer) await this.createBuffer()
+      let config = await this.getBoundings(docs)
       let mode = await this.nvim.call('mode')
-      if (['i', 'n', 'ic'].indexOf(mode) !== -1 ||
-        (mode == 's' && snippetsManager.session && this.forceTop)) {
+      let allowSelection = mode == 's' && snippetsManager.session && this.forceTop
+      if (config && (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection)) {
         let { nvim, forceTop } = this
+        this.close()
+        let now = Date.now()
         if (mode == 's') {
           await nvim.call('feedkeys', ['\x1b', 'in'])
         }
-        let config = await this.getBoundings(docs)
-        if (config) {
-          this.close()
-          let now = Date.now()
-          let window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
-            col: config.col,
-            row: config.row,
-            relative: 'cursor'
-          })
-          this._onWindowCreate.fire(window)
-          nvim.pauseNotification()
-          window.setVar('float', 1, true)
-          window.setCursor([1, 1], true)
-          window.setOption('list', false, true)
-          window.setOption('wrap', false, true)
-          window.setOption('previewwindow', true, true)
-          window.setOption('number', false, true)
-          window.setOption('cursorline', false, true)
-          window.setOption('cursorcolumn', false, true)
-          window.setOption('signcolumn', 'no', true)
-          window.setOption('conceallevel', 2, true)
-          window.setOption('relativenumber', false, true)
-          window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
-          nvim.call('win_gotoid', [window.id], true)
-          this.floatBuffer.setLines()
-          if (forceTop) nvim.command('normal! G', true)
-          nvim.command('wincmd p', true)
-          await nvim.resumeNotification()
-          if (this.closeTs > now || this.insertTs > now) {
-            logger.debug('close')
-            this.closeWindow(window)
-          } else if (mode == 's') {
-            await snippetsManager.selectCurrentPlaceholder(false)
-          }
-          await wait(30)
+        let window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
+          col: config.col,
+          row: config.row,
+          relative: 'cursor'
+        })
+        this._onWindowCreate.fire(window)
+        nvim.pauseNotification()
+        window.setVar('float', 1, true)
+        window.setCursor([1, 1], true)
+        window.setOption('list', false, true)
+        window.setOption('wrap', false, true)
+        window.setOption('previewwindow', true, true)
+        window.setOption('number', false, true)
+        window.setOption('cursorline', false, true)
+        window.setOption('cursorcolumn', false, true)
+        window.setOption('signcolumn', 'no', true)
+        window.setOption('conceallevel', 2, true)
+        window.setOption('relativenumber', false, true)
+        window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
+        nvim.call('win_gotoid', [window.id], true)
+        this.floatBuffer.setLines()
+        if (forceTop) nvim.command('normal! G', true)
+        nvim.command('wincmd p', true)
+        await nvim.resumeNotification()
+        if (this.closeTs > now || this.insertTs > now) {
+          this.closeWindow(window)
+        } else if (mode == 's') {
+          await snippetsManager.selectCurrentPlaceholder(false)
         }
+        await wait(30)
       }
     } catch (e) {
       // tslint:disable-next-line: no-console
