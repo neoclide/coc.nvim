@@ -3,7 +3,7 @@ import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocume
 import Uri from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
-import FloatFactory from '../model/float'
+import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { comparePosition, positionInRange } from '../util/position'
@@ -396,7 +396,7 @@ export class DiagnosticManager implements Disposable {
     })
     if (useFloat) {
       let mode = await this.nvim.call('mode')
-      if (mode != 'n') return
+      if (mode == 's') return
       await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]

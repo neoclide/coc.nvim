@@ -10,6 +10,7 @@ export default class FloatBuffer {
   private lines: string[] = []
   private highlights: Highlight[]
   private chars = new Chars('@,48-57,_192-255,<,>,$,#,-,`,*')
+  private positions: [number, number, number?][]
   public width = 0
   constructor(
     private buffer: Buffer,
@@ -23,6 +24,7 @@ export default class FloatBuffer {
     let currLine = 0
     let newLines: string[] = []
     let fill = false
+    let positions = this.positions = []
     for (let doc of docs) {
       let isMarkdown = doc.filetype == 'markdown'
       let lines: string[] = []
@@ -47,13 +49,36 @@ export default class FloatBuffer {
         list.push(curr)
         return list
       }, [])
+      let { active } = doc
       for (let str of arr) {
         let len = byteLength(str)
         if (len > maxWidth - 2) {
           // don't split on word
-          lines.push(...this.softSplit(str, maxWidth - 2))
+          let parts = this.softSplit(str, maxWidth - 2)
+          if (active) {
+            let count = 0
+            let inLine = false
+            let idx = 1
+            let total = active[1] - active[0]
+            for (let line of parts) {
+              if (count >= total) break
+              if (!inLine && active[0] < line.length) {
+                inLine = true
+                let len = line.length > active[1] ? total : line.length - active[0]
+                count = len
+                positions.push([currLine + idx, active[0] + 2, len])
+              } else if (inLine && total > count) {
+                let len = (total - count) > line.length ? line.length : total - count
+                count = count + len
+                positions.push([currLine + idx, 2, len])
+              }
+              idx = idx + 1
+            }
+          }
+          lines.push(...parts)
         } else {
           lines.push(str)
+          if (active) positions.push([currLine + 1, active[0] + 2, active[1] - active[0]])
         }
       }
       if (!lines[lines.length - 1].trim().length) {
@@ -140,7 +165,7 @@ export default class FloatBuffer {
     buffer.clearNamespace(-1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
-      let positions: [number, number][] = []
+      let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
         buffer.addHighlight({
           srcId,
@@ -161,6 +186,11 @@ export default class FloatBuffer {
       }
       for (let arr of group(positions, 8)) {
         nvim.call('matchaddpos', ['Conceal', arr], true)
+      }
+    }
+    if (this.positions.length) {
+      for (let arr of group(this.positions, 8)) {
+        nvim.call('matchaddpos', ['CocUnderline', arr], true)
       }
     }
   }

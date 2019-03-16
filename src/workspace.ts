@@ -409,7 +409,7 @@ export class Workspace implements IWorkspace {
         let document = await this.loadFile(uri)
         await document.applyEdits(nvim, changes[uri])
       }
-      this.showMessage(`${changes.length} documents changed.`)
+      this.showMessage(`${Object.keys(changes).length} documents changed.`)
     }
     if (documentChanges && documentChanges.length) {
       let n = documentChanges.length

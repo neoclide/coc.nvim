@@ -4,6 +4,8 @@ import events from '../events'
 import { Documentation, Env } from '../types'
 import { disposeAll, wait } from '../util'
 import FloatBuffer from './floatBuffer'
+import snippetsManager from '../snippets/manager'
+import uuid = require('uuid/v1')
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -13,9 +15,10 @@ export interface WindowConfig {
   row: number
 }
 
+const creatingSet: Set<string> = new Set()
+
 // factory class for floating window
 export default class FloatFactory implements Disposable {
-  public static creating = false
   private buffer: Buffer
   private window: Window
   private closeTs = 0
@@ -27,7 +30,7 @@ export default class FloatFactory implements Disposable {
   constructor(private nvim: Neovim,
     private env: Env,
     private srcId: number,
-    private relative: 'cursor' | 'win' | 'editor' = 'cursor') {
+    private forceTop = false) {
     if (!env.floating) return
 
     events.on('InsertEnter', async () => {
@@ -39,13 +42,18 @@ export default class FloatFactory implements Disposable {
       if (FloatFactory.creating) return
       this.close()
     }, null, this.disposables)
+    events.on('InsertLeave', async () => {
+      this.close()
+    }, null, this.disposables)
+  }
 
-    this.nvim.createNewBuffer(false, true).then(buf => {
-      this.buffer = buf
-      buf.setOption('buftype', 'nofile', true)
-      buf.setOption('bufhidden', 'hide', true)
-      this.floatBuffer = new FloatBuffer(buf, nvim, srcId)
-    })
+  private async createBuffer(): Promise<void> {
+    if (this.buffer) return
+    let buf = await this.nvim.createNewBuffer(false, true)
+    this.buffer = buf
+    await buf.setOption('buftype', 'nofile')
+    await buf.setOption('bufhidden', 'hide')
+    this.floatBuffer = new FloatBuffer(buf, this.nvim, this.srcId)
   }
 
   private get columns(): number {
@@ -57,21 +65,22 @@ export default class FloatFactory implements Disposable {
   }
 
   public async getBoundings(docs: Documentation[]): Promise<WindowConfig> {
-    let { nvim } = this
+    let { nvim, forceTop } = this
     let { columns, lines } = this
     let alignTop = false
     let offsetX = 0
+    let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
+    if (forceTop && row == 0) return
     await this.floatBuffer.setDocuments(docs, 60)
     let { height, width } = this.floatBuffer
-    let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    if (lines - row < height && row > height) {
+    if (forceTop || (lines - row < height && row > height)) {
       alignTop = true
     }
     if (col + width > columns) {
       offsetX = col + width - columns
     }
     return {
-      height: alignTop ? height : Math.min(height, (lines - row)),
+      height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
       width: Math.min(columns, width),
       row: alignTop ? - height : 1,
       col: offsetX == 0 ? 0 : - offsetX
@@ -80,46 +89,59 @@ export default class FloatFactory implements Disposable {
 
   public async create(docs: Documentation[]): Promise<Window | undefined> {
     if (!this.env.floating || docs.length == 0) return
-    let now = Date.now()
-    FloatFactory.creating = true
-    this.close()
-    let { nvim } = this
-    let config = await this.getBoundings(docs)
+    let id = uuid()
+    creatingSet.add(id)
     try {
-      let window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
-        col: config.col,
-        row: config.row,
-        relative: this.relative
-      })
-      this._onWindowCreate.fire(window)
-      nvim.pauseNotification()
-      window.setVar('float', 1, true)
-      window.setCursor([1, 1], true)
-      window.setOption('list', false, true)
-      window.setOption('wrap', false, true)
-      window.setOption('previewwindow', true, true)
-      window.setOption('number', false, true)
-      window.setOption('cursorline', false, true)
-      window.setOption('cursorcolumn', false, true)
-      window.setOption('signcolumn', 'no', true)
-      window.setOption('conceallevel', 2, true)
-      window.setOption('relativenumber', false, true)
-      window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
-      nvim.call('win_gotoid', [window.id], true)
-      this.floatBuffer.setLines()
-      nvim.command('wincmd p', true)
-      await nvim.resumeNotification()
-      if (this.closeTs > now || this.insertTs > now) {
-        this.closeWindow(window)
+      if (!this.buffer) await this.createBuffer()
+      let mode = await this.nvim.call('mode')
+      if (['i', 'n', 'ic'].indexOf(mode) !== -1 || (mode == 's' && snippetsManager.session)) {
+        let { nvim, forceTop } = this
+        if (mode == 's') {
+          await nvim.call('feedkeys', ['\x1b', 'in'])
+        }
+        let config = await this.getBoundings(docs)
+        if (config) {
+          this.close()
+          let now = Date.now()
+          let window = this.window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
+            col: config.col,
+            row: config.row,
+            relative: 'cursor'
+          })
+          this._onWindowCreate.fire(window)
+          nvim.pauseNotification()
+          window.setVar('float', 1, true)
+          window.setCursor([1, 1], true)
+          window.setOption('list', false, true)
+          window.setOption('wrap', false, true)
+          window.setOption('previewwindow', true, true)
+          window.setOption('number', false, true)
+          window.setOption('cursorline', false, true)
+          window.setOption('cursorcolumn', false, true)
+          window.setOption('signcolumn', 'no', true)
+          window.setOption('conceallevel', 2, true)
+          window.setOption('relativenumber', false, true)
+          window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
+          nvim.call('win_gotoid', [window.id], true)
+          this.floatBuffer.setLines()
+          if (forceTop) nvim.command('normal! G', true)
+          nvim.command('wincmd p', true)
+          await nvim.resumeNotification()
+          if (this.closeTs > now || this.insertTs > now) {
+            logger.debug('close')
+            this.closeWindow(window)
+          } else if (mode == 's') {
+            await snippetsManager.selectCurrentPlaceholder(false)
+          }
+          await wait(30)
+        }
       }
-      await wait(10)
     } catch (e) {
       // tslint:disable-next-line: no-console
       console.error(`error on create floating window:` + e.message)
       logger.error(e)
-    } finally {
-      FloatFactory.creating = false
     }
+    creatingSet.delete(id)
   }
 
   /**
@@ -153,5 +175,9 @@ export default class FloatFactory implements Disposable {
   public dispose(): void {
     this._onWindowCreate.dispose()
     disposeAll(this.disposables)
+  }
+
+  public static get creating(): boolean {
+    return creatingSet.size > 0
   }
 }

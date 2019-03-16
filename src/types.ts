@@ -14,6 +14,7 @@ export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 export interface Documentation {
   filetype: string
   content: string
+  active?: [number, number]
 }
 
 export interface KeymapOption {

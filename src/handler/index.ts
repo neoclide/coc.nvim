@@ -15,7 +15,7 @@ import { disposeAll, wait } from '../util'
 import { isWord, indexOf, byteSlice } from '../util/string'
 import workspace from '../workspace'
 import Document from '../model/document'
-import FloatFactory from '../model/float'
+import FloatFactory from '../model/floatFactory'
 import { getSymbolKind } from '../util/convert'
 import { positionInRange } from '../util/position'
 import { Documentation } from '../types'
@@ -57,6 +57,7 @@ export default class Handler {
   private highlightNamespace = 1080
   private colors: Colors
   private hoverFactory: FloatFactory
+  private signatureFactory: FloatFactory
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
   private codeLensManager: CodeLensManager
@@ -73,8 +74,9 @@ export default class Handler {
     workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
       if (id) this.highlightNamespace = id
     })
-    workspace.createNameSpace('coc-hover-float').then(id => { // tslint:disable-line
+    workspace.createNameSpace('coc-float').then(id => { // tslint:disable-line
       this.hoverFactory = new FloatFactory(nvim, workspace.env, id)
+      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, true)
     })
 
     let lastInsert: number
@@ -672,7 +674,6 @@ export default class Handler {
     let bufnr = await this.nvim.call('bufnr', '%')
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    let { changedtick } = document
     let position = await workspace.getCursorPosition()
     let part = document.getline(position.line).slice(0, position.character)
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
@@ -686,63 +687,107 @@ export default class Handler {
       if (active) signatures.unshift(active)
     }
     if (signatures.length == 0) return
-    let height = await this.nvim.getOption('cmdheight') as number
-    let columns = await this.nvim.getOption('columns') as number
-    if (document.changedtick != changedtick) return
-    signatures = signatures.slice(0, height)
-    let signatureList: SignaturePart[][] = []
-    for (let signature of signatures) {
-      let parts: SignaturePart[] = []
-      let { label } = signature
-      label = label.replace(/\n/g, ' ')
-      if (label.length >= columns - 16) {
-        label = label.slice(0, columns - 16) + '...'
-      }
-      let nameIndex = label.indexOf('(')
-      if (nameIndex == -1) {
-        parts = [{ text: label, type: 'Normal' }]
-      } else {
-        parts.push({
-          text: label.slice(0, nameIndex),
-          type: 'Label'
-        })
-        let after = label.slice(nameIndex)
-        if (signatureList.length == 0 && activeParameter != null) {
-          let active = signature.parameters[activeParameter]
-          if (active) {
-            let start: number
-            let end: number
-            if (typeof active.label === 'string') {
-              let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
-              startIndex = startIndex == -1 ? 0 : startIndex
-              let str = after.slice(startIndex)
-              let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-              let idx = ms ? ms.index : str.indexOf(active.label)
-              if (idx == -1) {
-                parts.push({ text: after, type: 'Normal' })
-                continue
-              }
-              start = idx + startIndex
-              end = idx + startIndex + active.label.length
-            } else {
-              [start, end] = active.label
-              start = start - nameIndex
-              end = end - nameIndex
+    if (workspace.env.floating) {
+      signatures.reverse()
+      let len = signatures.length
+      let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
+        let activeIndexes: [number, number] = null
+        if (idx == len - 1) {
+          if (c.documentation) {
+            let { documentation } = c
+            let content = typeof documentation === 'string' ? documentation : documentation.value
+            if (content.trim().length) {
+              p.push({
+                content,
+                filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+              })
             }
-            parts.push({ text: after.slice(0, start), type: 'Normal' })
-            parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
-            parts.push({ text: after.slice(end), type: 'Normal' })
           }
+          let nameIndex = c.label.indexOf('(')
+          let active = c.parameters[activeParameter]
+          let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
+          if (typeof active.label === 'string') {
+            let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
+            startIndex = startIndex == -1 ? 0 : startIndex
+            let str = after.slice(startIndex)
+            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+            let index = ms ? ms.index : str.indexOf(active.label)
+            if (index != -1) {
+              activeIndexes = [
+                index + startIndex + nameIndex,
+                index + startIndex + active.label.length + nameIndex
+              ]
+            }
+          } else {
+            activeIndexes = active.label
+          }
+        }
+        p.push({
+          content: c.label,
+          filetype: document.filetype,
+          active: activeIndexes
+        })
+        return p
+      }, [])
+      await this.signatureFactory.create(docs)
+      // show float
+    } else {
+      let columns = workspace.env.columns
+      signatures = signatures.slice(0, workspace.env.cmdheight)
+      let signatureList: SignaturePart[][] = []
+      for (let signature of signatures) {
+        let parts: SignaturePart[] = []
+        let { label } = signature
+        label = label.replace(/\n/g, ' ')
+        if (label.length >= columns - 16) {
+          label = label.slice(0, columns - 16) + '...'
+        }
+        let nameIndex = label.indexOf('(')
+        if (nameIndex == -1) {
+          parts = [{ text: label, type: 'Normal' }]
         } else {
           parts.push({
-            text: after,
-            type: 'Normal'
+            text: label.slice(0, nameIndex),
+            type: 'Label'
           })
+          let after = label.slice(nameIndex)
+          if (signatureList.length == 0 && activeParameter != null) {
+            let active = signature.parameters[activeParameter]
+            if (active) {
+              let start: number
+              let end: number
+              if (typeof active.label === 'string') {
+                let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
+                startIndex = startIndex == -1 ? 0 : startIndex
+                let str = after.slice(startIndex)
+                let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+                let idx = ms ? ms.index : str.indexOf(active.label)
+                if (idx == -1) {
+                  parts.push({ text: after, type: 'Normal' })
+                  continue
+                }
+                start = idx + startIndex
+                end = idx + startIndex + active.label.length
+              } else {
+                [start, end] = active.label
+                start = start - nameIndex
+                end = end - nameIndex
+              }
+              parts.push({ text: after.slice(0, start), type: 'Normal' })
+              parts.push({ text: after.slice(start, end), type: 'MoreMsg' })
+              parts.push({ text: after.slice(end), type: 'Normal' })
+            }
+          } else {
+            parts.push({
+              text: after,
+              type: 'Normal'
+            })
+          }
         }
+        signatureList.push(parts)
       }
-      signatureList.push(parts)
+      this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
     }
-    this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
   }
 
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string): Promise<void> {

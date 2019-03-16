@@ -143,12 +143,12 @@ export class SnippetSession {
     await this.document.applyEdits(this.nvim, edits)
   }
 
-  public async selectCurrentPlaceholder(): Promise<void> {
+  public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
     let placeholder = this.snippet.getPlaceholderById(this._currId)
-    if (placeholder) await this.selectPlaceholder(placeholder)
+    if (placeholder) await this.selectPlaceholder(placeholder, triggerAutocmd)
   }
 
-  public async selectPlaceholder(placeholder: CocSnippetPlaceholder): Promise<void> {
+  public async selectPlaceholder(placeholder: CocSnippetPlaceholder, triggerAutocmd = true): Promise<void> {
     let { nvim, document } = this
     if (!document || !placeholder) return
     let { start, end } = placeholder.range
@@ -158,11 +158,11 @@ export class SnippetSession {
     if (placeholder.choice) {
       await nvim.call('coc#snippet#show_choices', [start.line + 1, col, len, placeholder.choice])
     } else {
-      await this.select(placeholder.range, placeholder.value)
+      await this.select(placeholder.range, placeholder.value, triggerAutocmd)
     }
   }
 
-  private async select(range: Range, text: string): Promise<void> {
+  private async select(range: Range, text: string, triggerAutocmd = true): Promise<void> {
     let { document, nvim } = this
     let { start, end } = range
     let { textDocument } = document
@@ -219,7 +219,7 @@ export class SnippetSession {
     }
     await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
     if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
-    nvim.command('silent doautocmd User CocJumpPlaceholder', true)
+    if (triggerAutocmd) nvim.command('silent doautocmd User CocJumpPlaceholder', true)
   }
 
   private async getVirtualCol(line: number, col: number): Promise<number> {

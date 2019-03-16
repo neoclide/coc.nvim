@@ -81,9 +81,9 @@ export class SnippetManager implements types.SnippetManager {
     return isActive
   }
 
-  public async selectCurrentPlaceholder(): Promise<void> {
+  public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
     let { session } = this
-    if (session) return await session.selectCurrentPlaceholder()
+    if (session) return await session.selectCurrentPlaceholder(triggerAutocmd)
   }
 
   public async nextPlaceholder(): Promise<void> {
