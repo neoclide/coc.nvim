@@ -44,6 +44,7 @@ interface SignaturePart {
 }
 
 interface Preferences {
+  signatureHelpTarget: string
   triggerSignatureHelp: boolean
   formatOnType: boolean
   hoverTarget: string
@@ -693,7 +694,7 @@ export default class Handler {
       if (active) signatures.unshift(active)
     }
     if (signatures.length == 0) return
-    if (workspace.env.floating) {
+    if (this.preferences.signatureHelpTarget) {
       signatures.reverse()
       let len = signatures.length
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
@@ -903,11 +904,16 @@ export default class Handler {
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
     let hoverTarget = config.get<string>('hoverTarget', 'float')
+    let signatureHelpTarget = config.get<string>('signatureHelpTarget', 'float')
     if (hoverTarget == 'float' && !workspace.env.floating) {
       hoverTarget = 'preview'
     }
+    if (signatureHelpTarget == 'float' && !workspace.env.floating) {
+      signatureHelpTarget = 'echo'
+    }
     this.preferences = {
       hoverTarget,
+      signatureHelpTarget,
       triggerSignatureHelp: config.get<boolean>('triggerSignatureHelp', true),
       formatOnType: config.get<boolean>('formatOnType', false),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),

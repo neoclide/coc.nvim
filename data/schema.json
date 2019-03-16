@@ -471,6 +471,11 @@
       "description": "Show signature help when trigger character typed.",
       "default": true
     },
+    "coc.preferences.signatureHelpTarget": {
+      "type": "string",
+      "description": "Target of signature help, use float when possible by default.",
+      "enum": ["float", "echo"]
+    },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": "array",
       "default": [],
