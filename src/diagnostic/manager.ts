@@ -395,8 +395,6 @@ export class DiagnosticManager implements Disposable {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      let mode = await this.nvim.call('mode')
-      if (mode == 's') return
       await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]

@@ -94,7 +94,8 @@ export default class FloatFactory implements Disposable {
     try {
       if (!this.buffer) await this.createBuffer()
       let mode = await this.nvim.call('mode')
-      if (['i', 'n', 'ic'].indexOf(mode) !== -1 || (mode == 's' && snippetsManager.session)) {
+      if (['i', 'n', 'ic'].indexOf(mode) !== -1 ||
+        (mode == 's' && snippetsManager.session && this.forceTop)) {
         let { nvim, forceTop } = this
         if (mode == 's') {
           await nvim.call('feedkeys', ['\x1b', 'in'])
