@@ -1,3 +1,17 @@
+# 2019-03-16
+
+- **Break change** change vim config home on windows to '\$HOME/vimfiles'.
+- Add highlights to float windows.
+- Add CocLocationsAsync().
+- Add support for `b:coc_suggest_disable`.
+- Add support for `b:coc_suggest_blacklist`.
+- Add setting `diagnostic.messageTarget`.
+- Add floating window support for signatures.
+- Fix issues with diagnostic float.
+- Fix info of completion item not shown.
+- Fix CocUpdateSync not work without service start.
+- Fix wrong indent spaces of snippets.
+
 # 2019-03-11
 
 - **Break change** change buffers instead of disk file for `workspace.applyEdits`.
