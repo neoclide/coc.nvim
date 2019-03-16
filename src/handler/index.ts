@@ -105,7 +105,11 @@ export default class Handler {
           await wait(60)
         }
         if (lastInsert > curr) return
-        await this.showSignatureHelp()
+        try {
+          await this.showSignatureHelp()
+        } catch (e) {
+          logger.error(`Error on signature help:`, e)
+        }
       }
     }, null, this.disposables)
 
