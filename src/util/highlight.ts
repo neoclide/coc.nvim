@@ -62,14 +62,13 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       env = await workspace.nvim.call('coc#util#highlight_options')
       let { runtimepath } = env
       let paths = runtimepath.split(',')
-      let dirs = await Promise.all(paths.map(p => {
+      let dirs = paths.filter(p => {
         let schemeFile = path.join(p, `colors/${env.colorscheme}.vim`)
-        if (fs.existsSync(schemeFile)) return Promise.resolve(p)
-        return isDirectory(path.join(p, 'syntax')).then(res => {
-          return res ? p : null
-        })
-      }))
-      dirs = dirs.filter(s => s != null)
+        if (fs.existsSync(schemeFile)) return true
+        if (fs.existsSync(path.join(p, 'syntax'))) return true
+        if (fs.existsSync(path.join(p, 'after/syntax'))) return true
+        return false
+      })
       env.runtimepath = dirs.join(',')
     }
     let killed = false
