@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, MarkupContent } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import Document from './model/document'
@@ -25,12 +25,12 @@ import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, ISource, SourceType, VimCompleteItem, Documentation } from './types'
+import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
 import { wait } from './util'
 import * as complete from './util/complete'
 import { getChangedPosition } from './util/position'
-import workspace from './workspace'
 import { byteLength } from './util/string'
+import workspace from './workspace'
 const logger = require('./util/logger')('languages')
 
 export interface CompletionSource {

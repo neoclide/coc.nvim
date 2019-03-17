@@ -1,6 +1,7 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
+import workspace from '../workspace'
 import snippetsManager from '../snippets/manager'
 import { Documentation, Env } from '../types'
 import { disposeAll } from '../util'
@@ -17,6 +18,7 @@ export interface WindowConfig {
 // factory class for floating window
 export default class FloatFactory implements Disposable {
   private buffer: Buffer
+  private targetBufnr: number
   private window: Window
   private readonly _onWindowCreate = new Emitter<Window>()
   private disposables: Disposable[] = []
@@ -32,6 +34,11 @@ export default class FloatFactory implements Disposable {
     private forceTop = false) {
     if (!env.floating) return
     events.on('InsertEnter', async () => {
+      this.close()
+    }, null, this.disposables)
+    events.on('BufEnter', async bufnr => {
+      if (this.buffer && bufnr == this.buffer.id) return
+      if (bufnr == this.targetBufnr) return
       this.close()
     }, null, this.disposables)
     events.on('CursorMoved', async bufnr => {
@@ -86,6 +93,7 @@ export default class FloatFactory implements Disposable {
 
   public create(docs: Documentation[]): Promise<void> {
     if (!this.env.floating) return
+    this.targetBufnr = workspace.bufnr
     this.close()
     this._creating = true
     let promise = this.promise = this.promise.then(() => {

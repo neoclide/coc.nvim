@@ -216,19 +216,16 @@ export default class Complete {
             continue
           }
         }
-        if (filtering && item.sortText && input.length > 1) {
-          arr.push(omit(item, ['sortText']))
-        } else {
-          arr.push(item)
-        }
+        arr.push(item)
       }
     }
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.score != b.score) return b.score - a.score
       if (a.priority != b.priority) return b.priority - a.priority
+      if (input.length > 1) return a.word.length - b.word.length
+      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       return a.filterText.length - b.filterText.length
