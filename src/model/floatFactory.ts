@@ -60,13 +60,11 @@ export default class FloatFactory implements Disposable {
     }, null, this.disposables)
   }
 
-  private async createBuffer(): Promise<void> {
-    if (this.buffer) return
+  private async createBuffer(): Promise<Buffer> {
     let buf = await this.nvim.createNewBuffer(false, true)
-    this.buffer = buf
     await buf.setOption('buftype', 'nofile')
     await buf.setOption('bufhidden', 'hide')
-    this.floatBuffer = new FloatBuffer(buf, this.nvim, this.srcId)
+    return buf
   }
 
   private get columns(): number {
@@ -124,7 +122,12 @@ export default class FloatFactory implements Disposable {
     if (docs.length == 0) return
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    if (!this.buffer) await this.createBuffer()
+    let { floatBuffer } = this
+    if (!floatBuffer) {
+      let buf = await this.createBuffer()
+      this.buffer = buf
+      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, this.srcId)
+    }
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
     let mode = await this.nvim.call('mode')
@@ -154,7 +157,7 @@ export default class FloatFactory implements Disposable {
       window.setOption('relativenumber', false, true)
       window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
       nvim.call('win_gotoid', [window.id], true)
-      this.floatBuffer.setLines()
+      floatBuffer.setLines()
       if (forceTop) nvim.command('normal! G', true)
       nvim.command('wincmd p', true)
       await nvim.resumeNotification()
