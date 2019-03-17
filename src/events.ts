@@ -1,7 +1,7 @@
 import { Disposable } from 'vscode-languageserver-protocol'
-import { VimCompleteItem, PumBounding, PopupChangeEvent } from './types'
-import workspace from './workspace'
+import { PopupChangeEvent, VimCompleteItem } from './types'
 import { disposeAll } from './util'
+import workspace from './workspace'
 const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
@@ -42,7 +42,7 @@ class Events {
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
-  public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'MenuPopupChanged', handler: (event: PopupChangeEvent, cursorline: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'CompleteDone', handler: (item: VimCompleteItem) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'InsertCharPre', handler: (character: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'FileType', handler: (filetype: string, bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

@@ -26,6 +26,7 @@ export default class FloatFactory implements Disposable {
   private tokenSource: CancellationTokenSource
   private promise: Promise<void> = Promise.resolve(undefined)
   private createTs: number
+  private alignTop = false
   private _creating = false
   public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
@@ -48,6 +49,13 @@ export default class FloatFactory implements Disposable {
     }, null, this.disposables)
     events.on('InsertLeave', async () => {
       this.close()
+    }, null, this.disposables)
+    events.on('MenuPopupChanged', async (ev, cursorline) => {
+      if (cursorline < ev.row && !this.alignTop) {
+        this.close()
+      } else if (cursorline > ev.row && this.alignTop) {
+        this.close()
+      }
     }, null, this.disposables)
   }
 
@@ -74,7 +82,9 @@ export default class FloatFactory implements Disposable {
     let alignTop = false
     let offsetX = 0
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    if (forceTop && row == 0) return
+    if (forceTop && row <= 5) {
+      forceTop = false
+    }
     await this.floatBuffer.setDocuments(docs, 60)
     let { height, width } = this.floatBuffer
     if (forceTop || (lines - row < height && row > height)) {
@@ -83,6 +93,7 @@ export default class FloatFactory implements Disposable {
     if (col + width > columns) {
       offsetX = col + width - columns
     }
+    this.alignTop = alignTop
     return {
       height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
       width: Math.min(columns, width),
