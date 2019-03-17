@@ -107,7 +107,7 @@ function! coc#status()
   if get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
-  return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
+  return trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
 endfunction
 
 function! coc#config(section, value)
