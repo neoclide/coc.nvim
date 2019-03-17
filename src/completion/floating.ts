@@ -1,10 +1,10 @@
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken } from 'vscode-jsonrpc'
-import { Chars } from '../model/chars'
-import FloatBuffer from '../model/floatBuffer'
-import { Documentation, PumBounding } from '../types'
-import workspace from '../workspace'
-const logger = require('../util/logger')('floating')
+import { Buffer, Neovim, Window } from "@chemzqm/neovim";
+import { CancellationToken } from "vscode-jsonrpc";
+import { Chars } from "../model/chars";
+import FloatBuffer from "../model/floatBuffer";
+import { Documentation, PumBounding } from "../types";
+import workspace from "../workspace";
+const logger = require("../util/logger")("floating")
 
 interface Bounding {
   row: number
@@ -24,13 +24,19 @@ export default class FloatingWindow {
   private bounding: PumBounding
   private floatBuffer: FloatBuffer
 
-  constructor(private nvim: Neovim,
+  constructor(
+    private nvim: Neovim,
     private buffer: Buffer,
-    private config: FloatingConfig) {
+    private config: FloatingConfig
+  ) {
     this.floatBuffer = new FloatBuffer(buffer, nvim, config.srcId)
   }
 
-  public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
+  public async show(
+    docs: Documentation[],
+    bounding: PumBounding,
+    token: CancellationToken
+  ): Promise<void> {
     this.bounding = bounding
     let { nvim } = this
     let rect = await this.calculateBounding(docs)
@@ -41,22 +47,28 @@ export default class FloatingWindow {
     if (token.isCancellationRequested) return
     if (!this.window) {
       try {
-        let win = this.window = await nvim.openFloatWindow(this.buffer, false, rect.width, rect.height, {
-          col: rect.col,
-          row: rect.row,
-          relative: 'editor',
-          focusable: true
-        })
+        let win = (this.window = await nvim.openFloatWindow(
+          this.buffer,
+          false,
+          {
+            width: rect.width,
+            height: rect.height,
+            col: rect.col,
+            row: rect.row,
+            relative: "editor",
+            focusable: true
+          }
+        ))
         nvim.pauseNotification()
-        win.setVar('popup', 1, true)
-        win.setOption('list', false, true)
-        win.setOption('number', false, true)
-        win.setOption('cursorline', false, true)
-        win.setOption('cursorcolumn', false, true)
-        win.setOption('signcolumn', 'no', true)
-        win.setOption('conceallevel', 2, true)
-        win.setOption('relativenumber', false, true)
-        win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating', true)
+        win.setVar("popup", 1, true)
+        win.setOption("list", false, true)
+        win.setOption("number", false, true)
+        win.setOption("cursorline", false, true)
+        win.setOption("cursorcolumn", false, true)
+        win.setOption("signcolumn", "no", true)
+        win.setOption("conceallevel", 2, true)
+        win.setOption("relativenumber", false, true)
+        win.setOption("winhl", "Normal:CocFloating,NormalNC:CocFloating", true)
         this.showBuffer()
         await nvim.resumeNotification()
       } catch (e) {
@@ -64,26 +76,31 @@ export default class FloatingWindow {
       }
     } else {
       nvim.pauseNotification()
-      this.window.configFloat(rect.width, rect.height, {
-        col: rect.col,
-        row: rect.row,
-        relative: 'editor',
-        focusable: true
-      }, true)
+      this.window.configFloat(
+        {
+          width: rect.width,
+          height: rect.height,
+          col: rect.col,
+          row: rect.row,
+          relative: "editor",
+          focusable: true
+        },
+        true
+      )
       this.showBuffer()
       await nvim.resumeNotification()
     }
     if (token.isCancellationRequested) {
-      nvim.call('coc#util#close_win', [this.window.id], true)
+      nvim.call("coc#util#close_win", [this.window.id], true)
     }
   }
 
   private showBuffer(): void {
     let { window, nvim } = this
-    nvim.call('win_gotoid', [this.window.id], true)
-    window.notify('nvim_win_set_cursor', [window, [1, 1]])
+    nvim.call("win_gotoid", [this.window.id], true)
+    window.notify("nvim_win_set_cursor", [window, [1, 1]])
     this.floatBuffer.setLines()
-    nvim.command('wincmd p', true)
+    nvim.command("wincmd p", true)
   }
 
   private async calculateBounding(docs: Documentation[]): Promise<Bounding> {
@@ -98,11 +115,14 @@ export default class FloatingWindow {
       // show left
       showRight = false
     }
-    let maxWidth = !showRight || delta > maxPreviewWidth ? maxPreviewWidth : delta
+    let maxWidth =
+      !showRight || delta > maxPreviewWidth ? maxPreviewWidth : delta
     await floatBuffer.setDocuments(docs, maxWidth)
     let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
     return {
-      col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width,
+      col: showRight
+        ? bounding.col + pumWidth
+        : bounding.col - floatBuffer.width,
       row: bounding.row,
       height: Math.min(maxHeight, floatBuffer.height),
       width: floatBuffer.width
