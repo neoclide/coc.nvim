@@ -1,10 +1,8 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
-### [Support on bountysource](https://salt.bountysource.com/teams/coc-nvim)
-
-| CI (Linux, macOS)                       | Coverage                               | Gitter                      | 中文 Gitter                    |
-| --------------------------------------- | -------------------------------------- | --------------------------- | ------------------------------ |
-| [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Gitter Badge][]][gitter cn] |
+| Bountysource                               | CI (Linux, macOS)                       | Coverage                               | Gitter                      | 中文 Gitter                    |
+| ------------------------------------------ | --------------------------------------- | -------------------------------------- | --------------------------- | ------------------------------ |
+| [![Bountysource Badge][]][bounties status] | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Gitter Badge][]][gitter cn] |
 
 Coc is an intellisense engine for vim8 & neovim.
 
@@ -305,6 +303,9 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ❤️ coc.nvim? Help us keep it alive by [donating funds](https://www.bountysource.com/teams/coc-nvim)😘!
 
+<a href="https://github.com/oblitum" target="_blank" title="oblitum">
+  <img src="https://github.com/oblitum.png?size=64" width="64" height="64" alt="oblitum">
+</a>
 <a href="https://github.com/free-easy" target="_blank" title="free-easy">
   <img src="https://github.com/free-easy.png?size=64" width="64" height="64" alt="free-easy">
 </a>
@@ -353,6 +354,8 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 MIT
 
+[bountysource badge]: https://img.shields.io/bountysource/team/coc-nvim/activity.svg?style=popout
+[bounties status]: https://salt.bountysource.com/teams/coc-nvim
 [build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
 [build status]: https://travis-ci.org/neoclide/coc.nvim
 [coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
