@@ -41,12 +41,11 @@ export default class FloatingWindow {
     if (token.isCancellationRequested) return
     if (!this.window) {
       try {
-        let win = this.window = await nvim.openFloatWindow(this.buffer, false, rect.width, rect.height, {
-          col: rect.col,
-          row: rect.row,
+        let config = Object.assign({
           relative: 'editor',
           focusable: true
-        })
+        }, rect)
+        let win = this.window = await nvim.openFloatWindow(this.buffer, false, config)
         nvim.pauseNotification()
         win.setVar('popup', 1, true)
         win.setOption('list', false, true)
@@ -64,12 +63,10 @@ export default class FloatingWindow {
       }
     } else {
       nvim.pauseNotification()
-      this.window.configFloat(rect.width, rect.height, {
-        col: rect.col,
-        row: rect.row,
-        relative: 'editor',
-        focusable: true
-      }, true)
+      let config = Object.assign({
+        relative: 'editor'
+      }, rect)
+      this.window.setConfig(config, true)
       this.showBuffer()
       await nvim.resumeNotification()
     }

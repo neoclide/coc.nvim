@@ -13,6 +13,7 @@ export interface WindowConfig {
   height: number
   col: number
   row: number
+  relative: 'cursor' | 'win' | 'editor'
 }
 
 // factory class for floating window
@@ -98,7 +99,8 @@ export default class FloatFactory implements Disposable {
       height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
       width: Math.min(columns, width),
       row: alignTop ? - height : 1,
-      col: offsetX == 0 ? 0 : - offsetX
+      col: offsetX == 0 ? 0 : - offsetX,
+      relative: 'cursor'
     }
   }
 
@@ -131,11 +133,7 @@ export default class FloatFactory implements Disposable {
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, forceTop } = this
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
-      let window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
-        col: config.col,
-        row: config.row,
-        relative: 'cursor'
-      })
+      let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {
         this.closeWindow(window)
         return

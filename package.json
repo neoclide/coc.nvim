@@ -80,7 +80,7 @@
     "vscode-languageserver": "^5.3.0-next.1"
   },
   "dependencies": {
-    "@chemzqm/neovim": "4.3.55",
+    "@chemzqm/neovim": "4.3.57",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
