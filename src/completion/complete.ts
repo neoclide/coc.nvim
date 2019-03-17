@@ -222,9 +222,12 @@ export default class Complete {
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
+      let wa = a.filterText
+      let wb = b.filterText
       if (a.score != b.score) return b.score - a.score
-      if (a.priority != b.priority) return b.priority - a.priority
-      if (input.length > 1) return a.word.length - b.word.length
+      if (wa.startsWith(wb)) return 1
+      if (wb.startsWith(wa)) return -1
+      if (input.length > 1 && a.word.length != b.word.length) return a.word.length - b.word.length
       if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
