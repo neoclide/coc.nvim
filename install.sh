@@ -58,7 +58,7 @@ install_yarn() {
     info "Nodejs not found, installing latest LTS"
     fetch install-node.now.sh/lts | sh
   fi
-  if ! command_exists yarnpkg; then
+  if ! command_exists yarn && ! command_exists yarnpkg; then
     info "Yarn not found, installing yarn."
     fetch https://yarnpkg.com/install.sh | sh
   fi
