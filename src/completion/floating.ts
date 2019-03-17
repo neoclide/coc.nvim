@@ -1,9 +1,9 @@
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationToken } from 'vscode-jsonrpc'
-import { Chars } from '../model/chars'
-import FloatBuffer from '../model/floatBuffer'
-import { Documentation, PumBounding } from '../types'
-import workspace from '../workspace'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim';
+import { CancellationToken } from 'vscode-jsonrpc';
+import { Chars } from '../model/chars';
+import FloatBuffer from '../model/floatBuffer';
+import { Documentation, PumBounding } from '../types';
+import workspace from '../workspace';
 const logger = require('../util/logger')('floating')
 
 interface Bounding {
@@ -41,7 +41,9 @@ export default class FloatingWindow {
     if (token.isCancellationRequested) return
     if (!this.window) {
       try {
-        let win = this.window = await nvim.openFloatWindow(this.buffer, false, rect.width, rect.height, {
+        let win = this.window = await nvim.openFloatWindow(this.buffer, false, {
+          width: rect.width,
+          height: rect.height,
           col: rect.col,
           row: rect.row,
           relative: 'editor',
@@ -64,7 +66,9 @@ export default class FloatingWindow {
       }
     } else {
       nvim.pauseNotification()
-      this.window.configFloat(rect.width, rect.height, {
+      this.window.configFloat({
+        width: rect.width,
+        height: rect.height,
         col: rect.col,
         row: rect.row,
         relative: 'editor',

@@ -1,11 +1,11 @@
-import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import events from '../events'
-import workspace from '../workspace'
-import snippetsManager from '../snippets/manager'
-import { Documentation, Env } from '../types'
-import { disposeAll } from '../util'
-import FloatBuffer from './floatBuffer'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim';
+import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol';
+import events from '../events';
+import snippetsManager from '../snippets/manager';
+import { Documentation, Env } from '../types';
+import { disposeAll } from '../util';
+import workspace from '../workspace';
+import FloatBuffer from './floatBuffer';
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -131,7 +131,9 @@ export default class FloatFactory implements Disposable {
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, forceTop } = this
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
-      let window = await this.nvim.openFloatWindow(this.buffer, false, config.width, config.height, {
+      let window = await this.nvim.openFloatWindow(this.buffer, false, {
+        width: config.width,
+        height: config.height,
         col: config.col,
         row: config.row,
         relative: 'cursor'
