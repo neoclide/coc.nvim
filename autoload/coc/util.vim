@@ -28,6 +28,15 @@ function! coc#util#has_preview()
   return 0
 endfunction
 
+function! coc#util#has_float()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
 function! coc#util#yarn_cmd()
   if executable('yarnpkg')
     return 'yarnpkg'

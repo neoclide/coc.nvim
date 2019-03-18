@@ -6,6 +6,7 @@ import snippetsManager from '../snippets/manager'
 import { Documentation, Env } from '../types'
 import { disposeAll } from '../util'
 import FloatBuffer from './floatBuffer'
+import uuid = require('uuid/v1')
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -15,6 +16,8 @@ export interface WindowConfig {
   row: number
   relative: 'cursor' | 'win' | 'editor'
 }
+
+const creatingIds: Set<string> = new Set()
 
 // factory class for floating window
 export default class FloatFactory implements Disposable {
@@ -45,6 +48,10 @@ export default class FloatFactory implements Disposable {
     }, null, this.disposables)
     events.on('CursorMoved', async bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
+      if (this.tokenSource) {
+        this.tokenSource.cancel()
+        this.tokenSource = null
+      }
       if (this.creating) return
       this.close()
     }, null, this.disposables)
@@ -108,13 +115,17 @@ export default class FloatFactory implements Disposable {
 
   public create(docs: Documentation[]): Promise<void> {
     if (!this.env.floating) return
+    let id = uuid()
+    creatingIds.add(id)
     this.targetBufnr = workspace.bufnr
     this.close()
     this._creating = true
     let promise = this.promise = this.promise.then(() => {
       return this._create(docs).then(() => {
+        creatingIds.delete(id)
         this._creating = false
       }, e => {
+        creatingIds.delete(id)
         logger.error('Error on create float window:', e)
         this._creating = false
       })
@@ -213,5 +224,9 @@ export default class FloatFactory implements Disposable {
   public get creating(): boolean {
     if (this.createTs && Date.now() - this.createTs < 30) return true
     return this._creating
+  }
+
+  public static get isCreating(): boolean {
+    return creatingIds.size > 0
   }
 }

@@ -225,6 +225,7 @@ export default class Complete {
       let wa = a.filterText
       let wb = b.filterText
       if (a.score != b.score) return b.score - a.score
+      if (a.priority != b.priority) return b.priority - a.priority
       if (wa.startsWith(wb)) return 1
       if (wb.startsWith(wa)) return -1
       if (input.length > 1 && a.word.length != b.word.length) return a.word.length - b.word.length

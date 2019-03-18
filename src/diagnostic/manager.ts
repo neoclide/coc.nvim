@@ -59,7 +59,7 @@ export class DiagnosticManager implements Disposable {
       this.timer = setTimeout(async () => {
         if (this.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
-        await this.echoMessage()
+        await this.echoMessage(true)
       }, 500)
     }, null, this.disposables)
 
@@ -395,11 +395,20 @@ export class DiagnosticManager implements Disposable {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
+      if (FloatFactory.isCreating) return
+      let hasFloat = await this.nvim.call('coc#util#has_float')
+      if (hasFloat) return
       await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]
       await this.nvim.command('echo ""')
       await workspace.echoLines(lines, truncate)
+    }
+  }
+
+  public hideFloat(): void {
+    if (this.floatFactory) {
+      this.floatFactory.close()
     }
   }
 
