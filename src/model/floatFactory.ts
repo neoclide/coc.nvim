@@ -4,9 +4,10 @@ import events from '../events'
 import workspace from '../workspace'
 import snippetsManager from '../snippets/manager'
 import { Documentation, Env } from '../types'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import FloatBuffer from './floatBuffer'
 import uuid = require('uuid/v1')
+import { equals } from '../util/object'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -32,6 +33,7 @@ export default class FloatFactory implements Disposable {
   private createTs: number
   private alignTop = false
   private _creating = false
+  private moving = false
   private cursor: [number, number] = [0, 0]
   public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
@@ -40,15 +42,10 @@ export default class FloatFactory implements Disposable {
     private preferTop = false,
     private maxHeight = 999) {
     if (!env.floating) return
-    events.on('InsertEnter', async () => {
-      this.close()
-    }, null, this.disposables)
     events.on('BufEnter', async bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
       if (bufnr == this.targetBufnr) return
-      this.close()
-    }, null, this.disposables)
-    events.on('InsertLeave', async () => {
+      logger.debug('BufEnter')
       this.close()
     }, null, this.disposables)
     events.on('MenuPopupChanged', async (ev, cursorline) => {
@@ -64,7 +61,8 @@ export default class FloatFactory implements Disposable {
 
   private onCursorMoved(bufnr: number, cursor: [number, number]): void {
     if (this.buffer && bufnr == this.buffer.id) return
-    if (this.cursor[0] == cursor[0] && this.cursor[1] == cursor[1]) return
+    if (this.moving || equals(cursor, this.cursor)) return
+    logger.debug('CursorMoved')
     this.close()
   }
 
@@ -115,15 +113,17 @@ export default class FloatFactory implements Disposable {
     }
   }
 
-  public create(docs: Documentation[]): Promise<void> {
+  public async create(docs: Documentation[], allowSelection = false): Promise<void> {
     if (!this.env.floating) return
+    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
+    this.cursor = [line, col]
     let id = uuid()
     creatingIds.add(id)
     this.targetBufnr = workspace.bufnr
     this.close()
     this._creating = true
-    let promise = this.promise = this.promise.then(() => {
-      return this._create(docs).then(() => {
+    this.promise = this.promise.then(() => {
+      return this._create(docs, allowSelection).then(() => {
         creatingIds.delete(id)
         this._creating = false
       }, e => {
@@ -132,13 +132,10 @@ export default class FloatFactory implements Disposable {
         this._creating = false
       })
     })
-    return promise
   }
 
-  private async _create(docs: Documentation[]): Promise<Window | undefined> {
+  private async _create(docs: Documentation[], allowSelection = false): Promise<Window | undefined> {
     if (docs.length == 0) return
-    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
-    this.cursor = [line, col]
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let { floatBuffer } = this
@@ -150,7 +147,7 @@ export default class FloatFactory implements Disposable {
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
     let mode = await this.nvim.call('mode')
-    let allowSelection = mode == 's' && snippetsManager.session && this.preferTop
+    allowSelection = mode == 's' && allowSelection
     if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, preferTop } = this
@@ -180,9 +177,12 @@ export default class FloatFactory implements Disposable {
       if (preferTop) nvim.command('normal! G', true)
       nvim.command('wincmd p', true)
       await nvim.resumeNotification()
+      this.moving = true
       if (mode == 's') {
         await snippetsManager.selectCurrentPlaceholder(false)
       }
+      await wait(30)
+      this.moving = false
       this.createTs = Date.now()
     }
   }

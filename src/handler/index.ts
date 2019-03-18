@@ -749,7 +749,7 @@ export default class Handler {
         })
         return p
       }, [])
-      await this.signatureFactory.create(docs)
+      await this.signatureFactory.create(docs, true)
       // show float
     } else {
       let columns = workspace.env.columns

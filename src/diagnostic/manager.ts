@@ -66,11 +66,13 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     events.on('InsertEnter', async () => {
+      this.floatFactory.close()
       if (this.timer) clearTimeout(this.timer)
       this.insertMode = true
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
+      this.floatFactory.close()
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       this.insertMode = false
       let { bufnr } = workspace
