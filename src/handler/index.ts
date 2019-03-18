@@ -44,6 +44,7 @@ interface SignaturePart {
 }
 
 interface Preferences {
+  signatureMaxHeight: number
   signaturePreferAbove: boolean
   signatureHideOnChange: boolean
   signatureHelpTarget: string
@@ -79,7 +80,8 @@ export default class Handler {
     })
     workspace.createNameSpace('coc-float').then(id => { // tslint:disable-line
       this.hoverFactory = new FloatFactory(nvim, workspace.env, id)
-      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, this.preferences.signaturePreferAbove)
+      let { signaturePreferAbove, signatureMaxHeight } = this.preferences
+      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, signaturePreferAbove, signatureMaxHeight)
     })
 
     events.on(['TextChangedI', 'TextChangedP'], async () => {
@@ -927,6 +929,7 @@ export default class Handler {
     this.preferences = {
       hoverTarget,
       signatureHelpTarget,
+      signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),

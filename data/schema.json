@@ -415,6 +415,11 @@
       "description": "Text of hint sign",
       "default": ">>"
     },
+    "diagnostic.maxWindowHeight": {
+      "type": "number",
+      "description": "Maxmium height of diagnostics floating window.",
+      "default": 8
+    },
     "signature.enable": {
       "type": "boolean",
       "description": "Enable signature help when trigger character typed, require restart service on change.",
@@ -434,6 +439,11 @@
       "type": "boolean",
       "description": "Hide signature float window when text changed, require restart service on change.",
       "default": false
+    },
+    "signature.maxWindowHeight": {
+      "type": "number",
+      "description": "Maxmium height of floating signature help window.",
+      "default": 8
     },
     "codeLens.enable": {
       "type": "boolean",

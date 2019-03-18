@@ -36,7 +36,8 @@ export default class FloatFactory implements Disposable {
   constructor(private nvim: Neovim,
     private env: Env,
     private srcId: number,
-    private preferTop = false) {
+    private preferTop = false,
+    private maxHeight = 999) {
     if (!env.floating) return
     events.on('InsertEnter', async () => {
       this.close()
@@ -90,6 +91,7 @@ export default class FloatFactory implements Disposable {
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
     await this.floatBuffer.setDocuments(docs, 60)
     let { height, width } = this.floatBuffer
+    height = Math.min(height, this.maxHeight)
     if (!preferTop) {
       if (lines - row < height && row > height) {
         alignTop = true

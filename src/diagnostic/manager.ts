@@ -26,6 +26,7 @@ export interface DiagnosticConfig {
   hintSign: string
   level: number
   messageTarget: string
+  maxWindowHeight: number
   refreshAfterSave: boolean
   refreshOnInsertMode: boolean
   virtualTextSrcId: number
@@ -46,10 +47,12 @@ export class DiagnosticManager implements Disposable {
   private timer: NodeJS.Timer
 
   public async init(): Promise<void> {
+    await this.setConfiguration()
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
     let srcId = await workspace.createNameSpace('coc-diagnostic-float')
-    this.floatFactory = new FloatFactory(nvim, workspace.env, srcId)
+    let { maxWindowHeight } = this.config
+    this.floatFactory = new FloatFactory(nvim, workspace.env, srcId, false, maxWindowHeight)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -116,7 +119,6 @@ export class DiagnosticManager implements Disposable {
       }
     }, null, this.disposables)
 
-    await this.setConfiguration()
     workspace.onDidChangeConfiguration(async e => {
       await this.setConfiguration(e)
     }, null, this.disposables)
@@ -435,6 +437,7 @@ export class DiagnosticManager implements Disposable {
     this.config = {
       srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       messageTarget: getConfig<string>('messageTarget', 'float'),
       virtualText: getConfig<boolean>('virtualText', false),
