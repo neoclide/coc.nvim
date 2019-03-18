@@ -60,6 +60,7 @@ export class Extensions {
   public async init(): Promise<void> {
     this.db = workspace.createDatabase('db')
     let stats = this.globalExtensionStats()
+    if (process.env.COC_NO_PLUGINS) return
     this.installExtensions = debounce(this.installExtensions, 200)
     if (global.hasOwnProperty('__TEST__')) {
       this._onReady.fire()
