@@ -219,6 +219,9 @@ export class SnippetSession {
       move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`
     }
     await nvim.eval(`feedkeys("${move_cmd}", 'in')`)
+    if (workspace.env.isVim) {
+      nvim.command('redraw', true)
+    }
     if (resetVirtualEdit) await nvim.setOption('virtualedit', ve)
     if (triggerAutocmd) nvim.command('silent doautocmd User CocJumpPlaceholder', true)
   }

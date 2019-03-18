@@ -42,10 +42,14 @@ export default class FloatFactory implements Disposable {
     private preferTop = false,
     private maxHeight = 999) {
     if (!env.floating) return
-    events.on('BufEnter', async bufnr => {
+    events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
       if (bufnr == this.targetBufnr) return
-      logger.debug('BufEnter')
+      this.close()
+    }, null, this.disposables)
+    events.on('InsertLeave', bufnr => {
+      if (this.buffer && bufnr == this.buffer.id) return
+      if (this.moving) return
       this.close()
     }, null, this.disposables)
     events.on('MenuPopupChanged', async (ev, cursorline) => {
@@ -55,7 +59,7 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
+    // events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
     events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
   }
 

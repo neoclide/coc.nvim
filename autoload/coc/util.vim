@@ -223,6 +223,7 @@ endfunction
 function! s:Call(method, args)
   try
     call call(a:method, a:args)
+    redraw
   catch /.*/
     return 0
   endtry
