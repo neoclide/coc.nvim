@@ -271,6 +271,15 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 			修复当前行可修复的第一个错误修复操作。
 
+
+<Plug>(coc-float-hide) 				*n_coc-flost-hide*
+
+			隐藏所有浮动窗口。
+
+<Plug>(coc-float-jump) 				*n_coc-flost-jump*
+
+			跳转到第一个浮动窗口。
+
 ==============================================================================
 
 变量 						*coc-variables*
@@ -530,6 +539,20 @@ coc#util#update()
 
 	使用终端缓冲区更新插件。
 
+						*coc#util#has_float()*
+
+coc#util#has_float()
+
+	检测是否存在浮动窗口。
+
+						*coc#util#float_scroll()*
+coc#util#float_scroll({forward})
+
+	用于创建滚动浮动窗口的映射，例如： >
+
+	nnoremap <expr><C-f> coc#util#has_float() ? coc#util#float_scroll(1) : "\<C-f>"
+	nnoremap <expr><C-b> coc#util#has_float() ? coc#util#float_scroll(0) : "\<C-b>"
+<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 

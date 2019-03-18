@@ -37,6 +37,35 @@ function! coc#util#has_float()
   return 0
 endfunction
 
+function! coc#util#float_hide()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      let winid = win_getid(i)
+      call coc#util#close_win(winid)
+    endif
+  endfor
+endfunction
+
+function! coc#util#float_jump()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      exe i.'wincmd w'
+      return
+    endif
+  endfor
+endfunction
+
+function! coc#util#float_scroll(forward)
+  let key = a:forward ? "\<C-f>" : "\<C-b>"
+  let winnr = winnr()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return i."\<C-w>w".key."\<C-w>p"
+    endif
+  endfor
+  return ""
+endfunction
+
 function! coc#util#yarn_cmd()
   if executable('yarnpkg')
     return 'yarnpkg'

@@ -32,6 +32,7 @@ export default class FloatFactory implements Disposable {
   private createTs: number
   private alignTop = false
   private _creating = false
+  private cursor: [number, number] = [0, 0]
   public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
     private env: Env,
@@ -47,15 +48,6 @@ export default class FloatFactory implements Disposable {
       if (bufnr == this.targetBufnr) return
       this.close()
     }, null, this.disposables)
-    events.on('CursorMoved', async bufnr => {
-      if (this.buffer && bufnr == this.buffer.id) return
-      if (this.tokenSource) {
-        this.tokenSource.cancel()
-        this.tokenSource = null
-      }
-      if (this.creating) return
-      this.close()
-    }, null, this.disposables)
     events.on('InsertLeave', async () => {
       this.close()
     }, null, this.disposables)
@@ -66,6 +58,14 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
+    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
+  }
+
+  private onCursorMoved(bufnr: number, cursor: [number, number]): void {
+    if (this.buffer && bufnr == this.buffer.id) return
+    if (this.cursor[0] == cursor[0] && this.cursor[1] == cursor[1]) return
+    this.close()
   }
 
   private async createBuffer(): Promise<Buffer> {
@@ -137,6 +137,8 @@ export default class FloatFactory implements Disposable {
 
   private async _create(docs: Documentation[]): Promise<Window | undefined> {
     if (docs.length == 0) return
+    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
+    this.cursor = [line, col]
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     let { floatBuffer } = this

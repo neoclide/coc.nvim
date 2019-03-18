@@ -163,8 +163,8 @@ function! s:Enable()
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
-    autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'))
-    autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
+    autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
+    autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'))
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
@@ -271,4 +271,6 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocActionAsync('jumpTypeDefi
 nnoremap <Plug>(coc-references)          :<C-u>call CocActionAsync('jumpReferences')<CR>
 nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
 nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
+nnoremap <Plug>(coc-float-hide)          :<C-u>call coc#util#float_hide()<CR>
+nnoremap <Plug>(coc-float-jump)          :<c-u>call coc#util#float_jump()<cr>
 inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>

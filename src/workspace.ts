@@ -1196,12 +1196,15 @@ augroup end`
   private async onBufWritePre(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
+    let start = Date.now()
     let event: TextDocumentWillSaveEvent = {
       document: doc.textDocument,
       reason: TextDocumentSaveReason.Manual
     }
     this._onWillSaveDocument.fire(event)
     await this.willSaveUntilHandler.handeWillSaveUntil(event)
+    let cost = Date.now() - start
+    if (cost > 500) logger.info('Buffer save cost:', cost)
   }
 
   private onDirChanged(cwd: string): void {

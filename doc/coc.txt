@@ -250,6 +250,14 @@ mode, 'v_' works for visual mode.
 			Try run quickfix action for diagnostics in current
 			line.
 
+<Plug>(coc-float-hide) 				*n_coc-flost-hide*
+
+			Hide all float windows.
+
+<Plug>(coc-float-jump) 				*n_coc-flost-jump*
+
+			Jump to first float window.
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
@@ -552,6 +560,20 @@ coc#util#update()
 
 	Update extensions by use terminal feature.
 
+						*coc#util#has_float()*
+
+coc#util#has_float()
+
+	Check if coc float window exists.
+
+						*coc#util#float_scroll()*
+coc#util#float_scroll({forward})
+
+	Return expr for scroll floating window forward or backward. ex: >
+
+	nnoremap <expr><C-f> coc#util#has_float() ? coc#util#float_scroll(1) : "\<C-f>"
+	nnoremap <expr><C-b> coc#util#has_float() ? coc#util#float_scroll(0) : "\<C-b>"
+<
 						*CocRequest()*
 CocRequest({id}, {method}, [{params}])
 
