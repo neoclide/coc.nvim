@@ -14,6 +14,7 @@ import { getSeverityName, getSeverityType, severityLevel } from './util'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
+  enableSign: boolean
   enableMessage: string
   virtualText: boolean
   displayByAle: boolean
@@ -437,6 +438,7 @@ export class DiagnosticManager implements Disposable {
     this.config = {
       srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      enableSign: getConfig<boolean>('enableSign', true),
       maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       messageTarget: getConfig<string>('messageTarget', 'float'),

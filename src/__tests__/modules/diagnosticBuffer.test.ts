@@ -7,6 +7,7 @@ import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
+  enableSign: true,
   maxWindowHeight: 8,
   enableMessage: 'always',
   messageTarget: 'echo',

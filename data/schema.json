@@ -374,6 +374,11 @@
       "description": "The text that will mark a line end from the diagnostic message",
       "default": " \\ "
     },
+    "diagnostic.enableSign": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable signs for diagnostics."
+    },
     "diagnostic.enableMessage": {
       "type": "string",
       "default": "always",
