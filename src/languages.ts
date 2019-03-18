@@ -60,8 +60,9 @@ export function check<R extends (...args: any[]) => Promise<R>>(_target: any, ke
       let resolved = false
       let timer = setTimeout(() => {
         cancelTokenSource.cancel()
-        if (!resolved) reject(new Error(`${key} timeout after 3s`))
-      }, 3000)
+        logger.error(`${key} timeout after 5s`)
+        if (!resolved) reject(new Error(`${key} timeout after 5s`))
+      }, 5000)
       Promise.resolve(fn.apply(this, args)).then(res => {
         clearTimeout(timer)
         resolve(res)
