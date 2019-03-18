@@ -1,5 +1,5 @@
-import { getContentChanges, patchLine, diffLines } from '../../util/diff'
-import { TextDocument } from 'vscode-languageserver-types'
+import { getChange, patchLine, diffLines } from '../../util/diff'
+import { TextDocument, TextEdit } from 'vscode-languageserver-types'
 
 describe('diff lines', () => {
   it('should diff changed lines', () => {
@@ -47,10 +47,14 @@ describe('should get text edits', () => {
 
   function applyEdits(oldStr: string, newStr: string): void {
     let doc = TextDocument.create('untitled://1', 'markdown', 0, oldStr)
-    let changes = getContentChanges(doc, newStr)
-    let res = TextDocument.applyEdits(doc, changes.map(o => {
-      return { range: o.range, newText: o.text }
-    }))
+    let change = getChange(doc.getText(), newStr)
+    let start = doc.positionAt(change.start)
+    let end = doc.positionAt(change.end)
+    let edit: TextEdit = {
+      range: { start, end },
+      newText: change.newText
+    }
+    let res = TextDocument.applyEdits(doc, [edit])
     expect(res).toBe(newStr)
   }
 
