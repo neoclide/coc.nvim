@@ -415,6 +415,26 @@
       "description": "Text of hint sign",
       "default": ">>"
     },
+    "signature.enable": {
+      "type": "boolean",
+      "description": "Enable signature help when trigger character typed, require restart service on change.",
+      "default": true
+    },
+    "signature.target": {
+      "type": "string",
+      "description": "Target of signature help, use float when possible by default.",
+      "enum": ["float", "echo"]
+    },
+    "signature.preferShownAbove": {
+      "type": "boolean",
+      "description": "Show signature help float window above cursor when possible, require restart service on change.",
+      "default": true
+    },
+    "signature.hideOnTextChange": {
+      "type": "boolean",
+      "description": "Hide signature float window when text changed, require restart service on change.",
+      "default": false
+    },
     "codeLens.enable": {
       "type": "boolean",
       "description": "Enable codeLens feature, require neovim with set virtual text feature.",
@@ -465,16 +485,6 @@
       "type": "boolean",
       "description": "Auto close preview window on cursor move.",
       "default": true
-    },
-    "coc.preferences.triggerSignatureHelp": {
-      "type": "boolean",
-      "description": "Show signature help when trigger character typed.",
-      "default": true
-    },
-    "coc.preferences.signatureHelpTarget": {
-      "type": "string",
-      "description": "Target of signature help, use float when possible by default.",
-      "enum": ["float", "echo"]
     },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": "array",

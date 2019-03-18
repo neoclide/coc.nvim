@@ -33,7 +33,7 @@ export default class FloatFactory implements Disposable {
   constructor(private nvim: Neovim,
     private env: Env,
     private srcId: number,
-    private forceTop = false) {
+    private preferTop = false) {
     if (!env.floating) return
     events.on('InsertEnter', async () => {
       this.close()
@@ -76,22 +76,26 @@ export default class FloatFactory implements Disposable {
   }
 
   public async getBoundings(docs: Documentation[]): Promise<WindowConfig> {
-    let { nvim, forceTop } = this
+    let { nvim, preferTop } = this
     let { columns, lines } = this
     let alignTop = false
     let offsetX = 0
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    if (forceTop && row <= 5) {
-      forceTop = false
-    }
     await this.floatBuffer.setDocuments(docs, 60)
     let { height, width } = this.floatBuffer
-    if (forceTop || (lines - row < height && row > height)) {
-      alignTop = true
+    if (!preferTop) {
+      if (lines - row < height && row > height) {
+        alignTop = true
+      }
+    } else {
+      if (row >= height || row >= lines - row) {
+        alignTop = true
+      }
     }
     if (col + width > columns) {
       offsetX = col + width - columns
     }
+
     this.alignTop = alignTop
     return {
       height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
@@ -131,10 +135,10 @@ export default class FloatFactory implements Disposable {
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
     let mode = await this.nvim.call('mode')
-    let allowSelection = mode == 's' && snippetsManager.session && this.forceTop
+    let allowSelection = mode == 's' && snippetsManager.session && this.preferTop
     if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-      let { nvim, forceTop } = this
+      let { nvim, preferTop } = this
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
       let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {
@@ -158,7 +162,7 @@ export default class FloatFactory implements Disposable {
       window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
       nvim.call('win_gotoid', [window.id], true)
       floatBuffer.setLines()
-      if (forceTop) nvim.command('normal! G', true)
+      if (preferTop) nvim.command('normal! G', true)
       nvim.command('wincmd p', true)
       await nvim.resumeNotification()
       if (mode == 's') {

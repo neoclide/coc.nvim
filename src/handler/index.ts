@@ -44,6 +44,8 @@ interface SignaturePart {
 }
 
 interface Preferences {
+  signaturePreferAbove: boolean
+  signatureHideOnChange: boolean
   signatureHelpTarget: string
   triggerSignatureHelp: boolean
   formatOnType: boolean
@@ -77,8 +79,15 @@ export default class Handler {
     })
     workspace.createNameSpace('coc-float').then(id => { // tslint:disable-line
       this.hoverFactory = new FloatFactory(nvim, workspace.env, id)
-      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, true)
+      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, this.preferences.signaturePreferAbove)
     })
+
+    events.on(['TextChangedI', 'TextChangedP'], async () => {
+      if (this.preferences.signatureHideOnChange) {
+        this.signatureFactory.close()
+      }
+      this.hoverFactory.close()
+    }, null, this.disposables)
 
     let lastInsert: number
     events.on('InsertCharPre', async () => {
@@ -695,7 +704,9 @@ export default class Handler {
     }
     if (signatures.length == 0) return
     if (this.preferences.signatureHelpTarget == 'float') {
-      signatures.reverse()
+      if (this.preferences.signaturePreferAbove) {
+        signatures.reverse()
+      }
       let len = signatures.length
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
         let activeIndexes: [number, number] = null
@@ -903,18 +914,21 @@ export default class Handler {
 
   private getPreferences(): void {
     let config = workspace.getConfiguration('coc.preferences')
+    let signatureConfig = workspace.getConfiguration('signature')
     let hoverTarget = config.get<string>('hoverTarget', 'float')
-    let signatureHelpTarget = config.get<string>('signatureHelpTarget', 'float')
     if (hoverTarget == 'float' && !workspace.env.floating) {
       hoverTarget = 'preview'
     }
+    let signatureHelpTarget = signatureConfig.get<string>('signatureHelpTarget', 'float')
     if (signatureHelpTarget == 'float' && !workspace.env.floating) {
       signatureHelpTarget = 'echo'
     }
     this.preferences = {
       hoverTarget,
       signatureHelpTarget,
-      triggerSignatureHelp: config.get<boolean>('triggerSignatureHelp', true),
+      triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
+      signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
+      signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
