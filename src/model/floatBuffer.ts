@@ -84,6 +84,9 @@ export default class FloatBuffer {
                 let len = (total - count) > line.length ? line.length : total - count
                 count = count + len
                 positions.push([currLine + idx, 2, len])
+              } else if (!inLine) {
+                active[0] = active[0] - line.length
+                active[1] = active[1] - line.length
               }
               idx = idx + 1
             }
