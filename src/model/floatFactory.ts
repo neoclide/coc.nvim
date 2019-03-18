@@ -66,7 +66,6 @@ export default class FloatFactory implements Disposable {
   private onCursorMoved(bufnr: number, cursor: [number, number]): void {
     if (this.buffer && bufnr == this.buffer.id) return
     if (this.moving || equals(cursor, this.cursor)) return
-    logger.debug('CursorMoved')
     this.close()
   }
 
@@ -91,8 +90,8 @@ export default class FloatFactory implements Disposable {
     let alignTop = false
     let offsetX = 0
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    await this.floatBuffer.setDocuments(docs, 60)
-    let { height, width } = this.floatBuffer
+    let maxWidth = Math.min(columns - 10, 80)
+    let height = this.floatBuffer.getHeight(docs, maxWidth)
     height = Math.min(height, this.maxHeight)
     if (!preferTop) {
       if (lines - row < height && row > height) {
@@ -103,10 +102,14 @@ export default class FloatFactory implements Disposable {
         alignTop = true
       }
     }
+    if (alignTop) docs.reverse()
+    await this.floatBuffer.setDocuments(docs, maxWidth)
+    let { width, highlightOffset } = this.floatBuffer
     if (col + width > columns) {
       offsetX = col + width - columns
     }
-
+    offsetX = Math.max(offsetX, highlightOffset)
+    offsetX = Math.min(col, offsetX)
     this.alignTop = alignTop
     return {
       height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
@@ -154,7 +157,7 @@ export default class FloatFactory implements Disposable {
     allowSelection = mode == 's' && allowSelection
     if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
-      let { nvim, preferTop } = this
+      let { nvim, alignTop } = this
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
       let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {
@@ -178,7 +181,7 @@ export default class FloatFactory implements Disposable {
       window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
       nvim.call('win_gotoid', [window.id], true)
       floatBuffer.setLines()
-      if (preferTop) nvim.command('normal! G', true)
+      if (alignTop) nvim.command('normal! G', true)
       nvim.command('wincmd p', true)
       await nvim.resumeNotification()
       this.moving = true

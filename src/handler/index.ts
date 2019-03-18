@@ -706,26 +706,14 @@ export default class Handler {
     }
     if (signatures.length == 0) return
     if (this.preferences.signatureHelpTarget == 'float') {
-      if (this.preferences.signaturePreferAbove) {
-        signatures.reverse()
-      }
-      let len = signatures.length
+      let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
         let activeIndexes: [number, number] = null
-        if (idx == len - 1) {
-          if (c.documentation) {
-            let { documentation } = c
-            let content = typeof documentation === 'string' ? documentation : documentation.value
-            if (content.trim().length) {
-              p.push({
-                content,
-                filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
-              })
-            }
-          }
+        if (idx == 0) {
           let nameIndex = c.label.indexOf('(')
           let active = c.parameters[activeParameter]
           let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
+          paramDoc = active.documentation
           if (typeof active.label === 'string') {
             let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
             startIndex = startIndex == -1 ? 0 : startIndex
@@ -747,6 +735,25 @@ export default class Handler {
           filetype: document.filetype,
           active: activeIndexes
         })
+        if (paramDoc) {
+          let content = typeof paramDoc === 'string' ? paramDoc : paramDoc.value
+          if (content.trim().length) {
+            p.push({
+              content,
+              filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+            })
+          }
+        }
+        if (idx == 0 && c.documentation) {
+          let { documentation } = c
+          let content = typeof documentation === 'string' ? documentation : documentation.value
+          if (content.trim().length) {
+            p.push({
+              content,
+              filetype: MarkupContent.is(c.documentation) ? 'markdown' : 'txt'
+            })
+          }
+        }
         return p
       }, [])
       await this.signatureFactory.create(docs, true)

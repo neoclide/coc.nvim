@@ -18,6 +18,19 @@ export default class FloatBuffer {
     private srcId: number) {
   }
 
+  public getHeight(docs: Documentation[], maxWidth: number): number {
+    let height = docs.reduce((p, c) => {
+      return p + this.getLineCount(c, maxWidth)
+    }, 0)
+    return height + docs.length - 1
+  }
+
+  public get highlightOffset(): number {
+    if (this.positions.length == 0) return 0
+    let vals = this.positions.map(s => s[1] - 1)
+    return Math.min(...vals)
+  }
+
   public async setDocuments(docs: Documentation[], maxWidth: number): Promise<void> {
     let fragments: Fragment[] = []
     let idx = 0
@@ -228,6 +241,40 @@ export default class FloatBuffer {
       }
     } while (!finished)
     return res
+  }
+
+  private getLineCount(doc: Documentation, maxWidth: number): number {
+    let count = 0
+    let isMarkdown = doc.filetype == 'markdown'
+    let content = doc.content.replace(/\r?\n/g, '\n')
+    let arr = content.replace(/\t/g, '  ').split('\n')
+    let inBlock = false
+    // join the lines when necessary
+    arr = arr.reduce((list, curr) => {
+      if (isMarkdown && curr.startsWith('```')) {
+        inBlock = !inBlock
+      }
+      if (list.length && curr) {
+        let pre = list[list.length - 1]
+        if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
+          list[list.length - 1] = pre + ' ' + curr
+          return list
+        }
+      }
+      list.push(curr)
+      return list
+    }, [])
+    for (let str of arr) {
+      let len = byteLength(str)
+      if (len > maxWidth - 2) {
+        // don't split on word
+        let parts = this.softSplit(str, maxWidth - 2)
+        count += parts.length
+      } else {
+        count += 1
+      }
+    }
+    return count
   }
 }
 
