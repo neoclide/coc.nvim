@@ -544,6 +544,11 @@
       "description": "Set to false to disable snippets support.",
       "default": true
     },
+    "coc.preferences.diagnostic.displayByAle": {
+      "type": "boolean",
+      "description": "Set to true to show diagnostic on ALE.",
+      "default": false
+    },
     "coc.source.around.enable": {
       "type": "boolean",
       "default": true
