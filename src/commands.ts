@@ -213,16 +213,16 @@ export class CommandManager implements Disposable {
    *
    * @param command Identifier of the command to execute.
    * @param rest Parameters passed to the command function.
-   * @return A thenable that resolves to the returned value of the given command. `undefined` when
+   * @return A promise that resolves to the returned value of the given command. `undefined` when
    * the command handler function doesn't return anything.
    */
-  public executeCommand(command: string, ...rest: any[]): void {
+  public executeCommand(command: string, ...rest: any[]): Promise<any> {
     let cmd = this.commands.get(command)
     if (!cmd) {
       workspace.showMessage(`Command: ${command} not found`, 'error')
       return
     }
-    Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
+    return Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
       workspace.showMessage(`Command error: ${e.message}`, 'error')
       logger.error(e.stack)
     })
