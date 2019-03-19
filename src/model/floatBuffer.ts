@@ -15,7 +15,7 @@ export default class FloatBuffer {
   private enableHighlight = true
   public width = 0
   constructor(
-    private buffer: Buffer,
+    public buffer: Buffer,
     private nvim: Neovim,
     private srcId: number) {
     let config = workspace.getConfiguration('coc.preferences')
@@ -27,6 +27,10 @@ export default class FloatBuffer {
       return p + this.getLineCount(c, maxWidth)
     }, 0)
     return height + docs.length - 1
+  }
+
+  public get valid(): Promise<boolean> {
+    return this.buffer.valid
   }
 
   public get highlightOffset(): number {

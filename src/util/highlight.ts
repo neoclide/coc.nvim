@@ -8,7 +8,6 @@ import os from 'os'
 import fs from 'fs'
 import { byteLength } from './string'
 import { terminate } from './processes'
-import { isDirectory } from './fs'
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {
@@ -63,8 +62,10 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       let { runtimepath } = env
       let paths = runtimepath.split(',')
       let dirs = paths.filter(p => {
-        let schemeFile = path.join(p, `colors/${env.colorscheme}.vim`)
-        if (fs.existsSync(schemeFile)) return true
+        if (env.colorscheme) {
+          let schemeFile = path.join(p, `colors/${env.colorscheme}.vim`)
+          if (fs.existsSync(schemeFile)) return true
+        }
         if (fs.existsSync(path.join(p, 'syntax'))) return true
         if (fs.existsSync(path.join(p, 'after/syntax'))) return true
         return false
@@ -165,7 +166,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       await nvim.callAtomic([
         ['nvim_set_option', ['runtimepath', env.runtimepath]],
         ['nvim_command', [`runtime syntax/${filetype}.vim`]],
-        ['nvim_command', [`colorscheme ${env.colorscheme}`]],
+        ['nvim_command', [`colorscheme ${env.colorscheme || 'default'}`]],
         ['nvim_command', [`set background=${env.background}`]],
         ['nvim_command', ['set nowrap']],
         ['nvim_command', ['set noswapfile']],

@@ -104,5 +104,9 @@ describe('getHiglights', () => {
       '*@param* `buffer`'
     ], 'markdown')
     expect(res.length > 0).toBe(true)
+    for (let filetype of ['Error', 'Warning', 'Info', 'Hint']) {
+      let res = await getHiglights(['foo'], filetype)
+      expect(res.length > 0).toBe(true)
+    }
   })
 })

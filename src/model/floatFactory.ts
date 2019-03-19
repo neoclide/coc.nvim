@@ -1,5 +1,5 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Disposable, Emitter, Event, CancellationToken } from 'vscode-languageserver-protocol'
 import events from '../events'
 import workspace from '../workspace'
 import snippetsManager from '../snippets/manager'
@@ -30,7 +30,6 @@ export default class FloatFactory implements Disposable {
   private floatBuffer: FloatBuffer
   private tokenSource: CancellationTokenSource
   private promise: Promise<void> = Promise.resolve(undefined)
-  private createTs: number
   private alignTop = false
   private _creating = false
   private moving = false
@@ -122,15 +121,16 @@ export default class FloatFactory implements Disposable {
 
   public async create(docs: Documentation[], allowSelection = false): Promise<void> {
     if (!this.env.floating) return
-    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
-    this.cursor = [line, col]
     let id = uuid()
     creatingIds.add(id)
     this.targetBufnr = workspace.bufnr
     this.close()
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
     this._creating = true
     this.promise = this.promise.then(() => {
-      return this._create(docs, allowSelection).then(() => {
+      if (token.isCancellationRequested) return
+      return this._create(docs, allowSelection, token).then(() => {
         creatingIds.delete(id)
         this._creating = false
       }, e => {
@@ -139,13 +139,18 @@ export default class FloatFactory implements Disposable {
         this._creating = false
       })
     })
+    await this.promise
   }
 
-  private async _create(docs: Documentation[], allowSelection = false): Promise<Window | undefined> {
+  private async _create(docs: Documentation[], allowSelection = false, token: CancellationToken): Promise<Window | undefined> {
     if (docs.length == 0) return
-    let tokenSource = this.tokenSource = new CancellationTokenSource()
-    let token = tokenSource.token
+    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
+    this.cursor = [line, col]
     let { floatBuffer } = this
+    if (floatBuffer) {
+      let valid = await floatBuffer.valid
+      if (!valid) floatBuffer = null
+    }
     if (!floatBuffer) {
       let buf = await this.createBuffer()
       this.buffer = buf
@@ -190,7 +195,6 @@ export default class FloatFactory implements Disposable {
       }
       await wait(30)
       this.moving = false
-      this.createTs = Date.now()
     }
   }
 
@@ -233,7 +237,6 @@ export default class FloatFactory implements Disposable {
   }
 
   public get creating(): boolean {
-    if (this.createTs && Date.now() - this.createTs < 30) return true
     return this._creating
   }
 

@@ -37,6 +37,15 @@ function! coc#util#has_float()
   return 0
 endfunction
 
+function! coc#util#get_float()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return win_getid(i)
+    endif
+  endfor
+  return 0
+endfunction
+
 function! coc#util#float_hide()
   for i in range(1, winnr('$'))
     if getwinvar(i, 'float')

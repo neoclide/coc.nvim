@@ -1,4 +1,4 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
 import Emitter from 'events'
 import fs from 'fs'
@@ -179,6 +179,16 @@ export class Helper extends Emitter {
       res = res + String.fromCharCode(ch)
     }
     return res
+  }
+
+  public async getFloat(): Promise<Window> {
+    let wins = await this.nvim.windows
+    let floatWin: Window
+    for (let win of wins) {
+      let f = await win.getVar('float')
+      if (f) floatWin = win
+    }
+    return floatWin
   }
 }
 

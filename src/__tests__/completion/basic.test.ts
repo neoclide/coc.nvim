@@ -157,6 +157,33 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
+  it('should show float window', async () => {
+    await helper.edit()
+    let source: ISource = {
+      name: 'float',
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      doComplete: (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo', info: 'bar' }]
+        })
+      }
+    }
+    sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('f')
+    await helper.waitPopup()
+    await nvim.input('<C-n>')
+    await helper.wait(100)
+    let hasFloat = await nvim.call('coc#util#has_float')
+    expect(hasFloat).toBe(1)
+    sources.removeSource(source)
+    let res = await helper.visible('foo', 'float')
+    expect(res).toBe(true)
+  })
+
   it('should trigger on triggerPatterns', async () => {
     await helper.edit()
     let source: ISource = {

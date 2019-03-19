@@ -51,9 +51,7 @@ export class Completion implements Disposable {
     events.on('MenuPopupChanged', this.onPumChange, this, this.disposables)
     events.on('BufUnload', async bufnr => {
       if (this.previewBuffer && bufnr == this.previewBuffer.id) {
-        let buf = this.previewBuffer
-        await buf.setOption('buftype', 'nofile')
-        await buf.setOption('bufhidden', 'hide')
+        this.previewBuffer = null
       }
     }, null, this.disposables)
     workspace.onDidChangeConfiguration(e => {
@@ -472,6 +470,10 @@ export class Completion implements Disposable {
     if (!docs || docs.length == 0) {
       this.closePreviewWindow()
     } else {
+      if (this.previewBuffer) {
+        let valid = await this.previewBuffer.valid
+        if (!valid) this.previewBuffer = null
+      }
       if (!this.previewBuffer) await this.createPreviewBuffer()
       if (!this.floating) {
         let srcId = await workspace.createNameSpace('coc-pum-float')
