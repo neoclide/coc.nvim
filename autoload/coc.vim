@@ -51,7 +51,9 @@ function! coc#_do_complete(start, items)
         \ 'start': a:start,
         \ 'candidates': a:items,
         \}
-  call feedkeys("\<Plug>_", 'i')
+  if mode() =~# 'i'
+    call feedkeys("\<Plug>_", 'i')
+  endif
 endfunction
 
 function! coc#_select_confirm()
