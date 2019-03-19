@@ -791,3 +791,35 @@ csd.destroy()
 endpython
   return rgb
 endfunction
+
+function! coc#util#iterm_open(dir)
+  return s:osascript(
+      \ 'if application "iTerm2" is not running',
+      \   'error',
+      \ 'end if') && s:osascript(
+      \ 'tell application "iTerm2"',
+      \   'tell current window',
+      \     'create tab with default profile',
+      \     'tell current session',
+      \       'write text "cd ' . a:dir . '"',
+      \       'write text "clear"',
+      \       'activate',
+      \     'end tell',
+      \   'end tell',
+      \ 'end tell')
+endfunction
+
+function! s:osascript(...) abort
+  let args = join(map(copy(a:000), '" -e ".shellescape(v:val)'), '')
+  call  s:system('osascript'. args)
+  return !v:shell_error
+endfunction
+
+function! s:system(cmd)
+  let output = system(a:cmd)
+  if v:shell_error && output !=# ""
+    echohl Error | echon output | echohl None
+    return
+  endif
+  return output
+endfunction

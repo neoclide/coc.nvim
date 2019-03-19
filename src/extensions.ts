@@ -639,16 +639,30 @@ export class Extensions {
   }
 
   private globalExtensionStats(): ExtensionInfo[] {
-    let { root } = this
     let json = this.loadJson()
     if (!json || !json.dependencies) return []
     let res: ExtensionInfo[] = []
     for (let key of Object.keys(json.dependencies)) {
       let val = json.dependencies[key]
+      let root = path.join(this.root, 'node_modules', key)
+      let version = ''
+      let description = ''
+      let jsonFile = path.join(root, 'package.json')
+      if (fs.existsSync(jsonFile)) {
+        try {
+          let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
+          version = obj.version || ''
+          description = obj.description || ''
+        } catch (e) {
+          logger.error(e)
+        }
+      }
       res.push({
         id: key,
+        version,
+        description,
         exotic: isuri.isValid(val),
-        root: path.join(root, 'node_modules', key),
+        root,
         state: this.getExtensionState(key)
       })
     }
@@ -663,6 +677,8 @@ export class Extensions {
       let { extensionPath, packageJSON } = item.extension
       res.push({
         id: packageJSON.name,
+        description: packageJSON.description || '',
+        version: packageJSON.version || '',
         root: extensionPath,
         exotic: false,
         state: this.getExtensionState(item.id)

@@ -35,6 +35,17 @@ export default class ExtensionList extends BasicList {
       if (state == 'disabled') await extensions.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
+    this.addAction('open', async item => {
+      let { root } = item.data
+      let escaped = await nvim.call('fnameescape', root)
+      if (process.platform === 'darwin') {
+        nvim.call('coc#util#iterm_open', [escaped], true)
+      } else {
+        await nvim.command(`lcd ${escaped}`)
+        nvim.command('terminal', true)
+      }
+    })
+
     this.addAction('reload', async item => {
       let { id, state } = item.data
       if (state == 'disabled') return
@@ -67,10 +78,11 @@ export default class ExtensionList extends BasicList {
       }
       let root = await this.nvim.call('resolve', stat.root)
       items.push({
-        label: `${prefix} ${stat.id}\t${root.replace(os.homedir(), '~')}`,
+        label: `${prefix} ${stat.id}\t${stat.version}\t${root.replace(os.homedir(), '~')}`,
         filterText: stat.id,
         data: {
           id: stat.id,
+          root,
           state: stat.state,
           priority: getPriority(stat.state)
         }
@@ -92,7 +104,7 @@ export default class ExtensionList extends BasicList {
     nvim.command('syntax match CocExtensionsLoaded /\\v^\\+/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsDisabled /\\v^-/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsName /\\v%3c\\S+/ contained containedin=CocExtensionsLine', true)
-    nvim.command('syntax match CocExtensionsRoot /\\v\\t.*$/ contained containedin=CocExtensionsLine', true)
+    nvim.command('syntax match CocExtensionsRoot /\\v\\t[^\\t]*$/ contained containedin=CocExtensionsLine', true)
     nvim.command('highlight default link CocExtensionsActivited Special', true)
     nvim.command('highlight default link CocExtensionsLoaded Normal', true)
     nvim.command('highlight default link CocExtensionsDisabled Comment', true)

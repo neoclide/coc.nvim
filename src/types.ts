@@ -33,6 +33,8 @@ export interface Autocmd {
 
 export interface ExtensionInfo {
   id: string
+  version: string
+  description: string
   root: string
   exotic: boolean
   state: ExtensionState

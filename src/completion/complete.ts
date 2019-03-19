@@ -228,7 +228,6 @@ export default class Complete {
       if (a.priority != b.priority) return b.priority - a.priority
       if (wa.startsWith(wb)) return 1
       if (wb.startsWith(wa)) return -1
-      if (input.length > 1 && a.word.length != b.word.length) return a.word.length - b.word.length
       if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
