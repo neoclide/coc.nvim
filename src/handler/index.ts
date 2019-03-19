@@ -694,6 +694,7 @@ export default class Handler {
       this.signatureTokenSource.dispose()
       this.signatureTokenSource = null
     }
+    this.signatureFactory.close()
     let bufnr = await this.nvim.call('bufnr', '%')
     let document = workspace.getDocument(bufnr)
     if (!document) return
@@ -704,16 +705,15 @@ export default class Handler {
     if (idx != -1) position.character = idx + 1
     let tokenSource = this.signatureTokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    token.onCancellationRequested(() => {
-      this.signatureFactory.close()
-      tokenSource.dispose()
-    })
-    let signatureHelp = await languages.getSignatureHelp(document.textDocument, position)
+    let timer = setTimeout(() => {
+      if (!token.isCancellationRequested) {
+        tokenSource.cancel()
+      }
+    }, 3000)
+    let signatureHelp = await languages.getSignatureHelp(document.textDocument, position, token)
+    clearTimeout(timer)
     if (token.isCancellationRequested) return
-    if (!signatureHelp || signatureHelp.signatures.length == 0) {
-      this.signatureFactory.close()
-      return
-    }
+    if (!signatureHelp || signatureHelp.signatures.length == 0) return
     let { activeParameter, activeSignature, signatures } = signatureHelp
     if (activeSignature) {
       // make active first

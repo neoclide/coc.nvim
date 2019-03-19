@@ -247,9 +247,8 @@ class Languages {
     return await this.hoverManager.provideHover(document, position, this.token)
   }
 
-  @check
-  public async getSignatureHelp(document: TextDocument, position: Position): Promise<SignatureHelp> {
-    return await this.signatureManager.provideSignatureHelp(document, position, this.token)
+  public async getSignatureHelp(document: TextDocument, position: Position, token: CancellationToken): Promise<SignatureHelp> {
+    return await this.signatureManager.provideSignatureHelp(document, position, token)
   }
 
   @check
