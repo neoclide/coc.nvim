@@ -1,3 +1,20 @@
+# 2019-03-19
+
+- **Break change** signature settings now starts `signature`.
+- **Break change** default request timeout changed to 5s.
+- **Break change** `commands.executeCommand` return promise.
+- Add `coc.preferences.signatureHelpTarget`.
+- Add `diagnostic.maxWindowHeight` & `signature.maxWindowHeight`.
+- Add `diagnostic.enableSign`.
+- Add support for `$COC_NO_PLUGINS`.
+- Add keymaps: `<Plug>(coc-float-hide)` and `<Plug>(coc-float-jump)`.
+- Add `coc.preferences.enableFloatHighlight`.
+- Fix issues with floating window.
+- Fix critical performance issue on diff text.
+- Improve color of `CocHighlightText`.
+- Improve sort of complete items.
+- Improve extention list with version and open action.
+
 # 2019-03-16
 
 - **Break change** change vim config home on windows to '\$HOME/vimfiles'.
