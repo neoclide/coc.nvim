@@ -525,15 +525,17 @@ export class Workspace implements IWorkspace {
     let cmdHeight = this.env.cmdheight
     if (lines.length > cmdHeight && truncate) {
       lines = lines.slice(0, cmdHeight)
-      let last = lines[cmdHeight - 1]
-      lines[cmdHeight - 1] = `${last} ...`
     }
-    let maxLen = this.env.columns - (this.isVim ? 9 : 12)
+    let maxLen = this.env.columns - 12
     lines = lines.map(line => {
       line = line.replace(/\n/g, ' ')
       if (truncate) line = line.slice(0, maxLen)
       return line
     })
+    if (truncate) {
+      let last = lines[cmdHeight - 1]
+      lines[cmdHeight - 1] = `${last.length == maxLen ? last.slice(0, -4) : last} ...`
+    }
     nvim.callTimer('coc#util#echo_lines', [lines], true)
   }
 
