@@ -3,6 +3,7 @@ import { Highlight, getHiglights } from '../util/highlight'
 import { characterIndex, byteLength } from '../util/string'
 import { group } from '../util/array'
 import { Documentation, Fragment } from '../types'
+import workspace from '../workspace'
 import { Chars } from './chars'
 const logger = require('../util/logger')('model-floatBuffer')
 
@@ -10,12 +11,15 @@ export default class FloatBuffer {
   private lines: string[] = []
   private highlights: Highlight[]
   private chars = new Chars('@,48-57,_192-255,<,>,$,#,-,`,*')
-  private positions: [number, number, number?][]
+  private positions: [number, number, number?][] = []
+  private enableHighlight = true
   public width = 0
   constructor(
     private buffer: Buffer,
     private nvim: Neovim,
     private srcId: number) {
+    let config = workspace.getConfiguration('coc.preferences')
+    this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
   }
 
   public getHeight(docs: Documentation[], maxWidth: number): number {
@@ -123,14 +127,18 @@ export default class FloatBuffer {
       p.push(c, ...this.getCodeFragments(c))
       return p
     }, [])
-    let arr = await Promise.all(fragments.map(f => {
-      return getHiglights(f.lines, f.filetype).then(highlights => {
-        return highlights.map(highlight => {
-          return Object.assign({}, highlight, { line: highlight.line + f.start })
+    if (this.enableHighlight) {
+      let arr = await Promise.all(fragments.map(f => {
+        return getHiglights(f.lines, f.filetype).then(highlights => {
+          return highlights.map(highlight => {
+            return Object.assign({}, highlight, { line: highlight.line + f.start })
+          })
         })
-      })
-    }))
-    this.highlights = arr.reduce((p, c) => p.concat(c), [])
+      }))
+      this.highlights = arr.reduce((p, c) => p.concat(c), [])
+    } else {
+      this.highlights = []
+    }
   }
 
   public getCodeFragments(fragment: Fragment): Fragment[] {

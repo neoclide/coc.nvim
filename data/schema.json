@@ -509,6 +509,11 @@
         "type": "string"
       }
     },
+    "coc.preferences.enableFloatHighlight": {
+      "type": "boolean",
+      "description": "Enable highlight for floating window.",
+      "default": true
+    },
     "coc.preferences.rootPatterns": {
       "type": "array",
       "default": [".vim", ".git", ".hg", ".projections.json"],
