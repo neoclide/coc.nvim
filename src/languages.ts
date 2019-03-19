@@ -536,9 +536,8 @@ class Languages {
                 content: documentation
               })
             } else {
-              let isText = /^[\w-\s.,\t]+$/.test(documentation.value)
               docs.push({
-                filetype: documentation.kind == 'markdown' ? 'markdown' : isText ? 'txt' : doc.filetype,
+                filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
                 content: documentation.value
               })
             }
