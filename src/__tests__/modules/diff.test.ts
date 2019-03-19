@@ -74,6 +74,10 @@ describe('should get text edits', () => {
     applyEdits('1\n2\n3', '4\n1\n2\n3\n5')
   })
 
+  it('should get diff for added #4', () => {
+    applyEdits(' ', '   ')
+  })
+
   it('should get diff for replace', () => {
     applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
   })
@@ -82,11 +86,15 @@ describe('should get text edits', () => {
     applyEdits('1\n2\n3\n4\n5', '1\n5\n3\n6\n7')
   })
 
-  it('should get diff for remove', () => {
+  it('should get diff for remove #0', () => {
     applyEdits('1\n2\n3\n4', '1\n4')
   })
 
   it('should get diff for remove #1', () => {
     applyEdits('1\n2\n3\n4', '1')
+  })
+
+  it('should get diff for remove #2', () => {
+    applyEdits('  ', ' ')
   })
 })

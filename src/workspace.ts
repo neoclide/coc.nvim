@@ -532,8 +532,8 @@ export class Workspace implements IWorkspace {
       if (truncate) line = line.slice(0, maxLen)
       return line
     })
-    if (truncate) {
-      let last = lines[cmdHeight - 1]
+    if (truncate && lines.length == cmdHeight) {
+      let last = lines[lines.length - 1]
       lines[cmdHeight - 1] = `${last.length == maxLen ? last.slice(0, -4) : last} ...`
     }
     nvim.callTimer('coc#util#echo_lines', [lines], true)

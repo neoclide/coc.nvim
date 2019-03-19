@@ -50,41 +50,31 @@ export function diffLines(from: string, to: string): ChangedLines {
 
 export function getChange(oldStr: string, newStr: string): Change {
   let start = 0
-  let end = 0
   let ol = oldStr.length
   let nl = newStr.length
   let max = Math.min(ol, nl)
   let newText = ''
+  let endOffset = 0
   for (let i = 0; i <= max; i++) {
-    if (oldStr[i] != newStr[i]) {
-      start = i
+    if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
+      endOffset = i
       break
     }
     if (i == max) return null
   }
-  max = max - start
-  for (let i = 0; i <= max; i++) {
-    if (max == 0) {
-      if (ol < nl) {
-        end = start
-        newText = newStr.slice(start, nl)
-      } else {
-        end = ol
-        newText = ''
-      }
-    } else {
-      let m = oldStr[ol - 1 - i]
-      let n = newStr[nl - 1 - i]
-      if (m != n) {
-        end = ol - i
-        newText = newStr.slice(start, nl - i)
+  max = max - endOffset
+  if (max == 0) {
+    start = 0
+  } else {
+    for (let i = 0; i <= max; i++) {
+      if (oldStr[i] != newStr[i] || i == max) {
+        start = i
         break
-      } else if (i == max) {
-        end = ol - i
-        newText = newStr.slice(start, nl - i)
       }
     }
   }
+  let end = ol - endOffset
+  newText = newStr.slice(start, nl - endOffset)
   return { start, end, newText }
 }
 
