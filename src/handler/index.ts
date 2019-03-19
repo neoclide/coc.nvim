@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind, LocationLink } from 'vscode-languageserver-protocol'
+import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind, LocationLink, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import CodeLensManager from './codelens'
 import Colors from './colors'
@@ -66,6 +66,7 @@ export default class Handler {
   private currentSymbols: SymbolInformation[]
   private codeLensManager: CodeLensManager
   private cursorMoveTs: number
+  private signatureTokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
 
   constructor(private nvim: Neovim) {
@@ -688,6 +689,11 @@ export default class Handler {
   }
 
   public async showSignatureHelp(): Promise<void> {
+    if (this.signatureTokenSource) {
+      this.signatureTokenSource.cancel()
+      this.signatureTokenSource.dispose()
+      this.signatureTokenSource = null
+    }
     let bufnr = await this.nvim.call('bufnr', '%')
     let document = workspace.getDocument(bufnr)
     if (!document) return
@@ -696,15 +702,24 @@ export default class Handler {
     if (/\)\s*/.test(part)) return
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
+    let tokenSource = this.signatureTokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    token.onCancellationRequested(() => {
+      this.signatureFactory.close()
+      tokenSource.dispose()
+    })
     let signatureHelp = await languages.getSignatureHelp(document.textDocument, position)
-    if (!signatureHelp) return
+    if (token.isCancellationRequested) return
+    if (!signatureHelp || signatureHelp.signatures.length == 0) {
+      this.signatureFactory.close()
+      return
+    }
     let { activeParameter, activeSignature, signatures } = signatureHelp
     if (activeSignature) {
       // make active first
       let [active] = signatures.splice(activeSignature, 1)
       if (active) signatures.unshift(active)
     }
-    if (signatures.length == 0) return
     if (this.preferences.signatureHelpTarget == 'float') {
       let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
