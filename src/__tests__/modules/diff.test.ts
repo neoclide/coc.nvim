@@ -58,8 +58,19 @@ describe('should get text edits', () => {
     expect(res).toBe(newStr)
   }
 
+  it('should return null for same content', () => {
+    let change = getChange('', '')
+    expect(change).toBeNull()
+    change = getChange('abc', 'abc')
+    expect(change).toBeNull()
+  })
+
   it('should get diff for added', () => {
     applyEdits('1\n2', '1\n2\n3\n4')
+  })
+
+  it('should get diff for added #0', () => {
+    applyEdits('\n\n', '\n\n\n')
   })
 
   it('should get diff for added #1', () => {

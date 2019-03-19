@@ -197,8 +197,8 @@ export default class Document {
     if (paused && !force) return
     try {
       let content = this.getDocumentContent()
-      if (content == this.content) return
       let change = getChange(this.content, content)
+      if (change == null) return
       this.createDocument()
       let { version, uri } = this
       let start = textDocument.positionAt(change.start)
