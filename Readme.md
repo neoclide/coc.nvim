@@ -79,7 +79,7 @@ Below are the reasons that led coc.nvim to build it's own engine:
   And add:
 
   ```vim
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install'}
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install --frozen-lockfile'}
   ```
 
   to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.

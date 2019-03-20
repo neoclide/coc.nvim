@@ -62,7 +62,6 @@
   "devDependencies": {
     "@chemzqm/tslint-config": "^1.0.18",
     "@types/debounce": "^3.0.0",
-    "@types/fast-diff": "^1.2.0",
     "@types/fb-watchman": "^2.0.0",
     "@types/find-up": "^2.1.1",
     "@types/glob": "^7.1.1",

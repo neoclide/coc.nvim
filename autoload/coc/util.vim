@@ -94,7 +94,9 @@ endfunction
 
 function! coc#util#close_win(id)
   if exists('*nvim_win_close')
-    silent! call nvim_win_close(a:id, 1)
+    if nvim_win_is_valid(a:id)
+      call nvim_win_close(a:id, 1)
+    endif
   else
     let winnr = win_id2win(a:id)
     if winnr > 0
@@ -614,7 +616,7 @@ function! coc#util#build()
     call system('taskkill /F /Im coc-win.exe')
   endif
   execute 'lcd '.s:root
-  execute '!'.yarncmd.' install'
+  execute '!'.yarncmd.' install --frozen-lockfile'
   execute 'lcd '.cwd
   if s:is_win
     call coc#rpc#start_server()

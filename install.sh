@@ -94,7 +94,7 @@ download() {
 try_build() {
   install_yarn
   info "Try build coc.nvim from source code"
-  yarnpkg install
+  yarnpkg install --frozen-lockfile
 }
 
 arch=$(uname -sm)
