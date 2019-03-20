@@ -97,6 +97,7 @@ export class Workspace implements IWorkspace {
     this.checkProcess()
     this.configurations.updateUserConfig(this._env.config)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
+    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
@@ -1176,6 +1177,10 @@ augroup end`
     this.bufnr = bufnr
     let doc = this.getDocument(bufnr)
     if (doc) this.configurations.setFolderConfiguration(doc.uri)
+  }
+
+  private onCursorMoved(bufnr: number): void {
+    this.bufnr = bufnr
   }
 
   private async onBufWritePost(bufnr: number): Promise<void> {

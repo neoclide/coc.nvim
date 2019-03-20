@@ -268,7 +268,7 @@ b:coc_suggest_disable 				*b:coc_suggest_disable*
 			" Disable completion for python
 			autocmd FileType python let b:coc_suggest_disable = 1
 
-b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*
+b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 
 			Words of input should be disabled for completion. ex: >
 			
