@@ -1186,7 +1186,6 @@ augroup end`
   private async onBufWritePost(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
-    await doc.checkDocument()
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
@@ -1209,9 +1208,13 @@ augroup end`
       reason: TextDocumentSaveReason.Manual
     }
     this._onWillSaveDocument.fire(event)
-    await this.willSaveUntilHandler.handeWillSaveUntil(event)
-    let cost = Date.now() - start
-    if (cost > 500) logger.info('Buffer save cost:', cost)
+    await doc.checkDocument()
+    if (this.willSaveUntilHandler.hasCallback) {
+      await wait(50)
+      let cost = Date.now() - start
+      await this.willSaveUntilHandler.handeWillSaveUntil(event)
+      if (cost > 500) logger.info('Buffer save cost:', cost)
+    }
   }
 
   private onDirChanged(cwd: string): void {
