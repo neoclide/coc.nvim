@@ -6,6 +6,7 @@ import { wait } from '../util'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
+import completion from '../completion'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
@@ -183,7 +184,8 @@ export class SnippetSession {
     if (mode.startsWith('i')) {
       let pum = await nvim.call('pumvisible')
       if (pum && this.preferComplete) {
-        await nvim.eval(`feedkeys("\\<C-y>", 'in')`)
+        let pre = completion.hasSelected() ? '' : '\\<C-n>'
+        await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`)
         return
       }
     }

@@ -210,7 +210,7 @@ export class Completion implements Disposable {
     await this.showCompletion(this.option.col, items)
   }
 
-  public async hasSelected(): Promise<boolean> {
+  public hasSelected(): boolean {
     if (workspace.env.pumevent) return this.currItem != null
     if (this.config.noselect === false) return true
     return this.isResolving

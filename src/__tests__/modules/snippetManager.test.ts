@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import snippetManager from '../../snippets/manager'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -140,5 +141,23 @@ describe('snippet provider', () => {
     await helper.wait(100)
     let lines = await buf.lines
     expect(lines).toEqual(['<a abcde>', '', '</a>'])
+  })
+
+  it('should respect preferCompleteThanJumpPlaceholder', async () => {
+    let config = workspace.getConfiguration('suggest')
+    config.update('preferCompleteThanJumpPlaceholder', true)
+    await helper.createDocument()
+    await nvim.setLine('foo')
+    await nvim.input('o')
+    await snippetManager.insertSnippet('${1:foo} ${2:bar}')
+    await helper.wait(10)
+    await nvim.input('f')
+    await helper.wait(30)
+    let pumvisible = await nvim.call('pumvisible')
+    expect(pumvisible).toBeTruthy()
+    await nvim.input('<C-j>')
+    await helper.wait(200)
+    let line = await nvim.getLine()
+    expect(line).toBe('foo bar')
   })
 })
