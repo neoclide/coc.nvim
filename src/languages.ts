@@ -524,8 +524,10 @@ class Languages {
           let docs: Documentation[] = []
           if (detail && !item.detailShown && detail != item.word) {
             detail = detail.replace(/\n\s*/g, ' ')
-            let isText = /^[\w-\s.,\t]+$/.test(detail)
-            docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail })
+            if (detail.length) {
+              let isText = /^[\w-\s.,\t]+$/.test(detail)
+              docs.push({ filetype: isText ? 'txt' : doc.filetype, content: detail })
+            }
           }
           if (documentation) {
             if (typeof documentation == 'string') {
@@ -534,7 +536,7 @@ class Languages {
                 filetype: isText ? 'txt' : doc.filetype,
                 content: documentation
               })
-            } else {
+            } else if (documentation.value) {
               docs.push({
                 filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
                 content: documentation.value
