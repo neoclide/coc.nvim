@@ -216,11 +216,12 @@ export class Sources {
 
   public shouldTrigger(pre: string, languageId: string): boolean {
     if (pre.length == 0) return false
+    let last = pre[pre.length - 1]
     let idx = this.sources.findIndex(s => {
       let { enable, triggerCharacters, triggerPatterns, filetypes } = s
       if (!enable) return false
       if ((filetypes && filetypes.indexOf(languageId) == -1)) return false
-      if (triggerCharacters) return triggerCharacters.indexOf(pre.slice(-1)) !== -1
+      if (triggerCharacters) return triggerCharacters.indexOf(last) !== -1
       if (triggerPatterns) return triggerPatterns.findIndex(p => p.test(pre)) !== -1
       return false
     })

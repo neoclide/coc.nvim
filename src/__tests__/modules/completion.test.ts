@@ -161,6 +161,37 @@ describe('completion#startCompletion', () => {
     expect(items[0].word).toBe('ab')
     await nvim.input('<esc>')
   })
+
+  it('should not complete inComplete source when none keyword inserted', async () => {
+    let lastOption: CompleteOption
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'inComplete',
+      sourceType: SourceType.Service,
+      triggerCharacters: ['.'],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        lastOption = opt
+        await helper.wait(30)
+        if (opt.input.length <= 1) {
+          return { isIncomplete: true, items: [{ word: 'foo' }, { word: opt.input }] }
+        }
+        return { isIncomplete: false, items: [{ word: 'foo' }, { word: opt.input }] }
+      }
+    }
+    sources.addSource(source)
+    await helper.edit()
+    await nvim.input('i.')
+    await helper.waitPopup()
+    expect(completion.isActivted).toBe(true)
+    await nvim.input('a')
+    await helper.wait(10)
+    await nvim.input(',')
+    await helper.wait(100)
+    sources.removeSource(source)
+    expect(lastOption.triggerForInComplete).toBeFalsy()
+    await nvim.input('<esc>')
+  })
 })
 
 describe('completion#resumeCompletion', () => {

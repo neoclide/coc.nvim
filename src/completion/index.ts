@@ -183,8 +183,9 @@ export class Completion implements Disposable {
   private async resumeCompletion(search: string | null, _isChangedP = false): Promise<void> {
     let { document, complete, activted } = this
     if (!activted || !complete.results || search == this.input) return
-    if (search == null ||
-      search.endsWith(' ') ||
+    let last = search == null ? '' : search.slice(-1)
+    if (last.length == 0 ||
+      !document.chars.isKeywordChar(last) ||
       search.length < complete.input.length) {
       this.stop()
       return
@@ -304,7 +305,7 @@ export class Completion implements Disposable {
       if (!latestInsertChar) return
       // check trigger
       let pre = await this.getPreviousContent(document)
-      if (/\d$/.test(pre)) return
+      if (/(^|\s)\d$/.test(pre)) return
       let last = pre ? pre.slice(-1) : ''
       if (!/\s/.test(last)) await this.triggerCompletion(document, pre)
       return
