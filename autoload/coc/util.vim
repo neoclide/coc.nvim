@@ -543,7 +543,11 @@ endfunction
 
 function! coc#util#clearmatches(ids)
   for id in a:ids
-    silent! call matchdelete(id)
+    try
+      call matchdelete(id)
+    catch /.*/
+      " matches have been cleared in other ways,
+    endtry
   endfor
 endfunction
 
