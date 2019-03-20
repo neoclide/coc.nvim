@@ -304,6 +304,7 @@ export class Completion implements Disposable {
       if (!latestInsertChar) return
       // check trigger
       let pre = await this.getPreviousContent(document)
+      if (/\d$/.test(pre)) return
       let last = pre ? pre.slice(-1) : ''
       if (!/\s/.test(last)) await this.triggerCompletion(document, pre)
       return
