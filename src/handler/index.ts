@@ -724,25 +724,27 @@ export default class Handler {
       let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
         let activeIndexes: [number, number] = null
-        if (idx == 0) {
+        if (idx == 0 && activeParameter != null) {
           let nameIndex = c.label.indexOf('(')
           let active = c.parameters[activeParameter]
-          let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
-          paramDoc = active.documentation
-          if (typeof active.label === 'string') {
-            let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
-            startIndex = startIndex == -1 ? 0 : startIndex
-            let str = after.slice(startIndex)
-            let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
-            let index = ms ? ms.index : str.indexOf(active.label)
-            if (index != -1) {
-              activeIndexes = [
-                index + startIndex + nameIndex,
-                index + startIndex + active.label.length + nameIndex
-              ]
+          if (active) {
+            let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
+            paramDoc = active.documentation
+            if (typeof active.label === 'string') {
+              let startIndex = activeParameter == 0 ? 0 : indexOf(after, ',', activeParameter)
+              startIndex = startIndex == -1 ? 0 : startIndex
+              let str = after.slice(startIndex)
+              let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'))
+              let index = ms ? ms.index : str.indexOf(active.label)
+              if (index != -1) {
+                activeIndexes = [
+                  index + startIndex + nameIndex,
+                  index + startIndex + active.label.length + nameIndex
+                ]
+              }
+            } else {
+              activeIndexes = active.label
             }
-          } else {
-            activeIndexes = active.label
           }
         }
         p.push({

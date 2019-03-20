@@ -618,6 +618,13 @@ export class Extensions {
     return id
   }
 
+  public getExtensionApi(id: string): API | null {
+    let item = this.list.find(o => o.id == id)
+    if (!item) return null
+    let { extension } = item
+    return extension.isActive ? extension.exports : null
+  }
+
   public registerExtension(extension: Extension<API>, deactivate?: () => void): void {
     let { id, packageJSON } = extension
     this.list.push({ id, extension, deactivate })

@@ -25,4 +25,16 @@ describe('help tags', () => {
     let res = await nvim.call('execute', `helptags ${dir}`) as string
     expect(res.length).toBe(0)
   })
+
+  it('should return jumpable', async () => {
+    let jumpable = await helper.plugin.snippetCheck(false, true)
+    expect(jumpable).toBe(false)
+  })
+
+  it('should show CocInfo', async () => {
+    await helper.plugin.showInfo()
+    await helper.wait(300)
+    let line = await nvim.line
+    expect(line).toMatch('versions')
+  })
 })

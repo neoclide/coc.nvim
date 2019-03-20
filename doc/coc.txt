@@ -491,6 +491,23 @@ coc#refresh()
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
+						*coc#expandable()*
+coc#expandable()
+
+	Check if snippet is expandable at current position.
+	Requires `coc-snippets` extension installed.
+
+						*coc#jumpable()*
+coc#jumpable()
+
+	Check if snippet is jumpable at current position.
+
+						*coc#expandableOrJumpable()*
+coc#expandableOrJumpable()
+
+	Check if snippet expandable or jumpable at current position.
+	Requires `coc-snippets` extension installed.
+
 						*coc#status()*
 coc#status()
 

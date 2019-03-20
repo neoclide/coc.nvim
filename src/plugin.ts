@@ -8,7 +8,7 @@ import { Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
-import extensions from './extensions'
+import extensions, { API } from './extensions'
 import Handler from './handler'
 import listManager from './list/manager'
 import services from './services'
@@ -168,6 +168,26 @@ export default class Plugin extends EventEmitter {
       getLocation(res)
     }
     await this.handler.handleLocations(locations, openCommand)
+  }
+
+  public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
+    if (checkExpand && !extensions.has('coc-snippets')) {
+      // tslint:disable-next-line: no-console
+      console.error('coc-snippets required for check expand status!')
+      return false
+    }
+    if (checkJump) {
+      let jumpable = snippetManager.jumpable()
+      if (!jumpable) return false
+    }
+    if (checkExpand) {
+      let api = extensions.getExtensionApi('coc-snippets') as any
+      if (api && api.hasOwnProperty('expandable')) {
+        let expandable = await Promise.resolve(api.expandable())
+        if (!expandable) return false
+      }
+    }
+    return true
   }
 
   public async showInfo(): Promise<void> {

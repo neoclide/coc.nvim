@@ -8,6 +8,18 @@ let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 let s:select_api = exists('*nvim_select_popupmenu_item')
 
+function! coc#expandable() abort
+  return coc#rpc#request('snippetCheck', [1, 0])
+endfunction
+
+function! coc#jumpable() abort
+  return coc#rpc#request('snippetCheck', [0, 1])
+endfunction
+
+function! coc#expandableOrJumpable() abort
+  return coc#rpc#request('snippetCheck', [1, 1])
+endfunction
+
 function! coc#refresh() abort
   if pumvisible()
     let g:coc#_context['candidates'] = []

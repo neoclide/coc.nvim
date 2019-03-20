@@ -478,6 +478,23 @@ coc#refresh()
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
+						*coc#expandable()*
+coc#expandable()
+
+	检查当前位置是否可以展开代码块。
+	需要安装 `coc-snippets` 插件。
+
+						*coc#jumpable()*
+coc#jumpable()
+
+	检查当前位置是否可以跳转到下一个代码块位置。
+
+						*coc#expandableOrJumpable()*
+coc#expandableOrJumpable()
+
+	检查当前位置是否可以展开代码块或者跳转到下一个代码块位置。
+	需要安装 `coc-snippets` 插件。
+
 						*coc#status()*
 coc#status()
 

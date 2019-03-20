@@ -112,6 +112,16 @@ export class SnippetManager implements types.SnippetManager {
     return session && session.isActive ? session : null
   }
 
+  public jumpable(): boolean {
+    let { session } = this
+    if (!session) return false
+    let placeholder = session.placeholder
+    if (placeholder && !placeholder.isFinalTabstop) {
+      return true
+    }
+    return false
+  }
+
   public getSession(bufnr: number): SnippetSession {
     return this.sessionMap.get(bufnr)
   }
