@@ -944,7 +944,7 @@ export default class Handler {
     if (hoverTarget == 'float' && !workspace.env.floating) {
       hoverTarget = 'preview'
     }
-    let signatureHelpTarget = signatureConfig.get<string>('signatureHelpTarget', 'float')
+    let signatureHelpTarget = signatureConfig.get<string>('target', 'float')
     if (signatureHelpTarget == 'float' && !workspace.env.floating) {
       signatureHelpTarget = 'echo'
     }
