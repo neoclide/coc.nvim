@@ -53,11 +53,9 @@ describe('completion float', () => {
     expect(items[0].info.length > 0).toBeTruthy()
     await nvim.input('<C-n>')
     await helper.wait(500)
-    let hasFloat = await nvim.call('coc#util#has_float')
-    expect(hasFloat).toBe(1)
     await nvim.input('<esc>')
     await helper.wait(100)
-    hasFloat = await nvim.call('coc#util#has_float')
+    let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(0)
   })
 
