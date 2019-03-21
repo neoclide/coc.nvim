@@ -8,7 +8,7 @@ import { Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
-import extensions, { API } from './extensions'
+import extensions from './extensions'
 import Handler from './handler'
 import listManager from './list/manager'
 import services from './services'
@@ -131,8 +131,9 @@ export default class Plugin extends EventEmitter {
       this.emit('ready')
     } catch (e) {
       this.ready = false
-      console.error(`Plugin initialized error: ${e.stack}`) // tslint:disable-line
+      console.error(`Error on initialize: ${e.message}`) // tslint:disable-line
     }
+
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return

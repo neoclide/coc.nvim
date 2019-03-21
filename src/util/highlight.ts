@@ -8,6 +8,7 @@ import os from 'os'
 import fs from 'fs'
 import { byteLength } from './string'
 import { terminate } from './processes'
+import uuid = require('uuid/v4')
 const logger = require('./logger')('util-highlights')
 
 export interface Highlight {
@@ -72,30 +73,35 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       })
       env.runtimepath = dirs.join(',')
     }
-    let killed = false
-    let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed', id], {
+    let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
       shell: false,
       cwd: os.tmpdir(),
       env: omit(process.env, ['NVIM_LISTEN_ADDRESS'])
     })
     let timer: NodeJS.Timer
-    const exit = () => {
+    let exited = false
+    const exit = async () => {
+      if (exited) return
+      exited = true
       if (timer) clearTimeout(timer)
-      if (!killed) {
-        nvim.command('qa!').then(() => {
-          killed = terminate(proc)
-        }, () => {
-          killed = terminate(proc)
-        })
+      if (nvim) {
+        try {
+          await nvim.quit()
+        } catch (e) {
+          // noop
+        }
+        let killed = terminate(proc)
+        if (!killed) {
+          setTimeout(() => {
+            terminate(proc)
+          }, 50)
+        }
       }
-      setTimeout(() => {
-        if (!killed) terminate(proc)
-      }, 50)
     }
     try {
-      proc.on('error', err => {
-        logger.error(`highlight error:`, err)
-        exit()
+      proc.once('exit', () => {
+        if (exited) return
+        logger.info('highlight nvim exited.')
         resolve([])
       })
       timer = setTimeout(() => {

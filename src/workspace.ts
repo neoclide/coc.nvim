@@ -31,6 +31,7 @@ import uuid = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
+let NAME_SPACE = 1080
 
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
@@ -262,9 +263,9 @@ export class Workspace implements IWorkspace {
   public async createNameSpace(name = ''): Promise<number> {
     if (this.namespaceMap.has(name)) return this.namespaceMap.get(name)
     if (this.nvim.hasFunction('nvim_create_namespace')) {
-      let res = await this.nvim.createNamespace(name)
-      if (res) this.namespaceMap.set(name, res)
-      return res
+      NAME_SPACE = NAME_SPACE + 1
+      this.namespaceMap.set(name, NAME_SPACE)
+      return NAME_SPACE
     }
     return 0
   }

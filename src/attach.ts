@@ -1,4 +1,5 @@
 import { attach, NeovimClient } from '@chemzqm/neovim'
+import log4js from 'log4js'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
@@ -7,7 +8,7 @@ const logger = require('./util/logger')('attach')
 const isTest = process.env.NODE_ENV == 'test'
 
 export default (opts: Attach): Plugin => {
-  const nvim: NeovimClient = attach(opts)
+  const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'))
   const plugin = new Plugin(nvim)
   let initialized = false
   nvim.on('notification', async (method, args) => {

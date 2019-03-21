@@ -225,6 +225,8 @@ export default class FloatFactory implements Disposable {
         } else {
           clearInterval(interval)
         }
+      }, _e => {
+        clearInterval(interval)
       })
     }, 200)
   }

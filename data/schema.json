@@ -229,7 +229,7 @@
     "suggest.detailField": {
       "type": "string",
       "default": "menu",
-      "description": "Where to show the detail when it's less than max length.",
+      "description": "Where to add the detail in complete item when it's less than max length.",
       "enum": ["abbr", "menu", "preview"]
     },
     "suggest.previewIsKeyword": {
