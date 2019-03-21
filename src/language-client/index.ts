@@ -418,11 +418,7 @@ export class LanguageClient extends BaseLanguageClient {
         throw new Error(`Launching server using command ${command.command} failed.`)
       }
       serverProcess.on('exit', code => {
-        if (typeof code == 'number') {
-          if (code != 0) this.error(`${command} exited with code: ${code}`)
-        } else {
-          this.error(`${command} exited with code: ${JSON.stringify(code)}`)
-        }
+        if (code != 0) this.error(`${command.command} exited with code: ${code}`)
       })
       serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
       this._serverProcess = serverProcess

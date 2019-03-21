@@ -1,6 +1,7 @@
 import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
 import URI from 'vscode-uri'
+import { emptyRange } from '../util/position'
 const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
@@ -44,6 +45,12 @@ export default class Collection implements DiagnosticCollection {
     uri = URI.parse(uri).toString()
     if (diagnostics) {
       diagnostics.forEach(o => {
+        if (emptyRange(o.range)) {
+          o.range.end = {
+            line: o.range.end.line,
+            character: o.range.end.character + 1
+          }
+        }
         o.source = o.source || this.name
       })
     }
