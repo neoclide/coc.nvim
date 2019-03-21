@@ -78,10 +78,10 @@ export default class FloatingWindow {
 
   private showBuffer(): void {
     let { window, nvim } = this
-    nvim.call('win_gotoid', [this.window.id], true)
+    nvim.command(`noa call win_gotoid(${this.window.id})`, true)
     window.notify('nvim_win_set_cursor', [window, [1, 1]])
     this.floatBuffer.setLines()
-    nvim.command('wincmd p', true)
+    nvim.command('noa wincmd p', true)
   }
 
   private async calculateBounding(docs: Documentation[]): Promise<Bounding> {

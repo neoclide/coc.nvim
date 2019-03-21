@@ -58,13 +58,14 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    // events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
     events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
   }
 
   private onCursorMoved(bufnr: number, cursor: [number, number]): void {
     if (this.buffer && bufnr == this.buffer.id) return
-    if (this.moving || equals(cursor, this.cursor)) return
+    if (this.moving
+      || (bufnr == this.targetBufnr && equals(cursor, this.cursor))) return
     this.close()
   }
 
@@ -184,10 +185,10 @@ export default class FloatFactory implements Disposable {
       window.setOption('conceallevel', 2, true)
       window.setOption('relativenumber', false, true)
       window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
-      nvim.call('win_gotoid', [window.id], true)
+      nvim.command(`noa call win_gotoid(${window.id})`, true)
       floatBuffer.setLines()
       if (alignTop) nvim.command('normal! G', true)
-      nvim.command('wincmd p', true)
+      nvim.command('noa wincmd p', true)
       await nvim.resumeNotification()
       this.moving = true
       if (mode == 's') {
