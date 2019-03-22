@@ -262,12 +262,9 @@ export class Workspace implements IWorkspace {
 
   public async createNameSpace(name = ''): Promise<number> {
     if (this.namespaceMap.has(name)) return this.namespaceMap.get(name)
-    if (this.nvim.hasFunction('nvim_create_namespace')) {
-      NAME_SPACE = NAME_SPACE + 1
-      this.namespaceMap.set(name, NAME_SPACE)
-      return NAME_SPACE
-    }
-    return 0
+    NAME_SPACE = NAME_SPACE + 1
+    this.namespaceMap.set(name, NAME_SPACE)
+    return NAME_SPACE
   }
 
   public get channelNames(): string[] {

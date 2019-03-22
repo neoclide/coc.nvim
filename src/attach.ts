@@ -7,14 +7,15 @@ import semver from 'semver'
 const logger = require('./util/logger')('attach')
 const isTest = process.env.NODE_ENV == 'test'
 
-export default (opts: Attach): Plugin => {
-  const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'))
+export default (opts: Attach, requestApi = true): Plugin => {
+  const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
   const plugin = new Plugin(nvim)
+  let clientReady = false
   let initialized = false
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        if (!initialized) {
+        if (!initialized && clientReady) {
           initialized = true
           await plugin.init()
         }
@@ -65,6 +66,7 @@ export default (opts: Attach): Plugin => {
   })
 
   nvim.channelId.then(async channelId => {
+    clientReady = true
     if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)

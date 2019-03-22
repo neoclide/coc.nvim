@@ -108,7 +108,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
         exit()
         resolve([])
       }, 500)
-      nvim = attach({ proc })
+      nvim = attach({ proc }, null, false)
       const callback = (method, args) => {
         if (method == 'redraw') {
           for (let arr of args) {
