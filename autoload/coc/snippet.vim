@@ -38,7 +38,7 @@ function! coc#snippet#enable()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   nnoremap <buffer> <silent> <esc> :call coc#rpc#request('snippetCancel', [])<cr>
-  if maparg(nextkey, 'i') =~# 'snippets-expand'
+  if maparg(nextkey, 'i') =~# 'expand-jump'
     let s:map_next = 0
   endif
   if s:map_next
