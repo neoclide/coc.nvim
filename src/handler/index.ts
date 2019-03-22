@@ -698,7 +698,7 @@ export default class Handler {
     if (!document) return
     let position = await workspace.getCursorPosition()
     let part = document.getline(position.line).slice(0, position.character)
-    if (/\)\s*/.test(part)) return
+    if (/\)\s*$/.test(part)) return
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
     let tokenSource = this.signatureTokenSource = new CancellationTokenSource()
