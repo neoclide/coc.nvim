@@ -188,7 +188,7 @@ export default class Plugin extends EventEmitter {
         if (expandable) return true
       }
     }
-    return true
+    return false
   }
 
   public async showInfo(): Promise<void> {
