@@ -179,13 +179,13 @@ export default class Plugin extends EventEmitter {
     }
     if (checkJump) {
       let jumpable = snippetManager.jumpable()
-      if (!jumpable) return false
+      if (jumpable) return true
     }
     if (checkExpand) {
       let api = extensions.getExtensionApi('coc-snippets') as any
       if (api && api.hasOwnProperty('expandable')) {
         let expandable = await Promise.resolve(api.expandable())
-        if (!expandable) return false
+        if (expandable) return true
       }
     }
     return true
