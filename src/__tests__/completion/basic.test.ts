@@ -186,7 +186,7 @@ describe('completion', () => {
     await helper.wait(30)
     await nvim.input('f')
     await helper.waitPopup()
-    await nvim.input('<C-n>')
+    await nvim.eval('feedkeys("\\<down>","in")')
     await helper.wait(100)
     let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(1)
