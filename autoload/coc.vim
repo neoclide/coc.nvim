@@ -121,7 +121,14 @@ function! coc#status()
   if get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
-  return trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
+  return s:trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
+endfunction
+
+function! s:trim(str)
+  if exists('*trim')
+    return trim(a:str)
+  endif
+  return substitute(a:str, '\s\+$', '', '')
 endfunction
 
 function! coc#config(section, value)

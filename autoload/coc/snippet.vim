@@ -38,15 +38,15 @@ function! coc#snippet#enable()
   let nextkey = get(g:, 'coc_snippet_next', '<C-j>')
   let prevkey = get(g:, 'coc_snippet_prev', '<C-k>')
   nnoremap <buffer> <silent> <esc> :call coc#rpc#request('snippetCancel', [])<cr>
-  if maparg(nextkey, 'i') ==# '<Plug>(coc-snippets-expand-jump)'
+  if maparg(nextkey, 'i') =~# 'snippets-expand'
     let s:map_next = 0
   endif
   if s:map_next
-    execute 'imap <buffer><nowait><silent>'.nextkey." <C-R>=coc#rpc#request('snippetNext', [])<cr>"
+    execute 'inoremap <buffer><nowait><silent>'.nextkey." <C-R>=coc#rpc#request('snippetNext', [])<cr>"
   endif
-  execute 'imap <buffer><nowait><silent>'.prevkey." <C-R>=coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'smap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#rpc#request('snippetPrev', [])<cr>"
-  execute 'smap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#rpc#request('snippetNext', [])<cr>"
+  execute 'inoremap <buffer><nowait><silent>'.prevkey." <C-R>=coc#rpc#request('snippetPrev', [])<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.prevkey." <Esc>:call coc#rpc#request('snippetPrev', [])<cr>"
+  execute 'snoremap <buffer><nowait><silent>'.nextkey." <Esc>:call coc#rpc#request('snippetNext', [])<cr>"
 endfunction
 
 function! coc#snippet#disable()
