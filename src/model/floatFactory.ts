@@ -33,6 +33,7 @@ export default class FloatFactory implements Disposable {
   private alignTop = false
   private _creating = false
   private moving = false
+  private createTs = 0
   private cursor: [number, number] = [0, 0]
   public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
@@ -58,15 +59,23 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
-    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
+    events.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables)
   }
 
-  private onCursorMoved(bufnr: number, cursor: [number, number]): void {
+  private onCursorMoved(insert: boolean, bufnr: number, cursor: [number, number]): void {
     if (this.buffer && bufnr == this.buffer.id) return
-    if (this.moving
-      || (bufnr == this.targetBufnr && equals(cursor, this.cursor))) return
-    this.close()
+    if (this.moving || (bufnr == this.targetBufnr && equals(cursor, this.cursor))) return
+    if (insert) {
+      if (!this.window) return
+      let ts = Date.now()
+      setTimeout(() => {
+        if (this.createTs > ts) return
+        this.close()
+      }, 2000)
+    } else {
+      this.close()
+    }
   }
 
   private async createBuffer(): Promise<Buffer> {
@@ -122,6 +131,7 @@ export default class FloatFactory implements Disposable {
 
   public async create(docs: Documentation[], allowSelection = false): Promise<void> {
     if (!this.env.floating) return
+    this.createTs = Date.now()
     let id = uuid()
     creatingIds.add(id)
     this.targetBufnr = workspace.bufnr
