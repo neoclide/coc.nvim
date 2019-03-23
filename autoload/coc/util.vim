@@ -188,9 +188,7 @@ function! coc#util#job_command()
   endif
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
-    if coc#util#prompt_confirm('[coc.nvim] binary and build file not found, download?')
-      call coc#util#install({'terminal':1})
-    endif
+    echohl Error | echon '[coc.nvim] binary and build file not found!' | echohl None
     return
   endif
   let node = get(g:, 'coc_node_path', 'node')
