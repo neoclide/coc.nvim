@@ -72,6 +72,15 @@ export class Helper extends Emitter {
     throw new Error('timeout after 2s')
   }
 
+  public async waitFloat(): Promise<number> {
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let winid = await this.nvim.call('coc#util#get_float')
+      if (winid) return winid
+    }
+    throw new Error('timeout after 2s')
+  }
+
   public async reset(): Promise<void> {
     let mode = await this.nvim.call('mode')
     if (mode !== 'n') {

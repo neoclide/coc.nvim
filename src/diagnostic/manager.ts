@@ -6,7 +6,7 @@ import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
-import { comparePosition, positionInRange } from '../util/position'
+import { comparePosition, positionInRange, lineInRange } from '../util/position'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
@@ -15,6 +15,7 @@ const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
   enableSign: boolean
+  checkCurrentLine: boolean
   enableMessage: string
   virtualText: boolean
   displayByAle: boolean
@@ -362,8 +363,12 @@ export class DiagnosticManager implements Disposable {
     let pos = await workspace.getCursorPosition()
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
     if (!buffer || this.insertMode) return
-    let useFloat = workspace.env.floating && this.config.messageTarget == 'float' && !global.hasOwnProperty('__TEST__')
-    let diagnostics = buffer.diagnostics.filter(o => positionInRange(pos, o.range) == 0)
+    let { checkCurrentLine } = this.config
+    let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
+    let diagnostics = buffer.diagnostics.filter(o => {
+      if (checkCurrentLine) return lineInRange(pos.line, o.range)
+      return positionInRange(pos, o.range) == 0
+    })
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
@@ -438,6 +443,7 @@ export class DiagnosticManager implements Disposable {
     this.config = {
       srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
       enableSign: getConfig<boolean>('enableSign', true),
       maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
       enableMessage: getConfig<string>('enableMessage', 'always'),

@@ -328,6 +328,11 @@
       "default": "hint",
       "enum": ["hint", "information", "warning", "error"]
     },
+    "diagnostic.checkCurrentLine": {
+      "type": "boolean",
+      "description": "When enabled, show all diagnostics of current line instead of current position.",
+      "default": false
+    },
     "diagnostic.messageTarget": {
       "type": "string",
       "description": "Diagnostic message target.",

@@ -140,12 +140,40 @@ describe('diagnostic manager', () => {
     expect(list[4].severity).toBe('Hint')
   })
 
+  it('should show floating window on cursor hold', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('messageTarget', 'float')
+    await createDocument()
+    await nvim.call('cursor', [1, 3])
+    let winid = await helper.waitFloat()
+    let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
+    let buf = nvim.createBuffer(bufnr)
+    let lines = await buf.lines
+    expect(lines.join('\n')).toMatch('error')
+  })
+
   it('should echo messages on cursor hold', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('messageTarget', 'echo')
     await createDocument()
     await nvim.call('cursor', [1, 3])
     await helper.wait(600)
     let line = await helper.getCmdline()
     expect(line).toMatch('error')
+    config.update('messageTarget', 'float')
+  })
+
+  it('should show diagnostics of current line', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('checkCurrentLine', true)
+    await createDocument()
+    await nvim.call('cursor', [1, 1])
+    let winid = await helper.waitFloat()
+    let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
+    let buf = nvim.createBuffer(bufnr)
+    let lines = await buf.lines
+    expect(lines.length).toBe(3)
+    config.update('checkCurrentLine', false)
   })
 
   it('should get severity level', () => {

@@ -4,6 +4,11 @@ export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
 }
 
+export function lineInRange(line: number, range: Range): boolean {
+  let { start, end } = range
+  return line >= start.line && line <= end.line
+}
+
 export function emptyRange(range: Range): boolean {
   let { start, end } = range
   return start.line == end.line && start.character == end.character
