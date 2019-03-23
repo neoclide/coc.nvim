@@ -1,3 +1,14 @@
+# 2019-03-24
+
+- **Break change** make number input not trigger completion.
+- **Break change** make none keywords character doesn't filter completion.
+- Add functions for check snippet state.
+- Add setting `diagnostic.checkCurrentLine`.
+- Fix `signature.target` not work.
+- Fix flick of signature window.
+- Fix EPIPE error of node-client.
+- Fix wrong root of FileWatchSysmtem.
+
 # 2019-03-19
 
 - **Break change** signature settings now starts `signature`.
