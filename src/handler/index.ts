@@ -389,9 +389,6 @@ export default class Handler {
   public async runCommand(id?: string, ...args: any[]): Promise<void> {
     if (id) {
       await events.fire('Command', [id])
-      if (!commandManager.has(id)) {
-        return workspace.showMessage(`Command '${id}' not found`, 'error')
-      }
       commandManager.executeCommand(id, ...args)
     } else {
       this.nvim.command(`CocList commands`, true)

@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
 import workspace from '../../workspace'
+import events from '../../events'
 import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
@@ -17,6 +18,7 @@ export default class CommandsList extends BasicList {
     this.mru = workspace.createMru('commands')
     this.addAction('run', async item => {
       let { cmd } = item.data
+      await events.fire('Command', [cmd])
       commandManager.executeCommand(cmd)
       await this.mru.add(cmd)
     })
