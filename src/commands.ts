@@ -46,6 +46,12 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
+      id: 'workbench.action.reloadWindow',
+      execute: () => {
+        nvim.command('CocRestart', true)
+      }
+    }, true)
+    this.register({
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit) => {
         let doc = workspace.getDocument(workspace.bufnr)
