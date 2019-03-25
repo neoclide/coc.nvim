@@ -8,7 +8,7 @@ import Uri from 'vscode-uri'
 import events from './events'
 import DB from './model/db'
 import util from 'util'
-import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
+import { Extension, ExtensionContext, ExtensionInfo, ExtensionState, Memento } from './types'
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
 import { createExtension } from './util/factory'
@@ -43,6 +43,7 @@ export class Extensions {
   private list: ExtensionItem[] = []
   private interval: string
   private db: DB
+  private workspaceDB: DB
   private _onReady = new Emitter<void>()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
@@ -59,6 +60,7 @@ export class Extensions {
 
   public async init(): Promise<void> {
     this.db = workspace.createDatabase('db')
+    this.workspaceDB = workspace.createDatabase('workspace')
     let stats = this.globalExtensionStats()
     if (process.env.COC_NO_PLUGINS) return
     this.installExtensions = debounce(this.installExtensions, 200)
@@ -546,6 +548,8 @@ export class Extensions {
     let context: ExtensionContext = {
       subscriptions: [],
       extensionPath: root,
+      globalState: this.createGlobalMemento(id),
+      workspaceState: this.createWorkspaceMemento(id),
       asAbsolutePath: relativePath => {
         return path.join(root, relativePath)
       },
@@ -696,6 +700,31 @@ export class Extensions {
 
   private isGlobalExtension(id: string): boolean {
     return this.globalExtensions.indexOf(id) !== -1
+  }
+
+  private createGlobalMemento(id: string): Memento {
+    let { db } = this
+    return {
+      get: <T>(key: string): T | undefined => {
+        return db.fetchSync(`extension.${id}.${key}`)
+      },
+      update: (key: string, value: any): Promise<void> => {
+        return db.push(`extension.${id}.${key}`, value)
+      }
+    }
+  }
+
+  private createWorkspaceMemento(id: string): Memento {
+    let folder = workspace.rootPath
+    let { workspaceDB } = this
+    return {
+      get: <T>(key: string): T | undefined => {
+        return workspaceDB.fetchSync(`${folder}.${id}.${key}`)
+      },
+      update: (key: string, value: any): Promise<void> => {
+        return workspaceDB.push(`${folder}.${id}.${key}`, value)
+      }
+    }
   }
 
   public get globalExtensions(): string[] {

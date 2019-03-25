@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import * as fs from '../util/fs'
+import fs from 'fs'
+import * as fsAsync from '../util/fs'
 
 export default class DB {
   constructor(
@@ -20,6 +21,23 @@ export default class DB {
       obj = obj[part]
     }
     return obj
+  }
+
+  public fetchSync(key: string): any {
+    try {
+      let content = fs.readFileSync(this.filepath, 'utf8')
+      let obj = JSON.parse(content)
+      if (obj == null) return undefined
+      let parts = key.split('.')
+      for (let part of parts) {
+        if (typeof obj[part] == 'undefined') {
+          return undefined
+        }
+        obj = obj[part]
+      }
+    } catch (e) {
+      return undefined
+    }
   }
 
   public async exists(key: string): Promise<boolean> {
@@ -47,7 +65,7 @@ export default class DB {
       }
       if (i == len - 1) {
         delete obj[parts[i]]
-        await fs.writeFile(this.filepath, JSON.stringify(origin, null, 2))
+        await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2))
         break
       }
       obj = obj[parts[i]]
@@ -68,7 +86,7 @@ export default class DB {
       let key = parts[i]
       if (i == len - 1) {
         obj[key] = data
-        await fs.writeFile(this.filepath, JSON.stringify(origin, null, 2))
+        await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2))
         break
       }
       if (typeof obj[key] == 'undefined') {
@@ -81,9 +99,9 @@ export default class DB {
   }
 
   private async load(): Promise<any> {
-    let stat = await fs.statAsync(this.filepath)
+    let stat = await fsAsync.statAsync(this.filepath)
     if (!stat || !stat.isFile()) return null
-    let content = await fs.readFile(this.filepath, 'utf8')
+    let content = await fsAsync.readFile(this.filepath, 'utf8')
     if (!content.trim()) return {}
     try {
       return JSON.parse(content)
@@ -93,11 +111,11 @@ export default class DB {
   }
 
   public async clear(): Promise<void> {
-    let stat = await fs.statAsync(this.filepath)
+    let stat = await fsAsync.statAsync(this.filepath)
     if (!stat || !stat.isFile()) return
   }
 
   public async destroy(): Promise<void> {
-    await fs.unlinkAsync(this.filepath)
+    await fsAsync.unlinkAsync(this.filepath)
   }
 }
