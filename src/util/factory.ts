@@ -34,11 +34,9 @@ const REMOVED_GLOBALS = [
   'setuid',
   'setgid',
   'setgroups',
-  '_kill',
-  'EventEmitter',
-  '_maxListeners',
   '_fatalException',
-  'exit', 'kill',
+  'exit',
+  'kill',
 ]
 
 function removedGlobalStub(name: string): Function {
@@ -84,6 +82,7 @@ export interface ISandbox {
   module: NodeModule
   require: (p: string) => any
   console: { [key in keyof Console]?: Function }
+  Reflect: any
 }
 
 function createSandbox(filename: string, logger: Logger): ISandbox {
@@ -109,6 +108,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
   }) as ISandbox
 
   defaults(sandbox, global)
+  sandbox.Reflect = Reflect
 
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = Module.prototype._compile
@@ -120,7 +120,10 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
-  sandbox.process = omit<NodeJS.Process>(process, REMOVED_GLOBALS)
+  sandbox.process = new (process as any).constructor()
+  for (let key of Object.keys(process)) {
+    sandbox.process[key] = process[key]
+  }
 
   REMOVED_GLOBALS.forEach(name => {
     sandbox.process[name] = removedGlobalStub(name)
