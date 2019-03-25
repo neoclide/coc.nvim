@@ -1,24 +1,24 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CodeAction, Definition, Disposable, DocumentHighlight, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextDocument, DocumentHighlightKind, CodeActionContext, CodeActionKind, LocationLink, CancellationTokenSource } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
-import CodeLensManager from './codelens'
-import Colors from './colors'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
-import snippetManager from '../snippets/manager'
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
-import { TextDocumentContentProvider } from '../provider'
-import services from '../services'
-import { disposeAll, wait } from '../util'
-import { isWord, indexOf, byteSlice } from '../util/string'
-import workspace from '../workspace'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
+import { TextDocumentContentProvider } from '../provider'
+import services from '../services'
+import snippetManager from '../snippets/manager'
+import { Documentation } from '../types'
+import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { positionInRange } from '../util/position'
-import { Documentation } from '../types'
+import { byteSlice, indexOf, isWord } from '../util/string'
+import workspace from '../workspace'
+import CodeLensManager from './codelens'
+import Colors from './colors'
 const logger = require('../util/logger')('Handler')
 
 interface SymbolInfo {
@@ -369,7 +369,7 @@ export default class Handler {
     if (!document) return -1
     let range: Range
     if (mode) {
-      range = await this.getSelectedRange(mode, document.textDocument)
+      range = await workspace.getSelectedRange(mode, document.textDocument)
       if (!range) return -1
     } else {
       let lnum = await this.nvim.getVvar('lnum') as number
@@ -400,7 +400,7 @@ export default class Handler {
     if (!document) return
     let range: Range
     if (mode) {
-      range = await this.getSelectedRange(mode, document.textDocument)
+      range = await workspace.getSelectedRange(mode, document.textDocument)
     } else {
       let lnum = await this.nvim.call('line', ['.'])
       range = {
@@ -850,29 +850,6 @@ export default class Handler {
     } else {
       let { uri, range } = definition as Location
       await workspace.jumpTo(uri, range.start, openCommand)
-    }
-  }
-
-  private async getSelectedRange(mode: string, document: TextDocument): Promise<Range> {
-    let { nvim } = this
-    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
-      workspace.showMessage(`Mode '${mode}' is not supported`, 'error')
-      return
-    }
-    let isVisual = ['v', 'V'].indexOf(mode) != -1
-    let c = isVisual ? '<' : '['
-    await nvim.command('normal! `' + c)
-    let start = await workspace.getOffset()
-    c = isVisual ? '>' : ']'
-    await nvim.command('normal! `' + c)
-    let end = await workspace.getOffset() + 1
-    if (start == null || end == null || start == end) {
-      workspace.showMessage(`Failed to get selected range`, 'error')
-      return
-    }
-    return {
-      start: document.positionAt(start),
-      end: document.positionAt(end)
     }
   }
 

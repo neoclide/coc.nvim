@@ -6,7 +6,7 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, Range } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import TerminalModel from './model/terminal'
@@ -475,6 +475,29 @@ export class Workspace implements IWorkspace {
    */
   public createMru(name: string): Mru {
     return new Mru(name)
+  }
+
+  public async getSelectedRange(mode: string, document: TextDocument): Promise<Range | null> {
+    let { nvim } = this
+    if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
+      this.showMessage(`Mode '${mode}' is not supported`, 'error')
+      return null
+    }
+    let isVisual = ['v', 'V'].indexOf(mode) != -1
+    let c = isVisual ? '<' : '['
+    await nvim.command('normal! `' + c)
+    let start = await this.getOffset()
+    c = isVisual ? '>' : ']'
+    await nvim.command('normal! `' + c)
+    let end = await this.getOffset() + 1
+    if (start == null || end == null || start == end) {
+      this.showMessage(`Failed to get selected range`, 'error')
+      return
+    }
+    return {
+      start: document.positionAt(start),
+      end: document.positionAt(end)
+    }
   }
 
   /**
