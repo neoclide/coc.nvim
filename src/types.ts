@@ -85,6 +85,42 @@ export interface StatusBarItem {
   dispose(): void
 }
 
+export interface TerminalOptions {
+  /**
+   * A human-readable string which will be used to represent the terminal in the UI.
+   */
+  name?: string
+
+  /**
+   * A path to a custom shell executable to be used in the terminal.
+   */
+  shellPath?: string
+
+  /**
+   * Args for the custom shell executable, this does not work on Windows (see #8429)
+   */
+  shellArgs?: string[]
+
+  /**
+   * A path or Uri for the current working directory to be used for the terminal.
+   */
+  cwd?: string
+
+  /**
+   * Object with environment variables that will be added to the VS Code process.
+   */
+  env?: { [key: string]: string | null }
+
+  /**
+   * Whether the terminal process environment should be exactly as provided in
+   * `TerminalOptions.env`. When this is false (default), the environment will be based on the
+   * window's environment and also apply configured platform settings like
+   * `terminal.integrated.windows.env` on top. When this is true, the complete environment
+   * must be provided as nothing will be inherited from the process or any configuration.
+   */
+  strictEnv?: boolean
+}
+
 /**
  * An individual terminal instance within the integrated terminal.
  */

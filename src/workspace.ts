@@ -22,7 +22,7 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Terminal } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Terminal, TerminalOptions } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait } from './util/index'
 import { score } from './util/match'
@@ -52,6 +52,7 @@ export class Workspace implements IWorkspace {
   private _attached = false
   private buffers: Map<number, Document> = new Map()
   private autocmds: Map<number, Autocmd> = new Map()
+  private terminals: Map<number, Terminal> = new Map()
   private creating: Set<number> = new Set()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
@@ -69,7 +70,11 @@ export class Workspace implements IWorkspace {
   private _onDidChangeWorkspaceFolder = new Emitter<WorkspaceFolder>()
   private _onDidChangeConfiguration = new Emitter<ConfigurationChangeEvent>()
   private _onDidWorkspaceInitialized = new Emitter<void>()
+  private _onDidOpenTerminal = new Emitter<Terminal>()
+  private _onDidCloseTerminal = new Emitter<Terminal>()
 
+  public readonly onDidCloseTerminal: Event<Terminal> = this._onDidCloseTerminal.event
+  public readonly onDidOpenTerminal: Event<Terminal> = this._onDidOpenTerminal.event
   public readonly onDidChangeWorkspaceFolder: Event<WorkspaceFolder> = this._onDidChangeWorkspaceFolder.event
   public readonly onDidOpenTextDocument: Event<TextDocument> = this._onDidOpenDocument.event
   public readonly onDidCloseTextDocument: Event<TextDocument> = this._onDidCloseDocument.event
@@ -844,10 +849,20 @@ export class Workspace implements IWorkspace {
     return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
   }
 
-  public async createTerminal(cmd: string, args?: string[], cwd?: string): Promise<Terminal> {
-    cwd = cwd || this.cwd
-    let terminal = new TerminalModel(cmd, args || [], this.nvim)
-    await terminal.start(cwd)
+  public async createTerminal(opts: TerminalOptions): Promise<Terminal> {
+    let cmd = opts.shellPath
+    let args = opts.shellArgs
+    if (!cmd) {
+      cmd = await this.nvim.getOption('shell') as string
+      if (!args && !process.platform.startsWith('win')) {
+        let flag = await this.nvim.getOption('shellcmdflag') as string
+        args = flag.split(/\s+/)
+      }
+    }
+    let terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
+    await terminal.start(opts.cwd || this.cwd, opts.env)
+    this.terminals.set(terminal.bufnr, terminal)
+    this._onDidOpenTerminal.fire(terminal)
     return terminal
   }
 
@@ -1198,6 +1213,11 @@ augroup end`
   }
 
   private async onBufUnload(bufnr: number): Promise<void> {
+    if (this.terminals.has(bufnr)) {
+      let terminal = this.terminals.get(bufnr)
+      this._onDidCloseTerminal.fire(terminal)
+      this.terminals.delete(bufnr)
+    }
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this._onDidCloseDocument.fire(doc.textDocument)
