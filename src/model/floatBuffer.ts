@@ -57,10 +57,11 @@ export default class FloatBuffer {
       }
       // join the lines when necessary
       arr = arr.reduce((list, curr) => {
+        if (!curr) return list
         if (isMarkdown && curr.startsWith('```')) {
           inBlock = !inBlock
         }
-        if (list.length && curr) {
+        if (list.length) {
           let pre = list[list.length - 1]
           if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
             list[list.length - 1] = pre + ' ' + curr
