@@ -93,6 +93,12 @@ Below are the reasons that led coc.nvim to build it's own engine:
 
   **Note**: The first time building from source code could be slow.
 
+  **Note**: Nix-os Users must follow these steps:
+  1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them on `/etc/nixos/configuration.nix`
+  2. `sudo nixos-rebuild switch`
+  3. `Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install'}`
+  4. Don't forget to put: `set shell=/bin/sh` in your init.vim.
+
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
 - [Using snippets](https://github.com/neoclide/coc.nvim/wiki/Using-snippets)
