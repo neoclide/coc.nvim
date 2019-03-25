@@ -9,6 +9,7 @@ import util from 'util'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
+import TerminalModel from './model/terminal'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
@@ -21,7 +22,7 @@ import Resolver from './model/resolver'
 import StatusLine from './model/status'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Terminal } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait } from './util/index'
 import { score } from './util/match'
@@ -102,6 +103,8 @@ export class Workspace implements IWorkspace {
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
     events.on('BufCreate', this.onBufCreate, this, this.disposables)
     events.on('BufUnload', this.onBufUnload, this, this.disposables)
+    events.on('TermOpen', this.onBufCreate, this, this.disposables)
+    events.on('TermClose', this.onBufUnload, this, this.disposables)
     events.on('BufWritePost', this.onBufWritePost, this, this.disposables)
     events.on('BufWritePre', this.onBufWritePre, this, this.disposables)
     events.on('FileType', this.onFileTypeChange, this, this.disposables)
@@ -839,6 +842,13 @@ export class Workspace implements IWorkspace {
    */
   public async runTerminalCommand(cmd: string, cwd = this.cwd, keepfocus = false): Promise<TerminalResult> {
     return await this.nvim.callAsync('coc#util#run_terminal', { cmd, cwd, keepfocus: keepfocus ? 1 : 0 }) as TerminalResult
+  }
+
+  public async createTerminal(cmd: string, args?: string[], cwd?: string): Promise<Terminal> {
+    cwd = cwd || this.cwd
+    let terminal = new TerminalModel(cmd, args || [], this.nvim)
+    await terminal.start(cwd)
+    return terminal
   }
 
   /**

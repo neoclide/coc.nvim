@@ -6,8 +6,8 @@ const logger = require('./util/logger')('events')
 
 export type Result = void | Promise<void>
 
-export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter'
-  | 'TextChanged' | 'BufWritePost' | 'CursorHold' | 'InsertLeave'
+export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter' | 'TextChanged'
+  | 'BufWritePost' | 'CursorHold' | 'InsertLeave' | 'TermOpen' | 'TermClose'
   | 'BufCreate' | 'BufUnload' | 'BufWritePre' | 'CursorHoldI' | 'TextChangedP' | 'Enter'
 
 export type EmptyEvents = 'InsertEnter' | 'FocusGained'

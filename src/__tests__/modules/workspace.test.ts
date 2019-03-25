@@ -366,6 +366,13 @@ describe('workspace methods', () => {
     expect(workspace.match([{ scheme: 'term' }], doc.textDocument)).toBe(0)
     expect(workspace.match([{ language: 'xml' }, { scheme: 'file' }], doc.textDocument)).toBe(10)
   })
+
+  it('should create terminal', async () => {
+    let terminal = await workspace.createTerminal('sh')
+    let pid = await terminal.processId
+    expect(typeof pid == 'number').toBe(true)
+    terminal.dispose()
+  })
 })
 
 describe('workspace utility', () => {
