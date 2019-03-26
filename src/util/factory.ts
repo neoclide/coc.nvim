@@ -83,6 +83,8 @@ export interface ISandbox {
   require: (p: string) => any
   console: { [key in keyof Console]?: Function }
   Reflect: any
+  String: any
+  Promise: any
 }
 
 function createSandbox(filename: string, logger: Logger): ISandbox {
@@ -108,6 +110,8 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
   }) as ISandbox
 
   defaults(sandbox, global)
+  sandbox.String = String
+  sandbox.Promise = Promise
   sandbox.Reflect = Reflect
 
   sandbox.require = function sandboxRequire(p): any {

@@ -22,13 +22,13 @@ if (isVim) {
   attach({ reader: process.stdin, writer: process.stdout })
 }
 
-process.on('uncaughtException', function(err) {
+process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack
   console.error(msg)
   logger.error('uncaughtException', err.stack)
 })
 
-process.on('unhandledRejection', function(reason, p) {
+process.on('unhandledRejection', function (reason, p) {
   if (reason instanceof Error) {
     console.error('UnhandledRejection: ' + reason.message + '\n' + reason.stack)
   } else {
