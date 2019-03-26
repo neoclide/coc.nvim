@@ -109,7 +109,7 @@ export default class File extends Source {
     if (!root) return null
     let items = await this.getItemsFromRoot(pathstr, root)
     let trimExt = this.trimSameExts.indexOf(ext) != -1
-    let startcol = this.fixStartcol(opt, ['-', '@'])
+    let startcol = this.fixStartcol(opt, ['-', '@', '.'])
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
     return {
