@@ -56,22 +56,24 @@ export default class FloatBuffer {
       if (['Error', 'Info', 'Warning', 'Hint'].indexOf(doc.filetype) !== -1) {
         fill = true
       }
-      // join the lines when necessary
-      arr = arr.reduce((list, curr) => {
-        if (!curr) return list
-        if (isMarkdown && curr.startsWith('```')) {
-          inBlock = !inBlock
-        }
-        if (list.length) {
-          let pre = list[list.length - 1]
-          if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
-            list[list.length - 1] = pre + ' ' + curr
-            return list
+      if (this.joinLines) {
+        // join the lines when necessary
+        arr = arr.reduce((list, curr) => {
+          if (!curr) return list
+          if (isMarkdown && /^\s*```/.test(curr)) {
+            inBlock = !inBlock
           }
-        }
-        list.push(curr)
-        return list
-      }, [])
+          if (list.length) {
+            let pre = list[list.length - 1]
+            if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
+              list[list.length - 1] = pre + ' ' + curr
+              return list
+            }
+          }
+          list.push(curr)
+          return list
+        }, [])
+      }
       let { active } = doc
       for (let str of arr) {
         let len = byteLength(str)
@@ -299,6 +301,7 @@ export default class FloatBuffer {
 
 function isSingleLine(line: string): boolean {
   if (line.trim().length == 0) return true
+  if (/^\s*```/.test(line)) return true
   if (/^\s*$/.test(line)) return true
   if (/^\s*(-|\*)\s/.test(line)) return true
   if (line.startsWith('#')) return true
