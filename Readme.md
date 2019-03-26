@@ -1,5 +1,5 @@
 <p align="center">
-  <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55005674-64601880-5017-11e9-956f-c584c9efd385.png" height="160" />
+  <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55009068-f4ed2780-501c-11e9-9a3b-cf3aa6ab9272.png" height="160" />
   <p align="center">Make your vim/neovim smart as VSCode.</p>
   <p align="center">
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
