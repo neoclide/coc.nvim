@@ -1,5 +1,5 @@
 import { attach, Neovim } from '@chemzqm/neovim'
-import path from 'path'
+import path, { dirname } from 'path'
 import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
@@ -135,4 +135,46 @@ export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'i') return '<C-o>'
   if (mode == 's' || mode == 'x') return '<Esc>'
   return ''
+}
+
+export async function mkdirp(path: string, mode?: number): Promise<boolean> {
+  const mkdir = async () => {
+    try {
+      await nfcall(fs.mkdir, path, mode)
+    } catch (err) {
+      if (err.code === 'EEXIST') {
+        const stat = await nfcall<fs.Stats>(fs.stat, path)
+
+        if (stat.isDirectory) {
+          return
+        }
+
+        throw new Error(`'${path}' exists and is not a directory.`)
+      }
+
+      throw err
+    }
+  }
+
+  // is root?
+  if (path === dirname(path)) {
+    return true
+  }
+
+  try {
+    await mkdir()
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw err
+    }
+
+    await mkdirp(dirname(path), mode)
+    await mkdir()
+  }
+
+  return true
+}
+
+export function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
+  return new Promise<R>((c, e) => fn(...args, (err: any, r: any) => err ? e(err) : c(r)))
 }

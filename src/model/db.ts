@@ -1,12 +1,11 @@
-import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import fs from 'fs'
 import * as fsAsync from '../util/fs'
+import { mkdirp } from '../util'
 
 export default class DB {
   constructor(
-    public readonly filepath: string,
-    private nvim: Neovim
+    public readonly filepath: string
   ) {
   }
 
@@ -80,7 +79,7 @@ export default class DB {
     let len = parts.length
     if (obj == null) {
       let dir = path.dirname(this.filepath)
-      await this.nvim.call('mkdir', [dir, 'p', 0o700])
+      await mkdirp(dir)
       obj = origin
     }
     for (let i = 0; i < len; i++) {

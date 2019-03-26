@@ -24,7 +24,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Terminal, TerminalOptions } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait, mkdirp } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -718,7 +718,7 @@ export class Workspace implements IWorkspace {
       if (filepath.endsWith('/')) {
         try {
           if (filepath.startsWith('~')) filepath = filepath.replace(/^~/, os.homedir())
-          await this.nvim.call('mkdir', [filepath, 'p', 0o700])
+          await mkdirp(filepath)
         } catch (e) {
           this.showMessage(`Can't create ${filepath}: ${e.message}`, 'error')
         }
@@ -1046,7 +1046,7 @@ export class Workspace implements IWorkspace {
   public createDatabase(name: string): DB {
     let root = path.dirname(this.env.extensionRoot)
     let filepath = path.join(root, name + '.json')
-    return new DB(filepath, this.nvim)
+    return new DB(filepath)
   }
 
   private async _setupDynamicAutocmd(): Promise<void> {

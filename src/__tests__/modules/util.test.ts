@@ -1,14 +1,16 @@
 /* tslint:disable:no-console */
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import rimraf from 'rimraf'
 import Uri from 'vscode-uri'
+import { mkdirp } from '../../util'
 import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { getHiglights } from '../../util/highlight'
 import { score } from '../../util/match'
 import { mixin } from '../../util/object'
 import { indexOf } from '../../util/string'
-import { getHiglights } from '../../util/highlight'
 import helper from '../helper'
-import { Neovim } from '@chemzqm/neovim'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -25,6 +27,15 @@ describe('score test', () => {
     let uri = Uri.file('/foo').toString()
     let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
+  })
+})
+
+describe('mkdirp', () => {
+  test('should mkdirp', async () => {
+    let dir = path.join(__dirname, 'a/b/c')
+    let res = await mkdirp(dir)
+    expect(res).toBe(true)
+    rimraf.sync(path.join(__dirname, 'a'))
   })
 })
 

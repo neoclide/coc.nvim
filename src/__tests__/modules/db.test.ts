@@ -1,17 +1,13 @@
 import DB from '../../model/db'
 import path from 'path'
-import helper from '../helper'
 
 let db: DB
 beforeAll(async () => {
-  await helper.setup()
-  let nvim = helper.nvim
-  db = new DB(path.join(__dirname, 'db.json'), nvim)
+  db = new DB(path.join(__dirname, 'db.json'))
 })
 
 afterAll(async () => {
   await db.destroy()
-  await helper.shutdown()
 })
 
 afterEach(async () => {
