@@ -29,6 +29,7 @@ import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
+import { intersect } from './util/array'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -331,6 +332,13 @@ export class Workspace implements IWorkspace {
    * Findup for filename or filenames from current filepath or root.
    */
   public async findUp(filename: string | string[]): Promise<string | null> {
+    let files = await util.promisify(fs.readdir)(this.cwd)
+    if (typeof filename == 'string' && files.indexOf(filename) !== -1) {
+      return this.cwd
+    }
+    if (Array.isArray(filename) && intersect(files, filename)) {
+      return this.cwd
+    }
     let bufnr = await this.nvim.call('bufnr', '%')
     let doc = this.getDocument(bufnr)
     let root: string
