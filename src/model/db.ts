@@ -13,6 +13,7 @@ export default class DB {
   public async fetch(key: string): Promise<any> {
     let obj = await this.load()
     if (obj == null) return undefined
+    if (!key) return obj
     let parts = key.split('.')
     for (let part of parts) {
       if (typeof obj[part] == 'undefined') {
@@ -73,8 +74,8 @@ export default class DB {
   }
 
   public async push(key: string, data: number | null | boolean | string | { [index: string]: any }): Promise<void> {
-    let obj = await this.load()
-    let origin = obj || {}
+    let origin = (await this.load()) || {}
+    let obj = origin
     let parts = key.split('.')
     let len = parts.length
     if (obj == null) {
@@ -113,6 +114,7 @@ export default class DB {
   public async clear(): Promise<void> {
     let stat = await fsAsync.statAsync(this.filepath)
     if (!stat || !stat.isFile()) return
+    await fsAsync.writeFile(this.filepath, '')
   }
 
   public async destroy(): Promise<void> {
