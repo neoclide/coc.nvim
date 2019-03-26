@@ -170,12 +170,14 @@ export default class FloatFactory implements Disposable {
     }
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
-    let mode = await this.nvim.call('mode')
+    let mode = await this.nvim.call('mode') as string
     allowSelection = mode == 's' && allowSelection
     if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, alignTop } = this
+      // change to normal
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
+      if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u")')
       let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {
         this.closeWindow(window)
