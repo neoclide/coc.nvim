@@ -1,15 +1,25 @@
 # [C](#)onquer [o](#)f [C](#)ompletion
 
-| Bountysource                               | CI (Linux, macOS)                       | Coverage                               | Gitter                      | 中文 Gitter                    |
-| ------------------------------------------ | --------------------------------------- | -------------------------------------- | --------------------------- | ------------------------------ |
-| [![Bountysource Badge][]][bounties status] | [![Build Status Badge][]][build status] | [![Coverage Badge][]][coverage report] | [![Gitter Badge][]][gitter] | [![Gitter Badge][]][gitter cn] |
+<p align="center">
+  <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55005674-64601880-5017-11e9-956f-c584c9efd385.png" height="160" />
+  <p align="center">Make your vim/neovim smart as VSCode.</p>
+  <p align="center">
+    <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
+    <a href="https://salt.bountysource.com/teams/coc-nvim"><img alt="Bountysource" src="https://img.shields.io/bountysource/team/coc-nvim/activity.svg?style=flat-square"></a>
+    <a href="https://travis-ci.org/neoclide/coc.nvim"><img alt="Travis" src="https://img.shields.io/travis/neoclide/coc.nvim/master.svg?style=flat-square"></a>
+    <a href="https://codecov.io/gh/neoclide/coc.nvim"><img alt="Coverage" src="https://img.shields.io/codecov/c/github/neoclide/coc.nvim.svg?style=flat-square"></a>
+    <a href="/doc/coc.txt"><img alt="Doc" src="https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg?style=flat-square"></a>
+    <a href="https://gitter.im/neoclide/coc.nvim"><img alt="Gitter" src="https://img.shields.io/gitter/room/neoclide/coc.nvim.svg?style=flat-square"></a>
+  </p>
+</p>
+
+---
 
 Coc is an intellisense engine for vim8 & neovim.
 
 It works on `vim >= 8.1` and `neovim >= 0.3.1`.
 
-It's a completion framework and language server client which supports the
-[extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+It's a completion framework and language server client which supports [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 <img src="https://user-images.githubusercontent.com/251450/54332743-a32ac180-465a-11e9-9d8e-a00786bcb833.gif" width="400" height="201">
 
@@ -94,6 +104,7 @@ Below are the reasons that led coc.nvim to build it's own engine:
   **Note**: The first time building from source code could be slow.
 
   **Note**: Nix-os Users must follow these steps:
+
   1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them on `/etc/nixos/configuration.nix`
   2. `sudo nixos-rebuild switch`
   3. `Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install'}`
@@ -324,11 +335,17 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 <a href="https://github.com/iamcco" target="_blank" title="iamcco">
   <img src="https://github.com/iamcco.png?size=64" width="64" height="64" alt="iamcco">
 </a>
+<a href="https://github.com/phcerdan" target="_blank" title="phcerdan">
+  <img src="https://github.com/phcerdan.png?size=64" width="64" height="64" alt="phcerdan">
+</a>
 <a href="https://github.com/sarene" target="_blank" title="sarene">
   <img src="https://github.com/sarene.png?size=64" width="64" height="64" alt="sarene">
 </a>
 <a href="https://github.com/robtrac" target="_blank" title="robtrac">
   <img src="https://cloudinary-a.akamaihd.net/bountysource/image/upload/d_noaoqqwxegvmulwus0un.png,c_pad,w_400,h_400,b_white/Bountysource_Animals89_puer8v.png" width="64" height="64" alt="robtrac">
+</a>
+<a href="https://github.com/raidou" target="_blank" title="raidou">
+  <img src="https://github.com/raidou.png?size=64" width="64" height="64" alt="raidou">
 </a>
 <a href="https://github.com/tomspeak" target="_blank" title="tomspeak">
   <img src="https://github.com/tomspeak.png?size=64" width="64" height="64" alt="tomspeak">
@@ -339,12 +356,16 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 <a href="https://github.com/weirongxu" target="_blank" title="weirongxu">
   <img src="https://github.com/weirongxu.png?size=64" width="64" height="64" alt="weirongxu">
 </a>
+<a href="https://github.com/tbo" target="_blank" title="tbo">
+  <img src="https://github.com/tbo.png?size=64" width="64" height="64" alt="tbo">
+</a>
+<a href="https://github.com/darthShadow" target="_blank" title="darthShadow">
+  <img src="https://github.com/darthShadow.png?size=64" width="64" height="64" alt="darthShadow">
+</a>
 
-## 扫码捐助
-
+<!--
 <img src="https://user-images.githubusercontent.com/251450/54328311-5e962a80-4648-11e9-9491-0712c7821326.png" width="540" height="275">
-
-请备注是否需要加入支持者名单，默认添加。
+-->
 
 ## Feedback
 
@@ -355,21 +376,3 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 - 如果你是中文用户，请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 提问
 
 - If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
-
-## LICENSE
-
-MIT
-
-[bountysource badge]: https://img.shields.io/bountysource/team/coc-nvim/activity.svg?style=popout
-[bounties status]: https://salt.bountysource.com/teams/coc-nvim
-[build status badge]: https://api.travis-ci.org/neoclide/coc.nvim.svg?branch=master
-[build status]: https://travis-ci.org/neoclide/coc.nvim
-[coverage badge]: https://codecov.io/gh/neoclide/coc.nvim/branch/master/graph/badge.svg
-[coverage report]: https://codecov.io/gh/neoclide/coc.nvim
-[gitter badge]: https://badges.gitter.im/neoclide/coc.nvim.svg
-[gitter]: https://gitter.im/neoclide/coc.nvim
-[gitter cn]: https://gitter.im/neoclide/coc-cn
-[doc badge]: https://img.shields.io/badge/doc-%3Ah%20coc.txt-red.svg
-[doc badge cn]: https://img.shields.io/badge/doc-%3Ah%20coc.cnx-red.svg
-[doc link]: doc/coc.txt
-[doc link cn]: doc/coc.cnx
