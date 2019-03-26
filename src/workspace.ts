@@ -334,10 +334,10 @@ export class Workspace implements IWorkspace {
   public async findUp(filename: string | string[]): Promise<string | null> {
     let files = await util.promisify(fs.readdir)(this.cwd)
     if (typeof filename == 'string' && files.indexOf(filename) !== -1) {
-      return this.cwd
+      return path.join(this.cwd, filename)
     }
     if (Array.isArray(filename) && intersect(files, filename)) {
-      return this.cwd
+      return path.join(this.cwd, files.find(s => filename.indexOf(s) !== -1))
     }
     let bufnr = await this.nvim.call('bufnr', '%')
     let doc = this.getDocument(bufnr)
