@@ -6,11 +6,12 @@ let db: DB
 beforeAll(async () => {
   await helper.setup()
   let nvim = helper.nvim
-  db = new DB(path.join(__dirname, 'db/test.json'), nvim)
+  db = new DB(path.join(__dirname, 'db.json'), nvim)
 })
 
 afterAll(async () => {
   await db.destroy()
+  await helper.shutdown()
 })
 
 afterEach(async () => {

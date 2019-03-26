@@ -61,7 +61,6 @@ export class Extensions {
 
   public async init(): Promise<void> {
     this.db = workspace.createDatabase('db')
-    this.memos = new Memos(path.resolve(this.root, '../memos.json'))
     let stats = this.globalExtensionStats()
     if (process.env.COC_NO_PLUGINS) return
     this.installExtensions = debounce(this.installExtensions, 200)
@@ -69,6 +68,7 @@ export class Extensions {
       this._onReady.fire()
       return
     }
+    this.memos = new Memos(path.resolve(this.root, '../memos.json'))
     stats = stats.filter(o => o.state != 'disabled')
     await Promise.all(stats.map(stat => {
       let folder = stat.root
