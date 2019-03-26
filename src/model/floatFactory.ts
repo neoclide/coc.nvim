@@ -38,9 +38,9 @@ export default class FloatFactory implements Disposable {
   public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
     private env: Env,
-    private srcId: number,
     private preferTop = false,
-    private maxHeight = 999) {
+    private maxHeight = 999,
+    private joinLines = true) {
     if (!env.floating) return
     events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
@@ -164,8 +164,9 @@ export default class FloatFactory implements Disposable {
     }
     if (!floatBuffer) {
       let buf = await this.createBuffer()
+      let srcId = await workspace.createNameSpace('coc-float')
       this.buffer = buf
-      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, this.srcId)
+      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, srcId, this.joinLines)
     }
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return

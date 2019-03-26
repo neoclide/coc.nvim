@@ -28,6 +28,7 @@ export interface DiagnosticConfig {
   hintSign: string
   level: number
   messageTarget: string
+  joinMessageLines: boolean
   maxWindowHeight: number
   refreshAfterSave: boolean
   refreshOnInsertMode: boolean
@@ -52,9 +53,8 @@ export class DiagnosticManager implements Disposable {
     await this.setConfiguration()
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
-    let srcId = await workspace.createNameSpace('coc-diagnostic-float')
-    let { maxWindowHeight } = this.config
-    this.floatFactory = new FloatFactory(nvim, workspace.env, srcId, false, maxWindowHeight)
+    let { maxWindowHeight, joinMessageLines } = this.config
+    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, joinMessageLines)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -447,6 +447,7 @@ export class DiagnosticManager implements Disposable {
       enableSign: getConfig<boolean>('enableSign', true),
       maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
       enableMessage: getConfig<string>('enableMessage', 'always'),
+      joinMessageLines: getConfig<boolean>('joinMessageLines', false),
       messageTarget: getConfig<string>('messageTarget', 'float'),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),

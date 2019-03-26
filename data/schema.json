@@ -339,6 +339,11 @@
       "default": "float",
       "enum": ["echo", "float"]
     },
+    "diagnostic.joinMessageLines": {
+      "type": "boolean",
+      "description": "Join lines messages to reduce lines of floating window.",
+      "default": false
+    },
     "diagnostic.refreshOnInsertMode": {
       "type": "boolean",
       "description": "Enable diagnostic refresh on insert mode, default false.",

@@ -58,7 +58,6 @@ export default class Handler {
   private preferences: Preferences
   /*bufnr and srcId list*/
   private highlightsMap: Map<number, number[]> = new Map()
-  private highlightNamespace = 1080
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
@@ -76,14 +75,10 @@ export default class Handler {
         this.getPreferences()
       }
     })
-    workspace.createNameSpace('coc-highlight').then(id => { // tslint:disable-line
-      if (id) this.highlightNamespace = id
-    })
-    workspace.createNameSpace('coc-float').then(id => { // tslint:disable-line
-      this.hoverFactory = new FloatFactory(nvim, workspace.env, id)
-      let { signaturePreferAbove, signatureMaxHeight } = this.preferences
-      this.signatureFactory = new FloatFactory(nvim, workspace.env, id, signaturePreferAbove, signatureMaxHeight)
-    })
+
+    this.hoverFactory = new FloatFactory(nvim, workspace.env)
+    let { signaturePreferAbove, signatureMaxHeight } = this.preferences
+    this.signatureFactory = new FloatFactory(nvim, workspace.env, signaturePreferAbove, signatureMaxHeight)
 
     events.on(['TextChangedI', 'TextChangedP'], async () => {
       if (this.preferences.signatureHideOnChange) {
@@ -537,6 +532,7 @@ export default class Handler {
       this.clearHighlight(document.bufnr)
       return
     }
+    let highlightNamespace = await workspace.createNameSpace('coc-highlight')
     if (this.colors.hasColorAtPostion(document.bufnr, position)) return
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
     let newPosition = await workspace.getCursorPosition()
@@ -561,7 +557,7 @@ export default class Handler {
       let ids = []
       for (let hlGroup of Object.keys(groups)) {
         let ranges = groups[hlGroup]
-        let arr = document.highlightRanges(ranges, hlGroup, this.highlightNamespace)
+        let arr = document.highlightRanges(ranges, hlGroup, highlightNamespace)
         ids.push(...arr)
         this.highlightsMap.set(document.bufnr, ids)
       }

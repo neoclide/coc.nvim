@@ -10,7 +10,7 @@ let floatFactory: FloatFactory
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  floatFactory = new FloatFactory(nvim, workspace.env, 1000, false, 8)
+  floatFactory = new FloatFactory(nvim, workspace.env, false, 8)
 })
 
 afterAll(async () => {

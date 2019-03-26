@@ -17,7 +17,8 @@ export default class FloatBuffer {
   constructor(
     public buffer: Buffer,
     private nvim: Neovim,
-    private srcId: number) {
+    private srcId: number,
+    private joinLines = true) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
   }
@@ -266,20 +267,22 @@ export default class FloatBuffer {
     let arr = content.replace(/\t/g, '  ').split('\n')
     let inBlock = false
     // join the lines when necessary
-    arr = arr.reduce((list, curr) => {
-      if (isMarkdown && curr.startsWith('```')) {
-        inBlock = !inBlock
-      }
-      if (list.length && curr) {
-        let pre = list[list.length - 1]
-        if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
-          list[list.length - 1] = pre + ' ' + curr
-          return list
+    if (this.joinLines) {
+      arr = arr.reduce((list, curr) => {
+        if (isMarkdown && curr.startsWith('```')) {
+          inBlock = !inBlock
         }
-      }
-      list.push(curr)
-      return list
-    }, [])
+        if (list.length && curr) {
+          let pre = list[list.length - 1]
+          if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
+            list[list.length - 1] = pre + ' ' + curr
+            return list
+          }
+        }
+        list.push(curr)
+        return list
+      }, [])
+    }
     for (let str of arr) {
       let len = byteLength(str)
       if (len > maxWidth - 2) {
