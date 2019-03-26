@@ -1,5 +1,3 @@
-# [C](#)onquer [o](#)f [C](#)ompletion
-
 <p align="center">
   <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55005674-64601880-5017-11e9-956f-c584c9efd385.png" height="160" />
   <p align="center">Make your vim/neovim smart as VSCode.</p>
