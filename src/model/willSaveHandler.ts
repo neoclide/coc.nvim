@@ -46,7 +46,7 @@ export default class WillSaveUntilHandler {
             }
           }, e => {
             clearTimeout(timer)
-            workspace.showMessage(`${clientId} error on willSaveUntil ${e.message}`, 'error')
+            logger.error(`${clientId} error on willSaveUntil ${e.message}`, 'error')
             resolve()
           })
         }

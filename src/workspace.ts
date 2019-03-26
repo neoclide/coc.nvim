@@ -1261,7 +1261,6 @@ augroup end`
   private async onBufWritePre(bufnr: number): Promise<void> {
     let doc = this.buffers.get(bufnr)
     if (!doc) return
-    let start = Date.now()
     let event: TextDocumentWillSaveEvent = {
       document: doc.textDocument,
       reason: TextDocumentSaveReason.Manual
@@ -1269,10 +1268,8 @@ augroup end`
     this._onWillSaveDocument.fire(event)
     await doc.checkDocument()
     if (this.willSaveUntilHandler.hasCallback) {
-      await wait(50)
-      let cost = Date.now() - start
+      await wait(100)
       await this.willSaveUntilHandler.handeWillSaveUntil(event)
-      if (cost > 500) logger.info('Buffer save cost:', cost)
     }
   }
 
