@@ -301,10 +301,11 @@ export default class FloatBuffer {
 
 function isSingleLine(line: string): boolean {
   if (line.trim().length == 0) return true
-  if (/^\s*```/.test(line)) return true
-  if (/^\s*$/.test(line)) return true
-  if (/^\s*(-|\*)\s/.test(line)) return true
-  if (line.startsWith('#')) return true
+  let str = line.trim()
+  if (str.startsWith('```') || str.length == 0) return true
+  if (str.startsWith('-')) return true
+  if (str.startsWith('*')) return true
+  if (str.startsWith('#')) return true
   return false
 }
 
