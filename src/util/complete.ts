@@ -2,8 +2,38 @@ import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from '
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
+import workspace from '../workspace'
 const logger = require('./logger')('util-complete')
 const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n']
+const config = workspace.getConfiguration('suggest.completionItemKindLabels')
+const labels = new Map<CompletionItemKind, string>([
+  [CompletionItemKind.Text, config.get('text', 'v')],
+  [CompletionItemKind.Method, config.get('method', 'f')],
+  [CompletionItemKind.Function, config.get('function', 'f')],
+  [CompletionItemKind.Constructor, config.get('constructor', 'f')],
+  [CompletionItemKind.Field, config.get('field', 'm')],
+  [CompletionItemKind.Variable, config.get('variable', 'v')],
+  [CompletionItemKind.Class, config.get('class', 'C')],
+  [CompletionItemKind.Interface, config.get('interface', 'I')],
+  [CompletionItemKind.Module, config.get('module', 'M')],
+  [CompletionItemKind.Property, config.get('property', 'm')],
+  [CompletionItemKind.Unit, config.get('unit', 'U')],
+  [CompletionItemKind.Value, config.get('value', 'v')],
+  [CompletionItemKind.Enum, config.get('enum', 'E')],
+  [CompletionItemKind.Keyword, config.get('keyword', 'k')],
+  [CompletionItemKind.Snippet, config.get('snippet', 'S')],
+  [CompletionItemKind.Color, config.get('color', 'v')],
+  [CompletionItemKind.File, config.get('file', 'F')],
+  [CompletionItemKind.Reference, config.get('reference', 'r')],
+  [CompletionItemKind.Folder, config.get('folder', 'F')],
+  [CompletionItemKind.EnumMember, config.get('enumMember', 'm')],
+  [CompletionItemKind.Constant, config.get('constant', 'v')],
+  [CompletionItemKind.Struct, config.get('struct', 'S')],
+  [CompletionItemKind.Event, config.get('event', 'E')],
+  [CompletionItemKind.Operator, config.get('operator', 'O')],
+  [CompletionItemKind.TypeParameter, config.get('typeParameter', 'T')],
+])
+const defaultLabel = config.get('default', '')
 
 export function getPosition(opt: CompleteOption): Position {
   let { line, linenr, colnr } = opt
@@ -66,60 +96,8 @@ export function getDocumentation(item: CompletionItem): string {
 }
 
 export function completionKindString(kind: CompletionItemKind): string {
-  switch (kind) {
-    case CompletionItemKind.Text:
-      return 'v'
-    case CompletionItemKind.Method:
-      return 'f'
-    case CompletionItemKind.Function:
-      return 'f'
-    case CompletionItemKind.Constructor:
-      return 'f'
-    case CompletionItemKind.Field:
-      return 'm'
-    case CompletionItemKind.Variable:
-      return 'v'
-    case CompletionItemKind.Class:
-      return 'C'
-    case CompletionItemKind.Interface:
-      return 'I'
-    case CompletionItemKind.Module:
-      return 'M'
-    case CompletionItemKind.Property:
-      return 'm'
-    case CompletionItemKind.Unit:
-      return 'U'
-    case CompletionItemKind.Value:
-      return 'v'
-    case CompletionItemKind.Enum:
-      return 'E'
-    case CompletionItemKind.Keyword:
-      return 'k'
-    case CompletionItemKind.Snippet:
-      return 'S'
-    case CompletionItemKind.Color:
-      return 'v'
-    case CompletionItemKind.File:
-      return 'F'
-    case CompletionItemKind.Reference:
-      return 'r'
-    case CompletionItemKind.Folder:
-      return 'F'
-    case CompletionItemKind.EnumMember:
-      return 'm'
-    case CompletionItemKind.Constant:
-      return 'v'
-    case CompletionItemKind.Struct:
-      return 'S'
-    case CompletionItemKind.Event:
-      return 'E'
-    case CompletionItemKind.Operator:
-      return 'O'
-    case CompletionItemKind.TypeParameter:
-      return 'T'
-    default:
-      return ''
-  }
+  const k = labels.get(kind)
+  return k ? k : defaultLabel
 }
 
 export function getSnippetDocumentation(languageId: string, body: string): string {
