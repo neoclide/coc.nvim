@@ -1,6 +1,7 @@
 import { Terminal } from '../types'
 import { Neovim } from '@chemzqm/neovim'
 const isVim = process.env.VIM_NODE_RPC == '1'
+const logger = require('../util/logger')('model-terminal')
 
 export default class TerminalModel implements Terminal {
   private chanId: number
@@ -51,8 +52,8 @@ export default class TerminalModel implements Terminal {
     let { chanId, nvim } = this
     if (!chanId) return
     let lines = text.split(/\r?\n/)
-    if (addNewLine) {
-      lines.push(process.platform.startsWith('win') ? '\r\n' : '\r')
+    if (addNewLine && lines[lines.length - 1].length > 0) {
+      lines.push('')
     }
     nvim.call('chansend', [chanId, lines], true)
   }
@@ -61,13 +62,16 @@ export default class TerminalModel implements Terminal {
     let { bufnr, nvim } = this
     if (!bufnr) return
     let winnr = await nvim.call('bufwinnr', bufnr)
-    if (winnr != -1) return
     nvim.pauseNotification()
-    nvim.command(`below ${bufnr}sb`, true)
-    nvim.command('resize 5', true)
+    if (winnr == -1) {
+      nvim.command(`below ${bufnr}sb`, true)
+      nvim.command('resize 5', true)
+    } else {
+      nvim.command(`${winnr}wincmd w`, true)
+    }
     nvim.command('normal! G', true)
     if (preserveFocus) {
-      nvim.command('wincmd p')
+      nvim.command('wincmd p', true)
     }
     await nvim.resumeNotification()
 
