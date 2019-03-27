@@ -48,7 +48,6 @@ export default class FloatBuffer {
     let fill = false
     let positions = this.positions = []
     for (let doc of docs) {
-      let isMarkdown = doc.filetype == 'markdown'
       let lines: string[] = []
       let content = doc.content.replace(/\r?\n/g, '\n')
       let arr = content.replace(/\t/g, '  ').split('\n')
@@ -60,7 +59,7 @@ export default class FloatBuffer {
         // join the lines when necessary
         arr = arr.reduce((list, curr) => {
           if (!curr) return list
-          if (isMarkdown && /^\s*```/.test(curr)) {
+          if (/^\s*```/.test(curr)) {
             inBlock = !inBlock
           }
           if (list.length) {
@@ -118,10 +117,10 @@ export default class FloatBuffer {
         lines,
         filetype: doc.filetype
       })
-      newLines.push(...lines)
+      newLines.push(...lines.filter(s => !/^\s*```/.test(s)))
       if (idx != docs.length - 1) {
         newLines.push('—')
-        currLine = currLine + lines.length + 1
+        currLine = newLines.length
       }
       idx = idx + 1
     }
@@ -131,10 +130,12 @@ export default class FloatBuffer {
       if (fill) return s + ' '.repeat(width - byteLength(s))
       return s
     })
+    let filetype = await this.nvim.eval('&filetype') as string
     fragments = fragments.reduce((p, c) => {
-      p.push(c, ...this.getCodeFragments(c))
+      p.push(...this.splitFragment(c, filetype))
       return p
     }, [])
+    logger.debug('fragments:', fragments)
     if (this.enableHighlight) {
       let arr = await Promise.all(fragments.map(f => {
         return getHiglights(f.lines, f.filetype).then(highlights => {
@@ -149,34 +150,29 @@ export default class FloatBuffer {
     }
   }
 
-  public getCodeFragments(fragment: Fragment): Fragment[] {
-    if (fragment.filetype !== 'markdown') return []
+  public splitFragment(fragment: Fragment, defaultFileType: string): Fragment[] {
     let res: Fragment[] = []
-    let filetype: string
+    let filetype = fragment.filetype
     let lines: string[] = []
-    let start = fragment.start
+    let curr = fragment.start
     let inBlock = false
-    let count = 0
     for (let line of fragment.lines) {
       let ms = line.match(/^\s*```\s*(\w+)?/)
-      if (ms && ms[1]) {
-        inBlock = true
-        filetype = ms[1]
-        lines = []
-        start = fragment.start + count + 1
-      } else if (ms) {
-        inBlock = false
-        if (lines.length && filetype) {
-          res.push({
-            filetype: this.fixFiletype(filetype),
-            start,
-            lines
-          })
+      if (ms != null) {
+        if (lines.length) {
+          res.push({ lines, filetype: this.fixFiletype(filetype), start: curr - lines.length })
+          lines = []
         }
-      } else if (inBlock) {
+        inBlock = !inBlock
+        filetype = inBlock ? ms[1] || defaultFileType : fragment.filetype
+      } else {
         lines.push(line)
+        curr = curr + 1
       }
-      count = count + 1
+    }
+    if (lines.length) {
+      res.push({ lines, filetype: this.fixFiletype(filetype), start: curr - lines.length })
+      lines = []
     }
     return res
   }
@@ -184,6 +180,7 @@ export default class FloatBuffer {
   private fixFiletype(filetype: string): string {
     if (filetype == 'ts') return 'typescript'
     if (filetype == 'js') return 'javascript'
+    if (filetype == 'bash') return 'sh'
     return filetype
   }
 
@@ -271,7 +268,7 @@ export default class FloatBuffer {
     // join the lines when necessary
     if (this.joinLines) {
       arr = arr.reduce((list, curr) => {
-        if (isMarkdown && curr.startsWith('```')) {
+        if (isMarkdown && /^\s*```/.test(curr)) {
           inBlock = !inBlock
         }
         if (list.length && curr) {
@@ -290,8 +287,9 @@ export default class FloatBuffer {
       if (len > maxWidth - 2) {
         // don't split on word
         let parts = this.softSplit(str, maxWidth - 2)
+        parts = parts.filter(s => !/^\s*```/.test(s))
         count += parts.length
-      } else {
+      } else if (!/^\s*```/.test(str)) {
         count += 1
       }
     }

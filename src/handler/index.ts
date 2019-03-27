@@ -862,7 +862,7 @@ export default class Handler {
           if (typeof item === 'string') {
             if (item.trim().length) {
               lines.push(...item.split('\n'))
-              docs.push({ content: item, filetype: 'markdown' })
+              docs.push({ content: item, filetype: 'txt' })
             }
           } else {
             let content = item.value.trim()
