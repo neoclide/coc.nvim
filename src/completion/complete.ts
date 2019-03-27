@@ -4,7 +4,6 @@ import Document from '../model/document'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { echoErr, echoWarning } from '../util'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
-import { omit } from '../util/lodash'
 import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
 const logger = require('../util/logger')('completion-complete')

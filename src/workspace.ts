@@ -883,13 +883,7 @@ export class Workspace implements IWorkspace {
   public async createTerminal(opts: TerminalOptions): Promise<Terminal> {
     let cmd = opts.shellPath
     let args = opts.shellArgs
-    if (!cmd) {
-      cmd = await this.nvim.getOption('shell') as string
-      if (!args && !process.platform.startsWith('win')) {
-        let flag = await this.nvim.getOption('shellcmdflag') as string
-        args = flag.split(/\s+/)
-      }
-    }
+    if (!cmd) cmd = await this.nvim.getOption('shell') as string
     let terminal = new TerminalModel(cmd, args || [], this.nvim, opts.name)
     await terminal.start(opts.cwd || this.cwd, opts.env)
     this.terminals.set(terminal.bufnr, terminal)
