@@ -211,6 +211,9 @@ export default class FloatBuffer {
             positions.push([highlight.line + 1, highlight.colStart + 1])
             positions.push([highlight.line + 1, highlight.colEnd])
           }
+          if (highlight.colEnd - highlight.colStart == 2 && before == '\\') {
+            positions.push([highlight.line + 1, highlight.colStart + 1])
+          }
         }
       }
       for (let arr of group(positions, 8)) {
