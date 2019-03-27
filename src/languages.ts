@@ -40,6 +40,7 @@ export interface CompletionSource {
 }
 
 interface CompleteConfig {
+  defaultKindText: string
   priority: number
   echodocSupport: boolean
   waitTime: number
@@ -96,6 +97,7 @@ class Languages {
   private implementatioinManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
+  private completionItemKindMap: Map<CompletionItemKind, string>
 
   constructor() {
     workspace.onWillSaveUntil(event => {
@@ -127,7 +129,36 @@ class Languages {
     function getConfig<T>(key, defaultValue: T): T {
       return config.get<T>(key, suggest.get<T>(key, defaultValue))
     }
+    let labels = suggest.get<{ [key: string]: string }>('completionItemKindLabels', {})
+    this.completionItemKindMap = new Map([
+      [CompletionItemKind.Text, labels['text'] || 'v'],
+      [CompletionItemKind.Method, labels['method'] || 'f'],
+      [CompletionItemKind.Function, labels['function'] || 'f'],
+      [CompletionItemKind.Constructor, typeof labels['constructor'] == 'function' ? 'f' : labels['con' + 'structor']],
+      [CompletionItemKind.Field, labels['field'] || 'm'],
+      [CompletionItemKind.Variable, labels['variable'] || 'v'],
+      [CompletionItemKind.Class, labels['class'] || 'C'],
+      [CompletionItemKind.Interface, labels['interface'] || 'I'],
+      [CompletionItemKind.Module, labels['module'] || 'M'],
+      [CompletionItemKind.Property, labels['property'] || 'm'],
+      [CompletionItemKind.Unit, labels['unit'] || 'U'],
+      [CompletionItemKind.Value, labels['value'] || 'v'],
+      [CompletionItemKind.Enum, labels['enum'] || 'E'],
+      [CompletionItemKind.Keyword, labels['keyword'] || 'k'],
+      [CompletionItemKind.Snippet, labels['snippet'] || 'S'],
+      [CompletionItemKind.Color, labels['color'] || 'v'],
+      [CompletionItemKind.File, labels['file'] || 'F'],
+      [CompletionItemKind.Reference, labels['reference'] || 'r'],
+      [CompletionItemKind.Folder, labels['folder'] || 'F'],
+      [CompletionItemKind.EnumMember, labels['enumMember'] || 'm'],
+      [CompletionItemKind.Constant, labels['constant'] || 'v'],
+      [CompletionItemKind.Struct, labels['struct'] || 'S'],
+      [CompletionItemKind.Event, labels['event'] || 'E'],
+      [CompletionItemKind.Operator, labels['operator'] || 'O'],
+      [CompletionItemKind.TypeParameter, labels['typeParameter'] || 'T'],
+    ])
     this.completeConfig = {
+      defaultKindText: labels['default'] || '',
       priority: getConfig<number>('languageSourcePriority', 99),
       echodocSupport: getConfig<boolean>('echodocSupport', false),
       waitTime: getConfig<number>('triggerCompletionWait', 60),
@@ -660,7 +691,7 @@ class Languages {
       word: complete.getWord(item, opt),
       abbr: label,
       menu: `[${shortcut}]`,
-      kind: complete.completionKindString(item.kind),
+      kind: complete.completionKindString(item.kind, this.completionItemKindMap, this.completeConfig.defaultKindText),
       sortText: item.sortText || null,
       filterText: item.filterText || label,
       isSnippet,

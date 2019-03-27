@@ -2,38 +2,8 @@ import { CompletionItem, CompletionItemKind, InsertTextFormat, Position } from '
 import { SnippetParser } from '../snippets/parser'
 import { CompleteOption } from '../types'
 import { byteSlice, characterIndex } from './string'
-import workspace from '../workspace'
 const logger = require('./logger')('util-complete')
 const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n']
-const config = workspace.getConfiguration('suggest.completionItemKindLabels')
-const labels = new Map<CompletionItemKind, string>([
-  [CompletionItemKind.Text, config.get('text', 'v')],
-  [CompletionItemKind.Method, config.get('method', 'f')],
-  [CompletionItemKind.Function, config.get('function', 'f')],
-  [CompletionItemKind.Constructor, config.get('constructor', 'f')],
-  [CompletionItemKind.Field, config.get('field', 'm')],
-  [CompletionItemKind.Variable, config.get('variable', 'v')],
-  [CompletionItemKind.Class, config.get('class', 'C')],
-  [CompletionItemKind.Interface, config.get('interface', 'I')],
-  [CompletionItemKind.Module, config.get('module', 'M')],
-  [CompletionItemKind.Property, config.get('property', 'm')],
-  [CompletionItemKind.Unit, config.get('unit', 'U')],
-  [CompletionItemKind.Value, config.get('value', 'v')],
-  [CompletionItemKind.Enum, config.get('enum', 'E')],
-  [CompletionItemKind.Keyword, config.get('keyword', 'k')],
-  [CompletionItemKind.Snippet, config.get('snippet', 'S')],
-  [CompletionItemKind.Color, config.get('color', 'v')],
-  [CompletionItemKind.File, config.get('file', 'F')],
-  [CompletionItemKind.Reference, config.get('reference', 'r')],
-  [CompletionItemKind.Folder, config.get('folder', 'F')],
-  [CompletionItemKind.EnumMember, config.get('enumMember', 'm')],
-  [CompletionItemKind.Constant, config.get('constant', 'v')],
-  [CompletionItemKind.Struct, config.get('struct', 'S')],
-  [CompletionItemKind.Event, config.get('event', 'E')],
-  [CompletionItemKind.Operator, config.get('operator', 'O')],
-  [CompletionItemKind.TypeParameter, config.get('typeParameter', 'T')],
-])
-const defaultLabel = config.get('default', '')
 
 export function getPosition(opt: CompleteOption): Position {
   let { line, linenr, colnr } = opt
@@ -95,9 +65,8 @@ export function getDocumentation(item: CompletionItem): string {
   return documentation.value
 }
 
-export function completionKindString(kind: CompletionItemKind): string {
-  const k = labels.get(kind)
-  return k ? k : defaultLabel
+export function completionKindString(kind: CompletionItemKind, map: Map<CompletionItemKind, string>, defaultValue = ''): string {
+  return map.get(kind) || defaultValue
 }
 
 export function getSnippetDocumentation(languageId: string, body: string): string {
