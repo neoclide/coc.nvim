@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
@@ -620,6 +621,19 @@ describe('workspace utility', () => {
     await helper.edit('foo')
     let filepath = await workspace.findUp('tsconfig.json')
     expect(filepath).toMatch('tsconfig.json')
+  })
+
+  it('should not findUp from file in other directory', async () => {
+    await nvim.command(`edit ${path.join(os.tmpdir(), 'foo')}`)
+    let filepath = await workspace.findUp('tsconfig.json')
+    expect(filepath).toBeNull()
+  })
+
+  it('should resolveRootPath', async () => {
+    let file = path.join(__dirname, 'foo')
+    let uri = Uri.file(file)
+    let res = await workspace.resolveRootFolder(uri, ['.git'])
+    expect(res).toMatch('coc.nvim')
   })
 
   it('should choose quickpick', async () => {

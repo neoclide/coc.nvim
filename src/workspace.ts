@@ -332,22 +332,29 @@ export class Workspace implements IWorkspace {
    * Findup for filename or filenames from current filepath or root.
    */
   public async findUp(filename: string | string[]): Promise<string | null> {
-    let files = await util.promisify(fs.readdir)(this.cwd)
-    if (typeof filename == 'string' && files.indexOf(filename) !== -1) {
-      return path.join(this.cwd, filename)
+    let { cwd } = this
+
+    let filepath = await this.nvim.call('expand', '%:p') as string
+    filepath = path.normalize(filepath)
+    let isFile = filepath && path.isAbsolute(filepath)
+    if (isFile && !filepath.startsWith(cwd)) {
+      // can't use cwd
+      return await findUp(filename, { cwd: path.dirname(filepath) })
     }
-    if (Array.isArray(filename) && intersect(files, filename)) {
-      return path.join(this.cwd, files.find(s => filename.indexOf(s) !== -1))
-    }
-    let bufnr = await this.nvim.call('bufnr', '%')
-    let doc = this.getDocument(bufnr)
-    let root: string
-    if (doc && doc.schema == 'file') {
-      root = path.dirname(Uri.parse(doc.uri).fsPath)
-    } else {
-      root = this.root
-    }
-    return await findUp(filename, { cwd: root })
+    let res = await findUp(filename, { cwd })
+    if (res && res != os.homedir()) return res
+    if (isFile) return findUp(filename, { cwd: path.dirname(filepath) })
+    return null
+  }
+
+  public async resolveRootFolder(uri: Uri, patterns: string[]): Promise<string | null> {
+    let { cwd } = this
+    if (uri.scheme != 'file') return await this.findRootPath(patterns, cwd)
+    let filepath = path.normalize(uri.fsPath)
+    if (!filepath.startsWith(cwd)) return await this.findRootPath(patterns, path.dirname(filepath))
+    let res = await this.findRootPath(patterns, cwd)
+    if (res && res != os.homedir()) return res
+    return this.findRootPath(patterns, path.dirname(filepath))
   }
 
   /**
@@ -1362,6 +1369,11 @@ augroup end`
     process.on('exit', () => {
       clearInterval(interval)
     })
+  }
+
+  private async findRootPath(filename: string | string[], cwd: string): Promise<string | null> {
+    let res = await findUp(filename, { cwd })
+    return res ? path.dirname(res) : null
   }
 }
 
