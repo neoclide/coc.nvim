@@ -4,9 +4,84 @@ import { WorkspaceConfiguration, ListMode } from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('list-mappings')
 
+const validKeys = [
+  '<esc>',
+  '<tab>',
+  '<s-tab>',
+  '<bs>',
+  '<right>',
+  '<left>',
+  '<up>',
+  '<down>',
+  '<home>',
+  '<end>',
+  '<cr>',
+  '<FocusGained>',
+  '<ScrollWheelUp>',
+  '<ScrollWheelDown>',
+  '<LeftMouse>',
+  '<LeftDrag>',
+  '<LeftRelease>',
+  '<2-LeftMouse>',
+  '<C-a>',
+  '<C-b>',
+  '<C-c>',
+  '<C-d>',
+  '<C-e>',
+  '<C-f>',
+  '<C-g>',
+  '<C-h>',
+  '<C-i>',
+  '<C-j>',
+  '<C-k>',
+  '<C-l>',
+  '<C-m>',
+  '<C-n>',
+  '<C-o>',
+  '<C-p>',
+  '<C-q>',
+  '<C-r>',
+  '<C-s>',
+  '<C-t>',
+  '<C-u>',
+  '<C-v>',
+  '<C-w>',
+  '<C-x>',
+  '<C-y>',
+  '<C-z>',
+  '<A-a>',
+  '<A-b>',
+  '<A-c>',
+  '<A-d>',
+  '<A-e>',
+  '<A-f>',
+  '<A-g>',
+  '<A-h>',
+  '<A-i>',
+  '<A-j>',
+  '<A-k>',
+  '<A-l>',
+  '<A-m>',
+  '<A-n>',
+  '<A-o>',
+  '<A-p>',
+  '<A-q>',
+  '<A-r>',
+  '<A-s>',
+  '<A-t>',
+  '<A-u>',
+  '<A-v>',
+  '<A-w>',
+  '<A-x>',
+  '<A-y>',
+  '<A-z>',
+]
+
 export default class Mappings {
   private insertMappings: Map<string, () => void | Promise<void>> = new Map()
   private normalMappings: Map<string, () => void | Promise<void>> = new Map()
+  private userInsertMappings: Map<string, string> = new Map()
+  private userNormalMappings: Map<string, string> = new Map()
 
   constructor(private manager: ListManager,
     private nvim: Neovim,
@@ -30,7 +105,7 @@ export default class Mappings {
     this.add('insert', ['<C-m>', '<cr>'], () => {
       return manager.doAction()
     })
-    this.add('insert', ['<C-i>', '\t'], () => {
+    this.add('insert', ['<tab>', '<C-i>', '\t'], () => {
       return manager.chooseAction()
     })
     this.add('insert', '<C-o>', () => {
@@ -101,7 +176,7 @@ export default class Mappings {
     this.add('normal', 'p', () => {
       manager.togglePreview()
     })
-    this.add('normal', ['\t', '<C-i>'], () => {
+    this.add('normal', ['<tab>', '\t', '<C-i>'], () => {
       manager.chooseAction()
     })
     this.add('normal', '<C-c>', () => {
@@ -125,11 +200,51 @@ export default class Mappings {
     })
     this.add('normal', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
     this.add('normal', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
+    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
+    this.userInsertMappings = this.fixUserMappings(insertMappings)
+    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
+    this.userNormalMappings = this.fixUserMappings(normalMappings)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('list')) {
+        let config = workspace.getConfiguration('list')
+        let insertMappings = config.get<any>('insertMappings', {})
+        this.userInsertMappings = this.fixUserMappings(insertMappings)
+        let normalMappings = config.get<any>('normalMappings', {})
+        this.userNormalMappings = this.fixUserMappings(normalMappings)
+      }
+    })
+  }
+
+  private fixUserMappings(mappings: { [key: string]: string }): Map<string, string> {
+    let res: Map<string, string> = new Map()
+    for (let [key, value] of Object.entries(mappings)) {
+      if (key.length == 1) {
+        res.set(key, value)
+      } else if (key.startsWith('<') && key.endsWith('>')) {
+        if (validKeys.indexOf(key) != -1) {
+          res.set(key, value)
+        } else {
+          let find = false
+          // tslint:disable-next-line: prefer-for-of
+          for (let i = 0; i < validKeys.length; i++) {
+            if (validKeys[i].toLowerCase() == key.toLowerCase()) {
+              find = true
+              res.set(validKeys[i], value)
+              break
+            }
+          }
+          if (!find) workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+        }
+      } else {
+        // tslint:disable-next-line: no-console
+        workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+      }
+    }
+    return res
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
-    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
-    let expr = insertMappings[key]
+    let expr = this.userInsertMappings.get(key)
     if (expr) {
       await this.evalExpression(expr, 'insert')
       return true
@@ -143,8 +258,7 @@ export default class Mappings {
   }
 
   public async doNormalKeymap(key: string): Promise<boolean> {
-    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
-    let expr = normalMappings[key]
+    let expr = this.userNormalMappings.get(key)
     if (expr) {
       await this.evalExpression(expr, 'normal')
       return true
