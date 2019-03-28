@@ -442,14 +442,18 @@ describe('workspace utility', () => {
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('bar')
-    let newFile = path.join(__dirname, 'bar')
+    let newFile = path.join(__dirname, 'new')
     let newUri = URI.file(newFile).toString()
     await workspace.renameFile(filepath, newFile, { overwrite: true })
     await helper.wait(100)
     let old = workspace.getDocument(uri)
-    expect(old).toBeFalsy()
+    expect(old).toBeNull()
     let doc = workspace.getDocument(newUri)
     expect(doc.uri).toBe(newUri)
+    await nvim.setLine('foo')
+    await helper.wait(30)
+    let content = doc.getDocumentContent()
+    expect(content).toMatch('foo')
   })
 
   it('should overwrite if file exists', async () => {

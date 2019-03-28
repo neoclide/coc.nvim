@@ -54,7 +54,7 @@ export class Workspace implements IWorkspace {
   private buffers: Map<number, Document> = new Map()
   private autocmds: Map<number, Autocmd> = new Map()
   private terminals: Map<number, Terminal> = new Map()
-  private creating: Set<number> = new Set()
+  private creatingSources: Map<number, CancellationTokenSource> = new Map()
   private outputChannels: Map<string, OutputChannel> = new Map()
   private schemeProviderMap: Map<string, TextDocumentContentProvider> = new Map()
   private namespaceMap: Map<string, number> = new Map()
@@ -609,20 +609,13 @@ export class Workspace implements IWorkspace {
     if (this.buffers.has(bufnr)) {
       return Promise.resolve(this.buffers.get(bufnr))
     }
-    return this.nvim.buffer.then(buffer => {
-      let { id } = buffer
-      let doc = this.buffers.get(id)
-      if (doc) return doc
-      if (!this.creating.has(id)) {
-        return this.onBufCreate(id).then(() => {
-          return this.getDocument(id)
-        })
-      }
-      return new Promise<Document>(resolve => {
-        let disposable = this.onDidOpenTextDocument(doc => {
-          disposable.dispose()
-          resolve(this.getDocument(doc.uri))
-        })
+    if (!this.creatingSources.has(bufnr)) {
+      this.onBufCreate(bufnr)
+    }
+    return new Promise<Document>(resolve => {
+      let disposable = this.onDidOpenTextDocument(doc => {
+        disposable.dispose()
+        resolve(this.getDocument(doc.uri))
       })
     })
   }
@@ -782,10 +775,10 @@ export class Workspace implements IWorkspace {
         let doc = this.getDocument(uri)
         if (doc) {
           await doc.buffer.setName(newPath)
+          // avoid cancel by unload
           await this.onBufCreate(doc.bufnr)
         }
       } catch (e) {
-        // console.error(e)
         this.showMessage(`Rename error ${e.message}`, 'error')
       }
     }
@@ -1167,21 +1160,31 @@ augroup end`
   private async onBufCreate(buf: number | Buffer): Promise<void> {
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let bufnr = buffer.id
-    if (this.creating.has(bufnr)) return
-    this.creating.add(bufnr)
+    if (this.creatingSources.has(bufnr)) return
+    let source = new CancellationTokenSource()
+    let token = source.token
+    this.creatingSources.set(bufnr, source)
     let document = this.getDocument(bufnr)
+    let disposable: Disposable
     try {
-      if (document) await events.fire('BufUnload', [bufnr])
+      if (document) this.onBufUnload(bufnr, true)
       let configuration = this.configurations.getConfiguration('coc.preferences')
       document = new Document(buffer, configuration, this._env)
+      disposable = token.onCancellationRequested(() => {
+        // can create new document of bufnr
+        this.creatingSources.delete(bufnr)
+        document.detach()
+      })
       let created = await document.init(this.nvim)
       if (!created) document = null
     } catch (e) {
-      this.creating.delete(bufnr)
       logger.error('Error on create buffer:', e)
-      return
     }
-    this.creating.delete(bufnr)
+    if (token.isCancellationRequested) document = null
+    if (disposable) disposable.dispose()
+    if (this.creatingSources.get(bufnr) == source) {
+      this.creatingSources.delete(bufnr)
+    }
     if (!document) return
     this.buffers.set(bufnr, document)
     document.onDocumentDetach(uri => {
@@ -1227,8 +1230,9 @@ augroup end`
     if (doc) this.configurations.setFolderConfiguration(doc.uri)
   }
 
-  private onCursorMoved(bufnr: number): void {
+  private async onCursorMoved(bufnr: number): Promise<void> {
     this.bufnr = bufnr
+    await this.checkBuffer(bufnr)
   }
 
   private async onBufWritePost(bufnr: number): Promise<void> {
@@ -1237,7 +1241,11 @@ augroup end`
     this._onDidSaveDocument.fire(doc.textDocument)
   }
 
-  private async onBufUnload(bufnr: number): Promise<void> {
+  private onBufUnload(bufnr: number, recreate = false): void {
+    if (!recreate) {
+      let source = this.creatingSources.get(bufnr)
+      if (source) source.cancel()
+    }
     if (this.terminals.has(bufnr)) {
       let terminal = this.terminals.get(bufnr)
       this._onDidCloseTerminal.fire(terminal)
@@ -1246,8 +1254,8 @@ augroup end`
     let doc = this.buffers.get(bufnr)
     if (doc) {
       this._onDidCloseDocument.fire(doc.textDocument)
-      doc.detach()
       this.buffers.delete(bufnr)
+      if (!recreate) doc.detach()
     }
     logger.debug('buffer unload', bufnr)
   }
@@ -1285,7 +1293,7 @@ augroup end`
   private async checkBuffer(bufnr): Promise<void> {
     if (this._disposed) return
     let doc = this.getDocument(bufnr)
-    if (!doc) await this.onBufCreate(bufnr)
+    if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
   }
 
   private async getFileEncoding(): Promise<string> {

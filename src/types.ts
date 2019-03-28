@@ -1077,7 +1077,6 @@ export interface IWorkspace {
   readonly channelNames: string[]
   readonly documents: Document[]
   readonly configurations: Configurations
-  document: Promise<Document | null>
   textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder
   onDidOpenTextDocument: Event<TextDocument>

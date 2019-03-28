@@ -222,10 +222,10 @@ export default class Document {
     // neovim not detach on `:checktime`
     if (this.attached) {
       this.attached = false
-      this._onDocumentDetach.fire(this.uri)
       this.buffer.detach().catch(_e => {
         // noop
       })
+      this._onDocumentDetach.fire(this.uri)
     }
     this.fetchContent.clear()
     this.fireContentChanges.clear()
