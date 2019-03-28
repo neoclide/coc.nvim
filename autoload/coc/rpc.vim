@@ -123,14 +123,6 @@ function! coc#rpc#vim_rpc_folder() abort
       return p
     endif
   endif
-  if executable('npm')
-    let root = trim(system('npm --loglevel silent root -g'))
-    let p = root . '/vim-node-rpc'
-    if isdirectory(p) && filereadable(p.'/package.json')
-      let g:vim_node_rpc_folder = p
-      return p
-    endif
-  endif
   return ''
 endfunction
 
