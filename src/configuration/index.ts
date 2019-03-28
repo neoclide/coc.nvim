@@ -234,7 +234,7 @@ export default class Configurations {
       },
       update: (key: string, value: any, isUser = false) => {
         let s = section ? `${section}.${key}` : key
-        if (!this.workspaceConfigFile) isUser = true
+        // if (!this.workspaceConfigFile) isUser = true
         let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         let model = target == ConfigurationTarget.User ? this.user.clone() : this.workspace.clone()
         if (value == undefined) {
