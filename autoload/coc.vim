@@ -23,7 +23,7 @@ endfunction
 function! coc#refresh() abort
   if pumvisible()
     let g:coc#_context['candidates'] = []
-    call feedkeys("\<Plug>_", 'i')
+    call feedkeys("\<Plug>CocRefresh", 'i')
   endif
   return "\<c-r>=coc#start()\<CR>"
 endfunction
@@ -55,7 +55,7 @@ endfunction
 function! coc#_reload()
   if &paste | return | endif
   let items = get(g:coc#_context, 'candidates', [])
-  call feedkeys("\<Plug>_", 'i')
+  call feedkeys("\<Plug>CocRefresh", 'i')
 endfunction
 
 function! coc#_do_complete(start, items)
@@ -64,7 +64,7 @@ function! coc#_do_complete(start, items)
         \ 'candidates': a:items,
         \}
   if mode() =~# 'i'
-    call feedkeys("\<Plug>_", 'i')
+    call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
 
@@ -93,7 +93,7 @@ function! coc#_cancel()
   endfor
   if pumvisible()
     let g:coc#_context['candidates'] = []
-    call feedkeys("\<Plug>_", 'i')
+    call feedkeys("\<Plug>CocRefresh", 'i')
   endif
 endfunction
 
