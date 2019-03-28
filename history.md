@@ -1,3 +1,17 @@
+# 2019-03-28
+
+- Add `workspace.resolveRootFolder`.
+- Add `diagnostic.joinMessageLines` setting.
+- Add `suggest.completionItemKindLabels` setting.
+- Add `memento` support for extention.
+- Add `workspace.getSelectedRange`.
+- Add `Terminal` module.
+- Add command `workbench.action.reloadWindow`.
+- Fix extention not activated by command.
+- Fix broken undo with floating window.
+- Fix document create possible wrong uri & filetype.
+- Improve highlight with floating window.
+
 # 2019-03-24
 
 - **Break change** make number input not trigger completion.
