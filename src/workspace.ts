@@ -652,7 +652,11 @@ export class Workspace implements IWorkspace {
    */
   public async getFormatOptions(uri?: string): Promise<FormattingOptions> {
     let doc: Document
-    if (uri) doc = this.getDocument(uri)
+    if (uri) {
+      doc = this.getDocument(uri)
+    } else {
+      doc = this.getDocument(this.bufnr)
+    }
     let tabSize = await this.getDocumentOption('shiftwidth', doc) as number
     if (!tabSize) tabSize = await this.getDocumentOption('tabstop', doc) as number
     let insertSpaces = (await this.getDocumentOption('expandtab', doc)) == 1
