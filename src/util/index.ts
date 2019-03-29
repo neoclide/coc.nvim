@@ -108,16 +108,22 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
 
 export function watchFile(filepath: string, onChange: () => void): Disposable {
   let callback = debounce(onChange, 100)
-  let watcher = fs.watch(filepath, {
-    persistent: true,
-    recursive: false,
-    encoding: 'utf8'
-  }, () => {
-    callback()
-  })
-  return Disposable.create(() => {
-    watcher.close()
-  })
+  try {
+    let watcher = fs.watch(filepath, {
+      persistent: true,
+      recursive: false,
+      encoding: 'utf8'
+    }, () => {
+      callback()
+    })
+    return Disposable.create(() => {
+      watcher.close()
+    })
+  } catch (e) {
+    return Disposable.create(() => {
+      // noop
+    })
+  }
 }
 
 export function isRunning(pid: number): boolean {
