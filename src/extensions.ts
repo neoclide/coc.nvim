@@ -68,6 +68,9 @@ export class Extensions {
       this._onReady.fire()
       return
     }
+    if (!fs.existsSync(this.root)) {
+      await workspace.nvim.call('coc#util#init_extension_root')
+    }
     this.memos = new Memos(path.resolve(this.root, '../memos.json'))
     stats = stats.filter(o => o.state != 'disabled')
     await Promise.all(stats.map(stat => {
