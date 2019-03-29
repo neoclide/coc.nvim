@@ -562,6 +562,12 @@ coc#util#has_float()
 
 	检测是否存在浮动窗口。
 
+						*coc#util#float_scrollable()*
+
+coc#util#float_scrollable()
+
+	检测是否存在可滚动的浮动窗口。
+
 						*coc#util#float_scroll()*
 coc#util#float_scroll({forward})
 

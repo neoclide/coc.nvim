@@ -583,6 +583,12 @@ coc#util#has_float()
 
 	Check if coc float window exists.
 
+						*coc#util#float_scrollable()*
+
+coc#util#float_scrollable()
+
+	Check if coc float window scrollable.
+
 						*coc#util#float_scroll()*
 coc#util#float_scroll({forward})
 

@@ -64,6 +64,20 @@ function! coc#util#float_jump()
   endfor
 endfunction
 
+function! coc#util#float_scrollable()
+  let winnr = winnr()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      let wid = win_getid(i)
+      let h = nvim_win_get_height(wid)
+      let buf = nvim_win_get_buf(wid)
+      let lineCount = nvim_buf_line_count(buf)
+      return lineCount > h
+    endif
+  endfor
+  return 0
+endfunction
+
 function! coc#util#float_scroll(forward)
   let key = a:forward ? "\<C-f>" : "\<C-b>"
   let winnr = winnr()
