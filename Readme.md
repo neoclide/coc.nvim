@@ -168,14 +168,15 @@ Extensions are powerful than configured language server. Checkout
   and `razor`.
 - **[coc-css](https://github.com/neoclide/coc-css)** for `css`, `scss` and `less`.
 - **[coc-vetur](https://github.com/neoclide/coc-vetur)** for `vue`, use [vetur](https://github.com/vuejs/vetur).
+- **[coc-phpls](https://github.com/marlonfan/coc-phpls)** for `php`, use [intelephense-server](https://github.com/bmewburn/intelephense-server).
 - **[coc-java](https://github.com/neoclide/coc-java)** for `java`, use [eclipse.jdt.ls](https://github.com/eclipse/eclipse.jdt.ls).
 - **[coc-solargraph](https://github.com/neoclide/coc-solargraph)** for `ruby`,
   use [solargraph](http://solargraph.org/).
 - **[coc-rls](https://github.com/neoclide/coc-rls)** for `rust`, use
   [Rust Language Server](https://github.com/rust-lang/rls)
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
-- **[coc-pyls](https://github.com/neoclide/coc-pyls)** for `python`, use [Python
-  Language Server](https://github.com/palantir/python-language-server)
+- **[coc-python](https://github.com/neoclide/coc-python)** for `python`, use
+  exteextension that forked from [vscode-python](https://github.com/Microsoft/vscode-python).
 - **[coc-highlight](https://github.com/neoclide/coc-highlight)** provide default
   document symbol highlight and colors support.
 - **[coc-emmet](https://github.com/neoclide/coc-emmet)** provide emmet
