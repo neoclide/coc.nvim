@@ -1,3 +1,14 @@
+# 2019-03-31
+
+- **Break change** not using vim-node-rpc from npm modules any more.
+- **Break change** rename `<Plug>_` to `<Plug>CocRefresh`.
+- Fix wrong format options send to server.
+- Fix throw eror when extention root not created.
+- Fix MarkedString not considered as markdown.
+- Fix echo message on vim exit.
+- Fix error throw on file watch.
+- Fix unexpected update of user configuration.
+
 # 2019-03-28
 
 - Add `workspace.resolveRootFolder`.

@@ -1,6 +1,6 @@
 {
   "name": "coc.nvim",
-  "version": "0.0.63",
+  "version": "0.0.64",
   "description": "LSP based intellisense engine for neovim & vim8.",
   "main": "./lib/index.js",
   "bin": "./bin/server.js",
