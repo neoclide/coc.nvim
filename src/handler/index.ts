@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextEdit } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -20,6 +20,13 @@ import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
 const logger = require('../util/logger')('Handler')
+const pairs: Map<string, string> = new Map([
+  ['<', '>'],
+  ['>', '<'],
+  ['{', '}'],
+  ['[', ']'],
+  ['(', ')'],
+])
 
 interface SymbolInfo {
   filepath?: string
@@ -52,6 +59,7 @@ interface Preferences {
   formatOnType: boolean
   hoverTarget: string
   previewAutoClose: boolean
+  bracketEnterImprove: boolean
 }
 
 export default class Handler {
@@ -92,7 +100,35 @@ export default class Handler {
       lastInsert = Date.now()
     }, null, this.disposables)
     events.on('Enter', async bufnr => {
+      let { bracketEnterImprove } = this.preferences
       await this.onCharacterType('\n', bufnr)
+      if (bracketEnterImprove) {
+        let line = (await nvim.call('line', '.') as number) - 1
+        let doc = workspace.getDocument(bufnr)
+        if (!doc) return
+        let pre = doc.getline(line - 1)
+        let curr = doc.getline(line)
+        let prevChar = pre[pre.length - 1]
+        if (prevChar && pairs.has(prevChar)) {
+          let nextChar = curr.trim()[0]
+          if (nextChar && pairs.get(prevChar) == nextChar) {
+            let edits: TextEdit[] = []
+            let opts = await workspace.getFormatOptions(doc.uri)
+            let space = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
+            let preIndent = pre.match(/^\s*/)[0]
+            let currIndent = curr.match(/^\s*/)[0]
+            let newText = '\n' + preIndent + space
+            let pos: Position = Position.create(line - 1, pre.length)
+            // make sure indent of current line
+            if (preIndent != currIndent) {
+              edits.push({ range: Range.create(Position.create(line, 0), Position.create(line, currIndent.length)), newText: preIndent })
+            }
+            edits.push({ range: Range.create(pos, pos), newText })
+            await doc.applyEdits(nvim, edits)
+            await workspace.moveTo(Position.create(line, newText.length - 1))
+          }
+        }
+      }
     }, null, this.disposables)
 
     events.on('TextChangedI', async bufnr => {
@@ -353,7 +389,7 @@ export default class Handler {
   public async documentFormatting(): Promise<void> {
     let document = await workspace.document
     if (!document) return
-    let options = await workspace.getFormatOptions()
+    let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
     if (!textEdits || textEdits.length == 0) return
     await document.applyEdits(this.nvim, textEdits)
@@ -374,7 +410,7 @@ export default class Handler {
       if (count == 0 || mode == 'i' || mode == 'R') return -1
       range = Range.create(lnum - 1, 0, lnum - 1 + count, 0)
     }
-    let options = await workspace.getFormatOptions()
+    let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentRangeFormattingEdits(document.textDocument, range, options)
     if (!textEdits) return - 1
     await document.applyEdits(this.nvim, textEdits)
@@ -928,6 +964,7 @@ export default class Handler {
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
+      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', false),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
   }

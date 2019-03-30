@@ -6,10 +6,9 @@ import fs from 'fs'
 import os from 'os'
 import path from 'path'
 import util from 'util'
-import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, Range } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
-import TerminalModel from './model/terminal'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
@@ -20,16 +19,16 @@ import Mru from './model/mru'
 import BufferChannel from './model/outputChannel'
 import Resolver from './model/resolver'
 import StatusLine from './model/status'
+import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, Terminal, TerminalOptions } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, runCommand, wait, mkdirp } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
-import { intersect } from './util/array'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 const isPkg = process.hasOwnProperty('pkg')
@@ -431,7 +430,7 @@ export class Workspace implements IWorkspace {
         let document = await this.loadFile(uri)
         await document.applyEdits(nvim, changes[uri])
       }
-      this.showMessage(`${Object.keys(changes).length} documents changed.`)
+      this.showMessage(`${Object.keys(changes).length} buffers changed.`)
     }
     if (documentChanges && documentChanges.length) {
       let n = documentChanges.length
@@ -449,7 +448,7 @@ export class Workspace implements IWorkspace {
           await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
         }
       }
-      this.showMessage(`${n} documents changed!`)
+      this.showMessage(`${n} buffers changed.`)
     }
     await nvim.call('setpos', ['.', curpos])
     return true
