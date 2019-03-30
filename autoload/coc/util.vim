@@ -676,7 +676,7 @@ function! coc#util#install_extension(args) abort
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
       echohl MoreMsg | echon 'Installing yarn' | echohl None
-      exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh'
+      exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh -m'
     else
       echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     endif
