@@ -508,6 +508,17 @@ coc#expandableOrJumpable()
 	Check if snippet expandable or jumpable at current position.
 	Requires `coc-snippets` extension installed.
 
+						*coc#on_enter()*
+coc#on_enter()
+
+	Notify coc.nvim that `<enter>` have pressed.
+	Current used for formatOnType feature, ex: >
+
+  	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+<
+	Note：to enable formatOnType, add ` "coc.preferences.formatOnType": true`
+	in your settings file.
 						*coc#status()*
 coc#status()
 

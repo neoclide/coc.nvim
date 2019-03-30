@@ -495,6 +495,17 @@ coc#expandableOrJumpable()
 	检查当前位置是否可以展开代码块或者跳转到下一个代码块位置。
 	需要安装 `coc-snippets` 插件。
 
+						*coc#on_enter()*
+coc#on_enter()
+
+	通知 coc.nvim 回车事件。
+	目前用于 formatOnType 特性。 >
+
+  	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+<
+	注意： 开启 formatOnType 需要设置` "coc.preferences.formatOnType": true`
+
 						*coc#status()*
 coc#status()
 
