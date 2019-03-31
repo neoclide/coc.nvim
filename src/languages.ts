@@ -375,18 +375,21 @@ class Languages {
   @check
   public async provideDocumentFormattingEdits(document: TextDocument, options: FormattingOptions): Promise<TextEdit[]> {
     if (!this.formatManager.hasProvider(document)) {
-      workspace.showMessage('Format provider not found for current document', 'error')
-      return null
+      let hasRangeFormater = this.formatRangeManager.hasProvider(document)
+      if (!hasRangeFormater) {
+        logger.error('Format provider not found for current document', 'error')
+        return null
+      }
+      let end = document.positionAt(document.getText().length)
+      let range = Range.create(Position.create(0, 0), end)
+      return await this.provideDocumentRangeFormattingEdits(document, range, options)
     }
     return await this.formatManager.provideDocumentFormattingEdits(document, options, this.token)
   }
 
   @check
   public async provideDocumentRangeFormattingEdits(document: TextDocument, range: Range, options: FormattingOptions): Promise<TextEdit[]> {
-    if (!this.formatRangeManager.hasProvider(document)) {
-      workspace.showMessage('Range format provider not found for current document', 'error')
-      return null
-    }
+    if (!this.formatRangeManager.hasProvider(document)) return null
     return await this.formatRangeManager.provideDocumentRangeFormattingEdits(document, range, options, this.token)
   }
 
