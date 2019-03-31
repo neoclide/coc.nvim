@@ -67,6 +67,7 @@ endfunction
 function! coc#rpc#restart()
   call coc#rpc#request('detach', [])
   sleep 100m
+  let s:client['command'] = coc#util#job_command()
   call coc#client#restart(s:name)
 endfunction
 

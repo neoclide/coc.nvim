@@ -628,9 +628,6 @@ function! coc#util#build()
     return 0
   endif
   let cwd = getcwd()
-  if s:is_win
-    call system('taskkill /F /Im coc-win.exe')
-  endif
   execute 'lcd '.s:root
   execute '!'.yarncmd.' install --frozen-lockfile'
   execute 'lcd '.cwd
