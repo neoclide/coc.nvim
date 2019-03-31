@@ -69,6 +69,7 @@ function! coc#rpc#restart()
   sleep 100m
   let s:client['command'] = coc#util#job_command()
   call coc#client#restart(s:name)
+  echohl MoreMsg | echon 'starting coc.nvim service' | echohl None
 endfunction
 
 function! coc#rpc#request(method, args) abort

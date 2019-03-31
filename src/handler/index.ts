@@ -964,7 +964,7 @@ export default class Handler {
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
-      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', false),
+      bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
     }
   }
