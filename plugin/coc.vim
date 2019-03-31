@@ -140,6 +140,9 @@ function! s:Enable()
     if exists('##MenuPopupChanged') && exists('*nvim_open_win')
       autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
+    if exists('##CompleteChanged') && exists('*nvim_open_win')
+      autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
+    endif
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim

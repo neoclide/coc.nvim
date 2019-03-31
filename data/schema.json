@@ -310,7 +310,7 @@
     "suggest.acceptSuggestionOnCommitCharacter": {
       "type": "boolean",
       "default": false,
-      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character. Requires MenuPopupChanged event to work."
+      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character. Requires CompleteChanged event to work."
     },
     "suggest.noselect": {
       "type": "boolean",

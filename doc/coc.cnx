@@ -521,7 +521,7 @@ coc#_select_confirm()
 
 	执行确认补全操作，如果没有选中项，选中第一个再确认。
 
-	注意: 该函数正确工作需要 |MenuPopupChanged| 自动命令支持。
+	注意: 该函数正确工作需要 |CompleteChanged| 自动命令支持。
 
 						*health#coc#check()*
 health#coc#check()
