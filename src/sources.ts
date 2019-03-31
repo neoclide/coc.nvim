@@ -31,9 +31,9 @@ export class Sources {
 
   private async createNativeSources(): Promise<void> {
     try {
-      this.disposables.push((await import('./source/around')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/file')).regist(this.sourceMap))
+      this.disposables.push((require('./source/around')).regist(this.sourceMap))
+      this.disposables.push((require('./source/buffer')).regist(this.sourceMap))
+      this.disposables.push((require('./source/file')).regist(this.sourceMap))
     } catch (e) {
       console.error('Create source error:' + e.message) // tslint:disable-line
     }

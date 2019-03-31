@@ -2,6 +2,7 @@
   "compilerOptions": {
     "outDir": "lib",
     "sourceMap": true,
+    "importHelpers": true,
     "allowUnreachableCode": false,
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,

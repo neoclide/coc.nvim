@@ -196,18 +196,19 @@ function! coc#util#binary()
 endfunction
 
 function! coc#util#job_command()
-  let binary = coc#util#binary()
-  if executable(binary) && !get(g:, 'coc_force_debug', 0)
-    return [binary]
-  endif
-  let file = s:root.'/lib/attach.js'
-  if !filereadable(file)
-    echohl Error | echon '[coc.nvim] binary and build file not found!' | echohl None
-    return
-  endif
   let node = get(g:, 'coc_node_path', 'node')
   if !executable(node)
     echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
+    return
+  endif
+  let file = s:root.'/build/index.js'
+  "let binary = coc#util#binary()
+  if filereadable(file) && !get(g:, 'coc_force_debug', 0)
+    return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
+  endif
+  let file = s:root.'/lib/attach.js'
+  if !filereadable(file)
+    echohl Error | echon '[coc.nvim] compiled javascript file not found!' | echohl None
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
@@ -585,8 +586,9 @@ endfunction
 
 function! coc#util#install(...) abort
   let l:terminal = get(get(a:, 1, {}), 'terminal', 0)
+  let l:tag = get(get(a:, 1, {}), 'tag', 0)
   let obj = json_decode(join(readfile(s:package_file)))
-  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
+  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (l:tag ? ' ' : ' nightly')
   function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
     if s:is_vim

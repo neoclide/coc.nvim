@@ -31,7 +31,6 @@ import Watchman from './watchman'
 import uuid = require('uuid/v1')
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
-const isPkg = process.hasOwnProperty('pkg')
 let NAME_SPACE = 1080
 
 export class Workspace implements IWorkspace {
@@ -280,7 +279,7 @@ export class Workspace implements IWorkspace {
   }
 
   public get pluginRoot(): string {
-    return isPkg ? path.resolve(process.execPath, '../..') : path.dirname(__dirname)
+    return path.dirname(__dirname)
   }
 
   public get isVim(): boolean {

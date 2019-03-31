@@ -1,3 +1,4 @@
+let s:root = expand('<sfile>:h:h:h')
 let s:is_vim = !has('nvim')
 let s:is_win = has("win32") || has("win64")
 let s:clients = {}

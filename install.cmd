@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = "Stop"
 $repo = "neoclide/coc.nvim"
-$file = "coc-win.zip"
+$file = "coc.zip"
 
 $releases = "https://api.github.com/repos/$repo/releases"
 
@@ -21,11 +21,6 @@ new-item -Name $dir -ItemType directory -Force
 Write-Host Dowloading latest release
 Invoke-WebRequest $download -Out $zip
 
-try {
-  taskkill /F /Im coc-win.exe
-} catch {
-  Write-Host coc process not running
-}
 Remove-Item $dir\* -Recurse -Force
 
 Write-Host Extracting release files

@@ -4,9 +4,13 @@ import * as path from 'path'
 import * as vm from 'vm'
 import { ExtensionContext } from '../types'
 import workspace from '../workspace'
-import { defaults, omit } from './lodash'
+import { defaults } from './lodash'
 const createLogger = require('./logger')
 const logger = createLogger('util-factoroy')
+
+declare var __webpack_require__: any
+declare var __non_webpack_require__: any
+const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require
 
 export interface ExtensionExport {
   activate: (context: ExtensionContext) => any
@@ -49,7 +53,7 @@ function removedGlobalStub(name: string): Function {
 function makeRequireFunction(this: any): any {
   const req: any = (p: string) => {
     if (p === 'coc.nvim') {
-      return require('../')
+      return require('../index')
     }
     return this.require(p)
   }
@@ -151,7 +155,7 @@ export function createExtension(id: string, filename: string): ExtensionExport {
   try {
     const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 
-    delete Module._cache[require.resolve(filename)]
+    delete Module._cache[requireFunc.resolve(filename)]
 
     // attempt to import plugin
     // Require plugin to export activate & deactivate

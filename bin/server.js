@@ -1,7 +1,7 @@
 const semver = require('semver')
 const version = process.version.replace('v', '')
 if (!semver.gt(version, '8.0.0')) {
-  console.error('node 8.0 required, please upgrade nodejs.')
+  console.error('node >= 8.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in vimrc')
   process.exit(1)
 }
 Object.defineProperty(console, 'log', {

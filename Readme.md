@@ -70,34 +70,30 @@ Below are the reasons that led coc.nvim to build it's own engine:
 
 - [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-  For [vim-plug](https://github.com/junegunn/vim-plug) user. Add:
-
-  ```vim
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
-  ```
-
-  Or build from source code by install [nodejs](https://nodejs.org/en/download/)
-  and [yarn](https://yarnpkg.com/en/docs/install)
+  Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install):
 
   ```sh
   curl -sL install-node.now.sh/lts | sh
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
-  And add:
+  For [vim-plug](https://github.com/junegunn/vim-plug) user:
 
   ```vim
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install --frozen-lockfile'}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  ```
+
+  Or build from source code:
+
+  ```vim
+  Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
   to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
 
-  For other plugin managers, run command `:call coc#util#build()` to build
-  coc from source code.
+  For other plugin managers, run command `:call coc#util#install()` to download lastest compiled javascript bundle.
 
   **Note:** for vim users, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module is required.
-
-  **Note:** to build from master, don't use `'tag': '*'` in `Plug` command.
 
   **Note**: The first time building from source code could be slow.
 
@@ -105,7 +101,7 @@ Below are the reasons that led coc.nvim to build it's own engine:
 
   1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them on `/etc/nixos/configuration.nix`
   2. `sudo nixos-rebuild switch`
-  3. `Plug 'neoclide/coc.nvim', {'tag': '*', 'do': 'yarn install'}`
+  3. `Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}`
   4. Don't forget to put: `set shell=/bin/sh` in your init.vim.
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)

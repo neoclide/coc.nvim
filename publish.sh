@@ -3,24 +3,12 @@
 set -e
 [ "$TRACE" ] && set -x
 
-# Create tag and push
-git add package.json history.md
-tag=v$(json -f package.json version)
-git commit -a -m "Release $tag" &> /dev/null
-git tag -a "$tag" -m "Release $tag"
-git push
-git push --tags
-
+tag=nightly
 GH_API="https://api.github.com"
 GH_REPO="$GH_API/repos/neoclide/coc.nvim"
 GH_TAGS="$GH_REPO/releases/tags/$tag"
 AUTH="Authorization: token $GITHUB_API_TOKEN"
-
-echo "Creating release for $tag"
-curl -X POST -H "Authorization: token $GITHUB_API_TOKEN" \
-  -H "Content-Type: application/json" \
-  --data "{\"tag_name\":\"$tag\"}" \
-  "$GH_REPO/releases"
+echo "Creating release for nightly"
 
 # build and upload assets
 webpack
@@ -39,6 +27,11 @@ response=$(curl -sH "$AUTH" $GH_TAGS)
 # Get ID of the asset based on given filename.
 eval $(echo "$response" | grep -m 1 "id.:" | grep -w id | tr : = | tr -cd '[[:alnum:]]=')
 [ "$id" ] || { echo "Error: Failed to get release id for tag: $tag"; echo "$response" | awk 'length($0)<100' >&2; exit 1; }
+
+# Get list of assets
+curl $GH_REPO/releases/$id/assets | json -Ma id | while read -r line ; do
+  curl -X DELETE -H "$AUTH" $GH_REPO/releases/assets/$line
+done
 
 # Upload asset
 for filename in "${files[@]}"

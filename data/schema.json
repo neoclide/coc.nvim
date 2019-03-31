@@ -583,7 +583,7 @@
       "default": "more",
       "enum": ["more", "warning", "error"]
     },
-    "coc.preferences.bracketEnterImprove": {
+    "coc.references.bracketEnterImprove": {
       "type": "boolean",
       "description": "Improve enter inside bracket `<> {} [] ()` by add new empty line below and place cursor to it. Works with `coc#on_enter()`",
       "default": true
