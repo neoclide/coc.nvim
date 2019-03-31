@@ -65,11 +65,15 @@ function! coc#rpc#stop()
 endfunction
 
 function! coc#rpc#restart()
-  call coc#rpc#request('detach', [])
-  sleep 100m
-  let s:client['command'] = coc#util#job_command()
-  call coc#client#restart(s:name)
-  echohl MoreMsg | echon 'starting coc.nvim service' | echohl None
+  if empty(s:client)
+    call coc#rpc#start_server()
+  else
+    call coc#rpc#request('detach', [])
+    sleep 100m
+    let s:client['command'] = coc#util#job_command()
+    call coc#client#restart(s:name)
+    echohl MoreMsg | echom 'starting coc.nvim service' | echohl None
+  endif
 endfunction
 
 function! coc#rpc#request(method, args) abort
