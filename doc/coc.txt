@@ -290,9 +290,10 @@ g:coc_user_config 				*g:coc_user_config*
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 
-			Global extension names, define this variable to
-			list of extension names when you can't use
-			|coc#add_extension()|
+			Global extension names to install when not exists,
+			define this variable to list of extension names when
+			you can't use |coc#add_extension()|
+
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
 			Open location list when locations changes.

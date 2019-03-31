@@ -585,10 +585,10 @@ function! coc#util#open_url(url)
 endfunction
 
 function! coc#util#install(...) abort
-  let l:terminal = get(get(a:, 1, {}), 'terminal', 0)
-  let l:tag = get(get(a:, 1, {}), 'tag', 0)
-  let obj = json_decode(join(readfile(s:package_file)))
-  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (l:tag ? ' ' : ' nightly')
+  let opts = get(a:, 1, {})
+  let l:terminal = get(opts, 'terminal', 0)
+  let tag = get(opts, 'tag', 0)
+  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (tag ? '' : ' nightly')
   function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
     if s:is_vim
