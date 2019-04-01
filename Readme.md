@@ -164,7 +164,7 @@ Extensions are powerful than configured language server. Checkout
   and `razor`.
 - **[coc-css](https://github.com/neoclide/coc-css)** for `css`, `scss` and `less`.
 - **[coc-vetur](https://github.com/neoclide/coc-vetur)** for `vue`, use [vetur](https://github.com/vuejs/vetur).
-- **[coc-phpls](https://github.com/marlonfan/coc-phpls)** for `php`, use [intelephense-server](https://github.com/bmewburn/intelephense-server).
+- **[coc-phpls](https://github.com/marlonfan/coc-phpls)** for `php`, use [intelephense-docs](https://github.com/bmewburn/intelephense-docs).
 - **[coc-java](https://github.com/neoclide/coc-java)** for `java`, use [eclipse.jdt.ls](https://github.com/eclipse/eclipse.jdt.ls).
 - **[coc-solargraph](https://github.com/neoclide/coc-solargraph)** for `ruby`,
   use [solargraph](http://solargraph.org/).
