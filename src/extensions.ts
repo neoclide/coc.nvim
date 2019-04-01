@@ -221,8 +221,14 @@ export class Extensions {
   public async installExtensions(): Promise<void> {
     let list = await workspace.nvim.getVar('coc_global_extensions') as string[]
     if (list.length) {
+      let extension = JSON.parse(fs.readFileSync(this.db.filepath, 'utf8') || '{}').extension
       list = distinct(list)
-      list = list.filter(name => !this.has(name))
+      list = list.filter(name => {
+        if (this.has(name)) return false
+        if (/^\w+:/.test(name) && this.packageNameFromUrl(name)) return false
+        if (extension && extension[name] && extension[name].disabled == true) return false
+        return true
+      })
       if (list.length) workspace.nvim.command(`CocInstall ${list.join(' ')}`, true)
     }
   }
