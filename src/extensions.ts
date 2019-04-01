@@ -63,7 +63,6 @@ export class Extensions {
     this.db = workspace.createDatabase('db')
     let stats = this.globalExtensionStats()
     if (process.env.COC_NO_PLUGINS) return
-    this.installExtensions = debounce(this.installExtensions, 200)
     if (global.hasOwnProperty('__TEST__')) {
       this._onReady.fire()
       return
@@ -187,14 +186,8 @@ export class Extensions {
   }
 
   public async addExtensions(): Promise<void> {
-    let { nvim } = workspace
     let { globalExtensions, localExtensions, watchExtensions } = workspace.env
-    let list = globalExtensions
-    if (list && list.length) {
-      list = distinct(list)
-      list = list.filter(name => !this.has(name))
-      if (list.length) nvim.command(`CocInstall ${list.join(' ')}`, true)
-    }
+    this.installExtensions(globalExtensions)
     if (localExtensions.length) {
       localExtensions = distinct(localExtensions)
       await Promise.all(localExtensions.map(folder => {
@@ -218,9 +211,8 @@ export class Extensions {
     }
   }
 
-  public async installExtensions(): Promise<void> {
-    let list = await workspace.nvim.getVar('coc_global_extensions') as string[]
-    if (list.length) {
+  public installExtensions(list: string[]): void {
+    if (list && list.length) {
       let extension = JSON.parse(fs.readFileSync(this.db.filepath, 'utf8') || '{}').extension
       list = distinct(list)
       list = list.filter(name => {
