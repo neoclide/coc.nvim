@@ -148,6 +148,7 @@ export class Completion implements Disposable {
       autoTrigger,
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
+      removeDuplicatedLowerPriority: getConfig<boolean>('noselect', true),
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       reloadPumOnInsertChar: suggest.get<boolean>('reloadPumOnInsertChar', false),
       enablePreview: getConfig<boolean>('enablePreview', false),
