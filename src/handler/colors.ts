@@ -92,6 +92,7 @@ export default class Colors {
   }
 
   public async highlightColors(document: Document, force = false): Promise<void> {
+    if (!this.enabled) return
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
     let { version, changedtick } = document
     let highlighter = this.getHighlighter(document.bufnr)
