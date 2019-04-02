@@ -28,7 +28,7 @@ import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
 import { wait } from './util'
 import * as complete from './util/complete'
-import { getChangedPosition } from './util/position'
+import { getChangedPosition, rangeOverlap } from './util/position'
 import { byteLength } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
@@ -595,6 +595,16 @@ class Languages {
         if (vimItem.line) Object.assign(opt, { line: vimItem.line })
         let snippet = await this.applyTextEdit(item, opt)
         let { additionalTextEdits } = item
+        if (additionalTextEdits && item.textEdit) {
+          let r = item.textEdit.range
+          additionalTextEdits = additionalTextEdits.filter(edit => {
+            if (rangeOverlap(r, edit.range)) {
+              logger.info('Filtered overlap additionalTextEdit:', edit)
+              return false
+            }
+            return true
+          })
+        }
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
         if (snippet) await snippetManager.selectCurrentPlaceholder()
         if (item.command) commands.execute(item.command)

@@ -4,6 +4,14 @@ export function rangeInRange(r: Range, range: Range): boolean {
   return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0
 }
 
+export function rangeOverlap(r: Range, range: Range): boolean {
+  let { start, end } = r
+  if (comparePosition(start, range.start) < 0 && comparePosition(end, range.end) > 0) {
+    return true
+  }
+  return positionInRange(start, range) == 0 || positionInRange(end, range) == 0
+}
+
 export function lineInRange(line: number, range: Range): boolean {
   let { start, end } = range
   return line >= start.line && line <= end.line
