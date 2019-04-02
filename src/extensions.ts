@@ -213,7 +213,12 @@ export class Extensions {
 
   public installExtensions(list: string[]): void {
     if (list && list.length) {
-      let extension = JSON.parse(fs.readFileSync(this.db.filepath, 'utf8') || '{}').extension
+      let extension: any
+      try {
+        extension = JSON.parse(fs.readFileSync(this.db.filepath, 'utf8') || '{}').extension
+      } catch (e) {
+        // noop
+      }
       list = distinct(list)
       list = list.filter(name => {
         if (this.has(name)) return false
@@ -440,16 +445,16 @@ export class Extensions {
           }
         }, null, disposables)
       } else if (ev == 'workspaceContains') {
-        let check = () => {
-          glob(parts[1], { cwd: workspace.root }, (err, files) => {
+        let check = (cwd: string) => {
+          glob(parts[1], { cwd }, (err, files) => {
             if (err) return
             if (files && files.length) {
               active()
             }
           })
         }
-        check()
-        workspace.onDidChangeWorkspaceFolder(check, null, disposables)
+        check(workspace.cwd)
+        events.on('DirChanged', check, null, disposables)
       } else if (ev == 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = Uri.parse(doc.uri)
