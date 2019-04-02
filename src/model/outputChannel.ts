@@ -79,7 +79,7 @@ export default class BufferChannel implements OutputChannel {
   private async openBuffer(preserveFocus?: boolean): Promise<void> {
     let { nvim } = this
     if (!this.buffer) {
-      await nvim.command(`belowright vs +setl\\ buftype=nofile\\ bufhidden=wipe [coc ${this.name}]`)
+      await nvim.command(`noa belowright vs +setl\\ buftype=nofile\\ bufhidden=wipe [coc ${this.name}]`)
       await nvim.command('setfiletype log')
       let buffer = await nvim.buffer
       await buffer.setOption('swapfile', false)
