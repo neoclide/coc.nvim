@@ -290,6 +290,7 @@ export interface LanguageServerConfig {
   transportPort?: number
   filetypes: string[]
   enable: boolean
+  enableWorkspaceFolders: boolean
   args?: string[]
   cwd?: string
   env?: string[]
@@ -348,6 +349,7 @@ export interface BufferOption {
   filetype: string
   iskeyword: string
   changedtick: number
+  rootPatterns: string[] | null
 }
 
 export interface DiagnosticInfo {
@@ -487,6 +489,7 @@ export interface SourceStat {
 }
 
 export interface CompleteConfig {
+  removeDuplicatedLowerPriority: boolean
   enablePreview: boolean
   maxPreviewWidth: number
   autoTrigger: string

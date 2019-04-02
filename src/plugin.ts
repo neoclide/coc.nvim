@@ -17,6 +17,7 @@ import sources from './sources'
 import { Autocmd, OutputChannel } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
+import debounce = require('debounce')
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
@@ -35,9 +36,10 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listNames', () => {
       return listManager.names
     })
-    this.addMethod('installExtensions', () => {
-      return extensions.installExtensions()
-    })
+    this.addMethod('installExtensions', debounce(async () => {
+      let list = await nvim.getVar('coc_global_extensions') as string[]
+      return extensions.installExtensions(list)
+    }, 200))
     this.addMethod('commandList', () => {
       return commandManager.commandList.map(o => o.id)
     })
