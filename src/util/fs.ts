@@ -58,11 +58,24 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
 
 export function resolveRoot(cwd: string, subs: string[]): string | null {
   let home = os.homedir()
+  if (home.startsWith(cwd)) return null
   let { root } = path.parse(cwd)
-  let p = findUp.sync(subs, { cwd })
-  p = p == null ? null : path.dirname(p)
-  if (p == null || p == home || p == root) return cwd
-  return p
+  if (root == cwd) return null
+  let parts = cwd.split(path.sep)
+  let curr: string[] = [parts.shift()]
+  for (let part of parts) {
+    curr.push(part)
+    let dir = curr.join(path.sep)
+    if (dir != home && inDirectory(dir, subs)) {
+      return dir
+    }
+  }
+  return null
+}
+
+export function inDirectory(dir: string, subs: string[]): boolean {
+  let files = fs.readdirSync(dir)
+  return files.findIndex(f => subs.indexOf(f) !== -1) !== -1
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {

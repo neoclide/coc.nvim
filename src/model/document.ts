@@ -25,11 +25,12 @@ export default class Document {
   private colorId = 1080
   private nvim: Neovim
   private eol = true
-  private _filetype: string
   private attached = false
   // real current lines
   private lines: string[] = []
+  private _filetype: string
   private _uri: string
+  private _rootPatterns: string[]
   private _changedtick: number
   private _words: string[] = []
   private _onDocumentChange = new Emitter<DidChangeTextDocumentParams>()
@@ -107,6 +108,7 @@ export default class Document {
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
     this._changedtick = opts.changedtick
+    this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
     if (this.shouldAttach(buftype)) {
@@ -577,5 +579,9 @@ export default class Document {
   public getDocumentContent(): string {
     let content = this.lines.join('\n')
     return this.eol ? content + '\n' : content
+  }
+
+  public get rootPatterns(): string[] | null {
+    return this._rootPatterns
   }
 }

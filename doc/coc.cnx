@@ -284,6 +284,15 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 变量 						*coc-variables*
 
+
+b:coc_root_patterns 				*b:coc_root_patterns*
+
+			当前 buffer 的 workspaceFolder 定位文件列表，用于覆盖
+			全局的 `"coc.preferences.rootPatterns"` 设置。 例如: >
+
+			autocmd FileType python let b:coc_root_patterns =
+						\ ['.git', '.env']
+
 b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			用于针对特定 buffer 禁用补全，例如: >

@@ -4,10 +4,11 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RPCMessageType, ServerCapabilities, WorkspaceFolder, WorkspaceFoldersRequest } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, DidChangeWorkspaceFoldersNotification, DidChangeWorkspaceFoldersParams, Disposable, InitializeParams, RPCMessageType, ServerCapabilities, WorkspaceFoldersRequest, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
 import workspace from '../workspace'
 import { BaseLanguageClient, DynamicFeature, NextSignature, RegistrationData } from './client'
 import * as UUID from './utils/uuid'
+const logger = require('../util/logger')('language-client-workspaceFolder')
 
 function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | undefined {
   if (target === void 0) {
@@ -18,26 +19,14 @@ function access<T, K extends keyof T>(target: T | undefined, key: K): T[K] | und
 
 export interface WorkspaceFolderWorkspaceMiddleware {
   workspaceFolders?: WorkspaceFoldersRequest.MiddlewareSignature
-  didChangeWorkspaceFolders?: NextSignature<WorkspaceFolder, void>
+  didChangeWorkspaceFolders?: NextSignature<WorkspaceFoldersChangeEvent, void>
 }
 
 export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
 
   private _listeners: Map<string, Disposable> = new Map<string, Disposable>()
-  private folders: WorkspaceFolder[] = []
 
   constructor(private _client: BaseLanguageClient) {
-    let folder = workspace.workspaceFolder
-    if (folder) this.folders.push(folder)
-    workspace.onDidChangeWorkspaceFolder(folder => {
-      if (!this.exists(folder)) {
-        this.folders.push(folder)
-      }
-    })
-  }
-
-  private exists(folder: WorkspaceFolder): boolean {
-    return this.folders.findIndex(o => o.uri == folder.uri) != -1
   }
 
   public get messages(): RPCMessageType {
@@ -45,13 +34,7 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
   }
 
   public fillInitializeParams(params: InitializeParams): void {
-    let folder = workspace.workspaceFolder
-
-    if (folder == null) {
-      params.workspaceFolders = null
-    } else {
-      params.workspaceFolders = [folder]
-    }
+    params.workspaceFolders = workspace.workspaceFolders
   }
 
   public fillClientCapabilities(capabilities: ClientCapabilities): void {
@@ -63,11 +46,8 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
     let client = this._client
     client.onRequest(WorkspaceFoldersRequest.type, (token: CancellationToken) => {
       let workspaceFolders: WorkspaceFoldersRequest.HandlerSignature = () => {
-        let { folders } = this
-        if (folders.length == 0) {
-          return null
-        }
-        return folders
+        let { workspaceFolders } = workspace
+        return workspaceFolders.length ? workspaceFolders : null
       }
       let middleware = client.clientOptions.middleware!.workspace
       return middleware && middleware.workspaceFolders
@@ -92,15 +72,9 @@ export class WorkspaceFoldersFeature implements DynamicFeature<undefined> {
   public register(_message: RPCMessageType, data: RegistrationData<undefined>): void {
     let id = data.id
     let client = this._client
-    let disposable = workspace.onDidChangeWorkspaceFolder(event => {
-      if (this.exists(event)) return
-      let didChangeWorkspaceFolders = (event: WorkspaceFolder) => {
-        let params: DidChangeWorkspaceFoldersParams = {
-          event: {
-            added: [event],
-            removed: []
-          }
-        }
+    let disposable = workspace.onDidChangeWorkspaceFolders(event => {
+      let didChangeWorkspaceFolders = (event: WorkspaceFoldersChangeEvent) => {
+        let params: DidChangeWorkspaceFoldersParams = { event }
         this._client.sendNotification(DidChangeWorkspaceFoldersNotification.type, params)
       }
       let middleware = client.clientOptions.middleware!.workspace

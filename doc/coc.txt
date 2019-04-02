@@ -261,6 +261,16 @@ mode, 'v_' works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+b:coc_root_patterns 				*b:coc_root_patterns*
+
+			Root patterns used for resolve workspaceFolder for
+			current file, will be used instead of
+			`"coc.preferences.rootPatterns"` setting. ex: >
+
+			autocmd FileType python let b:coc_root_patterns =
+						\ ['.git', '.env']
+<
+
 b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			Disable completion support of current buffer. ex: >

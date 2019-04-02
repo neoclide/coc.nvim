@@ -128,6 +128,14 @@ export class CommandManager implements Disposable {
       }
     })
     this.register({
+      id: 'workspace.workspaceFolders',
+      execute: async () => {
+        let folders = workspace.workspaceFolders
+        let lines = folders.map(folder => URI.parse(folder.uri).fsPath)
+        await workspace.echoLines(lines)
+      }
+    })
+    this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
         if (name) {

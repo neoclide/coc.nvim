@@ -3,6 +3,7 @@ import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import rimraf from 'rimraf'
 import Uri from 'vscode-uri'
+import os from 'os'
 import { mkdirp } from '../../util'
 import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
@@ -104,8 +105,19 @@ describe('object test', () => {
 
 describe('resolveRoot', () => {
   test('resolve root consider root path', () => {
-    let res = resolveRoot('/usr', ['.git'])
-    expect(res).toBe('/usr')
+    let res = resolveRoot(__dirname, ['.git'])
+    expect(res).toMatch('coc.nvim')
+  })
+
+  test('should resolve from parent folders', () => {
+    let root = path.resolve(__dirname, '../extensions/snippet-sample')
+    let res = resolveRoot(root, ['package.json'])
+    expect(res.endsWith('coc.nvim')).toBe(true)
+  })
+
+  test('should not resolve to home', () => {
+    let res = resolveRoot(__dirname, ['.config'])
+    expect(res != os.homedir()).toBeTruthy()
   })
 })
 

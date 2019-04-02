@@ -641,6 +641,7 @@ export interface LanguageClientOptions {
   documentSelector?: DocumentSelector | string[]
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
+  disableWorkspaceFolders?: boolean
   outputChannelName?: string
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
@@ -658,6 +659,7 @@ export interface LanguageClientOptions {
 
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
+  disableWorkspaceFolders?: boolean
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -3111,6 +3113,7 @@ export abstract class BaseLanguageClient {
     this._name = name
     clientOptions = clientOptions || {}
     this._clientOptions = {
+      disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
@@ -3541,48 +3544,43 @@ export abstract class BaseLanguageClient {
     return this._connectionPromise
   }
 
+  private resolveRootPath(): string | null {
+    if (this._clientOptions.workspaceFolder) {
+      return Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+    }
+    let { ignoredRootPaths } = this._clientOptions
+    let config = workspace.getConfiguration(this.id)
+    let rootPatterns = config.get<string[]>('rootPatterns', [])
+    let required = config.get<boolean>('requireRootPattern', false)
+    let resolved: string
+    if (rootPatterns && rootPatterns.length) {
+      let doc = workspace.getDocument(workspace.bufnr)
+      if (doc && doc.schema == 'file') {
+        let dir = path.dirname(Uri.parse(doc.uri).fsPath)
+        resolved = resolveRoot(dir, rootPatterns)
+      }
+    }
+    if (required && !resolved) return null
+    let rootPath = resolved || workspace.rootPath || workspace.cwd
+    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
+      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
+      return null
+    }
+    return rootPath
+  }
+
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
     let initOption = this._clientOptions.initializationOptions
-    let rootPath = workspace.rootPath
-    if (this._clientOptions.workspaceFolder) {
-      rootPath = Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
-    } else {
-      let config = workspace.getConfiguration(this.id)
-      let rootPatterns = config.get<string[]>('rootPatterns', [])
-      let required = config.get<boolean>('requireRootPattern', false)
-      let resolved: string
-      if (rootPatterns && rootPatterns.length) {
-        let doc = workspace.getDocument(workspace.bufnr)
-        if (doc && doc.schema == 'file') {
-          let dir = path.dirname(Uri.parse(doc.uri).fsPath)
-          resolved = resolveRoot(dir, rootPatterns)
-        }
-      }
-      if (resolved) rootPath = resolved
-      if (required && !resolved) {
-        logger.info(`No root pattern found for ${this.id}`, rootPatterns)
-        return
-      }
-    }
-    let { ignoredRootPaths } = this._clientOptions
-    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
-      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
-      return
-    }
-    let workspaceFolder = this._clientOptions.workspaceFolder || {
-      uri: Uri.file(rootPath).toString(),
-      name: path.basename(rootPath)
-    }
-
-    let initParams: InitializeParams = {
+    let rootPath = this.resolveRootPath()
+    if (!rootPath) return
+    let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
       rootUri: rootPath ? cv.asUri(Uri.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),
-      workspaceFolders: [workspaceFolder]
     }
     this.fillInitializeParams(initParams)
     return connection

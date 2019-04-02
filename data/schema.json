@@ -15,6 +15,11 @@
           "default": "",
           "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
         },
+        "disableWorkspaceFolders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable workspaceFolders feature for this languageserver."
+        },
         "env": {
           "type": "object",
           "default": null,
@@ -94,6 +99,7 @@
           "description": "Host of server"
         },
         "enable": {},
+        "disableWorkspaceFolders": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},
@@ -150,6 +156,7 @@
         "cwd": {},
         "env": {},
         "enable": {},
+        "disableWorkspaceFolders": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},
@@ -193,6 +200,7 @@
         "cwd": {},
         "env": {},
         "enable": {},
+        "disableWorkspaceFolders": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},

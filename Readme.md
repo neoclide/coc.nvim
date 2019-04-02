@@ -114,6 +114,8 @@ Below are the reasons that led coc.nvim to build its own engine:
 
 - [Using configuration file](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file)
 
+- [Using workspaceFolders](https://github.com/neoclide/coc.nvim/wiki/Using-workspaceFolders)
+
 - [Language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers)
 
   - [Supported features](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)

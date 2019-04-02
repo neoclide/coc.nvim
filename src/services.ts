@@ -2,7 +2,6 @@ import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
-import path from 'path'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
 import which from 'which'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
@@ -349,10 +348,12 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   if (documentSelector.length == 0) {
     documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }]
   }
+  let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
   ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
+    disableWorkspaceFolders,
     documentSelector,
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {

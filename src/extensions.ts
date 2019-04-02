@@ -119,12 +119,9 @@ export class Extensions {
     for (let stat of stats) {
       if (stat.exotic) continue
       let file = path.join(stat.root, 'package.json')
-      try {
-        let content = await readFile(file, 'utf8')
-        let obj = JSON.parse(content)
+      let obj = loadJson(file)
+      if (obj && obj.version) {
         versionInfo[stat.id] = obj.version
-      } catch (e) {
-        logger.error(e.stack)
       }
     }
     let outdated: string[] = []
@@ -213,12 +210,8 @@ export class Extensions {
 
   public installExtensions(list: string[]): void {
     if (list && list.length) {
-      let extension: any
-      try {
-        extension = JSON.parse(fs.readFileSync(this.db.filepath, 'utf8') || '{}').extension
-      } catch (e) {
-        // noop
-      }
+      let db = loadJson(this.db.filepath)
+      let extension = db ? db.extension : null
       list = distinct(list)
       list = list.filter(name => {
         if (this.has(name)) return false
@@ -666,15 +659,9 @@ export class Extensions {
       let version = ''
       let description = ''
       let jsonFile = path.join(root, 'package.json')
-      if (fs.existsSync(jsonFile)) {
-        try {
-          let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
-          version = obj.version || ''
-          description = obj.description || ''
-        } catch (e) {
-          logger.error(e)
-        }
-      }
+      let obj = loadJson(jsonFile)
+      version = obj ? obj.version || '' : ''
+      description = obj ? obj.description || '' : ''
       res.push({
         id: key,
         version,

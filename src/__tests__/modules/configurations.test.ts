@@ -122,6 +122,16 @@ describe('Configurations', () => {
     expect(config.contents).toEqual({})
   })
 
+  it('should update workspace config', () => {
+    let conf = new Configurations()
+    conf.updateUserConfig({ foo: { bar: 1 } })
+    let curr = conf.getConfiguration('foo')
+    curr.update('bar', 2, false)
+    curr = conf.getConfiguration('foo')
+    let n = curr.get<number>('bar')
+    expect(n).toBe(2)
+  })
+
   it('should handle errors', () => {
     let tmpFile = path.join(os.tmpdir(), uuidv1())
     fs.writeFileSync(tmpFile, '{"x":', 'utf8')

@@ -34,7 +34,7 @@ afterEach(async () => {
 describe('workspace properties', () => {
 
   it('should have initialized', () => {
-    let { nvim, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
+    let { nvim, workspaceFolders, channelNames, rootPath, cwd, documents, initialized, textDocuments } = workspace
     expect(nvim).toBeTruthy()
     expect(initialized).toBe(true)
     expect(channelNames.length).toBe(0)
@@ -42,6 +42,15 @@ describe('workspace properties', () => {
     expect(textDocuments.length).toBe(1)
     expect(rootPath).toBe(process.cwd())
     expect(cwd).toBe(process.cwd())
+    expect(workspaceFolders.length).toBe(0)
+  })
+
+  it('should add workspaceFolder', async () => {
+    await helper.edit()
+    let { workspaceFolders, workspaceFolder } = workspace
+    expect(workspaceFolders.length).toBe(1)
+    expect(workspaceFolders[0].name).toBe('coc.nvim')
+    expect(workspaceFolder.name).toBe('coc.nvim')
   })
 
   it('should check isVim and isNvim', async () => {

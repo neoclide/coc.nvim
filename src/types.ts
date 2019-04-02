@@ -288,9 +288,9 @@ export interface LanguageServerConfig {
   command?: string
   transport?: string
   transportPort?: number
+  disableWorkspaceFolders?: boolean
   filetypes: string[]
   enable: boolean
-  enableWorkspaceFolders: boolean
   args?: string[]
   cwd?: string
   env?: string[]
@@ -300,6 +300,7 @@ export interface LanguageServerConfig {
   detached?: boolean
   shell?: boolean
   execArgv?: string[]
+  rootPatterns?: string[]
   ignoredRootPaths?: string[]
   initializationOptions?: any
   revealOutputChannelOn?: string

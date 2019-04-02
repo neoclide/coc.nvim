@@ -36,6 +36,11 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listNames', () => {
       return listManager.names
     })
+    this.addMethod('rootPatterns', bufnr => {
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return null
+      return workspace.getRootPatterns(doc)
+    })
     this.addMethod('installExtensions', debounce(async () => {
       let list = await nvim.getVar('coc_global_extensions') as string[]
       return extensions.installExtensions(list)
@@ -134,6 +139,7 @@ export default class Plugin extends EventEmitter {
     } catch (e) {
       this.ready = false
       console.error(`Error on initialize: ${e.message}`) // tslint:disable-line
+      logger.error(e.stack)
     }
 
     workspace.onDidOpenTextDocument(async doc => {

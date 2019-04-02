@@ -272,7 +272,12 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
+        \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
         \}
+endfunction
+
+function! coc#util#root_patterns()
+  return coc#rpc#request('rootPatterns', [bufnr('%')])
 endfunction
 
 function! coc#util#on_error(msg) abort
