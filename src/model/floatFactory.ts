@@ -189,6 +189,7 @@ export default class FloatFactory implements Disposable {
       window.setVar('float', 1, true)
       window.setCursor([1, 1], true)
       window.setOption('list', false, true)
+      window.setOption('listchars', 'eol: ', true)
       window.setOption('wrap', false, true)
       window.setOption('previewwindow', true, true)
       window.setOption('number', false, true)
