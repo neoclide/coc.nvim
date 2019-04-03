@@ -132,38 +132,36 @@ process.on('unhandledRejection', function (reason, p) {
 /* 1 */
 /***/ (function(module, exports) {
 
-exports = module.exports = SemVer
+exports = module.exports = SemVer;
 
-var debug
-/* istanbul ignore next */
-if (typeof process === 'object' &&
-    process.env &&
-    process.env.NODE_DEBUG &&
-    /\bsemver\b/i.test(process.env.NODE_DEBUG)) {
-  debug = function () {
-    var args = Array.prototype.slice.call(arguments, 0)
-    args.unshift('SEMVER')
-    console.log.apply(console, args)
-  }
-} else {
-  debug = function () {}
-}
+// The debug function is excluded entirely from the minified version.
+/* nomin */ var debug;
+/* nomin */ if (typeof process === 'object' &&
+    /* nomin */ process.env &&
+    /* nomin */ process.env.NODE_DEBUG &&
+    /* nomin */ /\bsemver\b/i.test(process.env.NODE_DEBUG))
+  /* nomin */ debug = function() {
+    /* nomin */ var args = Array.prototype.slice.call(arguments, 0);
+    /* nomin */ args.unshift('SEMVER');
+    /* nomin */ console.log.apply(console, args);
+    /* nomin */ };
+/* nomin */ else
+  /* nomin */ debug = function() {};
 
 // Note: this is the semver.org version of the spec that it implements
 // Not necessarily the package version of this code.
-exports.SEMVER_SPEC_VERSION = '2.0.0'
+exports.SEMVER_SPEC_VERSION = '2.0.0';
 
-var MAX_LENGTH = 256
-var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
-  /* istanbul ignore next */ 9007199254740991
+var MAX_LENGTH = 256;
+var MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER || 9007199254740991;
 
 // Max safe segment length for coercion.
-var MAX_SAFE_COMPONENT_LENGTH = 16
+var MAX_SAFE_COMPONENT_LENGTH = 16;
 
 // The actual regexps go on exports.re
-var re = exports.re = []
-var src = exports.src = []
-var R = 0
+var re = exports.re = [];
+var src = exports.src = [];
+var R = 0;
 
 // The following Regular Expressions can be used for tokenizing,
 // validating, and parsing SemVer version strings.
@@ -171,67 +169,71 @@ var R = 0
 // ## Numeric Identifier
 // A single `0`, or a non-zero digit followed by zero or more digits.
 
-var NUMERICIDENTIFIER = R++
-src[NUMERICIDENTIFIER] = '0|[1-9]\\d*'
-var NUMERICIDENTIFIERLOOSE = R++
-src[NUMERICIDENTIFIERLOOSE] = '[0-9]+'
+var NUMERICIDENTIFIER = R++;
+src[NUMERICIDENTIFIER] = '0|[1-9]\\d*';
+var NUMERICIDENTIFIERLOOSE = R++;
+src[NUMERICIDENTIFIERLOOSE] = '[0-9]+';
+
 
 // ## Non-numeric Identifier
 // Zero or more digits, followed by a letter or hyphen, and then zero or
 // more letters, digits, or hyphens.
 
-var NONNUMERICIDENTIFIER = R++
-src[NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*'
+var NONNUMERICIDENTIFIER = R++;
+src[NONNUMERICIDENTIFIER] = '\\d*[a-zA-Z-][a-zA-Z0-9-]*';
+
 
 // ## Main Version
 // Three dot-separated numeric identifiers.
 
-var MAINVERSION = R++
+var MAINVERSION = R++;
 src[MAINVERSION] = '(' + src[NUMERICIDENTIFIER] + ')\\.' +
                    '(' + src[NUMERICIDENTIFIER] + ')\\.' +
-                   '(' + src[NUMERICIDENTIFIER] + ')'
+                   '(' + src[NUMERICIDENTIFIER] + ')';
 
-var MAINVERSIONLOOSE = R++
+var MAINVERSIONLOOSE = R++;
 src[MAINVERSIONLOOSE] = '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
                         '(' + src[NUMERICIDENTIFIERLOOSE] + ')\\.' +
-                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')'
+                        '(' + src[NUMERICIDENTIFIERLOOSE] + ')';
 
 // ## Pre-release Version Identifier
 // A numeric identifier, or a non-numeric identifier.
 
-var PRERELEASEIDENTIFIER = R++
+var PRERELEASEIDENTIFIER = R++;
 src[PRERELEASEIDENTIFIER] = '(?:' + src[NUMERICIDENTIFIER] +
-                            '|' + src[NONNUMERICIDENTIFIER] + ')'
+                            '|' + src[NONNUMERICIDENTIFIER] + ')';
 
-var PRERELEASEIDENTIFIERLOOSE = R++
+var PRERELEASEIDENTIFIERLOOSE = R++;
 src[PRERELEASEIDENTIFIERLOOSE] = '(?:' + src[NUMERICIDENTIFIERLOOSE] +
-                                 '|' + src[NONNUMERICIDENTIFIER] + ')'
+                                 '|' + src[NONNUMERICIDENTIFIER] + ')';
+
 
 // ## Pre-release Version
 // Hyphen, followed by one or more dot-separated pre-release version
 // identifiers.
 
-var PRERELEASE = R++
+var PRERELEASE = R++;
 src[PRERELEASE] = '(?:-(' + src[PRERELEASEIDENTIFIER] +
-                  '(?:\\.' + src[PRERELEASEIDENTIFIER] + ')*))'
+                  '(?:\\.' + src[PRERELEASEIDENTIFIER] + ')*))';
 
-var PRERELEASELOOSE = R++
+var PRERELEASELOOSE = R++;
 src[PRERELEASELOOSE] = '(?:-?(' + src[PRERELEASEIDENTIFIERLOOSE] +
-                       '(?:\\.' + src[PRERELEASEIDENTIFIERLOOSE] + ')*))'
+                       '(?:\\.' + src[PRERELEASEIDENTIFIERLOOSE] + ')*))';
 
 // ## Build Metadata Identifier
 // Any combination of digits, letters, or hyphens.
 
-var BUILDIDENTIFIER = R++
-src[BUILDIDENTIFIER] = '[0-9A-Za-z-]+'
+var BUILDIDENTIFIER = R++;
+src[BUILDIDENTIFIER] = '[0-9A-Za-z-]+';
 
 // ## Build Metadata
 // Plus sign, followed by one or more period-separated build metadata
 // identifiers.
 
-var BUILD = R++
+var BUILD = R++;
 src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
-             '(?:\\.' + src[BUILDIDENTIFIER] + ')*))'
+             '(?:\\.' + src[BUILDIDENTIFIER] + ')*))';
+
 
 // ## Full Version String
 // A main version, followed optionally by a pre-release version and
@@ -242,894 +244,802 @@ src[BUILD] = '(?:\\+(' + src[BUILDIDENTIFIER] +
 // capturing group, because it should not ever be used in version
 // comparison.
 
-var FULL = R++
+var FULL = R++;
 var FULLPLAIN = 'v?' + src[MAINVERSION] +
                 src[PRERELEASE] + '?' +
-                src[BUILD] + '?'
+                src[BUILD] + '?';
 
-src[FULL] = '^' + FULLPLAIN + '$'
+src[FULL] = '^' + FULLPLAIN + '$';
 
 // like full, but allows v1.2.3 and =1.2.3, which people do sometimes.
 // also, 1.0.0alpha1 (prerelease without the hyphen) which is pretty
 // common in the npm registry.
 var LOOSEPLAIN = '[v=\\s]*' + src[MAINVERSIONLOOSE] +
                  src[PRERELEASELOOSE] + '?' +
-                 src[BUILD] + '?'
+                 src[BUILD] + '?';
 
-var LOOSE = R++
-src[LOOSE] = '^' + LOOSEPLAIN + '$'
+var LOOSE = R++;
+src[LOOSE] = '^' + LOOSEPLAIN + '$';
 
-var GTLT = R++
-src[GTLT] = '((?:<|>)?=?)'
+var GTLT = R++;
+src[GTLT] = '((?:<|>)?=?)';
 
 // Something like "2.*" or "1.2.x".
 // Note that "x.x" is a valid xRange identifer, meaning "any version"
 // Only the first item is strictly required.
-var XRANGEIDENTIFIERLOOSE = R++
-src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + '|x|X|\\*'
-var XRANGEIDENTIFIER = R++
-src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + '|x|X|\\*'
+var XRANGEIDENTIFIERLOOSE = R++;
+src[XRANGEIDENTIFIERLOOSE] = src[NUMERICIDENTIFIERLOOSE] + '|x|X|\\*';
+var XRANGEIDENTIFIER = R++;
+src[XRANGEIDENTIFIER] = src[NUMERICIDENTIFIER] + '|x|X|\\*';
 
-var XRANGEPLAIN = R++
+var XRANGEPLAIN = R++;
 src[XRANGEPLAIN] = '[v=\\s]*(' + src[XRANGEIDENTIFIER] + ')' +
                    '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
                    '(?:\\.(' + src[XRANGEIDENTIFIER] + ')' +
                    '(?:' + src[PRERELEASE] + ')?' +
                    src[BUILD] + '?' +
-                   ')?)?'
+                   ')?)?';
 
-var XRANGEPLAINLOOSE = R++
+var XRANGEPLAINLOOSE = R++;
 src[XRANGEPLAINLOOSE] = '[v=\\s]*(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
                         '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
                         '(?:\\.(' + src[XRANGEIDENTIFIERLOOSE] + ')' +
                         '(?:' + src[PRERELEASELOOSE] + ')?' +
                         src[BUILD] + '?' +
-                        ')?)?'
+                        ')?)?';
 
-var XRANGE = R++
-src[XRANGE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAIN] + '$'
-var XRANGELOOSE = R++
-src[XRANGELOOSE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAINLOOSE] + '$'
+var XRANGE = R++;
+src[XRANGE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAIN] + '$';
+var XRANGELOOSE = R++;
+src[XRANGELOOSE] = '^' + src[GTLT] + '\\s*' + src[XRANGEPLAINLOOSE] + '$';
 
 // Coercion.
 // Extract anything that could conceivably be a part of a valid semver
-var COERCE = R++
+var COERCE = R++;
 src[COERCE] = '(?:^|[^\\d])' +
               '(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '})' +
               '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
               '(?:\\.(\\d{1,' + MAX_SAFE_COMPONENT_LENGTH + '}))?' +
-              '(?:$|[^\\d])'
+              '(?:$|[^\\d])';
 
 // Tilde ranges.
 // Meaning is "reasonably at or greater than"
-var LONETILDE = R++
-src[LONETILDE] = '(?:~>?)'
+var LONETILDE = R++;
+src[LONETILDE] = '(?:~>?)';
 
-var TILDETRIM = R++
-src[TILDETRIM] = '(\\s*)' + src[LONETILDE] + '\\s+'
-re[TILDETRIM] = new RegExp(src[TILDETRIM], 'g')
-var tildeTrimReplace = '$1~'
+var TILDETRIM = R++;
+src[TILDETRIM] = '(\\s*)' + src[LONETILDE] + '\\s+';
+re[TILDETRIM] = new RegExp(src[TILDETRIM], 'g');
+var tildeTrimReplace = '$1~';
 
-var TILDE = R++
-src[TILDE] = '^' + src[LONETILDE] + src[XRANGEPLAIN] + '$'
-var TILDELOOSE = R++
-src[TILDELOOSE] = '^' + src[LONETILDE] + src[XRANGEPLAINLOOSE] + '$'
+var TILDE = R++;
+src[TILDE] = '^' + src[LONETILDE] + src[XRANGEPLAIN] + '$';
+var TILDELOOSE = R++;
+src[TILDELOOSE] = '^' + src[LONETILDE] + src[XRANGEPLAINLOOSE] + '$';
 
 // Caret ranges.
 // Meaning is "at least and backwards compatible with"
-var LONECARET = R++
-src[LONECARET] = '(?:\\^)'
+var LONECARET = R++;
+src[LONECARET] = '(?:\\^)';
 
-var CARETTRIM = R++
-src[CARETTRIM] = '(\\s*)' + src[LONECARET] + '\\s+'
-re[CARETTRIM] = new RegExp(src[CARETTRIM], 'g')
-var caretTrimReplace = '$1^'
+var CARETTRIM = R++;
+src[CARETTRIM] = '(\\s*)' + src[LONECARET] + '\\s+';
+re[CARETTRIM] = new RegExp(src[CARETTRIM], 'g');
+var caretTrimReplace = '$1^';
 
-var CARET = R++
-src[CARET] = '^' + src[LONECARET] + src[XRANGEPLAIN] + '$'
-var CARETLOOSE = R++
-src[CARETLOOSE] = '^' + src[LONECARET] + src[XRANGEPLAINLOOSE] + '$'
+var CARET = R++;
+src[CARET] = '^' + src[LONECARET] + src[XRANGEPLAIN] + '$';
+var CARETLOOSE = R++;
+src[CARETLOOSE] = '^' + src[LONECARET] + src[XRANGEPLAINLOOSE] + '$';
 
 // A simple gt/lt/eq thing, or just "" to indicate "any version"
-var COMPARATORLOOSE = R++
-src[COMPARATORLOOSE] = '^' + src[GTLT] + '\\s*(' + LOOSEPLAIN + ')$|^$'
-var COMPARATOR = R++
-src[COMPARATOR] = '^' + src[GTLT] + '\\s*(' + FULLPLAIN + ')$|^$'
+var COMPARATORLOOSE = R++;
+src[COMPARATORLOOSE] = '^' + src[GTLT] + '\\s*(' + LOOSEPLAIN + ')$|^$';
+var COMPARATOR = R++;
+src[COMPARATOR] = '^' + src[GTLT] + '\\s*(' + FULLPLAIN + ')$|^$';
+
 
 // An expression to strip any whitespace between the gtlt and the thing
 // it modifies, so that `> 1.2.3` ==> `>1.2.3`
-var COMPARATORTRIM = R++
+var COMPARATORTRIM = R++;
 src[COMPARATORTRIM] = '(\\s*)' + src[GTLT] +
-                      '\\s*(' + LOOSEPLAIN + '|' + src[XRANGEPLAIN] + ')'
+                      '\\s*(' + LOOSEPLAIN + '|' + src[XRANGEPLAIN] + ')';
 
 // this one has to use the /g flag
-re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], 'g')
-var comparatorTrimReplace = '$1$2$3'
+re[COMPARATORTRIM] = new RegExp(src[COMPARATORTRIM], 'g');
+var comparatorTrimReplace = '$1$2$3';
+
 
 // Something like `1.2.3 - 1.2.4`
 // Note that these all use the loose form, because they'll be
 // checked against either the strict or loose comparator form
 // later.
-var HYPHENRANGE = R++
+var HYPHENRANGE = R++;
 src[HYPHENRANGE] = '^\\s*(' + src[XRANGEPLAIN] + ')' +
                    '\\s+-\\s+' +
                    '(' + src[XRANGEPLAIN] + ')' +
-                   '\\s*$'
+                   '\\s*$';
 
-var HYPHENRANGELOOSE = R++
+var HYPHENRANGELOOSE = R++;
 src[HYPHENRANGELOOSE] = '^\\s*(' + src[XRANGEPLAINLOOSE] + ')' +
                         '\\s+-\\s+' +
                         '(' + src[XRANGEPLAINLOOSE] + ')' +
-                        '\\s*$'
+                        '\\s*$';
 
 // Star ranges basically just allow anything at all.
-var STAR = R++
-src[STAR] = '(<|>)?=?\\s*\\*'
+var STAR = R++;
+src[STAR] = '(<|>)?=?\\s*\\*';
 
 // Compile to actual regexp objects.
 // All are flag-free, unless they were created above with a flag.
 for (var i = 0; i < R; i++) {
-  debug(i, src[i])
-  if (!re[i]) {
-    re[i] = new RegExp(src[i])
-  }
+  debug(i, src[i]);
+  if (!re[i])
+    re[i] = new RegExp(src[i]);
 }
 
-exports.parse = parse
-function parse (version, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+exports.parse = parse;
+function parse(version, options) {
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
 
-  if (version instanceof SemVer) {
-    return version
-  }
+  if (version instanceof SemVer)
+    return version;
 
-  if (typeof version !== 'string') {
-    return null
-  }
+  if (typeof version !== 'string')
+    return null;
 
-  if (version.length > MAX_LENGTH) {
-    return null
-  }
+  if (version.length > MAX_LENGTH)
+    return null;
 
-  var r = options.loose ? re[LOOSE] : re[FULL]
-  if (!r.test(version)) {
-    return null
-  }
+  var r = options.loose ? re[LOOSE] : re[FULL];
+  if (!r.test(version))
+    return null;
 
   try {
-    return new SemVer(version, options)
+    return new SemVer(version, options);
   } catch (er) {
-    return null
+    return null;
   }
 }
 
-exports.valid = valid
-function valid (version, options) {
-  var v = parse(version, options)
-  return v ? v.version : null
+exports.valid = valid;
+function valid(version, options) {
+  var v = parse(version, options);
+  return v ? v.version : null;
 }
 
-exports.clean = clean
-function clean (version, options) {
-  var s = parse(version.trim().replace(/^[=v]+/, ''), options)
-  return s ? s.version : null
+
+exports.clean = clean;
+function clean(version, options) {
+  var s = parse(version.trim().replace(/^[=v]+/, ''), options);
+  return s ? s.version : null;
 }
 
-exports.SemVer = SemVer
+exports.SemVer = SemVer;
 
-function SemVer (version, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+function SemVer(version, options) {
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
   if (version instanceof SemVer) {
-    if (version.loose === options.loose) {
-      return version
-    } else {
-      version = version.version
-    }
+    if (version.loose === options.loose)
+      return version;
+    else
+      version = version.version;
   } else if (typeof version !== 'string') {
-    throw new TypeError('Invalid Version: ' + version)
+    throw new TypeError('Invalid Version: ' + version);
   }
 
-  if (version.length > MAX_LENGTH) {
+  if (version.length > MAX_LENGTH)
     throw new TypeError('version is longer than ' + MAX_LENGTH + ' characters')
-  }
 
-  if (!(this instanceof SemVer)) {
-    return new SemVer(version, options)
-  }
+  if (!(this instanceof SemVer))
+    return new SemVer(version, options);
 
-  debug('SemVer', version, options)
-  this.options = options
-  this.loose = !!options.loose
+  debug('SemVer', version, options);
+  this.options = options;
+  this.loose = !!options.loose;
 
-  var m = version.trim().match(options.loose ? re[LOOSE] : re[FULL])
+  var m = version.trim().match(options.loose ? re[LOOSE] : re[FULL]);
 
-  if (!m) {
-    throw new TypeError('Invalid Version: ' + version)
-  }
+  if (!m)
+    throw new TypeError('Invalid Version: ' + version);
 
-  this.raw = version
+  this.raw = version;
 
   // these are actually numbers
-  this.major = +m[1]
-  this.minor = +m[2]
-  this.patch = +m[3]
+  this.major = +m[1];
+  this.minor = +m[2];
+  this.patch = +m[3];
 
-  if (this.major > MAX_SAFE_INTEGER || this.major < 0) {
+  if (this.major > MAX_SAFE_INTEGER || this.major < 0)
     throw new TypeError('Invalid major version')
-  }
 
-  if (this.minor > MAX_SAFE_INTEGER || this.minor < 0) {
+  if (this.minor > MAX_SAFE_INTEGER || this.minor < 0)
     throw new TypeError('Invalid minor version')
-  }
 
-  if (this.patch > MAX_SAFE_INTEGER || this.patch < 0) {
+  if (this.patch > MAX_SAFE_INTEGER || this.patch < 0)
     throw new TypeError('Invalid patch version')
-  }
 
   // numberify any prerelease numeric ids
-  if (!m[4]) {
-    this.prerelease = []
-  } else {
-    this.prerelease = m[4].split('.').map(function (id) {
+  if (!m[4])
+    this.prerelease = [];
+  else
+    this.prerelease = m[4].split('.').map(function(id) {
       if (/^[0-9]+$/.test(id)) {
-        var num = +id
-        if (num >= 0 && num < MAX_SAFE_INTEGER) {
-          return num
-        }
+        var num = +id;
+        if (num >= 0 && num < MAX_SAFE_INTEGER)
+          return num;
       }
-      return id
-    })
-  }
+      return id;
+    });
 
-  this.build = m[5] ? m[5].split('.') : []
-  this.format()
+  this.build = m[5] ? m[5].split('.') : [];
+  this.format();
 }
 
-SemVer.prototype.format = function () {
-  this.version = this.major + '.' + this.minor + '.' + this.patch
-  if (this.prerelease.length) {
-    this.version += '-' + this.prerelease.join('.')
-  }
-  return this.version
-}
+SemVer.prototype.format = function() {
+  this.version = this.major + '.' + this.minor + '.' + this.patch;
+  if (this.prerelease.length)
+    this.version += '-' + this.prerelease.join('.');
+  return this.version;
+};
 
-SemVer.prototype.toString = function () {
-  return this.version
-}
+SemVer.prototype.toString = function() {
+  return this.version;
+};
 
-SemVer.prototype.compare = function (other) {
-  debug('SemVer.compare', this.version, this.options, other)
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
+SemVer.prototype.compare = function(other) {
+  debug('SemVer.compare', this.version, this.options, other);
+  if (!(other instanceof SemVer))
+    other = new SemVer(other, this.options);
 
-  return this.compareMain(other) || this.comparePre(other)
-}
+  return this.compareMain(other) || this.comparePre(other);
+};
 
-SemVer.prototype.compareMain = function (other) {
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
+SemVer.prototype.compareMain = function(other) {
+  if (!(other instanceof SemVer))
+    other = new SemVer(other, this.options);
 
   return compareIdentifiers(this.major, other.major) ||
          compareIdentifiers(this.minor, other.minor) ||
-         compareIdentifiers(this.patch, other.patch)
-}
+         compareIdentifiers(this.patch, other.patch);
+};
 
-SemVer.prototype.comparePre = function (other) {
-  if (!(other instanceof SemVer)) {
-    other = new SemVer(other, this.options)
-  }
+SemVer.prototype.comparePre = function(other) {
+  if (!(other instanceof SemVer))
+    other = new SemVer(other, this.options);
 
   // NOT having a prerelease is > having one
-  if (this.prerelease.length && !other.prerelease.length) {
-    return -1
-  } else if (!this.prerelease.length && other.prerelease.length) {
-    return 1
-  } else if (!this.prerelease.length && !other.prerelease.length) {
-    return 0
-  }
+  if (this.prerelease.length && !other.prerelease.length)
+    return -1;
+  else if (!this.prerelease.length && other.prerelease.length)
+    return 1;
+  else if (!this.prerelease.length && !other.prerelease.length)
+    return 0;
 
-  var i = 0
+  var i = 0;
   do {
-    var a = this.prerelease[i]
-    var b = other.prerelease[i]
-    debug('prerelease compare', i, a, b)
-    if (a === undefined && b === undefined) {
-      return 0
-    } else if (b === undefined) {
-      return 1
-    } else if (a === undefined) {
-      return -1
-    } else if (a === b) {
-      continue
-    } else {
-      return compareIdentifiers(a, b)
-    }
-  } while (++i)
-}
+    var a = this.prerelease[i];
+    var b = other.prerelease[i];
+    debug('prerelease compare', i, a, b);
+    if (a === undefined && b === undefined)
+      return 0;
+    else if (b === undefined)
+      return 1;
+    else if (a === undefined)
+      return -1;
+    else if (a === b)
+      continue;
+    else
+      return compareIdentifiers(a, b);
+  } while (++i);
+};
 
 // preminor will bump the version up to the next minor release, and immediately
 // down to pre-release. premajor and prepatch work the same way.
-SemVer.prototype.inc = function (release, identifier) {
+SemVer.prototype.inc = function(release, identifier) {
   switch (release) {
     case 'premajor':
-      this.prerelease.length = 0
-      this.patch = 0
-      this.minor = 0
-      this.major++
-      this.inc('pre', identifier)
-      break
+      this.prerelease.length = 0;
+      this.patch = 0;
+      this.minor = 0;
+      this.major++;
+      this.inc('pre', identifier);
+      break;
     case 'preminor':
-      this.prerelease.length = 0
-      this.patch = 0
-      this.minor++
-      this.inc('pre', identifier)
-      break
+      this.prerelease.length = 0;
+      this.patch = 0;
+      this.minor++;
+      this.inc('pre', identifier);
+      break;
     case 'prepatch':
       // If this is already a prerelease, it will bump to the next version
       // drop any prereleases that might already exist, since they are not
       // relevant at this point.
-      this.prerelease.length = 0
-      this.inc('patch', identifier)
-      this.inc('pre', identifier)
-      break
+      this.prerelease.length = 0;
+      this.inc('patch', identifier);
+      this.inc('pre', identifier);
+      break;
     // If the input is a non-prerelease version, this acts the same as
     // prepatch.
     case 'prerelease':
-      if (this.prerelease.length === 0) {
-        this.inc('patch', identifier)
-      }
-      this.inc('pre', identifier)
-      break
+      if (this.prerelease.length === 0)
+        this.inc('patch', identifier);
+      this.inc('pre', identifier);
+      break;
 
     case 'major':
       // If this is a pre-major version, bump up to the same major version.
       // Otherwise increment major.
       // 1.0.0-5 bumps to 1.0.0
       // 1.1.0 bumps to 2.0.0
-      if (this.minor !== 0 ||
-          this.patch !== 0 ||
-          this.prerelease.length === 0) {
-        this.major++
-      }
-      this.minor = 0
-      this.patch = 0
-      this.prerelease = []
-      break
+      if (this.minor !== 0 || this.patch !== 0 || this.prerelease.length === 0)
+        this.major++;
+      this.minor = 0;
+      this.patch = 0;
+      this.prerelease = [];
+      break;
     case 'minor':
       // If this is a pre-minor version, bump up to the same minor version.
       // Otherwise increment minor.
       // 1.2.0-5 bumps to 1.2.0
       // 1.2.1 bumps to 1.3.0
-      if (this.patch !== 0 || this.prerelease.length === 0) {
-        this.minor++
-      }
-      this.patch = 0
-      this.prerelease = []
-      break
+      if (this.patch !== 0 || this.prerelease.length === 0)
+        this.minor++;
+      this.patch = 0;
+      this.prerelease = [];
+      break;
     case 'patch':
       // If this is not a pre-release version, it will increment the patch.
       // If it is a pre-release it will bump up to the same patch version.
       // 1.2.0-5 patches to 1.2.0
       // 1.2.0 patches to 1.2.1
-      if (this.prerelease.length === 0) {
-        this.patch++
-      }
-      this.prerelease = []
-      break
+      if (this.prerelease.length === 0)
+        this.patch++;
+      this.prerelease = [];
+      break;
     // This probably shouldn't be used publicly.
     // 1.0.0 "pre" would become 1.0.0-0 which is the wrong direction.
     case 'pre':
-      if (this.prerelease.length === 0) {
-        this.prerelease = [0]
-      } else {
-        var i = this.prerelease.length
+      if (this.prerelease.length === 0)
+        this.prerelease = [0];
+      else {
+        var i = this.prerelease.length;
         while (--i >= 0) {
           if (typeof this.prerelease[i] === 'number') {
-            this.prerelease[i]++
-            i = -2
+            this.prerelease[i]++;
+            i = -2;
           }
         }
-        if (i === -1) {
-          // didn't increment anything
-          this.prerelease.push(0)
-        }
+        if (i === -1) // didn't increment anything
+          this.prerelease.push(0);
       }
       if (identifier) {
         // 1.2.0-beta.1 bumps to 1.2.0-beta.2,
         // 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
         if (this.prerelease[0] === identifier) {
-          if (isNaN(this.prerelease[1])) {
-            this.prerelease = [identifier, 0]
-          }
-        } else {
-          this.prerelease = [identifier, 0]
-        }
+          if (isNaN(this.prerelease[1]))
+            this.prerelease = [identifier, 0];
+        } else
+          this.prerelease = [identifier, 0];
       }
-      break
+      break;
 
     default:
-      throw new Error('invalid increment argument: ' + release)
+      throw new Error('invalid increment argument: ' + release);
   }
-  this.format()
-  this.raw = this.version
-  return this
-}
+  this.format();
+  this.raw = this.version;
+  return this;
+};
 
-exports.inc = inc
-function inc (version, release, loose, identifier) {
-  if (typeof (loose) === 'string') {
-    identifier = loose
-    loose = undefined
+exports.inc = inc;
+function inc(version, release, loose, identifier) {
+  if (typeof(loose) === 'string') {
+    identifier = loose;
+    loose = undefined;
   }
 
   try {
-    return new SemVer(version, loose).inc(release, identifier).version
+    return new SemVer(version, loose).inc(release, identifier).version;
   } catch (er) {
-    return null
+    return null;
   }
 }
 
-exports.diff = diff
-function diff (version1, version2) {
+exports.diff = diff;
+function diff(version1, version2) {
   if (eq(version1, version2)) {
-    return null
+    return null;
   } else {
-    var v1 = parse(version1)
-    var v2 = parse(version2)
-    var prefix = ''
+    var v1 = parse(version1);
+    var v2 = parse(version2);
     if (v1.prerelease.length || v2.prerelease.length) {
-      prefix = 'pre'
-      var defaultResult = 'prerelease'
+      for (var key in v1) {
+        if (key === 'major' || key === 'minor' || key === 'patch') {
+          if (v1[key] !== v2[key]) {
+            return 'pre'+key;
+          }
+        }
+      }
+      return 'prerelease';
     }
     for (var key in v1) {
       if (key === 'major' || key === 'minor' || key === 'patch') {
         if (v1[key] !== v2[key]) {
-          return prefix + key
+          return key;
         }
       }
     }
-    return defaultResult // may be undefined
   }
 }
 
-exports.compareIdentifiers = compareIdentifiers
+exports.compareIdentifiers = compareIdentifiers;
 
-var numeric = /^[0-9]+$/
-function compareIdentifiers (a, b) {
-  var anum = numeric.test(a)
-  var bnum = numeric.test(b)
+var numeric = /^[0-9]+$/;
+function compareIdentifiers(a, b) {
+  var anum = numeric.test(a);
+  var bnum = numeric.test(b);
 
   if (anum && bnum) {
-    a = +a
-    b = +b
+    a = +a;
+    b = +b;
   }
 
-  return a === b ? 0
-    : (anum && !bnum) ? -1
-    : (bnum && !anum) ? 1
-    : a < b ? -1
-    : 1
+  return (anum && !bnum) ? -1 :
+         (bnum && !anum) ? 1 :
+         a < b ? -1 :
+         a > b ? 1 :
+         0;
 }
 
-exports.rcompareIdentifiers = rcompareIdentifiers
-function rcompareIdentifiers (a, b) {
-  return compareIdentifiers(b, a)
+exports.rcompareIdentifiers = rcompareIdentifiers;
+function rcompareIdentifiers(a, b) {
+  return compareIdentifiers(b, a);
 }
 
-exports.major = major
-function major (a, loose) {
-  return new SemVer(a, loose).major
+exports.major = major;
+function major(a, loose) {
+  return new SemVer(a, loose).major;
 }
 
-exports.minor = minor
-function minor (a, loose) {
-  return new SemVer(a, loose).minor
+exports.minor = minor;
+function minor(a, loose) {
+  return new SemVer(a, loose).minor;
 }
 
-exports.patch = patch
-function patch (a, loose) {
-  return new SemVer(a, loose).patch
+exports.patch = patch;
+function patch(a, loose) {
+  return new SemVer(a, loose).patch;
 }
 
-exports.compare = compare
-function compare (a, b, loose) {
-  return new SemVer(a, loose).compare(new SemVer(b, loose))
+exports.compare = compare;
+function compare(a, b, loose) {
+  return new SemVer(a, loose).compare(new SemVer(b, loose));
 }
 
-exports.compareLoose = compareLoose
-function compareLoose (a, b) {
-  return compare(a, b, true)
+exports.compareLoose = compareLoose;
+function compareLoose(a, b) {
+  return compare(a, b, true);
 }
 
-exports.rcompare = rcompare
-function rcompare (a, b, loose) {
-  return compare(b, a, loose)
+exports.rcompare = rcompare;
+function rcompare(a, b, loose) {
+  return compare(b, a, loose);
 }
 
-exports.sort = sort
-function sort (list, loose) {
-  return list.sort(function (a, b) {
-    return exports.compare(a, b, loose)
-  })
+exports.sort = sort;
+function sort(list, loose) {
+  return list.sort(function(a, b) {
+    return exports.compare(a, b, loose);
+  });
 }
 
-exports.rsort = rsort
-function rsort (list, loose) {
-  return list.sort(function (a, b) {
-    return exports.rcompare(a, b, loose)
-  })
+exports.rsort = rsort;
+function rsort(list, loose) {
+  return list.sort(function(a, b) {
+    return exports.rcompare(a, b, loose);
+  });
 }
 
-exports.gt = gt
-function gt (a, b, loose) {
-  return compare(a, b, loose) > 0
+exports.gt = gt;
+function gt(a, b, loose) {
+  return compare(a, b, loose) > 0;
 }
 
-exports.lt = lt
-function lt (a, b, loose) {
-  return compare(a, b, loose) < 0
+exports.lt = lt;
+function lt(a, b, loose) {
+  return compare(a, b, loose) < 0;
 }
 
-exports.eq = eq
-function eq (a, b, loose) {
-  return compare(a, b, loose) === 0
+exports.eq = eq;
+function eq(a, b, loose) {
+  return compare(a, b, loose) === 0;
 }
 
-exports.neq = neq
-function neq (a, b, loose) {
-  return compare(a, b, loose) !== 0
+exports.neq = neq;
+function neq(a, b, loose) {
+  return compare(a, b, loose) !== 0;
 }
 
-exports.gte = gte
-function gte (a, b, loose) {
-  return compare(a, b, loose) >= 0
+exports.gte = gte;
+function gte(a, b, loose) {
+  return compare(a, b, loose) >= 0;
 }
 
-exports.lte = lte
-function lte (a, b, loose) {
-  return compare(a, b, loose) <= 0
+exports.lte = lte;
+function lte(a, b, loose) {
+  return compare(a, b, loose) <= 0;
 }
 
-exports.cmp = cmp
-function cmp (a, op, b, loose) {
+exports.cmp = cmp;
+function cmp(a, op, b, loose) {
+  var ret;
   switch (op) {
     case '===':
-      if (typeof a === 'object')
-        a = a.version
-      if (typeof b === 'object')
-        b = b.version
-      return a === b
-
+      if (typeof a === 'object') a = a.version;
+      if (typeof b === 'object') b = b.version;
+      ret = a === b;
+      break;
     case '!==':
-      if (typeof a === 'object')
-        a = a.version
-      if (typeof b === 'object')
-        b = b.version
-      return a !== b
-
-    case '':
-    case '=':
-    case '==':
-      return eq(a, b, loose)
-
-    case '!=':
-      return neq(a, b, loose)
-
-    case '>':
-      return gt(a, b, loose)
-
-    case '>=':
-      return gte(a, b, loose)
-
-    case '<':
-      return lt(a, b, loose)
-
-    case '<=':
-      return lte(a, b, loose)
-
-    default:
-      throw new TypeError('Invalid operator: ' + op)
+      if (typeof a === 'object') a = a.version;
+      if (typeof b === 'object') b = b.version;
+      ret = a !== b;
+      break;
+    case '': case '=': case '==': ret = eq(a, b, loose); break;
+    case '!=': ret = neq(a, b, loose); break;
+    case '>': ret = gt(a, b, loose); break;
+    case '>=': ret = gte(a, b, loose); break;
+    case '<': ret = lt(a, b, loose); break;
+    case '<=': ret = lte(a, b, loose); break;
+    default: throw new TypeError('Invalid operator: ' + op);
   }
+  return ret;
 }
 
-exports.Comparator = Comparator
-function Comparator (comp, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+exports.Comparator = Comparator;
+function Comparator(comp, options) {
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
 
   if (comp instanceof Comparator) {
-    if (comp.loose === !!options.loose) {
-      return comp
-    } else {
-      comp = comp.value
-    }
+    if (comp.loose === !!options.loose)
+      return comp;
+    else
+      comp = comp.value;
   }
 
-  if (!(this instanceof Comparator)) {
-    return new Comparator(comp, options)
-  }
+  if (!(this instanceof Comparator))
+    return new Comparator(comp, options);
 
-  debug('comparator', comp, options)
-  this.options = options
-  this.loose = !!options.loose
-  this.parse(comp)
+  debug('comparator', comp, options);
+  this.options = options;
+  this.loose = !!options.loose;
+  this.parse(comp);
 
-  if (this.semver === ANY) {
-    this.value = ''
-  } else {
-    this.value = this.operator + this.semver.version
-  }
+  if (this.semver === ANY)
+    this.value = '';
+  else
+    this.value = this.operator + this.semver.version;
 
-  debug('comp', this)
+  debug('comp', this);
 }
 
-var ANY = {}
-Comparator.prototype.parse = function (comp) {
-  var r = this.options.loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
-  var m = comp.match(r)
+var ANY = {};
+Comparator.prototype.parse = function(comp) {
+  var r = this.options.loose ? re[COMPARATORLOOSE] : re[COMPARATOR];
+  var m = comp.match(r);
 
-  if (!m) {
-    throw new TypeError('Invalid comparator: ' + comp)
-  }
+  if (!m)
+    throw new TypeError('Invalid comparator: ' + comp);
 
-  this.operator = m[1]
-  if (this.operator === '=') {
-    this.operator = ''
-  }
+  this.operator = m[1];
+  if (this.operator === '=')
+    this.operator = '';
 
   // if it literally is just '>' or '' then allow anything.
-  if (!m[2]) {
-    this.semver = ANY
-  } else {
-    this.semver = new SemVer(m[2], this.options.loose)
-  }
-}
+  if (!m[2])
+    this.semver = ANY;
+  else
+    this.semver = new SemVer(m[2], this.options.loose);
+};
 
-Comparator.prototype.toString = function () {
-  return this.value
-}
+Comparator.prototype.toString = function() {
+  return this.value;
+};
 
-Comparator.prototype.test = function (version) {
-  debug('Comparator.test', version, this.options.loose)
+Comparator.prototype.test = function(version) {
+  debug('Comparator.test', version, this.options.loose);
 
-  if (this.semver === ANY) {
-    return true
-  }
+  if (this.semver === ANY)
+    return true;
 
-  if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
-  }
+  if (typeof version === 'string')
+    version = new SemVer(version, this.options);
 
-  return cmp(version, this.operator, this.semver, this.options)
-}
+  return cmp(version, this.operator, this.semver, this.options);
+};
 
-Comparator.prototype.intersects = function (comp, options) {
+Comparator.prototype.intersects = function(comp, options) {
   if (!(comp instanceof Comparator)) {
-    throw new TypeError('a Comparator is required')
+    throw new TypeError('a Comparator is required');
   }
 
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
 
-  var rangeTmp
+  var rangeTmp;
 
   if (this.operator === '') {
-    rangeTmp = new Range(comp.value, options)
-    return satisfies(this.value, rangeTmp, options)
+    rangeTmp = new Range(comp.value, options);
+    return satisfies(this.value, rangeTmp, options);
   } else if (comp.operator === '') {
-    rangeTmp = new Range(this.value, options)
-    return satisfies(comp.semver, rangeTmp, options)
+    rangeTmp = new Range(this.value, options);
+    return satisfies(comp.semver, rangeTmp, options);
   }
 
   var sameDirectionIncreasing =
     (this.operator === '>=' || this.operator === '>') &&
-    (comp.operator === '>=' || comp.operator === '>')
+    (comp.operator === '>=' || comp.operator === '>');
   var sameDirectionDecreasing =
     (this.operator === '<=' || this.operator === '<') &&
-    (comp.operator === '<=' || comp.operator === '<')
-  var sameSemVer = this.semver.version === comp.semver.version
+    (comp.operator === '<=' || comp.operator === '<');
+  var sameSemVer = this.semver.version === comp.semver.version;
   var differentDirectionsInclusive =
     (this.operator === '>=' || this.operator === '<=') &&
-    (comp.operator === '>=' || comp.operator === '<=')
+    (comp.operator === '>=' || comp.operator === '<=');
   var oppositeDirectionsLessThan =
     cmp(this.semver, '<', comp.semver, options) &&
     ((this.operator === '>=' || this.operator === '>') &&
-    (comp.operator === '<=' || comp.operator === '<'))
+    (comp.operator === '<=' || comp.operator === '<'));
   var oppositeDirectionsGreaterThan =
     cmp(this.semver, '>', comp.semver, options) &&
     ((this.operator === '<=' || this.operator === '<') &&
-    (comp.operator === '>=' || comp.operator === '>'))
+    (comp.operator === '>=' || comp.operator === '>'));
 
   return sameDirectionIncreasing || sameDirectionDecreasing ||
     (sameSemVer && differentDirectionsInclusive) ||
-    oppositeDirectionsLessThan || oppositeDirectionsGreaterThan
-}
+    oppositeDirectionsLessThan || oppositeDirectionsGreaterThan;
+};
 
-exports.Range = Range
-function Range (range, options) {
-  if (!options || typeof options !== 'object') {
-    options = {
-      loose: !!options,
-      includePrerelease: false
-    }
-  }
+
+exports.Range = Range;
+function Range(range, options) {
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
 
   if (range instanceof Range) {
     if (range.loose === !!options.loose &&
         range.includePrerelease === !!options.includePrerelease) {
-      return range
+      return range;
     } else {
-      return new Range(range.raw, options)
+      return new Range(range.raw, options);
     }
   }
 
   if (range instanceof Comparator) {
-    return new Range(range.value, options)
+    return new Range(range.value, options);
   }
 
-  if (!(this instanceof Range)) {
-    return new Range(range, options)
-  }
+  if (!(this instanceof Range))
+    return new Range(range, options);
 
-  this.options = options
-  this.loose = !!options.loose
+  this.options = options;
+  this.loose = !!options.loose;
   this.includePrerelease = !!options.includePrerelease
 
   // First, split based on boolean or ||
-  this.raw = range
-  this.set = range.split(/\s*\|\|\s*/).map(function (range) {
-    return this.parseRange(range.trim())
-  }, this).filter(function (c) {
+  this.raw = range;
+  this.set = range.split(/\s*\|\|\s*/).map(function(range) {
+    return this.parseRange(range.trim());
+  }, this).filter(function(c) {
     // throw out any that are not relevant for whatever reason
-    return c.length
-  })
+    return c.length;
+  });
 
   if (!this.set.length) {
-    throw new TypeError('Invalid SemVer Range: ' + range)
+    throw new TypeError('Invalid SemVer Range: ' + range);
   }
 
-  this.format()
+  this.format();
 }
 
-Range.prototype.format = function () {
-  this.range = this.set.map(function (comps) {
-    return comps.join(' ').trim()
-  }).join('||').trim()
-  return this.range
-}
+Range.prototype.format = function() {
+  this.range = this.set.map(function(comps) {
+    return comps.join(' ').trim();
+  }).join('||').trim();
+  return this.range;
+};
 
-Range.prototype.toString = function () {
-  return this.range
-}
+Range.prototype.toString = function() {
+  return this.range;
+};
 
-Range.prototype.parseRange = function (range) {
-  var loose = this.options.loose
-  range = range.trim()
+Range.prototype.parseRange = function(range) {
+  var loose = this.options.loose;
+  range = range.trim();
   // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
-  var hr = loose ? re[HYPHENRANGELOOSE] : re[HYPHENRANGE]
-  range = range.replace(hr, hyphenReplace)
-  debug('hyphen replace', range)
+  var hr = loose ? re[HYPHENRANGELOOSE] : re[HYPHENRANGE];
+  range = range.replace(hr, hyphenReplace);
+  debug('hyphen replace', range);
   // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
-  range = range.replace(re[COMPARATORTRIM], comparatorTrimReplace)
-  debug('comparator trim', range, re[COMPARATORTRIM])
+  range = range.replace(re[COMPARATORTRIM], comparatorTrimReplace);
+  debug('comparator trim', range, re[COMPARATORTRIM]);
 
   // `~ 1.2.3` => `~1.2.3`
-  range = range.replace(re[TILDETRIM], tildeTrimReplace)
+  range = range.replace(re[TILDETRIM], tildeTrimReplace);
 
   // `^ 1.2.3` => `^1.2.3`
-  range = range.replace(re[CARETTRIM], caretTrimReplace)
+  range = range.replace(re[CARETTRIM], caretTrimReplace);
 
   // normalize spaces
-  range = range.split(/\s+/).join(' ')
+  range = range.split(/\s+/).join(' ');
 
   // At this point, the range is completely trimmed and
   // ready to be split into comparators.
 
-  var compRe = loose ? re[COMPARATORLOOSE] : re[COMPARATOR]
-  var set = range.split(' ').map(function (comp) {
-    return parseComparator(comp, this.options)
-  }, this).join(' ').split(/\s+/)
+  var compRe = loose ? re[COMPARATORLOOSE] : re[COMPARATOR];
+  var set = range.split(' ').map(function(comp) {
+    return parseComparator(comp, this.options);
+  }, this).join(' ').split(/\s+/);
   if (this.options.loose) {
     // in loose mode, throw out any that are not valid comparators
-    set = set.filter(function (comp) {
-      return !!comp.match(compRe)
-    })
+    set = set.filter(function(comp) {
+      return !!comp.match(compRe);
+    });
   }
-  set = set.map(function (comp) {
-    return new Comparator(comp, this.options)
-  }, this)
+  set = set.map(function(comp) {
+    return new Comparator(comp, this.options);
+  }, this);
 
-  return set
-}
+  return set;
+};
 
-Range.prototype.intersects = function (range, options) {
+Range.prototype.intersects = function(range, options) {
   if (!(range instanceof Range)) {
-    throw new TypeError('a Range is required')
+    throw new TypeError('a Range is required');
   }
 
-  return this.set.some(function (thisComparators) {
-    return (
-      isSatisfiable(thisComparators, options) &&
-      range.set.some(function (rangeComparators) {
-        return (
-          isSatisfiable(rangeComparators, options) &&
-          thisComparators.every(function (thisComparator) {
-            return rangeComparators.every(function (rangeComparator) {
-              return thisComparator.intersects(rangeComparator, options)
-            })
-          })
-        )
-      })
-    )
-  })
-}
-
-// take a set of comparators and determine whether there
-// exists a version which can satisfy it
-function isSatisfiable (comparators, options) {
-  var result = true
-  var remainingComparators = comparators.slice()
-  var testComparator = remainingComparators.pop()
-
-  while (result && remainingComparators.length) {
-    result = remainingComparators.every(function (otherComparator) {
-      return testComparator.intersects(otherComparator, options)
-    })
-
-    testComparator = remainingComparators.pop()
-  }
-
-  return result
-}
+  return this.set.some(function(thisComparators) {
+    return thisComparators.every(function(thisComparator) {
+      return range.set.some(function(rangeComparators) {
+        return rangeComparators.every(function(rangeComparator) {
+          return thisComparator.intersects(rangeComparator, options);
+        });
+      });
+    });
+  });
+};
 
 // Mostly just for testing and legacy API reasons
-exports.toComparators = toComparators
-function toComparators (range, options) {
-  return new Range(range, options).set.map(function (comp) {
-    return comp.map(function (c) {
-      return c.value
-    }).join(' ').trim().split(' ')
-  })
+exports.toComparators = toComparators;
+function toComparators(range, options) {
+  return new Range(range, options).set.map(function(comp) {
+    return comp.map(function(c) {
+      return c.value;
+    }).join(' ').trim().split(' ');
+  });
 }
 
 // comprised of xranges, tildes, stars, and gtlt's at this point.
 // already replaced the hyphen ranges
 // turn into a set of JUST comparators.
-function parseComparator (comp, options) {
-  debug('comp', comp, options)
-  comp = replaceCarets(comp, options)
-  debug('caret', comp)
-  comp = replaceTildes(comp, options)
-  debug('tildes', comp)
-  comp = replaceXRanges(comp, options)
-  debug('xrange', comp)
-  comp = replaceStars(comp, options)
-  debug('stars', comp)
-  return comp
+function parseComparator(comp, options) {
+  debug('comp', comp, options);
+  comp = replaceCarets(comp, options);
+  debug('caret', comp);
+  comp = replaceTildes(comp, options);
+  debug('tildes', comp);
+  comp = replaceXRanges(comp, options);
+  debug('xrange', comp);
+  comp = replaceStars(comp, options);
+  debug('stars', comp);
+  return comp;
 }
 
-function isX (id) {
-  return !id || id.toLowerCase() === 'x' || id === '*'
+function isX(id) {
+  return !id || id.toLowerCase() === 'x' || id === '*';
 }
 
 // ~, ~> --> * (any, kinda silly)
@@ -1138,38 +1048,41 @@ function isX (id) {
 // ~1.2, ~1.2.x, ~>1.2, ~>1.2.x --> >=1.2.0 <1.3.0
 // ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0
-function replaceTildes (comp, options) {
-  return comp.trim().split(/\s+/).map(function (comp) {
-    return replaceTilde(comp, options)
-  }).join(' ')
+function replaceTildes(comp, options) {
+  return comp.trim().split(/\s+/).map(function(comp) {
+    return replaceTilde(comp, options);
+  }).join(' ');
 }
 
-function replaceTilde (comp, options) {
-  var r = options.loose ? re[TILDELOOSE] : re[TILDE]
-  return comp.replace(r, function (_, M, m, p, pr) {
-    debug('tilde', comp, _, M, m, p, pr)
-    var ret
+function replaceTilde(comp, options) {
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
+  var r = options.loose ? re[TILDELOOSE] : re[TILDE];
+  return comp.replace(r, function(_, M, m, p, pr) {
+    debug('tilde', comp, _, M, m, p, pr);
+    var ret;
 
-    if (isX(M)) {
-      ret = ''
-    } else if (isX(m)) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
-    } else if (isX(p)) {
+    if (isX(M))
+      ret = '';
+    else if (isX(m))
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0';
+    else if (isX(p))
       // ~1.2 == >=1.2.0 <1.3.0
-      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
-    } else if (pr) {
-      debug('replaceTilde pr', pr)
-      ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-            ' <' + M + '.' + (+m + 1) + '.0'
-    } else {
+      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0';
+    else if (pr) {
+      debug('replaceTilde pr', pr);
+      if (pr.charAt(0) !== '-')
+        pr = '-' + pr;
+      ret = '>=' + M + '.' + m + '.' + p + pr +
+            ' <' + M + '.' + (+m + 1) + '.0';
+    } else
       // ~1.2.3 == >=1.2.3 <1.3.0
       ret = '>=' + M + '.' + m + '.' + p +
-            ' <' + M + '.' + (+m + 1) + '.0'
-    }
+            ' <' + M + '.' + (+m + 1) + '.0';
 
-    debug('tilde return', ret)
-    return ret
-  })
+    debug('tilde return', ret);
+    return ret;
+  });
 }
 
 // ^ --> * (any, kinda silly)
@@ -1178,144 +1091,142 @@ function replaceTilde (comp, options) {
 // ^1.2, ^1.2.x --> >=1.2.0 <2.0.0
 // ^1.2.3 --> >=1.2.3 <2.0.0
 // ^1.2.0 --> >=1.2.0 <2.0.0
-function replaceCarets (comp, options) {
-  return comp.trim().split(/\s+/).map(function (comp) {
-    return replaceCaret(comp, options)
-  }).join(' ')
+function replaceCarets(comp, options) {
+  return comp.trim().split(/\s+/).map(function(comp) {
+    return replaceCaret(comp, options);
+  }).join(' ');
 }
 
-function replaceCaret (comp, options) {
-  debug('caret', comp, options)
-  var r = options.loose ? re[CARETLOOSE] : re[CARET]
-  return comp.replace(r, function (_, M, m, p, pr) {
-    debug('caret', comp, _, M, m, p, pr)
-    var ret
+function replaceCaret(comp, options) {
+  debug('caret', comp, options);
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
+  var r = options.loose ? re[CARETLOOSE] : re[CARET];
+  return comp.replace(r, function(_, M, m, p, pr) {
+    debug('caret', comp, _, M, m, p, pr);
+    var ret;
 
-    if (isX(M)) {
-      ret = ''
-    } else if (isX(m)) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
-    } else if (isX(p)) {
-      if (M === '0') {
-        ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
-      } else {
-        ret = '>=' + M + '.' + m + '.0 <' + (+M + 1) + '.0.0'
-      }
+    if (isX(M))
+      ret = '';
+    else if (isX(m))
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0';
+    else if (isX(p)) {
+      if (M === '0')
+        ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0';
+      else
+        ret = '>=' + M + '.' + m + '.0 <' + (+M + 1) + '.0.0';
     } else if (pr) {
-      debug('replaceCaret pr', pr)
+      debug('replaceCaret pr', pr);
+      if (pr.charAt(0) !== '-')
+        pr = '-' + pr;
       if (M === '0') {
-        if (m === '0') {
-          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-                ' <' + M + '.' + m + '.' + (+p + 1)
-        } else {
-          ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-                ' <' + M + '.' + (+m + 1) + '.0'
-        }
-      } else {
-        ret = '>=' + M + '.' + m + '.' + p + '-' + pr +
-              ' <' + (+M + 1) + '.0.0'
-      }
+        if (m === '0')
+          ret = '>=' + M + '.' + m + '.' + p + pr +
+                ' <' + M + '.' + m + '.' + (+p + 1);
+        else
+          ret = '>=' + M + '.' + m + '.' + p + pr +
+                ' <' + M + '.' + (+m + 1) + '.0';
+      } else
+        ret = '>=' + M + '.' + m + '.' + p + pr +
+              ' <' + (+M + 1) + '.0.0';
     } else {
-      debug('no pr')
+      debug('no pr');
       if (M === '0') {
-        if (m === '0') {
+        if (m === '0')
           ret = '>=' + M + '.' + m + '.' + p +
-                ' <' + M + '.' + m + '.' + (+p + 1)
-        } else {
+                ' <' + M + '.' + m + '.' + (+p + 1);
+        else
           ret = '>=' + M + '.' + m + '.' + p +
-                ' <' + M + '.' + (+m + 1) + '.0'
-        }
-      } else {
+                ' <' + M + '.' + (+m + 1) + '.0';
+      } else
         ret = '>=' + M + '.' + m + '.' + p +
-              ' <' + (+M + 1) + '.0.0'
-      }
+              ' <' + (+M + 1) + '.0.0';
     }
 
-    debug('caret return', ret)
-    return ret
-  })
+    debug('caret return', ret);
+    return ret;
+  });
 }
 
-function replaceXRanges (comp, options) {
-  debug('replaceXRanges', comp, options)
-  return comp.split(/\s+/).map(function (comp) {
-    return replaceXRange(comp, options)
-  }).join(' ')
+function replaceXRanges(comp, options) {
+  debug('replaceXRanges', comp, options);
+  return comp.split(/\s+/).map(function(comp) {
+    return replaceXRange(comp, options);
+  }).join(' ');
 }
 
-function replaceXRange (comp, options) {
-  comp = comp.trim()
-  var r = options.loose ? re[XRANGELOOSE] : re[XRANGE]
-  return comp.replace(r, function (ret, gtlt, M, m, p, pr) {
-    debug('xRange', comp, ret, gtlt, M, m, p, pr)
-    var xM = isX(M)
-    var xm = xM || isX(m)
-    var xp = xm || isX(p)
-    var anyX = xp
+function replaceXRange(comp, options) {
+  comp = comp.trim();
+  if (!options || typeof options !== 'object')
+    options = { loose: !!options, includePrerelease: false }
+  var r = options.loose ? re[XRANGELOOSE] : re[XRANGE];
+  return comp.replace(r, function(ret, gtlt, M, m, p, pr) {
+    debug('xRange', comp, ret, gtlt, M, m, p, pr);
+    var xM = isX(M);
+    var xm = xM || isX(m);
+    var xp = xm || isX(p);
+    var anyX = xp;
 
-    if (gtlt === '=' && anyX) {
-      gtlt = ''
-    }
+    if (gtlt === '=' && anyX)
+      gtlt = '';
 
     if (xM) {
       if (gtlt === '>' || gtlt === '<') {
         // nothing is allowed
-        ret = '<0.0.0'
+        ret = '<0.0.0';
       } else {
         // nothing is forbidden
-        ret = '*'
+        ret = '*';
       }
     } else if (gtlt && anyX) {
-      // we know patch is an x, because we have any x at all.
       // replace X with 0
-      if (xm) {
-        m = 0
-      }
-      p = 0
+      if (xm)
+        m = 0;
+      if (xp)
+        p = 0;
 
       if (gtlt === '>') {
         // >1 => >=2.0.0
         // >1.2 => >=1.3.0
         // >1.2.3 => >= 1.2.4
-        gtlt = '>='
+        gtlt = '>=';
         if (xm) {
-          M = +M + 1
-          m = 0
-          p = 0
-        } else {
-          m = +m + 1
-          p = 0
+          M = +M + 1;
+          m = 0;
+          p = 0;
+        } else if (xp) {
+          m = +m + 1;
+          p = 0;
         }
       } else if (gtlt === '<=') {
         // <=0.7.x is actually <0.8.0, since any 0.7.x should
         // pass.  Similarly, <=7.x is actually <8.0.0, etc.
-        gtlt = '<'
-        if (xm) {
-          M = +M + 1
-        } else {
-          m = +m + 1
-        }
+        gtlt = '<';
+        if (xm)
+          M = +M + 1;
+        else
+          m = +m + 1;
       }
 
-      ret = gtlt + M + '.' + m + '.' + p
+      ret = gtlt + M + '.' + m + '.' + p;
     } else if (xm) {
-      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0'
+      ret = '>=' + M + '.0.0 <' + (+M + 1) + '.0.0';
     } else if (xp) {
-      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0'
+      ret = '>=' + M + '.' + m + '.0 <' + M + '.' + (+m + 1) + '.0';
     }
 
-    debug('xRange return', ret)
+    debug('xRange return', ret);
 
-    return ret
-  })
+    return ret;
+  });
 }
 
 // Because * is AND-ed with everything else in the comparator,
 // and '' means "any version", just remove the *s entirely.
-function replaceStars (comp, options) {
-  debug('replaceStars', comp, options)
+function replaceStars(comp, options) {
+  debug('replaceStars', comp, options);
   // Looseness is ignored here.  star is always as loose as it gets!
-  return comp.trim().replace(re[STAR], '')
+  return comp.trim().replace(re[STAR], '');
 }
 
 // This function is passed to string.replace(re[HYPHENRANGE])
@@ -1323,58 +1234,57 @@ function replaceStars (comp, options) {
 // 1.2 - 3.4.5 => >=1.2.0 <=3.4.5
 // 1.2.3 - 3.4 => >=1.2.0 <3.5.0 Any 3.4.x will do
 // 1.2 - 3.4 => >=1.2.0 <3.5.0
-function hyphenReplace ($0,
-  from, fM, fm, fp, fpr, fb,
-  to, tM, tm, tp, tpr, tb) {
-  if (isX(fM)) {
-    from = ''
-  } else if (isX(fm)) {
-    from = '>=' + fM + '.0.0'
-  } else if (isX(fp)) {
-    from = '>=' + fM + '.' + fm + '.0'
-  } else {
-    from = '>=' + from
-  }
+function hyphenReplace($0,
+                       from, fM, fm, fp, fpr, fb,
+                       to, tM, tm, tp, tpr, tb) {
 
-  if (isX(tM)) {
-    to = ''
-  } else if (isX(tm)) {
-    to = '<' + (+tM + 1) + '.0.0'
-  } else if (isX(tp)) {
-    to = '<' + tM + '.' + (+tm + 1) + '.0'
-  } else if (tpr) {
-    to = '<=' + tM + '.' + tm + '.' + tp + '-' + tpr
-  } else {
-    to = '<=' + to
-  }
+  if (isX(fM))
+    from = '';
+  else if (isX(fm))
+    from = '>=' + fM + '.0.0';
+  else if (isX(fp))
+    from = '>=' + fM + '.' + fm + '.0';
+  else
+    from = '>=' + from;
 
-  return (from + ' ' + to).trim()
+  if (isX(tM))
+    to = '';
+  else if (isX(tm))
+    to = '<' + (+tM + 1) + '.0.0';
+  else if (isX(tp))
+    to = '<' + tM + '.' + (+tm + 1) + '.0';
+  else if (tpr)
+    to = '<=' + tM + '.' + tm + '.' + tp + '-' + tpr;
+  else
+    to = '<=' + to;
+
+  return (from + ' ' + to).trim();
 }
+
 
 // if ANY of the sets match ALL of its comparators, then pass
-Range.prototype.test = function (version) {
-  if (!version) {
-    return false
-  }
+Range.prototype.test = function(version) {
+  if (!version)
+    return false;
 
-  if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
-  }
+  if (typeof version === 'string')
+    version = new SemVer(version, this.options);
 
   for (var i = 0; i < this.set.length; i++) {
-    if (testSet(this.set[i], version, this.options)) {
-      return true
-    }
+    if (testSet(this.set[i], version, this.options))
+      return true;
   }
-  return false
-}
+  return false;
+};
 
-function testSet (set, version, options) {
+function testSet(set, version, options) {
   for (var i = 0; i < set.length; i++) {
-    if (!set[i].test(version)) {
-      return false
-    }
+    if (!set[i].test(version))
+      return false;
   }
+
+  if (!options)
+    options = {}
 
   if (version.prerelease.length && !options.includePrerelease) {
     // Find the set of versions that are allowed to have prereleases
@@ -1382,262 +1292,197 @@ function testSet (set, version, options) {
     // That should allow `1.2.3-pr.2` to pass.
     // However, `1.2.4-alpha.notready` should NOT be allowed,
     // even though it's within the range set by the comparators.
-    for (i = 0; i < set.length; i++) {
-      debug(set[i].semver)
-      if (set[i].semver === ANY) {
-        continue
-      }
+    for (var i = 0; i < set.length; i++) {
+      debug(set[i].semver);
+      if (set[i].semver === ANY)
+        continue;
 
       if (set[i].semver.prerelease.length > 0) {
-        var allowed = set[i].semver
+        var allowed = set[i].semver;
         if (allowed.major === version.major &&
             allowed.minor === version.minor &&
-            allowed.patch === version.patch) {
-          return true
-        }
+            allowed.patch === version.patch)
+          return true;
       }
     }
 
     // Version has a -pre, but it's not one of the ones we like.
-    return false
+    return false;
   }
 
-  return true
+  return true;
 }
 
-exports.satisfies = satisfies
-function satisfies (version, range, options) {
+exports.satisfies = satisfies;
+function satisfies(version, range, options) {
   try {
-    range = new Range(range, options)
+    range = new Range(range, options);
   } catch (er) {
-    return false
+    return false;
   }
-  return range.test(version)
+  return range.test(version);
 }
 
-exports.maxSatisfying = maxSatisfying
-function maxSatisfying (versions, range, options) {
-  var max = null
-  var maxSV = null
+exports.maxSatisfying = maxSatisfying;
+function maxSatisfying(versions, range, options) {
+  var max = null;
+  var maxSV = null;
   try {
-    var rangeObj = new Range(range, options)
+    var rangeObj = new Range(range, options);
   } catch (er) {
-    return null
+    return null;
   }
   versions.forEach(function (v) {
-    if (rangeObj.test(v)) {
-      // satisfies(v, range, options)
-      if (!max || maxSV.compare(v) === -1) {
-        // compare(max, v, true)
-        max = v
-        maxSV = new SemVer(max, options)
+    if (rangeObj.test(v)) { // satisfies(v, range, options)
+      if (!max || maxSV.compare(v) === -1) { // compare(max, v, true)
+        max = v;
+        maxSV = new SemVer(max, options);
       }
     }
   })
-  return max
+  return max;
 }
 
-exports.minSatisfying = minSatisfying
-function minSatisfying (versions, range, options) {
-  var min = null
-  var minSV = null
+exports.minSatisfying = minSatisfying;
+function minSatisfying(versions, range, options) {
+  var min = null;
+  var minSV = null;
   try {
-    var rangeObj = new Range(range, options)
+    var rangeObj = new Range(range, options);
   } catch (er) {
-    return null
+    return null;
   }
   versions.forEach(function (v) {
-    if (rangeObj.test(v)) {
-      // satisfies(v, range, options)
-      if (!min || minSV.compare(v) === 1) {
-        // compare(min, v, true)
-        min = v
-        minSV = new SemVer(min, options)
+    if (rangeObj.test(v)) { // satisfies(v, range, options)
+      if (!min || minSV.compare(v) === 1) { // compare(min, v, true)
+        min = v;
+        minSV = new SemVer(min, options);
       }
     }
   })
-  return min
+  return min;
 }
 
-exports.minVersion = minVersion
-function minVersion (range, loose) {
-  range = new Range(range, loose)
-
-  var minver = new SemVer('0.0.0')
-  if (range.test(minver)) {
-    return minver
-  }
-
-  minver = new SemVer('0.0.0-0')
-  if (range.test(minver)) {
-    return minver
-  }
-
-  minver = null
-  for (var i = 0; i < range.set.length; ++i) {
-    var comparators = range.set[i]
-
-    comparators.forEach(function (comparator) {
-      // Clone to avoid manipulating the comparator's semver object.
-      var compver = new SemVer(comparator.semver.version)
-      switch (comparator.operator) {
-        case '>':
-          if (compver.prerelease.length === 0) {
-            compver.patch++
-          } else {
-            compver.prerelease.push(0)
-          }
-          compver.raw = compver.format()
-          /* fallthrough */
-        case '':
-        case '>=':
-          if (!minver || gt(minver, compver)) {
-            minver = compver
-          }
-          break
-        case '<':
-        case '<=':
-          /* Ignore maximum versions */
-          break
-        /* istanbul ignore next */
-        default:
-          throw new Error('Unexpected operation: ' + comparator.operator)
-      }
-    })
-  }
-
-  if (minver && range.test(minver)) {
-    return minver
-  }
-
-  return null
-}
-
-exports.validRange = validRange
-function validRange (range, options) {
+exports.validRange = validRange;
+function validRange(range, options) {
   try {
     // Return '*' instead of '' so that truthiness works.
     // This will throw if it's invalid anyway
-    return new Range(range, options).range || '*'
+    return new Range(range, options).range || '*';
   } catch (er) {
-    return null
+    return null;
   }
 }
 
 // Determine if version is less than all the versions possible in the range
-exports.ltr = ltr
-function ltr (version, range, options) {
-  return outside(version, range, '<', options)
+exports.ltr = ltr;
+function ltr(version, range, options) {
+  return outside(version, range, '<', options);
 }
 
 // Determine if version is greater than all the versions possible in the range.
-exports.gtr = gtr
-function gtr (version, range, options) {
-  return outside(version, range, '>', options)
+exports.gtr = gtr;
+function gtr(version, range, options) {
+  return outside(version, range, '>', options);
 }
 
-exports.outside = outside
-function outside (version, range, hilo, options) {
-  version = new SemVer(version, options)
-  range = new Range(range, options)
+exports.outside = outside;
+function outside(version, range, hilo, options) {
+  version = new SemVer(version, options);
+  range = new Range(range, options);
 
-  var gtfn, ltefn, ltfn, comp, ecomp
+  var gtfn, ltefn, ltfn, comp, ecomp;
   switch (hilo) {
     case '>':
-      gtfn = gt
-      ltefn = lte
-      ltfn = lt
-      comp = '>'
-      ecomp = '>='
-      break
+      gtfn = gt;
+      ltefn = lte;
+      ltfn = lt;
+      comp = '>';
+      ecomp = '>=';
+      break;
     case '<':
-      gtfn = lt
-      ltefn = gte
-      ltfn = gt
-      comp = '<'
-      ecomp = '<='
-      break
+      gtfn = lt;
+      ltefn = gte;
+      ltfn = gt;
+      comp = '<';
+      ecomp = '<=';
+      break;
     default:
-      throw new TypeError('Must provide a hilo val of "<" or ">"')
+      throw new TypeError('Must provide a hilo val of "<" or ">"');
   }
 
   // If it satisifes the range it is not outside
   if (satisfies(version, range, options)) {
-    return false
+    return false;
   }
 
   // From now on, variable terms are as if we're in "gtr" mode.
   // but note that everything is flipped for the "ltr" function.
 
   for (var i = 0; i < range.set.length; ++i) {
-    var comparators = range.set[i]
+    var comparators = range.set[i];
 
-    var high = null
-    var low = null
+    var high = null;
+    var low = null;
 
-    comparators.forEach(function (comparator) {
+    comparators.forEach(function(comparator) {
       if (comparator.semver === ANY) {
         comparator = new Comparator('>=0.0.0')
       }
-      high = high || comparator
-      low = low || comparator
+      high = high || comparator;
+      low = low || comparator;
       if (gtfn(comparator.semver, high.semver, options)) {
-        high = comparator
+        high = comparator;
       } else if (ltfn(comparator.semver, low.semver, options)) {
-        low = comparator
+        low = comparator;
       }
-    })
+    });
 
     // If the edge version comparator has a operator then our version
     // isn't outside it
     if (high.operator === comp || high.operator === ecomp) {
-      return false
+      return false;
     }
 
     // If the lowest version comparator has an operator and our version
     // is less than it then it isn't higher than the range
     if ((!low.operator || low.operator === comp) &&
         ltefn(version, low.semver)) {
-      return false
+      return false;
     } else if (low.operator === ecomp && ltfn(version, low.semver)) {
-      return false
+      return false;
     }
   }
-  return true
+  return true;
 }
 
-exports.prerelease = prerelease
-function prerelease (version, options) {
-  var parsed = parse(version, options)
-  return (parsed && parsed.prerelease.length) ? parsed.prerelease : null
+exports.prerelease = prerelease;
+function prerelease(version, options) {
+  var parsed = parse(version, options);
+  return (parsed && parsed.prerelease.length) ? parsed.prerelease : null;
 }
 
-exports.intersects = intersects
-function intersects (r1, r2, options) {
+exports.intersects = intersects;
+function intersects(r1, r2, options) {
   r1 = new Range(r1, options)
   r2 = new Range(r2, options)
   return r1.intersects(r2)
 }
 
-exports.coerce = coerce
-function coerce (version) {
-  if (version instanceof SemVer) {
-    return version
-  }
+exports.coerce = coerce;
+function coerce(version) {
+  if (version instanceof SemVer)
+    return version;
 
-  if (typeof version !== 'string') {
-    return null
-  }
+  if (typeof version !== 'string')
+    return null;
 
-  var match = version.match(re[COERCE])
+  var match = version.match(re[COERCE]);
 
-  if (match == null) {
-    return null
-  }
+  if (match == null)
+    return null;
 
-  return parse(match[1] +
-    '.' + (match[2] || '0') +
-    '.' + (match[3] || '0'))
+  return parse((match[1] || '0') + '.' + (match[2] || '0') + '.' + (match[3] || '0')); 
 }
 
 
@@ -43201,6 +43046,9 @@ class Workspace {
         this.configurations.onDidChange(e => {
             this._onDidChangeConfiguration.fire(e);
         }, null, this.disposables);
+        this.watchOption('runtimepath', (_, newValue) => {
+            this._env.runtimepath = newValue;
+        }, this.disposables);
         this.watchOption('iskeyword', (_, newValue) => {
             let doc = this.getDocument(this.bufnr);
             if (doc)
@@ -47404,8 +47252,8 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
 const net_1 = tslib_1.__importDefault(__webpack_require__(6));
 const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
-const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(195));
+const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const logger = __webpack_require__(172)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
@@ -52886,7 +52734,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "43738a06be" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "cfd60c7683" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -53049,7 +52897,7 @@ class Plugin extends events_1.EventEmitter {
                 case 'doCodeAction':
                     return await handler.applyCodeAction(args[1]);
                 case 'extensionStats':
-                    return extensions_1.default.getExtensionStates();
+                    return await extensions_1.default.getExtensionStates();
                 case 'activeExtension':
                     return extensions_1.default.activate(args[1], false);
                 case 'deactivateExtension':
@@ -54641,8 +54489,7 @@ class Sources {
         }
     }
     async createRemoteSources() {
-        let { nvim } = this;
-        let runtimepath = await nvim.eval('&runtimepath');
+        let { runtimepath } = workspace_1.default.env;
         let paths = runtimepath.split(',');
         for (let path of paths) {
             await this.createVimSources(path);
@@ -54851,6 +54698,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(162);
 const debounce_1 = __webpack_require__(163);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(198));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
 const glob_1 = tslib_1.__importDefault(__webpack_require__(231));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(170));
@@ -54881,6 +54729,7 @@ function loadJson(file) {
 class Extensions {
     constructor() {
         this.list = [];
+        this.disabled = new Set();
         this._onReady = new vscode_languageserver_protocol_1.Emitter();
         this._onDidLoadExtension = new vscode_languageserver_protocol_1.Emitter();
         this._onDidActiveExtension = new vscode_languageserver_protocol_1.Emitter();
@@ -54895,8 +54744,14 @@ class Extensions {
         return workspace_1.default.env.extensionRoot;
     }
     async init() {
-        this.db = workspace_1.default.createDatabase('db');
-        let stats = this.globalExtensionStats();
+        let db = this.db = workspace_1.default.createDatabase('db');
+        let data = loadJson(db.filepath) || {};
+        let keys = Object.keys(data.extension || {});
+        for (let key of keys) {
+            if (data.extension[key].disabled == true) {
+                this.disabled.add(key);
+            }
+        }
         if (process.env.COC_NO_PLUGINS)
             return;
         if (global.hasOwnProperty('__TEST__')) {
@@ -54906,12 +54761,14 @@ class Extensions {
         if (!fs_1.default.existsSync(this.root)) {
             await workspace_1.default.nvim.call('coc#util#init_extension_root', this.root);
         }
+        let stats = await this.globalExtensionStats();
+        let names = stats.map(info => info.id);
+        let localStats = await this.localExtensionStats(names);
+        stats = stats.concat(localStats);
         this.memos = new memos_1.default(path_1.default.resolve(this.root, '../memos.json'));
-        stats = stats.filter(o => o.state != 'disabled');
         await Promise.all(stats.map(stat => {
-            let folder = stat.root;
-            return this.loadExtension(folder).catch(e => {
-                workspace_1.default.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error');
+            return this.loadExtension(stat.root, stat.isLocal).catch(e => {
+                workspace_1.default.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error');
             });
         })).then(() => {
             return this.addExtensions();
@@ -54931,6 +54788,18 @@ class Extensions {
                 workspace_1.default.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error');
             });
         }
+        // watch for new local extension
+        workspace_1.default.watchOption('runtimepath', async (oldValue, newValue) => {
+            let result = fast_diff_1.default(oldValue, newValue);
+            for (let [changeType, value] of result) {
+                if (changeType == 1) {
+                    let paths = value.replace(/,$/, '').split(',');
+                    for (let p of paths) {
+                        await this.loadExtension(p, true);
+                    }
+                }
+            }
+        });
     }
     get ready() {
         if (this._ready)
@@ -55026,30 +54895,26 @@ class Extensions {
         logger.info(`Upgrade vim-node-rpc succeed`);
     }
     async addExtensions() {
-        let { globalExtensions, localExtensions, watchExtensions } = workspace_1.default.env;
+        let { globalExtensions, watchExtensions } = workspace_1.default.env;
         this.installExtensions(globalExtensions);
-        if (localExtensions.length) {
-            localExtensions = array_1.distinct(localExtensions);
-            await Promise.all(localExtensions.map(folder => {
-                return this.loadExtension(folder).catch(e => {
-                    workspace_1.default.showMessage(`Can't load extension from ${folder}: ${e.message}'`, 'error');
-                });
-            }));
-        }
         // watch for changes
         if (watchExtensions.length) {
             let watchmanPath = workspace_1.default.getWatchmanPath();
             if (!watchmanPath || "none" == 'test')
                 return;
+            let stats = await this.getExtensionStates();
             for (let name of watchExtensions) {
-                let directory = await util_1.default.promisify(fs_1.default.realpath)(path_1.default.join(this.root, 'node_modules', name));
-                let client = await watchman_1.default.createClient(watchmanPath, directory);
-                client.subscribe('**/*.js', debounce_1.debounce(async () => {
-                    await this.reloadExtension(name);
-                    workspace_1.default.showMessage(`reloaded ${name}`);
-                }, 100)).catch(_e => {
-                    // noop
-                });
+                let stat = stats.find(s => s.id == name);
+                if (stat && stat.state !== 'disabled') {
+                    let directory = await util_1.default.promisify(fs_1.default.realpath)(stat.root);
+                    let client = await watchman_1.default.createClient(watchmanPath, directory);
+                    client.subscribe('**/*.js', debounce_1.debounce(async () => {
+                        await this.reloadExtension(name);
+                        workspace_1.default.showMessage(`reloaded ${name}`);
+                    }, 100)).catch(_e => {
+                        // noop
+                    });
+                }
             }
         }
     }
@@ -55099,9 +54964,10 @@ class Extensions {
         let { extension } = item;
         return extension.isActive ? 'activited' : 'loaded';
     }
-    getExtensionStates() {
-        let globalStats = this.globalExtensionStats();
-        let localStats = this.localExtensionStats();
+    async getExtensionStates() {
+        let globalStats = await this.globalExtensionStats();
+        let names = globalStats.map(info => info.id);
+        let localStats = await this.localExtensionStats(names);
         return globalStats.concat(localStats);
     }
     async toggleExtension(id) {
@@ -55111,19 +54977,23 @@ class Extensions {
         if (state == 'activited') {
             this.deactivate(id);
         }
+        let key = `extension.${id}.disabled`;
+        await this.db.push(key, state == 'disabled' ? false : true);
         if (state != 'disabled') {
+            this.disabled.add(id);
             // unload
             let idx = this.list.findIndex(o => o.id == id);
             this.list.splice(idx, 1);
         }
-        let { db } = this;
-        let key = `extension.${id}.disabled`;
-        await db.push(key, state == 'disabled' ? false : true);
-        if (state == 'disabled') {
+        else {
+            this.disabled.delete(id);
             let folder = path_1.default.join(this.root, 'node_modules', id);
-            this.loadExtension(folder).catch(e => {
+            try {
+                await this.loadExtension(folder);
+            }
+            catch (e) {
                 workspace_1.default.showMessage(`Can't load extension ${id}: ${e.message}'`, 'error');
-            });
+            }
         }
         await util_2.wait(200);
     }
@@ -55165,16 +55035,7 @@ class Extensions {
         }
     }
     isDisabled(id) {
-        let { db } = this;
-        try {
-            let { extension } = JSON.parse(fs_1.default.readFileSync(db.filepath, 'utf8'));
-            if (extension && extension[id])
-                return extension[id].disabled === true;
-            return false;
-        }
-        catch (e) {
-            return false;
-        }
+        return this.disabled.has(id);
     }
     async onExtensionInstall(id) {
         if (/^\w+:/.test(id))
@@ -55210,13 +55071,15 @@ class Extensions {
         }
         return false;
     }
-    async loadExtension(folder) {
+    async loadExtension(folder, isLocal = false) {
         let jsonFile = path_1.default.join(folder, 'package.json');
         let stat = await fs_2.statAsync(jsonFile);
         if (!stat || !stat.isFile())
             return;
         let content = await fs_2.readFile(jsonFile, 'utf8');
         let packageJSON = JSON.parse(content);
+        if (this.isDisabled(packageJSON.name))
+            return;
         if (this.isActivted(packageJSON.name)) {
             workspace_1.default.showMessage(`deactivate ${packageJSON.name}`);
             this.deactivate(packageJSON.name);
@@ -55228,13 +55091,13 @@ class Extensions {
             if (!semver_1.default.satisfies(workspace_1.default.version, required)) {
                 workspace_1.default.showMessage(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim >= ${engines.coc}`, 'warning');
             }
-            this.createExtension(folder, Object.freeze(packageJSON));
+            this.createExtension(folder, Object.freeze(packageJSON), isLocal);
         }
         else if (engines && engines.hasOwnProperty('vscode')) {
-            this.createExtension(folder, Object.freeze(packageJSON));
+            this.createExtension(folder, Object.freeze(packageJSON), isLocal);
         }
         else {
-            workspace_1.default.showMessage(`engine coc & vscode not found in ${jsonFile}`, 'warning');
+            logger.info(`engine coc & vscode not found in ${jsonFile}`);
         }
     }
     loadJson() {
@@ -55397,7 +55260,7 @@ class Extensions {
         }
         return await Promise.resolve(exports[method].apply(null, args));
     }
-    createExtension(root, packageJSON) {
+    createExtension(root, packageJSON, isLocal = false) {
         let id = `${packageJSON.name}`;
         let isActive = false;
         let exports = null;
@@ -55451,6 +55314,7 @@ class Extensions {
         });
         this.list.push({
             id,
+            isLocal,
             extension,
             directory: root,
             deactivate: () => {
@@ -55491,7 +55355,7 @@ class Extensions {
     }
     registerExtension(extension, deactivate) {
         let { id, packageJSON } = extension;
-        this.list.push({ id, extension, deactivate });
+        this.list.push({ id, extension, deactivate, isLocal: true });
         let { contributes } = packageJSON;
         if (contributes) {
             let { configuration } = contributes;
@@ -55509,48 +55373,83 @@ class Extensions {
         this._onDidLoadExtension.fire(extension);
         this.setupActiveEvents(id, packageJSON);
     }
-    globalExtensionStats() {
+    async globalExtensionStats() {
         let json = this.loadJson();
         if (!json || !json.dependencies)
             return [];
-        let res = [];
-        for (let key of Object.keys(json.dependencies)) {
-            let val = json.dependencies[key];
-            let root = path_1.default.join(this.root, 'node_modules', key);
-            let version = '';
-            let description = '';
-            let jsonFile = path_1.default.join(root, 'package.json');
-            let obj = loadJson(jsonFile);
-            version = obj ? obj.version || '' : '';
-            description = obj ? obj.description || '' : '';
-            res.push({
-                id: key,
-                version,
-                description,
-                exotic: isuri_1.default.isValid(val),
-                root,
-                state: this.getExtensionState(key)
+        let res = await Promise.all(Object.keys(json.dependencies).map(key => {
+            return new Promise(async (resolve) => {
+                try {
+                    let val = json.dependencies[key];
+                    let root = path_1.default.join(this.root, 'node_modules', key);
+                    let jsonFile = path_1.default.join(root, 'package.json');
+                    let stat = await fs_2.statAsync(jsonFile);
+                    if (!stat || !stat.isFile())
+                        return resolve(null);
+                    let content = await fs_2.readFile(jsonFile, 'utf8');
+                    let obj = JSON.parse(content);
+                    let { engines } = obj;
+                    if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
+                        return resolve(null);
+                    }
+                    let version = obj ? obj.version || '' : '';
+                    let description = obj ? obj.description || '' : '';
+                    resolve({
+                        id: key,
+                        isLocal: false,
+                        version,
+                        description,
+                        exotic: isuri_1.default.isValid(val),
+                        root,
+                        state: this.getExtensionState(key)
+                    });
+                }
+                catch (e) {
+                    logger.error(e);
+                    resolve(null);
+                }
             });
-        }
-        return res;
+        }));
+        return res.filter(info => info != null);
     }
-    localExtensionStats() {
-        let globals = this.globalExtensions;
-        let res = [];
-        this.list.forEach(item => {
-            if (globals.indexOf(item.id) !== -1)
-                return;
-            let { extensionPath, packageJSON } = item.extension;
-            res.push({
-                id: packageJSON.name,
-                description: packageJSON.description || '',
-                version: packageJSON.version || '',
-                root: extensionPath,
-                exotic: false,
-                state: this.getExtensionState(item.id)
+    async localExtensionStats(exclude) {
+        let { runtimepath } = workspace_1.default.env;
+        let paths = runtimepath.split(',');
+        let res = await Promise.all(paths.map(root => {
+            return new Promise(async (resolve) => {
+                try {
+                    let jsonFile = path_1.default.join(root, 'package.json');
+                    let stat = await fs_2.statAsync(jsonFile);
+                    if (!stat || !stat.isFile())
+                        return resolve(null);
+                    let content = await fs_2.readFile(jsonFile, 'utf8');
+                    let obj = JSON.parse(content);
+                    let { engines } = obj;
+                    if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
+                        return resolve(null);
+                    }
+                    if (exclude.indexOf(obj.name) !== -1) {
+                        return resolve(null);
+                    }
+                    let version = obj ? obj.version || '' : '';
+                    let description = obj ? obj.description || '' : '';
+                    resolve({
+                        id: obj.name,
+                        isLocal: true,
+                        version,
+                        description,
+                        exotic: false,
+                        root,
+                        state: this.getExtensionState(obj.name)
+                    });
+                }
+                catch (e) {
+                    logger.error(e);
+                    resolve(null);
+                }
             });
-        });
-        return res;
+        }));
+        return res.filter(info => info != null);
     }
     isGlobalExtension(id) {
         return this.globalExtensions.indexOf(id) !== -1;
@@ -68792,7 +68691,11 @@ class ExtensionList extends basic_1.default {
             await util_1.wait(100);
         }, { persist: true, reload: true });
         this.addAction('uninstall', async (item) => {
-            let { id } = item.data;
+            let { id, isLocal } = item.data;
+            if (isLocal) {
+                util_1.echoWarning(nvim, 'Unable to uninstall extension loaded from &rtp.');
+                return;
+            }
             extensions_1.default.uninstallExtension([id]).catch(e => {
                 logger.error(e);
             });
@@ -68800,7 +68703,7 @@ class ExtensionList extends basic_1.default {
     }
     async loadItems(_context) {
         let items = [];
-        let list = extensions_1.default.getExtensionStates();
+        let list = await extensions_1.default.getExtensionStates();
         for (let stat of list) {
             let prefix = '+';
             if (stat.state == 'disabled') {
@@ -68814,12 +68717,13 @@ class ExtensionList extends basic_1.default {
             }
             let root = await this.nvim.call('resolve', stat.root);
             items.push({
-                label: `${prefix} ${stat.id}\t${stat.version}\t${root.replace(os_1.default.homedir(), '~')}`,
+                label: `${prefix} ${stat.id}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os_1.default.homedir(), '~')}`,
                 filterText: stat.id,
                 data: {
                     id: stat.id,
                     root,
                     state: stat.state,
+                    isLocal: stat.isLocal,
                     priority: getPriority(stat.state)
                 }
             });
@@ -68840,10 +68744,12 @@ class ExtensionList extends basic_1.default {
         nvim.command('syntax match CocExtensionsDisabled /\\v^-/ contained containedin=CocExtensionsLine', true);
         nvim.command('syntax match CocExtensionsName /\\v%3c\\S+/ contained containedin=CocExtensionsLine', true);
         nvim.command('syntax match CocExtensionsRoot /\\v\\t[^\\t]*$/ contained containedin=CocExtensionsLine', true);
+        nvim.command('syntax match CocExtensionsLocal /\\v\\[RTP\\]/ contained containedin=CocExtensionsLine', true);
         nvim.command('highlight default link CocExtensionsActivited Special', true);
         nvim.command('highlight default link CocExtensionsLoaded Normal', true);
         nvim.command('highlight default link CocExtensionsDisabled Comment', true);
         nvim.command('highlight default link CocExtensionsName String', true);
+        nvim.command('highlight default link CocExtensionsLocal MoreMsg', true);
         nvim.command('highlight default link CocExtensionsRoot Comment', true);
         nvim.resumeNotification().catch(_e => {
             // noop
