@@ -65,6 +65,10 @@ download() {
   install_yarn
   mkdir -p build
   cd build
+  if [ "$tag" = "nightly" ]; then
+    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/index.js > index.js
+    return
+  fi
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/coc.tar.gz"
   echo "Downloading binary from ${url}"
   if fetch "${url}" | tar xzfv -; then
