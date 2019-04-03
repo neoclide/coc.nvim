@@ -220,7 +220,7 @@ export default class Plugin extends EventEmitter {
     let out = await this.nvim.call('execute', ['version']) as string
     channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0])
     channel.appendLine('node version: ' + process.version)
-    channel.appendLine('coc.nvim version: ' + workspace.version)
+    channel.appendLine('coc.nvim version: ' + workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : ''))
     channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
     channel.appendLine('platform: ' + process.platform)
     channel.appendLine('')
