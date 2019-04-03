@@ -21,16 +21,16 @@ matrix:
 before_install:
   - curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   - |
-    if [ "$TRAVIS_OS_NAME" = "osx" ]; then
+    if [ "${TRAVIS_OS_NAME}" = "osx" ]; then
       curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-macos.tar.gz
       tar xzf nvim-macos.tar.gz
-      export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-osx64/bin"
+      export PATH="${PATH}:node_modules/.bin:${PWD}/nvim-osx64/bin"
     else
       curl -LO https://github.com/neovim/neovim/releases/download/nightly/nvim-linux64.tar.gz
       tar xzf nvim-linux64.tar.gz
-      export PATH="${PATH}:node_modules/.bin:$(pwd)/nvim-linux64/bin"
+      export PATH="${PATH}:node_modules/.bin:${PWD}/nvim-linux64/bin"
     fi
-  - echo $PATH
+  - echo "${PATH}"
   - nvim --version
 
 install:
