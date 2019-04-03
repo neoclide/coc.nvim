@@ -115,6 +115,8 @@ class Languages {
     }, null, 'languageserver')
     workspace.ready.then(() => {
       this.loadCompleteConfig()
+    }, _e => {
+      // noop
     })
     workspace.onDidChangeConfiguration(this.loadCompleteConfig, this)
   }

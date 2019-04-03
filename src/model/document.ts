@@ -490,6 +490,8 @@ export default class Document {
           line: start.line,
           colStart: byteIndex(line, start.character),
           colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
+        }).catch(_e => {
+          // noop
         })
         res.push(srcId)
       }

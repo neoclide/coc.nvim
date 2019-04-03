@@ -51,7 +51,9 @@ export default class History {
     if (loaded.length > 200) {
       loaded = loaded.slice(-200)
     }
-    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded)
+    db.push(`${name}.${encodeURIComponent(workspace.cwd)}`, loaded).catch(_e => {
+      // noop
+    })
   }
 
   public previous(): void {

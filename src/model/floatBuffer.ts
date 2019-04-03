@@ -202,6 +202,8 @@ export default class FloatBuffer {
           line: highlight.line,
           colStart: highlight.colStart,
           colEnd: highlight.colEnd
+        }).catch(_e => {
+          // noop
         })
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]

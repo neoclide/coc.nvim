@@ -60,7 +60,7 @@ describe('diagnostic manager', () => {
     diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
     collection.set(doc.uri, diagnostics)
     await helper.wait(30)
-    nvim.input('<esc>')
+    await nvim.input('<esc>')
     await helper.wait(600)
   })
 

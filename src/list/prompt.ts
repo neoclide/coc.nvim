@@ -41,7 +41,7 @@ export default class Prompt {
     this.drawPrompt()
   }
 
-  public async start(input?: string, mode?: ListMode, delay = false): Promise<void> {
+  public start(input?: string, mode?: ListMode, delay = false): void {
     if (this.timer) clearTimeout(this.timer)
     if (input != null) {
       this._input = input

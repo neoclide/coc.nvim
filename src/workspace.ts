@@ -629,7 +629,9 @@ export class Workspace implements IWorkspace {
       return Promise.resolve(this.buffers.get(bufnr))
     }
     if (!this.creatingSources.has(bufnr)) {
-      this.onBufCreate(bufnr)
+      this.onBufCreate(bufnr).catch(e => {
+        logger.error('Error on buffer create:', e)
+      })
     }
     return new Promise<Document>(resolve => {
       let disposable = this.onDidOpenTextDocument(doc => {
@@ -1095,12 +1097,12 @@ augroup end`
     let tokenSource = new CancellationTokenSource()
     let content = await Promise.resolve(provider.provideTextDocumentContent(Uri.parse(uri), tokenSource.token))
     let buf = await this.nvim.buffer
-    buf.setOption('readonly', true)
     await buf.setLines(content.split('\n'), {
       start: 0,
       end: -1,
       strictIndexing: false
     })
+    buf.setOption('readonly', true, true)
     setTimeout(async () => {
       await events.fire('BufCreate', [buf.id])
     }, 30)

@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import Uri from 'vscode-uri'
-import os from 'os'
 import sources from '../../sources'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
@@ -22,7 +21,7 @@ export default class SourcesList extends BasicList {
 
     this.addAction('refresh', async item => {
       let { name } = item.data
-      sources.refresh(name)
+      await sources.refresh(name)
     }, { persist: true, reload: true })
 
     this.addAction('open', async item => {
@@ -62,6 +61,8 @@ export default class SourcesList extends BasicList {
     nvim.command('highlight default link CocSourcesName Type', true)
     nvim.command('highlight default link CocSourcesFileTypes Comment', true)
     nvim.command('highlight default link CocSourcesType Statement', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 }

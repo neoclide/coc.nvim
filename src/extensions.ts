@@ -203,7 +203,9 @@ export class Extensions {
         client.subscribe('**/*.js', debounce(async () => {
           await this.reloadExtension(name)
           workspace.showMessage(`reloaded ${name}`)
-        }, 100))
+        }, 100)).catch(_e => {
+          // noop
+        })
       }
     }
   }
@@ -488,6 +490,8 @@ export class Extensions {
         workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
         logger.error(`Error on activate extension ${extension.id}:`, e)
       })
+    }, _e => {
+      // noop
     })
   }
 

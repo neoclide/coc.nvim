@@ -200,7 +200,9 @@ export default class CodeLensManager {
       doc.clearMatchIds([this.srcId])
     }
     if (codeLenes && codeLenes.length) await this.setVirtualText(doc.buffer, codeLenes)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 
   public async doAction(): Promise<void> {

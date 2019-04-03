@@ -122,7 +122,6 @@ export default class Highlighter implements Disposable {
   }
 
   public dispose(): void {
-    this.nvim.resumeNotification()
     this.document = null
   }
 }

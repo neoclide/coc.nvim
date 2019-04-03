@@ -74,7 +74,9 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', '', true)
         nvim.command('redraws', true)
-        nvim.resumeNotification()
+        nvim.resumeNotification().catch(_e => {
+          // noop
+        })
       }
     }
   }
@@ -117,7 +119,7 @@ export default class Worker {
       let currInput = context.input
       let timer: NodeJS.Timer
       let lastTs: number
-      let _onData = async () => {
+      let _onData = () => {
         lastTs = Date.now()
         if (this.taskId != id || !this.manager.isActivated) return
         if (count >= totalItems.length) return

@@ -60,7 +60,7 @@ describe('diagnostic buffer', () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    await buf.setLocationlist([diagnostic], winid)
+    buf.setLocationlist([diagnostic], winid)
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
     expect(curr.title).toBe('Diagnostics of coc')
   })

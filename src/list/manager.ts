@@ -56,7 +56,7 @@ export class ListManager {
     this.worker = new Worker(nvim, this)
     this.ui = new UI(nvim, this.config)
     events.on('VimResized', () => {
-      if (this.isActivated) nvim.command('redraw!')
+      if (this.isActivated) nvim.command('redraw!', true)
     }, null, this.disposables)
     events.on('InputChar', this.onInputChar, this, this.disposables)
     events.on('FocusGained', debounce(async () => {
@@ -89,7 +89,7 @@ export class ListManager {
       if (!autoPreview || !this.activated) return
       await this.doAction('preview')
     }, 100), null, this.disposables)
-    this.ui.onDidOpen(async () => {
+    this.ui.onDidOpen(() => {
       if (this.currList) {
         this.currList.doHighlight()
         nvim.command(`setl statusline=${this.buildStatusline()}`, true)
@@ -115,10 +115,10 @@ export class ListManager {
       if (!this.activated) return
       if (append) {
         this.ui.addHighlights(highlights, true)
-        this.ui.appendItems(items)
+        await this.ui.appendItems(items)
       } else {
         this.ui.addHighlights(highlights)
-        this.ui.drawItems(items, this.name, this.listOptions.position, reload)
+        await this.ui.drawItems(items, this.name, this.listOptions.position, reload)
       }
     })
     workspace.onDidChangeConfiguration(e => {
@@ -226,6 +226,7 @@ export class ListManager {
         nvim.pauseNotification()
         nvim.call('win_gotoid', [window.id], true)
         await this.ui.restoreWindow()
+        nvim.command('redraw', true)
         await nvim.resumeNotification()
         if (action.reload) await this.worker.loadItems(true)
       }
@@ -313,7 +314,7 @@ export class ListManager {
     await nvim.call('coc#list#stop_prompt')
     let n = await nvim.call('confirm', ['Choose action:', choices.join('\n')]) as number
     await wait(10)
-    await this.prompt.start()
+    this.prompt.start()
     if (n) await this.doAction(names[n - 1])
   }
 
@@ -401,7 +402,9 @@ export class ListManager {
     nvim.pauseNotification()
     buf.setVar('list_status', status, true)
     if (ui.window) nvim.command('redraws', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
   }
 
   private buildStatusline(): string {
@@ -436,6 +439,7 @@ export class ListManager {
   }
 
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
+    let { nvim } = this
     let charMap = await this.getCharMap()
     let inserted = charMap.get(ch) || ch
     if (mouseKeys.indexOf(inserted) !== -1) {
@@ -448,7 +452,9 @@ export class ListManager {
         let n = Number(ch)
         if (n == 0) n = 10
         if (this.ui.length >= n) {
-          await this.ui.setCursor(Number(ch), 0)
+          nvim.pauseNotification()
+          this.ui.setCursor(Number(ch), 0)
+          await nvim.resumeNotification()
           await this.doAction()
         }
         return

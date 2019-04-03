@@ -153,7 +153,9 @@ export class DiagnosticManager implements Disposable {
       let buf = new DiagnosticBuffer(doc, this.config)
       this.buffers.push(buf)
       buf.onDidRefresh(() => {
-        this.echoMessage(true)
+        this.echoMessage(true).catch(_e => {
+          // noop
+        })
       })
     }
   }
@@ -513,7 +515,9 @@ export class DiagnosticManager implements Disposable {
           })
           this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
         }
-        nvim.resumeNotification(false, true)
+        nvim.resumeNotification(false, true).catch(_e => {
+          // noop
+        })
       } else {
         let diagnostics = this.getDiagnostics(uri)
         if (this.enabled) {

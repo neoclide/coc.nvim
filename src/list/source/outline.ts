@@ -70,7 +70,9 @@ export default class Outline extends LocationList {
     nvim.command('highlight default link CocOutlineName Normal', true)
     nvim.command('highlight default link CocOutlineKind Typedef', true)
     nvim.command('highlight default link CocOutlineLine Comment', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {

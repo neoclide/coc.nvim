@@ -19,7 +19,7 @@ export default class CommandsList extends BasicList {
     this.addAction('run', async item => {
       let { cmd } = item.data
       await events.fire('Command', [cmd])
-      commandManager.executeCommand(cmd)
+      await commandManager.executeCommand(cmd)
       await this.mru.add(cmd)
     })
   }
@@ -57,7 +57,9 @@ export default class CommandsList extends BasicList {
     nvim.pauseNotification()
     nvim.command('syntax match CocCommandsTitle /\\t.*$/ contained containedin=CocCommandsLine', true)
     nvim.command('highlight default link CocCommandsTitle Comment', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 }
 

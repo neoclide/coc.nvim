@@ -113,7 +113,7 @@ export default class Plugin extends EventEmitter {
       }
     })
     workspace.onDidChangeWorkspaceFolders(() => {
-      nvim.setVar('WorkspaceFolders', workspace.folderPaths)
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
     })
     commandManager.init(nvim, this)
     clean() // tslint:disable-line
@@ -131,7 +131,7 @@ export default class Plugin extends EventEmitter {
       await workspace.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
-      nvim.setVar('WorkspaceFolders', workspace.folderPaths)
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       completion.init(nvim)
       sources.init()
       this.handler = new Handler(nvim)
@@ -317,7 +317,7 @@ export default class Plugin extends EventEmitter {
           sources.toggleSource(args[1])
           break
         case 'diagnosticInfo':
-          diagnosticManager.echoMessage()
+          await diagnosticManager.echoMessage()
           break
         case 'diagnosticNext':
           await diagnosticManager.jumpNext()

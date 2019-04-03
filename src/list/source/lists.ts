@@ -44,7 +44,9 @@ export default class LinksList extends BasicList {
     nvim.pauseNotification()
     nvim.command('syntax match CocListsDesc /\\t.*$/ contained containedin=CocListsLine', true)
     nvim.command('highlight default link CocListsDesc Comment', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 }
 

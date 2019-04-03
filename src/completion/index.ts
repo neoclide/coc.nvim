@@ -540,7 +540,9 @@ export class Completion implements Disposable {
     }
     nvim.command(`let g:coc#_context['candidates'] = []`, true)
     nvim.call('coc#_hide', [], true)
-    nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
   }
 
   private closePreviewWindow(): void {

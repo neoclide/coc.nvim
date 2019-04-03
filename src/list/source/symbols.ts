@@ -52,7 +52,9 @@ export default class Symbols extends LocationList {
     nvim.command('highlight default link CocSymbolsName Normal', true)
     nvim.command('highlight default link CocSymbolsKind Typedef', true)
     nvim.command('highlight default link CocSymbolsFile Comment', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 
   private validWorkspaceSymbol(symbol: SymbolInformation): boolean {

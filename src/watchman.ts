@@ -154,6 +154,8 @@ export default class Watchman {
     for (let promise of clientsMap.values()) {
       promise.then(client => {
         client.dispose()
+      }, _e => {
+        // noop
       })
     }
   }

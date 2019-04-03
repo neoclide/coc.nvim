@@ -80,22 +80,19 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
     })
     let timer: NodeJS.Timer
     let exited = false
-    const exit = async () => {
+    const exit = () => {
       if (exited) return
       exited = true
       if (timer) clearTimeout(timer)
       if (nvim) {
-        try {
-          await nvim.quit()
-        } catch (e) {
-          // noop
-        }
-        let killed = terminate(proc)
-        if (!killed) {
-          setTimeout(() => {
-            terminate(proc)
-          }, 50)
-        }
+        nvim.command('qa!').catch(() => {
+          let killed = terminate(proc)
+          if (!killed) {
+            setTimeout(() => {
+              terminate(proc)
+            }, 50)
+          }
+        })
       }
     }
     try {

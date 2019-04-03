@@ -80,7 +80,7 @@ export class DiagnosticBuffer implements Disposable {
     })
   }
 
-  public async setLocationlist(diagnostics: ReadonlyArray<Diagnostic>, winid: number): Promise<void> {
+  public setLocationlist(diagnostics: ReadonlyArray<Diagnostic>, winid: number): void {
     if (!this.config.locationlist) return
     let { nvim, bufnr } = this
     // not shown
@@ -184,7 +184,9 @@ export class DiagnosticBuffer implements Disposable {
           .filter((l: string) => l.length > 0)
           .slice(0, this.config.virtualTextLines)
           .join(this.config.virtualTextLineSeparator)
-      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {})
+      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).catch(_e => {
+        // noop
+      })
     }
   }
 
@@ -235,6 +237,8 @@ export class DiagnosticBuffer implements Disposable {
         line: i,
         colStart: s == 0 ? 0 : byteIndex(line, s),
         colEnd: e == -1 ? -1 : byteIndex(line, e),
+      }).catch(_e => {
+        // noop
       })
     }
     this.matchIds.add(srcId)
@@ -308,7 +312,9 @@ export class DiagnosticBuffer implements Disposable {
 
   public dispose(): void {
     if (this.sequence) {
-      this.sequence.cancel()
+      this.sequence.cancel().catch(_e => {
+        // noop
+      })
     }
     this._onDidRefresh.dispose()
   }

@@ -159,34 +159,52 @@ export default class Mappings {
       return
     })
     this.add('normal', 't', () => {
-      manager.doAction('tabe')
+      manager.doAction('tabe').catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', 's', () => {
-      manager.doAction('split')
+      manager.doAction('split').catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', 'd', () => {
-      manager.doAction('drop')
+      manager.doAction('drop').catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', ['<cr>', '<C-m>', '\r'], () => {
-      manager.doAction()
+      manager.doAction().catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', ' ', () => {
-      manager.ui.toggleSelection()
+      manager.ui.toggleSelection().catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', 'p', () => {
-      manager.togglePreview()
+      manager.togglePreview().catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', ['<tab>', '\t', '<C-i>'], () => {
-      manager.chooseAction()
+      manager.chooseAction().catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
     this.add('normal', '<esc>', () => {
-      manager.cancel()
+      manager.cancel().catch(e => {
+        logger.error(e)
+      })
     })
     this.add('normal', '<C-l>', () => {
-      manager.worker.loadItems(true)
+      manager.worker.loadItems(true).catch(e => {
+        logger.error(`Error or reload items:`, e)
+      })
     })
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
       manager.toggleMode()

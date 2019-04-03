@@ -206,7 +206,7 @@ export default class Handler {
       if (target == 'float') {
         this.hoverFactory.close()
       } else if (target == 'preview') {
-        this.nvim.command('pclose')
+        this.nvim.command('pclose', true)
       }
     }
   }
@@ -420,7 +420,7 @@ export default class Handler {
   public async runCommand(id?: string, ...args: any[]): Promise<void> {
     if (id) {
       await events.fire('Command', [id])
-      commandManager.executeCommand(id, ...args)
+      await commandManager.executeCommand(id, ...args)
     } else {
       this.nvim.command(`CocList commands`, true)
     }
@@ -598,7 +598,9 @@ export default class Handler {
         this.highlightsMap.set(document.bufnr, ids)
       }
     }
-    this.nvim.resumeNotification()
+    this.nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 
   public async highlight(): Promise<void> {

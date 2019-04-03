@@ -61,6 +61,8 @@ export default class ListUI {
         this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
         this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
       }
+    }, _e => {
+      // noop
     })
 
     events.on('BufUnload', async bufnr => {
@@ -72,10 +74,10 @@ export default class ListUI {
     }, null, this.disposables)
 
     let timer: NodeJS.Timeout
-    events.on('CursorMoved', async bufnr => {
+    events.on('CursorMoved', async (bufnr, cursor) => {
       if (timer) clearTimeout(timer)
       if (bufnr != this.bufnr) return
-      let lnum = await nvim.call('line', '.')
+      let lnum = cursor[0]
       if (this.currIndex + 1 == lnum) return
       this.currIndex = lnum - 1
       this._onDidChangeLine.fire(lnum)
@@ -86,8 +88,13 @@ export default class ListUI {
     if (n < 0 || n >= this.items.length) return
     this.currIndex = n
     if (this.window) {
-      this.setCursor(n + 1, 0, true)
-      this.nvim.command('redraw', true)
+      let { nvim } = this
+      nvim.pauseNotification()
+      this.setCursor(n + 1, 0)
+      nvim.command('redraw', true)
+      nvim.resumeNotification(false, true).catch(_e => {
+        // noop
+      })
     }
   }
 
@@ -140,7 +147,7 @@ export default class ListUI {
     }
     let current = winid == window.id
     if (current && event == 'doubleClick') {
-      await this.setCursor(lnum, 0)
+      this.setCursor(lnum, 0)
       this._onDoubleClick.fire()
     }
     if (!this.mouseDown || this.mouseDown.winid != this.mouseDown.winid) return
@@ -150,7 +157,7 @@ export default class ListUI {
       if (this.mouseDown.lnum == lnum) {
         nvim.pauseNotification()
         this.clearSelection()
-        this.setCursor(lnum, 0, true)
+        this.setCursor(lnum, 0)
         nvim.command('redraw', true)
         await nvim.resumeNotification()
       } else {
@@ -205,7 +212,7 @@ export default class ListUI {
       selected.push(lnum)
       nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${bufnr}`, true)
     }
-    this.setCursor(lnum + 1, 0, true)
+    this.setCursor(lnum + 1, 0)
     nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
@@ -222,7 +229,7 @@ export default class ListUI {
       selected.push(i)
       nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true)
     }
-    this.setCursor(end, 0, true)
+    this.setCursor(end, 0)
     nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
@@ -337,7 +344,9 @@ export default class ListUI {
     this.doHighlight()
     if (!append) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
     this._onDidChange.fire()
-    nvim.resumeNotification(false, true)
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
   }
 
   public async restoreWindow(): Promise<void> {
@@ -399,14 +408,10 @@ export default class ListUI {
     }
   }
 
-  public async setCursor(lnum: number, col: number, notify = false): Promise<void> {
+  public setCursor(lnum: number, col: number): void {
     let { window, bufnr } = this
-    if (!bufnr || !window) return Promise.resolve()
-    if (notify) {
-      window.notify('nvim_win_set_cursor', [window, [lnum, col]])
-    } else {
-      await window.request('nvim_win_set_cursor', [window, [lnum, col]])
-    }
+    if (!bufnr || !window) return
+    window.notify('nvim_win_set_cursor', [window, [lnum, col]])
     if (this.currIndex + 1 != lnum) {
       this.currIndex = lnum - 1
       this._onDidChangeLine.fire(lnum)

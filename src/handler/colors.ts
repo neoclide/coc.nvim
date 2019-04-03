@@ -38,7 +38,9 @@ export default class Colors {
     this._enabled = config.get<boolean>('colorSupport', true)
     let srcId = await workspace.createNameSpace('coc-colors')
     if (srcId) this.srcId = srcId
-    this._highlightCurrent()
+    this._highlightCurrent().catch(_e => {
+      // noop
+    })
 
     events.on('BufEnter', async () => {
       if (!global.hasOwnProperty('__TEST__')) {
