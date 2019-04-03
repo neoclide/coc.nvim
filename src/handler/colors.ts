@@ -49,7 +49,12 @@ export default class Colors {
     }, null, this.disposables)
 
     if (workspace.isVim) {
-      events.on('BufWinEnter', async bufnr => {
+      events.on('BufWinEnter', async (bufnr, winid) => {
+        for (let highlighter of this.highlighters.values()) {
+          if (highlighter.winid == winid && highlighter.bufnr != bufnr) {
+            highlighter.clearHighlight()
+          }
+        }
         let doc = workspace.getDocument(bufnr)
         if (doc) await this.highlightColors(doc, true)
       }, null, this.disposables)

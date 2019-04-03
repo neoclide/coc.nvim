@@ -149,7 +149,6 @@ function! s:Enable()
       autocmd User NvimRpcInit    call coc#rpc#start_server()
       autocmd User NvimRpcExit    call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
-      autocmd BufWinEnter       * call clearmatches()
       autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
