@@ -75,7 +75,7 @@ export function convertErrors(uri: string, content: string, errors: ParseError[]
         msg = 'close brace expected'
         break
       case 5:
-        msg = 'colon expeted'
+        msg = 'colon expected'
         break
       case 6:
         msg = 'comma expected'
