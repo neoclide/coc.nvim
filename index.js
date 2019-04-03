@@ -45354,7 +45354,7 @@ function convertErrors(uri, content, errors) {
                 msg = 'close brace expected';
                 break;
             case 5:
-                msg = 'colon expeted';
+                msg = 'colon expected';
                 break;
             case 6:
                 msg = 'comma expected';
@@ -52734,7 +52734,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "cfd60c7683" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "89af16d3d7" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -59451,6 +59451,7 @@ class FloatFactory {
             window.setVar('float', 1, true);
             window.setCursor([1, 1], true);
             window.setOption('list', false, true);
+            window.setOption('listchars', 'eol: ', true);
             window.setOption('wrap', false, true);
             window.setOption('previewwindow', true, true);
             window.setOption('number', false, true);
@@ -71588,6 +71589,7 @@ class FloatingWindow {
                 win.setVar('popup', 1, true);
                 win.setVar('float', 1, true);
                 win.setOption('list', false, true);
+                win.setOption('listchars', 'eol: ', true);
                 win.setOption('number', false, true);
                 win.setOption('cursorline', false, true);
                 win.setOption('cursorcolumn', false, true);
