@@ -378,7 +378,7 @@ export default class Plugin extends EventEmitter {
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
         case 'extensionStats':
-          return extensions.getExtensionStates()
+          return await extensions.getExtensionStates()
         case 'activeExtension':
           return extensions.activate(args[1], false)
         case 'deactivateExtension':

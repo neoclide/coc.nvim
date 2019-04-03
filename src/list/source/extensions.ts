@@ -3,7 +3,7 @@ import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
 import os from 'os'
-import { wait } from '../../util'
+import { wait, echoWarning } from '../../util'
 const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
@@ -56,7 +56,11 @@ export default class ExtensionList extends BasicList {
     }, { persist: true, reload: true })
 
     this.addAction('uninstall', async item => {
-      let { id } = item.data
+      let { id, isLocal } = item.data
+      if (isLocal) {
+        echoWarning(nvim, 'Unable to uninstall extension loaded from &rtp.')
+        return
+      }
       extensions.uninstallExtension([id]).catch(e => {
         logger.error(e)
       })
@@ -65,7 +69,7 @@ export default class ExtensionList extends BasicList {
 
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: ListItem[] = []
-    let list = extensions.getExtensionStates()
+    let list = await extensions.getExtensionStates()
     for (let stat of list) {
       let prefix = '+'
       if (stat.state == 'disabled') {
@@ -77,12 +81,13 @@ export default class ExtensionList extends BasicList {
       }
       let root = await this.nvim.call('resolve', stat.root)
       items.push({
-        label: `${prefix} ${stat.id}\t${stat.version}\t${root.replace(os.homedir(), '~')}`,
+        label: `${prefix} ${stat.id}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os.homedir(), '~')}`,
         filterText: stat.id,
         data: {
           id: stat.id,
           root,
           state: stat.state,
+          isLocal: stat.isLocal,
           priority: getPriority(stat.state)
         }
       })
@@ -104,10 +109,12 @@ export default class ExtensionList extends BasicList {
     nvim.command('syntax match CocExtensionsDisabled /\\v^-/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsName /\\v%3c\\S+/ contained containedin=CocExtensionsLine', true)
     nvim.command('syntax match CocExtensionsRoot /\\v\\t[^\\t]*$/ contained containedin=CocExtensionsLine', true)
+    nvim.command('syntax match CocExtensionsLocal /\\v\\[RTP\\]/ contained containedin=CocExtensionsLine', true)
     nvim.command('highlight default link CocExtensionsActivited Special', true)
     nvim.command('highlight default link CocExtensionsLoaded Normal', true)
     nvim.command('highlight default link CocExtensionsDisabled Comment', true)
     nvim.command('highlight default link CocExtensionsName String', true)
+    nvim.command('highlight default link CocExtensionsLocal MoreMsg', true)
     nvim.command('highlight default link CocExtensionsRoot Comment', true)
     nvim.resumeNotification().catch(_e => {
       // noop

@@ -38,6 +38,7 @@ export interface ExtensionInfo {
   root: string
   exotic: boolean
   state: ExtensionState
+  isLocal: boolean
 }
 
 export interface ErrorItem {
@@ -200,12 +201,12 @@ export interface Terminal {
 
 export interface Env {
   completeOpt: string
+  runtimepath: string
   readonly mode: string
   readonly floating: boolean
   readonly extensionRoot: string
   readonly watchExtensions: string[]
   readonly globalExtensions: string[]
-  readonly localExtensions: string[]
   readonly workspaceFolders: string[]
   readonly config: any
   readonly pid: number

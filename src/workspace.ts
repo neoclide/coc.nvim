@@ -132,6 +132,9 @@ export class Workspace implements IWorkspace {
       this._onDidChangeConfiguration.fire(e)
     }, null, this.disposables)
 
+    this.watchOption('runtimepath', (_, newValue: string) => {
+      this._env.runtimepath = newValue
+    }, this.disposables)
     this.watchOption('iskeyword', (_, newValue: string) => {
       let doc = this.getDocument(this.bufnr)
       if (doc) doc.setIskeyword(newValue)

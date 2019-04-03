@@ -3,7 +3,6 @@ let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:install_yarn = 0
 let s:package_file = s:root.'/package.json'
-let g:coc_local_extensions = []
 
 let s:activate = ""
 let s:quit = ""
@@ -163,15 +162,6 @@ function! coc#util#platform()
     return 'mac'
   endif
   return 'linux'
-endfunction
-
-function! coc#util#regist_extension(folder)
-  if index(g:coc_local_extensions, a:folder) == -1
-    call add(g:coc_local_extensions, a:folder)
-    if get(g:, 'coc_service_initialized', 0)
-      call coc#rpc#notify('registExtensions', [a:folder])
-    endif
-  endif
 endfunction
 
 function! coc#util#remote_fns(name)
@@ -491,7 +481,6 @@ function! coc#util#vim_info()
         \ 'extensionRoot': coc#util#extension_root(),
         \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
-        \ 'localExtensions': get(g:, 'coc_local_extensions', []),
         \ 'config': get(g:, 'coc_user_config', {}),
         \ 'pid': getpid(),
         \ 'columns': &columns,

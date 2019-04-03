@@ -3,9 +3,8 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import path from 'path'
-import util from 'util'
 import readline from 'readline'
-import findUp from 'find-up'
+import util from 'util'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void

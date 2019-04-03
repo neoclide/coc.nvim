@@ -121,9 +121,8 @@ export class Sources {
   }
 
   private async createRemoteSources(): Promise<void> {
-    let { nvim } = this
-    let runtimepath = await nvim.eval('&runtimepath')
-    let paths = (runtimepath as string).split(',')
+    let { runtimepath } = workspace.env
+    let paths = runtimepath.split(',')
     for (let path of paths) {
       await this.createVimSources(path)
     }
