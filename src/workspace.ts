@@ -1,5 +1,4 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
-import { VimValue } from '@chemzqm/neovim/lib/types/VimValue'
 import debounce from 'debounce'
 import findUp from 'find-up'
 import fs from 'fs'
@@ -22,14 +21,13 @@ import StatusLine from './model/status'
 import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
-import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, LanguageServerConfig } from './types'
+import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, LanguageServerConfig, PatternType } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
-import { distinct } from './util/array'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 let NAME_SPACE = 1080
@@ -102,6 +100,14 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     this.statusLine = new StatusLine(this.nvim)
     this._env = await this.nvim.call('coc#util#vim_info') as Env
+    if (this._env.workspaceFolders) {
+      this._workspaceFolders = this._env.workspaceFolders.map(f => {
+        return {
+          uri: Uri.file(f).toString(),
+          name: path.dirname(f)
+        }
+      })
+    }
     this.checkProcess()
     this.configurations.updateUserConfig(this._env.config)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
@@ -1209,11 +1215,9 @@ augroup end`
       if (doc) this.onBufUnload(doc.bufnr)
     })
     if (document.buftype == '' && document.schema == 'file') {
+      let root = this.resolveRoot(document)
+      if (root) this.addWorkspaceFolder(root)
       let workspaceFolder = this.getWorkspaceFolder(document.uri)
-      if (!workspaceFolder) {
-        let root = this.resolveRoot(document)
-        if (root) workspaceFolder = this.addWorkspaceFolder(root)
-      }
       if (this.bufnr == buffer.id && workspaceFolder) {
         this._root = Uri.parse(workspaceFolder.uri).fsPath
       }
@@ -1312,29 +1316,25 @@ augroup end`
   }
 
   private resolveRoot(document: Document): string {
+    let types = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
     let u = Uri.parse(document.uri)
     let dir = path.dirname(u.fsPath)
-    let patterns = this.getRootPatterns(document)
-    return patterns ? resolveRoot(dir, patterns) : null
-  }
-
-  public getRootPatterns(document: Document): string[] {
-    let { uri, filetype } = document
-    let u = Uri.parse(uri)
-    let dir = path.dirname(u.fsPath)
-    if (dir != os.homedir()) {
-      let patterns = document.rootPatterns
-      if (!patterns || patterns.length == 0) {
-        const preferences = this.getConfiguration('coc.preferences', uri)
-        patterns = preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice()
-        const more = this.getServerRootPatterns(filetype)
-        patterns.push(...more)
-        patterns = distinct(patterns)
+    for (let patternType of types) {
+      let patterns = this.getRootPatterns(document, patternType)
+      if (patterns && patterns.length) {
+        let root = resolveRoot(dir, patterns, this.cwd)
+        if (root) return root
       }
-      patterns = patterns.map(s => s.endsWith('/') ? s.slice(0, -1) : s)
-      return patterns
     }
     return null
+  }
+
+  public getRootPatterns(document: Document, patternType: PatternType): string[] {
+    let { uri } = document
+    if (patternType == PatternType.Buffer) return document.rootPatterns
+    if (patternType == PatternType.LanguageServer) return this.getServerRootPatterns(document.filetype)
+    const preferences = this.getConfiguration('coc.preferences', uri)
+    return preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice()
   }
 
   private setMessageLevel(): void {
@@ -1372,7 +1372,39 @@ augroup end`
     return res
   }
 
-  private getDocumentOption(name: string, doc?: Document): Promise<VimValue> {
+  public get folderPaths(): string[] {
+    return this.workspaceFolders.map(f => Uri.parse(f.uri).fsPath)
+  }
+
+  public removeWorkspaceFolder(fsPath: string): void {
+    let idx = this._workspaceFolders.findIndex(f => Uri.parse(f.uri).fsPath == fsPath)
+    if (idx != -1) {
+      let folder = this._workspaceFolders[idx]
+      this._workspaceFolders.splice(idx, 1)
+      this._onDidChangeWorkspaceFolders.fire({
+        removed: [folder],
+        added: []
+      })
+    }
+  }
+
+  public renameWorkspaceFolder(oldPath: string, newPath: string): void {
+    let idx = this._workspaceFolders.findIndex(f => Uri.parse(f.uri).fsPath == oldPath)
+    if (idx == -1) return
+    let removed = this._workspaceFolders[idx]
+    let added: WorkspaceFolder = {
+      uri: Uri.file(newPath).toString(),
+      name: path.dirname(newPath)
+    }
+    this._workspaceFolders.splice(idx, 1)
+    this._workspaceFolders.push(added)
+    this._onDidChangeWorkspaceFolders.fire({
+      removed: [removed],
+      added: [added]
+    })
+  }
+
+  private getDocumentOption(name: string, doc?: Document): Promise<any> {
     return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name)
   }
 
@@ -1416,7 +1448,7 @@ augroup end`
         patterns.push(...rootPatterns)
       }
     }
-    return patterns
+    return patterns.length ? patterns : null
   }
 }
 

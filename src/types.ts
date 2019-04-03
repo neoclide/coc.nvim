@@ -206,6 +206,7 @@ export interface Env {
   readonly watchExtensions: string[]
   readonly globalExtensions: string[]
   readonly localExtensions: string[]
+  readonly workspaceFolders: string[]
   readonly config: any
   readonly pid: number
   readonly columns: number
@@ -249,6 +250,12 @@ export interface SnippetManager {
 export type ModuleResolve = () => Promise<string>
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's'
+
+export enum PatternType {
+  Buffer,
+  LanguageServer,
+  Global,
+}
 
 export enum SourceType {
   Native,

@@ -504,6 +504,7 @@ function! coc#util#vim_info()
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
         \ 'colorscheme': get(g:, 'colors_name', ''),
+        \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
         \ 'runtimepath': &runtimepath,
         \}

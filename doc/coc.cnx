@@ -307,6 +307,14 @@ b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*
 	" Disable completion for 'end' in lua file
 	autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
+b:coc_diagnostic_info 				*b:coc_diagnostic_info*
+
+			当前缓冲区的错误信息，格式为：
+
+			`{'error': 0, 'warning': 0, 'information': 0, 'hint':0}`
+
+			用于自定义状态栏，查看 |coc-status|.
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 
@@ -424,17 +432,15 @@ g:coc_status_warning_sign 			*g:coc_status_warning_sign*
 
 			状态栏使用的警告提示字符，默认 `W`
 
-b:coc_diagnostic_info 				*b:coc_diagnostic_info*
-
-			当前缓冲区的错误信息，格式为：
-
-			`{'error': 0, 'warning': 0, 'information': 0, 'hint':0}`
-
-			用于自定义状态栏，查看 |coc-status|.
-
 g:coc_status 					*g:coc_status*
 
 			插件给出的提示信息，用于状态栏使用。
+
+g:WorkspaceFolders 				*g:WorkspaceFolders*
+
+			当前的 workspaceFolders，用于 session 使用。
+			需添加 `set sessionoptions+=globals` 让 session 支持
+			globals 变量。
 
 ------------------------------------------------------------------------------
 

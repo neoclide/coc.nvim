@@ -3557,7 +3557,7 @@ export abstract class BaseLanguageClient {
       let doc = workspace.getDocument(workspace.bufnr)
       if (doc && doc.schema == 'file') {
         let dir = path.dirname(Uri.parse(doc.uri).fsPath)
-        resolved = resolveRoot(dir, rootPatterns)
+        resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
       }
     }
     if (required && !resolved) return null

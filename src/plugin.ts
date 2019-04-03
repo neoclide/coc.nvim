@@ -14,7 +14,7 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { Autocmd, OutputChannel } from './types'
+import { Autocmd, OutputChannel, PatternType } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
 import debounce = require('debounce')
@@ -39,7 +39,11 @@ export default class Plugin extends EventEmitter {
     this.addMethod('rootPatterns', bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return null
-      return workspace.getRootPatterns(doc)
+      return {
+        buffer: workspace.getRootPatterns(doc, PatternType.Buffer),
+        server: workspace.getRootPatterns(doc, PatternType.LanguageServer),
+        global: workspace.getRootPatterns(doc, PatternType.Global)
+      }
     })
     this.addMethod('installExtensions', debounce(async () => {
       let list = await nvim.getVar('coc_global_extensions') as string[]
@@ -108,6 +112,9 @@ export default class Plugin extends EventEmitter {
         await extensions.loadExtension(folder)
       }
     })
+    workspace.onDidChangeWorkspaceFolders(() => {
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths)
+    })
     commandManager.init(nvim, this)
     clean() // tslint:disable-line
   }
@@ -124,6 +131,7 @@ export default class Plugin extends EventEmitter {
       await workspace.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths)
       completion.init(nvim)
       sources.init()
       this.handler = new Handler(nvim)

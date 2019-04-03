@@ -56,12 +56,13 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
   return false
 }
 
-export function resolveRoot(cwd: string, subs: string[]): string | null {
+export function resolveRoot(dir: string, subs: string[], cwd?: string): string | null {
   let home = os.homedir()
-  if (home.startsWith(cwd)) return null
-  let { root } = path.parse(cwd)
-  if (root == cwd) return null
-  let parts = cwd.split(path.sep)
+  if (home.startsWith(dir)) return null
+  let { root } = path.parse(dir)
+  if (root == dir) return null
+  if (cwd && dir.startsWith(cwd) && inDirectory(cwd, subs)) return cwd
+  let parts = dir.split(path.sep)
   let curr: string[] = [parts.shift()]
   for (let part of parts) {
     curr.push(part)

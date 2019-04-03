@@ -12,6 +12,7 @@ import CommandsList from './source/commands'
 import DiagnosticsList from './source/diagnostics'
 import ExtensionList from './source/extensions'
 import LinksList from './source/links'
+import FolderList from './source/folders'
 import ListsList from './source/lists'
 import LocationList from './source/location'
 import OutlineList from './source/outline'
@@ -137,6 +138,7 @@ export class ListManager {
     this.registerList(new ServicesList(nvim))
     this.registerList(new OutputList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
+    this.registerList(new FolderList(nvim))
   }
 
   public async start(args: string[]): Promise<void> {

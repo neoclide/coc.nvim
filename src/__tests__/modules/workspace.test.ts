@@ -464,6 +464,7 @@ describe('workspace utility', () => {
     await helper.wait(30)
     let content = doc.getDocumentContent()
     expect(content).toMatch('foo')
+    fs.unlinkSync(newFile)
   })
 
   it('should overwrite if file exists', async () => {
