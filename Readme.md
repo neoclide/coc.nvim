@@ -174,7 +174,7 @@ Extensions are powerful than configured language server. Checkout
   [Rust Language Server](https://github.com/rust-lang/rls)
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
 - **[coc-python](https://github.com/neoclide/coc-python)** for `python`, use
-  exteextension that forked from [vscode-python](https://github.com/Microsoft/vscode-python).
+  extension that forked from [vscode-python](https://github.com/Microsoft/vscode-python).
 - **[coc-highlight](https://github.com/neoclide/coc-highlight)** provide default
   document symbol highlight and colors support.
 - **[coc-emmet](https://github.com/neoclide/coc-emmet)** provide emmet
