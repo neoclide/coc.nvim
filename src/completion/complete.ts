@@ -135,14 +135,14 @@ export default class Complete {
     let { results } = this
     let now = Date.now()
     let { bufnr } = this.option
-    let { removeDuplicatedLowerPriority, snippetIndicator, fixInsertedWord } = this.config
+    let { snippetIndicator, fixInsertedWord } = this.config
     let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     // max score of high priority source
     let maxScore = 0
     let arr: VimCompleteItem[] = []
     let codes = getCharCodes(input)
-    let exists: Map<string, number> = new Map()
+    let words: Set<string> = new Set()
     let filtering = input.length > this.input.length
     let preselect: VimCompleteItem = null
     for (let i = 0, l = results.length; i < l; i++) {
@@ -152,8 +152,7 @@ export default class Complete {
       for (let idx = 0; idx < items.length; idx++) {
         let item = items[idx]
         let { word } = item
-        if (!item.dup && exists.has(word)) continue
-        if (removeDuplicatedLowerPriority && exists.has(word) && exists.get(word) > priority) continue
+        if (!item.dup && words.has(word)) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
@@ -189,24 +188,7 @@ export default class Complete {
             item.recentScore = recentScore
           }
         }
-        exists.set(word, priority)
-        if (!item.hasOwnProperty('toJSON')) {
-          Object.defineProperty(item, 'toJSON', {
-            value(): string {
-              return JSON.stringify({
-                word: this.word,
-                abbr: this.abbr,
-                menu: this.menu,
-                info: this.info,
-                kind: this.kind,
-                icase: this.icase,
-                dup: this.dup,
-                empty: this.empty,
-                user_data: this.user_data
-              })
-            }
-          })
-        }
+        words.add(word)
         if (!preselect) {
           if (item.isSnippet && item.word == input) {
             preselect = item

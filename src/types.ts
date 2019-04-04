@@ -498,7 +498,6 @@ export interface SourceStat {
 }
 
 export interface CompleteConfig {
-  removeDuplicatedLowerPriority: boolean
   enablePreview: boolean
   maxPreviewWidth: number
   autoTrigger: string

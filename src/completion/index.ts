@@ -11,6 +11,7 @@ import workspace from '../workspace'
 import Complete from './complete'
 import FloatingWindow from './floating'
 const logger = require('../util/logger')('completion')
+const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
 export interface LastInsert {
   character: string
@@ -148,7 +149,6 @@ export class Completion implements Disposable {
       autoTrigger,
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
-      removeDuplicatedLowerPriority: getConfig<boolean>('noselect', true),
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       reloadPumOnInsertChar: suggest.get<boolean>('reloadPumOnInsertChar', false),
       enablePreview: getConfig<boolean>('enablePreview', false),
@@ -235,7 +235,16 @@ export class Completion implements Disposable {
     if (this.config.numberSelect) {
       nvim.call('coc#_map', [], true)
     }
-    nvim.call('coc#_do_complete', [col, items], true)
+    let vimItems = items.map(item => {
+      let obj = { word: item.word }
+      for (let key of completeItemKeys) {
+        if (item.hasOwnProperty(key)) {
+          obj[key] = item[key]
+        }
+      }
+      return obj
+    })
+    nvim.call('coc#_do_complete', [col, vimItems], true)
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
