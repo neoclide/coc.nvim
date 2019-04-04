@@ -1497,7 +1497,7 @@ const tslib_1 = __webpack_require__(3);
 const neovim_1 = __webpack_require__(4);
 const log4js_1 = tslib_1.__importDefault(__webpack_require__(55));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const plugin_1 = tslib_1.__importDefault(__webpack_require__(222));
+const plugin_1 = tslib_1.__importDefault(__webpack_require__(223));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const logger = __webpack_require__(172)('attach');
 const isTest = "none" == 'test';
@@ -1563,7 +1563,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(221);
+        let json = __webpack_require__(222);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -42959,6 +42959,7 @@ const match_1 = __webpack_require__(212);
 const string_1 = __webpack_require__(199);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(217));
 const uuid = __webpack_require__(207);
+const array_1 = __webpack_require__(221);
 const logger = __webpack_require__(172)('workspace');
 const CONFIG_FILE_NAME = 'coc-settings.json';
 let NAME_SPACE = 1080;
@@ -42966,6 +42967,7 @@ class Workspace {
     constructor() {
         this.keymaps = new Map();
         this.resolver = new resolver_1.default();
+        this.rootPatterns = new Map();
         this._workspaceFolders = [];
         this._cwd = process.cwd();
         this._blocking = false;
@@ -43001,7 +43003,7 @@ class Workspace {
         this.onDidSaveTextDocument = this._onDidSaveDocument.event;
         this.onDidChangeConfiguration = this._onDidChangeConfiguration.event;
         this.onDidWorkspaceInitialized = this._onDidWorkspaceInitialized.event;
-        let json = __webpack_require__(221);
+        let json = __webpack_require__(222);
         this.version = json.version;
         this.configurations = this.createConfigurations();
         this.willSaveUntilHandler = new willSaveHandler_1.default(this);
@@ -44305,6 +44307,15 @@ augroup end`;
             added: [added]
         });
     }
+    addRootPatterns(filetype, rootPatterns) {
+        let patterns = this.rootPatterns.get(filetype) || [];
+        for (let p of rootPatterns) {
+            if (patterns.indexOf(p) == -1) {
+                patterns.push(p);
+            }
+        }
+        this.rootPatterns.set(filetype, patterns);
+    }
     getDocumentOption(name, doc) {
         return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name);
     }
@@ -44348,7 +44359,8 @@ augroup end`;
                 patterns.push(...rootPatterns);
             }
         }
-        return patterns.length ? patterns : null;
+        patterns = patterns.concat(this.rootPatterns.get(filetype) || []);
+        return patterns.length ? array_1.distinct(patterns) : null;
     }
 }
 exports.Workspace = Workspace;
@@ -52506,12 +52518,76 @@ Int64.prototype = {
 
 /***/ }),
 /* 221 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+function intersect(array, other) {
+    for (let item of other) {
+        if (array.indexOf(item) !== -1) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.intersect = intersect;
+function tail(array, n = 0) {
+    return array[array.length - (1 + n)];
+}
+exports.tail = tail;
+function group(array, size) {
+    let len = array.length;
+    let res = [];
+    for (let i = 0; i < Math.ceil(len / size); i++) {
+        res.push(array.slice(i * size, (i + 1) * size));
+    }
+    return res;
+}
+exports.group = group;
+/**
+ * Removes duplicates from the given array. The optional keyFn allows to specify
+ * how elements are checked for equalness by returning a unique string for each.
+ */
+function distinct(array, keyFn) {
+    if (!keyFn) {
+        return array.filter((element, position) => {
+            return array.indexOf(element) === position;
+        });
+    }
+    const seen = Object.create(null);
+    return array.filter(elem => {
+        const key = keyFn(elem);
+        if (seen[key]) {
+            return false;
+        }
+        seen[key] = true;
+        return true;
+    });
+}
+exports.distinct = distinct;
+function lastIndex(array, fn) {
+    let i = array.length - 1;
+    while (i >= 0) {
+        if (fn(array[i])) {
+            break;
+        }
+        i--;
+    }
+    return i;
+}
+exports.lastIndex = lastIndex;
+exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+//# sourceMappingURL=array.js.map
+
+/***/ }),
+/* 222 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarnpkg clean && yarnpkg build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.0","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","jest":"24.7.0","rimraf":"^2.6.3","ts-jest":"^24.0.1","tslint":"^5.15.0","typescript":"^3.4.1","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ }),
-/* 222 */
+/* 223 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -52519,21 +52595,21 @@ module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(9);
-const https_1 = tslib_1.__importDefault(__webpack_require__(223));
+const https_1 = tslib_1.__importDefault(__webpack_require__(224));
 const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
-const completion_1 = tslib_1.__importDefault(__webpack_require__(228));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
+const completion_1 = tslib_1.__importDefault(__webpack_require__(229));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(250));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(328));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(295));
-const services_1 = tslib_1.__importDefault(__webpack_require__(282));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(225));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(229));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(329));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(296));
+const services_1 = tslib_1.__importDefault(__webpack_require__(283));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(226));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const types_1 = __webpack_require__(181);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(332));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(333));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const debounce = __webpack_require__(163);
 const logger = __webpack_require__(172)('plugin');
@@ -52643,6 +52719,7 @@ class Plugin extends events_1.EventEmitter {
     async init() {
         let { nvim } = this;
         try {
+            await extensions_1.default.init();
             await workspace_1.default.init();
             manager_2.default.init(nvim);
             nvim.setVar('coc_workspace_initialized', 1, true);
@@ -52652,7 +52729,6 @@ class Plugin extends events_1.EventEmitter {
             this.handler = new handler_1.default(nvim);
             await manager_1.default.init();
             services_1.default.init();
-            await extensions_1.default.init();
             nvim.setVar('coc_process_pid', process.pid, true);
             nvim.setVar('coc_service_initialized', 1, true);
             nvim.call('coc#_init', [], true);
@@ -52739,7 +52815,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "dd72fe8ef3" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "1d45f316cf" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -52873,7 +52949,9 @@ class Plugin extends events_1.EventEmitter {
                     await handler.showSignatureHelp();
                     break;
                 case 'documentSymbols':
-                    return handler.getDocumentSymbols();
+                    return await handler.getDocumentSymbols();
+                case 'selectionRanges':
+                    return await handler.getSelectionRanges();
                 case 'rename':
                     await handler.rename();
                     return;
@@ -52945,13 +53023,13 @@ exports.default = Plugin;
 //# sourceMappingURL=plugin.js.map
 
 /***/ }),
-/* 223 */
+/* 224 */
 /***/ (function(module, exports) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 224 */
+/* 225 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -52961,8 +53039,8 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const util_1 = __webpack_require__(161);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(225));
-const position_1 = __webpack_require__(227);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(226));
+const position_1 = __webpack_require__(228);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const logger = __webpack_require__(172)('commands');
 class CommandItem {
@@ -53197,7 +53275,7 @@ exports.default = new CommandManager();
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 225 */
+/* 226 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53206,9 +53284,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const session_1 = __webpack_require__(226);
-const Snippets = tslib_1.__importStar(__webpack_require__(281));
-const variableResolve_1 = __webpack_require__(327);
+const session_1 = __webpack_require__(227);
+const Snippets = tslib_1.__importStar(__webpack_require__(282));
+const variableResolve_1 = __webpack_require__(328);
 const logger = __webpack_require__(172)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -53346,7 +53424,7 @@ exports.default = new SnippetManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 226 */
+/* 227 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53355,12 +53433,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const util_1 = __webpack_require__(161);
-const position_1 = __webpack_require__(227);
+const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const completion_1 = tslib_1.__importDefault(__webpack_require__(228));
-const snippet_1 = __webpack_require__(326);
-const variableResolve_1 = __webpack_require__(327);
+const completion_1 = tslib_1.__importDefault(__webpack_require__(229));
+const snippet_1 = __webpack_require__(327);
+const variableResolve_1 = __webpack_require__(328);
 const logger = __webpack_require__(172)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -53653,7 +53731,7 @@ function normalizeSnippetString(snippet, indent, opts) {
 //# sourceMappingURL=session.js.map
 
 /***/ }),
-/* 227 */
+/* 228 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53771,7 +53849,7 @@ exports.editRange = editRange;
 //# sourceMappingURL=position.js.map
 
 /***/ }),
-/* 228 */
+/* 229 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53781,12 +53859,12 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const chars_1 = __webpack_require__(200);
-const sources_1 = tslib_1.__importDefault(__webpack_require__(229));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const util_1 = __webpack_require__(161);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const complete_1 = tslib_1.__importDefault(__webpack_require__(323));
-const floating_1 = tslib_1.__importDefault(__webpack_require__(325));
+const complete_1 = tslib_1.__importDefault(__webpack_require__(324));
+const floating_1 = tslib_1.__importDefault(__webpack_require__(326));
 const logger = __webpack_require__(172)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -54380,7 +54458,7 @@ exports.default = new Completion();
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 229 */
+/* 230 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -54393,9 +54471,9 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const vscode_jsonrpc_1 = __webpack_require__(139);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
-const source_1 = tslib_1.__importDefault(__webpack_require__(318));
-const source_vim_1 = tslib_1.__importDefault(__webpack_require__(319));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
+const source_1 = tslib_1.__importDefault(__webpack_require__(319));
+const source_vim_1 = tslib_1.__importDefault(__webpack_require__(320));
 const types_1 = __webpack_require__(181);
 const util_2 = __webpack_require__(161);
 const fs_2 = __webpack_require__(194);
@@ -54413,9 +54491,9 @@ class Sources {
     }
     async createNativeSources() {
         try {
-            this.disposables.push((__webpack_require__(320)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(321)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(322)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(323)).regist(this.sourceMap));
         }
         catch (e) {
             console.error('Create source error:' + e.message); // tslint:disable-line
@@ -54703,7 +54781,7 @@ exports.default = new Sources();
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 230 */
+/* 231 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -54714,7 +54792,7 @@ const child_process_1 = __webpack_require__(162);
 const debounce_1 = __webpack_require__(163);
 const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(198));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(231));
+const glob_1 = tslib_1.__importDefault(__webpack_require__(232));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(170));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
@@ -54722,9 +54800,10 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const memos_1 = tslib_1.__importDefault(__webpack_require__(242));
+const db_1 = tslib_1.__importDefault(__webpack_require__(193));
+const memos_1 = tslib_1.__importDefault(__webpack_require__(243));
 const util_2 = __webpack_require__(161);
-const array_1 = __webpack_require__(243);
+const array_1 = __webpack_require__(221);
 const factory_1 = __webpack_require__(244);
 const fs_2 = __webpack_require__(194);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(217));
@@ -54754,11 +54833,10 @@ class Extensions {
         this.onDidActiveExtension = this._onDidActiveExtension.event;
         this.onDidUnloadExtension = this._onDidUnloadExtension.event;
     }
-    get root() {
-        return workspace_1.default.env.extensionRoot;
-    }
     async init() {
-        let db = this.db = workspace_1.default.createDatabase('db');
+        this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+        let filepath = path_1.default.join(this.root, 'db.json');
+        let db = this.db = new db_1.default(filepath);
         let data = loadJson(db.filepath) || {};
         let keys = Object.keys(data.extension || {});
         for (let key of keys) {
@@ -54785,8 +54863,6 @@ class Extensions {
                 workspace_1.default.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error');
             });
         })).then(() => {
-            return this.addExtensions();
-        }).then(() => {
             this._onReady.fire();
             this._ready = true;
             let config = workspace_1.default.getConfiguration('coc.preferences');
@@ -54797,11 +54873,16 @@ class Extensions {
                 workspace_1.default.showMessage(`Error on update extensions: ${e.message}`, 'error');
             });
         });
-        if (workspace_1.default.isVim) {
-            this.updateNodeRpc().catch(e => {
-                workspace_1.default.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error');
-            });
-        }
+        workspace_1.default.ready.then(() => {
+            if (workspace_1.default.isVim) {
+                this.updateNodeRpc().catch(e => {
+                    workspace_1.default.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error');
+                });
+            }
+            return this.addExtensions();
+        }).catch(_e => {
+            // noop
+        });
         // watch for new local extension
         workspace_1.default.watchOption('runtimepath', async (oldValue, newValue) => {
             let result = fast_diff_1.default(oldValue, newValue);
@@ -55279,9 +55360,7 @@ class Extensions {
         let isActive = false;
         let exports = null;
         let filename = path_1.default.join(root, packageJSON.main || 'index.js');
-        let ext = factory_1.createExtension(id, filename);
-        if (!ext)
-            return;
+        let ext;
         let context = {
             subscriptions: [],
             extensionPath: root,
@@ -55298,6 +55377,9 @@ class Extensions {
                 if (isActive)
                     return;
                 isActive = true;
+                ext = ext || factory_1.createExtension(id, filename);
+                if (!ext)
+                    return;
                 try {
                     exports = await Promise.resolve(ext.activate(context));
                 }
@@ -55344,7 +55426,7 @@ class Extensions {
         });
         let { contributes } = packageJSON;
         if (contributes) {
-            let { configuration } = contributes;
+            let { configuration, rootPatterns } = contributes;
             if (configuration && configuration.properties) {
                 let { properties } = configuration;
                 let props = {};
@@ -55355,9 +55437,18 @@ class Extensions {
                 }
                 workspace_1.default.configurations.extendsDefaults(props);
             }
+            if (rootPatterns && rootPatterns.length) {
+                for (let item of rootPatterns) {
+                    workspace_1.default.addRootPatterns(item.filetype, item.patterns);
+                }
+            }
         }
         this._onDidLoadExtension.fire(extension);
-        this.setupActiveEvents(id, packageJSON);
+        workspace_1.default.ready.then(() => {
+            this.setupActiveEvents(id, packageJSON);
+        }).catch(_e => {
+            // noop
+        });
         return id;
     }
     getExtensionApi(id) {
@@ -55427,7 +55518,7 @@ class Extensions {
         return res.filter(info => info != null);
     }
     async localExtensionStats(exclude) {
-        let { runtimepath } = workspace_1.default.env;
+        let runtimepath = await workspace_1.default.nvim.eval('&runtimepath');
         let paths = runtimepath.split(',');
         let res = await Promise.all(paths.map(root => {
             return new Promise(async (resolve) => {
@@ -55480,7 +55571,7 @@ exports.default = new Extensions();
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 231 */
+/* 232 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -55526,26 +55617,26 @@ exports.default = new Extensions();
 module.exports = glob
 
 var fs = __webpack_require__(65)
-var rp = __webpack_require__(232)
+var rp = __webpack_require__(233)
 var minimatch = __webpack_require__(213)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(234)
+var inherits = __webpack_require__(235)
 var EE = __webpack_require__(9).EventEmitter
 var path = __webpack_require__(72)
 var assert = __webpack_require__(99)
-var isAbsolute = __webpack_require__(236)
-var globSync = __webpack_require__(237)
-var common = __webpack_require__(238)
+var isAbsolute = __webpack_require__(237)
+var globSync = __webpack_require__(238)
+var common = __webpack_require__(239)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(239)
+var inflight = __webpack_require__(240)
 var util = __webpack_require__(41)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(241)
+var once = __webpack_require__(242)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -56276,7 +56367,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 232 */
+/* 233 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = realpath
@@ -56292,7 +56383,7 @@ var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(233)
+var old = __webpack_require__(234)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -56348,7 +56439,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 233 */
+/* 234 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -56657,7 +56748,7 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 234 */
+/* 235 */
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
@@ -56665,12 +56756,12 @@ try {
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
-  module.exports = __webpack_require__(235);
+  module.exports = __webpack_require__(236);
 }
 
 
 /***/ }),
-/* 235 */
+/* 236 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -56699,7 +56790,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 236 */
+/* 237 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -56726,22 +56817,22 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 237 */
+/* 238 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(65)
-var rp = __webpack_require__(232)
+var rp = __webpack_require__(233)
 var minimatch = __webpack_require__(213)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(231).Glob
+var Glob = __webpack_require__(232).Glob
 var util = __webpack_require__(41)
 var path = __webpack_require__(72)
 var assert = __webpack_require__(99)
-var isAbsolute = __webpack_require__(236)
-var common = __webpack_require__(238)
+var isAbsolute = __webpack_require__(237)
+var common = __webpack_require__(239)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -57218,7 +57309,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 238 */
+/* 239 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -57237,7 +57328,7 @@ function ownProp (obj, field) {
 
 var path = __webpack_require__(72)
 var minimatch = __webpack_require__(213)
-var isAbsolute = __webpack_require__(236)
+var isAbsolute = __webpack_require__(237)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -57464,12 +57555,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 239 */
+/* 240 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(240)
+var wrappy = __webpack_require__(241)
 var reqs = Object.create(null)
-var once = __webpack_require__(241)
+var once = __webpack_require__(242)
 
 module.exports = wrappy(inflight)
 
@@ -57524,7 +57615,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 240 */
+/* 241 */
 /***/ (function(module, exports) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -57563,10 +57654,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 241 */
+/* 242 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(240)
+var wrappy = __webpack_require__(241)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -57611,7 +57702,7 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 242 */
+/* 243 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -57670,70 +57761,6 @@ class Memos {
 }
 exports.default = Memos;
 //# sourceMappingURL=memos.js.map
-
-/***/ }),
-/* 243 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function intersect(array, other) {
-    for (let item of other) {
-        if (array.indexOf(item) !== -1) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.intersect = intersect;
-function tail(array, n = 0) {
-    return array[array.length - (1 + n)];
-}
-exports.tail = tail;
-function group(array, size) {
-    let len = array.length;
-    let res = [];
-    for (let i = 0; i < Math.ceil(len / size); i++) {
-        res.push(array.slice(i * size, (i + 1) * size));
-    }
-    return res;
-}
-exports.group = group;
-/**
- * Removes duplicates from the given array. The optional keyFn allows to specify
- * how elements are checked for equalness by returning a unique string for each.
- */
-function distinct(array, keyFn) {
-    if (!keyFn) {
-        return array.filter((element, position) => {
-            return array.indexOf(element) === position;
-        });
-    }
-    const seen = Object.create(null);
-    return array.filter(elem => {
-        const key = keyFn(elem);
-        if (seen[key]) {
-            return false;
-        }
-        seen[key] = true;
-        return true;
-    });
-}
-exports.distinct = distinct;
-function lastIndex(array, fn) {
-    let i = array.length - 1;
-    while (i >= 0) {
-        if (fn(array[i])) {
-            break;
-        }
-        i--;
-    }
-    return i;
-}
-exports.lastIndex = lastIndex;
-exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
-//# sourceMappingURL=array.js.map
 
 /***/ }),
 /* 244 */
@@ -57957,7 +57984,7 @@ module.exports = require("module");
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 exports.commands = commands_1.default;
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 exports.events = events_1.default;
@@ -57969,19 +57996,19 @@ const mru_1 = tslib_1.__importDefault(__webpack_require__(202));
 exports.Mru = mru_1.default;
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(201));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
-const services_1 = tslib_1.__importDefault(__webpack_require__(282));
+const services_1 = tslib_1.__importDefault(__webpack_require__(283));
 exports.services = services_1.default;
-const sources_1 = tslib_1.__importDefault(__webpack_require__(229));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 exports.sources = sources_1.default;
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 exports.workspace = workspace_1.default;
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
 exports.extensions = extensions_1.default;
-const manager_1 = tslib_1.__importDefault(__webpack_require__(295));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(296));
 exports.listManager = manager_1.default;
-const manager_2 = tslib_1.__importDefault(__webpack_require__(225));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(226));
 exports.snippetManager = manager_2.default;
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(250));
 exports.diagnosticManager = manager_3.default;
@@ -57998,7 +58025,7 @@ exports.Disposable = vscode_languageserver_protocol_1.Disposable;
 exports.Event = vscode_languageserver_protocol_1.Event;
 exports.Emitter = vscode_languageserver_protocol_1.Emitter;
 tslib_1.__exportStar(__webpack_require__(181), exports);
-tslib_1.__exportStar(__webpack_require__(283), exports);
+tslib_1.__exportStar(__webpack_require__(284), exports);
 var util_1 = __webpack_require__(161);
 exports.disposeAll = util_1.disposeAll;
 //# sourceMappingURL=index.js.map
@@ -58012,33 +58039,34 @@ exports.disposeAll = util_1.disposeAll;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(250));
 const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(260));
-const codeLensManager_1 = tslib_1.__importDefault(__webpack_require__(262));
-const declarationManager_1 = tslib_1.__importDefault(__webpack_require__(263));
-const definitionManager_1 = tslib_1.__importDefault(__webpack_require__(264));
-const documentColorManager_1 = tslib_1.__importDefault(__webpack_require__(265));
-const documentHighlightManager_1 = tslib_1.__importDefault(__webpack_require__(266));
-const documentLinkManager_1 = tslib_1.__importDefault(__webpack_require__(267));
-const documentSymbolManager_1 = tslib_1.__importDefault(__webpack_require__(268));
-const foldingRangeManager_1 = tslib_1.__importDefault(__webpack_require__(269));
-const formatManager_1 = tslib_1.__importDefault(__webpack_require__(270));
-const formatRangeManager_1 = tslib_1.__importDefault(__webpack_require__(271));
-const hoverManager_1 = tslib_1.__importDefault(__webpack_require__(272));
-const implementatioinManager_1 = tslib_1.__importDefault(__webpack_require__(273));
-const onTypeFormatManager_1 = tslib_1.__importDefault(__webpack_require__(274));
-const referenceManager_1 = tslib_1.__importDefault(__webpack_require__(275));
-const renameManager_1 = tslib_1.__importDefault(__webpack_require__(276));
-const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(277));
-const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(278));
-const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(279));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(225));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(229));
+const rangeManager_1 = tslib_1.__importDefault(__webpack_require__(262));
+const codeLensManager_1 = tslib_1.__importDefault(__webpack_require__(263));
+const declarationManager_1 = tslib_1.__importDefault(__webpack_require__(264));
+const definitionManager_1 = tslib_1.__importDefault(__webpack_require__(265));
+const documentColorManager_1 = tslib_1.__importDefault(__webpack_require__(266));
+const documentHighlightManager_1 = tslib_1.__importDefault(__webpack_require__(267));
+const documentLinkManager_1 = tslib_1.__importDefault(__webpack_require__(268));
+const documentSymbolManager_1 = tslib_1.__importDefault(__webpack_require__(269));
+const foldingRangeManager_1 = tslib_1.__importDefault(__webpack_require__(270));
+const formatManager_1 = tslib_1.__importDefault(__webpack_require__(271));
+const formatRangeManager_1 = tslib_1.__importDefault(__webpack_require__(272));
+const hoverManager_1 = tslib_1.__importDefault(__webpack_require__(273));
+const implementatioinManager_1 = tslib_1.__importDefault(__webpack_require__(274));
+const onTypeFormatManager_1 = tslib_1.__importDefault(__webpack_require__(275));
+const referenceManager_1 = tslib_1.__importDefault(__webpack_require__(276));
+const renameManager_1 = tslib_1.__importDefault(__webpack_require__(277));
+const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(278));
+const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(279));
+const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(280));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(226));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const types_1 = __webpack_require__(181);
 const util_1 = __webpack_require__(161);
-const complete = tslib_1.__importStar(__webpack_require__(280));
-const position_1 = __webpack_require__(227);
+const complete = tslib_1.__importStar(__webpack_require__(281));
+const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('languages');
@@ -58090,6 +58118,7 @@ class Languages {
         this.referenceManager = new referenceManager_1.default();
         this.implementatioinManager = new implementatioinManager_1.default();
         this.codeLensManager = new codeLensManager_1.default();
+        this.selectionRangeManager = new rangeManager_1.default();
         this.cancelTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         workspace_1.default.onWillSaveUntil(event => {
             let config = workspace_1.default.getConfiguration('coc.preferences');
@@ -58176,6 +58205,9 @@ class Languages {
     }
     registerHoverProvider(selector, provider) {
         return this.hoverManager.register(selector, provider);
+    }
+    registerSelectionRangeProvider(selector, provider) {
+        return this.selectionRangeManager.register(selector, provider);
     }
     registerSignatureHelpProvider(selector, provider, triggerCharacters) {
         return this.signatureManager.register(selector, provider, triggerCharacters);
@@ -58271,6 +58303,9 @@ class Languages {
     }
     async getDocumentSymbol(document) {
         return await this.documentSymbolManager.provideDocumentSymbols(document, this.token);
+    }
+    async getSelectionRanges(document, positions) {
+        return await this.selectionRangeManager.provideSelectionRanges(document, positions, this.token);
     }
     async getWorkspaceSymbols(document, query) {
         query = query || '';
@@ -58479,9 +58514,8 @@ class Languages {
                     }
                     if (documentation) {
                         if (typeof documentation == 'string') {
-                            let isText = /^[\w-\s.,\t]+$/.test(documentation);
                             docs.push({
-                                filetype: isText ? 'txt' : doc.filetype,
+                                filetype: 'markdown',
                                 content: documentation
                             });
                         }
@@ -58687,6 +58721,9 @@ tslib_1.__decorate([
 ], Languages.prototype, "getDocumentSymbol", null);
 tslib_1.__decorate([
     check
+], Languages.prototype, "getSelectionRanges", null);
+tslib_1.__decorate([
+    check
 ], Languages.prototype, "getWorkspaceSymbols", null);
 tslib_1.__decorate([
     check
@@ -58749,7 +58786,7 @@ const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(251));
 const util_1 = __webpack_require__(161);
-const position_1 = __webpack_require__(227);
+const position_1 = __webpack_require__(228);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const buffer_1 = __webpack_require__(256);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(259));
@@ -59279,7 +59316,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(225));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(226));
 const util_1 = __webpack_require__(161);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(252));
 const uuid = __webpack_require__(207);
@@ -59550,7 +59587,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const highlight_1 = __webpack_require__(253);
 const string_1 = __webpack_require__(199);
-const array_1 = __webpack_require__(243);
+const array_1 = __webpack_require__(221);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const chars_1 = __webpack_require__(200);
 const logger = __webpack_require__(172)('model-floatBuffer');
@@ -60655,7 +60692,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
-const position_1 = __webpack_require__(227);
+const position_1 = __webpack_require__(228);
 const logger = __webpack_require__(172)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -60899,6 +60936,43 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const manager_1 = tslib_1.__importDefault(__webpack_require__(261));
 const uuid = __webpack_require__(255);
+class SelectionRangeManager extends manager_1.default {
+    register(selector, provider) {
+        let item = {
+            id: uuid(),
+            selector,
+            provider
+        };
+        this.providers.add(item);
+        return vscode_languageserver_protocol_1.Disposable.create(() => {
+            this.providers.delete(item);
+        });
+    }
+    async provideSelectionRanges(document, positions, token) {
+        let item = this.getProvider(document);
+        if (!item)
+            return null;
+        let { provider } = item;
+        return await Promise.resolve(provider.provideSelectionRanges(document, positions, token));
+    }
+    dispose() {
+        this.providers = new Set();
+    }
+}
+exports.default = SelectionRangeManager;
+//# sourceMappingURL=rangeManager.js.map
+
+/***/ }),
+/* 263 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const vscode_languageserver_protocol_1 = __webpack_require__(138);
+const manager_1 = tslib_1.__importDefault(__webpack_require__(261));
+const uuid = __webpack_require__(255);
 const lodash_1 = __webpack_require__(246);
 // const logger = require('../util/logger')('codeActionManager')
 class CodeLensManager extends manager_1.default {
@@ -60953,7 +61027,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codeLensManager.js.map
 
 /***/ }),
-/* 263 */
+/* 264 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -60991,7 +61065,7 @@ exports.default = DeclarationManager;
 //# sourceMappingURL=declarationManager.js.map
 
 /***/ }),
-/* 264 */
+/* 265 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61032,7 +61106,7 @@ exports.default = DefinitionManager;
 //# sourceMappingURL=definitionManager.js.map
 
 /***/ }),
-/* 265 */
+/* 266 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61079,7 +61153,7 @@ exports.default = DocumentColorManager;
 //# sourceMappingURL=documentColorManager.js.map
 
 /***/ }),
-/* 266 */
+/* 267 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61116,7 +61190,7 @@ exports.default = DocumentHighlightManager;
 //# sourceMappingURL=documentHighlightManager.js.map
 
 /***/ }),
-/* 267 */
+/* 268 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61179,7 +61253,7 @@ exports.default = DocumentLinkManager;
 //# sourceMappingURL=documentLinkManager.js.map
 
 /***/ }),
-/* 268 */
+/* 269 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61216,7 +61290,7 @@ exports.default = DocumentSymbolManager;
 //# sourceMappingURL=documentSymbolManager.js.map
 
 /***/ }),
-/* 269 */
+/* 270 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61253,7 +61327,7 @@ exports.default = FoldingRangeManager;
 //# sourceMappingURL=foldingRangeManager.js.map
 
 /***/ }),
-/* 270 */
+/* 271 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61291,7 +61365,7 @@ exports.default = FormatManager;
 //# sourceMappingURL=formatManager.js.map
 
 /***/ }),
-/* 271 */
+/* 272 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61329,7 +61403,7 @@ exports.default = FormatRangeManager;
 //# sourceMappingURL=formatRangeManager.js.map
 
 /***/ }),
-/* 272 */
+/* 273 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61372,7 +61446,7 @@ exports.default = HoverManager;
 //# sourceMappingURL=hoverManager.js.map
 
 /***/ }),
-/* 273 */
+/* 274 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61412,7 +61486,7 @@ exports.default = ImplementationManager;
 //# sourceMappingURL=implementatioinManager.js.map
 
 /***/ }),
-/* 274 */
+/* 275 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61464,7 +61538,7 @@ exports.default = OnTypeFormatManager;
 //# sourceMappingURL=onTypeFormatManager.js.map
 
 /***/ }),
-/* 275 */
+/* 276 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61504,7 +61578,7 @@ exports.default = ReferenceManager;
 //# sourceMappingURL=referenceManager.js.map
 
 /***/ }),
-/* 276 */
+/* 277 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61554,7 +61628,7 @@ exports.default = RenameManager;
 //# sourceMappingURL=renameManager.js.map
 
 /***/ }),
-/* 277 */
+/* 278 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61604,7 +61678,7 @@ exports.default = SignatureManager;
 //# sourceMappingURL=signatureManager.js.map
 
 /***/ }),
-/* 278 */
+/* 279 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61644,7 +61718,7 @@ exports.default = TypeDefinitionManager;
 //# sourceMappingURL=typeDefinitionManager.js.map
 
 /***/ }),
-/* 279 */
+/* 280 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -61693,14 +61767,14 @@ exports.default = WorkspaceSymbolManager;
 //# sourceMappingURL=workspaceSymbolsManager.js.map
 
 /***/ }),
-/* 280 */
+/* 281 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(150);
-const parser_1 = __webpack_require__(281);
+const parser_1 = __webpack_require__(282);
 const string_1 = __webpack_require__(199);
 const logger = __webpack_require__(172)('util-complete');
 const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n'];
@@ -61796,7 +61870,7 @@ exports.getValidWord = getValidWord;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 281 */
+/* 282 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -62813,7 +62887,7 @@ exports.SnippetParser = SnippetParser;
 //# sourceMappingURL=parser.js.map
 
 /***/ }),
-/* 282 */
+/* 283 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -62826,7 +62900,7 @@ const net_1 = tslib_1.__importDefault(__webpack_require__(6));
 const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const which_1 = tslib_1.__importDefault(__webpack_require__(165));
-const language_client_1 = __webpack_require__(283);
+const language_client_1 = __webpack_require__(284);
 const types_1 = __webpack_require__(181);
 const util_1 = __webpack_require__(161);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
@@ -63240,7 +63314,7 @@ exports.default = new ServiceManager();
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 283 */
+/* 284 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63258,18 +63332,18 @@ const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const types_1 = __webpack_require__(181);
 const Is = tslib_1.__importStar(__webpack_require__(183));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const client_1 = __webpack_require__(284);
-const colorProvider_1 = __webpack_require__(288);
-const configuration_1 = __webpack_require__(289);
-const foldingRange_1 = __webpack_require__(290);
-const implementation_1 = __webpack_require__(291);
-const typeDefinition_1 = __webpack_require__(292);
-const declaration_1 = __webpack_require__(293);
-const workspaceFolders_1 = __webpack_require__(294);
+const client_1 = __webpack_require__(285);
+const colorProvider_1 = __webpack_require__(289);
+const configuration_1 = __webpack_require__(290);
+const foldingRange_1 = __webpack_require__(291);
+const implementation_1 = __webpack_require__(292);
+const typeDefinition_1 = __webpack_require__(293);
+const declaration_1 = __webpack_require__(294);
+const workspaceFolders_1 = __webpack_require__(295);
 const processes_1 = __webpack_require__(254);
 const util_1 = __webpack_require__(161);
 const logger = __webpack_require__(172)('language-client-index');
-tslib_1.__exportStar(__webpack_require__(284), exports);
+tslib_1.__exportStar(__webpack_require__(285), exports);
 var Executable;
 (function (Executable) {
     function is(value) {
@@ -63685,7 +63759,7 @@ var ProposedFeatures;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 284 */
+/* 285 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -63700,14 +63774,14 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const fs_1 = __webpack_require__(194);
 const Is = tslib_1.__importStar(__webpack_require__(183));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const async_1 = __webpack_require__(285);
-const cv = tslib_1.__importStar(__webpack_require__(286));
-const UUID = tslib_1.__importStar(__webpack_require__(287));
+const async_1 = __webpack_require__(286);
+const cv = tslib_1.__importStar(__webpack_require__(287));
+const UUID = tslib_1.__importStar(__webpack_require__(288));
 const logger = __webpack_require__(172)('language-client-client');
 class ConsoleLogger {
     error(message) {
@@ -66084,7 +66158,7 @@ exports.BaseLanguageClient = BaseLanguageClient;
 //# sourceMappingURL=client.js.map
 
 /***/ }),
-/* 285 */
+/* 286 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66166,7 +66240,7 @@ exports.Delayer = Delayer;
 //# sourceMappingURL=async.js.map
 
 /***/ }),
-/* 286 */
+/* 287 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66294,7 +66368,7 @@ exports.asCodeLensParams = asCodeLensParams;
 //# sourceMappingURL=converter.js.map
 
 /***/ }),
-/* 287 */
+/* 288 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66308,7 +66382,7 @@ exports.generateUuid = generateUuid;
 //# sourceMappingURL=uuid.js.map
 
 /***/ }),
-/* 288 */
+/* 289 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66322,8 +66396,8 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const Is = tslib_1.__importStar(__webpack_require__(183));
-const client_1 = __webpack_require__(284);
-const UUID = tslib_1.__importStar(__webpack_require__(287));
+const client_1 = __webpack_require__(285);
+const UUID = tslib_1.__importStar(__webpack_require__(288));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -66402,7 +66476,7 @@ exports.ColorProviderFeature = ColorProviderFeature;
 //# sourceMappingURL=colorProvider.js.map
 
 /***/ }),
-/* 289 */
+/* 290 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66470,7 +66544,7 @@ exports.ConfigurationFeature = ConfigurationFeature;
 //# sourceMappingURL=configuration.js.map
 
 /***/ }),
-/* 290 */
+/* 291 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66484,8 +66558,8 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const Is = tslib_1.__importStar(__webpack_require__(183));
-const client_1 = __webpack_require__(284);
-const UUID = tslib_1.__importStar(__webpack_require__(287));
+const client_1 = __webpack_require__(285);
+const UUID = tslib_1.__importStar(__webpack_require__(288));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -66547,7 +66621,7 @@ exports.FoldingRangeFeature = FoldingRangeFeature;
 //# sourceMappingURL=foldingRange.js.map
 
 /***/ }),
-/* 291 */
+/* 292 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66561,9 +66635,9 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const Is = tslib_1.__importStar(__webpack_require__(183));
-const client_1 = __webpack_require__(284);
-const UUID = tslib_1.__importStar(__webpack_require__(287));
-const cv = tslib_1.__importStar(__webpack_require__(286));
+const client_1 = __webpack_require__(285);
+const UUID = tslib_1.__importStar(__webpack_require__(288));
+const cv = tslib_1.__importStar(__webpack_require__(287));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -66625,7 +66699,7 @@ exports.ImplementationFeature = ImplementationFeature;
 //# sourceMappingURL=implementation.js.map
 
 /***/ }),
-/* 292 */
+/* 293 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66639,9 +66713,9 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const Is = tslib_1.__importStar(__webpack_require__(183));
-const client_1 = __webpack_require__(284);
-const UUID = tslib_1.__importStar(__webpack_require__(287));
-const cv = tslib_1.__importStar(__webpack_require__(286));
+const client_1 = __webpack_require__(285);
+const UUID = tslib_1.__importStar(__webpack_require__(288));
+const cv = tslib_1.__importStar(__webpack_require__(287));
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -66705,7 +66779,7 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 //# sourceMappingURL=typeDefinition.js.map
 
 /***/ }),
-/* 293 */
+/* 294 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66717,11 +66791,11 @@ exports.TypeDefinitionFeature = TypeDefinitionFeature;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const Is = tslib_1.__importStar(__webpack_require__(183));
-const UUID = tslib_1.__importStar(__webpack_require__(287));
+const UUID = tslib_1.__importStar(__webpack_require__(288));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const converter_1 = __webpack_require__(286);
-const client_1 = __webpack_require__(284);
+const converter_1 = __webpack_require__(287);
+const client_1 = __webpack_require__(285);
 function ensure(target, key) {
     if (target[key] === void 0) {
         target[key] = {};
@@ -66784,7 +66858,7 @@ exports.DeclarationFeature = DeclarationFeature;
 //# sourceMappingURL=declaration.js.map
 
 /***/ }),
-/* 294 */
+/* 295 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66797,7 +66871,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const UUID = tslib_1.__importStar(__webpack_require__(287));
+const UUID = tslib_1.__importStar(__webpack_require__(288));
 const logger = __webpack_require__(172)('language-client-workspaceFolder');
 function access(target, key) {
     if (target === void 0) {
@@ -66881,7 +66955,7 @@ exports.WorkspaceFoldersFeature = WorkspaceFoldersFeature;
 //# sourceMappingURL=workspaceFolders.js.map
 
 /***/ }),
-/* 295 */
+/* 296 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66891,25 +66965,25 @@ const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(163));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const history_1 = tslib_1.__importDefault(__webpack_require__(296));
-const mappings_1 = tslib_1.__importDefault(__webpack_require__(298));
-const prompt_1 = tslib_1.__importDefault(__webpack_require__(299));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(300));
-const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(302));
-const extensions_2 = tslib_1.__importDefault(__webpack_require__(304));
-const links_1 = tslib_1.__importDefault(__webpack_require__(305));
-const folders_1 = tslib_1.__importDefault(__webpack_require__(306));
-const lists_1 = tslib_1.__importDefault(__webpack_require__(307));
-const location_1 = tslib_1.__importDefault(__webpack_require__(303));
-const outline_1 = tslib_1.__importDefault(__webpack_require__(308));
-const output_1 = tslib_1.__importDefault(__webpack_require__(310));
-const services_1 = tslib_1.__importDefault(__webpack_require__(311));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(312));
-const symbols_1 = tslib_1.__importDefault(__webpack_require__(313));
-const ui_1 = tslib_1.__importDefault(__webpack_require__(314));
-const worker_1 = tslib_1.__importDefault(__webpack_require__(315));
+const history_1 = tslib_1.__importDefault(__webpack_require__(297));
+const mappings_1 = tslib_1.__importDefault(__webpack_require__(299));
+const prompt_1 = tslib_1.__importDefault(__webpack_require__(300));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(301));
+const diagnostics_1 = tslib_1.__importDefault(__webpack_require__(303));
+const extensions_2 = tslib_1.__importDefault(__webpack_require__(305));
+const links_1 = tslib_1.__importDefault(__webpack_require__(306));
+const folders_1 = tslib_1.__importDefault(__webpack_require__(307));
+const lists_1 = tslib_1.__importDefault(__webpack_require__(308));
+const location_1 = tslib_1.__importDefault(__webpack_require__(304));
+const outline_1 = tslib_1.__importDefault(__webpack_require__(309));
+const output_1 = tslib_1.__importDefault(__webpack_require__(311));
+const services_1 = tslib_1.__importDefault(__webpack_require__(312));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(313));
+const symbols_1 = tslib_1.__importDefault(__webpack_require__(314));
+const ui_1 = tslib_1.__importDefault(__webpack_require__(315));
+const worker_1 = tslib_1.__importDefault(__webpack_require__(316));
 const util_1 = __webpack_require__(161);
 const logger = __webpack_require__(172)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
@@ -67566,14 +67640,14 @@ exports.default = new ListManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 296 */
+/* 297 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('list-history');
 class History {
@@ -67656,7 +67730,7 @@ exports.default = History;
 //# sourceMappingURL=history.js.map
 
 /***/ }),
-/* 297 */
+/* 298 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -67719,7 +67793,7 @@ exports.fuzzyMatch = fuzzyMatch;
 //# sourceMappingURL=fuzzy.js.map
 
 /***/ }),
-/* 298 */
+/* 299 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68131,7 +68205,7 @@ exports.default = Mappings;
 //# sourceMappingURL=mappings.js.map
 
 /***/ }),
-/* 299 */
+/* 300 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68324,18 +68398,18 @@ exports.default = Prompt;
 //# sourceMappingURL=prompt.js.map
 
 /***/ }),
-/* 300 */
+/* 301 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 class CommandsList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -68395,7 +68469,7 @@ function score(list, key) {
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 301 */
+/* 302 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68404,7 +68478,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const util_1 = __webpack_require__(161);
-const position_1 = __webpack_require__(227);
+const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('list-basic');
@@ -68514,7 +68588,7 @@ exports.default = BasicList;
 //# sourceMappingURL=basic.js.map
 
 /***/ }),
-/* 302 */
+/* 303 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68523,7 +68597,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(250));
-const location_1 = tslib_1.__importDefault(__webpack_require__(303));
+const location_1 = tslib_1.__importDefault(__webpack_require__(304));
 const logger = __webpack_require__(172)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
@@ -68565,7 +68639,7 @@ exports.default = DiagnosticsList;
 //# sourceMappingURL=diagnostics.js.map
 
 /***/ }),
-/* 303 */
+/* 304 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68574,7 +68648,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(150);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const logger = __webpack_require__(172)('list-location');
@@ -68644,15 +68718,15 @@ exports.default = LocationList;
 //# sourceMappingURL=location.js.map
 
 /***/ }),
-/* 304 */
+/* 305 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const util_1 = __webpack_require__(161);
 const logger = __webpack_require__(172)('list-extensions');
@@ -68787,7 +68861,7 @@ function getPriority(stat) {
 //# sourceMappingURL=extensions.js.map
 
 /***/ }),
-/* 305 */
+/* 306 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68797,7 +68871,7 @@ const tslib_1 = __webpack_require__(3);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 const vscode_languageserver_types_1 = __webpack_require__(150);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 class LinksList extends basic_1.default {
@@ -68869,7 +68943,7 @@ function formatUri(uri) {
 //# sourceMappingURL=links.js.map
 
 /***/ }),
-/* 306 */
+/* 307 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68878,7 +68952,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = __webpack_require__(194);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 class FoldList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -68908,14 +68982,14 @@ exports.default = FoldList;
 //# sourceMappingURL=folders.js.map
 
 /***/ }),
-/* 307 */
+/* 308 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(202));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
@@ -68969,7 +69043,7 @@ function score(list, key) {
 //# sourceMappingURL=lists.js.map
 
 /***/ }),
-/* 308 */
+/* 309 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -68983,8 +69057,8 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const util_1 = __webpack_require__(161);
 const fs_1 = __webpack_require__(194);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const location_1 = tslib_1.__importDefault(__webpack_require__(303));
-const convert_1 = __webpack_require__(309);
+const location_1 = tslib_1.__importDefault(__webpack_require__(304));
+const convert_1 = __webpack_require__(310);
 const logger = __webpack_require__(172)('list-symbols');
 class Outline extends location_1.default {
     constructor() {
@@ -69113,7 +69187,7 @@ function sortSymbols(a, b) {
 //# sourceMappingURL=outline.js.map
 
 /***/ }),
-/* 309 */
+/* 310 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69182,7 +69256,7 @@ exports.getSymbolKind = getSymbolKind;
 //# sourceMappingURL=convert.js.map
 
 /***/ }),
-/* 310 */
+/* 311 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69190,7 +69264,7 @@ exports.getSymbolKind = getSymbolKind;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 class OutputList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -69212,15 +69286,15 @@ exports.default = OutputList;
 //# sourceMappingURL=output.js.map
 
 /***/ }),
-/* 311 */
+/* 312 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const services_1 = tslib_1.__importDefault(__webpack_require__(282));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const services_1 = tslib_1.__importDefault(__webpack_require__(283));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 const util_1 = __webpack_require__(161);
 class ServicesList extends basic_1.default {
     constructor(nvim) {
@@ -69267,7 +69341,7 @@ exports.default = ServicesList;
 //# sourceMappingURL=services.js.map
 
 /***/ }),
-/* 312 */
+/* 313 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69276,9 +69350,9 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(150);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
-const sources_1 = tslib_1.__importDefault(__webpack_require__(229));
+const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
+const basic_1 = tslib_1.__importDefault(__webpack_require__(302));
 class SourcesList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -69339,7 +69413,7 @@ exports.default = SourcesList;
 //# sourceMappingURL=sources.js.map
 
 /***/ }),
-/* 313 */
+/* 314 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69351,8 +69425,8 @@ const vscode_languageserver_types_1 = __webpack_require__(150);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const location_1 = tslib_1.__importDefault(__webpack_require__(303));
-const convert_1 = __webpack_require__(309);
+const location_1 = tslib_1.__importDefault(__webpack_require__(304));
+const convert_1 = __webpack_require__(310);
 const logger = __webpack_require__(172)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -69425,7 +69499,7 @@ exports.default = Symbols;
 //# sourceMappingURL=symbols.js.map
 
 /***/ }),
-/* 314 */
+/* 315 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69848,7 +69922,7 @@ exports.default = ListUI;
 //# sourceMappingURL=ui.js.map
 
 /***/ }),
-/* 315 */
+/* 316 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69858,10 +69932,10 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
-const ansiparse_1 = __webpack_require__(316);
+const ansiparse_1 = __webpack_require__(317);
 const diff_1 = __webpack_require__(197);
-const fuzzy_1 = __webpack_require__(297);
-const score_1 = __webpack_require__(317);
+const fuzzy_1 = __webpack_require__(298);
+const score_1 = __webpack_require__(318);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const uuidv1 = __webpack_require__(207);
@@ -70271,7 +70345,7 @@ function getFilterLabel(item) {
 //# sourceMappingURL=worker.js.map
 
 /***/ }),
-/* 316 */
+/* 317 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70454,14 +70528,14 @@ exports.ansiparse = ansiparse;
 //# sourceMappingURL=ansiparse.js.map
 
 /***/ }),
-/* 317 */
+/* 318 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(72);
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 // first is start or path start +1, fuzzy +0.5
 // next is followed of path start +1, fuzzy +0.5
 // filename startsWith +1, fuzzy +0.5
@@ -70605,7 +70679,7 @@ function bestResult(results) {
 //# sourceMappingURL=score.js.map
 
 /***/ }),
-/* 318 */
+/* 319 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70613,7 +70687,7 @@ function bestResult(results) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const types_1 = __webpack_require__(181);
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('model-source');
@@ -70734,7 +70808,7 @@ exports.default = Source;
 //# sourceMappingURL=source.js.map
 
 /***/ }),
-/* 319 */
+/* 320 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70742,9 +70816,9 @@ exports.default = Source;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 const string_1 = __webpack_require__(199);
-const source_1 = tslib_1.__importDefault(__webpack_require__(318));
+const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const logger = __webpack_require__(172)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
@@ -70839,7 +70913,7 @@ exports.default = VimSource;
 //# sourceMappingURL=source-vim.js.map
 
 /***/ }),
-/* 320 */
+/* 321 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70847,7 +70921,7 @@ exports.default = VimSource;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const source_1 = tslib_1.__importDefault(__webpack_require__(318));
+const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('source-around');
 class Around extends source_1.default {
@@ -70889,7 +70963,7 @@ exports.regist = regist;
 //# sourceMappingURL=around.js.map
 
 /***/ }),
-/* 321 */
+/* 322 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70897,7 +70971,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const source_1 = tslib_1.__importDefault(__webpack_require__(318));
+const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('source-buffer');
 class Buffer extends source_1.default {
@@ -70953,7 +71027,7 @@ exports.regist = regist;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 322 */
+/* 323 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70966,7 +71040,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const source_1 = tslib_1.__importDefault(__webpack_require__(318));
+const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const fs_2 = __webpack_require__(194);
 const string_1 = __webpack_require__(199);
 // const logger = require('../util/logger')('source-file')
@@ -71093,7 +71167,7 @@ exports.regist = regist;
 //# sourceMappingURL=file.js.map
 
 /***/ }),
-/* 323 */
+/* 324 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71101,9 +71175,9 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const util_1 = __webpack_require__(161);
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 const string_1 = __webpack_require__(199);
-const match_1 = __webpack_require__(324);
+const match_1 = __webpack_require__(325);
 const logger = __webpack_require__(172)('completion-complete');
 class Complete {
     constructor(option, document, recentScores, config, nvim) {
@@ -71399,13 +71473,13 @@ exports.default = Complete;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 324 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const fuzzy_1 = __webpack_require__(297);
+const fuzzy_1 = __webpack_require__(298);
 function nextWordIndex(start = 0, codes) {
     if (start == 0 && fuzzy_1.wordChar(codes[0]))
         return 0;
@@ -71545,7 +71619,7 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 325 */
+/* 326 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71646,7 +71720,7 @@ exports.default = FloatingWindow;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
-/* 326 */
+/* 327 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71655,8 +71729,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const object_1 = __webpack_require__(182);
-const position_1 = __webpack_require__(227);
-const Snippets = tslib_1.__importStar(__webpack_require__(281));
+const position_1 = __webpack_require__(228);
+const Snippets = tslib_1.__importStar(__webpack_require__(282));
 const logger = __webpack_require__(172)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -71814,7 +71888,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 327 */
+/* 328 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71881,7 +71955,7 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 328 */
+/* 329 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71890,21 +71964,21 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(250));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(231));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(251));
-const services_1 = tslib_1.__importDefault(__webpack_require__(282));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(225));
+const services_1 = tslib_1.__importDefault(__webpack_require__(283));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(226));
 const util_1 = __webpack_require__(161);
-const convert_1 = __webpack_require__(309);
-const position_1 = __webpack_require__(227);
+const convert_1 = __webpack_require__(310);
+const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(199);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(329));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(330));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(330));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(331));
 const logger = __webpack_require__(172)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -72770,6 +72844,13 @@ class Handler {
             await workspace_1.default.jumpTo(uri, range.start, openCommand);
         }
     }
+    async getSelectionRanges() {
+        let { document, position } = await workspace_1.default.getCurrentState();
+        let selectionRanges = await languages_1.default.getSelectionRanges(document, [position]);
+        if (selectionRanges && selectionRanges.length)
+            return selectionRanges[0];
+        return null;
+    }
     async previewHover(hovers) {
         let lines = [];
         let target = this.preferences.hoverTarget;
@@ -72921,7 +73002,7 @@ function addDoucmentSymbol(res, sym, level) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 329 */
+/* 330 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -72929,10 +73010,10 @@ function addDoucmentSymbol(res, sym, level) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(163));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(224));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
-const services_1 = tslib_1.__importDefault(__webpack_require__(282));
+const services_1 = tslib_1.__importDefault(__webpack_require__(283));
 const util_1 = __webpack_require__(161);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('codelens');
@@ -73194,7 +73275,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 330 */
+/* 331 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73202,13 +73283,13 @@ exports.default = CodeLensManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(163));
+const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(230));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const util_1 = __webpack_require__(161);
 const object_1 = __webpack_require__(182);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(331));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(332));
 const logger = __webpack_require__(172)('colors');
 class Colors {
     constructor(nvim) {
@@ -73222,21 +73303,24 @@ class Colors {
                 logger.error('highlight error:', e.stack);
             });
         }, 100);
-        extensions_1.default.onReady(async () => {
-            await util_1.wait(400);
-            await this.init();
-        });
+        this.init();
     }
-    async init() {
+    init() {
         let { nvim } = this;
         let config = workspace_1.default.getConfiguration('coc.preferences');
         this._enabled = config.get('colorSupport', true);
-        let srcId = await workspace_1.default.createNameSpace('coc-colors');
-        if (srcId)
+        workspace_1.default.createNameSpace('coc-colors').then(srcId => {
             this.srcId = srcId;
-        this._highlightCurrent().catch(_e => {
+        }, _e => {
             // noop
         });
+        let timer = setTimeout(async () => {
+            // wait for extensions
+            await this._highlightCurrent();
+        }, 2000);
+        this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
+            clearTimeout(timer);
+        }));
         events_1.default.on('BufEnter', async () => {
             if (!global.hasOwnProperty('__TEST__')) {
                 this.highlightCurrent();
@@ -73417,16 +73501,16 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 331 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const array_1 = __webpack_require__(243);
+const array_1 = __webpack_require__(221);
 const object_1 = __webpack_require__(182);
-const position_1 = __webpack_require__(227);
+const position_1 = __webpack_require__(228);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const logger = __webpack_require__(172)('highlighter');
 const usedColors = new Set();
@@ -73566,7 +73650,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 332 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73575,7 +73659,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(231));
+const glob_1 = tslib_1.__importDefault(__webpack_require__(232));
 const os_1 = __webpack_require__(63);
 const util_1 = tslib_1.__importDefault(__webpack_require__(41));
 const fs_2 = __webpack_require__(194);
