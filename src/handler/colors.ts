@@ -2,10 +2,9 @@ import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
-import extensions from '../extensions'
 import languages from '../languages'
 import Document from '../model/document'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
@@ -25,22 +24,25 @@ export default class Colors {
         logger.error('highlight error:', e.stack)
       })
     }, 100)
-
-    extensions.onReady(async () => {
-      await wait(400)
-      await this.init()
-    })
+    this.init()
   }
 
-  private async init(): Promise<void> {
+  private init(): void {
     let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    let srcId = await workspace.createNameSpace('coc-colors')
-    if (srcId) this.srcId = srcId
-    this._highlightCurrent().catch(_e => {
+    workspace.createNameSpace('coc-colors').then(srcId => {
+      this.srcId = srcId
+    }, _e => {
       // noop
     })
+    let timer = setTimeout(async () => {
+      // wait for extensions
+      await this._highlightCurrent()
+    }, 2000)
+    this.disposables.push(Disposable.create(() => {
+      clearTimeout(timer)
+    }))
 
     events.on('BufEnter', async () => {
       if (!global.hasOwnProperty('__TEST__')) {

@@ -15,7 +15,7 @@ import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
-import { createExtension } from './util/factory'
+import { createExtension, ExtensionExport } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
@@ -48,6 +48,7 @@ export class Extensions {
   private disabled: Set<string> = new Set()
   private db: DB
   private memos: Memos
+  private root: string
   private _onReady = new Emitter<void>()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
@@ -58,12 +59,10 @@ export class Extensions {
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
-  public get root(): string {
-    return workspace.env.extensionRoot
-  }
-
   public async init(): Promise<void> {
-    let db = this.db = workspace.createDatabase('db')
+    this.root = await workspace.nvim.call('coc#util#extension_root')
+    let filepath = path.join(this.root, 'db.json')
+    let db = this.db = new DB(filepath)
     let data = loadJson(db.filepath) || {}
     let keys = Object.keys(data.extension || {})
     for (let key of keys) {
@@ -89,8 +88,6 @@ export class Extensions {
         workspace.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error')
       })
     })).then(() => {
-      return this.addExtensions()
-    }).then(() => {
       this._onReady.fire()
       this._ready = true
       let config = workspace.getConfiguration('coc.preferences')
@@ -100,11 +97,16 @@ export class Extensions {
         workspace.showMessage(`Error on update extensions: ${e.message}`, 'error')
       })
     })
-    if (workspace.isVim) {
-      this.updateNodeRpc().catch(e => {
-        workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
-      })
-    }
+    workspace.ready.then(() => {
+      if (workspace.isVim) {
+        this.updateNodeRpc().catch(e => {
+          workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
+        })
+      }
+      return this.addExtensions()
+    }).catch(_e => {
+      // noop
+    })
 
     // watch for new local extension
     workspace.watchOption('runtimepath', async (oldValue, newValue) => {
@@ -564,8 +566,7 @@ export class Extensions {
     let isActive = false
     let exports = null
     let filename = path.join(root, packageJSON.main || 'index.js')
-    let ext = createExtension(id, filename)
-    if (!ext) return
+    let ext: ExtensionExport
     let context: ExtensionContext = {
       subscriptions: [],
       extensionPath: root,
@@ -582,6 +583,8 @@ export class Extensions {
       activate: async (): Promise<API> => {
         if (isActive) return
         isActive = true
+        ext = ext || createExtension(id, filename)
+        if (!ext) return
         try {
           exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
@@ -628,7 +631,7 @@ export class Extensions {
     })
     let { contributes } = packageJSON
     if (contributes) {
-      let { configuration } = contributes
+      let { configuration, rootPatterns } = contributes
       if (configuration && configuration.properties) {
         let { properties } = configuration
         let props = {}
@@ -638,9 +641,18 @@ export class Extensions {
         }
         workspace.configurations.extendsDefaults(props)
       }
+      if (rootPatterns && rootPatterns.length) {
+        for (let item of rootPatterns) {
+          workspace.addRootPatterns(item.filetype, item.patterns)
+        }
+      }
     }
     this._onDidLoadExtension.fire(extension)
-    this.setupActiveEvents(id, packageJSON)
+    workspace.ready.then(() => {
+      this.setupActiveEvents(id, packageJSON)
+    }).catch(_e => {
+      // noop
+    })
     return id
   }
 
@@ -709,7 +721,7 @@ export class Extensions {
   }
 
   private async localExtensionStats(exclude: string[]): Promise<ExtensionInfo[]> {
-    let { runtimepath } = workspace.env
+    let runtimepath = await workspace.nvim.eval('&runtimepath') as string
     let paths = runtimepath.split(',')
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => {
       return new Promise(async resolve => {

@@ -128,6 +128,7 @@ export default class Plugin extends EventEmitter {
   public async init(): Promise<void> {
     let { nvim } = this
     try {
+      await extensions.init()
       await workspace.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
@@ -137,7 +138,6 @@ export default class Plugin extends EventEmitter {
       this.handler = new Handler(nvim)
       await diagnosticManager.init()
       services.init()
-      await extensions.init()
       nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)

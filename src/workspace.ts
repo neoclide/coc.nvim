@@ -28,6 +28,7 @@ import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
+import { distinct } from './util/array'
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 let NAME_SPACE = 1080
@@ -35,10 +36,10 @@ let NAME_SPACE = 1080
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
   public readonly version: string
-  public bufnr: number
   public readonly keymaps: Map<string, Function> = new Map()
+  public bufnr: number
   private resolver: Resolver = new Resolver()
-
+  private rootPatterns: Map<string, string[]> = new Map()
   private _workspaceFolders: WorkspaceFolder[] = []
   private messageLevel: MessageLevel
   private willSaveUntilHandler: WillSaveUntilHandler
@@ -1414,6 +1415,16 @@ augroup end`
     })
   }
 
+  public addRootPatterns(filetype: string, rootPatterns: string[]): void {
+    let patterns = this.rootPatterns.get(filetype) || []
+    for (let p of rootPatterns) {
+      if (patterns.indexOf(p) == -1) {
+        patterns.push(p)
+      }
+    }
+    this.rootPatterns.set(filetype, patterns)
+  }
+
   private getDocumentOption(name: string, doc?: Document): Promise<any> {
     return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name)
   }
@@ -1458,7 +1469,8 @@ augroup end`
         patterns.push(...rootPatterns)
       }
     }
-    return patterns.length ? patterns : null
+    patterns = patterns.concat(this.rootPatterns.get(filetype) || [])
+    return patterns.length ? distinct(patterns) : null
   }
 }
 
