@@ -44111,12 +44111,15 @@ augroup end`;
                 this.onBufUnload(doc.bufnr);
         });
         if (document.buftype == '' && document.schema == 'file') {
-            let root = this.resolveRoot(document);
-            if (root)
+            let config = this.getConfiguration('workspace');
+            let filetypes = config.get('ignoredFiletypes', []);
+            if (filetypes.indexOf(document.filetype) == -1) {
+                let root = this.resolveRoot(document) || this.cwd;
                 this.addWorkspaceFolder(root);
-            let workspaceFolder = this.getWorkspaceFolder(document.uri);
-            if (this.bufnr == buffer.id && workspaceFolder) {
-                this._root = vscode_uri_1.default.parse(workspaceFolder.uri).fsPath;
+                let workspaceFolder = this.getWorkspaceFolder(document.uri);
+                if (this.bufnr == buffer.id && workspaceFolder) {
+                    this._root = vscode_uri_1.default.parse(workspaceFolder.uri).fsPath;
+                }
             }
             this.configurations.checkFolderConfiguration(document.uri);
         }
@@ -44224,6 +44227,8 @@ augroup end`;
                     return root;
             }
         }
+        if (this.cwd != os_1.default.homedir() && dir.startsWith(this.cwd))
+            return this.cwd;
         return null;
     }
     getRootPatterns(document, patternType) {
@@ -47316,7 +47321,7 @@ function resolveRoot(dir, subs, cwd) {
     let { root } = path_1.default.parse(dir);
     if (root == dir)
         return null;
-    if (cwd && dir.startsWith(cwd) && inDirectory(cwd, subs))
+    if (cwd && cwd != home && dir.startsWith(cwd) && inDirectory(cwd, subs))
         return cwd;
     let parts = dir.split(path_1.default.sep);
     let curr = [parts.shift()];
@@ -52734,7 +52739,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "89af16d3d7" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "dd72fe8ef3" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -53783,6 +53788,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(323));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(325));
 const logger = __webpack_require__(172)('completion');
+const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
     constructor() {
         // current input string
@@ -53903,7 +53909,6 @@ class Completion {
             autoTrigger,
             keepCompleteopt,
             acceptSuggestionOnCommitCharacter,
-            removeDuplicatedLowerPriority: getConfig('noselect', true),
             previewIsKeyword: getConfig('previewIsKeyword', '@,48-57,_192-255'),
             reloadPumOnInsertChar: suggest.get('reloadPumOnInsertChar', false),
             enablePreview: getConfig('enablePreview', false),
@@ -53995,7 +54000,16 @@ class Completion {
         if (this.config.numberSelect) {
             nvim.call('coc#_map', [], true);
         }
-        nvim.call('coc#_do_complete', [col, items], true);
+        let vimItems = items.map(item => {
+            let obj = { word: item.word };
+            for (let key of completeItemKeys) {
+                if (item.hasOwnProperty(key)) {
+                    obj[key] = item[key];
+                }
+            }
+            return obj;
+        });
+        nvim.call('coc#_do_complete', [col, vimItems], true);
     }
     async _doComplete(option) {
         let { line, colnr, filetype, source } = option;
@@ -71208,7 +71222,7 @@ class Complete {
         let { results } = this;
         let now = Date.now();
         let { bufnr } = this.option;
-        let { removeDuplicatedLowerPriority, snippetIndicator, fixInsertedWord } = this.config;
+        let { snippetIndicator, fixInsertedWord } = this.config;
         let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart();
         if (results.length == 0)
             return [];
@@ -71216,7 +71230,7 @@ class Complete {
         let maxScore = 0;
         let arr = [];
         let codes = fuzzy_1.getCharCodes(input);
-        let exists = new Map();
+        let words = new Set();
         let filtering = input.length > this.input.length;
         let preselect = null;
         for (let i = 0, l = results.length; i < l; i++) {
@@ -71226,9 +71240,7 @@ class Complete {
             for (let idx = 0; idx < items.length; idx++) {
                 let item = items[idx];
                 let { word } = item;
-                if (!item.dup && exists.has(word))
-                    continue;
-                if (removeDuplicatedLowerPriority && exists.has(word) && exists.get(word) > priority)
+                if (!item.dup && words.has(word))
                     continue;
                 let filterText = item.filterText || item.word;
                 item.filterText = filterText;
@@ -71270,24 +71282,7 @@ class Complete {
                         item.recentScore = recentScore;
                     }
                 }
-                exists.set(word, priority);
-                if (!item.hasOwnProperty('toJSON')) {
-                    Object.defineProperty(item, 'toJSON', {
-                        value() {
-                            return JSON.stringify({
-                                word: this.word,
-                                abbr: this.abbr,
-                                menu: this.menu,
-                                info: this.info,
-                                kind: this.kind,
-                                icase: this.icase,
-                                dup: this.dup,
-                                empty: this.empty,
-                                user_data: this.user_data
-                            });
-                        }
-                    });
-                }
+                words.add(word);
                 if (!preselect) {
                     if (item.isSnippet && item.word == input) {
                         preselect = item;
