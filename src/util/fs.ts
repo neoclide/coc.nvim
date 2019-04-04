@@ -60,7 +60,7 @@ export function resolveRoot(dir: string, subs: string[], cwd?: string): string |
   if (home.startsWith(dir)) return null
   let { root } = path.parse(dir)
   if (root == dir) return null
-  if (cwd && dir.startsWith(cwd) && inDirectory(cwd, subs)) return cwd
+  if (cwd && cwd != home && dir.startsWith(cwd) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   let curr: string[] = [parts.shift()]
   for (let part of parts) {

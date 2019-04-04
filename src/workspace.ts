@@ -1220,11 +1220,15 @@ augroup end`
       if (doc) this.onBufUnload(doc.bufnr)
     })
     if (document.buftype == '' && document.schema == 'file') {
-      let root = this.resolveRoot(document)
-      if (root) this.addWorkspaceFolder(root)
-      let workspaceFolder = this.getWorkspaceFolder(document.uri)
-      if (this.bufnr == buffer.id && workspaceFolder) {
-        this._root = Uri.parse(workspaceFolder.uri).fsPath
+      let config = this.getConfiguration('workspace')
+      let filetypes = config.get<string[]>('ignoredFiletypes', [])
+      if (filetypes.indexOf(document.filetype) == -1) {
+        let root = this.resolveRoot(document) || this.cwd
+        this.addWorkspaceFolder(root)
+        let workspaceFolder = this.getWorkspaceFolder(document.uri)
+        if (this.bufnr == buffer.id && workspaceFolder) {
+          this._root = Uri.parse(workspaceFolder.uri).fsPath
+        }
       }
       this.configurations.checkFolderConfiguration(document.uri)
     }
@@ -1331,6 +1335,7 @@ augroup end`
         if (root) return root
       }
     }
+    if (this.cwd != os.homedir() && dir.startsWith(this.cwd)) return this.cwd
     return null
   }
 
