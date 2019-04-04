@@ -146,7 +146,7 @@ export default class Plugin extends EventEmitter {
       this.emit('ready')
     } catch (e) {
       this.ready = false
-      console.error(`Error on initialize: ${e.message}`) // tslint:disable-line
+      console.error(`Error on initialize: ${e.stack}`) // tslint:disable-line
       logger.error(e.stack)
     }
 

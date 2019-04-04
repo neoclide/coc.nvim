@@ -210,9 +210,11 @@ export class Extensions {
 
   public async addExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
-    this.installExtensions(globalExtensions)
+    if (globalExtensions && globalExtensions.length) {
+      this.installExtensions(globalExtensions)
+    }
     // watch for changes
-    if (watchExtensions.length) {
+    if (watchExtensions && watchExtensions.length) {
       let watchmanPath = workspace.getWatchmanPath()
       if (!watchmanPath || process.env.NODE_ENV == 'test') return
       let stats = await this.getExtensionStates()
