@@ -52749,7 +52749,7 @@ class Plugin extends events_1.EventEmitter {
         }
         catch (e) {
             this.ready = false;
-            console.error(`Error on initialize: ${e.message}`); // tslint:disable-line
+            console.error(`Error on initialize: ${e.stack}`); // tslint:disable-line
             logger.error(e.stack);
         }
         workspace_1.default.onDidOpenTextDocument(async (doc) => {
@@ -52826,7 +52826,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "39dd6bcf18" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "8545e7931e" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -55002,9 +55002,11 @@ class Extensions {
     }
     async addExtensions() {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
-        this.installExtensions(globalExtensions);
+        if (globalExtensions && globalExtensions.length) {
+            this.installExtensions(globalExtensions);
+        }
         // watch for changes
-        if (watchExtensions.length) {
+        if (watchExtensions && watchExtensions.length) {
             let watchmanPath = workspace_1.default.getWatchmanPath();
             if (!watchmanPath || "none" == 'test')
                 return;
