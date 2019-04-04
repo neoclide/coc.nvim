@@ -435,32 +435,40 @@ export class Workspace implements IWorkspace {
       if (!this.validteDocumentChanges(documentChanges)) return false
     }
     let curpos = await nvim.call('getcurpos')
-    if (changes) {
-      for (let uri of Object.keys(changes)) {
-        let document = await this.loadFile(uri)
-        await document.applyEdits(nvim, changes[uri])
-      }
-      this.showMessage(`${Object.keys(changes).length} buffers changed.`)
-    }
-    if (documentChanges && documentChanges.length) {
-      let n = documentChanges.length
-      for (let change of documentChanges) {
-        if (TextDocumentEdit.is(change)) {
-          let { textDocument, edits } = change
-          let doc = await this.loadFile(textDocument.uri)
-          await doc.applyEdits(nvim, edits)
-        } else if (CreateFile.is(change)) {
-          let file = Uri.parse(change.uri).fsPath
-          await this.createFile(file, change.options)
-        } else if (RenameFile.is(change)) {
-          await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
-        } else if (DeleteFile.is(change)) {
-          await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
+    // let origIgnore = await nvim.getOption('eventignore') as string
+    // await nvim.setOption('eventignore', 'Syntax')
+    try {
+      if (changes) {
+        for (let uri of Object.keys(changes)) {
+          let document = await this.loadFile(uri)
+          await document.applyEdits(nvim, changes[uri])
         }
+        this.showMessage(`${Object.keys(changes).length} buffers changed.`)
       }
-      this.showMessage(`${n} buffers changed.`)
+      if (documentChanges && documentChanges.length) {
+        let n = documentChanges.length
+        for (let change of documentChanges) {
+          if (TextDocumentEdit.is(change)) {
+            let { textDocument, edits } = change
+            let doc = await this.loadFile(textDocument.uri)
+            await doc.applyEdits(nvim, edits)
+          } else if (CreateFile.is(change)) {
+            let file = Uri.parse(change.uri).fsPath
+            await this.createFile(file, change.options)
+          } else if (RenameFile.is(change)) {
+            await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
+          } else if (DeleteFile.is(change)) {
+            await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
+          }
+        }
+        this.showMessage(`${n} buffers changed.`)
+      }
+      await nvim.call('setpos', ['.', curpos])
+    } catch (e) {
+      // await nvim.setOption('eventignore', origIgnore)
+      this.showMessage(`Error on applyEdits: ${e}`, 'error')
+      return false
     }
-    await nvim.call('setpos', ['.', curpos])
     return true
   }
 
@@ -771,7 +779,6 @@ export class Workspace implements IWorkspace {
     nvim.command(`keepalt edit ${escaped}`, true)
     nvim.command('setl bufhidden=hide', true)
     nvim.command(`keepalt buffer ${bufnr}`, true)
-    await nvim.resumeNotification()
     return await new Promise<Document>((resolve, reject) => {
       let disposable = this.onDidOpenTextDocument(textDocument => {
         if (textDocument.uri == uri) {
@@ -784,6 +791,9 @@ export class Workspace implements IWorkspace {
         disposable.dispose()
         reject(new Error(`Create document ${uri} timeout after 1s.`))
       }, 1000)
+      nvim.resumeNotification(false, true).catch(_e => {
+        // noop
+      })
     })
   }
 
