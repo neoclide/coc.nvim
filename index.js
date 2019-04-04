@@ -43322,35 +43322,44 @@ class Workspace {
                 return false;
         }
         let curpos = await nvim.call('getcurpos');
-        if (changes) {
-            for (let uri of Object.keys(changes)) {
-                let document = await this.loadFile(uri);
-                await document.applyEdits(nvim, changes[uri]);
+        // let origIgnore = await nvim.getOption('eventignore') as string
+        // await nvim.setOption('eventignore', 'Syntax')
+        try {
+            if (changes) {
+                for (let uri of Object.keys(changes)) {
+                    let document = await this.loadFile(uri);
+                    await document.applyEdits(nvim, changes[uri]);
+                }
+                this.showMessage(`${Object.keys(changes).length} buffers changed.`);
             }
-            this.showMessage(`${Object.keys(changes).length} buffers changed.`);
-        }
-        if (documentChanges && documentChanges.length) {
-            let n = documentChanges.length;
-            for (let change of documentChanges) {
-                if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
-                    let { textDocument, edits } = change;
-                    let doc = await this.loadFile(textDocument.uri);
-                    await doc.applyEdits(nvim, edits);
+            if (documentChanges && documentChanges.length) {
+                let n = documentChanges.length;
+                for (let change of documentChanges) {
+                    if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
+                        let { textDocument, edits } = change;
+                        let doc = await this.loadFile(textDocument.uri);
+                        await doc.applyEdits(nvim, edits);
+                    }
+                    else if (vscode_languageserver_protocol_1.CreateFile.is(change)) {
+                        let file = vscode_uri_1.default.parse(change.uri).fsPath;
+                        await this.createFile(file, change.options);
+                    }
+                    else if (vscode_languageserver_protocol_1.RenameFile.is(change)) {
+                        await this.renameFile(vscode_uri_1.default.parse(change.oldUri).fsPath, vscode_uri_1.default.parse(change.newUri).fsPath, change.options);
+                    }
+                    else if (vscode_languageserver_protocol_1.DeleteFile.is(change)) {
+                        await this.deleteFile(vscode_uri_1.default.parse(change.uri).fsPath, change.options);
+                    }
                 }
-                else if (vscode_languageserver_protocol_1.CreateFile.is(change)) {
-                    let file = vscode_uri_1.default.parse(change.uri).fsPath;
-                    await this.createFile(file, change.options);
-                }
-                else if (vscode_languageserver_protocol_1.RenameFile.is(change)) {
-                    await this.renameFile(vscode_uri_1.default.parse(change.oldUri).fsPath, vscode_uri_1.default.parse(change.newUri).fsPath, change.options);
-                }
-                else if (vscode_languageserver_protocol_1.DeleteFile.is(change)) {
-                    await this.deleteFile(vscode_uri_1.default.parse(change.uri).fsPath, change.options);
-                }
+                this.showMessage(`${n} buffers changed.`);
             }
-            this.showMessage(`${n} buffers changed.`);
+            await nvim.call('setpos', ['.', curpos]);
         }
-        await nvim.call('setpos', ['.', curpos]);
+        catch (e) {
+            // await nvim.setOption('eventignore', origIgnore)
+            this.showMessage(`Error on applyEdits: ${e}`, 'error');
+            return false;
+        }
         return true;
     }
     /**
@@ -43663,7 +43672,6 @@ class Workspace {
         nvim.command(`keepalt edit ${escaped}`, true);
         nvim.command('setl bufhidden=hide', true);
         nvim.command(`keepalt buffer ${bufnr}`, true);
-        await nvim.resumeNotification();
         return await new Promise((resolve, reject) => {
             let disposable = this.onDidOpenTextDocument(textDocument => {
                 if (textDocument.uri == uri) {
@@ -43676,6 +43684,9 @@ class Workspace {
                 disposable.dispose();
                 reject(new Error(`Create document ${uri} timeout after 1s.`));
             }, 1000);
+            nvim.resumeNotification(false, true).catch(_e => {
+                // noop
+            });
         });
     }
     /**
@@ -52815,7 +52826,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "1d45f316cf" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "39dd6bcf18" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
