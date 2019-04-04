@@ -349,7 +349,9 @@ export default class Plugin extends EventEmitter {
           await handler.showSignatureHelp()
           break
         case 'documentSymbols':
-          return handler.getDocumentSymbols()
+          return await handler.getDocumentSymbols()
+        case 'selectionRanges':
+          return await handler.getSelectionRanges()
         case 'rename':
           await handler.rename()
           return

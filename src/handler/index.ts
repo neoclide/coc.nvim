@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextEdit, SelectionRange } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -885,6 +885,13 @@ export default class Handler {
       let { uri, range } = definition as Location
       await workspace.jumpTo(uri, range.start, openCommand)
     }
+  }
+
+  public async getSelectionRanges(): Promise<SelectionRange[] | null> {
+    let { document, position } = await workspace.getCurrentState()
+    let selectionRanges: SelectionRange[][] = await languages.getSelectionRanges(document, [position])
+    if (selectionRanges && selectionRanges.length) return selectionRanges[0]
+    return null
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {

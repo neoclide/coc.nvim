@@ -738,6 +738,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	搜索工作目录下所有符号。
 
+"selectionRanges" 				*coc-action-selectionRanges*
+
+	获取当前位置的可选区域列表。
+
 "services" 					*coc-action-services*
 
 	获取所有服务列表。

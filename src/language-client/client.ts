@@ -24,6 +24,7 @@ import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
+import { SelectionRangeProviderMiddleware } from './selectionRange'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -634,7 +635,8 @@ export type Middleware = _Middleware &
   ImplementationMiddleware &
   ColorProviderMiddleware &
   DeclarationMiddleware &
-  FoldingRangeProviderMiddleware
+  FoldingRangeProviderMiddleware &
+  SelectionRangeProviderMiddleware
 
 export interface LanguageClientOptions {
   ignoredRootPaths?: string[]

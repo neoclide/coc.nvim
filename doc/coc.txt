@@ -760,6 +760,10 @@ Available Actions ~
 
 	Search for workspace symbols.
 
+"selectionRanges" 				*coc-action-selectionRanges*
+
+	Get selection ranges of current position from language server.
+
 "services" 					*coc-action-services*
 
 	Get all services information list.

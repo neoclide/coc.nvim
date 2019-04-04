@@ -1,10 +1,11 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, CodeLens, ColorInformation, ColorPresentation, CompletionItem, CompletionItemKind, CompletionList, CompletionTriggerKind, Disposable, DocumentHighlight, DocumentLink, DocumentSelector, DocumentSymbol, FoldingRange, FormattingOptions, Hover, InsertTextFormat, Location, LocationLink, Position, Range, SignatureHelp, SymbolInformation, TextDocument, TextEdit, WorkspaceEdit, SelectionRange } from 'vscode-languageserver-protocol'
 import commands from './commands'
 import diagnosticManager from './diagnostic/manager'
 import Document from './model/document'
-import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider } from './provider'
+import { CodeActionProvider, CodeLensProvider, CompletionItemProvider, DeclarationProvider, DefinitionProvider, DocumentColorProvider, DocumentFormattingEditProvider, DocumentLinkProvider, DocumentRangeFormattingEditProvider, DocumentSymbolProvider, FoldingContext, FoldingRangeProvider, HoverProvider, ImplementationProvider, OnTypeFormattingEditProvider, ReferenceContext, ReferenceProvider, RenameProvider, SignatureHelpProvider, TypeDefinitionProvider, WorkspaceSymbolProvider, SelectionRangeProvider } from './provider'
 import CodeActionManager from './provider/codeActionmanager'
+import SelectionRangeManager from './provider/rangeManager'
 import CodeLensManager from './provider/codeLensManager'
 import DeclarationManager from './provider/declarationManager'
 import DefinitionManager from './provider/definitionManager'
@@ -96,6 +97,7 @@ class Languages {
   private referenceManager = new ReferenceManager()
   private implementatioinManager = new ImplementationManager()
   private codeLensManager = new CodeLensManager()
+  private selectionRangeManager = new SelectionRangeManager()
   private cancelTokenSource: CancellationTokenSource = new CancellationTokenSource()
   private completionItemKindMap: Map<CompletionItemKind, string>
 
@@ -202,6 +204,10 @@ class Languages {
 
   public registerHoverProvider(selector: DocumentSelector, provider: HoverProvider): Disposable {
     return this.hoverManager.register(selector, provider)
+  }
+
+  public registerSelectionRangeProvider(selector: DocumentSelector, provider: SelectionRangeProvider): Disposable {
+    return this.selectionRangeManager.register(selector, provider)
   }
 
   public registerSignatureHelpProvider(
@@ -332,6 +338,11 @@ class Languages {
   @check
   public async getDocumentSymbol(document: TextDocument): Promise<SymbolInformation[] | DocumentSymbol[]> {
     return await this.documentSymbolManager.provideDocumentSymbols(document, this.token)
+  }
+
+  @check
+  public async getSelectionRanges(document: TextDocument, positions: Position[]): Promise<SelectionRange[][] | null> {
+    return await this.selectionRangeManager.provideSelectionRanges(document, positions, this.token)
   }
 
   @check
@@ -567,9 +578,8 @@ class Languages {
           }
           if (documentation) {
             if (typeof documentation == 'string') {
-              let isText = /^[\w-\s.,\t]+$/.test(documentation)
               docs.push({
-                filetype: isText ? 'txt' : doc.filetype,
+                filetype: 'markdown',
                 content: documentation
               })
             } else if (documentation.value) {
