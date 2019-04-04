@@ -309,9 +309,6 @@ describe('completion#TextChangedP', () => {
     let disposable = languages.registerCompletionItemProvider('snippets-test', 'st', null, provider)
     await nvim.input('if')
     await helper.waitPopup()
-    let items = await helper.items()
-    expect(items[0].isSnippet).toBe(true)
-    await helper.wait(100)
     await nvim.input('<C-n>')
     await helper.wait(100)
     let line = await nvim.line
