@@ -702,7 +702,8 @@ export interface ListAction {
   persist?: boolean
   reload?: boolean
   parallel?: boolean
-  execute: (item: ListItem, context: ListContext) => ProviderResult<void>
+  multiple?: boolean
+  execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
 }
 
 export interface ListTask {

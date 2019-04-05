@@ -205,7 +205,9 @@ export class ListManager {
         items = items.slice(0, 1)
       }
       if (!shouldCancel && !this.isActivated) return
-      if (action.parallel) {
+      if (action.multiple) {
+        await Promise.resolve(action.execute(items, this.context))
+      } else if (action.parallel) {
         await Promise.all(items.map(item => {
           return Promise.resolve(action.execute(item, this.context))
         }))

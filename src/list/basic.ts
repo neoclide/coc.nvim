@@ -42,11 +42,31 @@ export default abstract class BasicList implements IList, Disposable {
     }, options || {}))
   }
 
+  protected addMultipleAction(name: string, fn: (item: ListItem[], context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
+    this.createAction(Object.assign({
+      name,
+      multiple: true,
+      execute: fn
+    }, options || {}))
+  }
+
   public addLocationActions(): void {
     this.createAction({
       name: 'preview',
       execute: async (item: ListItem, context: ListContext) => {
         await this.previewLocation(item.location, context)
+      }
+    })
+    let { nvim } = this
+    this.createAction({
+      name: 'quickfix',
+      multiple: true,
+      execute: async (items: ListItem[]) => {
+        let quickfixItems = await Promise.all(items.map(item => {
+          return workspace.getQuickfixItem(item.location)
+        }))
+        await nvim.call('setqflist', [quickfixItems])
+        nvim.command('copen', true)
       }
     })
     for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {
@@ -77,9 +97,7 @@ export default abstract class BasicList implements IList, Disposable {
     let { name } = action
     let idx = this.actions.findIndex(o => o.name == name)
     // allow override
-    if (idx !== -1) {
-      this.actions.splice(idx, 1)
-    }
+    if (idx !== -1) this.actions.splice(idx, 1)
     this.actions.push(action)
   }
 

@@ -25,7 +25,7 @@ export default class ListUI {
   private items: ListItem[] = []
   private disposables: Disposable[] = []
   private signOffset: number
-  private selected: number[] = []
+  private selected: Set<number> = new Set()
   private mouseDown: MousePosition
   private creating = false
   private _onDidChangeLine = new Emitter<number>()
@@ -174,7 +174,7 @@ export default class ListUI {
   public reset(): void {
     this.items = []
     this.mouseDown = null
-    this.selected = []
+    this.selected = new Set()
     this._bufnr = 0
     this.window = null
   }
@@ -190,7 +190,7 @@ export default class ListUI {
   public async resume(name: string, position: string): Promise<void> {
     let { items, selected, nvim, signOffset } = this
     await this.drawItems(items, name, position, true)
-    if (selected.length && this.bufnr) {
+    if (selected.size > 0 && this.bufnr) {
       nvim.pauseNotification()
       for (let lnum of selected) {
         nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${this.bufnr}`, true)
@@ -203,13 +203,13 @@ export default class ListUI {
     let { nvim, selected, signOffset, bufnr } = this
     if (workspace.bufnr != bufnr) return
     let lnum = await nvim.call('line', '.')
-    let idx = selected.indexOf(lnum)
+    let exists = selected.has(lnum)
     nvim.pauseNotification()
-    if (idx !== -1) {
-      selected.splice(idx, 1)
+    if (exists) {
+      selected.delete(lnum)
       nvim.command(`sign unplace ${signOffset + lnum} buffer=${bufnr}`, true)
     } else {
-      selected.push(lnum)
+      selected.add(lnum)
       nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${bufnr}`, true)
     }
     this.setCursor(lnum + 1, 0)
@@ -226,7 +226,7 @@ export default class ListUI {
     if (reverse) [start, end] = [end, start]
     for (let i = start; i <= end; i++) {
       if (i > length) break
-      selected.push(i)
+      selected.add(i)
       nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true)
     }
     this.setCursor(end, 0)
@@ -237,13 +237,13 @@ export default class ListUI {
   public clearSelection(): void {
     let { selected, nvim, signOffset, bufnr } = this
     if (!bufnr) return
-    if (selected.length) {
+    if (selected.size > 0) {
       let signIds: number[] = []
       for (let lnum of selected) {
         signIds.push(signOffset + lnum)
       }
       nvim.call('coc#util#unplace_signs', [bufnr, signIds], true)
-      this.selected = []
+      this.selected = new Set()
     }
   }
 
@@ -372,7 +372,7 @@ export default class ListUI {
     let { selected, items } = this
     let res: ListItem[] = []
     for (let i of selected) {
-      if (items[i]) res.push(items[i])
+      if (items[i - 1]) res.push(items[i - 1])
     }
     return res
   }
