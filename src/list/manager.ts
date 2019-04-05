@@ -276,7 +276,7 @@ export class ListManager {
       }
     }
     nvim.call('coc#list#restore', [], true)
-    await nvim.resumeNotification(false, true)
+    await nvim.resumeNotification()
   }
 
   public async switchMatcher(): Promise<void> {

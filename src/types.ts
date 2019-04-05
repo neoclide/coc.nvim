@@ -326,9 +326,9 @@ export interface LocationListItem {
 }
 
 export interface QuickfixItem {
-  uri: string
-  range: Range
-  text: string
+  uri?: string
+  range?: Range
+  text?: string
   type?: string,
   filename?: string
   bufnr?: number
