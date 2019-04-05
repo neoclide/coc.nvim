@@ -203,6 +203,35 @@ export default class ListUI {
     let { nvim, selected, signOffset, bufnr } = this
     if (workspace.bufnr != bufnr) return
     let lnum = await nvim.call('line', '.')
+    let mode = await nvim.call('mode')
+    if (mode == 'v' || mode == 'V') {
+      await nvim.call('coc#list#stop_prompt')
+      await nvim.eval('feedkeys("\\<esc>", "in")')
+      let [, start] = await nvim.call('getpos', "'<")
+      let [, end] = await nvim.call('getpos', "'>")
+      if (start > end) {
+        [start, end] = [end, start]
+      }
+      let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
+      this.nvim.call(method, [], true)
+      let exists = selected.has(start)
+      nvim.pauseNotification()
+      let reverse = start > end
+      if (reverse) [start, end] = [end, start]
+      for (let i = start; i <= end; i++) {
+        if (!exists) {
+          selected.add(i)
+          nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true)
+        } else {
+          selected.delete(i)
+          nvim.command(`sign unplace ${signOffset + i} buffer=${bufnr}`, true)
+        }
+      }
+      this.setCursor(end, 0)
+      nvim.command('redraw', true)
+      await nvim.resumeNotification()
+      return
+    }
     let exists = selected.has(lnum)
     nvim.pauseNotification()
     if (exists) {
@@ -409,8 +438,9 @@ export default class ListUI {
   }
 
   public setCursor(lnum: number, col: number): void {
-    let { window, bufnr } = this
-    if (!bufnr || !window) return
+    let { window, bufnr, items } = this
+    let max = items.length == 0 ? 1 : items.length
+    if (!bufnr || !window || lnum > max) return
     window.notify('nvim_win_set_cursor', [window, [lnum, col]])
     if (this.currIndex + 1 != lnum) {
       this.currIndex = lnum - 1
