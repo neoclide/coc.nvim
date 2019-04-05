@@ -52595,7 +52595,7 @@ exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
 /* 222 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarnpkg clean && yarnpkg build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.0","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","jest":"24.7.0","rimraf":"^2.6.3","ts-jest":"^24.0.1","tslint":"^5.15.0","typescript":"^3.4.1","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarn clean && yarn build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.0","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","jest":"24.7.0","rimraf":"^2.6.3","ts-jest":"^24.0.1","tslint":"^5.15.0","typescript":"^3.4.1","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ }),
 /* 223 */
@@ -52826,7 +52826,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "8545e7931e" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "245f57b845" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -67182,7 +67182,10 @@ class ListManager {
             }
             if (!shouldCancel && !this.isActivated)
                 return;
-            if (action.parallel) {
+            if (action.multiple) {
+                await Promise.resolve(action.execute(items, this.context));
+            }
+            else if (action.parallel) {
                 await Promise.all(items.map(item => {
                     return Promise.resolve(action.execute(item, this.context));
                 }));
@@ -68518,11 +68521,30 @@ class BasicList {
             execute: fn
         }, options || {}));
     }
+    addMultipleAction(name, fn, options) {
+        this.createAction(Object.assign({
+            name,
+            multiple: true,
+            execute: fn
+        }, options || {}));
+    }
     addLocationActions() {
         this.createAction({
             name: 'preview',
             execute: async (item, context) => {
                 await this.previewLocation(item.location, context);
+            }
+        });
+        let { nvim } = this;
+        this.createAction({
+            name: 'quickfix',
+            multiple: true,
+            execute: async (items) => {
+                let quickfixItems = await Promise.all(items.map(item => {
+                    return workspace_1.default.getQuickfixItem(item.location);
+                }));
+                await nvim.call('setqflist', [quickfixItems]);
+                nvim.command('copen', true);
             }
         });
         for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {
@@ -68552,9 +68574,8 @@ class BasicList {
         let { name } = action;
         let idx = this.actions.findIndex(o => o.name == name);
         // allow override
-        if (idx !== -1) {
+        if (idx !== -1)
             this.actions.splice(idx, 1);
-        }
         this.actions.push(action);
     }
     async previewLocation(location, context) {
@@ -69533,7 +69554,7 @@ class ListUI {
         this.highlights = [];
         this.items = [];
         this.disposables = [];
-        this.selected = [];
+        this.selected = new Set();
         this.creating = false;
         this._onDidChangeLine = new vscode_languageserver_protocol_1.Emitter();
         this._onDidChangeHeight = new vscode_languageserver_protocol_1.Emitter();
@@ -69681,7 +69702,7 @@ class ListUI {
     reset() {
         this.items = [];
         this.mouseDown = null;
-        this.selected = [];
+        this.selected = new Set();
         this._bufnr = 0;
         this.window = null;
     }
@@ -69695,7 +69716,7 @@ class ListUI {
     async resume(name, position) {
         let { items, selected, nvim, signOffset } = this;
         await this.drawItems(items, name, position, true);
-        if (selected.length && this.bufnr) {
+        if (selected.size > 0 && this.bufnr) {
             nvim.pauseNotification();
             for (let lnum of selected) {
                 nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${this.bufnr}`, true);
@@ -69708,14 +69729,45 @@ class ListUI {
         if (workspace_1.default.bufnr != bufnr)
             return;
         let lnum = await nvim.call('line', '.');
-        let idx = selected.indexOf(lnum);
+        let mode = await nvim.call('mode');
+        if (mode == 'v' || mode == 'V') {
+            await nvim.call('coc#list#stop_prompt');
+            await nvim.eval('feedkeys("\\<esc>", "in")');
+            let [, start] = await nvim.call('getpos', "'<");
+            let [, end] = await nvim.call('getpos', "'>");
+            if (start > end) {
+                [start, end] = [end, start];
+            }
+            let method = workspace_1.default.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt';
+            this.nvim.call(method, [], true);
+            let exists = selected.has(start);
+            nvim.pauseNotification();
+            let reverse = start > end;
+            if (reverse)
+                [start, end] = [end, start];
+            for (let i = start; i <= end; i++) {
+                if (!exists) {
+                    selected.add(i);
+                    nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
+                }
+                else {
+                    selected.delete(i);
+                    nvim.command(`sign unplace ${signOffset + i} buffer=${bufnr}`, true);
+                }
+            }
+            this.setCursor(end, 0);
+            nvim.command('redraw', true);
+            await nvim.resumeNotification();
+            return;
+        }
+        let exists = selected.has(lnum);
         nvim.pauseNotification();
-        if (idx !== -1) {
-            selected.splice(idx, 1);
+        if (exists) {
+            selected.delete(lnum);
             nvim.command(`sign unplace ${signOffset + lnum} buffer=${bufnr}`, true);
         }
         else {
-            selected.push(lnum);
+            selected.add(lnum);
             nvim.command(`sign place ${signOffset + lnum} line=${lnum} name=CocSelected buffer=${bufnr}`, true);
         }
         this.setCursor(lnum + 1, 0);
@@ -69733,7 +69785,7 @@ class ListUI {
         for (let i = start; i <= end; i++) {
             if (i > length)
                 break;
-            selected.push(i);
+            selected.add(i);
             nvim.command(`sign place ${signOffset + i} line=${i} name=CocSelected buffer=${bufnr}`, true);
         }
         this.setCursor(end, 0);
@@ -69744,13 +69796,13 @@ class ListUI {
         let { selected, nvim, signOffset, bufnr } = this;
         if (!bufnr)
             return;
-        if (selected.length) {
+        if (selected.size > 0) {
             let signIds = [];
             for (let lnum of selected) {
                 signIds.push(signOffset + lnum);
             }
             nvim.call('coc#util#unplace_signs', [bufnr, signIds], true);
-            this.selected = [];
+            this.selected = new Set();
         }
     }
     get shown() {
@@ -69875,8 +69927,8 @@ class ListUI {
         let { selected, items } = this;
         let res = [];
         for (let i of selected) {
-            if (items[i])
-                res.push(items[i]);
+            if (items[i - 1])
+                res.push(items[i - 1]);
         }
         return res;
     }
@@ -69910,8 +69962,9 @@ class ListUI {
         }
     }
     setCursor(lnum, col) {
-        let { window, bufnr } = this;
-        if (!bufnr || !window)
+        let { window, bufnr, items } = this;
+        let max = items.length == 0 ? 1 : items.length;
+        if (!bufnr || !window || lnum > max)
             return;
         window.notify('nvim_win_set_cursor', [window, [lnum, col]]);
         if (this.currIndex + 1 != lnum) {
