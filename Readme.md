@@ -23,7 +23,7 @@ It's a completion framework and language server client which supports [extension
 
 _True snippet and additional text edit support_
 
-Floating window requires master of neovim to work, [follow the steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+Floating window requires master of neovim to work, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
 
 Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 
@@ -184,8 +184,7 @@ Extensions are powerful than configured language server. Checkout
 
 And more, to get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
-**Note:** use `:CocConfig` to edit the configuration file, auto completion is
-supported after `coc-json` has been installed.
+**Note:** use `:CocConfig` to edit the configuration file, completion & validation are supported after `coc-json` installed.
 
 ## Example vim configuration
 
@@ -374,6 +373,6 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 - If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
 
-- 如果你是中文用户，请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 提问
+- 中文用户请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 讨论。
 
 - If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
