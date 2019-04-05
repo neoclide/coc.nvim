@@ -11,10 +11,9 @@ declare interface Promise<T> {
 /**
  * Explicitly tells that promise should be run asynchonously.
  */
-Promise.prototype.logError = function <T>(this: Promise<T>) {
+Promise.prototype.logError = function <T>(this: Promise<T>): void {
   // tslint:disable-next-line:no-empty
   this.catch(e => {
     logger.error(e)
   })
 }
-

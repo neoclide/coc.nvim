@@ -689,7 +689,7 @@ export class Extensions {
     let json = this.loadJson()
     if (!json || !json.dependencies) return []
     let res: ExtensionInfo[] = await Promise.all(Object.keys(json.dependencies).map(key => {
-      return new Promise(async resolve => {
+      return new Promise<ExtensionInfo>(async resolve => {
         try {
           let val = json.dependencies[key]
           let root = path.join(this.root, 'node_modules', key)
@@ -726,7 +726,7 @@ export class Extensions {
     let runtimepath = await workspace.nvim.eval('&runtimepath') as string
     let paths = runtimepath.split(',')
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => {
-      return new Promise(async resolve => {
+      return new Promise<ExtensionInfo>(async resolve => {
         try {
           let jsonFile = path.join(root, 'package.json')
           let stat = await statAsync(jsonFile)

@@ -121,7 +121,7 @@ export default class Mappings {
       return
     })
     this.add('insert', '<esc>', () => {
-      manager.cancel()
+      return manager.cancel()
     })
     this.add('insert', '<C-l>', async () => {
       await manager.worker.loadItems(true)
