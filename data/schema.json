@@ -229,11 +229,6 @@
       "description": "Max length of detail that should be shown in popup menu.",
       "default": 100
     },
-    "suggest.reloadPumOnInsertChar": {
-      "type": "boolean",
-      "description": "Reload popup menu on InsertCharPre, which could fix flicker of pum, also force completeopt contains noinsert on completion, it's neovim only.",
-      "default": false
-    },
     "suggest.detailField": {
       "type": "string",
       "default": "menu",

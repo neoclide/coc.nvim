@@ -504,7 +504,6 @@ export interface CompleteConfig {
   previewIsKeyword: string
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
-  reloadPumOnInsertChar: boolean
   acceptSuggestionOnCommitCharacter: boolean
   noselect: boolean
   keepCompleteopt: boolean

@@ -60,9 +60,6 @@ export class Completion implements Disposable {
         Object.assign(this.config, this.getCompleteConfig())
       }
     }, null, this.disposables)
-    if (this.config.reloadPumOnInsertChar) {
-      this.enablePumReload()
-    }
     if (workspace.env.pumevent) {
       this.disposables.push(workspace.registerAutocmd({
         event: 'CompleteDone',
@@ -76,21 +73,6 @@ export class Completion implements Disposable {
         }
       }))
     }
-  }
-
-  private enablePumReload(): void {
-    if (!workspace.isNvim) return
-    workspace.registerAutocmd({
-      event: 'InsertCharPre',
-      arglist: ['v:char'],
-      callback: async (ch: string) => {
-        if (
-          this.isActivted
-          && isWord(ch)) {
-          await this.nvim.call('coc#_reload', [])
-        }
-      }
-    })
   }
 
   public get option(): CompleteOption {
@@ -150,7 +132,6 @@ export class Completion implements Disposable {
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
-      reloadPumOnInsertChar: suggest.get<boolean>('reloadPumOnInsertChar', false),
       enablePreview: getConfig<boolean>('enablePreview', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
@@ -576,9 +557,8 @@ export class Completion implements Disposable {
   }
 
   private get completeOpt(): string {
-    let { noselect, enablePreview, reloadPumOnInsertChar } = this.config
+    let { noselect, enablePreview } = this.config
     let preview = enablePreview && !workspace.env.pumevent ? ',preview' : ''
-    if (reloadPumOnInsertChar) return `${noselect ? 'noselect,' : ''}noinsert,menuone${preview}`
     if (noselect) return `noselect,menuone${preview}`
     return `noinsert,menuone${preview}`
   }
