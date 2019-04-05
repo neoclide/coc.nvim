@@ -4,22 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
+import os from 'os'
 import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
 import { ServiceStat } from '../types'
+import { disposeAll } from '../util'
 import * as Is from '../util/is'
+import { terminate } from '../util/processes'
 import workspace from '../workspace'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
 import { ColorProviderFeature } from './colorProvider'
 import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
+import { DeclarationFeature } from './declaration'
 import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
-import { DeclarationFeature } from './declaration'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
-import { terminate } from '../util/processes'
 import ChildProcess = cp.ChildProcess
-import { disposeAll } from '../util'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -413,6 +414,9 @@ export class LanguageClient extends BaseLanguageClient {
       let options = Object.assign({}, command.options)
       options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
+      if (command.command.startsWith('~')) {
+        command.command = command.command.replace(/^~/, os.homedir())
+      }
       let serverProcess = cp.spawn(command.command, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
