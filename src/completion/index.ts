@@ -162,6 +162,8 @@ export class Completion implements Disposable {
       snippetIndicator: getConfig<string>('snippetIndicator', '~'),
       fixInsertedWord: getConfig<boolean>('fixInsertedWord', true),
       localityBonus: getConfig<boolean>('localityBonus', true),
+      highPrioritySourceLimit: getConfig<number>('highPrioritySourceLimit', null),
+      lowPrioritySourceLimit: getConfig<number>('lowPrioritySourceLimit', null),
     }
   }
 

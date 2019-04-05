@@ -277,7 +277,7 @@ describe('completion', () => {
         })
       }
     }
-    sources.addSource(source)
+    let disposable = sources.addSource(source)
     await nvim.input('i')
     await helper.wait(30)
     await nvim.input('f')
@@ -285,5 +285,44 @@ describe('completion', () => {
     await nvim.input('.')
     await helper.visible('bar', 'completion')
     expect(token.isCancellationRequested).toBe(true)
+    disposable.dispose()
+  })
+
+  it('should limit results for low priority source', async () => {
+    helper.updateConfiguration('suggest.lowPrioritySourceLimit', 2)
+    await nvim.setLine('filename filepath find filter findIndex')
+    await helper.wait(200)
+    await nvim.input('of')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    items = items.filter(o => o.menu == '[A]')
+    expect(items.length).toBe(2)
+  })
+
+  it('should limit result for high priority source', async () => {
+    helper.updateConfiguration('suggest.highPrioritySourceLimit', 2)
+    await helper.edit()
+    let source: ISource = {
+      name: 'high',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: ['filename', 'filepath', 'filter', 'file'].map(key => {
+            return { word: key }
+          })
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBe(2)
+    disposable.dispose()
   })
 })

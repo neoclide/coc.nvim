@@ -514,6 +514,8 @@ export interface CompleteConfig {
   snippetIndicator: string
   fixInsertedWord: boolean
   localityBonus: boolean
+  highPrioritySourceLimit: number
+  lowPrioritySourceLimit: number
 }
 
 export interface WorkspaceConfiguration {

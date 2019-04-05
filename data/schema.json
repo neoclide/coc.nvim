@@ -330,6 +330,18 @@
       "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
       "default": false
     },
+    "suggest.lowPrioritySourceLimit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Max items count for source priority lower than 90."
+    },
+    "suggest.highPrioritySourceLimit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Max items count for source priority bigger than or equal to 90."
+    },
     "suggest.completionItemKindLabels": {
       "type": "object",
       "default": {},

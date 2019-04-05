@@ -217,7 +217,24 @@ export default class Complete {
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items
+    return this.limitCompleteItems(items)
+  }
+
+  private limitCompleteItems(items: VimCompleteItem[]): VimCompleteItem[] {
+    let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config
+    if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items
+    let counts: Map<string, number> = new Map()
+    return items.filter(item => {
+      let { priority, source } = item
+      let isLow = priority < 90
+      let curr = counts.get(source) || 0
+      if ((lowPrioritySourceLimit && isLow && curr == lowPrioritySourceLimit)
+        || (highPrioritySourceLimit && !isLow && curr == highPrioritySourceLimit)) {
+        return false
+      }
+      counts.set(source, curr + 1)
+      return true
+    })
   }
 
   public hasMatch(input: string): boolean {

@@ -247,12 +247,15 @@ export class Sources {
     })
   }
 
-  public addSource(source: ISource): void {
+  public addSource(source: ISource): Disposable {
     let { name } = source
     if (this.names.indexOf(name) !== -1) {
       workspace.showMessage(`Source "${name}" recreated`, 'warning')
     }
     this.sourceMap.set(name, source)
+    return Disposable.create(() => {
+      this.sourceMap.delete(name)
+    })
   }
 
   public removeSource(source: ISource | string): void {
@@ -311,10 +314,7 @@ export class Sources {
   public createSource(config: Omit<ISource, ReadonlyProps>): Disposable {
     let source = new Source({ name: config.name, sourceType: SourceType.Remote })
     Object.assign(source, config)
-    this.addSource(source)
-    return Disposable.create(() => {
-      this.removeSource(config.name)
-    })
+    return this.addSource(source)
   }
 
   public dispose(): void {
