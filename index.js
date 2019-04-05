@@ -43593,7 +43593,7 @@ class Workspace {
         if (doc)
             col = string_1.byteLength(doc.getline(line).slice(0, character)) + 1;
         let u = vscode_uri_1.default.parse(uri);
-        let bufname = u.scheme == 'file' ? u.fsPath : u.toString();
+        let bufname = u.scheme == 'file' ? u.fsPath : uri;
         await nvim.command(`normal! m'`);
         let loaded = await nvim.call('bufloaded', bufname);
         let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname);
@@ -52827,7 +52827,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "b592841b72" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "1588053163" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -54012,6 +54012,8 @@ class Completion {
             snippetIndicator: getConfig('snippetIndicator', '~'),
             fixInsertedWord: getConfig('fixInsertedWord', true),
             localityBonus: getConfig('localityBonus', true),
+            highPrioritySourceLimit: getConfig('highPrioritySourceLimit', null),
+            lowPrioritySourceLimit: getConfig('lowPrioritySourceLimit', null),
         };
     }
     async startCompletion(option) {
@@ -54724,6 +54726,9 @@ class Sources {
             workspace_1.default.showMessage(`Source "${name}" recreated`, 'warning');
         }
         this.sourceMap.set(name, source);
+        return vscode_jsonrpc_1.Disposable.create(() => {
+            this.sourceMap.delete(name);
+        });
     }
     removeSource(source) {
         let name = typeof source == 'string' ? source : source.name;
@@ -54779,10 +54784,7 @@ class Sources {
     createSource(config) {
         let source = new source_1.default({ name: config.name, sourceType: types_1.SourceType.Remote });
         Object.assign(source, config);
-        this.addSource(source);
-        return vscode_jsonrpc_1.Disposable.create(() => {
-            this.removeSource(config.name);
-        });
+        return this.addSource(source);
     }
     dispose() {
         util_2.disposeAll(this.disposables);
@@ -58281,10 +58283,8 @@ class Languages {
         return await this.signatureManager.provideSignatureHelp(document, position, token);
     }
     async getDefinition(document, position) {
-        if (!this.definitionManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Definition provider not found for current document', 'error');
+        if (!this.definitionManager.hasProvider(document))
             return null;
-        }
         return await this.definitionManager.provideDefinition(document, position, this.token);
     }
     async getDeclaration(document, position) {
@@ -63341,21 +63341,22 @@ const tslib_1 = __webpack_require__(3);
  *--------------------------------------------------------------------------------------------*/
 const child_process_1 = tslib_1.__importDefault(__webpack_require__(162));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
+const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const types_1 = __webpack_require__(181);
+const util_1 = __webpack_require__(161);
 const Is = tslib_1.__importStar(__webpack_require__(183));
+const processes_1 = __webpack_require__(254);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const client_1 = __webpack_require__(285);
 const colorProvider_1 = __webpack_require__(289);
 const configuration_1 = __webpack_require__(290);
-const foldingRange_1 = __webpack_require__(291);
-const implementation_1 = __webpack_require__(292);
-const typeDefinition_1 = __webpack_require__(293);
-const declaration_1 = __webpack_require__(294);
+const declaration_1 = __webpack_require__(291);
+const foldingRange_1 = __webpack_require__(292);
+const implementation_1 = __webpack_require__(293);
+const typeDefinition_1 = __webpack_require__(294);
 const workspaceFolders_1 = __webpack_require__(295);
-const processes_1 = __webpack_require__(254);
-const util_1 = __webpack_require__(161);
 const logger = __webpack_require__(172)('language-client-index');
 tslib_1.__exportStar(__webpack_require__(285), exports);
 var Executable;
@@ -63661,6 +63662,9 @@ class LanguageClient extends client_1.BaseLanguageClient {
             let options = Object.assign({}, command.options);
             options.env = options.env ? Object.assign(options.env, process.env) : process.env;
             options.cwd = options.cwd || serverWorkingDir;
+            if (command.command.startsWith('~')) {
+                command.command = command.command.replace(/^~/, os_1.default.homedir());
+            }
             let serverProcess = child_process_1.default.spawn(command.command, args, options);
             if (!serverProcess || !serverProcess.pid) {
                 throw new Error(`Launching server using command ${command.command} failed.`);
@@ -66569,6 +66573,85 @@ exports.ConfigurationFeature = ConfigurationFeature;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const Is = tslib_1.__importStar(__webpack_require__(183));
+const UUID = tslib_1.__importStar(__webpack_require__(288));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
+const vscode_languageserver_protocol_1 = __webpack_require__(138);
+const converter_1 = __webpack_require__(287);
+const client_1 = __webpack_require__(285);
+function ensure(target, key) {
+    if (target[key] === void 0) {
+        target[key] = {};
+    }
+    return target[key];
+}
+class DeclarationFeature extends client_1.TextDocumentFeature {
+    constructor(client) {
+        super(client, vscode_languageserver_protocol_1.DeclarationRequest.type);
+    }
+    fillClientCapabilities(capabilites) {
+        let declarationSupport = ensure(ensure(capabilites, 'textDocument'), 'declaration');
+        declarationSupport.dynamicRegistration = true;
+        // declarationSupport.linkSupport = true
+    }
+    initialize(capabilities, documentSelector) {
+        if (!capabilities.declarationProvider) {
+            return;
+        }
+        if (capabilities.declarationProvider === true) {
+            if (!documentSelector) {
+                return;
+            }
+            this.register(this.messages, {
+                id: UUID.generateUuid(),
+                registerOptions: Object.assign({}, { documentSelector })
+            });
+        }
+        else {
+            const declCapabilities = capabilities.declarationProvider;
+            const id = Is.string(declCapabilities.id) && declCapabilities.id.length > 0 ? declCapabilities.id : UUID.generateUuid();
+            const selector = declCapabilities.documentSelector || documentSelector;
+            if (selector) {
+                this.register(this.messages, {
+                    id,
+                    registerOptions: Object.assign({}, { documentSelector: selector })
+                });
+            }
+        }
+    }
+    registerLanguageProvider(options) {
+        let client = this._client;
+        let provideDeclaration = (document, position, token) => {
+            return client.sendRequest(vscode_languageserver_protocol_1.DeclarationRequest.type, converter_1.asTextDocumentPositionParams(document, position), token).then(res => res, error => {
+                client.logFailedRequest(vscode_languageserver_protocol_1.DeclarationRequest.type, error);
+                return Promise.resolve(null);
+            });
+        };
+        let middleware = client.clientOptions.middleware;
+        return languages_1.default.registerDeclarationProvider(options.documentSelector, {
+            provideDeclaration: (document, position, token) => {
+                return middleware.provideDeclaration
+                    ? middleware.provideDeclaration(document, position, token, provideDeclaration)
+                    : provideDeclaration(document, position, token);
+            }
+        });
+    }
+}
+exports.DeclarationFeature = DeclarationFeature;
+//# sourceMappingURL=declaration.js.map
+
+/***/ }),
+/* 292 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+/* --------------------------------------------------------------------------------------------
+ * Copyright (c) Microsoft Corporation. All rights reserved.
+ * Licensed under the MIT License. See License.txt in the project root for license information.
+ * ------------------------------------------------------------------------------------------ */
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
 const Is = tslib_1.__importStar(__webpack_require__(183));
@@ -66635,7 +66718,7 @@ exports.FoldingRangeFeature = FoldingRangeFeature;
 //# sourceMappingURL=foldingRange.js.map
 
 /***/ }),
-/* 292 */
+/* 293 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66713,7 +66796,7 @@ exports.ImplementationFeature = ImplementationFeature;
 //# sourceMappingURL=implementation.js.map
 
 /***/ }),
-/* 293 */
+/* 294 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -66791,85 +66874,6 @@ class TypeDefinitionFeature extends client_1.TextDocumentFeature {
 }
 exports.TypeDefinitionFeature = TypeDefinitionFeature;
 //# sourceMappingURL=typeDefinition.js.map
-
-/***/ }),
-/* 294 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-/* --------------------------------------------------------------------------------------------
- * Copyright (c) Microsoft Corporation. All rights reserved.
- * Licensed under the MIT License. See License.txt in the project root for license information.
- * ------------------------------------------------------------------------------------------ */
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
-const Is = tslib_1.__importStar(__webpack_require__(183));
-const UUID = tslib_1.__importStar(__webpack_require__(288));
-const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
-const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const converter_1 = __webpack_require__(287);
-const client_1 = __webpack_require__(285);
-function ensure(target, key) {
-    if (target[key] === void 0) {
-        target[key] = {};
-    }
-    return target[key];
-}
-class DeclarationFeature extends client_1.TextDocumentFeature {
-    constructor(client) {
-        super(client, vscode_languageserver_protocol_1.DeclarationRequest.type);
-    }
-    fillClientCapabilities(capabilites) {
-        let declarationSupport = ensure(ensure(capabilites, 'textDocument'), 'declaration');
-        declarationSupport.dynamicRegistration = true;
-        // declarationSupport.linkSupport = true
-    }
-    initialize(capabilities, documentSelector) {
-        if (!capabilities.declarationProvider) {
-            return;
-        }
-        if (capabilities.declarationProvider === true) {
-            if (!documentSelector) {
-                return;
-            }
-            this.register(this.messages, {
-                id: UUID.generateUuid(),
-                registerOptions: Object.assign({}, { documentSelector })
-            });
-        }
-        else {
-            const declCapabilities = capabilities.declarationProvider;
-            const id = Is.string(declCapabilities.id) && declCapabilities.id.length > 0 ? declCapabilities.id : UUID.generateUuid();
-            const selector = declCapabilities.documentSelector || documentSelector;
-            if (selector) {
-                this.register(this.messages, {
-                    id,
-                    registerOptions: Object.assign({}, { documentSelector: selector })
-                });
-            }
-        }
-    }
-    registerLanguageProvider(options) {
-        let client = this._client;
-        let provideDeclaration = (document, position, token) => {
-            return client.sendRequest(vscode_languageserver_protocol_1.DeclarationRequest.type, converter_1.asTextDocumentPositionParams(document, position), token).then(res => res, error => {
-                client.logFailedRequest(vscode_languageserver_protocol_1.DeclarationRequest.type, error);
-                return Promise.resolve(null);
-            });
-        };
-        let middleware = client.clientOptions.middleware;
-        return languages_1.default.registerDeclarationProvider(options.documentSelector, {
-            provideDeclaration: (document, position, token) => {
-                return middleware.provideDeclaration
-                    ? middleware.provideDeclaration(document, position, token, provideDeclaration)
-                    : provideDeclaration(document, position, token);
-            }
-        });
-    }
-}
-exports.DeclarationFeature = DeclarationFeature;
-//# sourceMappingURL=declaration.js.map
 
 /***/ }),
 /* 295 */
@@ -67952,7 +67956,7 @@ class Mappings {
             return;
         });
         this.add('insert', '<esc>', () => {
-            manager.cancel();
+            return manager.cancel();
         });
         this.add('insert', '<C-l>', async () => {
             await manager.worker.loadItems(true);
@@ -71505,7 +71509,24 @@ class Complete {
         let items = arr.slice(0, this.config.maxItemCount);
         if (preselect)
             items.unshift(preselect);
-        return items;
+        return this.limitCompleteItems(items);
+    }
+    limitCompleteItems(items) {
+        let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config;
+        if (!highPrioritySourceLimit && !lowPrioritySourceLimit)
+            return items;
+        let counts = new Map();
+        return items.filter(item => {
+            let { priority, source } = item;
+            let isLow = priority < 90;
+            let curr = counts.get(source) || 0;
+            if ((lowPrioritySourceLimit && isLow && curr == lowPrioritySourceLimit)
+                || (highPrioritySourceLimit && !isLow && curr == highPrioritySourceLimit)) {
+                return false;
+            }
+            counts.set(source, curr + 1);
+            return true;
+        });
     }
     hasMatch(input) {
         let { results } = this;
