@@ -36,7 +36,7 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> imp
     let item = this.getProvider(document)
     if (!item) return null
     let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token))
-    if (res) return res
+    if (res && res.signatures && res.signatures.length) return res
     return null
   }
 

@@ -741,7 +741,7 @@ export default class Handler {
     }, 3000)
     let signatureHelp = await languages.getSignatureHelp(document.textDocument, position, token)
     clearTimeout(timer)
-    if (token.isCancellationRequested || !signatureHelp || signatureHelp.signatures.length == 0) {
+    if (token.isCancellationRequested || !signatureHelp) {
       this.signatureFactory.close()
       return
     }
