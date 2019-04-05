@@ -4,6 +4,7 @@ import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
+import './util/extensions'
 const logger = require('./util/logger')('attach')
 const isTest = process.env.NODE_ENV == 'test'
 

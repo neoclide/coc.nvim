@@ -157,7 +157,7 @@ export class ListManager {
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
       await this.nvim.command('echo ""')
-      this.prompt.start(this.listOptions.input, options.mode, true)
+      this.prompt.start(this.listOptions.input, options, true)
       await this.history.load()
       setTimeout(async () => {
         let line = await this.nvim.call('coc#util#echo_line') as string
@@ -276,7 +276,18 @@ export class ListManager {
       }
     }
     nvim.call('coc#list#restore', [], true)
-    await nvim.resumeNotification()
+    await nvim.resumeNotification(false, true)
+  }
+
+  public async switchMatcher(): Promise<void> {
+    let { matcher, interactive } = this.listOptions
+    if (interactive) return
+    const list: Matcher[] = ['fuzzy', 'strict', 'regex']
+    let idx = list.indexOf(matcher) + 1
+    if (idx >= list.length) idx = 0
+    this.listOptions.matcher = list[idx]
+    this.prompt.matcher = list[idx]
+    await this.worker.drawItems()
   }
 
   public async togglePreview(): Promise<void> {
@@ -433,10 +444,15 @@ export class ListManager {
       this.nvim.call('coc#list#stop_prompt', [], true)
       return
     }
-    if (mode == 'insert') {
-      await this.onInsertInput(ch, charmod)
-    } else {
-      await this.onNormalInput(ch, charmod)
+    try {
+      if (mode == 'insert') {
+        await this.onInsertInput(ch, charmod)
+      } else {
+        await this.onNormalInput(ch, charmod)
+      }
+    } catch (e) {
+      workspace.showMessage(`Error on input ${ch}: ${e}`)
+      logger.error(e)
     }
   }
 

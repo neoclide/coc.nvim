@@ -1,3 +1,4 @@
+import '../util/extensions'
 import { Neovim } from '@chemzqm/neovim'
 import { ListManager } from './manager'
 import { WorkspaceConfiguration, ListMode } from '../types'
@@ -91,25 +92,28 @@ export default class Mappings {
     let { prompt } = manager
 
     this.add('insert', ' ', () => {
-      return prompt.insertCharacter(' ')
+      prompt.insertCharacter(' ')
     })
     this.add('insert', '<C-k>', () => {
-      return prompt.removeTail()
+      prompt.removeTail()
     })
     this.add('insert', '<C-n>', () => {
-      return manager.history.next()
+      manager.history.next()
     })
     this.add('insert', '<C-p>', () => {
-      return manager.history.previous()
+      manager.history.previous()
     })
-    this.add('insert', ['<C-m>', '<cr>'], () => {
-      return manager.doAction()
+    this.add('insert', '<C-s>', () => {
+      return manager.switchMatcher()
+    })
+    this.add('insert', ['<C-m>', '<cr>'], async () => {
+      await manager.doAction()
     })
     this.add('insert', ['<tab>', '<C-i>', '\t'], () => {
       return manager.chooseAction()
     })
     this.add('insert', '<C-o>', () => {
-      return manager.toggleMode()
+      manager.toggleMode()
     })
     this.add('insert', '<C-c>', async () => {
       manager.stop()
@@ -117,31 +121,31 @@ export default class Mappings {
       return
     })
     this.add('insert', '<esc>', () => {
-      return manager.cancel()
+      manager.cancel()
     })
-    this.add('insert', '<C-l>', () => {
-      return manager.worker.loadItems(true)
+    this.add('insert', '<C-l>', async () => {
+      await manager.worker.loadItems(true)
     })
     this.add('insert', '<left>', () => {
-      return prompt.moveLeft()
+      prompt.moveLeft()
     })
     this.add('insert', '<right>', () => {
-      return prompt.moveRight()
+      prompt.moveRight()
     })
     this.add('insert', ['<end>', '<C-e>'], () => {
-      return prompt.moveToEnd()
+      prompt.moveToEnd()
     })
     this.add('insert', ['<home>', '<C-a>'], () => {
-      return prompt.moveToStart()
+      prompt.moveToStart()
     })
     this.add('insert', ['<C-h>', '<bs>'], () => {
-      return prompt.onBackspace()
+      prompt.onBackspace()
     })
     this.add('insert', '<C-w>', () => {
-      return prompt.removeWord()
+      prompt.removeWord()
     })
     this.add('insert', '<C-u>', () => {
-      return prompt.removeAhead()
+      prompt.removeAhead()
     })
     this.add('insert', ['<down>', nextKey], () => {
       return manager.normal('j')
@@ -154,68 +158,44 @@ export default class Mappings {
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
     this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
 
-    // not allowed
-    this.add('normal', '<C-o>', () => {
-      return
-    })
     this.add('normal', 't', () => {
-      manager.doAction('tabe').catch(e => {
-        logger.error(e)
-      })
+      return manager.doAction('tabe')
     })
     this.add('normal', 's', () => {
-      manager.doAction('split').catch(e => {
-        logger.error(e)
-      })
+      return manager.doAction('split')
     })
     this.add('normal', 'd', () => {
-      manager.doAction('drop').catch(e => {
-        logger.error(e)
-      })
+      return manager.doAction('drop')
     })
     this.add('normal', ['<cr>', '<C-m>', '\r'], () => {
-      manager.doAction().catch(e => {
-        logger.error(e)
-      })
+      return manager.doAction()
     })
     this.add('normal', '<C-a>', () => {
-      manager.ui.selectAll().catch(e => {
-        logger.error(e)
-      })
+      return manager.ui.selectAll()
     })
     this.add('normal', ' ', () => {
-      manager.ui.toggleSelection().catch(e => {
-        logger.error(e)
-      })
+      return manager.ui.toggleSelection()
     })
     this.add('normal', 'p', () => {
-      manager.togglePreview().catch(e => {
-        logger.error(e)
-      })
+      return manager.togglePreview()
     })
     this.add('normal', ['<tab>', '\t', '<C-i>'], () => {
-      manager.chooseAction().catch(e => {
-        logger.error(e)
-      })
+      return manager.chooseAction()
     })
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
     this.add('normal', '<esc>', () => {
-      manager.cancel().catch(e => {
-        logger.error(e)
-      })
+      return manager.cancel()
     })
     this.add('normal', '<C-l>', () => {
-      manager.worker.loadItems(true).catch(e => {
-        logger.error(`Error or reload items:`, e)
-      })
+      return manager.worker.loadItems(true)
     })
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
-      manager.toggleMode()
+      return manager.toggleMode()
     })
-    this.add('normal', '?', async () => {
-      await manager.showHelp()
+    this.add('normal', '?', () => {
+      return manager.showHelp()
     })
     this.add('normal', ':', async () => {
       await manager.cancel(false)
@@ -322,6 +302,9 @@ export default class Mappings {
     let [key, action] = expr.split(':', 2)
     if (key == 'do') {
       switch (action) {
+        case 'switch':
+          await manager.switchMatcher()
+          return
         case 'selectall':
           await manager.ui.selectAll()
           return

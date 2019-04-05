@@ -1320,6 +1320,7 @@ Default mappings on insert mode:
 <C-u>       - remove characers before cursor.
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.
+<C-s>       - switch matcher for filter items.
 <Tab>       - select action.
 
 Default mappings on normal mode:
@@ -1368,6 +1369,7 @@ The mapping expression should be `command:arguments`, available commands:
 'do' - special actions provided by coc list, including:
 	'refresh' - reload list.
 	'selectall' - mark all visible items selected.
+	'switch' - switch matcher used for filter items.
 	'exit' -  exit list session.
 	'stop' - stop loading task.
 	'cancel' - cancel list session but leave list window open.

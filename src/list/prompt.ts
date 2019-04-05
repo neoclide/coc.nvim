@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
-import { ListMode } from '../types'
+import { ListMode, Matcher, ListOptions } from '../types'
 import workspace from '../workspace'
 const logger = require('../util/logger')('list-prompt')
 
@@ -9,6 +9,7 @@ export default class Prompt {
   private cusorIndex = 0
   private _input = ''
   private timer: NodeJS.Timer
+  private _matcher: Matcher | ''
   private _mode: ListMode
 
   private _onDidChangeInput = new Emitter<string>()
@@ -41,13 +42,21 @@ export default class Prompt {
     this.drawPrompt()
   }
 
-  public start(input?: string, mode?: ListMode, delay = false): void {
+  public set matcher(val: Matcher) {
+    this._matcher = val
+    this.drawPrompt()
+  }
+
+  public start(input?: string, opts?: ListOptions, delay = false): void {
     if (this.timer) clearTimeout(this.timer)
     if (input != null) {
       this._input = input
       this.cusorIndex = input.length
     }
-    if (mode) this._mode = mode
+    if (opts) {
+      this._mode = opts.mode
+      this._matcher = opts.interactive ? '' : opts.matcher
+    }
     let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
     this.nvim.call(method, [], true)
     if (delay) {
@@ -64,11 +73,14 @@ export default class Prompt {
     let { nvim } = this
     if (this.timer) {
       clearTimeout(this.timer)
-    } else {
-      nvim.command('echo ""', true)
-      nvim.command('redraw', true)
     }
+    nvim.pauseNotification()
+    nvim.command('echo ""', true)
+    nvim.command('redraw', true)
     nvim.call('coc#list#stop_prompt', [], true)
+    nvim.resumeNotification(false, true).catch(() => {
+      // noop
+    })
   }
 
   public reset(): void {
@@ -78,9 +90,10 @@ export default class Prompt {
 
   public drawPrompt(): void {
     if (this.timer) return
-    let { indicator, cusorIndex, input } = this
+    let { indicator, cusorIndex, input, _matcher } = this
     let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
     if (this.mode == 'insert') {
+      if (_matcher) cmds.push(`echohl MoreMsg | echon '${_matcher.toUpperCase()} ' | echohl None`)
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)
@@ -94,6 +107,8 @@ export default class Prompt {
         let post = input.slice(cusorIndex + 1)
         cmds.push(`echon '${post.replace(/'/g, "''")}'`)
       }
+    } else {
+      cmds.push(`echohl MoreMsg | echo "" | echohl None`)
     }
     if (workspace.isVim) cmds.push('redraw')
     let cmd = cmds.join('|')
