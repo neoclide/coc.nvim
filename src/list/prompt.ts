@@ -11,6 +11,7 @@ export default class Prompt {
   private timer: NodeJS.Timer
   private _matcher: Matcher | ''
   private _mode: ListMode
+  private interactive = false
 
   private _onDidChangeInput = new Emitter<string>()
   public readonly onDidChangeInput: Event<string> = this._onDidChangeInput.event
@@ -54,6 +55,7 @@ export default class Prompt {
       this.cusorIndex = input.length
     }
     if (opts) {
+      this.interactive = opts.interactive
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
@@ -90,10 +92,14 @@ export default class Prompt {
 
   public drawPrompt(): void {
     if (this.timer) return
-    let { indicator, cusorIndex, input, _matcher } = this
+    let { indicator, cusorIndex, interactive, input, _matcher } = this
     let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
     if (this.mode == 'insert') {
-      if (_matcher) cmds.push(`echohl MoreMsg | echon '${_matcher.toUpperCase()} ' | echohl None`)
+      if (interactive) {
+        cmds.push(`echohl MoreMsg | echon 'INTERACTIVE ' | echohl None`)
+      } else if (_matcher) {
+        cmds.push(`echohl MoreMsg | echon '${_matcher.toUpperCase()} ' | echohl None`)
+      }
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)

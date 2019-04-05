@@ -129,6 +129,15 @@ export default class ListUI {
 
   public async getItems(): Promise<ListItem[]> {
     if (this.length == 0) return []
+    let mode = await this.nvim.call('mode')
+    if (mode == 'v' || mode == 'V') {
+      let [start, end] = await this.getSelectedRange()
+      let res: ListItem[] = []
+      for (let i = start; i <= end; i++) {
+        res.push(this.items[i - 1])
+      }
+      return res
+    }
     let { selectedItems } = this
     if (selectedItems.length) return selectedItems
     let item = await this.item
@@ -205,17 +214,8 @@ export default class ListUI {
     let lnum = await nvim.call('line', '.')
     let mode = await nvim.call('mode')
     if (mode == 'v' || mode == 'V') {
-      await nvim.call('coc#list#stop_prompt')
-      await nvim.eval('feedkeys("\\<esc>", "in")')
-      let [, start] = await nvim.call('getpos', "'<")
-      let [, end] = await nvim.call('getpos', "'>")
-      if (start > end) {
-        [start, end] = [end, start]
-      }
-      let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
-      this.nvim.call(method, [], true)
+      let [start, end] = await this.getSelectedRange()
       let exists = selected.has(start)
-      nvim.pauseNotification()
       let reverse = start > end
       if (reverse) [start, end] = [end, start]
       for (let i = start; i <= end; i++) {
@@ -463,5 +463,19 @@ export default class ListUI {
         this.highlights = this.highlights.concat(highlights.slice(0, limitLines - this.highlights.length))
       }
     }
+  }
+
+  private async getSelectedRange(): Promise<[number, number]> {
+    let { nvim } = this
+    await nvim.call('coc#list#stop_prompt')
+    await nvim.eval('feedkeys("\\<esc>", "in")')
+    let [, start] = await nvim.call('getpos', "'<")
+    let [, end] = await nvim.call('getpos', "'>")
+    if (start > end) {
+      [start, end] = [end, start]
+    }
+    let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
+    this.nvim.call(method, [], true)
+    return [start, end]
   }
 }
