@@ -193,6 +193,10 @@ supported after `coc-json` has been installed.
 " if hidden is not set, TextEdit might fail.
 set hidden
 
+" Some server have issues with backup files, see #649
+set nobackup
+set nowritebackup
+
 " Better display for messages
 set cmdheight=2
 
