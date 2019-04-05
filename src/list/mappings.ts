@@ -178,6 +178,11 @@ export default class Mappings {
         logger.error(e)
       })
     })
+    this.add('normal', '<C-a>', () => {
+      manager.ui.selectAll().catch(e => {
+        logger.error(e)
+      })
+    })
     this.add('normal', ' ', () => {
       manager.ui.toggleSelection().catch(e => {
         logger.error(e)
@@ -317,6 +322,9 @@ export default class Mappings {
     let [key, action] = expr.split(':', 2)
     if (key == 'do') {
       switch (action) {
+        case 'selectall':
+          await manager.ui.selectAll()
+          return
         case 'help':
           await manager.showHelp()
           return

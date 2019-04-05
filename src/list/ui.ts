@@ -263,6 +263,12 @@ export default class ListUI {
     await nvim.resumeNotification()
   }
 
+  public async selectAll(): Promise<void> {
+    let { length } = this
+    if (length == 0) return
+    await this.selectLines(1, length)
+  }
+
   public clearSelection(): void {
     let { selected, nvim, signOffset, bufnr } = this
     if (!bufnr) return

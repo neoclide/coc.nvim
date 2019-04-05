@@ -893,6 +893,12 @@ COMMANDS 					*coc-commands*
 
 		Start coc server, do nothing if it's already started.
 
+:CocRestart 					*:CocRestart*
+
+		Restart coc service.
+
+		Use this command when you want coc start all over again.
+
 :CocDisable 					*:CocDisable*
 
 		Disable all events of coc
@@ -900,12 +906,6 @@ COMMANDS 					*coc-commands*
 :CocEnable 					*:CocEnable*
 
 		Enable events of coc
-
-:CocRestart 					*:CocRestart*
-
-		Restart coc service.
-
-		Use this command when you want coc start all over again.
 
 :CocConfig 					*:CocConfig*
 
@@ -1327,6 +1327,7 @@ Default mappings on normal mode:
 <Esc>       - cancel list session.
 <C-c>       - stop source from fetching more items.
 <C-l>       - reload list.
+<C-a>       - mark all visible items selected.
 <Tab>       - select action.
 <Space>     - toggle select of current item.
 i,I,o,O,a,A - change to insert mode.
@@ -1366,6 +1367,7 @@ The mapping expression should be `command:arguments`, available commands:
 
 'do' - special actions provided by coc list, including:
 	'refresh' - reload list.
+	'selectall' - mark all visible items selected.
 	'exit' -  exit list session.
 	'stop' - stop loading task.
 	'cancel' - cancel list session but leave list window open.
@@ -1432,6 +1434,7 @@ location 			   			 *coc-list-location*
 	- 'drop': Use |:drop| to open location.
 	- 'vsplit': Use |:vsplit| to open location.
 	- 'split': Use |:split| to open location.
+	- 'quickfix': Add selected items to vim's quickfix.
 
 extensions 						 *coc-list-extensions*
 
@@ -1451,7 +1454,7 @@ diagnostics 						 *coc-list-diagnostics*
 
 	Actions:
 
-	- See |coc-list-location|
+	- Same as |coc-list-location|
 
 outline 						 *coc-list-outline*
 
@@ -1459,7 +1462,7 @@ outline 						 *coc-list-outline*
 
 	Actions:
 
-	- See |coc-list-location|
+	- Same as |coc-list-location|
 
 symbols 						 *coc-list-symbols*
 
@@ -1467,7 +1470,7 @@ symbols 						 *coc-list-symbols*
 
 	Actions:
 
-	- See |coc-list-location|
+	- Same as |coc-list-location|
 
 services 						 *coc-list-services*
 
