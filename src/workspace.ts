@@ -704,7 +704,7 @@ export class Workspace implements IWorkspace {
     let col = character + 1
     if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
     let u = Uri.parse(uri)
-    let bufname = u.scheme == 'file' ? u.fsPath : u.toString()
+    let bufname = u.scheme == 'file' ? u.fsPath : uri
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
     let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)

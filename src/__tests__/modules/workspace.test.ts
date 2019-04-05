@@ -594,6 +594,14 @@ describe('workspace utility', () => {
     expect(pos[2]).toBe(2)
   })
 
+  it('should jumpTo uri without normalize', async () => {
+    let uri = 'zipfile:///tmp/clojure-1.9.0.jar::clojure/core.clj'
+    await workspace.jumpTo(uri)
+    let buf = await nvim.buffer
+    let name = await buf.name
+    expect(name).toBe(uri)
+  })
+
   it('should jump without position', async () => {
     let uri = URI.file('/tmp/foo').toString()
     await workspace.jumpTo(uri)

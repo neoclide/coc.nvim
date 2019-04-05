@@ -292,10 +292,7 @@ class Languages {
 
   @check
   public async getDefinition(document: TextDocument, position: Position): Promise<Location[]> {
-    if (!this.definitionManager.hasProvider(document)) {
-      workspace.showMessage('Definition provider not found for current document', 'error')
-      return null
-    }
+    if (!this.definitionManager.hasProvider(document)) return null
     return await this.definitionManager.provideDefinition(document, position, this.token)
   }
 
