@@ -3518,7 +3518,7 @@ export abstract class BaseLanguageClient {
           }
           let items = params.actions.map(o => o.title)
           return workspace.showQuickpick(items, params.message).then(idx => {
-            return items[idx]
+            return params.actions[idx]
           })
         })
         connection.onTelemetry(_data => {
