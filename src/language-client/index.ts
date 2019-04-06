@@ -410,13 +410,20 @@ export class LanguageClient extends BaseLanguageClient {
       }
     } else if (Executable.is(json) && json.command) {
       let command: Executable = json as Executable
-      let args = command.args || []
+      let command_args_ro = command.args || []
+      let args = []
+
       let options = Object.assign({}, command.options)
       options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
       if (command.command.startsWith('~')) {
         command.command = command.command.replace(/^~/, os.homedir())
       }
+
+      for (var i = 0, len = command_args_ro.length; i < len; i++) {
+          args[i] = command_args_ro[i].replace(/^~/, os.homedir())
+      }
+
       let serverProcess = cp.spawn(command.command, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
