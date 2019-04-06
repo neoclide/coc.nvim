@@ -219,7 +219,7 @@ export class Completion implements Disposable {
       nvim.call('coc#_map', [], true)
     }
     let vimItems = items.map(item => {
-      let obj = { word: item.word }
+      let obj = { word: item.word, equal: 1 }
       for (let key of completeItemKeys) {
         if (item.hasOwnProperty(key)) {
           obj[key] = item[key]
