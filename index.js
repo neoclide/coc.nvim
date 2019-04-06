@@ -52751,7 +52751,7 @@ exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
 /* 222 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarn clean && yarn build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.0","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","jest":"24.7.0","rimraf":"^2.6.3","ts-jest":"^24.0.1","tslint":"^5.15.0","typescript":"^3.4.1","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.64","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarn clean && yarn build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.0","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","jest":"24.7.0","rimraf":"^2.6.3","ts-jest":"^24.0.1","tslint":"^5.15.0","typescript":"3.3.4000","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ }),
 /* 223 */
@@ -52982,7 +52982,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "0ecd8cbbb2" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "5fe91fa586" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -67182,9 +67182,11 @@ class ListManager {
                     nvim.command(`set t_ve=`, true);
             }
             else {
+                nvim.pauseNotification();
                 this.prompt.cancel();
                 if (isVim)
                     nvim.call('coc#list#restore', [], true);
+                await nvim.resumeNotification();
             }
         }, 100), null, this.disposables);
         this.ui.onDidChangeLine(debounce_1.default(async () => {
@@ -67265,20 +67267,11 @@ class ListManager {
             this.reset();
             this.listOptions = options;
             this.currList = list;
-            if (!list.interactive)
-                this.listOptions.interactive = false;
             this.listArgs = listArgs;
             this.cwd = workspace_1.default.cwd;
             this.window = await this.nvim.window;
-            await this.nvim.command('echo ""');
             this.prompt.start(this.listOptions.input, options, true);
             await this.history.load();
-            setTimeout(async () => {
-                let line = await this.nvim.call('coc#util#echo_line');
-                if (line.startsWith('[coc.nvim]')) {
-                    await this.cancel();
-                }
-            }, 40);
             await this.worker.loadItems();
         }
         catch (e) {
@@ -67307,58 +67300,6 @@ class ListManager {
         let items = await this.ui.getItems();
         if (items.length)
             await this.doItemAction(items, action);
-    }
-    async doItemAction(items, action) {
-        if (this.executing)
-            return;
-        this.executing = true;
-        let { nvim, ui } = this;
-        let shouldCancel = action.persist !== true && action.name != 'preview';
-        try {
-            if (shouldCancel)
-                await this.cancel();
-            if (action.name == 'preview') {
-                items = items.slice(0, 1);
-            }
-            if (!shouldCancel && !this.isActivated)
-                return;
-            if (action.multiple) {
-                await Promise.resolve(action.execute(items, this.context));
-            }
-            else if (action.parallel) {
-                await Promise.all(items.map(item => {
-                    return Promise.resolve(action.execute(item, this.context));
-                }));
-            }
-            else {
-                for (let item of items) {
-                    await Promise.resolve(action.execute(item, this.context));
-                }
-            }
-            if (!shouldCancel && !this.isActivated) {
-                this.nvim.command('pclose', true);
-                return;
-            }
-            if (action.persist || action.name == 'preview') {
-                let { window } = ui;
-                if (!window)
-                    return;
-                let valid = await window.valid;
-                if (!valid)
-                    return;
-                nvim.pauseNotification();
-                nvim.call('win_gotoid', [window.id], true);
-                await this.ui.restoreWindow();
-                nvim.command('redraw', true);
-                await nvim.resumeNotification();
-                if (action.reload)
-                    await this.worker.loadItems(true);
-            }
-        }
-        catch (e) {
-            logger.error(e);
-        }
-        this.executing = false;
     }
     async previous() {
         let { ui } = this;
@@ -67462,11 +67403,6 @@ class ListManager {
     get list() {
         return this.currList;
     }
-    get defaultAction() {
-        let { currList } = this;
-        let { defaultAction } = currList;
-        return currList.actions.find(o => o.name == defaultAction);
-    }
     parseArgs(args) {
         let options = [];
         let interactive = false;
@@ -67512,6 +67448,10 @@ class ListManager {
         let list = this.listMap.get(name);
         if (!list) {
             workspace_1.default.showMessage(`List ${name} not found`, 'error');
+            return null;
+        }
+        if (interactive && !list.interactive) {
+            workspace_1.default.showMessage(`Interactive mode of "${name}" not supported`, 'error');
             return null;
         }
         return {
@@ -67618,7 +67558,7 @@ class ListManager {
             if (code == 65533)
                 return;
             // exclude control characer
-            if (code < 33 || code >= 127 && code <= 159)
+            if (code < 32 || code >= 127 && code <= 159)
                 return;
             this.prompt.insertCharacter(s);
         }
@@ -67798,6 +67738,9 @@ class ListManager {
         this.worker.stop();
         this.ui.reset();
     }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+    }
     async getCharMap() {
         if (this.charMap)
             return this.charMap;
@@ -67807,6 +67750,63 @@ class ListManager {
             this.charMap.set(chars[key], key);
         });
         return this.charMap;
+    }
+    async doItemAction(items, action) {
+        if (this.executing)
+            return;
+        this.executing = true;
+        let { nvim, ui } = this;
+        let shouldCancel = action.persist !== true && action.name != 'preview';
+        try {
+            if (shouldCancel)
+                await this.cancel();
+            if (action.name == 'preview') {
+                items = items.slice(0, 1);
+            }
+            if (!shouldCancel && !this.isActivated)
+                return;
+            if (action.multiple) {
+                await Promise.resolve(action.execute(items, this.context));
+            }
+            else if (action.parallel) {
+                await Promise.all(items.map(item => {
+                    return Promise.resolve(action.execute(item, this.context));
+                }));
+            }
+            else {
+                for (let item of items) {
+                    await Promise.resolve(action.execute(item, this.context));
+                }
+            }
+            if (!shouldCancel && !this.isActivated) {
+                this.nvim.command('pclose', true);
+                return;
+            }
+            if (action.persist || action.name == 'preview') {
+                let { window } = ui;
+                if (!window)
+                    return;
+                let valid = await window.valid;
+                if (!valid)
+                    return;
+                nvim.pauseNotification();
+                nvim.call('win_gotoid', [window.id], true);
+                await this.ui.restoreWindow();
+                nvim.command('redraw', true);
+                await nvim.resumeNotification();
+                if (action.reload)
+                    await this.worker.loadItems(true);
+            }
+        }
+        catch (e) {
+            logger.error(e);
+        }
+        this.executing = false;
+    }
+    get defaultAction() {
+        let { currList } = this;
+        let { defaultAction } = currList;
+        return currList.actions.find(o => o.name == defaultAction);
     }
 }
 exports.ListManager = ListManager;
@@ -68061,9 +68061,6 @@ class Mappings {
         let nextKey = config.get('nextKeymap', '<C-j>');
         let previousKey = config.get('previousKeymap', '<C-k>');
         let { prompt } = manager;
-        this.add('insert', ' ', () => {
-            prompt.insertCharacter(' ');
-        });
         this.add('insert', '<C-k>', () => {
             prompt.removeTail();
         });
@@ -68460,13 +68457,9 @@ class Prompt {
         if (this.timer) {
             clearTimeout(this.timer);
         }
-        nvim.pauseNotification();
         nvim.command('echo ""', true);
         nvim.command('redraw', true);
         nvim.call('coc#list#stop_prompt', [], true);
-        nvim.resumeNotification(false, true).catch(() => {
-            // noop
-        });
     }
     reset() {
         this._input = '';
@@ -69758,22 +69751,6 @@ class ListUI {
         let signText = config.get('selectedSignText', '*');
         nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true);
         this.signOffset = config.get('signOffset');
-        nvim.call('coc#list#get_colors').then(map => {
-            for (let key of Object.keys(map)) {
-                let foreground = key[0].toUpperCase() + key.slice(1);
-                let foregroundColor = map[key];
-                for (let key of Object.keys(map)) {
-                    let background = key[0].toUpperCase() + key.slice(1);
-                    let backgroundColor = map[key];
-                    let group = `CocList${foreground}${background}`;
-                    this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`);
-                }
-                this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`);
-                this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`);
-            }
-        }, _e => {
-            // noop
-        });
         events_1.default.on('BufUnload', async (bufnr) => {
             if (bufnr == this.bufnr) {
                 this._bufnr = 0;
@@ -70020,6 +69997,21 @@ class ListUI {
         let limitLines = config.get('limitLines', 1000);
         let curr = this.items[this.index];
         this.items = items.slice(0, limitLines);
+        if (this.hlGroupMap.size == 0) {
+            let map = nvim.call('coc#list#get_colors');
+            for (let key of Object.keys(map)) {
+                let foreground = key[0].toUpperCase() + key.slice(1);
+                let foregroundColor = map[key];
+                for (let key of Object.keys(map)) {
+                    let background = key[0].toUpperCase() + key.slice(1);
+                    let backgroundColor = map[key];
+                    let group = `CocList${foreground}${background}`;
+                    this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`);
+                }
+                this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`);
+                this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`);
+            }
+        }
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
             let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`;
@@ -70376,11 +70368,11 @@ class Worker {
                 }
             });
             await new Promise((resolve, reject) => {
-                task.on('error', async (msg) => {
+                task.on('error', async (error) => {
                     if (timer)
                         clearTimeout(timer);
                     this.loading = false;
-                    reject(new Error(msg));
+                    reject(error instanceof Error ? error : new Error(error.toString()));
                 });
                 task.on('end', async () => {
                     this.loading = false;
