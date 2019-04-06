@@ -98,16 +98,11 @@ function! coc#util#yarn_cmd()
   return ''
 endfunction
 
-function! s:count_utf16_code_units(str) abort
-    let l:rs = split(a:str, '\zs')
-    let l:len = len(l:rs)
-    return l:len + len(filter(l:rs, 'char2nr(v:val)>=0x10000'))
-endfunction
-
 " get cursor position
 function! coc#util#cursor()
-  let pos = s:count_utf16_code_units(getline('.')[:col('.')-1])
-  return [line('.') - 1, pos - 1]
+  let pos = getcurpos()
+  let content = pos[2] == 1 ? '' : getline('.')[0: pos[2] - 2]
+  return [pos[1] - 1, strchars(content)]
 endfunction
 
 function! coc#util#close_win(id)
