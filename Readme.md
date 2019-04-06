@@ -1,5 +1,7 @@
 <p align="center">
-  <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55009068-f4ed2780-501c-11e9-9a3b-cf3aa6ab9272.png" height="160" />
+  <a href="https://www.vim.org/scripts/script.php?script_id=5779">
+    <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55009068-f4ed2780-501c-11e9-9a3b-cf3aa6ab9272.png" height="160" />
+  </a>
   <p align="center">Make your vim/neovim smart as VSCode.</p>
   <p align="center">
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
@@ -19,7 +21,7 @@ It works on `vim >= 8.1` and `neovim >= 0.3.1`.
 
 It's a completion framework and language server client which supports [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-![gif](https://user-images.githubusercontent.com/251450/55285193-400a9000-53b9-11e9-8cff-ffe4983c5947.gif)
+<img alt="Gif" src="https://user-images.githubusercontent.com/251450/55285193-400a9000-53b9-11e9-8cff-ffe4983c5947.gif" width="60%" />
 
 _True snippet and additional text edit support_
 
@@ -34,8 +36,8 @@ Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
 - 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
 - ❤️ **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
-## Completion experience
-
+<details><summary>Completion experience</summary>
+<p>
 You might be wondering why yet another completion engine since there is the already
 widely used [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim).
@@ -65,6 +67,8 @@ Below are the reasons that led coc.nvim to build its own engine:
   completion items, some completion engines would trigger a new completion, but
   coc.nvim will filter the items when possible which makes it much faster. Filtering
   completion items on backspace is also supported.
+  </p>
+  </details>
 
 ## Table of contents
 
