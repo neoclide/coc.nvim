@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Disposable, TextEdit } from 'vscode-languageserver-protocol'
 import { IWorkspace, TextDocumentWillSaveEvent } from '../types'
+import { wait } from '../util'
 const logger = require('../util/logger')('willSaveHandler')
 
 export type Callback = (event: TextDocumentWillSaveEvent) => void
@@ -74,8 +75,14 @@ export default class WillSaveUntilHandler {
     let { callbacks, workspace } = this
     let { document } = event
     if (!callbacks.length) return
+    let doc = workspace.getDocument(document.uri)
+    if (!doc) return
+    let now = Date.now()
+    if (doc.dirty) {
+      doc.forceSync()
+      await wait(60)
+    }
     for (let fn of callbacks) {
-      let doc = workspace.getDocument(document.uri)
       event.document = doc.textDocument
       try {
         await fn(event)
@@ -83,5 +90,6 @@ export default class WillSaveUntilHandler {
         logger.error(e)
       }
     }
+    logger.info(`Will save cost: ${Date.now() - now}`)
   }
 }

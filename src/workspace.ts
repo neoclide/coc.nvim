@@ -280,7 +280,7 @@ export class Workspace implements IWorkspace {
     return Array.from(this.buffers.values())
   }
 
-  public async createNameSpace(name = ''): Promise<number> {
+  public createNameSpace(name = ''): number {
     if (this.namespaceMap.has(name)) return this.namespaceMap.get(name)
     NAME_SPACE = NAME_SPACE + 1
     this.namespaceMap.set(name, NAME_SPACE)
@@ -1302,9 +1302,7 @@ augroup end`
       reason: TextDocumentSaveReason.Manual
     }
     this._onWillSaveDocument.fire(event)
-    await doc.checkDocument()
     if (this.willSaveUntilHandler.hasCallback) {
-      await wait(100)
       await this.willSaveUntilHandler.handeWillSaveUntil(event)
     }
   }
