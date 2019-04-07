@@ -1,82 +1,10 @@
-import '../util/extensions'
 import { Neovim } from '@chemzqm/neovim'
-import { ListManager } from './manager'
-import { WorkspaceConfiguration, ListMode } from '../types'
+import { ListMode } from '../types'
+import '../util/extensions'
 import workspace from '../workspace'
+import ListConfiguration, { validKeys } from './configuration'
+import { ListManager } from './manager'
 const logger = require('../util/logger')('list-mappings')
-
-const validKeys = [
-  '<esc>',
-  '<tab>',
-  '<s-tab>',
-  '<bs>',
-  '<right>',
-  '<left>',
-  '<up>',
-  '<down>',
-  '<home>',
-  '<end>',
-  '<cr>',
-  '<FocusGained>',
-  '<ScrollWheelUp>',
-  '<ScrollWheelDown>',
-  '<LeftMouse>',
-  '<LeftDrag>',
-  '<LeftRelease>',
-  '<2-LeftMouse>',
-  '<C-a>',
-  '<C-b>',
-  '<C-c>',
-  '<C-d>',
-  '<C-e>',
-  '<C-f>',
-  '<C-g>',
-  '<C-h>',
-  '<C-i>',
-  '<C-j>',
-  '<C-k>',
-  '<C-l>',
-  '<C-m>',
-  '<C-n>',
-  '<C-o>',
-  '<C-p>',
-  '<C-q>',
-  '<C-r>',
-  '<C-s>',
-  '<C-t>',
-  '<C-u>',
-  '<C-v>',
-  '<C-w>',
-  '<C-x>',
-  '<C-y>',
-  '<C-z>',
-  '<A-a>',
-  '<A-b>',
-  '<A-c>',
-  '<A-d>',
-  '<A-e>',
-  '<A-f>',
-  '<A-g>',
-  '<A-h>',
-  '<A-i>',
-  '<A-j>',
-  '<A-k>',
-  '<A-l>',
-  '<A-m>',
-  '<A-n>',
-  '<A-o>',
-  '<A-p>',
-  '<A-q>',
-  '<A-r>',
-  '<A-s>',
-  '<A-t>',
-  '<A-u>',
-  '<A-v>',
-  '<A-w>',
-  '<A-x>',
-  '<A-y>',
-  '<A-z>',
-]
 
 export default class Mappings {
   private insertMappings: Map<string, () => void | Promise<void>> = new Map()
@@ -86,14 +14,9 @@ export default class Mappings {
 
   constructor(private manager: ListManager,
     private nvim: Neovim,
-    private config: WorkspaceConfiguration) {
-    let nextKey = config.get<string>('nextKeymap', '<C-j>')
-    let previousKey = config.get<string>('previousKeymap', '<C-k>')
+    private config: ListConfiguration) {
     let { prompt } = manager
 
-    this.add('insert', ' ', () => {
-      prompt.insertCharacter(' ')
-    })
     this.add('insert', '<C-k>', () => {
       prompt.removeTail()
     })
@@ -147,10 +70,10 @@ export default class Mappings {
     this.add('insert', '<C-u>', () => {
       prompt.removeAhead()
     })
-    this.add('insert', ['<down>', nextKey], () => {
+    this.add('insert', '<down>', () => {
       return manager.normal('j')
     })
-    this.add('insert', ['<up>', previousKey], () => {
+    this.add('insert', '<up>', () => {
       return manager.normal('k')
     })
     this.add('insert', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
@@ -247,6 +170,16 @@ export default class Mappings {
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
+    let nextKey = this.config.nextKey
+    let previousKey = this.config.previousKey
+    if (key == nextKey) {
+      await this.manager.normal('j')
+      return true
+    }
+    if (key == previousKey) {
+      await this.manager.normal('k')
+      return true
+    }
     let expr = this.userInsertMappings.get(key)
     if (expr) {
       await this.evalExpression(expr, 'insert')

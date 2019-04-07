@@ -2,13 +2,12 @@ import { Neovim } from '@chemzqm/neovim'
 import { Emitter, Event } from 'vscode-languageserver-protocol'
 import { ListMode, Matcher, ListOptions } from '../types'
 import workspace from '../workspace'
+import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-prompt')
 
 export default class Prompt {
-  private indicator: string
   private cusorIndex = 0
   private _input = ''
-  private timer: NodeJS.Timer
   private _matcher: Matcher | ''
   private _mode: ListMode
   private interactive = false
@@ -16,9 +15,7 @@ export default class Prompt {
   private _onDidChangeInput = new Emitter<string>()
   public readonly onDidChangeInput: Event<string> = this._onDidChangeInput.event
 
-  constructor(private nvim: Neovim) {
-    let preferences = workspace.getConfiguration('list')
-    this.indicator = preferences.get<string>('indicator', '>')
+  constructor(private nvim: Neovim, private config: ListConfiguration) {
   }
 
   public get input(): string {
@@ -48,41 +45,23 @@ export default class Prompt {
     this.drawPrompt()
   }
 
-  public start(input?: string, opts?: ListOptions, delay = false): void {
-    if (this.timer) clearTimeout(this.timer)
-    if (input != null) {
-      this._input = input
-      this.cusorIndex = input.length
-    }
+  public start(opts?: ListOptions): void {
     if (opts) {
       this.interactive = opts.interactive
+      this._input = opts.input
+      this.cusorIndex = opts.input.length
       this._mode = opts.mode
       this._matcher = opts.interactive ? '' : opts.matcher
     }
-    let method = workspace.isVim ? 'coc#list#prompt_start' : 'coc#list#start_prompt'
-    this.nvim.call(method, [], true)
-    if (delay) {
-      this.timer = setTimeout(() => {
-        this.timer = null
-        this.drawPrompt()
-      }, 60)
-    } else {
-      this.drawPrompt()
-    }
+    this.nvim.callTimer('coc#list#start_prompt', [], true)
+    this.drawPrompt()
   }
 
   public cancel(): void {
     let { nvim } = this
-    if (this.timer) {
-      clearTimeout(this.timer)
-    }
-    nvim.pauseNotification()
     nvim.command('echo ""', true)
     nvim.command('redraw', true)
     nvim.call('coc#list#stop_prompt', [], true)
-    nvim.resumeNotification(false, true).catch(() => {
-      // noop
-    })
   }
 
   public reset(): void {
@@ -91,8 +70,8 @@ export default class Prompt {
   }
 
   public drawPrompt(): void {
-    if (this.timer) return
-    let { indicator, cusorIndex, interactive, input, _matcher } = this
+    let indicator = this.config.get<string>('indicator', '>')
+    let { cusorIndex, interactive, input, _matcher } = this
     let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
     if (this.mode == 'insert') {
       if (interactive) {

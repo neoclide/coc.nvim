@@ -1,14 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { Emitter, Event, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
 import { ansiparse } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength, upperFirst } from '../util/string'
-import workspace from '../workspace'
 import { ListManager } from './manager'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
@@ -28,10 +26,10 @@ export default class Worker {
   private columns: number
   private taskId: string
   private task: ListTask = null
-  private mruList: string[] = []
   private timer: NodeJS.Timer
   private interval: NodeJS.Timer
   private totalItems: ListItem[] = []
+  private tokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
 
@@ -88,14 +86,15 @@ export default class Worker {
     let id = this.taskId = uuidv1()
     this.loading = true
     let { interactive } = listOptions
-    await this.loadMruList(context.cwd)
-    let items = await list.loadItems(context)
+    let source = this.tokenSource = new CancellationTokenSource()
+    let token = source.token
+    let items = await list.loadItems(context, token)
+    if (token.isCancellationRequested) return
     if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
-        this.recentScore(item)
         return item
       })
       this.loading = false
@@ -161,7 +160,6 @@ export default class Worker {
         if (interactive && this.input != currInput) return
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
-        this.recentScore(item)
         totalItems.push(item)
         if ((!lastTs && totalItems.length == 500)
           || Date.now() - lastTs > 200) {
@@ -173,10 +171,10 @@ export default class Worker {
         }
       })
       await new Promise<void>((resolve, reject) => {
-        task.on('error', async msg => {
+        task.on('error', async (error: any) => {
           if (timer) clearTimeout(timer)
           this.loading = false
-          reject(new Error(msg))
+          reject(error instanceof Error ? error : new Error(error.toString()))
         })
         task.on('end', async () => {
           this.loading = false
@@ -211,6 +209,10 @@ export default class Worker {
   }
 
   public stop(): void {
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+      this.tokenSource = null
+    }
     this.loading = false
     if (this.timer) {
       clearTimeout(this.timer)
@@ -343,17 +345,6 @@ export default class Worker {
     return { spans }
   }
 
-  private async loadMruList(cwd: string): Promise<void> {
-    try {
-      let mru = workspace.createMru('mru')
-      let files = await mru.load()
-      this.mruList = files.filter(s => s.startsWith(cwd))
-    } catch (e) {
-      this.mruList = []
-      // noop
-    }
-  }
-
   // set correct label, add ansi highlights
   private parseListItemAnsi(item: ListItem): void {
     let { label } = item
@@ -380,15 +371,6 @@ export default class Worker {
     }
     item.label = newLabel
     item.ansiHighlights = highlights
-  }
-
-  private recentScore(item: ListItem): void {
-    let { location } = item
-    if (!location || item.recentScore) return
-    let list = this.mruList
-    let len = list.length
-    let idx = list.indexOf(Uri.parse(location.uri).fsPath)
-    item.recentScore = idx == -1 ? -1 : len - idx
   }
 
   private fixLabel(label: string): string {

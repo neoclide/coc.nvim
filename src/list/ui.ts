@@ -1,9 +1,10 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { ListHighlights, ListItem, WorkspaceConfiguration } from '../types'
+import { ListHighlights, ListItem } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
+import ListConfiguration from './configuration'
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -16,7 +17,6 @@ export interface MousePosition {
 }
 
 export default class ListUI {
-
   public window: Window
   private height: number
   private _bufnr = 0
@@ -44,26 +44,10 @@ export default class ListUI {
   public readonly onDidChange: Event<void> = this._onDidChange.event
   public readonly onDidDoubleClick: Event<void> = this._onDoubleClick.event
 
-  constructor(private nvim: Neovim, private config: WorkspaceConfiguration) {
+  constructor(private nvim: Neovim, private config: ListConfiguration) {
     let signText = config.get<string>('selectedSignText', '*')
     nvim.command(`sign define CocSelected text=${signText} texthl=CocSelectedText linehl=CocSelectedLine`, true)
     this.signOffset = config.get<number>('signOffset')
-    nvim.call('coc#list#get_colors').then(map => {
-      for (let key of Object.keys(map)) {
-        let foreground = key[0].toUpperCase() + key.slice(1)
-        let foregroundColor = map[key]
-        for (let key of Object.keys(map)) {
-          let background = key[0].toUpperCase() + key.slice(1)
-          let backgroundColor = map[key]
-          let group = `CocList${foreground}${background}`
-          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
-        }
-        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
-        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
-      }
-    }, _e => {
-      // noop
-    })
 
     events.on('BufUnload', async bufnr => {
       if (bufnr == this.bufnr) {
@@ -108,14 +92,13 @@ export default class ListUI {
   }
 
   public get item(): Promise<ListItem> {
-    let { nvim } = this
-    return nvim.call('line', '.').then(n => {
-      if (n > this.items.length) {
-        logger.error('Invalid line number')
-        return null
-      }
-      this.currIndex = n - 1
+    let { window } = this
+    if (!window) return Promise.resolve(null)
+    return window.cursor.then(cursor => {
+      this.currIndex = cursor[0] - 1
       return this.items[this.currIndex]
+    }, _e => {
+      return null
     })
   }
 
@@ -309,6 +292,21 @@ export default class ListUI {
     let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items[this.index]
     this.items = items.slice(0, limitLines)
+    if (this.hlGroupMap.size == 0) {
+      let map = await nvim.call('coc#list#get_colors')
+      for (let key of Object.keys(map)) {
+        let foreground = key[0].toUpperCase() + key.slice(1)
+        let foregroundColor = map[key]
+        for (let key of Object.keys(map)) {
+          let background = key[0].toUpperCase() + key.slice(1)
+          let backgroundColor = map[key]
+          let group = `CocList${foreground}${background}`
+          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
+        }
+        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
+        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
+      }
+    }
     if (bufnr == 0 && !this.creating) {
       this.creating = true
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
@@ -403,7 +401,7 @@ export default class ListUI {
     return this.items.length
   }
 
-  private get selectedItems(): ListItem[] {
+  public get selectedItems(): ListItem[] {
     let { selected, items } = this
     let res: ListItem[] = []
     for (let i of selected) {

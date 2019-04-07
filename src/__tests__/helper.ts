@@ -85,7 +85,7 @@ export class Helper extends Emitter {
     let mode = await this.nvim.call('mode')
     if (mode !== 'n') {
       await this.nvim.command('stopinsert')
-      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'])
+      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(60)

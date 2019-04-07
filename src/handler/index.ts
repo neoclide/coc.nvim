@@ -568,7 +568,7 @@ export default class Handler {
       this.clearHighlight(document.bufnr)
       return
     }
-    let highlightNamespace = await workspace.createNameSpace('coc-highlight')
+    let highlightNamespace = workspace.createNameSpace('coc-highlight')
     if (this.colors.hasColorAtPostion(document.bufnr, position)) return
     let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
     let newPosition = await workspace.getCursorPosition()

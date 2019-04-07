@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Location } from 'vscode-languageserver-protocol'
+import { Disposable, Location, CancellationToken } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
 import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask } from '../types'
@@ -133,7 +133,7 @@ export default abstract class BasicList implements IList, Disposable {
     await nvim.resumeNotification()
   }
 
-  public abstract loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
+  public abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
 
   public doHighlight(): void {
     // noop

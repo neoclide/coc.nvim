@@ -3,16 +3,18 @@ import debounce from 'debounce'
 import { Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import extensions from '../extensions'
-import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListOptions, Matcher } from '../types'
+import { disposeAll, wait } from '../util'
 import workspace from '../workspace'
+import ListConfiguration from './configuration'
 import History from './history'
 import Mappings from './mappings'
 import Prompt from './prompt'
 import CommandsList from './source/commands'
 import DiagnosticsList from './source/diagnostics'
 import ExtensionList from './source/extensions'
-import LinksList from './source/links'
 import FolderList from './source/folders'
+import LinksList from './source/links'
 import ListsList from './source/lists'
 import LocationList from './source/location'
 import OutlineList from './source/outline'
@@ -22,17 +24,16 @@ import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
 import UI from './ui'
 import Worker from './worker'
-import { wait } from '../util'
 const logger = require('../util/logger')('list-manager')
 
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>']
 
-export class ListManager {
+export class ListManager implements Disposable {
   public prompt: Prompt
   public ui: UI
   public history: History
   public listOptions: ListOptions
-  public config: WorkspaceConfiguration
+  public config: ListConfiguration
   public worker: Worker
   private disposables: Disposable[] = []
   private args: string[] = []
@@ -49,8 +50,8 @@ export class ListManager {
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
-    this.config = workspace.getConfiguration('list')
-    this.prompt = new Prompt(nvim)
+    this.config = new ListConfiguration()
+    this.prompt = new Prompt(nvim, this.config)
     this.history = new History(this)
     this.mappings = new Mappings(this, nvim, this.config)
     this.worker = new Worker(nvim, this)
@@ -75,8 +76,10 @@ export class ListManager {
         this.prompt.start()
         if (isVim) nvim.command(`set t_ve=`, true)
       } else {
+        nvim.pauseNotification()
         this.prompt.cancel()
         if (isVim) nvim.call('coc#list#restore', [], true)
+        await nvim.resumeNotification()
       }
     }, 100), null, this.disposables)
     this.ui.onDidChangeLine(debounce(async () => {
@@ -121,11 +124,6 @@ export class ListManager {
         await this.ui.drawItems(items, this.name, this.listOptions.position, reload)
       }
     })
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('list')) {
-        this.config = workspace.getConfiguration('list')
-      }
-    }, null, this.disposables)
 
     this.registerList(new LinksList(nvim))
     this.registerList(new LocationList(nvim))
@@ -152,19 +150,11 @@ export class ListManager {
       this.reset()
       this.listOptions = options
       this.currList = list
-      if (!list.interactive) this.listOptions.interactive = false
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
-      await this.nvim.command('echo ""')
-      this.prompt.start(this.listOptions.input, options, true)
+      this.prompt.start(options)
       await this.history.load()
-      setTimeout(async () => {
-        let line = await this.nvim.call('coc#util#echo_line') as string
-        if (line.startsWith('[coc.nvim]')) {
-          await this.cancel()
-        }
-      }, 40)
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()
@@ -192,50 +182,6 @@ export class ListManager {
     }
     let items = await this.ui.getItems()
     if (items.length) await this.doItemAction(items, action)
-  }
-
-  private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
-    if (this.executing) return
-    this.executing = true
-    let { nvim, ui } = this
-    let shouldCancel = action.persist !== true && action.name != 'preview'
-    try {
-      if (shouldCancel) await this.cancel()
-      if (action.name == 'preview') {
-        items = items.slice(0, 1)
-      }
-      if (!shouldCancel && !this.isActivated) return
-      if (action.multiple) {
-        await Promise.resolve(action.execute(items, this.context))
-      } else if (action.parallel) {
-        await Promise.all(items.map(item => {
-          return Promise.resolve(action.execute(item, this.context))
-        }))
-      } else {
-        for (let item of items) {
-          await Promise.resolve(action.execute(item, this.context))
-        }
-      }
-      if (!shouldCancel && !this.isActivated) {
-        this.nvim.command('pclose', true)
-        return
-      }
-      if (action.persist || action.name == 'preview') {
-        let { window } = ui
-        if (!window) return
-        let valid = await window.valid
-        if (!valid) return
-        nvim.pauseNotification()
-        nvim.call('win_gotoid', [window.id], true)
-        await this.ui.restoreWindow()
-        nvim.command('redraw', true)
-        await nvim.resumeNotification()
-        if (action.reload) await this.worker.loadItems(true)
-      }
-    } catch (e) {
-      logger.error(e)
-    }
-    this.executing = false
   }
 
   public async previous(): Promise<void> {
@@ -340,13 +286,7 @@ export class ListManager {
     return this.currList
   }
 
-  private get defaultAction(): ListAction {
-    let { currList } = this
-    let { defaultAction } = currList
-    return currList.actions.find(o => o.name == defaultAction)
-  }
-
-  private parseArgs(args: string[]): { list: IList, options: ListOptions, listArgs: string[] } | null {
+  public parseArgs(args: string[]): { list: IList, options: ListOptions, listArgs: string[] } | null {
     let options: string[] = []
     let interactive = false
     let autoPreview = false
@@ -365,12 +305,15 @@ export class ListManager {
           autoPreview = true
         } else if (arg == '--regex' || arg == '-R') {
           matcher = 'regex'
-        } else if (arg == '--strictMatch' || arg == '-S') {
+        } else if (arg == '--strict' || arg == '-S') {
           matcher = 'strict'
         } else if (arg == '--interactive' || arg == '-I') {
           interactive = true
-        } else {
+        } else if (arg == '--ignore-case' || arg == '--top' || arg == '--normal' || arg == '--no-sort') {
           options.push(arg.slice(2))
+        } else {
+          workspace.showMessage(`Invalid option "${arg}" of list`, 'error')
+          return null
         }
       } else if (!name) {
         name = arg
@@ -382,6 +325,10 @@ export class ListManager {
     let list = this.listMap.get(name)
     if (!list) {
       workspace.showMessage(`List ${name} not found`, 'error')
+      return null
+    }
+    if (interactive && !list.interactive) {
+      workspace.showMessage(`Interactive mode of "${name}" not supported`, 'error')
       return null
     }
     return {
@@ -484,7 +431,7 @@ export class ListManager {
       let code = s.codePointAt(0)
       if (code == 65533) return
       // exclude control characer
-      if (code < 33 || code >= 127 && code <= 159) return
+      if (code < 32 || code >= 127 && code <= 159) return
       this.prompt.insertCharacter(s)
     }
   }
@@ -500,7 +447,7 @@ export class ListManager {
     if (!done) await this.feedkeys(inserted)
   }
 
-  private onMouseEvent(key): Promise<void> {
+  public onMouseEvent(key): Promise<void> {
     switch (key) {
       case '<LeftMouse>':
         return this.ui.onMouse('mouseDown')
@@ -674,6 +621,11 @@ export class ListManager {
     this.ui.reset()
   }
 
+  public dispose(): void {
+    this.config.dispose()
+    disposeAll(this.disposables)
+  }
+
   private async getCharMap(): Promise<Map<string, string>> {
     if (this.charMap) return this.charMap
     this.charMap = new Map()
@@ -682,6 +634,56 @@ export class ListManager {
       this.charMap.set(chars[key], key)
     })
     return this.charMap
+  }
+
+  private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
+    if (this.executing) return
+    this.executing = true
+    let { nvim, ui } = this
+    let shouldCancel = action.persist !== true && action.name != 'preview'
+    try {
+      if (shouldCancel) await this.cancel()
+      if (action.name == 'preview') {
+        items = items.slice(0, 1)
+      }
+      if (!shouldCancel && !this.isActivated) return
+      if (action.multiple) {
+        await Promise.resolve(action.execute(items, this.context))
+      } else if (action.parallel) {
+        await Promise.all(items.map(item => {
+          return Promise.resolve(action.execute(item, this.context))
+        }))
+      } else {
+        for (let item of items) {
+          await Promise.resolve(action.execute(item, this.context))
+        }
+      }
+      if (!shouldCancel && !this.isActivated) {
+        this.nvim.command('pclose', true)
+        return
+      }
+      if (action.persist || action.name == 'preview') {
+        let { window } = ui
+        if (!window) return
+        let valid = await window.valid
+        if (!valid) return
+        nvim.pauseNotification()
+        nvim.call('win_gotoid', [window.id], true)
+        await this.ui.restoreWindow()
+        nvim.command('redraw', true)
+        await nvim.resumeNotification()
+        if (action.reload) await this.worker.loadItems(true)
+      }
+    } catch (e) {
+      logger.error(e)
+    }
+    this.executing = false
+  }
+
+  private get defaultAction(): ListAction {
+    let { currList } = this
+    let { defaultAction } = currList
+    return currList.actions.find(o => o.name == defaultAction)
   }
 }
 

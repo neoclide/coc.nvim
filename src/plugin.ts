@@ -133,13 +133,13 @@ export default class Plugin extends EventEmitter {
       diagnosticManager.init()
       listManager.init(nvim)
       nvim.setVar('coc_workspace_initialized', 1, true)
+      nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
       completion.init(nvim)
       sources.init()
       this.handler = new Handler(nvim)
       services.init()
       extensions.activateExtensions()
-      nvim.setVar('coc_process_pid', process.pid, true)
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
       this.ready = true
@@ -406,6 +406,7 @@ export default class Plugin extends EventEmitter {
 
   public async dispose(): Promise<void> {
     this.removeAllListeners()
+    listManager.dispose()
     workspace.dispose()
     sources.dispose()
     await services.stopAll()

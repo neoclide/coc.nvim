@@ -455,7 +455,6 @@ export interface VimCompleteItem {
   isSnippet?: boolean
   source?: string
   matchScore?: number
-  strictMatch?: number
   priority?: number
   preselect?: boolean
   recentScore?: number
@@ -710,7 +709,7 @@ export interface ListAction {
 export interface ListTask {
   on(event: 'data', callback: (item: ListItem) => void): void
   on(event: 'end', callback: () => void): void
-  on(event: 'error', callback: (msg: string) => void): void
+  on(event: 'error', callback: (msg: string | Error) => void): void
   dispose(): void
 }
 
@@ -729,7 +728,7 @@ export interface IList {
   searchHighlight?: boolean
   defaultAction: string
   actions: ListAction[]
-  loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
+  loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
   doHighlight(): void
   dispose(): void
 }

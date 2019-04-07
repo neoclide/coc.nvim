@@ -34,7 +34,7 @@ export default class CodeLensManager {
     let { nvim } = this
     this.setConfiguration()
     if (!this.enabled) return
-    this.srcId = await workspace.createNameSpace('coc-codelens')
+    this.srcId = workspace.createNameSpace('coc-codelens')
     this.srcId = this.srcId || 1080
     services.on('ready', async id => {
       let service = services.getService(id)

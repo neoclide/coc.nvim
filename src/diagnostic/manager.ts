@@ -49,8 +49,8 @@ export class DiagnosticManager implements Disposable {
   private insertMode = false
   private timer: NodeJS.Timer
 
-  public async init(): Promise<void> {
-    await this.setConfiguration()
+  public init(): void {
+    this.setConfiguration()
     let { nvim } = workspace
     this.insertMode = workspace.env.mode.startsWith('i')
     let { maxWindowHeight, joinMessageLines } = this.config
@@ -123,7 +123,7 @@ export class DiagnosticManager implements Disposable {
     }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {
-      await this.setConfiguration(e)
+      this.setConfiguration(e)
     }, null, this.disposables)
 
     let { errorSign, warningSign, infoSign, hintSign } = this.config
@@ -435,7 +435,7 @@ export class DiagnosticManager implements Disposable {
     return workspace.nvim
   }
 
-  private async setConfiguration(event?: ConfigurationChangeEvent): Promise<void> {
+  private setConfiguration(event?: ConfigurationChangeEvent): void {
     if (event && !event.affectsConfiguration('diagnostic')) return
     let preferences = workspace.getConfiguration('coc.preferences.diagnostic')
     let config = workspace.getConfiguration('diagnostic')
@@ -443,8 +443,8 @@ export class DiagnosticManager implements Disposable {
       return preferences.get<T>(key, config.get<T>(key, defaultValue))
     }
     this.config = {
-      srcId: await workspace.createNameSpace('coc-diagnostic') || 1000,
-      virtualTextSrcId: await workspace.createNameSpace('diagnostic-virtualText'),
+      srcId: workspace.createNameSpace('coc-diagnostic') || 1000,
+      virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
       enableSign: getConfig<boolean>('enableSign', true),
       maxWindowHeight: getConfig<number>('maxWindowHeight', 8),

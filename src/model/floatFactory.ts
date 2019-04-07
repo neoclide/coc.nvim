@@ -164,7 +164,7 @@ export default class FloatFactory implements Disposable {
     }
     if (!floatBuffer) {
       let buf = await this.createBuffer()
-      let srcId = await workspace.createNameSpace('coc-float')
+      let srcId = workspace.createNameSpace('coc-float')
       this.buffer = buf
       floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, srcId, this.joinLines)
     }

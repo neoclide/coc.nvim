@@ -31,11 +31,7 @@ export default class Colors {
     let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    workspace.createNameSpace('coc-colors').then(srcId => {
-      this.srcId = srcId
-    }, _e => {
-      // noop
-    })
+    this.srcId = workspace.createNameSpace('coc-colors')
     let timer = setTimeout(async () => {
       // wait for extensions
       await this._highlightCurrent()

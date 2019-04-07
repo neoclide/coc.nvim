@@ -471,7 +471,7 @@ export class Completion implements Disposable {
       }
       if (!this.previewBuffer) await this.createPreviewBuffer()
       if (!this.floating) {
-        let srcId = await workspace.createNameSpace('coc-pum-float')
+        let srcId = workspace.createNameSpace('coc-pum-float')
         let chars = new Chars(this.config.previewIsKeyword)
         let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
         this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)

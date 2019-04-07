@@ -1192,7 +1192,7 @@ Command options 					*coc-list-options*
 --input={input}
 	设置列表的初始输入。
 
---strictMatch
+--strict
 -S
 	使用精确匹配，而不是默认的模糊匹配。
 
@@ -1282,7 +1282,6 @@ LIST MAPPINGS 					*coc-list-mappings*
 <Backspace> - 移除上一个字符。
 <C-h>       - 移除上一个字符。
 <C-w>       - 移除上一个单词。
-<C-k>       - 移除光标后全部输入。
 <C-u>       - 移除光标之前全部输入。
 <C-n>       - 切换到下一个历史匹配输入。
 <C-p>       - 切换到上一个历史匹配输入。

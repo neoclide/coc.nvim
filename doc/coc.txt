@@ -1171,6 +1171,7 @@ Following features are supported:
 * Mouse support.
 * Select action by <tab>.
 * Multiple selection by <space> on normal mode.
+* Select lines by visual selection.
 
 ------------------------------------------------------------------------------
 
@@ -1210,18 +1211,19 @@ LIST COMMAND 					*coc-list-command*
 Command options 					*coc-list-options*
 
 --top
-	Show list in top window.
+	Show list as top window.
 
 --normal
 	Start list in normal mode, recommended for short list.
 
 --no-sort
-	Disable sort by fuzzy score, useful for mru list.
+	Disable sort made by fuzzy score or mru, use it when it's already
+	sorted.
 
 --input={input}
 	Specify input on session start.
 
---strictMatch
+--strict
 -S
 	Use strict match instead of fuzzy match.
 
@@ -1267,11 +1269,31 @@ The following settings are available:
 
 - `"list.maxHeight"`: Maxmium height of list window.
 
-	default: 12
+	default: `12`
+
+- `"list.signOffset"`:Sign offset of list, should be different from other plugins.
+
+	default: `900`
 
 - `"list.autoResize"`: Enable window auto resize on buffer change.
 
 	default: `true`
+
+- `"list.selectedSignText"`: Sign text for selected lines.
+
+	default: `*`
+
+- `"list.limitLines"`: Limit lines for list buffer. 
+
+	default: `1000`
+
+- `"list.maxPreviewHeight"`: Max height for preview window of list.
+
+	default: `12`
+
+- `"list.previewHighlightGroup"`: Highlight group used for highlight the range in preview window.
+
+	default: `Search`
 
 - `"list.nextKeymap"`: Key used for select next line on insert mode.
 
@@ -1308,7 +1330,7 @@ Default mappings on insert mode:
 <Left>      - move cursor left.
 <Right>     - move cursor right.
 <End>       - move cursor to end of prompt.
-<C-e>       - same as <End >.
+<C-e>       - same as <End>.
 <Home>      - move cursor to start of prompt.
 <C-a>       - same as <Home>.
 <C-f>       - scroll window forward.
@@ -1316,7 +1338,6 @@ Default mappings on insert mode:
 <Backspace> - remove previous characer of cursor.
 <C-h>       - remove previous characer of cursor.
 <C-w>       - remove previous word of cursor.
-<C-k>       - remove characers after cursor.
 <C-u>       - remove characers before cursor.
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.

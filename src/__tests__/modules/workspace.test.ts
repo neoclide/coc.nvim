@@ -293,6 +293,7 @@ describe('workspace methods', () => {
 
   it('should echo lines', async () => {
     await workspace.echoLines(['a', 'b'])
+    await helper.wait(30)
     let ch = await nvim.call('screenchar', [79, 1])
     let s = String.fromCharCode(ch)
     expect(s).toBe('a')
