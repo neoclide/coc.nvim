@@ -23,18 +23,19 @@ It's a completion framework and language server client which supports [extension
 
 <img alt="Gif" src="https://user-images.githubusercontent.com/251450/55285193-400a9000-53b9-11e9-8cff-ffe4983c5947.gif" width="60%" />
 
-_True snippet and additional text edit support_
+_True snippet and additional text editing support_
 
 Floating window requires master of neovim to work, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
 
-Checkout [doc/coc.txt](doc/coc.txt) for vim interface.
+Check out [doc/coc.txt](doc/coc.txt) for vim interface.
 
 ## Why?
 
 - 🚀 **Fast**: [instant increment completion](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources#highlights-of-coc-completion), increment buffer sync using buffer update events.
 - 💎 **Reliable**: typed language, tested with CI.
 - 🌟 **Featured**: [full LSP support](https://github.com/neoclide/coc.nvim/wiki/Language-servers#supported-features)
-- ❤️ **Flexible**: [configured as VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions works like VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+- ❤️ **Flexible**: [configured like 
+- VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file), [extensions work like in VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
 
 <details><summary>Completion experience</summary>
 <p>
@@ -45,16 +46,16 @@ widely used [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
 Below are the reasons that led coc.nvim to build its own engine:
 
 - **Full LSP completion support**, especially snippet and `additionalTextEdit`
-  feature, you'll understand why it's awesome when you experience it with
+  feature, you'll understand why it's awesome when you experience it with a
   coc extension like `coc-tsserver`.
 - **Asynchronous and parallel completion request**, unless using vim sources,
   your vim will never blocked.
-- **Does completion resolve on completion item change**. The detail from complete
-  item is echoed after selected, this feature requires the `CompleteChanged` autocmd
-  to work.
-- **Incomplete request and cancel request support**, only incomplete complete
-  request would be triggered on filter complete items and cancellation request is
-  send to servers when necessary.
+- **Does completion resolving on completion item change**. The details from 
+  completion items is echoed after being selected, this feature requires the 
+  `CompleteChanged` autocmd to work.
+- **Incomplete request and cancel request support**, only incomplete completion
+  requests would be triggered on filtering completion items and cancellation 
+  request is sent to servers only when necessary.
 - **Start completion without timer**. The completion will start after you type the
   first letter of a word by default and is filtered with new input after the completion
   has finished. Other completion engines use a timer to trigger completion so you
@@ -156,7 +157,7 @@ For other completion sources, check out:
 - [coc-neoinclude](https://github.com/jsfaint/coc-neoinclude): neoinclude
   integration.
 
-Or you can [create custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
+Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
 ## Extensions
 
@@ -379,4 +380,4 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 - 中文用户请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 讨论。
 
-- If something not working, [create a issue](https://github.com/neoclide/coc.nvim/issues/new).
+- If something is not working, [create an issue](https://github.com/neoclide/coc.nvim/issues/new).
