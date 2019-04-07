@@ -19,6 +19,8 @@ import { createExtension, ExtensionExport } from './util/factory'
 import { readFile, statAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
+import { Neovim } from '@chemzqm/neovim'
+import './util/extensions'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
@@ -44,23 +46,24 @@ function loadJson(file: string): any {
 
 export class Extensions {
   private list: ExtensionItem[] = []
-  private interval: string
   private disabled: Set<string> = new Set()
   private db: DB
   private memos: Memos
   private root: string
-  private _onReady = new Emitter<void>()
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
-  private _ready = false
-  public readonly onReady: Event<void> = this._onReady.event
+  private activated = false
+  public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
   public readonly onDidActiveExtension: Event<Extension<API>> = this._onDidActiveExtension.event
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
-  public async init(): Promise<void> {
-    this.root = await workspace.nvim.call('coc#util#extension_root')
+  public async init(nvim: Neovim): Promise<void> {
+    this.root = await nvim.call('coc#util#extension_root')
+    if (!fs.existsSync(this.root)) {
+      await nvim.call('coc#util#init_extension_root', this.root)
+    }
     let filepath = path.join(this.root, 'db.json')
     let db = this.db = new DB(filepath)
     let data = loadJson(db.filepath) || {}
@@ -71,13 +74,7 @@ export class Extensions {
       }
     }
     if (process.env.COC_NO_PLUGINS) return
-    if (global.hasOwnProperty('__TEST__')) {
-      this._onReady.fire()
-      return
-    }
-    if (!fs.existsSync(this.root)) {
-      await workspace.nvim.call('coc#util#init_extension_root', this.root)
-    }
+    if (global.hasOwnProperty('__TEST__')) return
     let stats = await this.globalExtensionStats()
     let names = stats.map(info => info.id)
     let localStats = await this.localExtensionStats(names)
@@ -87,27 +84,7 @@ export class Extensions {
       return this.loadExtension(stat.root, stat.isLocal).catch(e => {
         workspace.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error')
       })
-    })).then(() => {
-      this._onReady.fire()
-      this._ready = true
-      let config = workspace.getConfiguration('coc.preferences')
-      let interval = this.interval = config.get<string>('extensionUpdateCheck', 'daily')
-      if (interval == 'never') return
-      this.updateExtensions(stats).catch(e => {
-        workspace.showMessage(`Error on update extensions: ${e.message}`, 'error')
-      })
-    })
-    workspace.ready.then(() => {
-      if (workspace.isVim) {
-        this.updateNodeRpc().catch(e => {
-          workspace.showMessage(`Error on update vim-node-rpc: ${e.message}`, 'error')
-        })
-      }
-      return this.addExtensions()
-    }).catch(_e => {
-      // noop
-    })
-
+    }))
     // watch for new local extension
     workspace.watchOption('runtimepath', async (oldValue, newValue) => {
       let result = fastDiff(oldValue, newValue)
@@ -122,22 +99,28 @@ export class Extensions {
     })
   }
 
-  public get ready(): Promise<void> {
-    if (this._ready) return Promise.resolve()
-    return new Promise<void>(resolve => {
-      let disposable = this.onReady(() => {
-        disposable.dispose()
-        resolve()
-      })
-    })
+  public activateExtensions(): void {
+    this.activated = true
+    for (let item of this.list) {
+      let { id, packageJSON } = item.extension
+      this.setupActiveEvents(id, packageJSON)
+    }
+    // update vim-node-rpc
+    if (workspace.isVim) this.updateNodeRpc().logError()
+    // check extensions need watch & install
+    this.checkExtensions().logError()
+    let config = workspace.getConfiguration('coc.preferences')
+    let interval = config.get<string>('extensionUpdateCheck', 'daily')
+    if (interval != 'never') this.updateExtensions(interval).logError()
   }
 
-  private async updateExtensions(stats: ExtensionInfo[]): Promise<void> {
+  private async updateExtensions(interval: string): Promise<void> {
     let now = new Date()
-    let { interval, db } = this
+    let { db } = this
     let day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (interval == 'daily' ? 0 : 7))
     let ts = await db.fetch('lastUpdate')
     if (ts && Number(ts) > day.getTime()) return
+    let stats = await this.globalExtensionStats()
     await db.push('lastUpdate', Date.now())
     let versionInfo: { [index: string]: string } = {}
     stats = stats.filter(o => !o.exotic)
@@ -208,7 +191,7 @@ export class Extensions {
     logger.info(`Upgrade vim-node-rpc succeed`)
   }
 
-  public async addExtensions(): Promise<void> {
+  private async checkExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       this.installExtensions(globalExtensions)
@@ -502,17 +485,13 @@ export class Extensions {
     }
     let { extension } = item
     if (extension.isActive) return
-    this.ready.then(() => {
-      extension.activate().then(() => {
-        if (extension.isActive) {
-          this._onDidActiveExtension.fire(extension)
-        }
-      }, e => {
-        workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
-        logger.error(`Error on activate extension ${extension.id}:`, e)
-      })
-    }, _e => {
-      // noop
+    extension.activate().then(() => {
+      if (extension.isActive) {
+        this._onDidActiveExtension.fire(extension)
+      }
+    }, e => {
+      workspace.showMessage(`Error on activate ${extension.id}: ${e.message}`, 'error')
+      logger.error(`Error on activate extension ${extension.id}:`, e)
     })
   }
 
@@ -569,30 +548,37 @@ export class Extensions {
     let exports = null
     let filename = path.join(root, packageJSON.main || 'index.js')
     let ext: ExtensionExport
-    let context: ExtensionContext = {
-      subscriptions: [],
-      extensionPath: root,
-      globalState: this.memos.createMemento(`${id}|global`),
-      workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
-      asAbsolutePath: relativePath => {
-        return path.join(root, relativePath)
-      },
-      storagePath: path.join(this.root, `${id}-data`),
-      logger: createLogger(id)
-    }
-
+    let subscriptions: Disposable[] = []
     let extension: any = {
       activate: async (): Promise<API> => {
         if (isActive) return
+        let context: ExtensionContext = {
+          subscriptions,
+          extensionPath: root,
+          globalState: this.memos.createMemento(`${id}|global`),
+          workspaceState: this.memos.createMemento(`${id}|${workspace.rootPath}`),
+          asAbsolutePath: relativePath => {
+            return path.join(root, relativePath)
+          },
+          storagePath: path.join(this.root, `${id}-data`),
+          logger: createLogger(id)
+        }
         isActive = true
-        ext = ext || createExtension(id, filename)
-        if (!ext) return
+        if (!ext) {
+          try {
+            ext = createExtension(id, filename)
+          } catch (e) {
+            workspace.showMessage(`Error on load extension ${id} from ${filename}: ${e}`, 'error')
+            logger.error(e)
+            return
+          }
+        }
         try {
           exports = await Promise.resolve(ext.activate(context))
         } catch (e) {
           isActive = false
+          workspace.showMessage(`Error on active extension ${id}: ${e}`, 'error')
           logger.error(e)
-          workspace.showMessage(`Error on active extension ${id}: ${e.message}`, 'error')
         }
         return exports as API
       }
@@ -627,8 +613,8 @@ export class Extensions {
             logger.error(`Error on ${id} deactivate: `, e.message)
           })
         }
-        disposeAll(context.subscriptions)
-        context.subscriptions = []
+        disposeAll(subscriptions)
+        subscriptions = []
       }
     })
     let { contributes } = packageJSON
@@ -650,11 +636,9 @@ export class Extensions {
       }
     }
     this._onDidLoadExtension.fire(extension)
-    workspace.ready.then(() => {
+    if (this.activated) {
       this.setupActiveEvents(id, packageJSON)
-    }).catch(_e => {
-      // noop
-    })
+    }
     return id
   }
 
