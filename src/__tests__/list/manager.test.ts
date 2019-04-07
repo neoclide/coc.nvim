@@ -123,9 +123,12 @@ describe('list options', () => {
 
   it('should respect nosort option', async () => {
     await manager.start(['--ignore-case', '--no-sort', 'location'])
-    expect(manager.isActivated).toBe(true)
-    await nvim.eval('feedkeys("oo", "in")')
     await helper.wait(100)
+    expect(manager.isActivated).toBe(true)
+    await nvim.input('o')
+    await helper.wait(30)
+    await nvim.input('o')
+    await helper.wait(200)
     let buf = await nvim.buffer
     let lines = await buf.lines
     expect(lines.length).toBe(2)
@@ -135,9 +138,10 @@ describe('list options', () => {
 
   it('should respect ignorecase option', async () => {
     await manager.start(['--ignore-case', '--strict', 'location'])
-    expect(manager.isActivated).toBe(true)
-    await nvim.eval('feedkeys("b", "in")')
     await helper.wait(100)
+    expect(manager.isActivated).toBe(true)
+    await nvim.input('b')
+    await helper.wait(200)
     let n = manager.ui.length
     expect(n).toBe(1)
     let line = await nvim.line
