@@ -372,7 +372,6 @@ describe('completion#TextChangedP', () => {
     disposable.dispose()
   })
 
-
   it('should do resolve for complete item', async () => {
     let source: ISource = {
       priority: 0,
