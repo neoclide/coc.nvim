@@ -420,7 +420,7 @@ export class LanguageClient extends BaseLanguageClient {
         command.command = command.command.replace(/^~/, os.homedir())
       }
 
-      for (var i = 0, len = command_args_ro.length; i < len; i++) {
+      for (let i = 0, len = command_args_ro.length; i < len; i++) {
           args[i] = command_args_ro[i].replace(/^~/, os.homedir())
       }
 
