@@ -722,7 +722,6 @@ export default class Handler {
   public async showSignatureHelp(): Promise<void> {
     if (this.signatureTokenSource) {
       this.signatureTokenSource.cancel()
-      this.signatureTokenSource.dispose()
       this.signatureTokenSource = null
     }
     let document = workspace.getDocument(workspace.bufnr)
