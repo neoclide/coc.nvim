@@ -214,6 +214,15 @@
     }
   },
   "properties": {
+    "http.proxy": {
+      "type": "string",
+      "default": "",
+      "description": "http proxy used for json server"
+    },
+    "http.proxyStrictSSL": {
+      "type": "boolean",
+      "default": true
+    },
     "suggest.maxPreviewWidth": {
       "type": "number",
       "default": 50,
@@ -527,6 +536,66 @@
         "type": "string"
       }
     },
+    "list.indicator": {
+      "type": "string",
+      "default": ">",
+      "description": "The characer used as first characer in prompt line"
+    },
+    "list.maxHeight": {
+      "type": "number",
+      "default": 10,
+      "description": "Maxmium height of list window."
+    },
+    "list.signOffset": {
+      "type": "number",
+      "default": 900,
+      "description": "Sign offset of list, should be different from other plugins."
+    },
+    "list.selectedSignText": {
+      "type": "string",
+      "default": "*",
+      "description": "Sign text for selected lines."
+    },
+    "list.autoResize": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto resize feature."
+    },
+    "list.limitLines": {
+      "type": "number",
+      "default": 1000,
+      "description": "Limit lines for list buffer."
+    },
+    "list.maxPreviewHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height for preview window of list."
+    },
+    "list.previewHighlightGroup": {
+      "type": "string",
+      "default": "Search",
+      "description": "Highlight group used for highlight the range in preview window."
+    },
+    "list.nextKeymap": {
+      "type": "string",
+      "default": "<C-j>",
+      "description": "Key used for select next line on insert mode."
+    },
+    "list.previousKeymap": {
+      "type": "string",
+      "default": "<C-k>",
+      "description": "Key used for select previous line on insert mode."
+    },
+    "list.normalMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on normal mode."
+    },
+    "list.insertMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on insert mode."
+    },
     "coc.preferences.useQuickfixForLocations": {
       "type": "boolean",
       "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
@@ -710,75 +779,6 @@
       "items": {
         "type": "string"
       }
-    },
-    "list.indicator": {
-      "type": "string",
-      "default": ">",
-      "description": "The characer used as first characer in prompt line"
-    },
-    "list.maxHeight": {
-      "type": "number",
-      "default": 10,
-      "description": "Maxmium height of list window."
-    },
-    "list.signOffset": {
-      "type": "number",
-      "default": 900,
-      "description": "Sign offset of list, should be different from other plugins."
-    },
-    "list.selectedSignText": {
-      "type": "string",
-      "default": "*",
-      "description": "Sign text for selected lines."
-    },
-    "list.autoResize": {
-      "type": "boolean",
-      "default": true,
-      "description": "Enable auto resize feature."
-    },
-    "list.limitLines": {
-      "type": "number",
-      "default": 1000,
-      "description": "Limit lines for list buffer."
-    },
-    "list.maxPreviewHeight": {
-      "type": "number",
-      "default": 12,
-      "description": "Max height for preview window of list."
-    },
-    "list.previewHighlightGroup": {
-      "type": "string",
-      "default": "Search",
-      "description": "Highlight group used for highlight the range in preview window."
-    },
-    "list.nextKeymap": {
-      "type": "string",
-      "default": "<C-j>",
-      "description": "Key used for select next line on insert mode."
-    },
-    "list.previousKeymap": {
-      "type": "string",
-      "default": "<C-k>",
-      "description": "Key used for select previous line on insert mode."
-    },
-    "list.normalMappings": {
-      "type": "object",
-      "default": {},
-      "description": "Custom keymappings on normal mode."
-    },
-    "list.insertMappings": {
-      "type": "object",
-      "default": {},
-      "description": "Custom keymappings on insert mode."
-    },
-    "http.proxy": {
-      "type": "string",
-      "default": "",
-      "description": "http proxy used for json server"
-    },
-    "http.proxyStrictSSL": {
-      "type": "boolean",
-      "default": true
     },
     "languageserver": {
       "type": "object",
