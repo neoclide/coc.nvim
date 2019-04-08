@@ -187,7 +187,7 @@ describe('completion#startCompletion', () => {
     await nvim.input('a')
     await helper.wait(10)
     await nvim.input(',')
-    await helper.wait(100)
+    await helper.wait(300)
     sources.removeSource(source)
     expect(lastOption.triggerForInComplete).toBeFalsy()
     await nvim.input('<esc>')
@@ -357,6 +357,19 @@ describe('completion#CompleteDone', () => {
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('football football')
+  })
+
+  it('should hide kind and menu when configured', async () => {
+    helper.updateConfiguration('suggest.disableKind', true)
+    helper.updateConfiguration('suggest.disableMenu', true)
+    await nvim.setLine('fball football')
+    await nvim.input('of')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items[0].kind).toBeUndefined()
+    expect(items[0].menu).toBeUndefined()
+    helper.updateConfiguration('suggest.disableKind', false)
+    helper.updateConfiguration('suggest.disableMenu', false)
   })
 })
 

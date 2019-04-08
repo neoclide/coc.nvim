@@ -131,6 +131,8 @@ export class Completion implements Disposable {
       autoTrigger,
       keepCompleteopt,
       acceptSuggestionOnCommitCharacter,
+      disableKind: getConfig<boolean>('disableKind', false),
+      disableMenu: getConfig<boolean>('disableMenu', false),
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
@@ -218,9 +220,16 @@ export class Completion implements Disposable {
     if (this.config.numberSelect) {
       nvim.call('coc#_map', [], true)
     }
+    let validKeys = completeItemKeys.slice()
+    if (this.config.disableKind) {
+      validKeys = validKeys.filter(s => s != 'kind')
+    }
+    if (this.config.disableMenu) {
+      validKeys = validKeys.filter(s => s != 'menu')
+    }
     let vimItems = items.map(item => {
       let obj = { word: item.word, equal: 1 }
-      for (let key of completeItemKeys) {
+      for (let key of validKeys) {
         if (item.hasOwnProperty(key)) {
           obj[key] = item[key]
         }

@@ -265,6 +265,16 @@
       "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
       "default": false
     },
+    "suggest.disableKind": {
+      "type": "boolean",
+      "description": "Remove kind field from vim complete item.",
+      "default": false
+    },
+    "suggest.disableMenu": {
+      "type": "boolean",
+      "description": "Remove menu field from vim complete item.",
+      "default": false
+    },
     "suggest.snippetIndicator": {
       "type": "string",
       "default": "~",
