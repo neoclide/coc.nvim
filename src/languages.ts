@@ -683,7 +683,8 @@ class Languages {
     if (!textEdits || textEdits.length == 0) return
     let document = workspace.getDocument(bufnr)
     if (!document) return
-    if (workspace.isVim) await wait(100)
+    await wait(workspace.isVim ? 100 : 10)
+    // how to move cursor after edit
     let changed = { line: 0, character: 0 }
     let pos = await workspace.getCursorPosition()
     if (!snippet) {

@@ -790,6 +790,14 @@
         "type": "string"
       }
     },
+    "list.source.outline.ctagsFilestypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should use ctags for outline instead of language server.",
+      "items": {
+        "type": "string"
+      }
+    },
     "languageserver": {
       "type": "object",
       "default": {},
