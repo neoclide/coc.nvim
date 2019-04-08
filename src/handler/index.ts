@@ -1,4 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
+import binarySearch from 'binary-search'
 import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextEdit, SelectionRange } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import commandManager from '../commands'
@@ -62,6 +63,7 @@ interface Preferences {
   hoverTarget: string
   previewAutoClose: boolean
   bracketEnterImprove: boolean
+  currentFunctionSymbolAutoUpdate: boolean
 }
 
 export default class Handler {
@@ -177,6 +179,11 @@ export default class Handler {
         nvim.command('pclose', true)
       }
     }, 100), null, this.disposables)
+    if (this.preferences.currentFunctionSymbolAutoUpdate) {
+      events.on('CursorHold', async () => {
+        await this.getCurrentFunctionSymbol()
+      }, null, this.disposables)
+    }
 
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
@@ -193,6 +200,47 @@ export default class Handler {
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
+  }
+
+  public async getCurrentFunctionSymbol(): Promise<string> {
+    let { position } = await workspace.getCurrentState()
+    const buffer = await this.nvim.buffer
+    let symbols = await this.getDocumentSymbols()
+
+    if (!symbols || symbols.length === 0) {
+        buffer.setVar('coc_current_function', '', true)
+        return ''
+    }
+    symbols = symbols.filter(s => [
+      'Class',
+      'Method',
+      'Function',
+      'Interface',
+      'Enum',
+      'Constructor',
+    ].some(k => s.kind === k))
+
+    // If the current line is the same as the range.start of a symbol,
+    // `binarySearch` will return the index of that symbol is the array.
+    //
+    // If the current line number does not match the range.start of a symbol,
+    // `binarySearch` will return a negative index, which is 2 indices offset to the closest symbol.
+    let symbolPosition = binarySearch(symbols, position.line + 1, (e, n) => e.lnum - n)
+    if (symbolPosition < 0) {
+        symbolPosition *= -1
+        symbolPosition -= 2
+    }
+
+    const currentFunctionName = (() => {
+      const sym = symbols[symbolPosition]
+      if (!sym || (position.line > sym.range.end.line)) {
+        return ''
+      } else {
+          return sym.text
+      }
+    })()
+    buffer.setVar('coc_current_function', currentFunctionName, true)
+    return currentFunctionName
   }
 
   public async onHover(): Promise<void> {
@@ -264,22 +312,14 @@ export default class Handler {
     let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols) return null
     if (symbols.length == 0) return []
-    let isSymbols = !symbols[0].hasOwnProperty('location')
     let level = 0
     let res: SymbolInfo[] = []
     let pre = null
-    if (isSymbols) {
-      (symbols as DocumentSymbol[]).sort(sortSymbols)
-      for (let sym of symbols) {
-        addDoucmentSymbol(res, sym as DocumentSymbol, level)
-      }
+    if (isDocumentSymbols(symbols)) {
+      symbols.sort(sortDocumentSymbols)
+      symbols.forEach(s => addDoucmentSymbol(res, s, level))
     } else {
-      (symbols as SymbolInformation[]).sort((a, b) => {
-        let sa = a.location.range.start
-        let sb = b.location.range.start
-        let d = sa.line - sb.line
-        return d == 0 ? sa.character - sb.character : d
-      })
+      symbols.sort(sortSymbolInformations)
       for (let sym of symbols) {
         let { name, kind, location, containerName } = sym as SymbolInformation
         if (!containerName || !pre) {
@@ -976,6 +1016,7 @@ export default class Handler {
       formatOnType: config.get<boolean>('formatOnType', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
+      currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),
     }
   }
 
@@ -1009,7 +1050,7 @@ function getPreviousContainer(containerName: string, symbols: SymbolInfo[]): Sym
   return null
 }
 
-function sortSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
+function sortDocumentSymbols(a: DocumentSymbol, b: DocumentSymbol): number {
   let ra = a.selectionRange
   let rb = b.selectionRange
   if (ra.start.line < rb.start.line) {
@@ -1034,9 +1075,25 @@ function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number
     selectionRange
   })
   if (children && children.length) {
-    children.sort(sortSymbols)
+    children.sort(sortDocumentSymbols)
     for (let sym of children) {
       addDoucmentSymbol(res, sym, level + 1)
     }
   }
+}
+
+function sortSymbolInformations(a: SymbolInformation, b: SymbolInformation): number {
+    let sa = a.location.range.start
+    let sb = b.location.range.start
+    let d = sa.line - sb.line
+    return d == 0 ? sa.character - sb.character : d
+
+}
+
+function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
+  return a && !a.hasOwnProperty('location')
+}
+
+function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {
+  return isDocumentSymbol(a[0])
 }

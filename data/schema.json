@@ -647,6 +647,11 @@
       "description": "Auto close preview window on cursor move.",
       "default": true
     },
+    "coc.preferences.currentFunctionSymbolAutoUpdate": {
+      "type": "boolean",
+      "description": "Automatically update the value of b:coc_current_function on CursorHold event",
+      "default": false
+    },
     "coc.preferences.formatOnSaveFiletypes": {
       "type": "array",
       "default": [],
