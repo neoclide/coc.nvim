@@ -52990,7 +52990,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "9cfb6ee094" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "615c4b2d9d" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -58775,8 +58775,8 @@ class Languages {
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return;
-        if (workspace_1.default.isVim)
-            await util_1.wait(100);
+        await util_1.wait(workspace_1.default.isVim ? 100 : 10);
+        // how to move cursor after edit
         let changed = { line: 0, character: 0 };
         let pos = await workspace_1.default.getCursorPosition();
         if (!snippet) {
@@ -68719,12 +68719,9 @@ class BasicList {
         let config = workspace_1.default.getConfiguration('list');
         this.hlGroup = config.get('previewHighlightGroup', 'Search');
         this.previewHeight = config.get('maxPreviewHeight', 12);
-        workspace_1.default.onDidChangeConfiguration(e => {
-            if (e.affectsConfiguration('list')) {
-                this.hlGroup = config.get('previewHighlightGroup', 'Search');
-                this.previewHeight = config.get('maxPreviewHeight', 12);
-            }
-        });
+    }
+    getConfig() {
+        return workspace_1.default.getConfiguration(`list.source.${this.name}`);
     }
     addAction(name, fn, options) {
         this.createAction(Object.assign({
@@ -69316,7 +69313,12 @@ class Outline extends location_1.default {
         let document = workspace_1.default.getDocument(buf.id);
         if (!document)
             return null;
-        let symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
+        let config = this.getConfig();
+        let ctagsFilestypes = config.get('ctagsFilestypes', []);
+        let symbols;
+        if (ctagsFilestypes.indexOf(document.filetype) == -1) {
+            symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
+        }
         if (!symbols)
             return await this.loadCtagsSymbols(document);
         if (symbols.length == 0)
