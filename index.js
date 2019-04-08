@@ -52990,7 +52990,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "7c3736963b" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "9cfb6ee094" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -54107,15 +54107,11 @@ class Completion {
         let line = document.getline(lnum - 1);
         return col == 1 ? '' : string_1.byteSlice(line, 0, col - 1);
     }
-    async getResumeInput() {
-        let { option, document, activted } = this;
-        if (!activted)
+    getResumeInput(pre) {
+        let { option, activted } = this;
+        if (!activted || !pre)
             return null;
-        let [, lnum, col] = await this.nvim.call('getcurpos');
-        if (lnum != option.linenr || col < option.col + 1)
-            return null;
-        let line = document.getline(lnum - 1);
-        let input = string_1.byteSlice(line, option.col, col - 1);
+        let input = string_1.byteSlice(pre, option.col);
         if (option.blacklist && option.blacklist.indexOf(input) !== -1)
             return null;
         return input;
@@ -54181,13 +54177,14 @@ class Completion {
             logger.error(e.stack);
         }
     }
-    async resumeCompletion(search, _isChangedP = false) {
+    async resumeCompletion(pre, search, _isChangedP = false) {
         let { document, complete, activted } = this;
         if (!activted || !complete.results || search == this.input)
             return;
         let last = search == null ? '' : search.slice(-1);
         if (last.length == 0 ||
-            !document.chars.isKeywordChar(last) ||
+            /\s/.test(last) ||
+            sources_1.default.shouldTrigger(pre, document.filetype) ||
             search.length < complete.input.length) {
             this.stop();
             return;
@@ -54195,7 +54192,7 @@ class Completion {
         let { changedtick } = document;
         this.input = search;
         let items;
-        if (complete.isIncomplete) {
+        if (complete.isIncomplete && document.chars.isKeywordChar(last)) {
             await document.patchChange();
             document.forceSync();
             await util_1.wait(30);
@@ -54260,11 +54257,11 @@ class Completion {
     }
     async _doComplete(option) {
         let { line, colnr, filetype, source } = option;
-        let { nvim, config } = this;
+        let { nvim, config, document } = this;
         // current input
         this.input = option.input;
         let pre = string_1.byteSlice(line, 0, colnr - 1);
-        let isTriggered = source == null && pre && !this.document.isWord(pre[pre.length - 1]) && sources_1.default.shouldTrigger(pre, filetype);
+        let isTriggered = source == null && pre && !document.isWord(pre[pre.length - 1]) && sources_1.default.shouldTrigger(pre, filetype);
         let arr = [];
         if (source == null) {
             arr = sources_1.default.getCompleteSources(option, isTriggered);
@@ -54276,7 +54273,7 @@ class Completion {
         }
         if (!arr.length)
             return;
-        let complete = new complete_1.default(option, this.document, this.recentScores, config, nvim);
+        let complete = new complete_1.default(option, document, this.recentScores, config, nvim);
         this.start(complete);
         let items = await this.complete.doComplete(arr);
         if (complete.isCanceled || !this.isActivted)
@@ -54285,14 +54282,15 @@ class Completion {
             this.stop();
             return;
         }
-        let search = await this.getResumeInput();
+        let content = await this.getPreviousContent(document);
         if (complete.isCanceled)
             return;
+        let search = this.getResumeInput(content);
         if (search == option.input) {
             await this.showCompletion(option.col, items);
             return;
         }
-        await this.resumeCompletion(search);
+        await this.resumeCompletion(content, search);
     }
     async onTextChangedP() {
         let { option, document } = this;
@@ -54304,9 +54302,9 @@ class Completion {
         // avoid trigger filter on pumvisible
         if (document.changedtick == this.changedTick)
             return;
-        let ind = option.line.match(/^\s*/)[0];
         let line = document.getline(option.linenr - 1);
         let curr = line.match(/^\s*/)[0];
+        let ind = option.line.match(/^\s*/)[0];
         // indent change
         if (ind.length != curr.length) {
             this.stop();
@@ -54319,7 +54317,13 @@ class Completion {
         }
         let col = await this.nvim.call('col', '.');
         let search = string_1.byteSlice(line, option.col, col - 1);
-        await this.resumeCompletion(search, true);
+        let pre = string_1.byteSlice(line, 0, col - 1);
+        if (sources_1.default.shouldTrigger(pre, document.filetype)) {
+            await this.triggerCompletion(document, pre, false);
+        }
+        else {
+            await this.resumeCompletion(pre, search, true);
+        }
     }
     async onTextChangedI(bufnr) {
         let { nvim, latestInsertChar } = this;
@@ -54331,22 +54335,17 @@ class Completion {
         if (!this.isActivted) {
             if (!latestInsertChar)
                 return;
-            // check trigger
             let pre = await this.getPreviousContent(document);
-            if (/(^|\s)\d$/.test(pre))
-                return;
-            let last = pre ? pre.slice(-1) : '';
-            if (!/\s/.test(last))
-                await this.triggerCompletion(document, pre);
+            await this.triggerCompletion(document, pre);
             return;
         }
         if (bufnr !== this.bufnr)
             return;
         // check commit character
         if (this.config.acceptSuggestionOnCommitCharacter
+            && this.currItem
             && latestInsertChar
-            && !this.document.isWord(latestInsertChar)
-            && this.currItem) {
+            && !this.document.isWord(latestInsertChar)) {
             let resolvedItem = this.getCompleteItem(this.currItem);
             if (sources_1.default.shouldCommit(resolvedItem, latestInsertChar)) {
                 let { linenr, col, line, colnr } = this.option;
@@ -54365,31 +54364,27 @@ class Completion {
             this.stop();
             return;
         }
-        let character = content.slice(-1);
         // check trigger character
-        if (string_1.isTriggerCharacter(character) && sources_1.default.shouldTrigger(content, document.filetype)) {
-            let option = await this.nvim.call('coc#util#get_complete_option');
-            if (!option)
-                return;
-            option.triggerCharacter = character;
-            logger.debug('trigger completion with', option);
-            await this.startCompletion(option);
+        if (sources_1.default.shouldTrigger(content, document.filetype)) {
+            await this.triggerCompletion(document, content, false);
             return;
         }
         if (!this.isActivted)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
-        return await this.resumeCompletion(search);
+        return await this.resumeCompletion(content, search);
     }
-    async triggerCompletion(document, pre) {
+    async triggerCompletion(document, pre, checkTrigger = true) {
         // check trigger
-        let shouldTrigger = await this.shouldTrigger(document, pre);
-        if (!shouldTrigger)
-            return;
+        if (checkTrigger) {
+            let shouldTrigger = await this.shouldTrigger(document, pre);
+            if (!shouldTrigger)
+                return;
+        }
         let option = await this.nvim.call('coc#util#get_complete_option');
         if (!option)
             return;
-        option.triggerCharacter = pre[pre.length - 1];
+        option.triggerCharacter = pre.slice(-1);
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
     }
@@ -54460,7 +54455,7 @@ class Completion {
         return latestInsert.character;
     }
     async shouldTrigger(document, pre) {
-        if (!pre || pre.trim() == '')
+        if (pre.length == 0 || /\s/.test(pre[pre.length - 1]))
             return false;
         let autoTrigger = this.config.autoTrigger;
         if (autoTrigger == 'none')
@@ -71538,7 +71533,7 @@ class Complete {
                     onFinished();
                     reject(new Error('Cancelled request'));
                 });
-                source.doComplete(opt, tokenSource.token).then(result => {
+                Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
                     onFinished();
                     resolve(result);
                 }, err => {
@@ -72984,7 +72979,6 @@ class Handler {
     async showSignatureHelp() {
         if (this.signatureTokenSource) {
             this.signatureTokenSource.cancel();
-            this.signatureTokenSource.dispose();
             this.signatureTokenSource = null;
         }
         let document = workspace_1.default.getDocument(workspace_1.default.bufnr);
