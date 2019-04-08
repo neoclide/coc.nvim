@@ -25,6 +25,7 @@ import SignatureManager from './provider/signatureManager'
 import TypeDefinitionManager from './provider/typeDefinitionManager'
 import WorkspaceSymbolManager from './provider/workspaceSymbolsManager'
 import snippetManager from './snippets/manager'
+import { SnippetParser } from './snippets/parser'
 import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
 import { wait } from './util'
@@ -644,6 +645,13 @@ class Languages {
     let { line, bufnr, linenr } = option
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
+    if (isSnippet) {
+      let snippet = (new SnippetParser()).parse(newText, true)
+      if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+        isSnippet = false
+        newText = snippet.toString()
+      }
+    }
     // replace inserted word
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
