@@ -19,6 +19,8 @@ import { byteSlice, indexOf, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
+import debounce = require('debounce')
+import { equals } from '../util/object'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -66,13 +68,13 @@ export default class Handler {
   private preferences: Preferences
   /*bufnr and srcId list*/
   private highlightsMap: Map<number, number[]> = new Map()
+  private hoverPosition: [number, number, number]
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
   private documentLines: string[] = []
   private currentSymbols: SymbolInformation[]
   private codeLensManager: CodeLensManager
-  private cursorMoveTs: number
   private signatureTokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
 
@@ -138,7 +140,6 @@ export default class Handler {
       if (!doc) return
       let { triggerSignatureHelp, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
-
       let pre = await this.getPreviousCharacter()
       if (!pre || isWord(pre) || doc.paused) return
       await this.onCharacterType(pre, bufnr)
@@ -166,15 +167,16 @@ export default class Handler {
     events.on('InsertEnter', async () => {
       this.clearHighlight(workspace.bufnr)
     }, null, this.disposables)
-    events.on('CursorMoved', async bufnr => {
-      if (!this.preferences.previewAutoClose) return
-      this.cursorMoveTs = Date.now()
+    events.on('CursorMoved', debounce((bufnr: number, cursor: [number, number]) => {
+      if (!this.preferences.previewAutoClose || !this.hoverPosition) return
       if (this.preferences.hoverTarget == 'float') return
+      let arr = [bufnr, cursor[0], cursor[1]]
+      if (equals(arr, this.hoverPosition)) return
       let doc = workspace.documents.find(doc => doc.uri.startsWith('coc://'))
       if (doc && doc.bufnr != bufnr) {
         nvim.command('pclose', true)
       }
-    }, null, this.disposables)
+    }, 100), null, this.disposables)
 
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
@@ -194,11 +196,9 @@ export default class Handler {
   }
 
   public async onHover(): Promise<void> {
-    let now = Date.now()
     if (this.hoverFactory.creating) return
     let { document, position } = await workspace.getCurrentState()
     let hovers = await languages.getHover(document, position)
-    if (this.cursorMoveTs && this.cursorMoveTs > now) return
     if (hovers && hovers.length) {
       await this.previewHover(hovers)
     } else {
@@ -941,6 +941,8 @@ export default class Handler {
       await this.hoverFactory.create(docs)
     } else {
       this.documentLines = lines
+      let arr = await this.nvim.call('getcurpos') as number[]
+      this.hoverPosition = [workspace.bufnr, arr[1], arr[2]]
       await this.nvim.command(`pedit coc://document`)
     }
   }
