@@ -212,7 +212,9 @@ endfunction
 
 function! coc#util#execute(cmd)
   exe a:cmd
-  filetype detect
+  if &l:filetype ==# ''
+    filetype detect
+  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
