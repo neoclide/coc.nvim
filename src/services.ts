@@ -3,7 +3,6 @@ import fs from 'fs'
 import net from 'net'
 import os from 'os'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
-import which from 'which'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
@@ -299,18 +298,6 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   if (module && !fs.existsSync(module as string)) {
     workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
     return null
-  }
-  if (command) {
-    // if command start with ~, extend to homedir
-    if (command.startsWith('~')) {
-      command = command.replace(/^~/, os.homedir())
-    }
-    try {
-      which.sync(command)
-    } catch (e) {
-      workspace.showMessage(`Command "${command}" of LS "${name}" not found in $PATH`, 'error')
-      return null
-    }
   }
   if (filetypes.length == 0) return
   let isModule = module != null

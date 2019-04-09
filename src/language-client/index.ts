@@ -12,6 +12,7 @@ import { disposeAll } from '../util'
 import * as Is from '../util/is'
 import { terminate } from '../util/processes'
 import workspace from '../workspace'
+import which from 'which'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
 import { ColorProviderFeature } from './colorProvider'
 import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
@@ -21,6 +22,7 @@ import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
 import ChildProcess = cp.ChildProcess
+import { resolveVariables } from '../util/string'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -414,6 +416,19 @@ export class LanguageClient extends BaseLanguageClient {
       let options = Object.assign({}, command.options)
       options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
+      let cmd = json.command
+      if (cmd.startsWith('~')) {
+        cmd = os.homedir() + cmd.slice(1)
+      }
+      if (cmd.indexOf('$') !== -1) {
+        cmd = resolveVariables(cmd, { workspaceFolder: workspace.rootPath })
+      }
+      try {
+        which.sync(cmd)
+      } catch (e) {
+        throw new Error(`Command "${cmd}" of ${this.id} is not executable: ${e}`)
+      }
+
       let serverProcess = cp.spawn(command.command, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)

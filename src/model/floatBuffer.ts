@@ -135,7 +135,6 @@ export default class FloatBuffer {
       p.push(...this.splitFragment(c, filetype))
       return p
     }, [])
-    logger.debug('fragments:', fragments)
     if (this.enableHighlight) {
       let arr = await Promise.all(fragments.map(f => {
         return getHiglights(f.lines, f.filetype).then(highlights => {

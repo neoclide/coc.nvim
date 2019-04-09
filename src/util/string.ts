@@ -54,3 +54,14 @@ export function isTriggerCharacter(character: string): boolean {
   if (code >= 97 && code <= 122) return false
   return true
 }
+
+export function resolveVariables(str: string, variables: { [key: string]: string }): string {
+  const regexp = /\$\{(.*?)\}/g
+  return str.replace(regexp, (match: string, name: string) => {
+    const newValue = variables[name]
+    if (typeof newValue === 'string') {
+      return newValue
+    }
+    return match
+  })
+}
