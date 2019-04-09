@@ -1602,7 +1602,7 @@ Q: 	我想用 ale 插件显示错误提示。
 
 A: 	在配置文件中添加：
 >
-	"coc.preferences.diagnostic.displayByAle": false,
+	"coc.preferences.diagnostic.displayByAle": true,
 <
 ------------------------------------------------------------------------------
 
