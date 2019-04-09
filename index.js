@@ -49108,6 +49108,17 @@ function isTriggerCharacter(character) {
     return true;
 }
 exports.isTriggerCharacter = isTriggerCharacter;
+function resolveVariables(str, variables) {
+    const regexp = /\$\{(.*?)\}/g;
+    return str.replace(regexp, (match, name) => {
+        const newValue = variables[name];
+        if (typeof newValue === 'string') {
+            return newValue;
+        }
+        return match;
+    });
+}
+exports.resolveVariables = resolveVariables;
 //# sourceMappingURL=string.js.map
 
 /***/ }),
@@ -52990,7 +53001,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "7e7b7a92e3" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "c1b9332094" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -59883,7 +59894,6 @@ class FloatBuffer {
             p.push(...this.splitFragment(c, filetype));
             return p;
         }, []);
-        logger.debug('fragments:', fragments);
         if (this.enableHighlight) {
             let arr = await Promise.all(fragments.map(f => {
                 return highlight_1.getHiglights(f.lines, f.filetype).then(highlights => {
@@ -63059,7 +63069,6 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
 const net_1 = tslib_1.__importDefault(__webpack_require__(6));
 const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const which_1 = tslib_1.__importDefault(__webpack_require__(165));
 const language_client_1 = __webpack_require__(284);
 const types_1 = __webpack_require__(181);
 const util_1 = __webpack_require__(161);
@@ -63347,19 +63356,6 @@ function getLanguageServerOptions(id, name, config) {
         workspace_1.default.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error');
         return null;
     }
-    if (command) {
-        // if command start with ~, extend to homedir
-        if (command.startsWith('~')) {
-            command = command.replace(/^~/, os_1.default.homedir());
-        }
-        try {
-            which_1.default.sync(command);
-        }
-        catch (e) {
-            workspace_1.default.showMessage(`Command "${command}" of LS "${name}" not found in $PATH`, 'error');
-            return null;
-        }
-    }
     if (filetypes.length == 0)
         return;
     let isModule = module != null;
@@ -63491,6 +63487,7 @@ const tslib_1 = __webpack_require__(3);
  *--------------------------------------------------------------------------------------------*/
 const child_process_1 = tslib_1.__importDefault(__webpack_require__(162));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
+const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const types_1 = __webpack_require__(181);
@@ -63498,6 +63495,7 @@ const util_1 = __webpack_require__(161);
 const Is = tslib_1.__importStar(__webpack_require__(183));
 const processes_1 = __webpack_require__(254);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
+const which_1 = tslib_1.__importDefault(__webpack_require__(165));
 const client_1 = __webpack_require__(285);
 const colorProvider_1 = __webpack_require__(289);
 const configuration_1 = __webpack_require__(290);
@@ -63506,6 +63504,7 @@ const foldingRange_1 = __webpack_require__(292);
 const implementation_1 = __webpack_require__(293);
 const typeDefinition_1 = __webpack_require__(294);
 const workspaceFolders_1 = __webpack_require__(295);
+const string_1 = __webpack_require__(199);
 const logger = __webpack_require__(172)('language-client-index');
 tslib_1.__exportStar(__webpack_require__(285), exports);
 var Executable;
@@ -63811,6 +63810,19 @@ class LanguageClient extends client_1.BaseLanguageClient {
             let options = Object.assign({}, command.options);
             options.env = options.env ? Object.assign(options.env, process.env) : process.env;
             options.cwd = options.cwd || serverWorkingDir;
+            let cmd = json.command;
+            if (cmd.startsWith('~')) {
+                cmd = os_1.default.homedir() + cmd.slice(1);
+            }
+            if (cmd.indexOf('$') !== -1) {
+                cmd = string_1.resolveVariables(cmd, { workspaceFolder: workspace_1.default.rootPath });
+            }
+            try {
+                which_1.default.sync(cmd);
+            }
+            catch (e) {
+                throw new Error(`Command "${cmd}" of ${this.id} is not executable: ${e}`);
+            }
             let serverProcess = child_process_1.default.spawn(command.command, args, options);
             if (!serverProcess || !serverProcess.pid) {
                 throw new Error(`Launching server using command ${command.command} failed.`);
@@ -64378,7 +64390,10 @@ class DidChangeTextDocumentFeature {
         if (event.contentChanges.length === 0) {
             return;
         }
-        let { textDocument } = workspace_1.default.getDocument(event.textDocument.uri);
+        let doc = workspace_1.default.getDocument(event.textDocument.uri);
+        if (!doc)
+            return;
+        let { textDocument } = doc;
         for (const changeData of this._changeData.values()) {
             if (workspace_1.default.match(changeData.documentSelector, textDocument) > 0) {
                 let middleware = this._client.clientOptions.middleware;
@@ -64484,7 +64499,8 @@ class WillSaveWaitUntilFeature {
                     .then(edits => {
                     return edits ? edits : [];
                 }, e => {
-                    workspace_1.default.showMessage(`Error on willSaveWaitUntil: ${e.message}`, 'error');
+                    workspace_1.default.showMessage(`Error on willSaveWaitUntil: ${e}`, 'error');
+                    logger.error(e);
                     return [];
                 });
             };
