@@ -89,8 +89,8 @@ for configuration.
 Use the command |:CocConfig| to open the user configuration file, or create
 `.vim/coc-settings.json` in your project root for folder-based configuration.
 
-Auto completion in the settings file would be enabled after the `coc-json` 
-extension is installed.
+To enable auto completion in the settings file, install the `coc-json` 
+extension.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for more details.
@@ -105,7 +105,7 @@ To disable automatic trigger, use: >
 
 	"suggest.autoTrigger": "none",
 <
-To enable trigger after inserting enter, use: >
+To enable trigger after insert enter, use: >
 
 	"suggest.triggerAfterInsertEnter": true,
 
@@ -130,7 +130,7 @@ To enable commit characters feature, use: >
 
 	"suggest.acceptSuggestionOnCommitCharacter": true
 <
-To change the indicator of a snippet item, use: >
+To change the indicator of snippet items, use: >
 
 	"suggest.snippetIndicator": "⭐︎"
 
@@ -311,7 +311,7 @@ g:coc_global_extensions 			*g:coc_global_extensions*
 
 g:coc_enable_locationlist 			*g:coc_enable_locationlist*
 
-			Open location list when location changes.
+			Open location list when location list changes.
 
 			Default: 1
 
@@ -320,7 +320,7 @@ g:coc_snippet_next                            	*g:coc_snippet_next*
 			Trigger key for going to the next snippet position, 
 			applied in insert and select mode.
 
-			Only works when a snippet session is activated.
+			Only works when snippet session is activated.
 
 			Default: <C-j>
 
@@ -329,7 +329,7 @@ g:coc_snippet_prev                            	*g:coc_snippet_prev*
 			Trigger key for going to the previous snippet 
 			position, applied in insert and select mode.
 
-			Only works when a snippet session is activated.
+			Only works when snippet session is activated.
 
 			Default: <C-k>
 
