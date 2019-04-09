@@ -52990,7 +52990,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "2110cc4d39" : undefined));
+        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "7e7b7a92e3" : undefined));
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
@@ -55568,7 +55568,7 @@ class Extensions {
             directory: root,
             deactivate: () => {
                 isActive = false;
-                if (ext.deactivate) {
+                if (ext && ext.deactivate) {
                     Promise.resolve(ext.deactivate()).catch(e => {
                         logger.error(`Error on ${id} deactivate: `, e.message);
                     });
@@ -58830,6 +58830,9 @@ class Languages {
                 }
                 obj.detailShown = 1;
             }
+        }
+        if (item.documentation) {
+            obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value;
         }
         if (!obj.word)
             obj.empty = 1;
@@ -63345,6 +63348,10 @@ function getLanguageServerOptions(id, name, config) {
         return null;
     }
     if (command) {
+        // if command start with ~, extend to homedir
+        if (command.startsWith('~')) {
+            command = command.replace(/^~/, os_1.default.homedir());
+        }
         try {
             which_1.default.sync(command);
         }
@@ -63484,7 +63491,6 @@ const tslib_1 = __webpack_require__(3);
  *--------------------------------------------------------------------------------------------*/
 const child_process_1 = tslib_1.__importDefault(__webpack_require__(162));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
-const os_1 = tslib_1.__importDefault(__webpack_require__(63));
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const types_1 = __webpack_require__(181);
@@ -63805,9 +63811,6 @@ class LanguageClient extends client_1.BaseLanguageClient {
             let options = Object.assign({}, command.options);
             options.env = options.env ? Object.assign(options.env, process.env) : process.env;
             options.cwd = options.cwd || serverWorkingDir;
-            if (command.command.startsWith('~')) {
-                command.command = command.command.replace(/^~/, os_1.default.homedir());
-            }
             let serverProcess = child_process_1.default.spawn(command.command, args, options);
             if (!serverProcess || !serverProcess.pid) {
                 throw new Error(`Launching server using command ${command.command} failed.`);
