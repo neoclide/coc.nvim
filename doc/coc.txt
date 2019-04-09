@@ -285,6 +285,13 @@ b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 			" Disable completion for 'end' in lua file
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
+b:coc_current_function 				*b:coc_current_function*
+
+			Function string that current cursor in.
+
+			Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
+			in coc-settings.json to update it on CursorHold.
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 			Start coc service on startup, use |CocStart| to start
@@ -746,6 +753,9 @@ Available Actions ~
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
+"getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
+
+	Return the function string that current cursor in.
 
 "documentSymbols" 				*coc-action-documentSymbols*
 

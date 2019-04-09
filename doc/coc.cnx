@@ -315,6 +315,14 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 
 			用于自定义状态栏，查看 |coc-status|.
 
+b:coc_current_function 				*b:coc_current_function*
+
+			当前光标所在函数名。
+
+			在配置文件中添加：
+			`"coc.preferences.currentFunctionSymbolAutoUpdate": true`
+			启用 CursorHold 时自动更新。
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 
@@ -725,6 +733,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
 	在代码片段跳转后显示函数签名。
+
+"getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
+
+	获取当前光标所在的函数名称。
 
 "documentSymbols" 				*coc-action-documentSymbols*
 
