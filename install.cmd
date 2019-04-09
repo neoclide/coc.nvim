@@ -29,7 +29,7 @@ if ($tag -eq "nightly") {
   Invoke-WebRequest $download -Out $zip
 
   Write-Host Extracting release files
-  Expand-Archive $zip -DestinationPath $dir -Force
+  Microsoft.Powershell.Compression\Expand-Archive $zip -DestinationPath $dir -Force
 
   Remove-Item $zip -Force
   Write-Host install completed.
