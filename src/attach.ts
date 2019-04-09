@@ -22,14 +22,13 @@ export default (opts: Attach, requestApi = true): Plugin => {
         }
         break
       }
-      case 'OptionSet':
-        await events.fire('OptionSet', args)
-        break
-      case 'InputChar':
-        await events.fire('InputChar', args)
-        break
+      case 'TaskExit':
+      case 'TaskStderr':
+      case 'TaskStdout':
       case 'GlobalChange':
-        await events.fire('GlobalChange', args)
+      case 'InputChar':
+      case 'OptionSet':
+        await events.fire(method, args)
         break
       case 'CocAutocmd':
         await events.fire(args[0], args.slice(1))

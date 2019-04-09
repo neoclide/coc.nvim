@@ -12,6 +12,7 @@ import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
 import events from './events'
 import DB from './model/db'
+import Task from './model/task'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import Mru from './model/mru'
@@ -1073,6 +1074,13 @@ export class Workspace implements IWorkspace {
     let root = path.dirname(this.env.extensionRoot)
     let filepath = path.join(root, name + '.json')
     return new DB(filepath)
+  }
+
+  /**
+   * Create Task instance that runs in vim.
+   */
+  public createTask(id: string): Task {
+    return new Task(this.nvim, id)
   }
 
   private async _setupDynamicAutocmd(): Promise<void> {

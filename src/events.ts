@@ -12,9 +12,12 @@ export type BufEvents = 'TextChangedI' | 'BufHidden' | 'BufEnter' | 'TextChanged
 
 export type EmptyEvents = 'InsertEnter' | 'FocusGained'
 
-export type AllEvents = BufEvents | EmptyEvents | MoveEvents | 'CompleteDone' | 'MenuPopupChanged' |
-  'InsertCharPre' | 'FileType' | 'BufWinEnter' | 'BufWinLeave' | 'VimResized' |
-  'DirChanged' | 'OptionSet' | 'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
+export type TaskEvents = 'TaskExit' | 'TaskStderr' | 'TaskStdout'
+
+export type AllEvents = BufEvents | EmptyEvents | MoveEvents | TaskEvents |
+  'CompleteDone' | 'MenuPopupChanged' | 'InsertCharPre' | 'FileType' |
+  'BufWinEnter' | 'BufWinLeave' | 'VimResized' | 'DirChanged' | 'OptionSet' |
+  'Command' | 'BufReadCmd' | 'GlobalChange' | 'InputChar'
 
 export type MoveEvents = 'CursorMoved' | 'CursorMovedI'
 
@@ -42,6 +45,8 @@ class Events {
   public on(event: EmptyEvents | AllEvents[], handler: () => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: BufEvents, handler: (bufnr: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: MoveEvents, handler: (bufnr: number, cursor: [number, number]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TaskExit', handler: (id: string, code: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
+  public on(event: 'TaskStderr' | 'TaskStdout', handler: (id: string, lines: string[]) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'BufReadCmd', handler: (scheme: string, fullpath: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'VimResized', handler: (columns: number, lines: number) => Result, thisArg?: any, disposables?: Disposable[]): Disposable
   public on(event: 'Command', handler: (name: string) => Result, thisArg?: any, disposables?: Disposable[]): Disposable

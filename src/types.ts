@@ -11,6 +11,14 @@ import { ProviderResult, TextDocumentContentProvider } from './provider'
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
 
+export interface TaskOptions {
+  cmd: string
+  args?: string[]
+  cwd?: string
+  pty?: boolean
+  detach?: boolean
+}
+
 export interface Documentation {
   filetype: string
   content: string
