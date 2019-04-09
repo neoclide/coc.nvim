@@ -56,23 +56,34 @@ REQUIREMENT					*coc-requirement*
 
 Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
+
+Node: https://nodejs.org/en/download/ required to run javascript code.
+
 If not satisfied, the plugin would not be loaded at all.
 
 Yarn: https://yarnpkg.com/en/docs/install used for manage coc extensions.
+
+Note: yarn is not required if you want to manage extensions by use vim's
+plugin manager like vim-plug.
+
+User of vim8 need to install vim-node-rpc modules by: >
+	
+	yarn global add vim-node-rpc
 
 ==============================================================================
 INSTALL						*coc-install*
 
 Use plugin manager, like https://github.com/junegunn/vim-plug by add: >
 
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
 For other plugin manager, run `:coc#util#install()` after plugin is loaded,
-this command would download latest coc binary from github release page.
+this command would download latest compiled javascript code from release
+branch.
 
 Use `coc#util#build` to build coc.nvim from source code.
 
@@ -369,16 +380,12 @@ g:coc_node_path 				*g:coc_node_path*
 			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
 <
 			Use this when coc have problem with your system node,
-			it doen't take effect if coc service started by binary
-			build of coc.
-
-			Note: not work when using binary release.
 
 g:coc_force_debug  				*g:coc_force_debug*
 
-			Coc would use precompiled binary when the binary file
+			Coc would use precompiled bundle when bundle file
 			exists, set this to 1 to use compiled code instead of
-			prebuild binary.
+			bundle.
 
 			Default: 0
 
@@ -582,10 +589,12 @@ coc#util#get_config_home()
 						*coc#util#install()*
 coc#util#install([{config}])
 
-	Install binary version of coc.nvim.
+	Install compiled javascript code of coc.nvim.
 
-	{config} could be `{terminal: 1}` to use terminal for shell
-	script.
+	{config} could contains:
+
+	- `terminal` use terminal when specified.
+	- `tag` use latest tag when specified.
 
 						*coc#util#build()*
 
@@ -944,8 +953,7 @@ COMMANDS 					*coc-commands*
 
 		Run `npm rebuild` for coc extensions.
 
-		May required if coc not started by binary and environment
-		nodejs get upgraded.
+		May required when environment nodejs get upgraded.
 
 :CocCommand {name} [{args}] ...			*:CocCommand*
 
