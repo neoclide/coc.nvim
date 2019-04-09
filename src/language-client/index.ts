@@ -429,7 +429,7 @@ export class LanguageClient extends BaseLanguageClient {
         throw new Error(`Command "${cmd}" of ${this.id} is not executable: ${e}`)
       }
 
-      let serverProcess = cp.spawn(command.command, args, options)
+      let serverProcess = cp.spawn(cmd, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
       }
