@@ -739,6 +739,9 @@ class Languages {
         obj.detailShown = 1
       }
     }
+    if (item.documentation) {
+      obj.info = typeof item.documentation == 'string' ? item.documentation : item.documentation.value
+    }
     if (!obj.word) obj.empty = 1
     if (item.textEdit) obj.line = opt.line
     if (item.kind == CompletionItemKind.Folder && !obj.abbr.endsWith('/')) {
