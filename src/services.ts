@@ -301,6 +301,10 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     return null
   }
   if (command) {
+    // if command start with ~, extend to homedir
+    if (command.startsWith('~')) {
+      command = command.replace(/^~/, os.homedir())
+    }
     try {
       which.sync(command)
     } catch (e) {

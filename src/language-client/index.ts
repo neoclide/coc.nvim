@@ -414,9 +414,6 @@ export class LanguageClient extends BaseLanguageClient {
       let options = Object.assign({}, command.options)
       options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
-      if (command.command.startsWith('~')) {
-        command.command = command.command.replace(/^~/, os.homedir())
-      }
       let serverProcess = cp.spawn(command.command, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
