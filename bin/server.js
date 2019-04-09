@@ -1,7 +1,7 @@
 const semver = require('semver')
 const version = process.version.replace('v', '')
 if (!semver.gt(version, '8.0.0')) {
-  console.error('node 8.0 required, please upgrade nodejs.')
+  console.error('node >= 8.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in vimrc')
   process.exit(1)
 }
 Object.defineProperty(console, 'log', {
@@ -22,13 +22,13 @@ if (isVim) {
   attach({ reader: process.stdin, writer: process.stdout })
 }
 
-process.on('uncaughtException', function(err) {
+process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack
   console.error(msg)
   logger.error('uncaughtException', err.stack)
 })
 
-process.on('unhandledRejection', function(reason, p) {
+process.on('unhandledRejection', function (reason, p) {
   if (reason instanceof Error) {
     console.error('UnhandledRejection: ' + reason.message + '\n' + reason.stack)
   } else {

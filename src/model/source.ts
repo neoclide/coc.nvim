@@ -5,7 +5,7 @@ import { byteSlice } from '../util/string'
 import workspace from '../workspace'
 const logger = require('../util/logger')('model-source')
 
-export default abstract class Source implements ISource {
+export default class Source implements ISource {
   public readonly name: string
   public readonly filepath: string
   public readonly sourceType: SourceType
@@ -28,6 +28,12 @@ export default abstract class Source implements ISource {
 
   public get priority(): number {
     return this.getConfig('priority', 1)
+  }
+
+  public get triggerPatterns(): RegExp[] | null {
+    let patterns = this.getConfig<string[]>('triggerPatterns', null)
+    if (!patterns || patterns.length == 0) return null
+    return patterns.map(s => new RegExp(s + '$'))
   }
 
   public get shortcut(): string {
@@ -58,7 +64,7 @@ export default abstract class Source implements ISource {
   }
 
   public get firstMatch(): boolean {
-    return this.getConfig('firstMatch', false)
+    return this.getConfig('firstMatch', true)
   }
 
   public get menu(): string {
@@ -125,5 +131,7 @@ export default abstract class Source implements ISource {
     // do nothing
   }
 
-  public abstract doComplete(opt: CompleteOption): Promise<CompleteResult | null>
+  public async doComplete(_opt: CompleteOption): Promise<CompleteResult | null> {
+    return null
+  }
 }

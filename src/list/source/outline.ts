@@ -19,7 +19,12 @@ export default class Outline extends LocationList {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
-    let symbols = await languages.getDocumentSymbol(document.textDocument)
+    let config = this.getConfig()
+    let ctagsFilestypes = config.get<string[]>('ctagsFilestypes', [])
+    let symbols: DocumentSymbol[] | SymbolInformation[] | null
+    if (ctagsFilestypes.indexOf(document.filetype) == -1) {
+      symbols = await languages.getDocumentSymbol(document.textDocument)
+    }
     if (!symbols) return await this.loadCtagsSymbols(document)
     if (symbols.length == 0) return []
     let items: ListItem[] = []
@@ -70,7 +75,9 @@ export default class Outline extends LocationList {
     nvim.command('highlight default link CocOutlineName Normal', true)
     nvim.command('highlight default link CocOutlineKind Typedef', true)
     nvim.command('highlight default link CocOutlineLine Comment', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
@@ -82,12 +89,12 @@ export default class Outline extends LocationList {
     let escaped = await this.nvim.call('fnameescape', filepath)
     await writeFile(escaped, document.getDocumentContent())
     try {
-      content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`, process.cwd())
+      content = await runCommand(`ctags -f - --excmd=number --language-force=${document.filetype} ${escaped}`)
     } catch (e) {
       // noop
     }
     if (!content.trim().length) {
-      content = await runCommand(`ctags -f - --excmd=number ${escaped}`, process.cwd())
+      content = await runCommand(`ctags -f - --excmd=number ${escaped}`)
     }
     content = content.trim()
     if (!content) return []

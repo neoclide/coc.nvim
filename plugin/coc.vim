@@ -3,6 +3,7 @@ if exists('g:did_coc_loaded') || v:version < 800
 endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
 if !has('nvim') && !has('patch-8.1.001') | finish | endif
+let s:is_win = has('win32') || has('win64')
 
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
@@ -17,6 +18,13 @@ if s:is_vim && !has('pythonx')
 endif
 if s:is_vim
   call coc#rpc#init_vim_rpc()
+endif
+if s:is_vim && s:is_win
+  let file = $VIM."/vimfiles/coc-settings.json"
+  let dest = $HOME."/vimfiles/coc-settings.json"
+  if filereadable(file)
+    call rename(file, dest)
+  endif
 endif
 
 function! CocAction(...) abort
@@ -38,6 +46,11 @@ function! CocRequest(...) abort
 endfunction
 
 function! CocLocations(id, method, ...) abort
+  let args = [a:id, a:method] + copy(a:000)
+  call coc#rpc#request('findLocations', args)
+endfunction
+
+function! CocLocationsAsync(id, method, ...) abort
   let args = [a:id, a:method] + copy(a:000)
   call coc#rpc#request('findLocations', args)
 endfunction
@@ -69,6 +82,11 @@ endfunction
 function! s:ExtensionList(...) abort
   if !coc#rpc#ready() | return '' | endif
   let list = map(CocAction('extensionStats'), 'v:val["id"]')
+  return join(list, "\n")
+endfunction
+
+function! s:InstallOptions(...)abort
+  let list = ['-terminal', '-sync']
   return join(list, "\n")
 endfunction
 
@@ -115,31 +133,33 @@ function! s:Enable()
 
   augroup coc_nvim
     autocmd!
+
     if get(g:,'coc_enable_locationlist', 1)
       autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
-    if exists('##CompleteChanged')
-      autocmd CompleteChanged *   call s:Autocmd('CompleteChanged', get(v:event, 'completeitem', {}))
+    if exists('##MenuPopupChanged') && exists('*nvim_open_win')
+      autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
+    endif
+    if exists('##CompleteChanged') && exists('*nvim_open_win')
+      autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim
-      autocmd User NvimRpcInit
-            \ if get(g:, 'coc_start_at_startup', 1) |
-            \   call coc#rpc#start_server() |
-            \ endif
+      autocmd User NvimRpcInit    call coc#rpc#start_server()
       autocmd User NvimRpcExit    call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
-      autocmd BufWinEnter       * call clearmatches()
+      autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
+      autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
+      autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
     endif
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
-    autocmd CompleteDone        * call s:Autocmd('CompleteDone', v:completed_item)
-    " Must be sync to fix flicking on neovim
-    autocmd InsertCharPre       * call s:SyncAutocmd('InsertCharPre', v:char)
+    autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
+    autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
     autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
@@ -148,15 +168,15 @@ function! s:Enable()
     autocmd BufEnter            * call s:Autocmd('BufEnter', +expand('<abuf>'))
     autocmd TextChanged         * call s:Autocmd('TextChanged', +expand('<abuf>'))
     autocmd BufWritePost        * call s:Autocmd('BufWritePost', +expand('<abuf>'))
-    autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'))
-    autocmd CursorMovedI        * call s:Autocmd('CursorMovedI')
+    autocmd CursorMoved         * call s:Autocmd('CursorMoved', +expand('<abuf>'), [line('.'), col('.')])
+    autocmd CursorMovedI        * call s:Autocmd('CursorMovedI', +expand('<abuf>'), [line('.'), col('.')])
     autocmd CursorHold          * call s:Autocmd('CursorHold', +expand('<abuf>'))
     autocmd CursorHoldI         * call s:Autocmd('CursorHoldI', +expand('<abuf>'))
     autocmd BufNewFile,BufReadPost, * call s:Autocmd('BufCreate', +expand('<abuf>'))
     autocmd BufUnload           * call s:SyncAutocmd('BufUnload', +expand('<abuf>'))
     autocmd BufWritePre         * call s:SyncAutocmd('BufWritePre', +expand('<abuf>'))
     autocmd FocusGained         * call s:Autocmd('FocusGained')
-    autocmd VimResized          * call s:Autocmd('VimResized')
+    autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
@@ -169,14 +189,23 @@ hi default CocInfoSign     ctermfg=Yellow  guifg=#fab005
 hi default CocHintSign     ctermfg=Blue    guifg=#15aabf
 hi default CocSelectedText ctermfg=Red     guifg=#fb4934
 hi default CocCodeLens     ctermfg=Gray    guifg=#999999
+hi default link CocErrorFloat       CocErrorSign
+hi default link CocWarningFloat     CocWarningSign
+hi default link CocInfoFloat        CocInfoSign
+hi default link CocHintFloat        CocHintSign
 hi default link CocErrorHighlight   CocUnderline
 hi default link CocWarningHighlight CocUnderline
 hi default link CocInfoHighlight    CocUnderline
 hi default link CocHintHighlight    CocUnderline
 hi default link CocListMode ModeMsg
 hi default link CocListPath Comment
+hi default link CocFloating Pmenu
 
-hi default CocHighlightText  guibg=#111111 ctermbg=223
+if &background ==# 'dark'
+  hi default CocHighlightText  guibg=#222222 ctermbg=233
+else
+  hi default CocHighlightText  guibg=#f9f9f9 ctermbg=15
+endif
 hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 
@@ -223,13 +252,13 @@ command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
-command! -nargs=+ CocInstall      :call coc#util#install_extension(<q-args>)
 command! -nargs=0 CocUpdate       :call s:SendRequest('updateExtension', [])
-command! -nargs=0 CocUpdateSync   :call coc#rpc#request('updateExtension', [])
+command! -nargs=0 CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
-command! -nargs=* -complete=custom,coc#list#options  CocList    :call s:SendRequest('openList', [<f-args>])
+command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
+command! -nargs=* -complete=custom,coc#list#options CocList      :call s:SendRequest('openList',  [<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:SendRequest('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,s:CommandList CocCommand :call s:SendRequest('CocAction', ['runCommand', <f-args>])
+command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call s:SendRequest('CocAction', ['runCommand',         <f-args>])
 
 call s:Enable()
 
@@ -251,4 +280,6 @@ nnoremap <Plug>(coc-type-definition)     :<C-u>call CocActionAsync('jumpTypeDefi
 nnoremap <Plug>(coc-references)          :<C-u>call CocActionAsync('jumpReferences')<CR>
 nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
 nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
-inoremap <silent> <Plug>_                <C-r>=coc#_complete()<CR>
+nnoremap <Plug>(coc-float-hide)          :<C-u>call coc#util#float_hide()<CR>
+nnoremap <Plug>(coc-float-jump)          :<c-u>call coc#util#float_jump()<cr>
+inoremap <silent> <Plug>CocRefresh       <C-r>=coc#_complete()<CR>

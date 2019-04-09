@@ -5,6 +5,23 @@ let s:saved_ve = &t_ve
 function! coc#list#get_chars()
   return {
         \ '<esc>': "\<Esc>",
+        \ '<tab>': "\<Tab>",
+        \ '<s-tab>': "\<S-Tab>",
+        \ '<bs>': "\<bs>",
+        \ '<right>': "\<right>",
+        \ '<left>': "\<left>",
+        \ '<up>': "\<up>",
+        \ '<down>': "\<down>",
+        \ '<home>': "\<home>",
+        \ '<end>': "\<end>",
+        \ '<cr>': "\<cr>",
+        \ '<FocusGained>' : "\<FocusGained>",
+        \ '<ScrollWheelUp>': "\<ScrollWheelUp>",
+        \ '<ScrollWheelDown>': "\<ScrollWheelDown>",
+        \ '<LeftMouse>': "\<LeftMouse>",
+        \ '<LeftDrag>': "\<LeftDrag>",
+        \ '<LeftRelease>': "\<LeftRelease>",
+        \ '<2-LeftMouse>': "\<2-LeftMouse>",
         \ '<C-a>': "\<C-a>",
         \ '<C-b>': "\<C-b>",
         \ '<C-c>': "\<C-c>",
@@ -57,21 +74,6 @@ function! coc#list#get_chars()
         \ '<A-x>': "\<A-x>",
         \ '<A-y>': "\<A-y>",
         \ '<A-z>': "\<A-z>",
-        \ '<bs>': "\<bs>",
-        \ '<right>': "\<right>",
-        \ '<left>': "\<left>",
-        \ '<up>': "\<up>",
-        \ '<down>': "\<down>",
-        \ '<home>': "\<home>",
-        \ '<end>': "\<end>",
-        \ '<cr>': "\<cr>",
-        \ '<FocusGained>' : "\<FocusGained>",
-        \ '<ScrollWheelUp>': "\<ScrollWheelUp>",
-        \ '<ScrollWheelDown>': "\<ScrollWheelDown>",
-        \ '<LeftMouse>': "\<LeftMouse>",
-        \ '<LeftDrag>': "\<LeftDrag>",
-        \ '<LeftRelease>': "\<LeftRelease>",
-        \ '<2-LeftMouse>': "\<2-LeftMouse>"
         \}
 endfunction
 
@@ -121,7 +123,7 @@ function! coc#list#setlines(lines, append)
 endfunction
 
 function! coc#list#options(...)
-  let list = ['--top', '--normal', '--no-sort', '--input', '--strictMatch', '--regex', '--interactive', '--number-select', '--auto-preview']
+  let list = ['--top', '--normal', '--no-sort', '--input', '--strict', '--regex', '--interactive', '--number-select', '--auto-preview']
   if get(g:, 'coc_enabled', 0)
     let names = coc#rpc#request('listNames', [])
     call extend(list, names)
@@ -148,9 +150,10 @@ function! coc#list#status(name)
 endfunction
 
 function! coc#list#setup(source)
-  setl buftype=nofile filetype=list nobuflisted nofen wrap
+  setl buftype=nofile filetype=list nobuflisted nofen nowrap
   setl number norelativenumber bufhidden=wipe cursorline winfixheight
-  setl tabstop=1 nolist
+  setl tabstop=1 nolist nocursorcolumn
+  setl signcolumn=yes
   syntax case ignore
   let source = a:source[7:]
   let name = toupper(source[0]).source[1:]

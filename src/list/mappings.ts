@@ -1,40 +1,42 @@
 import { Neovim } from '@chemzqm/neovim'
-import { ListManager } from './manager'
-import { WorkspaceConfiguration, ListMode } from '../types'
+import { ListMode } from '../types'
+import '../util/extensions'
 import workspace from '../workspace'
+import ListConfiguration, { validKeys } from './configuration'
+import { ListManager } from './manager'
 const logger = require('../util/logger')('list-mappings')
 
 export default class Mappings {
   private insertMappings: Map<string, () => void | Promise<void>> = new Map()
   private normalMappings: Map<string, () => void | Promise<void>> = new Map()
+  private userInsertMappings: Map<string, string> = new Map()
+  private userNormalMappings: Map<string, string> = new Map()
 
   constructor(private manager: ListManager,
     private nvim: Neovim,
-    private config: WorkspaceConfiguration) {
-    let nextKey = config.get<string>('nextKeymap', '<C-j>')
-    let previousKey = config.get<string>('previousKeymap', '<C-k>')
+    private config: ListConfiguration) {
     let { prompt } = manager
 
-    this.add('insert', ' ', () => {
-      return prompt.insertCharacter(' ')
-    })
     this.add('insert', '<C-k>', () => {
-      return prompt.removeTail()
+      prompt.removeTail()
     })
     this.add('insert', '<C-n>', () => {
-      return manager.history.next()
+      manager.history.next()
     })
     this.add('insert', '<C-p>', () => {
-      return manager.history.previous()
+      manager.history.previous()
     })
-    this.add('insert', ['<C-m>', '<cr>'], () => {
-      return manager.doAction()
+    this.add('insert', '<C-s>', () => {
+      return manager.switchMatcher()
     })
-    this.add('insert', ['<C-i>', '\t'], () => {
+    this.add('insert', ['<C-m>', '<cr>'], async () => {
+      await manager.doAction()
+    })
+    this.add('insert', ['<tab>', '<C-i>', '\t'], () => {
       return manager.chooseAction()
     })
     this.add('insert', '<C-o>', () => {
-      return manager.toggleMode()
+      manager.toggleMode()
     })
     this.add('insert', '<C-c>', async () => {
       manager.stop()
@@ -44,34 +46,34 @@ export default class Mappings {
     this.add('insert', '<esc>', () => {
       return manager.cancel()
     })
-    this.add('insert', '<C-l>', () => {
-      return manager.worker.loadItems(true)
+    this.add('insert', '<C-l>', async () => {
+      await manager.worker.loadItems(true)
     })
     this.add('insert', '<left>', () => {
-      return prompt.moveLeft()
+      prompt.moveLeft()
     })
     this.add('insert', '<right>', () => {
-      return prompt.moveRight()
+      prompt.moveRight()
     })
     this.add('insert', ['<end>', '<C-e>'], () => {
-      return prompt.moveToEnd()
+      prompt.moveToEnd()
     })
     this.add('insert', ['<home>', '<C-a>'], () => {
-      return prompt.moveToStart()
+      prompt.moveToStart()
     })
     this.add('insert', ['<C-h>', '<bs>'], () => {
-      return prompt.onBackspace()
+      prompt.onBackspace()
     })
     this.add('insert', '<C-w>', () => {
-      return prompt.removeWord()
+      prompt.removeWord()
     })
     this.add('insert', '<C-u>', () => {
-      return prompt.removeAhead()
+      prompt.removeAhead()
     })
-    this.add('insert', ['<down>', nextKey], () => {
+    this.add('insert', '<down>', () => {
       return manager.normal('j')
     })
-    this.add('insert', ['<up>', previousKey], () => {
+    this.add('insert', '<up>', () => {
       return manager.normal('k')
     })
     this.add('insert', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
@@ -79,45 +81,44 @@ export default class Mappings {
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
     this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
 
-    // not allowed
-    this.add('normal', '<C-o>', () => {
-      return
-    })
     this.add('normal', 't', () => {
-      manager.doAction('tabe')
+      return manager.doAction('tabe')
     })
     this.add('normal', 's', () => {
-      manager.doAction('split')
+      return manager.doAction('split')
     })
     this.add('normal', 'd', () => {
-      manager.doAction('drop')
+      return manager.doAction('drop')
     })
-    this.add('normal', ['<cr>', '<C-m>'], () => {
-      manager.doAction()
+    this.add('normal', ['<cr>', '<C-m>', '\r'], () => {
+      return manager.doAction()
+    })
+    this.add('normal', '<C-a>', () => {
+      return manager.ui.selectAll()
     })
     this.add('normal', ' ', () => {
-      manager.ui.toggleSelection()
+      return manager.ui.toggleSelection()
     })
     this.add('normal', 'p', () => {
-      manager.togglePreview()
+      return manager.togglePreview()
     })
-    this.add('normal', ['\t', '<C-i>'], () => {
-      manager.chooseAction()
+    this.add('normal', ['<tab>', '\t', '<C-i>'], () => {
+      return manager.chooseAction()
     })
     this.add('normal', '<C-c>', () => {
       manager.stop()
     })
     this.add('normal', '<esc>', () => {
-      manager.cancel()
+      return manager.cancel()
     })
     this.add('normal', '<C-l>', () => {
-      manager.worker.loadItems(true)
+      return manager.worker.loadItems(true)
     })
     this.add('normal', ['i', 'I', 'o', 'O', 'a', 'A'], () => {
-      manager.toggleMode()
+      return manager.toggleMode()
     })
-    this.add('normal', '?', async () => {
-      await manager.showHelp()
+    this.add('normal', '?', () => {
+      return manager.showHelp()
     })
     this.add('normal', ':', async () => {
       await manager.cancel(false)
@@ -125,11 +126,61 @@ export default class Mappings {
     })
     this.add('normal', ['<ScrollWheelUp>'], this.doScroll.bind(this, '<ScrollWheelUp>'))
     this.add('normal', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'))
+    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
+    this.userInsertMappings = this.fixUserMappings(insertMappings)
+    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
+    this.userNormalMappings = this.fixUserMappings(normalMappings)
+    workspace.onDidChangeConfiguration(e => {
+      if (e.affectsConfiguration('list')) {
+        let config = workspace.getConfiguration('list')
+        let insertMappings = config.get<any>('insertMappings', {})
+        this.userInsertMappings = this.fixUserMappings(insertMappings)
+        let normalMappings = config.get<any>('normalMappings', {})
+        this.userNormalMappings = this.fixUserMappings(normalMappings)
+      }
+    })
+  }
+
+  private fixUserMappings(mappings: { [key: string]: string }): Map<string, string> {
+    let res: Map<string, string> = new Map()
+    for (let [key, value] of Object.entries(mappings)) {
+      if (key.length == 1) {
+        res.set(key, value)
+      } else if (key.startsWith('<') && key.endsWith('>')) {
+        if (validKeys.indexOf(key) != -1) {
+          res.set(key, value)
+        } else {
+          let find = false
+          // tslint:disable-next-line: prefer-for-of
+          for (let i = 0; i < validKeys.length; i++) {
+            if (validKeys[i].toLowerCase() == key.toLowerCase()) {
+              find = true
+              res.set(validKeys[i], value)
+              break
+            }
+          }
+          if (!find) workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+        }
+      } else {
+        // tslint:disable-next-line: no-console
+        workspace.showMessage(`Invalid mappings key: ${key}`, 'error')
+      }
+    }
+    return res
   }
 
   public async doInsertKeymap(key: string): Promise<boolean> {
-    let insertMappings = this.manager.getConfig<any>('insertMappings', {})
-    let expr = insertMappings[key]
+    let nextKey = this.config.nextKey
+    let previousKey = this.config.previousKey
+    if (key == nextKey) {
+      await this.manager.normal('j')
+      return true
+    }
+    if (key == previousKey) {
+      await this.manager.normal('k')
+      return true
+    }
+    let expr = this.userInsertMappings.get(key)
     if (expr) {
       await this.evalExpression(expr, 'insert')
       return true
@@ -143,8 +194,7 @@ export default class Mappings {
   }
 
   public async doNormalKeymap(key: string): Promise<boolean> {
-    let normalMappings = this.manager.getConfig<any>('normalMappings', {})
-    let expr = normalMappings[key]
+    let expr = this.userNormalMappings.get(key)
     if (expr) {
       await this.evalExpression(expr, 'normal')
       return true
@@ -185,6 +235,12 @@ export default class Mappings {
     let [key, action] = expr.split(':', 2)
     if (key == 'do') {
       switch (action) {
+        case 'switch':
+          await manager.switchMatcher()
+          return
+        case 'selectall':
+          await manager.ui.selectAll()
+          return
         case 'help':
           await manager.showHelp()
           return

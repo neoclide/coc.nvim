@@ -1,4 +1,13 @@
 
+export function intersect<T>(array: T[], other: T[]): boolean {
+  for (let item of other) {
+    if (array.indexOf(item) !== -1) {
+      return true
+    }
+  }
+  return false
+}
+
 export function tail<T>(array: T[], n = 0): T {
   return array[array.length - (1 + n)]
 }

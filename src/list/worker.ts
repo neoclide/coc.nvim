@@ -1,15 +1,14 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import { Emitter, Event } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { Emitter, Event, CancellationTokenSource } from 'vscode-languageserver-protocol'
 import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
 import { ansiparse } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
 import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength, upperFirst } from '../util/string'
-import workspace from '../workspace'
 import { ListManager } from './manager'
+import workspace from '../workspace'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
@@ -25,13 +24,12 @@ export interface ExtendedItem extends ListItem {
 // perform loading task
 export default class Worker {
   private _loading = false
-  private columns: number
   private taskId: string
   private task: ListTask = null
-  private mruList: string[] = []
   private timer: NodeJS.Timer
   private interval: NodeJS.Timer
   private totalItems: ListItem[] = []
+  private tokenSource: CancellationTokenSource
   private _onDidChangeItems = new Emitter<ListItemsEvent>()
   public readonly onDidChangeItems: Event<ListItemsEvent> = this._onDidChangeItems.event
 
@@ -41,15 +39,15 @@ export default class Worker {
       let { listOptions } = manager
       let { interactive } = listOptions
       if (this.timer) clearTimeout(this.timer)
+      // reload or filter items
       if (interactive) {
         this.stop()
         this.timer = setTimeout(async () => {
           await this.loadItems()
         }, 100)
       } else if (!this._loading && this.length) {
-        let wait = Math.min(Math.floor(this.length / 200), 200)
+        let wait = Math.max(Math.min(Math.floor(this.length / 200), 200), 50)
         this.timer = setTimeout(async () => {
-          if (this._loading) return
           await this.drawItems()
         }, wait)
       }
@@ -74,26 +72,33 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', '', true)
         nvim.command('redraws', true)
-        nvim.resumeNotification()
+        nvim.resumeNotification().catch(_e => {
+          // noop
+        })
       }
     }
+  }
+
+  public get isLoading(): boolean {
+    return this._loading
   }
 
   public async loadItems(reload = false): Promise<void> {
     let { context, list, listOptions } = this.manager
     if (!list) return
-    this.columns = await this.nvim.getOption('columns') as number
+    if (this.timer) clearTimeout(this.timer)
     let id = this.taskId = uuidv1()
     this.loading = true
     let { interactive } = listOptions
-    await this.loadMruList(context.cwd)
-    let items = await list.loadItems(context)
+    let source = this.tokenSource = new CancellationTokenSource()
+    let token = source.token
+    let items = await list.loadItems(context, token)
+    if (token.isCancellationRequested) return
     if (!items || Array.isArray(items)) {
       items = (items || []) as ListItem[]
       this.totalItems = items.map(item => {
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
-        this.recentScore(item)
         return item
       })
       this.loading = false
@@ -117,7 +122,7 @@ export default class Worker {
       let currInput = context.input
       let timer: NodeJS.Timer
       let lastTs: number
-      let _onData = async () => {
+      let _onData = () => {
         lastTs = Date.now()
         if (this.taskId != id || !this.manager.isActivated) return
         if (count >= totalItems.length) return
@@ -147,6 +152,7 @@ export default class Worker {
             items = res.items
             highlights = res.highlights
           } else {
+            items = remain
             highlights = this.getItemsHighlight(remain)
           }
           this._onDidChangeItems.fire({ items, highlights, append: true })
@@ -158,33 +164,43 @@ export default class Worker {
         if (interactive && this.input != currInput) return
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
-        this.recentScore(item)
         totalItems.push(item)
-        if ((!lastTs && this.totalItems.length == 500)
-          || Date.now() - lastTs > 500) {
+        if ((!lastTs && totalItems.length == 500)
+          || Date.now() - lastTs > 200) {
           _onData()
         } else if (lastTs && this.input != currInput) {
           _onData()
         } else {
-          timer = setTimeout(_onData, 50)
+          timer = setTimeout(_onData, 60)
         }
       })
-      await new Promise<void>((resolve, reject) => {
-        task.on('error', async msg => {
-          if (timer) clearTimeout(timer)
-          this.loading = false
-          reject(new Error(msg))
-        })
-        task.on('end', async () => {
-          this.loading = false
-          if (timer) clearTimeout(timer)
-          if (totalItems.length == 0) {
-            this._onDidChangeItems.fire({ items: [], highlights: [] })
-          } else {
-            _onData()
-          }
-          resolve()
-        })
+      let disposable = token.onCancellationRequested(() => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        if (task == this.task) {
+          task.dispose()
+          this.task = null
+          this.taskId = null
+        }
+      })
+      task.on('error', async (error: Error | string) => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        await this.manager.cancel()
+        workspace.showMessage(`Task error: ${error.toString()}`, 'error')
+        logger.error(error)
+      })
+      task.on('end', async () => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        if (totalItems.length == 0) {
+          this._onDidChangeItems.fire({ items: [], highlights: [] })
+        } else {
+          _onData()
+        }
       })
     }
   }
@@ -208,6 +224,10 @@ export default class Worker {
   }
 
   public stop(): void {
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+      this.tokenSource = null
+    }
     this.loading = false
     if (this.timer) {
       clearTimeout(this.timer)
@@ -340,17 +360,6 @@ export default class Worker {
     return { spans }
   }
 
-  private async loadMruList(cwd: string): Promise<void> {
-    try {
-      let mru = workspace.createMru('mru')
-      let files = await mru.load()
-      this.mruList = files.filter(s => s.startsWith(cwd))
-    } catch (e) {
-      this.mruList = []
-      // noop
-    }
-  }
-
   // set correct label, add ansi highlights
   private parseListItemAnsi(item: ListItem): void {
     let { label } = item
@@ -379,17 +388,8 @@ export default class Worker {
     item.ansiHighlights = highlights
   }
 
-  private recentScore(item: ListItem): void {
-    let { location } = item
-    if (!location || item.recentScore) return
-    let list = this.mruList
-    let len = list.length
-    let idx = list.indexOf(Uri.parse(location.uri).fsPath)
-    item.recentScore = idx == -1 ? -1 : len - idx
-  }
-
   private fixLabel(label: string): string {
-    let { columns } = this
+    let { columns } = workspace.env
     label = label.split('\n').join(' ')
     return label.slice(0, columns * 2)
   }

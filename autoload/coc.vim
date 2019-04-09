@@ -1,4 +1,4 @@
-let g:coc#_context = {}
+let g:coc#_context = {'start': 0, 'candidates': []}
 let g:coc_user_config = get(g:, 'coc_user_config', {})
 let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
 let g:coc_selected_text = ''
@@ -6,20 +6,39 @@ let s:watched_keys = []
 let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
+let s:select_api = exists('*nvim_select_popupmenu_item')
+
+function! coc#expandable() abort
+  return coc#rpc#request('snippetCheck', [1, 0])
+endfunction
+
+function! coc#jumpable() abort
+  return coc#rpc#request('snippetCheck', [0, 1])
+endfunction
+
+function! coc#expandableOrJumpable() abort
+  return coc#rpc#request('snippetCheck', [1, 1])
+endfunction
 
 function! coc#refresh() abort
   if pumvisible()
     let g:coc#_context['candidates'] = []
-    call feedkeys("\<Plug>_", 'i')
+    call feedkeys("\<Plug>CocRefresh", 'i')
   endif
   return "\<c-r>=coc#start()\<CR>"
 endfunction
 
-function! coc#_insert_key(method, key) abort
-  if pumvisible()
-    " keep the line without <C-y>
-    let g:coc#_context['candidates'] = []
-    call feedkeys("\<Plug>_", 'i')
+function! coc#on_enter()
+  if !coc#rpc#ready()
+    return ''
+  endif
+  call coc#rpc#request('CocAutocmd', ['Enter', bufnr('%')])
+  return ''
+endfunction
+
+function! coc#_insert_key(method, key, ...) abort
+  if get(a:, 1, 1)
+    call coc#_cancel()
   endif
   return "\<c-r>=coc#rpc#".a:method."('doKeymap', ['".a:key."'])\<CR>"
 endfunction
@@ -36,8 +55,7 @@ endfunction
 function! coc#_reload()
   if &paste | return | endif
   let items = get(g:coc#_context, 'candidates', [])
-  if empty(items) | return '' | endif
-  call feedkeys("\<Plug>_", 'i')
+  call feedkeys("\<Plug>CocRefresh", 'i')
 endfunction
 
 function! coc#_do_complete(start, items)
@@ -45,7 +63,9 @@ function! coc#_do_complete(start, items)
         \ 'start': a:start,
         \ 'candidates': a:items,
         \}
-  call feedkeys("\<Plug>_", 'i')
+  if mode() =~# 'i'
+    call feedkeys("\<Plug>CocRefresh", 'i')
+  endif
 endfunction
 
 function! coc#_select_confirm()
@@ -54,9 +74,27 @@ function! coc#_select_confirm()
   return "\<down>\<C-y>"
 endfunction
 
+function! coc#_selected()
+  if !pumvisible() | return 0 | endif
+  return coc#rpc#request('hasSelected', [])
+endfunction
+
 function! coc#_hide() abort
   if !pumvisible() | return | endif
   call feedkeys("\<C-e>", 'in')
+endfunction
+
+function! coc#_cancel()
+  for winnr in range(1, winnr('$'))
+    let popup = getwinvar(winnr, 'popup')
+    if !empty(popup)
+      exe winnr.'close!'
+    endif
+  endfor
+  if pumvisible()
+    let g:coc#_context['candidates'] = []
+    call feedkeys("\<Plug>CocRefresh", 'i')
+  endif
 endfunction
 
 function! coc#_select() abort
@@ -69,7 +107,7 @@ function! coc#start(...)
     return ''
   endif
   let opt = coc#util#get_complete_option()
-  call CocActionAsync('startCompletion', opt)
+  call CocActionAsync('startCompletion', extend(opt, get(a:, 1, {})))
   return ''
 endfunction
 
@@ -83,7 +121,14 @@ function! coc#status()
   if get(info, 'warning', 0)
     call add(msgs, s:warning_sign . info['warning'])
   endif
-  return join(msgs, ' ') . ' ' . get(g:, 'coc_status', '')
+  return s:trim(join(msgs, ' ') . ' ' . get(g:, 'coc_status', ''))
+endfunction
+
+function! s:trim(str)
+  if exists('*trim')
+    return trim(a:str)
+  endif
+  return substitute(a:str, '\s\+$', '', '')
 endfunction
 
 function! coc#config(section, value)
@@ -95,28 +140,8 @@ function! coc#add_extension(...)
   if a:0 == 0 | return | endif
   call extend(g:coc_global_extensions, a:000)
   if get(g:, 'coc_enabled', 0)
-    call coc#rpc#notify('addExtensions', [])
+    call coc#rpc#notify('installExtensions', [])
   endif
-endfunction
-
-function! coc#_choose(index)
-  let idx = coc#rpc#request('getCurrentIndex', [])
-  if idx == a:index
-    return "\<C-y>"
-  endif
-  let res = ""
-  if idx < a:index
-    for i in range(a:index - idx)
-      let res = res."\<C-n>"
-    endfor
-  endif
-  if idx > a:index
-    for i in range(idx - a:index)
-      let res = res."\<C-p>"
-    endfor
-  endif
-  let g:res = res
-  return res."\<C-y>"
 endfunction
 
 function! coc#_watch(key)
@@ -141,27 +166,21 @@ function! s:GlobalChange(dict, key, val)
 endfunction
 
 function! coc#_map()
-  inoremap <buffer> 1 <C-R>=coc#_choose(1)<CR>
-  inoremap <buffer> 2 <C-R>=coc#_choose(2)<CR>
-  inoremap <buffer> 3 <C-R>=coc#_choose(3)<CR>
-  inoremap <buffer> 4 <C-R>=coc#_choose(4)<CR>
-  inoremap <buffer> 5 <C-R>=coc#_choose(5)<CR>
-  inoremap <buffer> 6 <C-R>=coc#_choose(6)<CR>
-  inoremap <buffer> 7 <C-R>=coc#_choose(7)<CR>
-  inoremap <buffer> 8 <C-R>=coc#_choose(8)<CR>
-  inoremap <buffer> 9 <C-R>=coc#_choose(9)<CR>
-  inoremap <buffer> 0 <C-R>=coc#_choose(0)<CR>
+  if !s:select_api | return | endif
+  for i in range(1, 9)
+    exe 'inoremap <buffer> '.i.' <C-R>=nvim_select_popupmenu_item('.(i - 1).', v:true, v:true, {})<CR>'
+  endfor
 endfunction
 
 function! coc#_unmap()
-  iunmap <buffer> 1
-  iunmap <buffer> 2
-  iunmap <buffer> 3
-  iunmap <buffer> 4
-  iunmap <buffer> 5
-  iunmap <buffer> 6
-  iunmap <buffer> 7
-  iunmap <buffer> 8
-  iunmap <buffer> 9
-  iunmap <buffer> 0
+  if !s:select_api | return | endif
+  for i in range(1, 9)
+    exe 'iunmap <buffer> '.i
+  endfor
+endfunction
+
+function! coc#_init()
+  if exists('#User#CocNvimInit')
+    doautocmd User CocNvimInit
+  endif
 endfunction

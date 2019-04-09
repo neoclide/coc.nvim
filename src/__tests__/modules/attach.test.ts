@@ -25,8 +25,9 @@ afterEach(async () => {
 
 describe('attach', () => {
 
-  it('should listen CocInstalled', () => {
+  it('should listen CocInstalled', async () => {
     nvim.emit('notification', 'VimEnter')
+    await helper.wait(100)
   })
 
   it('should not throw on event handler error', async () => {

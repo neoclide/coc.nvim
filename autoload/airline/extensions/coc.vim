@@ -35,6 +35,6 @@ function! airline#extensions#coc#get(type)
 endfunction
 
 function! airline#extensions#coc#init(ext)
-  call airline#parts#define_function('coc_error_count', 'airline#extensions#coc#get_warning')
-  call airline#parts#define_function('coc_warning_count', 'airline#extensions#coc#get_error')
+  call airline#parts#define_function('coc_error_count', 'airline#extensions#coc#get_error')
+  call airline#parts#define_function('coc_warning_count', 'airline#extensions#coc#get_warning')
 endfunction

@@ -1,3 +1,148 @@
+# 2019-04-09
+
+- **Break change** `--strictMatch` option of list renamed to `--strict`
+- **Break change** `suggest.reloadPumOnInsertChar` support removed.
+- **Break change** no more binary release.
+- **Break change** logic for resolve workspace folder changed.
+- Add `Task` module.
+- Add `getCurrentFunctionSymbol` action.
+- Add `list.source.outline.ctagsFilestypes` setting.
+- Add `suggest.disableMenu` and `suggest.disableMenu` settings.
+- Add `equal` support for complete items.
+- Add support for do action with visual select lines of list.
+- Add expand tilder support for language server command.
+- Add switch matcher support to list.
+- Add select all support to lsit.
+- Add quickfix action to list.
+- Add `selectionRanges` of LSP.
+- Add load extentions for &rtp support.
+- Add `coc#on_enter()` for formatOnType and add new lines on enter.
+- Improve completion by support trigger completion when pumvisible.
+- Remove document check on `BufWritePre`.
+
+# 2019-03-31
+
+- **Break change** not using vim-node-rpc from npm modules any more.
+- **Break change** rename `<Plug>_` to `<Plug>CocRefresh`.
+- Fix wrong format options send to server.
+- Fix throw eror when extention root not created.
+- Fix MarkedString not considered as markdown.
+- Fix echo message on vim exit.
+- Fix error throw on file watch.
+- Fix unexpected update of user configuration.
+
+# 2019-03-28
+
+- Add `workspace.resolveRootFolder`.
+- Add `diagnostic.joinMessageLines` setting.
+- Add `suggest.completionItemKindLabels` setting.
+- Add `memento` support for extention.
+- Add `workspace.getSelectedRange`.
+- Add `Terminal` module.
+- Add command `workbench.action.reloadWindow`.
+- Fix extention not activated by command.
+- Fix broken undo with floating window.
+- Fix document create possible wrong uri & filetype.
+- Improve highlight with floating window.
+
+# 2019-03-24
+
+- **Break change** make number input not trigger completion.
+- **Break change** make none keywords character doesn't filter completion.
+- Add functions for check snippet state.
+- Add setting `diagnostic.checkCurrentLine`.
+- Fix `signature.target` not work.
+- Fix flick of signature window.
+- Fix EPIPE error of node-client.
+- Fix wrong root of FileWatchSysmtem.
+
+# 2019-03-19
+
+- **Break change** signature settings now starts `signature`.
+- **Break change** default request timeout changed to 5s.
+- **Break change** `commands.executeCommand` return promise.
+- Add `coc.preferences.signatureHelpTarget`.
+- Add `diagnostic.maxWindowHeight` & `signature.maxWindowHeight`.
+- Add `diagnostic.enableSign`.
+- Add support for `$COC_NO_PLUGINS`.
+- Add keymaps: `<Plug>(coc-float-hide)` and `<Plug>(coc-float-jump)`.
+- Add `coc.preferences.enableFloatHighlight`.
+- Fix issues with floating window.
+- Fix critical performance issue on diff text.
+- Improve color of `CocHighlightText`.
+- Improve sort of complete items.
+- Improve extention list with version and open action.
+
+# 2019-03-16
+
+- **Break change** change vim config home on windows to '\$HOME/vimfiles'.
+- Add highlights to float windows.
+- Add CocLocationsAsync().
+- Add support for `b:coc_suggest_disable`.
+- Add support for `b:coc_suggest_blacklist`.
+- Add setting `diagnostic.messageTarget`.
+- Add floating window support for signatures.
+- Fix issues with diagnostic float.
+- Fix info of completion item not shown.
+- Fix CocUpdateSync not work without service start.
+- Fix wrong indent spaces of snippets.
+
+# 2019-03-11
+
+- **Break change** change buffers instead of disk file for `workspace.applyEdits`.
+- **Break change** add config errors to diagnostic list instead of jump locations.
+- **Break change** hack for popup menu flicker is remvoed, use `suggest.reloadPumOnInsertChar` to enable it.
+- **Break change** use `nvim_select_popupmenu_item` for number select completion.
+- Add floating window for completion items.
+- Add floating window support for diagnostics.
+- Add floating window support for hover documentation.
+- Add `coc#on_enter()` for notify enter pressed.
+- Add setting `coc.preferences.useQuickfixForLocations`.
+- Add support of `g:coc_watch_extensions` for automatic reload extentions.
+- Add command: `editor.action.doCodeAction`.
+- Fix service on restarted on windows after rebuild.
+- Fix config of airline.
+- Fix relative path of watchman.
+- Improve Mru model.
+
+# 2019-03-03
+
+- **Break change** signature change of `workspace.registerKeymap`.
+- **Break change** `<esc>` of CocList can't be remapped any more.
+- **Break change** use `yarnpkg` command instead of `yarn` when possible.
+- **Break change** `noinsert` is removed from `completeopt` when `noselect` is
+  enabled, `<CR>` would break line by default.
+- Add setting `diagnostic.refreshAfterSave`.
+- Add chinese documentation.
+- Add support of multiple line placeholder.
+- Fix edit of nested snippet placeholders.
+- Fix possible infinite create of documents.
+- Fix check for resume completion.
+
+# 2019-02-25
+
+- **Break change** default of `suggest.detailMaxLength` changed to 100.
+- **Break change** option of `workspace.registerKeymap` changed.
+- Add settings: `suggest.defailField`.
+- Add check for autocmd in health check.
+- Add trigger patterns support for complete sources.
+- Add support of `coc-snippets-expand-jump`
+- Add `source` option for completion start.
+- Add `sources.createSource` method.
+
+# 2019-02-22
+
+- **Break change** some configurations have been renamed, checkout #462.
+- **Break change** no longer automatic trigger for CursorHoldI #452.
+- **Break change** add preview option of `completeopt` according to `suggest.enablePreview`.
+- Add statusItem for CocUpdate.
+- Add `-sycn` option for `:CocInstall`
+- Add support for floating preview window.
+- Add more module export.
+- Fix check of vim-node-rpc throw error.
+- Fix wrong line for TextEdit of complete item.
+- Fix diagnostics not cleared on service restart.
+
 # 2019-02-17
 
 - **Break change** completion resolve requires CompleteChanged autocmd.

@@ -1,13 +1,11 @@
-import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
-import { getCharCodes, fuzzyMatch } from '../util/fuzzy'
-import { byteSlice } from '../util/string'
-import { echoWarning, echoErr } from '../util'
 import { Neovim } from '@chemzqm/neovim'
-import { omit } from '../util/lodash'
+import { CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
-import { Chars } from '../model/chars'
+import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
+import { echoErr, echoWarning } from '../util'
+import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
+import { byteSlice, characterIndex } from '../util/string'
 import { matchScore } from './match'
-import { Position, CancellationTokenSource } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('completion-complete')
 
 export type Callback = () => void
@@ -81,7 +79,7 @@ export default class Complete {
           onFinished()
           reject(new Error('Cancelled request'))
         })
-        source.doComplete(opt, tokenSource.token).then(result => {
+        Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
           onFinished()
           resolve(result)
         }, err => {
@@ -138,7 +136,7 @@ export default class Complete {
     let now = Date.now()
     let { bufnr } = this.option
     let { snippetIndicator, fixInsertedWord } = this.config
-    let followPart = cid == 0 ? '' : this.getFollowPart()
+    let followPart = (!fixInsertedWord || cid == 0) ? '' : this.getFollowPart()
     if (results.length == 0) return []
     // max score of high priority source
     let maxScore = 0
@@ -150,9 +148,11 @@ export default class Complete {
     for (let i = 0, l = results.length; i < l; i++) {
       let res = results[i]
       let { items, source, priority } = res
-      for (let item of items) {
+      // tslint:disable-next-line: prefer-for-of
+      for (let idx = 0; idx < items.length; idx++) {
+        let item = items[idx]
         let { word } = item
-        if (words.has(word) && !item.dup) continue
+        if (!item.dup && words.has(word)) continue
         let filterText = item.filterText || item.word
         item.filterText = filterText
         if (filterText.length < input.length) continue
@@ -160,14 +160,15 @@ export default class Complete {
         if (input.length && score == 0) continue
         if (priority > 90) maxScore = Math.max(maxScore, score)
         if (maxScore > 5 && priority <= 10 && score < maxScore) continue
-        if (fixInsertedWord && followPart.length && !item.isSnippet) {
+        if (followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
             item.word = item.word.slice(0, - followPart.length)
           }
         }
         if (!item.user_data) {
           let user_data: any = { cid, source }
-          if (item.isSnippet && cid != 0) {
+          user_data.index = item.index || idx
+          if (item.isSnippet) {
             let abbr = item.abbr || item.word
             if (!abbr.endsWith(snippetIndicator)) {
               item.abbr = `${item.abbr || item.word}${snippetIndicator}`
@@ -188,33 +189,52 @@ export default class Complete {
           }
         }
         words.add(word)
-        if (item.isSnippet && item.word == input) {
-          preselect = item
-          continue
-        } else if (!filtering && item.preselect) {
-          preselect = item
-          continue
+        if (!preselect) {
+          if (item.isSnippet && item.word == input) {
+            preselect = item
+            continue
+          } else if (!filtering && item.preselect) {
+            preselect = item
+            continue
+          }
         }
-        if (filtering && item.sortText && input.length > 1) {
-          arr.push(omit(item, ['sortText']))
-        } else {
-          arr.push(item)
-        }
+        arr.push(item)
       }
     }
     arr.sort((a, b) => {
       let sa = a.sortText
       let sb = b.sortText
-      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
+      let wa = a.filterText
+      let wb = b.filterText
       if (a.score != b.score) return b.score - a.score
       if (a.priority != b.priority) return b.priority - a.priority
+      if (wa.startsWith(wb)) return 1
+      if (wb.startsWith(wa)) return -1
+      if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
       if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
       return a.filterText.length - b.filterText.length
     })
     let items = arr.slice(0, this.config.maxItemCount)
     if (preselect) items.unshift(preselect)
-    return items.map(o => omit(o, ['sortText', 'score', 'priority', 'recentScore', 'filterText', 'signature', 'localBonus']))
+    return this.limitCompleteItems(items)
+  }
+
+  private limitCompleteItems(items: VimCompleteItem[]): VimCompleteItem[] {
+    let { highPrioritySourceLimit, lowPrioritySourceLimit } = this.config
+    if (!highPrioritySourceLimit && !lowPrioritySourceLimit) return items
+    let counts: Map<string, number> = new Map()
+    return items.filter(item => {
+      let { priority, source } = item
+      let isLow = priority < 90
+      let curr = counts.get(source) || 0
+      if ((lowPrioritySourceLimit && isLow && curr == lowPrioritySourceLimit)
+        || (highPrioritySourceLimit && !isLow && curr == highPrioritySourceLimit)) {
+        return false
+      }
+      counts.set(source, curr + 1)
+      return true
+    })
   }
 
   public hasMatch(input: string): boolean {
@@ -259,11 +279,24 @@ export default class Complete {
     return this.filterResults(opts.input, Math.floor(Date.now() / 1000))
   }
 
+  public resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null {
+    let { results } = this
+    if (!results || !item.user_data) return null
+    try {
+      let { source } = JSON.parse(item.user_data)
+      let result = results.find(res => res.source == source)
+      return result.items.find(o => o.user_data == item.user_data)
+    } catch (e) {
+      return null
+    }
+  }
+
   private getFollowPart(): string {
-    let { fixInsertedWord } = this.config
     let { colnr, line } = this.option
-    if (!fixInsertedWord) return ''
-    return Chars.getContentAfterCharacter(line, colnr - 1)
+    let idx = characterIndex(line, colnr - 1)
+    if (idx == line.length) return ''
+    let part = line.slice(idx - line.length)
+    return part.match(/^\S?[\w\-]*/)[0]
   }
 
   public cancel(): void {

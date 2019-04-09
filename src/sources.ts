@@ -2,16 +2,23 @@ import fastDiff from 'fast-diff'
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import path from 'path'
-import pify from 'pify'
-import { Disposable } from 'vscode-jsonrpc'
+import util from 'util'
+import { Disposable, CancellationToken } from 'vscode-jsonrpc'
 import events from './events'
 import extensions from './extensions'
+import Source from './model/source'
 import VimSource from './model/source-vim'
 import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem } from './types'
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
+import { byteSlice } from './util/string'
 const logger = require('./util/logger')('sources')
+
+type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+
+// priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
+type ReadonlyProps = 'priority' | 'sourceType' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes' | 'firstMatch'
 
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
@@ -24,9 +31,9 @@ export class Sources {
 
   private async createNativeSources(): Promise<void> {
     try {
-      this.disposables.push((await import('./source/around')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/buffer')).regist(this.sourceMap))
-      this.disposables.push((await import('./source/file')).regist(this.sourceMap))
+      this.disposables.push((require('./source/around')).regist(this.sourceMap))
+      this.disposables.push((require('./source/buffer')).regist(this.sourceMap))
+      this.disposables.push((require('./source/file')).regist(this.sourceMap))
     } catch (e) {
       console.error('Create source error:' + e.message) // tslint:disable-line
     }
@@ -114,9 +121,8 @@ export class Sources {
   }
 
   private async createRemoteSources(): Promise<void> {
-    let { nvim } = this
-    let runtimepath = await nvim.eval('&runtimepath')
-    let paths = (runtimepath as string).split(',')
+    let { runtimepath } = workspace.env
+    let paths = runtimepath.split(',')
     for (let path of paths) {
       await this.createVimSources(path)
     }
@@ -128,7 +134,7 @@ export class Sources {
     let folder = path.join(pluginPath, 'autoload/coc/source')
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
-      let arr = await pify(fs.readdir)(folder)
+      let arr = await util.promisify(fs.readdir)(folder)
       arr = arr.filter(s => s.slice(-4) == '.vim')
       let files = arr.map(s => path.join(folder, s))
       if (files.length == 0) return
@@ -172,14 +178,14 @@ export class Sources {
     return this.sourceMap.get(name) || null
   }
 
-  public async doCompleteResolve(item: VimCompleteItem): Promise<void> {
-    try {
-      let source = this.getSource(item.source)
-      if (source && typeof source.onCompleteResolve == 'function') {
-        await source.onCompleteResolve(item)
+  public async doCompleteResolve(item: VimCompleteItem, token: CancellationToken): Promise<void> {
+    let source = this.getSource(item.source)
+    if (source && typeof source.onCompleteResolve == 'function') {
+      try {
+        await source.onCompleteResolve(item, token)
+      } catch (e) {
+        logger.error('Error on complete resolve:', e.stack)
       }
-    } catch (e) {
-      logger.error('Error on complete resolve:', e.stack)
     }
   }
 
@@ -201,38 +207,33 @@ export class Sources {
   }
 
   public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
-    let { triggerCharacter, filetype } = opt
-    if (isTriggered) {
-      return this.getTriggerSources(triggerCharacter, filetype)
-    }
+    let { filetype } = opt
+    let pre = byteSlice(opt.line, 0, opt.col)
+    if (isTriggered) return this.getTriggerSources(pre, filetype)
     return this.getSourcesForFiletype(filetype)
   }
 
-  public shouldTrigger(character: string, languageId: string): boolean {
+  public shouldTrigger(pre: string, languageId: string): boolean {
+    if (pre.length == 0) return false
+    let last = pre[pre.length - 1]
     let idx = this.sources.findIndex(s => {
-      let { enable, triggerCharacters, filetypes } = s
+      let { enable, triggerCharacters, triggerPatterns, filetypes } = s
       if (!enable) return false
-      if (filetypes && filetypes.indexOf(languageId) == -1) return false
-      return triggerCharacters && triggerCharacters.indexOf(character) !== -1
+      if ((filetypes && filetypes.indexOf(languageId) == -1)) return false
+      if (triggerCharacters) return triggerCharacters.indexOf(last) !== -1
+      if (triggerPatterns) return triggerPatterns.findIndex(p => p.test(pre)) !== -1
+      return false
     })
     return idx !== -1
   }
 
-  public getTriggerCharacters(languageId: string): Set<string> {
-    let res: Set<string> = new Set()
+  public getTriggerSources(pre: string, languageId: string): ISource[] {
     let sources = this.getSourcesForFiletype(languageId)
-    for (let s of sources) {
-      for (let c of s.triggerCharacters) {
-        res.add(c)
-      }
-    }
-    return res
-  }
-
-  public getTriggerSources(character: string, languageId: string): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId)
+    let character = pre[pre.length - 1]
     return sources.filter(o => {
-      return o.triggerCharacters.indexOf(character) !== -1
+      if (o.triggerCharacters && o.triggerCharacters.indexOf(character) !== -1) return true
+      if (o.triggerPatterns && o.triggerPatterns.findIndex(p => p.test(pre)) !== -1) return true
+      return false
     })
   }
 
@@ -246,16 +247,19 @@ export class Sources {
     })
   }
 
-  public addSource(source: ISource): void {
+  public addSource(source: ISource): Disposable {
     let { name } = source
     if (this.names.indexOf(name) !== -1) {
       workspace.showMessage(`Source "${name}" recreated`, 'warning')
     }
     this.sourceMap.set(name, source)
+    return Disposable.create(() => {
+      this.sourceMap.delete(name)
+    })
   }
 
-  public removeSource(source: ISource): void {
-    let { name } = source
+  public removeSource(source: ISource | string): void {
+    let name = typeof source == 'string' ? source : source.name
     if (source == this.sourceMap.get(name)) {
       this.sourceMap.delete(name)
     }
@@ -286,6 +290,7 @@ export class Sources {
     for (let item of items) {
       res.push({
         name: item.name,
+        filetypes: item.filetypes || [],
         filepath: item.filepath || '',
         type: item.sourceType == SourceType.Native
           ? 'native' : item.sourceType == SourceType.Remote
@@ -304,6 +309,12 @@ export class Sources {
         s.onEnter(bufnr)
       }
     }
+  }
+
+  public createSource(config: Omit<ISource, ReadonlyProps>): Disposable {
+    let source = new Source({ name: config.name, sourceType: SourceType.Remote })
+    Object.assign(source, config)
+    return this.addSource(source)
   }
 
   public dispose(): void {

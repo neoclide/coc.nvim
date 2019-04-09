@@ -1,6 +1,6 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
 import { equals } from '../util/object'
-import { getChangedPosition, rangeInRange, comparePosition } from '../util/position'
+import { getChangedPosition, rangeInRange, comparePosition, adjustPosition, editRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -27,8 +27,8 @@ export class CocSnippet {
     private position: Position,
     private _variableResolver?: VariableResolver) {
     const snippet = this._parser.parse(this._snippetString, true)
-    if (this._variableResolver) {
-      snippet.resolveVariables(this._variableResolver)
+    if (_variableResolver) {
+      snippet.resolveVariables(_variableResolver)
     }
     this.tmSnippet = snippet
     this.update()
@@ -62,10 +62,11 @@ export class CocSnippet {
 
   public get range(): Range {
     let { position } = this
-    let content = this.toString()
+    const content = this.tmSnippet.toString()
     const doc = TextDocument.create('untitled:/1', 'snippet', 0, content)
-    let pos = doc.positionAt(content.length)
-    return Range.create(position, Position.create(position.line + pos.line, position.character + pos.character))
+    const pos = doc.positionAt(content.length)
+    const end = pos.line == 0 ? position.character + pos.character : pos.character
+    return Range.create(position, Position.create(position.line + pos.line, end))
   }
 
   public get firstPlaceholder(): CocSnippetPlaceholder | null {
@@ -127,30 +128,18 @@ export class CocSnippet {
   // update internal positions, no change of buffer
   // return TextEdit list when needed
   public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] {
-    let { range } = edit
-    let { start, end } = range
-    let pRange = placeholder.range
-    let { value, index, id } = placeholder
-    let endPart = pRange.end.character > end.character ? value.slice(end.character - pRange.end.character) : ''
-    let newText = `${value.slice(0, start.character - pRange.start.character)}${edit.newText}${endPart}`
-    // update with current change
-    this.setPlaceholderValue(id, newText)
-    let placeholders = this._placeholders.filter(o => o.index == index && o.id != id)
-    if (!placeholders.length) return []
-    let edits: TextEdit[] = []
-    // update with others
-    placeholders.forEach(p => {
-      let { range, value } = p
-      let text = this.tmSnippet.updatePlaceholder(p.id, newText)
-      if (text != value) {
-        edits.push({
-          range,
-          newText: text
-        })
-      }
-    })
+    let { start, end } = edit.range
+    let { range } = this
+    let { value, id } = placeholder
+    let newText = editRange(placeholder.range, value, edit)
+    this.tmSnippet.updatePlaceholder(id, newText)
+    let endPosition = adjustPosition(range.end, edit)
+    let snippetEdit: TextEdit = {
+      range: Range.create(range.start, endPosition),
+      newText: this.tmSnippet.toString()
+    }
     this.update()
-    return edits
+    return [snippetEdit]
   }
 
   private update(): void {
@@ -167,10 +156,11 @@ export class CocSnippet {
         character: position.line == 0 ? character + position.character : position.character
       }
       const value = p.toString()
+      const lines = value.split('\n')
       let res: CocSnippetPlaceholder = {
         range: Range.create(start, {
-          line: start.line,
-          character: start.character + value.length
+          line: start.line + lines.length - 1,
+          character: lines.length == 1 ? start.character + value.length : lines[lines.length - 1].length
         }),
         transform: p.transform != null,
         line: start.line,
@@ -191,10 +181,5 @@ export class CocSnippet {
       }
       return res
     })
-  }
-
-  private setPlaceholderValue(id: number, val: string): void {
-    this.tmSnippet.updatePlaceholder(id, val)
-    this.update()
   }
 }

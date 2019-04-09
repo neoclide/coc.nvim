@@ -6,7 +6,10 @@ import { equals } from '../util/object'
 import fs from 'fs'
 import Uri from 'vscode-uri'
 import path from 'path'
-const isPkg = process.hasOwnProperty('pkg')
+const logger = require('../util/logger')('configuration-util')
+declare var __webpack_require__: any
+const isWebpack = typeof __webpack_require__ === "function"
+const pluginRoot = isWebpack ? path.dirname(__dirname) : path.resolve(__dirname, '../..')
 
 export type ShowError = (errors: ErrorItem[]) => void
 
@@ -72,7 +75,7 @@ export function convertErrors(uri: string, content: string, errors: ParseError[]
         msg = 'close brace expected'
         break
       case 5:
-        msg = 'colon expeted'
+        msg = 'colon expected'
         break
       case 6:
         msg = 'comma expected'
@@ -211,8 +214,7 @@ export function getConfigurationValue<T>(
 }
 
 export function loadDefaultConfigurations(): IConfigurationModel {
-  let root = isPkg ? path.resolve(process.execPath, '../..') : path.resolve(__dirname, '../..')
-  let file = path.join(root, 'data/schema.json')
+  let file = path.join(pluginRoot, 'data/schema.json')
   if (!fs.existsSync(file)) {
     console.error('schema.json not found, reinstall coc.nvim to fix this!') // tslint:disable-line
     return { contents: {} }

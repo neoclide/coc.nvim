@@ -1,6 +1,6 @@
 import { attach, Neovim } from '@chemzqm/neovim'
-import path from 'path'
-import cp, { exec } from 'child_process'
+import path, { dirname } from 'path'
+import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import { Disposable } from 'vscode-languageserver-protocol'
@@ -53,19 +53,12 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
   nvim.callTimer('coc#util#echo_messages', [hl, msg.split('\n')], true)
 }
 
-export function getUri(bufname: string, id: number, buftype: string): string {
-  if (buftype == 'quickfix') return Uri.parse(`quickfix:${process.cwd()}/${id}`).toString()
-  if (buftype == 'nofile') return Uri.parse(`nofile:${bufname}/${id}`).toString()
-  if (buftype == 'terminal') {
-    if (bufname.startsWith('!')) {
-      return Uri.parse(`term://${bufname.slice(1)}`).toString()
-    }
-    return Uri.parse(bufname).toString()
-  }
-  if (!bufname) return Uri.parse(`untitled:${process.cwd()}/${id}`).toString()
-  if (path.isAbsolute(bufname)) return Uri.file(bufname).toString()
-  if (isuri.isValid(bufname)) return Uri.parse(bufname).toString()
-  return Uri.parse(`nofile:${bufname}/${id}`).toString()
+export function getUri(fullpath: string, id: number, buftype: string): string {
+  if (buftype != '') return `${buftype}:${id}`
+  if (!fullpath) return `untitled:${id}`
+  if (path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
+  if (isuri.isValid(fullpath)) return Uri.parse(fullpath).toString()
+  return `unknown:${id}`
 }
 
 export function disposeAll(disposables: Disposable[]): void {
@@ -94,7 +87,7 @@ export function createNvim(): Neovim {
   return attach({ proc })
 }
 
-export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<string> {
+export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer
     if (timeout) {
@@ -102,10 +95,10 @@ export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<
         reject(new Error(`timeout after ${timeout}s`))
       }, timeout * 1000)
     }
-    exec(cmd, { cwd }, (err, stdout) => {
+    exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
       if (err) {
-        reject(new Error(`exited with ${err.code}`))
+        reject(new Error(`exited with ${err.code}\n${stderr}`))
         return
       }
       resolve(stdout)
@@ -115,16 +108,22 @@ export function runCommand(cmd: string, cwd: string, timeout?: number): Promise<
 
 export function watchFile(filepath: string, onChange: () => void): Disposable {
   let callback = debounce(onChange, 100)
-  let watcher = fs.watch(filepath, {
-    persistent: true,
-    recursive: false,
-    encoding: 'utf8'
-  }, () => {
-    callback()
-  })
-  return Disposable.create(() => {
-    watcher.close()
-  })
+  try {
+    let watcher = fs.watch(filepath, {
+      persistent: true,
+      recursive: false,
+      encoding: 'utf8'
+    }, () => {
+      callback()
+    })
+    return Disposable.create(() => {
+      watcher.close()
+    })
+  } catch (e) {
+    return Disposable.create(() => {
+      // noop
+    })
+  }
 }
 
 export function isRunning(pid: number): boolean {
@@ -142,4 +141,46 @@ export function getKeymapModifier(mode: MapMode): string {
   if (mode == 'i') return '<C-o>'
   if (mode == 's' || mode == 'x') return '<Esc>'
   return ''
+}
+
+export async function mkdirp(path: string, mode?: number): Promise<boolean> {
+  const mkdir = async () => {
+    try {
+      await nfcall(fs.mkdir, path, mode)
+    } catch (err) {
+      if (err.code === 'EEXIST') {
+        const stat = await nfcall<fs.Stats>(fs.stat, path)
+
+        if (stat.isDirectory) {
+          return
+        }
+
+        throw new Error(`'${path}' exists and is not a directory.`)
+      }
+
+      throw err
+    }
+  }
+
+  // is root?
+  if (path === dirname(path)) {
+    return true
+  }
+
+  try {
+    await mkdir()
+  } catch (err) {
+    if (err.code !== 'ENOENT') {
+      throw err
+    }
+
+    await mkdirp(dirname(path), mode)
+    await mkdir()
+  }
+
+  return true
+}
+
+export function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
+  return new Promise<R>((c, e) => fn(...args, (err: any, r: any) => err ? e(err) : c(r)))
 }

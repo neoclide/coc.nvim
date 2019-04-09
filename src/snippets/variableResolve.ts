@@ -1,7 +1,6 @@
 import * as path from "path"
 import workspace from '../workspace'
 import Uri from 'vscode-uri'
-
 import { Variable, VariableResolver } from "./parser"
 import { Neovim } from '@chemzqm/neovim'
 import Document from '../model/document'
@@ -22,8 +21,9 @@ export class SnippetVariableResolver implements VariableResolver {
     let cword = await this.nvim.call('expand', '<cword>')
     let selected = await this.nvim.getVar('coc_selected_text') as string
     let clipboard = await this.nvim.call('getreg', '+')
-    await this.nvim.setVar('coc_selected_text', '')
+    let yank = await this.nvim.call('getreg', '"')
     Object.assign(this._variableToValue, {
+      YANK: yank || undefined,
       CLIPBOARD: clipboard || undefined,
       TM_CURRENT_LINE: line,
       TM_SELECTED_TEXT: selected || undefined,

@@ -4,9 +4,13 @@ import * as path from 'path'
 import * as vm from 'vm'
 import { ExtensionContext } from '../types'
 import workspace from '../workspace'
-import { defaults, omit } from './lodash'
+import { defaults } from './lodash'
 const createLogger = require('./logger')
 const logger = createLogger('util-factoroy')
+
+declare var __webpack_require__: any
+declare var __non_webpack_require__: any
+const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require
 
 export interface ExtensionExport {
   activate: (context: ExtensionContext) => any
@@ -34,11 +38,9 @@ const REMOVED_GLOBALS = [
   'setuid',
   'setgid',
   'setgroups',
-  '_kill',
-  'EventEmitter',
-  '_maxListeners',
   '_fatalException',
-  'exit', 'kill',
+  'exit',
+  'kill',
 ]
 
 function removedGlobalStub(name: string): Function {
@@ -51,7 +53,7 @@ function removedGlobalStub(name: string): Function {
 function makeRequireFunction(this: any): any {
   const req: any = (p: string) => {
     if (p === 'coc.nvim') {
-      return require('../')
+      return require('../index')
     }
     return this.require(p)
   }
@@ -84,6 +86,9 @@ export interface ISandbox {
   module: NodeModule
   require: (p: string) => any
   console: { [key in keyof Console]?: Function }
+  Reflect: any
+  String: any
+  Promise: any
 }
 
 function createSandbox(filename: string, logger: Logger): ISandbox {
@@ -109,6 +114,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
   }) as ISandbox
 
   defaults(sandbox, global)
+  sandbox.Reflect = Reflect
 
   sandbox.require = function sandboxRequire(p): any {
     const oldCompile = Module.prototype._compile
@@ -120,7 +126,10 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 
   // patch `require` in sandbox to run loaded module in sandbox context
   // if you need any of these, it might be worth discussing spawning separate processes
-  sandbox.process = omit<NodeJS.Process>(process, REMOVED_GLOBALS)
+  sandbox.process = new (process as any).constructor()
+  for (let key of Object.keys(process)) {
+    sandbox.process[key] = process[key]
+  }
 
   REMOVED_GLOBALS.forEach(name => {
     sandbox.process[name] = removedGlobalStub(name)
@@ -146,7 +155,7 @@ export function createExtension(id: string, filename: string): ExtensionExport {
   try {
     const sandbox = createSandbox(filename, createLogger(`extension-${id}`))
 
-    delete Module._cache[require.resolve(filename)]
+    delete Module._cache[requireFunc.resolve(filename)]
 
     // attempt to import plugin
     // Require plugin to export activate & deactivate

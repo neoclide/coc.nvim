@@ -3,12 +3,16 @@ import { Neovim } from '@chemzqm/neovim'
 import { DiagnosticBuffer } from '../../diagnostic/buffer'
 import { DiagnosticConfig } from '../../diagnostic/manager'
 import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
-import { DiagnosticItems } from '../../types'
 import { wait } from '../../util'
 
 let nvim: Neovim
 const config: DiagnosticConfig = {
+  joinMessageLines: false,
+  checkCurrentLine: false,
+  enableSign: true,
+  maxWindowHeight: 8,
   enableMessage: 'always',
+  messageTarget: 'echo',
   refreshOnInsertMode: false,
   virtualTextSrcId: 0,
   virtualText: false,
@@ -23,6 +27,7 @@ const config: DiagnosticConfig = {
   errorSign: '>>',
   warningSign: '>>',
   infoSign: '>>',
+  refreshAfterSave: false,
   hintSign: '>>'
 }
 
@@ -33,7 +38,7 @@ async function createDiagnosticBuffer(): Promise<DiagnosticBuffer> {
 
 function createDiagnostic(msg: string, range?: Range, severity?: DiagnosticSeverity): Diagnostic {
   range = range ? range : Range.create(0, 0, 0, 1)
-  return Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error)
+  return Diagnostic.create(range, msg, severity || DiagnosticSeverity.Error, 999, 'test')
 }
 
 beforeAll(async () => {
@@ -55,7 +60,7 @@ describe('diagnostic buffer', () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    await buf.setLocationlist([diagnostic], winid)
+    buf.setLocationlist([diagnostic], winid)
     let curr = await nvim.call('getloclist', [winid, { title: 1 }])
     expect(curr.title).toBe('Diagnostics of coc')
   })
@@ -115,9 +120,7 @@ describe('diagnostic buffer', () => {
   it('should clear all diagnostics', async () => {
     let diagnostic = createDiagnostic('foo')
     let buf = await createDiagnosticBuffer()
-    let diagnostics: DiagnosticItems = {
-      test: [diagnostic]
-    }
+    let diagnostics = [diagnostic]
     buf.refresh(diagnostics)
     await helper.wait(100)
     await buf.clear()

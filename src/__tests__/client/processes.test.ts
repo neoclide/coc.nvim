@@ -1,4 +1,4 @@
-import { terminate } from '../../language-client/utils/processes'
+import { terminate } from '../../util/processes'
 import { spawn } from 'child_process'
 
 describe('terminate', () => {

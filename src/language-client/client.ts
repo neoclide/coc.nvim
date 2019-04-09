@@ -24,6 +24,7 @@ import { Delayer } from './utils/async'
 import * as cv from './utils/converter'
 import * as UUID from './utils/uuid'
 import { WorkspaceFolderWorkspaceMiddleware } from './workspaceFolders'
+import { SelectionRangeProviderMiddleware } from './selectionRange'
 
 const logger = require('../util/logger')('language-client-client')
 
@@ -634,13 +635,15 @@ export type Middleware = _Middleware &
   ImplementationMiddleware &
   ColorProviderMiddleware &
   DeclarationMiddleware &
-  FoldingRangeProviderMiddleware
+  FoldingRangeProviderMiddleware &
+  SelectionRangeProviderMiddleware
 
 export interface LanguageClientOptions {
   ignoredRootPaths?: string[]
   documentSelector?: DocumentSelector | string[]
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
+  disableWorkspaceFolders?: boolean
   outputChannelName?: string
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
@@ -658,6 +661,7 @@ export interface LanguageClientOptions {
 
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
+  disableWorkspaceFolders?: boolean
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -1193,7 +1197,9 @@ class DidChangeTextDocumentFeature
     if (event.contentChanges.length === 0) {
       return
     }
-    let { textDocument } = workspace.getDocument(event.textDocument.uri)
+    let doc = workspace.getDocument(event.textDocument.uri)
+    if (!doc) return
+    let { textDocument } = doc
     for (const changeData of this._changeData.values()) {
       if (workspace.match(changeData.documentSelector, textDocument) > 0) {
         let middleware = this._client.clientOptions.middleware!
@@ -1344,7 +1350,8 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
           .then(edits => {
             return edits ? edits : []
           }, e => {
-            workspace.showMessage(`Error on willSaveWaitUntil: ${e.message}`, 'error')
+            workspace.showMessage(`Error on willSaveWaitUntil: ${e}`, 'error')
+            logger.error(e)
             return []
           })
       }
@@ -3111,6 +3118,7 @@ export abstract class BaseLanguageClient {
     this._name = name
     clientOptions = clientOptions || {}
     this._clientOptions = {
+      disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
@@ -3513,7 +3521,7 @@ export abstract class BaseLanguageClient {
           }
           let items = params.actions.map(o => o.title)
           return workspace.showQuickpick(items, params.message).then(idx => {
-            return items[idx]
+            return params.actions[idx]
           })
         })
         connection.onTelemetry(_data => {
@@ -3541,44 +3549,43 @@ export abstract class BaseLanguageClient {
     return this._connectionPromise
   }
 
+  private resolveRootPath(): string | null {
+    if (this._clientOptions.workspaceFolder) {
+      return Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+    }
+    let { ignoredRootPaths } = this._clientOptions
+    let config = workspace.getConfiguration(this.id)
+    let rootPatterns = config.get<string[]>('rootPatterns', [])
+    let required = config.get<boolean>('requireRootPattern', false)
+    let resolved: string
+    if (rootPatterns && rootPatterns.length) {
+      let doc = workspace.getDocument(workspace.bufnr)
+      if (doc && doc.schema == 'file') {
+        let dir = path.dirname(Uri.parse(doc.uri).fsPath)
+        resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
+      }
+    }
+    if (required && !resolved) return null
+    let rootPath = resolved || workspace.rootPath || workspace.cwd
+    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
+      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
+      return null
+    }
+    return rootPath
+  }
+
   private initialize(connection: IConnection): Thenable<InitializeResult> {
     this.refreshTrace(connection, false)
     let initOption = this._clientOptions.initializationOptions
-    let rootPath = workspace.rootPath
-    if (this._clientOptions.workspaceFolder) {
-      rootPath = Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
-    } else {
-      let config = workspace.getConfiguration(this.id)
-      let rootPatterns = config.get<string[]>('rootPatterns', [])
-      let required = config.get<boolean>('requireRootPattern', false)
-      let resolved: string
-      if (rootPatterns && rootPatterns.length) {
-        let doc = workspace.getDocument(workspace.bufnr)
-        if (doc && doc.schema == 'file') {
-          let dir = path.dirname(Uri.parse(doc.uri).fsPath)
-          resolved = resolveRoot(dir, rootPatterns)
-        }
-      }
-      if (resolved) rootPath = resolved
-      if (required && !resolved) {
-        logger.info(`No root pattern found for ${this.id}`, rootPatterns)
-        return
-      }
-    }
-    let { ignoredRootPaths } = this._clientOptions
-    if (ignoredRootPaths && ignoredRootPaths.indexOf(rootPath) !== -1) {
-      workspace.showMessage(`Ignored rootPath ${rootPath} of client "${this._id}"`, 'warning')
-      return
-    }
-
-    let initParams: InitializeParams = {
+    let rootPath = this.resolveRootPath()
+    if (!rootPath) return
+    let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
       rootUri: rootPath ? cv.asUri(Uri.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),
-      workspaceFolders: [workspace.workspaceFolder]
     }
     this.fillInitializeParams(initParams)
     return connection

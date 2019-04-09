@@ -1,6 +1,7 @@
 import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
 import URI from 'vscode-uri'
+import { emptyRange } from '../util/position'
 const logger = require('../util/logger')('diagnostic-collection')
 
 export default class Collection implements DiagnosticCollection {
@@ -26,11 +27,12 @@ export default class Collection implements DiagnosticCollection {
       for (let item of entries) {
         let [file, diagnostics] = item
         let exists = map.get(file) || []
-        if (diagnostics) {
+        if (diagnostics != null) {
           for (let diagnostic of diagnostics) {
-            diagnostic.source = diagnostic.source || this.name
             exists.push(diagnostic)
           }
+        } else {
+          exists = []
         }
         map.set(file, exists)
       }
@@ -41,6 +43,17 @@ export default class Collection implements DiagnosticCollection {
     }
     let uri = entries
     uri = URI.parse(uri).toString()
+    if (diagnostics) {
+      diagnostics.forEach(o => {
+        if (emptyRange(o.range)) {
+          o.range.end = {
+            line: o.range.end.line,
+            character: o.range.end.character + 1
+          }
+        }
+        o.source = o.source || this.name
+      })
+    }
     this.diagnosticsMap.set(uri, diagnostics || [])
     this._onDidDiagnosticsChange.fire(uri)
     return
@@ -52,9 +65,9 @@ export default class Collection implements DiagnosticCollection {
   }
 
   public clear(): void {
-    let uris = this.diagnosticsMap.keys()
+    let uris = Array.from(this.diagnosticsMap.keys())
     this.diagnosticsMap.clear()
-    this._onDidDiagnosticsClear.fire(Array.from(uris))
+    this._onDidDiagnosticsClear.fire(uris)
   }
 
   public forEach(callback: (uri: string, diagnostics: Diagnostic[], collection: DiagnosticCollection) => any, thisArg?: any): void {

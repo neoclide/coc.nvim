@@ -1,11 +1,27 @@
 /* tslint:disable:no-console */
+import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
+import rimraf from 'rimraf'
 import Uri from 'vscode-uri'
+import os from 'os'
+import { mkdirp } from '../../util'
 import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { getHiglights } from '../../util/highlight'
 import { score } from '../../util/match'
 import { mixin } from '../../util/object'
-import { indexOf } from '../../util/string'
+import { indexOf, resolveVariables } from '../../util/string'
+import helper from '../helper'
+
+let nvim: Neovim
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+})
+
+afterAll(async () => {
+  await helper.shutdown()
+})
 
 describe('score test', () => {
   test('should match schema', () => {
@@ -15,10 +31,25 @@ describe('score test', () => {
   })
 })
 
+describe('mkdirp', () => {
+  test('should mkdirp', async () => {
+    let dir = path.join(__dirname, 'a/b/c')
+    let res = await mkdirp(dir)
+    expect(res).toBe(true)
+    rimraf.sync(path.join(__dirname, 'a'))
+  })
+})
+
 describe('string test', () => {
   test('should find index', () => {
     expect(indexOf('a,b,c', ',', 2)).toBe(3)
     expect(indexOf('a,b,c', ',', 1)).toBe(1)
+  })
+
+  test('resolve variables', async () => {
+    let res = resolveVariables('${workspace}/foo', { workspace: '/home' })
+    expect(res).toBe('/home/foo')
+    expect(resolveVariables('${x}', {})).toBe('${x}')
   })
 })
 
@@ -80,7 +111,31 @@ describe('object test', () => {
 
 describe('resolveRoot', () => {
   test('resolve root consider root path', () => {
-    let res = resolveRoot('/usr', ['.git'])
-    expect(res).toBe('/usr')
+    let res = resolveRoot(__dirname, ['.git'])
+    expect(res).toMatch('coc.nvim')
+  })
+
+  test('should resolve from parent folders', () => {
+    let root = path.resolve(__dirname, '../extensions/snippet-sample')
+    let res = resolveRoot(root, ['package.json'])
+    expect(res.endsWith('coc.nvim')).toBe(true)
+  })
+
+  test('should not resolve to home', () => {
+    let res = resolveRoot(__dirname, ['.config'])
+    expect(res != os.homedir()).toBeTruthy()
+  })
+})
+
+describe('getHiglights', () => {
+  test('getHiglights', async () => {
+    let res = await getHiglights([
+      '*@param* `buffer`'
+    ], 'markdown')
+    expect(res.length > 0).toBe(true)
+    for (let filetype of ['Error', 'Warning', 'Info', 'Hint']) {
+      let res = await getHiglights(['foo'], filetype)
+      expect(res.length > 0).toBe(true)
+    }
   })
 })

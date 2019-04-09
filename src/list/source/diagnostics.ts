@@ -34,6 +34,8 @@ export default class DiagnosticsList extends LocationList {
     nvim.command('highlight default link CocDiagnosticsWarning CocWarningSign', true)
     nvim.command('highlight default link CocDiagnosticsInfo CocInfoSign', true)
     nvim.command('highlight default link CocDiagnosticsHint CocHintSign', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 }

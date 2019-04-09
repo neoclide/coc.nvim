@@ -49,81 +49,33 @@ export function diffLines(from: string, to: string): ChangedLines {
 }
 
 export function getChange(oldStr: string, newStr: string): Change {
-  let result = fastDiff(oldStr, newStr, 1)
-  let curr = 0
-  let start = -1
-  let end = -1
+  let start = 0
+  let ol = oldStr.length
+  let nl = newStr.length
+  let max = Math.min(ol, nl)
   let newText = ''
-  let remain = ''
-  for (let item of result) {
-    let [t, str] = item
-    // equal
-    if (t == 0) {
-      curr = curr + str.length
-      if (start != -1) remain = remain + str
-    } else {
-      if (start == -1) start = curr
-      if (t == 1) {
-        newText = newText + remain + str
-        end = curr
-      } else {
-        newText = newText + remain
-        end = curr + str.length
+  let endOffset = 0
+  for (let i = 0; i <= max; i++) {
+    if (oldStr[ol - i - 1] != newStr[nl - i - 1]) {
+      endOffset = i
+      break
+    }
+    if (i == max) return null
+  }
+  max = max - endOffset
+  if (max == 0) {
+    start = 0
+  } else {
+    for (let i = 0; i <= max; i++) {
+      if (oldStr[i] != newStr[i] || i == max) {
+        start = i
+        break
       }
-      remain = ''
-      if (t == -1) curr = curr + str.length
     }
   }
+  let end = ol - endOffset
+  newText = newStr.slice(start, nl - endOffset)
   return { start, end, newText }
-}
-
-export function getContentChanges(document: TextDocument, content: string): TextDocumentContentChangeEvent[] {
-  let result = fastDiff(document.getText(), content)
-  let curr = 0
-  let edits: TextDocumentContentChangeEvent[] = []
-  for (let i = 0; i < result.length; i++) {
-    let item = result[i]
-    let [type, content] = item
-    if (type == fastDiff.EQUAL) {
-      curr += content.length
-      continue
-    }
-    if (type == fastDiff.DELETE) {
-      let next = result[i + 1]
-      let range: Range = {
-        start: document.positionAt(curr),
-        end: document.positionAt(curr + content.length)
-      }
-      curr += content.length
-      if (!next || next[0] == fastDiff.EQUAL) {
-        edits.push({
-          range,
-          rangeLength: content.length,
-          text: ''
-        })
-      } else {
-        // replace
-        i = i + 1
-        edits.push({
-          range,
-          rangeLength: content.length,
-          text: next[1]
-        })
-      }
-    } else {
-      // add
-      let range: Range = {
-        start: document.positionAt(curr),
-        end: document.positionAt(curr)
-      }
-      edits.push({
-        range,
-        rangeLength: 0,
-        text: content
-      })
-    }
-  }
-  return edits
 }
 
 export function patchLine(from: string, to: string, fill = ' '): string {

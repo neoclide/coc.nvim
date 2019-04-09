@@ -2,10 +2,9 @@ import { Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { ColorInformation, Disposable, Position } from 'vscode-languageserver-protocol'
 import events from '../events'
-import extensions from '../extensions'
 import languages from '../languages'
 import Document from '../model/document'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
@@ -25,20 +24,21 @@ export default class Colors {
         logger.error('highlight error:', e.stack)
       })
     }, 100)
-
-    extensions.onReady(async () => {
-      await wait(400)
-      await this.init()
-    })
+    this.init()
   }
 
-  private async init(): Promise<void> {
+  private init(): void {
     let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
-    let srcId = await workspace.createNameSpace('coc-colors')
-    if (srcId) this.srcId = srcId
-    this._highlightCurrent()
+    this.srcId = workspace.createNameSpace('coc-colors')
+    let timer = setTimeout(async () => {
+      // wait for extensions
+      await this._highlightCurrent()
+    }, 2000)
+    this.disposables.push(Disposable.create(() => {
+      clearTimeout(timer)
+    }))
 
     events.on('BufEnter', async () => {
       if (!global.hasOwnProperty('__TEST__')) {
@@ -47,7 +47,12 @@ export default class Colors {
     }, null, this.disposables)
 
     if (workspace.isVim) {
-      events.on('BufWinEnter', async bufnr => {
+      events.on('BufWinEnter', async (bufnr, winid) => {
+        for (let highlighter of this.highlighters.values()) {
+          if (highlighter.winid == winid && highlighter.bufnr != bufnr) {
+            highlighter.clearHighlight()
+          }
+        }
         let doc = workspace.getDocument(bufnr)
         if (doc) await this.highlightColors(doc, true)
       }, null, this.disposables)
@@ -92,6 +97,7 @@ export default class Colors {
   }
 
   public async highlightColors(document: Document, force = false): Promise<void> {
+    if (!this.enabled) return
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
     let { version, changedtick } = document
     let highlighter = this.getHighlighter(document.bufnr)

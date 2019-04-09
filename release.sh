@@ -4,7 +4,7 @@ set -e
 [ "$TRACE" ] && set -x
 
 # Create tag and push
-git add package.json
+git add package.json history.md
 tag=v$(json -f package.json version)
 git commit -a -m "Release $tag" &> /dev/null
 git tag -a "$tag" -m "Release $tag"
@@ -23,13 +23,12 @@ curl -X POST -H "Authorization: token $GITHUB_API_TOKEN" \
   "$GH_REPO/releases"
 
 # build and upload assets
-pkg . --out-path ./build
+webpack
 cd ./build
-tar -zcf coc-macos.tar.gz coc-macos
-tar -zcf coc-linux.tar.gz coc-linux
-zip coc-win.zip coc-win.exe
+tar -zcf coc.tar.gz index.js
+zip coc.zip index.js
 
-declare -a files=("coc-win.zip" "coc-macos.tar.gz" "coc-linux.tar.gz")
+declare -a files=("coc.zip" "coc.tar.gz")
 
 # Validate token.
 curl -o /dev/null -sH "$AUTH" $GH_REPO || { echo "Error: Invalid repo, token or network issue!";  exit 1; }

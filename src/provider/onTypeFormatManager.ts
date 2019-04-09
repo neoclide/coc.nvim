@@ -39,7 +39,7 @@ export default class OnTypeFormatManager implements Disposable {
     if (isWord(character)) return
     let provider = this.getProvider(document, character)
     if (!provider) return
-    let formatOpts = await workspace.getFormatOptions()
+    let formatOpts = await workspace.getFormatOptions(document.uri)
     return await Promise.resolve(provider.provideOnTypeFormattingEdits(document, position, character, formatOpts, token))
   }
 

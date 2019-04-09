@@ -149,6 +149,11 @@ export abstract class Marker {
     return this
   }
 
+  public setOnlyChild(child: Marker): void {
+    child.parent = this
+    this._children = [child]
+  }
+
   public replace(child: Marker, others: Marker[]): void {
     const { parent } = child
     const idx = parent.children.indexOf(child)
@@ -441,6 +446,21 @@ export class Variable extends TransformableMarker {
 
   public resolve(resolver: VariableResolver): boolean {
     let value = resolver.resolve(this)
+    if (value && value.indexOf('\n') !== -1) {
+      // get indent of previous Text child
+      let { children } = this.parent
+      let idx = children.indexOf(this)
+      let previous = children[idx - 1]
+      if (previous && previous instanceof Text) {
+        let ms = previous.value.match(/\n([ \t]*)$/)
+        if (ms) {
+          let newLines = value.split('\n').map((s, i) => {
+            return i == 0 ? s : ms[1] + s.replace(/^\s*/, '')
+          })
+          value = newLines.join('\n')
+        }
+      }
+    }
     if (this.transform) {
       value = this.transform.resolve(value || '')
     }
@@ -557,16 +577,20 @@ export class TextmateSnippet extends Marker {
     return index + 1
   }
 
-  public updatePlaceholder(id: number, val: string): string {
+  public updatePlaceholder(id: number, val: string): void {
     const placeholder = this.placeholders[id]
-    let child = placeholder.children[0]
-    let newText = placeholder.transform ? placeholder.transform.resolve(val) : val
-    if (child) {
-      placeholder.replace(child, [new Text(newText)])
-    } else {
-      placeholder.appendChild(new Text(newText))
+    for (let p of this.placeholders) {
+      if (p.index == placeholder.index) {
+        let child = p.children[0]
+        let newText = p.transform ? p.transform.resolve(val) : val
+        if (child) {
+          p.setOnlyChild(new Text(newText))
+        } else {
+          p.appendChild(new Text(newText))
+        }
+      }
     }
-    return newText
+    this._placeholders = undefined
   }
 
   public offset(marker: Marker): number {

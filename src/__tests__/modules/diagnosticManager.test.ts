@@ -60,10 +60,8 @@ describe('diagnostic manager', () => {
     diagnostics.push(createDiagnostic('error', Range.create(0, 2, 0, 4), DiagnosticSeverity.Error))
     collection.set(doc.uri, diagnostics)
     await helper.wait(30)
-    nvim.input('<esc>')
-    await helper.wait(300)
-    let res = await doc.buffer.getVar('coc_diagnostic_info') as any
-    expect(res.error).toBe(1)
+    await nvim.input('<esc>')
+    await helper.wait(600)
   })
 
   it('should create diagnostic collection', async () => {
@@ -83,7 +81,7 @@ describe('diagnostic manager', () => {
     diagnostics.push(createDiagnostic('y', Range.create(0, 1, 0, 2)))
     diagnostics.push(createDiagnostic('z', Range.create(1, 0, 1, 2)))
     collection.set(doc.uri, diagnostics)
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     expect(ranges[0]).toEqual(Range.create(0, 0, 0, 1))
     expect(ranges[1]).toEqual(Range.create(0, 1, 0, 2))
     expect(ranges[2]).toEqual(Range.create(1, 0, 1, 2))
@@ -110,7 +108,7 @@ describe('diagnostic manager', () => {
   it('should jump to previous', async () => {
     let doc = await createDocument()
     await nvim.command('normal! G')
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     ranges.reverse()
     for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
       await manager.jumpPrevious()
@@ -122,7 +120,7 @@ describe('diagnostic manager', () => {
   it('should jump to next', async () => {
     let doc = await createDocument()
     await nvim.call('cursor', [0, 0])
-    let ranges = manager.getSortedRanges(doc)
+    let ranges = manager.getSortedRanges(doc.uri)
     for (let i = 0; i < ranges.length; i++) { // tslint:disable-line
       await manager.jumpNext()
       let pos = await workspace.getCursorPosition()
@@ -142,12 +140,40 @@ describe('diagnostic manager', () => {
     expect(list[4].severity).toBe('Hint')
   })
 
+  it('should show floating window on cursor hold', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('messageTarget', 'float')
+    await createDocument()
+    await nvim.call('cursor', [1, 3])
+    let winid = await helper.waitFloat()
+    let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
+    let buf = nvim.createBuffer(bufnr)
+    let lines = await buf.lines
+    expect(lines.join('\n')).toMatch('error')
+  })
+
   it('should echo messages on cursor hold', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('messageTarget', 'echo')
     await createDocument()
     await nvim.call('cursor', [1, 3])
     await helper.wait(600)
     let line = await helper.getCmdline()
     expect(line).toMatch('error')
+    config.update('messageTarget', 'float')
+  })
+
+  it('should show diagnostics of current line', async () => {
+    let config = workspace.getConfiguration('diagnostic')
+    config.update('checkCurrentLine', true)
+    await createDocument()
+    await nvim.call('cursor', [1, 1])
+    let winid = await helper.waitFloat()
+    let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
+    let buf = nvim.createBuffer(bufnr)
+    let lines = await buf.lines
+    expect(lines.length).toBe(3)
+    config.update('checkCurrentLine', false)
   })
 
   it('should get severity level', () => {

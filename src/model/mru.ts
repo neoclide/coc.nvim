@@ -8,8 +8,8 @@ const root = isWindows ? path.join(os.homedir(), 'AppData/Local/coc') : path.joi
 export default class Mru {
   private file: string
 
-  constructor(private name: string) {
-    this.file = path.join(root, name)
+  constructor(private name: string, base?: string) {
+    this.file = path.join(base || root, name)
   }
 
   public async load(): Promise<string[]> {

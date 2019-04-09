@@ -47,7 +47,7 @@ export default class WillSaveUntilHandler {
             }
           }, e => {
             clearTimeout(timer)
-            workspace.showMessage(`${clientId} error on willSaveUntil ${e.message}`, 'error')
+            logger.error(`${clientId} error on willSaveUntil ${e.message}`, 'error')
             resolve()
           })
         }
@@ -66,14 +66,23 @@ export default class WillSaveUntilHandler {
     })
   }
 
+  public get hasCallback(): boolean {
+    let { callbacks } = this
+    return callbacks.length > 0
+  }
+
   public async handeWillSaveUntil(event: TextDocumentWillSaveEvent): Promise<void> {
     let { callbacks, workspace } = this
     let { document } = event
-    if (callbacks.length) {
-      await wait(30)
+    if (!callbacks.length) return
+    let doc = workspace.getDocument(document.uri)
+    if (!doc) return
+    let now = Date.now()
+    if (doc.dirty) {
+      doc.forceSync()
+      await wait(60)
     }
     for (let fn of callbacks) {
-      let doc = workspace.getDocument(document.uri)
       event.document = doc.textDocument
       try {
         await fn(event)
@@ -81,5 +90,6 @@ export default class WillSaveUntilHandler {
         logger.error(e)
       }
     }
+    logger.info(`Will save cost: ${Date.now() - now}`)
   }
 }

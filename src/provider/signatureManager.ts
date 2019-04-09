@@ -6,11 +6,14 @@ import uuid = require('uuid/v4')
 export default class SignatureManager extends Manager<SignatureHelpProvider> implements Disposable {
 
   public register(selector: DocumentSelector, provider: SignatureHelpProvider, triggerCharacters?: string[]): Disposable {
+    let characters = triggerCharacters.reduce((p, c) => {
+      return p.concat(c.split(/\s*/g))
+    }, [] as string[])
     let item: ProviderItem<SignatureHelpProvider> = {
       id: uuid(),
       selector,
       provider,
-      triggerCharacters
+      triggerCharacters: characters
     }
     this.providers.add(item)
     return Disposable.create(() => {
@@ -33,7 +36,7 @@ export default class SignatureManager extends Manager<SignatureHelpProvider> imp
     let item = this.getProvider(document)
     if (!item) return null
     let res = await Promise.resolve(item.provider.provideSignatureHelp(document, position, token))
-    if (res) return res
+    if (res && res.signatures && res.signatures.length) return res
     return null
   }
 

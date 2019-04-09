@@ -2,9 +2,7 @@ import { EventEmitter } from 'events'
 import fs from 'fs'
 import net from 'net'
 import os from 'os'
-import path from 'path'
 import { Disposable, DocumentSelector, Emitter, TextDocument } from 'vscode-languageserver-protocol'
-import which from 'which'
 import { Executable, ForkOptions, LanguageClient, LanguageClientOptions, RevealOutputChannelOn, ServerOptions, SpawnOptions, State, Transport, TransportKind } from './language-client'
 import { IServiceProvider, LanguageServerConfig, ServiceStat } from './types'
 import { disposeAll, wait } from './util'
@@ -62,12 +60,10 @@ export class ServiceManager extends EventEmitter implements Disposable {
 
   public regist(service: IServiceProvider): Disposable {
     let { id } = service
-    if (!id) logger.error('invalid service ', service.name)
-    if (this.registed.get(id)) {
-      workspace.showMessage(`Service ${id} already exists`, 'error')
-      return
-    }
+    if (!id) logger.error('invalid service configuration. ', service.name)
+    if (this.registed.get(id)) return
     this.registed.set(id, service)
+    logger.info(`registed service "${id}"`)
     if (this.shouldStart(service)) {
       service.start() // tslint:disable-line
     }
@@ -178,9 +174,7 @@ export class ServiceManager extends EventEmitter implements Disposable {
     let base = 'languageserver'
     let lspConfig = workspace.getConfiguration().get<{ string: LanguageServerConfig }>(base, {} as any)
     for (let key of Object.keys(lspConfig)) {
-      if (!/^\w+$/.test(key)) {
-        workspace.showMessage(`Invalid languageserver id: ${key}, only character allowed!`, 'error')
-      }
+      if (this.registed.get(key)) continue
       let config: LanguageServerConfig = lspConfig[key]
       let id = `${base}.${key}`
       if (config.enable === false || this.hasService(id)) continue
@@ -192,6 +186,9 @@ export class ServiceManager extends EventEmitter implements Disposable {
   }
 
   public async sendRequest(id: string, method: string, params?: any): Promise<any> {
+    if (!method) {
+      throw new Error(`method required for sendRequest`)
+    }
     let service = this.getService(id)
     // wait for extension activate
     if (!service) await wait(100)
@@ -302,14 +299,6 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
     workspace.showMessage(`Module file "${module}" not found for LS "${name}"`, 'error')
     return null
   }
-  if (command) {
-    try {
-      which.sync(command)
-    } catch (e) {
-      workspace.showMessage(`Command "${command}" of LS "${name}" not found in $PATH`, 'error')
-      return null
-    }
-  }
   if (filetypes.length == 0) return
   let isModule = module != null
   let serverOptions: ServerOptions
@@ -350,10 +339,12 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   if (documentSelector.length == 0) {
     documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }]
   }
+  let disableWorkspaceFolders = !!config.disableWorkspaceFolders
   let ignoredRootPaths = config.ignoredRootPaths || []
   ignoredRootPaths = ignoredRootPaths.map(s => s.replace(/^~/, os.homedir()))
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
+    disableWorkspaceFolders,
     documentSelector,
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {
@@ -392,7 +383,7 @@ export function getTransportKind(config: LanguageServerConfig): Transport {
 
 function getForkOptions(config: LanguageServerConfig): ForkOptions {
   return {
-    cwd: getCwd(config.cwd),
+    cwd: config.cwd,
     execArgv: config.execArgv || [],
     env: config.env || undefined
   }
@@ -400,20 +391,11 @@ function getForkOptions(config: LanguageServerConfig): ForkOptions {
 
 function getSpawnOptions(config: LanguageServerConfig): SpawnOptions {
   return {
-    cwd: getCwd(config.cwd),
+    cwd: config.cwd,
     detached: !!config.detached,
     shell: !!config.shell,
     env: config.env || undefined
   }
-}
-
-function getCwd(cwd: string): string {
-  if (cwd) {
-    if (path.isAbsolute(cwd)) return cwd
-    let p = path.join(workspace.root, cwd)
-    if (fs.existsSync(p)) return p
-  }
-  return workspace.root
 }
 
 function stateString(state: State): string {

@@ -3,6 +3,7 @@ import os from 'os'
 import path from 'path'
 import { OutputChannel } from './types'
 import uuidv1 = require('uuid/v1')
+import { Disposable } from 'vscode-jsonrpc'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
@@ -10,6 +11,7 @@ export interface WatchResponse {
   warning?: string
   watcher: string
   watch: string
+  relative_path?: string
 }
 
 export interface FileChangeItem {
@@ -18,7 +20,6 @@ export interface FileChangeItem {
   exists: boolean
   type: 'f' | 'd'
   mtime_ms: number
-  ['content.sha1hex']?: string
 }
 
 export interface FileChange {
@@ -37,8 +38,8 @@ const clientsMap: Map<string, Promise<Watchman>> = new Map()
  */
 export default class Watchman {
   private client: Client
-  private relative_path: string | null
-  private clock: string | null
+  private watch: string | undefined
+  private relative_path: string | undefined
   private _disposed = false
 
   constructor(binaryPath: string, private channel?: OutputChannel) {
@@ -68,13 +69,12 @@ export default class Watchman {
   public async watchProject(root: string): Promise<boolean> {
     try {
       let resp = await this.command(['watch-project', root])
-      let { watch, warning } = (resp as WatchResponse)
+      let { watch, warning, relative_path } = (resp as WatchResponse)
       if (warning) logger.warn(warning)
-      this.relative_path = watch
-      resp = await this.command(['clock', watch])
-      this.clock = resp.clock
-      logger.info(`watchman watching project ${root}`)
-      this.appendOutput(`watchman watching project ${root}`)
+      this.watch = watch
+      this.relative_path = relative_path
+      logger.info(`watchman watching project: ${root}`)
+      this.appendOutput(`watchman watching project: ${root}`)
     } catch (e) {
       logger.error(e)
       return false
@@ -91,35 +91,49 @@ export default class Watchman {
     })
   }
 
-  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<string> {
-    let { clock, relative_path } = this
-    if (!clock) {
-      this.appendOutput(`watchman not watching any root`, 'Error')
+  public async subscribe(globPattern: string, cb: ChangeCallback): Promise<Disposable> {
+    let { watch, relative_path } = this
+    if (!watch) {
+      this.appendOutput(`watchman not watching: ${watch}`, 'Error')
       return null
     }
+    let { clock } = await this.command(['clock', watch])
     let uid = uuidv1()
-    let sub = {
+    let sub: any = {
       expression: ['allof', ['match', globPattern, 'wholename']],
-      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms', 'content.sha1hex'],
+      fields: ['name', 'size', 'exists', 'type', 'mtime_ms', 'ctime_ms'],
       since: clock,
     }
-    let { subscribe } = await this.command(['subscribe', relative_path, uid, sub])
-    this.appendOutput(`subscribing "${globPattern}" in ${relative_path}`)
+    let root = watch
+    if (relative_path) {
+      sub.relative_root = relative_path
+      root = path.join(watch, relative_path)
+    }
+    let { subscribe } = await this.command(['subscribe', watch, uid, sub])
+    if (global.hasOwnProperty('__TEST__')) (global as any).subscribe = subscribe
+    this.appendOutput(`subscribing "${globPattern}" in ${root}`)
     this.client.on('subscription', resp => {
       if (!resp || resp.subscription != uid) return
-      let { files } = resp
-      if (!files) return
+      let { files } = resp as FileChange
+      if (!files || !files.length) return
+      let ev: FileChange = Object.assign({}, resp)
+      if (this.relative_path) ev.root = path.resolve(resp.root, this.relative_path)
+      // resp.root = this.relative_path
       files.map(f => f.mtime_ms = +f.mtime_ms)
-      this.appendOutput(`file change detected: ${JSON.stringify(resp, null, 2)}`)
-      cb(resp)
+      this.appendOutput(`file change detected: ${JSON.stringify(ev, null, 2)}`)
+      cb(ev)
     })
-    return subscribe
+    return Disposable.create(() => {
+      return this.unsubscribe(subscribe)
+    })
   }
 
   public unsubscribe(subscription: string): Promise<any> {
     if (this._disposed) return Promise.resolve()
-    this.appendOutput(`unsubscribe "${subscription}" in: ${this.relative_path}`)
-    return this.command(['unsubscribe', this.relative_path, subscription]).catch(e => {
+    let { watch } = this
+    if (!watch) return
+    this.appendOutput(`unsubscribe "${subscription}" in: ${watch}`)
+    return this.command(['unsubscribe', watch, subscription]).catch(e => {
       logger.error(e)
     })
   }
@@ -140,6 +154,8 @@ export default class Watchman {
     for (let promise of clientsMap.values()) {
       promise.then(client => {
         client.dispose()
+      }, _e => {
+        // noop
       })
     }
   }

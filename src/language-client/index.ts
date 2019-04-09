@@ -4,21 +4,25 @@
  *--------------------------------------------------------------------------------------------*/
 import cp, { SpawnOptions } from 'child_process'
 import fs from 'fs'
+import os from 'os'
+import path from 'path'
 import { createClientPipeTransport, createClientSocketTransport, Disposable, generateRandomPipeName, IPCMessageReader, IPCMessageWriter, StreamMessageReader, StreamMessageWriter } from 'vscode-languageserver-protocol'
 import { ServiceStat } from '../types'
+import { disposeAll } from '../util'
 import * as Is from '../util/is'
+import { terminate } from '../util/processes'
 import workspace from '../workspace'
+import which from 'which'
 import { BaseLanguageClient, ClientState, DynamicFeature, LanguageClientOptions, MessageTransports, StaticFeature } from './client'
 import { ColorProviderFeature } from './colorProvider'
 import { ConfigurationFeature as PullConfigurationFeature } from './configuration'
+import { DeclarationFeature } from './declaration'
 import { FoldingRangeFeature } from './foldingRange'
 import { ImplementationFeature } from './implementation'
 import { TypeDefinitionFeature } from './typeDefinition'
-import { DeclarationFeature } from './declaration'
 import { WorkspaceFoldersFeature } from './workspaceFolders'
-import { terminate } from './utils/processes'
 import ChildProcess = cp.ChildProcess
-import { disposeAll } from '../util'
+import { resolveVariables } from '../util/string'
 
 const logger = require('../util/logger')('language-client-index')
 
@@ -412,12 +416,25 @@ export class LanguageClient extends BaseLanguageClient {
       let options = Object.assign({}, command.options)
       options.env = options.env ? Object.assign(options.env, process.env) : process.env
       options.cwd = options.cwd || serverWorkingDir
-      let serverProcess = cp.spawn(command.command, args, options)
+      let cmd = json.command
+      if (cmd.startsWith('~')) {
+        cmd = os.homedir() + cmd.slice(1)
+      }
+      if (cmd.indexOf('$') !== -1) {
+        cmd = resolveVariables(cmd, { workspaceFolder: workspace.rootPath })
+      }
+      try {
+        which.sync(cmd)
+      } catch (e) {
+        throw new Error(`Command "${cmd}" of ${this.id} is not executable: ${e}`)
+      }
+
+      let serverProcess = cp.spawn(cmd, args, options)
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
       }
       serverProcess.on('exit', code => {
-        if (code != 0) this.error(`${command} exited with code: ${code}`)
+        if (code != 0) this.error(`${command.command} exited with code: ${code}`)
       })
       serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
       this._serverProcess = serverProcess
@@ -442,12 +459,15 @@ export class LanguageClient extends BaseLanguageClient {
     this.registerFeature(new DeclarationFeature(this))
     this.registerFeature(new ColorProviderFeature(this))
     this.registerFeature(new FoldingRangeFeature(this))
-    this.registerFeature(new WorkspaceFoldersFeature(this))
+    if (!this.clientOptions.disableWorkspaceFolders) {
+      this.registerFeature(new WorkspaceFoldersFeature(this))
+    }
   }
 
   private _getServerWorkingDir(options?: { cwd?: string }): Promise<string | undefined> {
     let cwd = options && options.cwd
-    if (!cwd) cwd = workspace.root
+    if (cwd && !path.isAbsolute(cwd)) cwd = path.join(workspace.cwd, cwd)
+    if (!cwd) cwd = workspace.cwd
     if (cwd) {
       // make sure the folder exists otherwise creating the process will fail
       return new Promise(s => {

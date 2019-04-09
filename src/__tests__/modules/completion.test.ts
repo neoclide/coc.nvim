@@ -50,32 +50,9 @@ describe('completion events', () => {
 
   it('should reload preferences onChange', () => {
     let { configurations } = workspace
-    configurations.updateUserConfig({ 'coc.preferences.maxCompleteItemCount': 30 })
+    configurations.updateUserConfig({ 'suggest.maxCompleteItemCount': 30 })
     let snippetIndicator = completion.config.maxItemCount
     expect(snippetIndicator).toBe(30)
-  })
-})
-
-describe('completion getResumeInput', () => {
-
-  it('should return null when document is null', async () => {
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
-  })
-
-  it('should return null when cursor col below col of option', async () => {
-    await startCompletion()
-    let opt = completion.option
-    await nvim.call('cursor', [opt.linenr, opt.col - 1])
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
-  })
-
-  it('should return null when cursor line not equal option linenr', async () => {
-    await startCompletion()
-    await nvim.call('cursor', [2, 0])
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
   })
 })
 
@@ -125,7 +102,7 @@ describe('completion#startCompletion', () => {
     await nvim.input('f')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(1)
     expect(items[0].word).toBe('foo')
     sources.removeSource(source)
@@ -151,14 +128,45 @@ describe('completion#startCompletion', () => {
     await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
+    let items = await helper.items()
     await nvim.input('a')
     await helper.wait(10)
     await nvim.input('b')
     await helper.wait(100)
     sources.removeSource(source)
-    items = completion.completeItems
+    items = await helper.items()
     expect(items[0].word).toBe('ab')
+    await nvim.input('<esc>')
+  })
+
+  it('should not complete inComplete source when none keyword inserted', async () => {
+    let lastOption: CompleteOption
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'inComplete',
+      sourceType: SourceType.Service,
+      triggerCharacters: ['.'],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        lastOption = opt
+        await helper.wait(30)
+        if (opt.input.length <= 1) {
+          return { isIncomplete: true, items: [{ word: 'foo' }, { word: opt.input }] }
+        }
+        return { isIncomplete: false, items: [{ word: 'foo' }, { word: opt.input }] }
+      }
+    }
+    sources.addSource(source)
+    await helper.edit()
+    await nvim.input('i.')
+    await helper.waitPopup()
+    expect(completion.isActivted).toBe(true)
+    await nvim.input('a')
+    await helper.wait(10)
+    await nvim.input(',')
+    await helper.wait(300)
+    sources.removeSource(source)
+    expect(lastOption.triggerForInComplete).toBeFalsy()
     await nvim.input('<esc>')
   })
 })
@@ -183,7 +191,7 @@ describe('completion#resumeCompletion', () => {
     await helper.waitPopup()
     await nvim.input('c')
     await helper.wait(100)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(0)
     expect(completion.isActivted).toBe(false)
     await nvim.input('<esc>')
@@ -204,11 +212,11 @@ describe('completion#resumeCompletion', () => {
     }
     sources.addSource(source)
     await helper.edit()
-    await nvim.input('i.f')
+    await nvim.input('i.')
     await helper.waitPopup()
     expect(completion.isActivted).toBe(true)
     sources.removeSource(source)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items[0].word).toBe('foo bar')
     await nvim.input(' ')
     await helper.wait(60)
@@ -270,7 +278,7 @@ describe('completion#TextChangedP', () => {
         return [{
           label: 'foo',
           filterText: 'foo',
-          insertText: '${1:foo} $1',
+          insertText: '${1:foo}($2)',
           insertTextFormat: InsertTextFormat.Snippet,
         }]
       }
@@ -278,13 +286,89 @@ describe('completion#TextChangedP', () => {
     let disposable = languages.registerCompletionItemProvider('snippets-test', 'st', null, provider)
     await nvim.input('if')
     await helper.waitPopup()
-    let items = completion.completeItems
-    expect(items[0].isSnippet).toBe(true)
-    await helper.wait(100)
     await nvim.input('<C-n>')
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('foo')
+    disposable.dispose()
+  })
+
+  it('should filter on none keyword input', async () => {
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      sourceType: SourceType.Service,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => {
+        return Promise.resolve({ items: [{ word: 'foo#abc' }] })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('if')
+    await helper.waitPopup()
+    await nvim.input('#')
+    await helper.wait(100)
+    let items = await helper.getItems()
+    expect(items[0].word).toBe('foo#abc')
+    disposable.dispose()
+  })
+
+  it('should trigger complete on trigger patterns match', async () => {
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      triggerPatterns: [/EM/],
+      sourceType: SourceType.Service,
+      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        if (!opt.input.startsWith('EM')) return null
+        return Promise.resolve({
+          items: [
+            { word: 'a', filterText: 'EMa' },
+            { word: 'b', filterText: 'EMb' }
+          ]
+        })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(10)
+    await nvim.input('E')
+    await helper.wait(10)
+    await nvim.input('M')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBe(2)
+    disposable.dispose()
+  })
+
+  it('should trigger complete when pumvisible', async () => {
+    await nvim.setLine('EnumMember')
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      triggerPatterns: [/EM/],
+      sourceType: SourceType.Service,
+      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        if (!opt.input.startsWith('EM')) return null
+        return Promise.resolve({
+          items: [
+            { word: 'a', filterText: 'EMa' },
+            { word: 'b', filterText: 'EMb' }
+          ]
+        })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('o')
+    await helper.wait(10)
+    await nvim.input('E')
+    await helper.waitPopup()
+    await nvim.input('M')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBeGreaterThan(2)
     disposable.dispose()
   })
 
@@ -309,7 +393,6 @@ describe('completion#TextChangedP', () => {
     await nvim.input('<C-n>')
     await helper.wait(100)
     // let items = completion.completeItems
-    // TODO wait for CompleteChanged event merged
     // expect(items[0].info).toBe('detail')
     sources.removeSource(source)
   })
@@ -322,7 +405,7 @@ describe('completion#CompleteDone', () => {
     await nvim.call('cursor', [1, 2])
     let option: CompleteOption = await nvim.call('coc#util#get_complete_option')
     await completion.startCompletion(option)
-    let items = completion.completeItems
+    let items = await helper.items()
     expect(items.length).toBe(1)
     await nvim.input('<C-n>')
     await helper.wait(30)
@@ -330,6 +413,19 @@ describe('completion#CompleteDone', () => {
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('football football')
+  })
+
+  it('should hide kind and menu when configured', async () => {
+    helper.updateConfiguration('suggest.disableKind', true)
+    helper.updateConfiguration('suggest.disableMenu', true)
+    await nvim.setLine('fball football')
+    await nvim.input('of')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items[0].kind).toBeUndefined()
+    expect(items[0].menu).toBeUndefined()
+    helper.updateConfiguration('suggest.disableKind', false)
+    helper.updateConfiguration('suggest.disableMenu', false)
   })
 })
 
@@ -357,9 +453,6 @@ describe('completion#TextChangedI', () => {
     await helper.wait(100)
     await nvim.input('.')
     await helper.wait(100)
-    // TODO wait CompleteChanged autocmd
-    // let line = await nvim.line
-    // expect(line).toBe('foo.')
     sources.removeSource(source)
   })
 
@@ -384,8 +477,8 @@ describe('completion#TextChangedI', () => {
     await helper.pumvisible()
     await helper.wait(80)
     expect(completion.isActivted).toBe(true)
-    let items = completion.completeItems
-    expect(items.length).toBe(1)
+    let items = await helper.items()
+    expect(items.length).toBeGreaterThan(0)
     sources.removeSource(source)
   })
 })
@@ -393,7 +486,7 @@ describe('completion#TextChangedI', () => {
 describe('completion#shouldTrigger', () => {
 
   it('should not trigger if autoTrigger is none', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('autoTrigger', 'none')
     let autoTrigger = completion.config.autoTrigger
     expect(autoTrigger).toBe('none')
@@ -409,7 +502,7 @@ describe('completion#shouldTrigger', () => {
 describe('completion#InsertEnter', () => {
 
   it('should trigger completion if triggerAfterInsertEnter is true', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('triggerAfterInsertEnter', true)
     await helper.wait(100)
     let triggerAfterInsertEnter = completion.config.triggerAfterInsertEnter
@@ -422,7 +515,7 @@ describe('completion#InsertEnter', () => {
   })
 
   it('should not trigger when input length too small', async () => {
-    let config = workspace.getConfiguration('coc.preferences')
+    let config = workspace.getConfiguration('suggest')
     config.update('triggerAfterInsertEnter', true)
     await helper.wait(100)
     let triggerAfterInsertEnter = completion.config.triggerAfterInsertEnter

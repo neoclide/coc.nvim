@@ -1,8 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Location } from 'vscode-languageserver-protocol'
+import { Disposable, Location, CancellationToken } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListContext, ListItem, ListTask } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListTask, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
 import { byteIndex } from '../util/string'
@@ -16,7 +16,7 @@ interface ActionOptions {
 }
 
 export default abstract class BasicList implements IList, Disposable {
-  public abstract name: string
+  public name: string
   public defaultAction = 'open'
   public readonly actions: ListAction[] = []
   protected previewHeight = 12
@@ -27,12 +27,10 @@ export default abstract class BasicList implements IList, Disposable {
     let config = workspace.getConfiguration('list')
     this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
     this.previewHeight = config.get<number>('maxPreviewHeight', 12)
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('list')) {
-        this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
-        this.previewHeight = config.get<number>('maxPreviewHeight', 12)
-      }
-    })
+  }
+
+  protected getConfig(): WorkspaceConfiguration {
+    return workspace.getConfiguration(`list.source.${this.name}`)
   }
 
   protected addAction(name: string, fn: (item: ListItem, context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
@@ -42,11 +40,31 @@ export default abstract class BasicList implements IList, Disposable {
     }, options || {}))
   }
 
+  protected addMultipleAction(name: string, fn: (item: ListItem[], context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {
+    this.createAction(Object.assign({
+      name,
+      multiple: true,
+      execute: fn
+    }, options || {}))
+  }
+
   public addLocationActions(): void {
     this.createAction({
       name: 'preview',
       execute: async (item: ListItem, context: ListContext) => {
         await this.previewLocation(item.location, context)
+      }
+    })
+    let { nvim } = this
+    this.createAction({
+      name: 'quickfix',
+      multiple: true,
+      execute: async (items: ListItem[]) => {
+        let quickfixItems = await Promise.all(items.map(item => {
+          return workspace.getQuickfixItem(item.location)
+        }))
+        await nvim.call('setqflist', [quickfixItems])
+        nvim.command('copen', true)
       }
     })
     for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {
@@ -77,9 +95,7 @@ export default abstract class BasicList implements IList, Disposable {
     let { name } = action
     let idx = this.actions.findIndex(o => o.name == name)
     // allow override
-    if (idx !== -1) {
-      this.actions.splice(idx, 1)
-    }
+    if (idx !== -1) this.actions.splice(idx, 1)
     this.actions.push(action)
   }
 
@@ -112,11 +128,10 @@ export default abstract class BasicList implements IList, Disposable {
     if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
     nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
-    nvim.command('redraw', true)
     await nvim.resumeNotification()
   }
 
-  public abstract loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
+  public abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
 
   public doHighlight(): void {
     // noop

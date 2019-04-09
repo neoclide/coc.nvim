@@ -3,23 +3,11 @@
 set -o nounset    # error when referencing undefined variable
 set -o errexit    # exit when command fails
 
-BOLD="$(tput bold 2>/dev/null || echo '')"
-GREY="$(tput setaf 0 2>/dev/null || echo '')"
 BLUE="$(tput setaf 4 2>/dev/null || echo '')"
-RED="$(tput setaf 1 2>/dev/null || echo '')"
 NO_COLOR="$(tput sgr0 2>/dev/null || echo '')"
-YELLOW="$(tput setaf 3 2>/dev/null || echo '')"
 
-error() {
-  printf "${RED} $@${NO_COLOR}\n" >&2
-}
-
-warn() {
-  printf "${YELLOW}! $@${NO_COLOR}\n"
-}
-
-info() {
-  printf "${BLUE} $@${NO_COLOR}\n"
+command_exists() {
+  command -v "$1" >/dev/null 2>&1;
 }
 
 fetch() {
@@ -38,14 +26,25 @@ fetch() {
       rc=$?
       set -e
     else
-      error "No HTTP download program (curl, wget) found…"
+      echo "No HTTP download program (curl, wget) found…"
       exit 1
     fi
   fi
 
   if [ $rc -ne 0 ]; then
-    error "Command failed (exit code $rc): ${BLUE}${command}${NO_COLOR}"
+    echo "Command failed (exit code $rc): ${BLUE}${command}${NO_COLOR}"
     exit $rc
+  fi
+}
+
+install_yarn() {
+  if ! command_exists node && ! command_exists nodejs; then
+    echo "Nodejs not found, installing latest LTS"
+    fetch install-node.now.sh/lts | sh
+  fi
+  if ! command_exists yarn && ! command_exists yarnpkg; then
+    echo "Yarn not found, installing yarn."
+    fetch https://yarnpkg.com/install.sh | sh
   fi
 }
 
@@ -56,46 +55,27 @@ get_latest_release() {
 }
 
 if [ $# -eq 0 ]; then
-  info "Fetching latest release."
+  echo "Fetching latest release."
   tag=$(get_latest_release)
 else
   tag=$1
 fi
 
 download() {
-  if ! command -v yarn > /dev/null; then
-    info "Yarn not found, installing yarn."
-    fetch https://yarnpkg.com/install.sh | sh
-  fi
+  install_yarn
   mkdir -p build
   cd build
-  url="https://github.com/neoclide/coc.nvim/releases/download/$tag/${1}"
-  info "Downloading binary from ${url}"
+  if [ "$tag" = "nightly" ]; then
+    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/index.js > index.js
+    return
+  fi
+  url="https://github.com/neoclide/coc.nvim/releases/download/$tag/coc.tar.gz"
+  echo "Downloading binary from ${url}"
   if fetch "${url}" | tar xzfv -; then
-    chmod a+x ${1%.tar.gz}
     return
   else
-    warn "Binary not available for now, please wait for a few minutes."
+    echo "Release not available for now, please wait for a few minutes."
   fi
 }
 
-try_build() {
-  info "Try build from source code"
-  if ! command -v node > /dev/null; then
-    info "Node not found, installing nodejs v8.9.0"
-    fetch install-node.now.sh/v8.9.0 | sh
-  fi
-  if ! command -v yarn > /dev/null; then
-    info "Yarn not found, installing yarn."
-    fetch https://yarnpkg.com/install.sh | sh
-  fi
-  yarn install
-}
-
-arch=$(uname -sm)
-case "${arch}" in
-  "Linux x86_64") download coc-linux.tar.gz ;;
-  "Linux i686") download coc-linux.tar.gz ;;
-  "Darwin x86_64") download coc-macos.tar.gz ;;
-  *) info "No pre-built binary available for ${arch}."; try_build ;;
-esac
+download

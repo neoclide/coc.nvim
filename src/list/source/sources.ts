@@ -1,7 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Location, Range } from 'vscode-languageserver-types'
 import Uri from 'vscode-uri'
-import os from 'os'
 import sources from '../../sources'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
@@ -22,7 +21,7 @@ export default class SourcesList extends BasicList {
 
     this.addAction('refresh', async item => {
       let { name } = item.data
-      sources.refresh(name)
+      await sources.refresh(name)
     }, { persist: true, reload: true })
 
     this.addAction('open', async item => {
@@ -44,7 +43,7 @@ export default class SourcesList extends BasicList {
         location = Location.create(Uri.file(stat.filepath).toString(), Range.create(0, 0, 0, 0))
       }
       return {
-        label: `${prefix}\t${stat.name}\t[${stat.type}]\t${stat.filepath.replace(os.homedir(), '~') || ''}`,
+        label: `${prefix}\t${stat.name}\t[${stat.type}]\t${stat.filetypes.join(',')}`,
         location,
         data: { name: stat.name }
       }
@@ -57,11 +56,13 @@ export default class SourcesList extends BasicList {
     nvim.command('syntax match CocSourcesPrefix /\\v^./ contained containedin=CocSourcesLine', true)
     nvim.command('syntax match CocSourcesName /\\v%3c\\S+/ contained containedin=CocSourcesLine', true)
     nvim.command('syntax match CocSourcesType /\\v\\t\\[\\w+\\]/ contained containedin=CocSourcesLine', true)
-    nvim.command('syntax match CocSourcesPath /\\v\\f+$/ contained containedin=CocSourcesLine', true)
+    nvim.command('syntax match CocSourcesFileTypes /\\v\\S+$/ contained containedin=CocSourcesLine', true)
     nvim.command('highlight default link CocSourcesPrefix Special', true)
     nvim.command('highlight default link CocSourcesName Type', true)
-    nvim.command('highlight default link CocSourcesPath Comment', true)
+    nvim.command('highlight default link CocSourcesFileTypes Comment', true)
     nvim.command('highlight default link CocSourcesType Statement', true)
-    nvim.resumeNotification()
+    nvim.resumeNotification().catch(_e => {
+      // noop
+    })
   }
 }

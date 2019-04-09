@@ -1,5 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import snippetManager from '../../snippets/manager'
+import workspace from '../../workspace'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -45,7 +46,7 @@ describe('snippet provider', () => {
     expect(col).toBe(1)
   })
 
-  it('should remove kepmap on nextPlaceholder when session not exits', async () => {
+  it('should remove keymap on nextPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.nextPlaceholder()
@@ -54,7 +55,7 @@ describe('snippet provider', () => {
     expect(val).toBe(0)
   })
 
-  it('should remove kepmap on previousPlaceholder when session not exits', async () => {
+  it('should remove keymap on previousPlaceholder when session not exits', async () => {
     let doc = await helper.createDocument()
     await nvim.call('coc#snippet#enable')
     await snippetManager.previousPlaceholder()
@@ -129,5 +130,48 @@ describe('snippet provider', () => {
     await helper.wait(100)
     let active = await snippetManager.insertSnippet('${1:x} $1')
     expect(active).toBe(true)
+  })
+
+  it('should work with nest snippet', async () => {
+    let buf = await helper.edit()
+    let snip = '<a ${1:http://www.${2:example.com}}>\n$0\n</a>'
+    await snippetManager.insertSnippet(snip)
+    await helper.wait(30)
+    await nvim.input('abcde')
+    await helper.wait(100)
+    let lines = await buf.lines
+    expect(lines).toEqual(['<a abcde>', '', '</a>'])
+  })
+
+  it('should respect preferCompleteThanJumpPlaceholder', async () => {
+    let config = workspace.getConfiguration('suggest')
+    config.update('preferCompleteThanJumpPlaceholder', true)
+    await helper.createDocument()
+    await nvim.setLine('foo')
+    await nvim.input('o')
+    await snippetManager.insertSnippet('${1:foo} ${2:bar}')
+    await helper.wait(10)
+    await nvim.input('f')
+    await helper.wait(30)
+    let pumvisible = await nvim.call('pumvisible')
+    expect(pumvisible).toBeTruthy()
+    await nvim.input('<C-j>')
+    await helper.wait(200)
+    let line = await nvim.getLine()
+    expect(line).toBe('foo bar')
+  })
+
+  it('should chek jumpable', async () => {
+    await helper.createDocument()
+    await nvim.input('i')
+    await snippetManager.insertSnippet('${1:foo} ${2:bar}')
+    let jumpable = snippetManager.jumpable()
+    expect(jumpable).toBe(true)
+    await snippetManager.nextPlaceholder()
+    await helper.wait(30)
+    await snippetManager.nextPlaceholder()
+    await helper.wait(30)
+    jumpable = snippetManager.jumpable()
+    expect(jumpable).toBe(false)
   })
 })

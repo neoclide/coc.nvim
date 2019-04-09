@@ -1,15 +1,35 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import log4js from 'log4js'
-import { CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder, Range, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
-import { TextDocumentContentProvider, ProviderResult } from './provider'
+import { ProviderResult, TextDocumentContentProvider } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
+
+export interface TaskOptions {
+  cmd: string
+  args?: string[]
+  cwd?: string
+  pty?: boolean
+  detach?: boolean
+}
+
+export interface Documentation {
+  filetype: string
+  content: string
+  active?: [number, number]
+}
+
+export interface KeymapOption {
+  sync: boolean
+  cancel: boolean
+  silent: boolean
+}
 
 export interface Autocmd {
   event: string
@@ -21,18 +41,17 @@ export interface Autocmd {
 
 export interface ExtensionInfo {
   id: string
+  version: string
+  description: string
   root: string
   exotic: boolean
   state: ExtensionState
+  isLocal: boolean
 }
 
 export interface ErrorItem {
   location: Location
   message: string
-}
-
-export interface DiagnosticItems {
-  [owner: string]: Diagnostic[]
 }
 
 export interface StatusItemOption {
@@ -75,12 +94,144 @@ export interface StatusBarItem {
   dispose(): void
 }
 
+export interface TerminalOptions {
+  /**
+   * A human-readable string which will be used to represent the terminal in the UI.
+   */
+  name?: string
+
+  /**
+   * A path to a custom shell executable to be used in the terminal.
+   */
+  shellPath?: string
+
+  /**
+   * Args for the custom shell executable, this does not work on Windows (see #8429)
+   */
+  shellArgs?: string[]
+
+  /**
+   * A path or Uri for the current working directory to be used for the terminal.
+   */
+  cwd?: string
+
+  /**
+   * Object with environment variables that will be added to the VS Code process.
+   */
+  env?: { [key: string]: string | null }
+
+  /**
+   * Whether the terminal process environment should be exactly as provided in
+   * `TerminalOptions.env`. When this is false (default), the environment will be based on the
+   * window's environment and also apply configured platform settings like
+   * `terminal.integrated.windows.env` on top. When this is true, the complete environment
+   * must be provided as nothing will be inherited from the process or any configuration.
+   */
+  strictEnv?: boolean
+}
+
+/**
+ * A memento represents a storage utility. It can store and retrieve
+ * values.
+ */
+export interface Memento {
+
+  /**
+   * Return a value.
+   *
+   * @param key A string.
+   * @return The stored value or `undefined`.
+   */
+  get<T>(key: string): T | undefined
+
+  /**
+   * Return a value.
+   *
+   * @param key A string.
+   * @param defaultValue A value that should be returned when there is no
+   * value (`undefined`) with the given key.
+   * @return The stored value or the defaultValue.
+   */
+  get<T>(key: string, defaultValue: T): T
+
+  /**
+   * Store a value. The value must be JSON-stringifyable.
+   *
+   * @param key A string.
+   * @param value A value. MUST not contain cyclic references.
+   */
+  update(key: string, value: any): Promise<void>
+}
+
+/**
+ * An individual terminal instance within the integrated terminal.
+ */
+export interface Terminal {
+
+  /**
+   * The name of the terminal.
+   */
+  readonly name: string
+
+  /**
+   * The process ID of the shell process.
+   */
+  readonly processId: Promise<number>
+
+  /**
+   * Send text to the terminal. The text is written to the stdin of the underlying pty process
+   * (shell) of the terminal.
+   *
+   * @param text The text to send.
+   * @param addNewLine Whether to add a new line to the text being sent, this is normally
+   * required to run a command in the terminal. The character(s) added are \n or \r\n
+   * depending on the platform. This defaults to `true`.
+   */
+  sendText(text: string, addNewLine?: boolean): void
+
+  /**
+   * Show the terminal panel and reveal this terminal in the UI.
+   *
+   * @param preserveFocus When `true` the terminal will not take focus.
+   */
+  show(preserveFocus?: boolean): void
+
+  /**
+   * Hide the terminal panel if this terminal is currently showing.
+   */
+  hide(): void
+
+  /**
+   * Dispose and free associated resources.
+   */
+  dispose(): void
+}
+
 export interface Env {
   completeOpt: string
+  runtimepath: string
+  readonly mode: string
+  readonly floating: boolean
+  readonly extensionRoot: string
+  readonly watchExtensions: string[]
+  readonly globalExtensions: string[]
+  readonly workspaceFolders: string[]
+  readonly config: any
+  readonly pid: number
+  readonly columns: number
+  readonly lines: number
+  readonly pumevent: boolean
+  readonly cmdheight: number
   readonly filetypeMap: { [index: string]: string }
   readonly isVim: boolean
   readonly isMacvim: boolean
   readonly version: string
+}
+
+export interface Fragment {
+  start: number
+  lines: string[]
+  filetype: string
 }
 
 export interface EditerState {
@@ -108,6 +259,12 @@ export interface SnippetManager {
 export type ModuleResolve = () => Promise<string>
 
 export type MapMode = 'n' | 'i' | 'v' | 'x' | 's'
+
+export enum PatternType {
+  Buffer,
+  LanguageServer,
+  Global,
+}
 
 export enum SourceType {
   Native,
@@ -147,6 +304,7 @@ export interface LanguageServerConfig {
   command?: string
   transport?: string
   transportPort?: number
+  disableWorkspaceFolders?: boolean
   filetypes: string[]
   enable: boolean
   args?: string[]
@@ -158,6 +316,7 @@ export interface LanguageServerConfig {
   detached?: boolean
   shell?: boolean
   execArgv?: string[]
+  rootPatterns?: string[]
   ignoredRootPaths?: string[]
   initializationOptions?: any
   revealOutputChannelOn?: string
@@ -175,14 +334,14 @@ export interface LocationListItem {
 }
 
 export interface QuickfixItem {
-  uri: string
+  uri?: string
+  range?: Range
+  text?: string
+  type?: string,
   filename?: string
   bufnr?: number
-  lnum: number
-  col: number
-  text: string
-  range: Range
-  type?: string,
+  lnum?: number
+  col?: number
   valid?: boolean
   nr?: number
 }
@@ -207,6 +366,7 @@ export interface BufferOption {
   filetype: string
   iskeyword: string
   changedtick: number
+  rootPatterns: string[] | null
 }
 
 export interface DiagnosticInfo {
@@ -272,7 +432,17 @@ export interface CompleteOption {
   colnr: number
   readonly linenr: number
   readonly synname: string
+  readonly source?: string
+  readonly blacklist: string[]
   triggerForInComplete?: boolean
+}
+
+export interface PumBounding {
+  readonly height: number
+  readonly width: number
+  readonly row: number
+  readonly col: number
+  readonly scrollbar: boolean
 }
 
 export interface VimCompleteItem {
@@ -282,6 +452,7 @@ export interface VimCompleteItem {
   info?: string
   kind?: string
   icase?: number
+  equal?: number
   dup?: number
   empty?: number
   user_data?: string
@@ -292,13 +463,27 @@ export interface VimCompleteItem {
   isSnippet?: boolean
   source?: string
   matchScore?: number
-  strictMatch?: number
   priority?: number
   preselect?: boolean
   recentScore?: number
   signature?: string
   localBonus?: number
   index?: number
+  // used for preview
+  documentation?: Documentation[]
+  detailShown?: number
+  // saved line for apply TextEdit
+  line?: string
+}
+
+export interface PopupChangeEvent {
+  completed_item: VimCompleteItem,
+  height: number
+  width: number
+  row: number
+  col: number
+  size: number
+  scrollbar: boolean
 }
 
 export interface CompleteResult {
@@ -316,10 +501,16 @@ export interface SourceStat {
   type: string
   filepath: string
   disabled: boolean
+  filetypes: string[]
 }
 
 export interface CompleteConfig {
+  disableKind: boolean
+  disableMenu: boolean
+  enablePreview: boolean
+  maxPreviewWidth: number
   autoTrigger: string
+  previewIsKeyword: string
   minTriggerInputLength: number
   triggerAfterInsertEnter: boolean
   acceptSuggestionOnCommitCharacter: boolean
@@ -331,6 +522,8 @@ export interface CompleteConfig {
   snippetIndicator: string
   fixInsertedWord: boolean
   localityBonus: boolean
+  highPrioritySourceLimit: number
+  lowPrioritySourceLimit: number
 }
 
 export interface WorkspaceConfiguration {
@@ -519,13 +712,14 @@ export interface ListAction {
   persist?: boolean
   reload?: boolean
   parallel?: boolean
-  execute: (item: ListItem, context: ListContext) => ProviderResult<void>
+  multiple?: boolean
+  execute: (item: ListItem | ListItem[], context: ListContext) => ProviderResult<void>
 }
 
 export interface ListTask {
   on(event: 'data', callback: (item: ListItem) => void): void
   on(event: 'end', callback: () => void): void
-  on(event: 'error', callback: (msg: string) => void): void
+  on(event: 'error', callback: (msg: string | Error) => void): void
   dispose(): void
 }
 
@@ -544,7 +738,7 @@ export interface IList {
   searchHighlight?: boolean
   defaultAction: string
   actions: ListAction[]
-  loadItems(context: ListContext): Promise<ListItem[] | ListTask | null | undefined>
+  loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
   doHighlight(): void
   dispose(): void
 }
@@ -565,6 +759,8 @@ export interface ISource {
   priority: number
   sourceType: SourceType
   triggerCharacters?: string[]
+  // regex to detect trigger completetion, ignored when triggerCharacters exists.
+  triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]
   duplicate?: boolean
   isSnippet?: boolean
@@ -591,10 +787,19 @@ export interface ISource {
   onEnter?(bufnr: number): void
 
   /**
+   * Check if this source should doComplete
+   *
+   * @public
+   * @param {CompleteOption} opt
+   * @returns {Promise<boolean> }
+   */
+  shouldComplete?(opt: CompleteOption): Promise<boolean>
+  /**
    * Do completetion
    *
    * @public
    * @param {CompleteOption} opt
+   * @param {CancellationToken} token
    * @returns {Promise<CompleteResult | null>}
    */
   doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null>
@@ -603,9 +808,10 @@ export interface ISource {
    *
    * @public
    * @param {VimCompleteItem} item
+   * @param {CancellationToken} token
    * @returns {Promise<void>}
    */
-  onCompleteResolve?(item: VimCompleteItem): Promise<void> | void
+  onCompleteResolve?(item: VimCompleteItem, token: CancellationToken): Promise<void> | void
   /**
    * Action for complete item on complete done
    *
@@ -614,14 +820,6 @@ export interface ISource {
    * @returns {Promise<void>}
    */
   onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): Promise<void>
-  /**
-   * Check if this source should work
-   *
-   * @public
-   * @param {CompleteOption} opt
-   * @returns {Promise<boolean> }
-   */
-  shouldComplete?(opt: CompleteOption): Promise<boolean>
 
   shouldCommit?(item: VimCompleteItem, character: string): boolean
 }
@@ -873,6 +1071,18 @@ export interface ExtensionContext {
    */
   storagePath: string
 
+  /**
+   * A memento object that stores state in the context
+   * of the currently opened [workspace](#workspace.workspaceFolders).
+   */
+  workspaceState: Memento
+
+  /**
+   * A memento object that stores state independent
+   * of the current opened [workspace](#workspace.workspaceFolders).
+   */
+  globalState: Memento
+
   logger: log4js.Logger
 }
 
@@ -889,7 +1099,6 @@ export interface IWorkspace {
   readonly channelNames: string[]
   readonly documents: Document[]
   readonly configurations: Configurations
-  document: Promise<Document | null>
   textDocuments: TextDocument[]
   workspaceFolder: WorkspaceFolder
   onDidOpenTextDocument: Event<TextDocument>

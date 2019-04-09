@@ -1,8 +1,9 @@
 import { Neovim } from '@chemzqm/neovim'
 import * as language from 'vscode-languageserver-protocol'
-import { Disposable, Location, Position, TextEdit } from 'vscode-languageserver-protocol'
+import { Disposable, Location, Position, TextEdit, CodeAction } from 'vscode-languageserver-protocol'
 import { wait } from './util'
 import workspace from './workspace'
+import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
 import { comparePosition } from './util/position'
 import URI from 'vscode-uri'
@@ -37,7 +38,7 @@ class CommandItem implements Disposable, Command {
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
 
-  public init(nvim: Neovim, plugin: any): void {
+  public init(nvim: Neovim, plugin: Plugin): void {
     this.register({
       id: 'vscode.open',
       execute: async (url: string | URI) => {
@@ -45,18 +46,30 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
+      id: 'workbench.action.reloadWindow',
+      execute: () => {
+        nvim.command('CocRestart', true)
+      }
+    }, true)
+    this.register({
       id: 'editor.action.insertSnippet',
       execute: async (edit: TextEdit) => {
         let doc = workspace.getDocument(workspace.bufnr)
         if (!doc) return
+        await nvim.call('coc#_cancel', [])
         let { start, end } = edit.range
         if (comparePosition(start, end) != 0) {
           await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }])
         } else if (doc.dirty) {
           doc.forceSync()
         }
-        await nvim.call('cursor', [start.line + 1, start.character + 1])
-        await snipetsManager.insertSnippet(edit.newText)
+        await snipetsManager.insertSnippet(edit.newText, true, start)
+      }
+    }, true)
+    this.register({
+      id: 'editor.action.doCodeAction',
+      execute: async (action: CodeAction) => {
+        await plugin.cocAction('doCodeAction', action)
       }
     }, true)
     this.register({
@@ -69,7 +82,7 @@ export class CommandManager implements Disposable {
     this.register({
       id: 'editor.action.triggerParameterHints',
       execute: async () => {
-        await wait(30)
+        await wait(60)
         await plugin.cocAction('showSignatureHelp')
       }
     }, true)
@@ -100,12 +113,6 @@ export class CommandManager implements Disposable {
       }
     }, true)
     this.register({
-      id: 'workspace.clearWatchman',
-      execute: async () => {
-        await workspace.runCommand('watchman watch-del-all')
-      }
-    })
-    this.register({
       id: 'workspace.diffDocument',
       execute: async () => {
         let document = await workspace.document
@@ -114,6 +121,20 @@ export class CommandManager implements Disposable {
         await nvim.call('coc#util#diff_content', [lines])
       }
     }, true)
+    this.register({
+      id: 'workspace.clearWatchman',
+      execute: async () => {
+        await workspace.runCommand('watchman watch-del-all')
+      }
+    })
+    this.register({
+      id: 'workspace.workspaceFolders',
+      execute: async () => {
+        let folders = workspace.workspaceFolders
+        let lines = folders.map(folder => URI.parse(folder.uri).fsPath)
+        await workspace.echoLines(lines)
+      }
+    })
     this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
@@ -206,16 +227,16 @@ export class CommandManager implements Disposable {
    *
    * @param command Identifier of the command to execute.
    * @param rest Parameters passed to the command function.
-   * @return A thenable that resolves to the returned value of the given command. `undefined` when
+   * @return A promise that resolves to the returned value of the given command. `undefined` when
    * the command handler function doesn't return anything.
    */
-  public executeCommand(command: string, ...rest: any[]): void {
+  public executeCommand(command: string, ...rest: any[]): Promise<any> {
     let cmd = this.commands.get(command)
     if (!cmd) {
       workspace.showMessage(`Command: ${command} not found`, 'error')
       return
     }
-    Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
+    return Promise.resolve(cmd.execute.apply(cmd, rest)).catch(e => {
       workspace.showMessage(`Command error: ${e.message}`, 'error')
       logger.error(e.stack)
     })

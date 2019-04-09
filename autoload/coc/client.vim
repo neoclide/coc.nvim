@@ -1,3 +1,4 @@
+let s:root = expand('<sfile>:h:h:h')
 let s:is_vim = !has('nvim')
 let s:is_win = has("win32") || has("win64")
 let s:clients = {}
@@ -114,6 +115,7 @@ function! s:request(method, args) dict
     endif
     return call('rpcrequest', [chan_id, a:method] + a:args)
   catch /^Vim\%((\a\+)\)\=:E475/
+    if get(g:, 'coc_vim_leaving', 0) | return | endif
     echohl Error | echom '['.self.name.'] server connection lost' | echohl None
     let name = self.name
     call s:on_exit(name, 0)
@@ -131,6 +133,7 @@ function! s:notify(method, args) dict
       call call('rpcnotify', [chan_id, a:method] + a:args)
     endif
   catch /^Vim\%((\a\+)\)\=:E475/
+    if get(g:, 'coc_vim_leaving', 0) | return | endif
     echohl Error | echom '['.self['name'].'] server connection lost' | echohl None
     let name = self.name
     call s:on_exit(name, 0)

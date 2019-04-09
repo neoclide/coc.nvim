@@ -6,5 +6,6 @@ __pycache__
 .log
 build
 doc/tags
+doc/tags-cn
 node_modules
 !src/__tests__/tags

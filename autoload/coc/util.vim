@@ -3,7 +3,6 @@ let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
 let s:install_yarn = 0
 let s:package_file = s:root.'/package.json'
-let g:coc_local_extensions = []
 
 let s:activate = ""
 let s:quit = ""
@@ -26,6 +25,112 @@ function! coc#util#has_preview()
     endif
   endfor
   return 0
+endfunction
+
+function! coc#util#has_float()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return 1
+    endif
+  endfor
+  return 0
+endfunction
+
+function! coc#util#get_float()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return win_getid(i)
+    endif
+  endfor
+  return 0
+endfunction
+
+function! coc#util#float_hide()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      let winid = win_getid(i)
+      call coc#util#close_win(winid)
+    endif
+  endfor
+endfunction
+
+function! coc#util#float_jump()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      exe i.'wincmd w'
+      return
+    endif
+  endfor
+endfunction
+
+function! coc#util#float_scrollable()
+  let winnr = winnr()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      let wid = win_getid(i)
+      let h = nvim_win_get_height(wid)
+      let buf = nvim_win_get_buf(wid)
+      let lineCount = nvim_buf_line_count(buf)
+      return lineCount > h
+    endif
+  endfor
+  return 0
+endfunction
+
+function! coc#util#float_scroll(forward)
+  let key = a:forward ? "\<C-f>" : "\<C-b>"
+  let winnr = winnr()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, 'float')
+      return i."\<C-w>w".key."\<C-w>p"
+    endif
+  endfor
+  return ""
+endfunction
+
+function! coc#util#yarn_cmd()
+  if executable('yarnpkg')
+    return 'yarnpkg'
+  endif
+  if executable('yarn')
+    return 'yarn'
+  endif
+  return ''
+endfunction
+
+" get cursor position
+function! coc#util#cursor()
+  let pos = getcurpos()
+  let content = pos[2] == 1 ? '' : getline('.')[0: pos[2] - 2]
+  return [pos[1] - 1, strchars(content)]
+endfunction
+
+function! coc#util#close_win(id)
+  if exists('*nvim_win_close')
+    if nvim_win_is_valid(a:id)
+      call nvim_win_close(a:id, 1)
+    endif
+  else
+    let winnr = win_id2win(a:id)
+    if winnr > 0
+      execute winnr.'close!'
+    endif
+  endif
+endfunction
+
+function! coc#util#win_position()
+  let nr = winnr()
+  let [row, col] = win_screenpos(nr)
+  return [row + winline() - 2, col + wincol() - 2]
+endfunction
+
+function! coc#util#close_popup()
+  for winnr in range(1, winnr('$'))
+    let popup = getwinvar(winnr, 'popup')
+    if !empty(popup)
+      exe winnr.'close!'
+    endif
+  endfor
 endfunction
 
 function! coc#util#version()
@@ -59,15 +164,6 @@ function! coc#util#platform()
   return 'linux'
 endfunction
 
-function! coc#util#regist_extension(folder)
-  if index(g:coc_local_extensions, a:folder) == -1
-    call add(g:coc_local_extensions, a:folder)
-    if get(g:, 'coc_service_initialized', 0)
-      call coc#rpc#notify('registExtensions', [a:folder])
-    endif
-  endif
-endfunction
-
 function! coc#util#remote_fns(name)
   let fns = ['init', 'complete', 'should_complete', 'refresh', 'get_startcol', 'on_complete', 'on_enter']
   let res = []
@@ -90,18 +186,19 @@ function! coc#util#binary()
 endfunction
 
 function! coc#util#job_command()
-  let binary = coc#util#binary()
-  if executable(binary) && !get(g:, 'coc_force_debug', 0)
-    return [binary]
-  endif
-  let file = s:root.'/lib/attach.js'
-  if !filereadable(file)
-    echohl Error | echon '[coc.nvim] binary and build file not found' | echohl None
-    return
-  endif
   let node = get(g:, 'coc_node_path', 'node')
   if !executable(node)
     echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
+    return
+  endif
+  let file = s:root.'/build/index.js'
+  "let binary = coc#util#binary()
+  if filereadable(file) && !get(g:, 'coc_force_debug', 0)
+    return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
+  endif
+  let file = s:root.'/lib/attach.js'
+  if !filereadable(file)
+    echohl Error | echon '[coc.nvim] compiled javascript file not found!' | echohl None
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
@@ -115,6 +212,9 @@ endfunction
 
 function! coc#util#execute(cmd)
   exe a:cmd
+  if &l:filetype ==# ''
+    filetype detect
+  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
@@ -136,16 +236,13 @@ function! coc#util#echo_lines(lines)
 endfunction
 
 function! coc#util#timer(method, args)
-  if !s:is_vim
-    call call(a:method, a:args)
-  else
-    call timer_start(0, { -> s:Call(a:method, a:args)})
-  endif
+  call timer_start(0, { -> s:Call(a:method, a:args)})
 endfunction
 
 function! s:Call(method, args)
   try
     call call(a:method, a:args)
+    redraw
   catch /.*/
     return 0
   endtry
@@ -158,17 +255,22 @@ function! coc#util#is_preview(bufnr)
 endfunction
 
 function! coc#util#get_bufoptions(bufnr) abort
-  if !bufloaded(a:bufnr) | return v:null| endif
+  if !bufloaded(a:bufnr) | return v:null | endif
   let bufname = bufname(a:bufnr)
   return {
         \ 'bufname': bufname,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
-        \ 'fullpath': fnamemodify(bufname, ':p'),
+        \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'buftype': getbufvar(a:bufnr, '&buftype'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
+        \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
         \}
+endfunction
+
+function! coc#util#root_patterns()
+  return coc#rpc#request('rootPatterns', [bufnr('%')])
 endfunction
 
 function! coc#util#on_error(msg) abort
@@ -205,9 +307,9 @@ function! coc#util#get_config_home()
     return resolve($HOME.'/.config/nvim')
   else
     if s:is_win
-      return $VIM."/vimfiles"
+      return resolve($HOME."/vimfiles")
     endif
-    return $HOME.'/.vim'
+    return resolve($HOME.'/.vim')
   endif
 endfunction
 
@@ -222,6 +324,9 @@ function! coc#util#get_input()
 endfunction
 
 function! coc#util#get_complete_option()
+  let disabled = get(b:, 'coc_suggest_disable', 0)
+  if disabled | return | endif
+  let blacklist = get(b:, 'coc_suggest_blacklist', [])
   let pos = getcurpos()
   let line = getline(pos[1])
   let l:start = pos[2] - 1
@@ -229,6 +334,9 @@ function! coc#util#get_complete_option()
     let l:start -= 1
   endwhile
   let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
+  if !empty(blacklist) && index(blacklist, input) >= 0
+    return
+  endif
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
@@ -239,7 +347,8 @@ function! coc#util#get_complete_option()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
-        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name")
+        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name"),
+        \ 'blacklist': blacklist,
         \}
 endfunction
 
@@ -370,13 +479,34 @@ endfunction
 
 function! coc#util#vim_info()
   return {
-        \ 'namespaceSupport': exists('*nvim_create_namespace') ? v:true : v:false,
-        \ 'virtualText': exists('*nvim_buf_set_virtual_text') ? v:true : v:false,
+        \ 'mode': mode(),
+        \ 'floating': exists('*nvim_open_win') ? v:true : v:false,
+        \ 'extensionRoot': coc#util#extension_root(),
+        \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
+        \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
+        \ 'config': get(g:, 'coc_user_config', {}),
+        \ 'pid': getpid(),
+        \ 'columns': &columns,
+        \ 'lines': &lines,
+        \ 'cmdheight': &cmdheight,
         \ 'filetypeMap': get(g:, 'coc_filetype_map', {}),
         \ 'version': coc#util#version(),
         \ 'completeOpt': &completeopt,
+        \ 'pumevent': exists('##MenuPopupChanged') || exists('##CompleteChanged'),
         \ 'isVim': has('nvim') ? v:false : v:true,
         \ 'isMacvim': has('gui_macvim') ? v:true : v:false,
+        \ 'colorscheme': get(g:, 'colors_name', ''),
+        \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
+        \ 'background': &background,
+        \ 'runtimepath': &runtimepath,
+        \}
+endfunction
+
+function! coc#util#highlight_options()
+  return {
+        \ 'colorscheme': get(g:, 'colors_name', ''),
+        \ 'background': &background,
+        \ 'runtimepath': &runtimepath,
         \}
 endfunction
 
@@ -428,7 +558,11 @@ endfunction
 
 function! coc#util#clearmatches(ids)
   for id in a:ids
-    silent! call matchdelete(id)
+    try
+      call matchdelete(id)
+    catch /.*/
+      " matches have been cleared in other ways,
+    endtry
   endfor
 endfunction
 
@@ -445,13 +579,14 @@ function! coc#util#open_url(url)
   if v:shell_error
     echohl Error | echon 'Failed to open '.a:url | echohl None
     return
-  endif 
+  endif
 endfunction
 
 function! coc#util#install(...) abort
-  let l:terminal = get(get(a:, 1, {}), 'terminal', 0)
-  let obj = json_decode(join(readfile(s:package_file)))
-  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . ' v'.obj['version']
+  let opts = get(a:, 1, {})
+  let l:terminal = get(opts, 'terminal', 0)
+  let tag = get(opts, 'tag', 0)
+  let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (tag ? '' : ' nightly')
   function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
     if s:is_vim
@@ -485,17 +620,20 @@ endfunction
 
 " build coc from source code
 function! coc#util#build()
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
     return 0
   endif
   let cwd = getcwd()
-  if s:is_win
-    call system('taskkill /F /Im coc-win.exe')
-  endif
   execute 'lcd '.s:root
-  execute '!yarn install'
+  execute '!'.yarncmd.' install --frozen-lockfile'
   execute 'lcd '.cwd
+  if s:is_win
+    call coc#rpc#start_server()
+  else
+    call coc#rpc#restart()
+  endif
 endfunction
 
 function! coc#util#do_complete(name, opt, cb) abort
@@ -514,37 +652,60 @@ function! coc#util#extension_root() abort
   return dir
 endfunction
 
-function! coc#util#install_extension(names) abort
-  if !executable('yarn')
+function! coc#util#update_extensions() abort
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
+    echohl Error | echon '[coc.nvim] yarn command not found!' | echohl None
+  endif
+  let dir = coc#util#extension_root()
+  if !isdirectory(dir)
+    echohl Error | echon '[coc.nvim] extension root '.dir.' not found!' | echohl None
+  endif
+  let cwd = getcwd()
+  exe 'lcd '.dir
+  exe '!'.yarncmd.' upgrade --latest --ignore-engines'
+  exe 'lcd '.cwd
+endfunction
+
+function! coc#util#install_extension(args) abort
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
-      call coc#util#open_terminal({
-            \ 'cmd': 'curl --compressed -o- -L https://yarnpkg.com/install.sh | sh',
-            \ 'keepfocus': 1,
-            \ 'Callback': { -> coc#util#install(a:names)},
-            \})
+      echohl MoreMsg | echon 'Installing yarn' | echohl None
+      exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh +m'
     else
       echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     endif
     return
   endif
+  let names = join(filter(copy(a:args), 'v:val !~# "^-"'), ' ')
+  if empty(names) | return | endif
+  let useTerminal = index(a:args, '-sync') == -1
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
   if res == -1| return | endif
-  function! s:OnExtensionInstalled(status, names) closure
-    if a:status == 0
-      call coc#util#echo_messages('MoreMsg', ['extension '.a:names. ' installed!'])
-      call coc#rpc#notify('CocInstalled', [a:names])
-    else
-      call coc#util#echo_messages('Error', ['extension '.a:names. ' install failed!'])
-    endif
-  endfunction
-  call coc#util#open_terminal({
-        \ 'cwd': dir,
-        \ 'cmd': 'yarn add '.a:names.' --ignore-engines',
-        \ 'keepfocus': 1,
-        \ 'Callback': {status -> s:OnExtensionInstalled(status, a:names)},
-        \})
+  if useTerminal
+    function! s:OnExtensionInstalled(status, ...) closure
+      if a:status == 0
+        call coc#util#echo_messages('MoreMsg', ['extension '.names. ' installed!'])
+        call coc#rpc#notify('CocInstalled', [names])
+      else
+        call coc#util#echo_messages('Error', ['install extensions '.names. ' failed!'])
+      endif
+    endfunction
+    call coc#util#open_terminal({
+          \ 'cwd': dir,
+          \ 'cmd': yarncmd.' add '.names.' --ignore-engines',
+          \ 'keepfocus': 1,
+          \ 'Callback': funcref('s:OnExtensionInstalled'),
+          \})
+  else
+    let cwd = getcwd()
+    exe 'lcd '.dir
+    exe '!'.yarncmd.' add '.names.' --ignore-engines'
+    exe 'lcd '.cwd
+  endif
 endfunction
 
 function! coc#util#init_extension_root(root) abort
@@ -571,7 +732,8 @@ function! coc#util#rebuild()
 endfunction
 
 function! coc#util#update()
-  if !executable('yarn')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
     echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     return
   endif
@@ -584,7 +746,7 @@ function! coc#util#update()
   endfunction
   call coc#util#open_terminal({
         \ 'cwd': dir,
-        \ 'cmd': 'yarn upgrade --latest --ignore-engines',
+        \ 'cmd': yarncmd.' upgrade --latest --ignore-engines',
         \ 'keepfocus': 1,
         \ 'Callback': funcref('s:OnUpdated'),
         \})
@@ -654,4 +816,36 @@ csd.destroy()
 
 endpython
   return rgb
+endfunction
+
+function! coc#util#iterm_open(dir)
+  return s:osascript(
+      \ 'if application "iTerm2" is not running',
+      \   'error',
+      \ 'end if') && s:osascript(
+      \ 'tell application "iTerm2"',
+      \   'tell current window',
+      \     'create tab with default profile',
+      \     'tell current session',
+      \       'write text "cd ' . a:dir . '"',
+      \       'write text "clear"',
+      \       'activate',
+      \     'end tell',
+      \   'end tell',
+      \ 'end tell')
+endfunction
+
+function! s:osascript(...) abort
+  let args = join(map(copy(a:000), '" -e ".shellescape(v:val)'), '')
+  call  s:system('osascript'. args)
+  return !v:shell_error
+endfunction
+
+function! s:system(cmd)
+  let output = system(a:cmd)
+  if v:shell_error && output !=# ""
+    echohl Error | echon output | echohl None
+    return
+  endif
+  return output
 endfunction

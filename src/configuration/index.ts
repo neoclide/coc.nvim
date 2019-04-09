@@ -10,6 +10,7 @@ import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
 import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
 import { objectLiteral } from '../util/is'
+import findUp from 'find-up'
 const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -41,7 +42,7 @@ export default class Configurations {
     private userConfigFile?: string | null,
     private readonly _proxy?: ConfigurationShape
   ) {
-    let user = parseContentFromFile(userConfigFile, this.handleErrors.bind(this))
+    let user = this.parseContentFromFile(userConfigFile)
     let data: IConfigurationData = {
       defaults: loadDefaultConfigurations(),
       user,
@@ -49,6 +50,17 @@ export default class Configurations {
     }
     this._configuration = Configurations.parse(data)
     this.watchFile(userConfigFile, ConfigurationTarget.User)
+  }
+
+  private parseContentFromFile(filepath: string): IConfigurationModel {
+    if (!filepath) return { contents: {} }
+    let uri = Uri.file(filepath).toString()
+    this._errorItems = this._errorItems.filter(o => o.location.uri != uri)
+    let res = parseContentFromFile(filepath, errors => {
+      this._errorItems.push(...errors)
+    })
+    this._onError.fire(this._errorItems)
+    return res
   }
 
   public get errorItems(): ErrorItem[] {
@@ -113,7 +125,7 @@ export default class Configurations {
     let { _folderConfigurations } = this
     if (_folderConfigurations.has(filepath)) return
     if (path.resolve(filepath, '../..') == os.homedir()) return
-    let model = parseContentFromFile(filepath, this.handleErrors.bind(this))
+    let model = this.parseContentFromFile(filepath)
     _folderConfigurations.set(filepath, new ConfigurationModel(model.contents))
     this.watchFile(filepath, ConfigurationTarget.Workspace)
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
@@ -123,7 +135,7 @@ export default class Configurations {
     if (!fs.existsSync(filepath)) return
     if (global.hasOwnProperty('__TEST__')) return
     let disposable = watchFile(filepath, () => {
-      let model = parseContentFromFile(filepath, this.handleErrors.bind(this))
+      let model = this.parseContentFromFile(filepath)
       this.changeConfiguration(target, model, filepath)
     })
     this.disposables.push(disposable)
@@ -223,7 +235,7 @@ export default class Configurations {
       },
       update: (key: string, value: any, isUser = false) => {
         let s = section ? `${section}.${key}` : key
-        if (!this.workspaceConfigFile) isUser = true
+        // if (!this.workspaceConfigFile) isUser = true
         let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         let model = target == ConfigurationTarget.User ? this.user.clone() : this.workspace.clone()
         if (value == undefined) {
@@ -284,18 +296,28 @@ export default class Configurations {
     return new ConfigurationModel()
   }
 
+  public checkFolderConfiguration(uri: string): void {
+    let u = Uri.parse(uri)
+    if (u.scheme != 'file') return
+    let rootPath = path.dirname(u.fsPath)
+    if (!this.hasFolderConfiguration(rootPath)) {
+      let folder = findUp.sync('.vim', { cwd: rootPath })
+      if (folder && folder != os.homedir()) {
+        let file = path.join(folder, 'coc-settings.json')
+        if (fs.existsSync(file)) {
+          this.addFolderFile(file)
+        }
+      }
+    } else {
+      this.setFolderConfiguration(uri)
+    }
+  }
+
   private static parse(data: IConfigurationData): Configuration {
     const defaultConfiguration = new ConfigurationModel(data.defaults.contents)
     const userConfiguration = new ConfigurationModel(data.user.contents)
     const workspaceConfiguration = new ConfigurationModel(data.workspace.contents)
     return new Configuration(defaultConfiguration, userConfiguration, workspaceConfiguration, new ConfigurationModel())
-  }
-
-  private handleErrors(errors: ErrorItem[]): void {
-    if (errors && errors.length) {
-      this._errorItems.push(...errors)
-      this._onError.fire(errors)
-    }
   }
 
   public dispose(): void {

@@ -3,6 +3,8 @@ import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
 import { SnippetSession } from './session'
+import * as Snippets from "./parser"
+import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
@@ -32,7 +34,7 @@ export class SnippetManager implements types.SnippetManager {
       let doc = workspace.getDocument(textDocument.uri)
       if (!doc) return
       let session = this.getSession(doc.bufnr)
-      if (session) this.sessionMap.delete(session.bufnr)
+      if (session) session.deactivate()
     }, null, this.disposables)
 
     events.on('BufEnter', async bufnr => {
@@ -56,12 +58,13 @@ export class SnippetManager implements types.SnippetManager {
    * Insert snippet at current cursor position
    */
   public async insertSnippet(snippet: string, select = true, position?: Position): Promise<boolean> {
-    let bufnr = await workspace.nvim.call('bufnr', '%')
+    let { nvim } = workspace
+    let bufnr = await nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
-    let disposable: Disposable
     if (!session) {
       session = new SnippetSession(workspace.nvim, bufnr)
-      disposable = session.onCancel(() => {
+      this.sessionMap.set(bufnr, session)
+      session.onCancel(() => {
         this.sessionMap.delete(bufnr)
         if (workspace.bufnr == bufnr) {
           this.statusItem.hide()
@@ -70,17 +73,17 @@ export class SnippetManager implements types.SnippetManager {
     }
     let isActive = await session.start(snippet, select, position)
     if (isActive) {
-      this.sessionMap.set(bufnr, session)
       this.statusItem.show()
-    } else if (disposable) {
-      disposable.dispose()
+    } else if (session) {
+      session.deactivate()
     }
+    nvim.command('silent! unlet g:coc_last_placeholder g:coc_selected_text', true)
     return isActive
   }
 
-  public async selectCurrentPlaceholder(): Promise<void> {
+  public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {
     let { session } = this
-    if (session) return await session.selectCurrentPlaceholder()
+    if (session) return await session.selectCurrentPlaceholder(triggerAutocmd)
   }
 
   public async nextPlaceholder(): Promise<void> {
@@ -109,8 +112,26 @@ export class SnippetManager implements types.SnippetManager {
     return session && session.isActive ? session : null
   }
 
+  public jumpable(): boolean {
+    let { session } = this
+    if (!session) return false
+    let placeholder = session.placeholder
+    if (placeholder && !placeholder.isFinalTabstop) {
+      return true
+    }
+    return false
+  }
+
   public getSession(bufnr: number): SnippetSession {
     return this.sessionMap.get(bufnr)
+  }
+
+  public async resolveSnippet(body: string): Promise<Snippets.TextmateSnippet> {
+    let parser = new Snippets.SnippetParser()
+    const snippet = parser.parse(body, true)
+    const resolver = new SnippetVariableResolver()
+    snippet.resolveVariables(resolver)
+    return snippet
   }
 
   public dispose(): void {

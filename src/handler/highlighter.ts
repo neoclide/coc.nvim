@@ -1,10 +1,10 @@
-import Document from '../model/document'
-import workspace from '../workspace'
-import { Color, ColorInformation, Disposable, Range, Position } from 'vscode-languageserver-protocol'
-import { equals } from '../util/object'
 import { Neovim } from '@chemzqm/neovim'
+import { Color, ColorInformation, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import Document from '../model/document'
 import { group } from '../util/array'
-import { rangeInRange, positionInRange } from '../util/position'
+import { equals } from '../util/object'
+import { positionInRange } from '../util/position'
+import workspace from '../workspace'
 const logger = require('../util/logger')('highlighter')
 
 export interface ColorRanges {
@@ -15,6 +15,7 @@ export interface ColorRanges {
 const usedColors: Set<string> = new Set()
 
 export default class Highlighter implements Disposable {
+  public winid: number
   private matchIds: number[] = []
   private _colors: ColorInformation[] = []
   // last highlight version
@@ -27,6 +28,10 @@ export default class Highlighter implements Disposable {
 
   public get version(): number {
     return this._version
+  }
+
+  public get bufnr(): number {
+    return this.document.bufnr
   }
 
   public get colors(): ColorInformation[] {
@@ -42,6 +47,8 @@ export default class Highlighter implements Disposable {
     this._version = this.document.version
     if (workspace.isVim && workspace.bufnr != this.document.bufnr) return
     if (colors.length == 0) return this.clearHighlight()
+    let window = await this.nvim.window
+    this.winid = window.id
     this._colors = colors
     let groups = group(colors, 100)
     let cleared = false
@@ -122,7 +129,6 @@ export default class Highlighter implements Disposable {
   }
 
   public dispose(): void {
-    this.nvim.resumeNotification()
     this.document = null
   }
 }

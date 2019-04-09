@@ -115,11 +115,4 @@ export class Chars {
     }
     return true
   }
-
-  public static getContentAfterCharacter(line: string, character: number): string {
-    if (character >= line.length) return ''
-    let part = line.slice(character - line.length)
-    let ms = part.match(/^\S[\w\-]*/)
-    return ms ? ms[0] : ''
-  }
 }

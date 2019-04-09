@@ -1,32 +1,34 @@
 import { attach, NeovimClient } from '@chemzqm/neovim'
+import log4js from 'log4js'
 import { Attach } from '@chemzqm/neovim/lib/attach/attach'
 import events from './events'
 import Plugin from './plugin'
 import semver from 'semver'
+import './util/extensions'
 const logger = require('./util/logger')('attach')
 const isTest = process.env.NODE_ENV == 'test'
 
-export default (opts: Attach): Plugin => {
-  const nvim: NeovimClient = attach(opts)
+export default (opts: Attach, requestApi = true): Plugin => {
+  const nvim: NeovimClient = attach(opts, log4js.getLogger('node-client'), requestApi)
   const plugin = new Plugin(nvim)
+  let clientReady = false
   let initialized = false
   nvim.on('notification', async (method, args) => {
     switch (method) {
       case 'VimEnter': {
-        if (!initialized) {
+        if (!initialized && clientReady) {
           initialized = true
           await plugin.init()
         }
         break
       }
-      case 'OptionSet':
-        await events.fire('OptionSet', args)
-        break
-      case 'InputChar':
-        await events.fire('InputChar', args)
-        break
+      case 'TaskExit':
+      case 'TaskStderr':
+      case 'TaskStdout':
       case 'GlobalChange':
-        await events.fire('GlobalChange', args)
+      case 'InputChar':
+      case 'OptionSet':
+        await events.fire(method, args)
         break
       case 'CocAutocmd':
         await events.fire(args[0], args.slice(1))
@@ -64,6 +66,7 @@ export default (opts: Attach): Plugin => {
   })
 
   nvim.channelId.then(async channelId => {
+    clientReady = true
     if (isTest) nvim.command(`let g:coc_node_channel_id = ${channelId}`, true)
     let json = require('../package.json')
     let { major, minor, patch } = semver.parse(json.version)

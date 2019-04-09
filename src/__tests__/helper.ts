@@ -1,10 +1,10 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import * as cp from 'child_process'
 import Emitter from 'events'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
-import pify from 'pify'
+import util from 'util'
 import attach from '../attach'
 import Document from '../model/document'
 import Plugin from '../plugin'
@@ -56,10 +56,11 @@ export class Helper extends Emitter {
 
   public async shutdown(): Promise<void> {
     await this.plugin.dispose()
-    this.nvim.quit()
+    await this.nvim.quit()
     if (this.proc) {
       this.proc.kill('SIGKILL')
     }
+    await this.wait(60)
   }
 
   public async waitPopup(): Promise<void> {
@@ -71,11 +72,20 @@ export class Helper extends Emitter {
     throw new Error('timeout after 2s')
   }
 
+  public async waitFloat(): Promise<number> {
+    for (let i = 0; i < 40; i++) {
+      await this.wait(50)
+      let winid = await this.nvim.call('coc#util#get_float')
+      if (winid) return winid
+    }
+    throw new Error('timeout after 2s')
+  }
+
   public async reset(): Promise<void> {
     let mode = await this.nvim.call('mode')
     if (mode !== 'n') {
-      this.nvim.command('stopinsert', true)
-      this.nvim.call('feedkeys', [String.fromCharCode(27), 'int'], true)
+      await this.nvim.command('stopinsert')
+      await this.nvim.call('feedkeys', [String.fromCharCode(27), 'in'])
     }
     await this.nvim.command('silent! %bwipeout!')
     await this.wait(60)
@@ -166,6 +176,11 @@ export class Helper extends Emitter {
     await this.nvim.command(`source ${file}`)
   }
 
+  public async items(): Promise<VimCompleteItem[]> {
+    let context = await this.nvim.getVar('coc#_context')
+    return context['candidates'] || []
+  }
+
   public async screenLine(line: number): Promise<string> {
     let res = ''
     for (let i = 1; i <= 80; i++) {
@@ -173,6 +188,16 @@ export class Helper extends Emitter {
       res = res + String.fromCharCode(ch)
     }
     return res
+  }
+
+  public async getFloat(): Promise<Window> {
+    let wins = await this.nvim.windows
+    let floatWin: Window
+    for (let win of wins) {
+      let f = await win.getVar('float')
+      if (f) floatWin = win
+    }
+    return floatWin
   }
 }
 
@@ -182,7 +207,7 @@ export async function createTmpFile(content: string): Promise<string> {
     fs.mkdirSync(tmpFolder)
   }
   let filename = path.join(tmpFolder, uuid())
-  await pify(fs.writeFile)(filename, content, 'utf8')
+  await util.promisify(fs.writeFile)(filename, content, 'utf8')
   return filename
 }
 

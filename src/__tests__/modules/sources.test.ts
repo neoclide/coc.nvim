@@ -100,3 +100,25 @@ describe('sources#refresh', () => {
     sources.removeSource(source)
   })
 })
+
+describe('sources#createSource', () => {
+  it('should create source', async () => {
+    let disposable = sources.createSource({
+      name: 'custom',
+      doComplete: () => {
+        return Promise.resolve({
+          items: [{
+            word: 'custom'
+          }]
+        })
+      }
+    })
+    await helper.createDocument()
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('c')
+    let visible = await helper.visible('custom', 'custom')
+    expect(visible).toBe(true)
+    disposable.dispose()
+  })
+})

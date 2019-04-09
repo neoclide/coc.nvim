@@ -14,87 +14,149 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { OutputChannel, Autocmd } from './types'
-import { isRunning } from './util'
+import { Autocmd, OutputChannel, PatternType } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
+import debounce = require('debounce')
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
   private ready = false
   private handler: Handler
   private infoChannel: OutputChannel
-  private interval: NodeJS.Timeout
 
   constructor(public nvim: Neovim) {
     super()
     Object.defineProperty(workspace, 'nvim', {
       get: () => this.nvim
     })
+    this.addMethod('hasSelected', () => {
+      return completion.hasSelected()
+    })
+    this.addMethod('listNames', () => {
+      return listManager.names
+    })
+    this.addMethod('rootPatterns', bufnr => {
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return null
+      return {
+        buffer: workspace.getRootPatterns(doc, PatternType.Buffer),
+        server: workspace.getRootPatterns(doc, PatternType.LanguageServer),
+        global: workspace.getRootPatterns(doc, PatternType.Global)
+      }
+    })
+    this.addMethod('installExtensions', debounce(async () => {
+      let list = await nvim.getVar('coc_global_extensions') as string[]
+      return extensions.installExtensions(list)
+    }, 200))
+    this.addMethod('commandList', () => {
+      return commandManager.commandList.map(o => o.id)
+    })
+    this.addMethod('openList', async (...args: string[]) => {
+      await listManager.start(args)
+    })
+    this.addMethod('listResume', () => {
+      return listManager.resume()
+    })
+    this.addMethod('listPrev', () => {
+      return listManager.previous()
+    })
+    this.addMethod('listNext', () => {
+      return listManager.next()
+    })
+    this.addMethod('detach', () => {
+      return workspace.detach()
+    })
+    this.addMethod('sendRequest', (id: string, method: string, params?: any) => {
+      return services.sendRequest(id, method, params)
+    })
+    this.addMethod('doAutocmd', async (id: number, ...args: []) => {
+      let autocmd = (workspace as any).autocmds.get(id) as Autocmd
+      if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
+    })
+    this.addMethod('updateConfig', (section: string, val: any) => {
+      workspace.configurations.updateUserConfig({ [section]: val })
+    })
+    this.addMethod('snippetNext', async () => {
+      await snippetManager.nextPlaceholder()
+      return ''
+    })
+    this.addMethod('snippetPrev', async () => {
+      await snippetManager.previousPlaceholder()
+      return ''
+    })
+    this.addMethod('snippetCancel', () => {
+      snippetManager.cancel()
+    })
+    this.addMethod('cocInstalled', async (names: string) => {
+      for (let name of names.split(/\s+/)) {
+        await extensions.onExtensionInstall(name)
+      }
+    })
+    this.addMethod('openLog', async () => {
+      let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
+      let escaped = await this.nvim.call('fnameescape', file)
+      await this.nvim.command(`edit ${escaped}`)
+    })
+    this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
+      let fn = workspace.keymaps.get(key)
+      if (!fn) {
+        logger.error(`keymap for ${key} not found`)
+        return defaultReturn
+      }
+      let res = await Promise.resolve(fn())
+      return res || defaultReturn
+    })
+    this.addMethod('registExtensions', async (...folders: string[]) => {
+      for (let folder of folders) {
+        await extensions.loadExtension(folder)
+      }
+    })
+    workspace.onDidChangeWorkspaceFolders(() => {
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
+    })
     commandManager.init(nvim, this)
     clean() // tslint:disable-line
+  }
+
+  private addMethod(name: string, fn: Function): any {
+    Object.defineProperty(this, name, {
+      value: fn
+    })
   }
 
   public async init(): Promise<void> {
     let { nvim } = this
     try {
-      let config = await nvim.getVar('coc_user_config') as { [key: string]: any } || {}
-      workspace.configurations.updateUserConfig(config)
-      let pid = await nvim.call('getpid') as number
-      this.checkProcess(pid)
-      await listManager.init(nvim)
-      await workspace.init()
-      nvim.setVar('coc_workspace_initialized', 1, true)
-      sources.init()
-      completion.init(nvim)
-      services.init()
-      this.handler = new Handler(nvim)
       await extensions.init(nvim)
+      await workspace.init()
+      diagnosticManager.init()
+      listManager.init(nvim)
+      nvim.setVar('coc_workspace_initialized', 1, true)
       nvim.setVar('coc_process_pid', process.pid, true)
+      nvim.setVar('WorkspaceFolders', workspace.folderPaths, true)
+      completion.init(nvim)
+      sources.init()
+      this.handler = new Handler(nvim)
+      services.init()
+      extensions.activateExtensions()
       nvim.setVar('coc_service_initialized', 1, true)
-      await nvim.command('silent doautocmd User CocNvimInit')
+      nvim.call('coc#_init', [], true)
       this.ready = true
       logger.info(`coc initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
       this.ready = false
-      console.error(`Plugin initialized error: ${e.stack}`) // tslint:disable-line
+      console.error(`Error on initialize: ${e.stack}`) // tslint:disable-line
+      logger.error(e.stack)
     }
+
     workspace.onDidOpenTextDocument(async doc => {
       if (!doc.uri.endsWith('coc-settings.json')) return
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
       let res = await workspace.showPrompt('Install coc-json for json intellisense?')
       if (res) await this.nvim.command('CocInstall coc-json')
     })
-  }
-
-  public async sendRequest(id: string, method: string, params?: any): Promise<any> {
-    if (!method) {
-      workspace.showMessage('method required for send request', 'error')
-      return
-    }
-    return await services.sendRequest(id, method, params)
-  }
-
-  public async doAutocmd(id: number, ...args: []): Promise<void> {
-    let autocmd = (workspace as any).autocmds.get(id) as Autocmd
-    if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))
-  }
-
-  public updateConfig(section: string, val: any): void {
-    workspace.configurations.updateUserConfig({ [section]: val })
-  }
-
-  public hasSelected(): boolean {
-    return completion.hasSelected()
-  }
-
-  public getCurrentIndex(): number {
-    return completion.index
-  }
-
-  public listNames(): string[] {
-    return listManager.names
   }
 
   public async findLocations(id: string, method: string, params: any, openCommand?: string): Promise<void> {
@@ -126,10 +188,24 @@ export default class Plugin extends EventEmitter {
     await this.handler.handleLocations(locations, openCommand)
   }
 
-  public async openLog(): Promise<void> {
-    let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
-    let escaped = await this.nvim.call('fnameescape', file)
-    await this.nvim.command(`edit ${escaped}`)
+  public async snippetCheck(checkExpand: boolean, checkJump: boolean): Promise<boolean> {
+    if (checkExpand && !extensions.has('coc-snippets')) {
+      // tslint:disable-next-line: no-console
+      console.error('coc-snippets required for check expand status!')
+      return false
+    }
+    if (checkJump) {
+      let jumpable = snippetManager.jumpable()
+      if (jumpable) return true
+    }
+    if (checkExpand) {
+      let api = extensions.getExtensionApi('coc-snippets') as any
+      if (api && api.hasOwnProperty('expandable')) {
+        let expandable = await Promise.resolve(api.expandable())
+        if (expandable) return true
+      }
+    }
+    return false
   }
 
   public async showInfo(): Promise<void> {
@@ -145,7 +221,7 @@ export default class Plugin extends EventEmitter {
     let out = await this.nvim.call('execute', ['version']) as string
     channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0])
     channel.appendLine('node version: ' + process.version)
-    channel.appendLine('coc.nvim version: ' + workspace.version)
+    channel.appendLine('coc.nvim version: ' + workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : ''))
     channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
     channel.appendLine('platform: ' + process.platform)
     channel.appendLine('')
@@ -160,56 +236,6 @@ export default class Plugin extends EventEmitter {
         channel.appendLine('')
       }
     }
-  }
-
-  public async addExtensions(): Promise<void> {
-    await extensions.addExtensions()
-  }
-
-  public async registExtensions(...folders: string[]): Promise<void> {
-    for (let folder of folders) {
-      await extensions.loadExtension(folder)
-    }
-  }
-
-  public async commandList(): Promise<string[]> {
-    return commandManager.commandList.map(o => o.id)
-  }
-
-  public async openList(...args: string[]): Promise<void> {
-    await listManager.start(args)
-  }
-
-  public async doKeymap(key: string, defaultReturn = ''): Promise<any> {
-    let fn = workspace.keymaps.get(key)
-    if (!fn) {
-      logger.error(`keymap for ${key} not found`)
-      return defaultReturn
-    }
-    let res = await Promise.resolve(fn())
-    return res || defaultReturn
-  }
-
-  public async cocInstalled(names: string): Promise<void> {
-    for (let name of names.split(/\s+/)) {
-      await extensions.onExtensionInstall(name)
-    }
-  }
-
-  public async listResume(): Promise<void> {
-    listManager.resume()
-  }
-
-  public async listPrev(): Promise<void> {
-    listManager.previous()
-  }
-
-  public async listNext(): Promise<void> {
-    listManager.next()
-  }
-
-  public async detach(): Promise<void> {
-    await workspace.detach()
   }
 
   public updateExtension(): Promise<void> {
@@ -233,8 +259,10 @@ export default class Plugin extends EventEmitter {
               console.error(`Please upgrade coc.nvim to latest version: ${latest}`) // tslint:disable-line
             } else {
               let cwd = await nvim.call('coc#util#extension_root') as string
+              let yarncmd = await nvim.call('coc#util#yarn_cmd') as string
+              if (!yarncmd) return
               if (statusItem) statusItem.text = 'Upgrading coc extensions...'
-              await workspace.runCommand('yarn upgrade --latest --ignore-engines', cwd, 300000)
+              await workspace.runCommand(`${yarncmd} upgrade --latest --ignore-engines`, cwd, 300000)
               if (statusItem) statusItem.dispose()
             }
             resolve()
@@ -290,12 +318,7 @@ export default class Plugin extends EventEmitter {
           sources.toggleSource(args[1])
           break
         case 'diagnosticInfo':
-          // denite would clear message without timer
-          setTimeout(() => {
-            diagnosticManager.echoMessage().catch(e => {
-              logger.error(e)
-            })
-          }, 40)
+          await diagnosticManager.echoMessage()
           break
         case 'diagnosticNext':
           await diagnosticManager.jumpNext()
@@ -321,15 +344,15 @@ export default class Plugin extends EventEmitter {
           await handler.gotoReferences(args[1])
           break
         case 'doHover':
-          handler.onHover().catch(e => {
-            logger.error(e.message)
-          })
+          await handler.onHover()
           break
         case 'showSignatureHelp':
           await handler.showSignatureHelp()
           break
         case 'documentSymbols':
-          return handler.getDocumentSymbols()
+          return await handler.getDocumentSymbols()
+        case 'selectionRanges':
+          return await handler.getSelectionRanges()
         case 'rename':
           await handler.rename()
           return
@@ -358,7 +381,7 @@ export default class Plugin extends EventEmitter {
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
         case 'extensionStats':
-          return extensions.getExtensionStates()
+          return await extensions.getExtensionStates()
         case 'activeExtension':
           return extensions.activate(args[1], false)
         case 'deactivateExtension':
@@ -369,43 +392,23 @@ export default class Plugin extends EventEmitter {
           return await extensions.toggleExtension(args[1])
         case 'uninstallExtension':
           return await extensions.uninstallExtension(args.slice(1))
+        case 'getCurrentFunctionSymbol':
+          return await handler.getCurrentFunctionSymbol()
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }
     } catch (e) {
-      if (!/\btimeout\b/.test(e.message)) {
-        workspace.showMessage(`Error on '${args[0]}': ${e.message}`, 'error')
+      let message = e.hasOwnProperty('message') ? e.message : e.toString()
+      if (!/\btimeout\b/.test(message)) {
+        workspace.showMessage(`Error on '${args[0]}': ${message}`, 'error')
       }
-      logger.error(e.stack)
+      if (e.stack) logger.error(e.stack)
     }
   }
 
-  private checkProcess(pid: number): void {
-    if (global.hasOwnProperty('__TEST__')) return
-    this.interval = setInterval(() => {
-      if (!isRunning(pid)) {
-        process.exit()
-      }
-    }, 15000)
-  }
-
-  public async snippetCancel(): Promise<void> {
-    snippetManager.cancel()
-  }
-
-  public async snippetPrev(): Promise<string> {
-    await snippetManager.previousPlaceholder()
-    return ''
-  }
-
-  public async snippetNext(): Promise<string> {
-    await snippetManager.nextPlaceholder()
-    return ''
-  }
-
   public async dispose(): Promise<void> {
-    if (this.interval) clearInterval(this.interval)
     this.removeAllListeners()
+    listManager.dispose()
     workspace.dispose()
     sources.dispose()
     await services.stopAll()
