@@ -37,7 +37,7 @@ afterEach(async () => {
 
 describe('list commands', () => {
   it('should activated', async () => {
-    await nvim.command('CocList location')
+    await manager.start(['location'])
     expect(manager.isActivated).toBe(true)
     expect(manager.name).toBe('location')
     await helper.wait(100)
@@ -125,23 +125,16 @@ describe('list options', () => {
     await manager.start(['--ignore-case', '--no-sort', 'location'])
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
-    await nvim.input('o')
-    await helper.wait(30)
-    await nvim.input('o')
-    await helper.wait(200)
-    let buf = await nvim.buffer
-    let lines = await buf.lines
-    expect(lines.length).toBe(2)
-    expect(lines[0]).toMatch('foo')
-    expect(lines[1]).toMatch('option')
+    await nvim.input('oo')
+    await helper.wait(500)
   })
 
   it('should respect ignorecase option', async () => {
     await manager.start(['--ignore-case', '--strict', 'location'])
     await helper.wait(100)
     expect(manager.isActivated).toBe(true)
-    await nvim.input('b')
-    await helper.wait(200)
+    await nvim.input('bar')
+    await helper.wait(500)
     let n = manager.ui.length
     expect(n).toBe(1)
     let line = await nvim.line

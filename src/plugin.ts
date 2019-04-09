@@ -392,6 +392,8 @@ export default class Plugin extends EventEmitter {
           return await extensions.toggleExtension(args[1])
         case 'uninstallExtension':
           return await extensions.uninstallExtension(args.slice(1))
+        case 'getCurrentFunctionSymbol':
+          return await handler.getCurrentFunctionSymbol()
         default:
           workspace.showMessage(`unknown action ${args[0]}`, 'error')
       }

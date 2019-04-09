@@ -10,7 +10,7 @@ import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { getHiglights } from '../../util/highlight'
 import { score } from '../../util/match'
 import { mixin } from '../../util/object'
-import { indexOf } from '../../util/string'
+import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -44,6 +44,12 @@ describe('string test', () => {
   test('should find index', () => {
     expect(indexOf('a,b,c', ',', 2)).toBe(3)
     expect(indexOf('a,b,c', ',', 1)).toBe(1)
+  })
+
+  test('resolve variables', async () => {
+    let res = resolveVariables('${workspace}/foo', { workspace: '/home' })
+    expect(res).toBe('/home/foo')
+    expect(resolveVariables('${x}', {})).toBe('${x}')
   })
 })
 

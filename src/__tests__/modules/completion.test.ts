@@ -56,29 +56,6 @@ describe('completion events', () => {
   })
 })
 
-describe('completion getResumeInput', () => {
-
-  it('should return null when document is null', async () => {
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
-  })
-
-  it('should return null when cursor col below col of option', async () => {
-    await startCompletion()
-    let opt = completion.option
-    await nvim.call('cursor', [opt.linenr, opt.col - 1])
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
-  })
-
-  it('should return null when cursor line not equal option linenr', async () => {
-    await startCompletion()
-    await nvim.call('cursor', [2, 0])
-    let input = await completion.getResumeInput()
-    expect(input).toBeNull()
-  })
-})
-
 describe('completion#startCompletion', () => {
 
   it('should deactivate on doComplete error', async () => {
@@ -187,7 +164,7 @@ describe('completion#startCompletion', () => {
     await nvim.input('a')
     await helper.wait(10)
     await nvim.input(',')
-    await helper.wait(100)
+    await helper.wait(300)
     sources.removeSource(source)
     expect(lastOption.triggerForInComplete).toBeFalsy()
     await nvim.input('<esc>')
@@ -316,6 +293,85 @@ describe('completion#TextChangedP', () => {
     disposable.dispose()
   })
 
+  it('should filter on none keyword input', async () => {
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      sourceType: SourceType.Service,
+      doComplete: (_opt: CompleteOption): Promise<CompleteResult> => {
+        return Promise.resolve({ items: [{ word: 'foo#abc' }] })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('if')
+    await helper.waitPopup()
+    await nvim.input('#')
+    await helper.wait(100)
+    let items = await helper.getItems()
+    expect(items[0].word).toBe('foo#abc')
+    disposable.dispose()
+  })
+
+  it('should trigger complete on trigger patterns match', async () => {
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      triggerPatterns: [/EM/],
+      sourceType: SourceType.Service,
+      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        if (!opt.input.startsWith('EM')) return null
+        return Promise.resolve({
+          items: [
+            { word: 'a', filterText: 'EMa' },
+            { word: 'b', filterText: 'EMb' }
+          ]
+        })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(10)
+    await nvim.input('E')
+    await helper.wait(10)
+    await nvim.input('M')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBe(2)
+    disposable.dispose()
+  })
+
+  it('should trigger complete when pumvisible', async () => {
+    await nvim.setLine('EnumMember')
+    let source: ISource = {
+      priority: 99,
+      enable: true,
+      name: 'temp',
+      triggerPatterns: [/EM/],
+      sourceType: SourceType.Service,
+      doComplete: (opt: CompleteOption): Promise<CompleteResult> => {
+        if (!opt.input.startsWith('EM')) return null
+        return Promise.resolve({
+          items: [
+            { word: 'a', filterText: 'EMa' },
+            { word: 'b', filterText: 'EMb' }
+          ]
+        })
+      },
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('o')
+    await helper.wait(10)
+    await nvim.input('E')
+    await helper.waitPopup()
+    await nvim.input('M')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBeGreaterThan(2)
+    disposable.dispose()
+  })
+
   it('should do resolve for complete item', async () => {
     let source: ISource = {
       priority: 0,
@@ -357,6 +413,19 @@ describe('completion#CompleteDone', () => {
     await helper.wait(100)
     let line = await nvim.line
     expect(line).toBe('football football')
+  })
+
+  it('should hide kind and menu when configured', async () => {
+    helper.updateConfiguration('suggest.disableKind', true)
+    helper.updateConfiguration('suggest.disableMenu', true)
+    await nvim.setLine('fball football')
+    await nvim.input('of')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items[0].kind).toBeUndefined()
+    expect(items[0].menu).toBeUndefined()
+    helper.updateConfiguration('suggest.disableKind', false)
+    helper.updateConfiguration('suggest.disableMenu', false)
   })
 })
 

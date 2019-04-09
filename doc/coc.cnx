@@ -67,11 +67,13 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 该插件需要 neovim 0.3 版本以上或者 vim 8.1 版本以上
 
-使用 coc 插件需要安装 yarn (一个 nodejs 包管理工具):
+首先需要安装 node https://nodejs.org/en/download/ 用于执行 javascript 代码。
+
+使用 coc.nvim 插件需要安装 yarn (一个 nodejs 包管理工具):
 
 https://yarnpkg.com/en/docs/install
 
-针对 Linux 和 mac 系统该插件会帮助你安装 yarn。
+如果你使用 vim-plug 来管理 coc.nvim 插件可以不需要安装 yarn。
 
 如果你是 vim 用户，需要额外安装：
 
@@ -89,14 +91,13 @@ https://github.com/neoclide/vim-node-rpc
 
 推荐使用 https://github.com/junegunn/vim-plug 添加
 >
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
 
 到 `init.vim` 然后执行: >
 
   :PlugInstall
 
 如果使用其它插件进行配置，需要插件安装完成后手工执行 `:call coc#util#install()`
-
 
 或者使用 `:call coc#util#build()` 从源码安装。
 
@@ -315,6 +316,14 @@ b:coc_diagnostic_info 				*b:coc_diagnostic_info*
 
 			用于自定义状态栏，查看 |coc-status|.
 
+b:coc_current_function 				*b:coc_current_function*
+
+			当前光标所在函数名。
+
+			在配置文件中添加：
+			`"coc.preferences.currentFunctionSymbolAutoUpdate": true`
+			启用 CursorHold 时自动更新。
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 
@@ -391,7 +400,7 @@ g:coc_force_debug  				*g:coc_force_debug*
 
 
 			强制使用编译后的代码 javascript 代码，默认情况下如果存在
-			二进制版本， coc 将优先使用已编译版本。
+			已编译版本， coc 将优先使用已编译版本。
 
 			默认: 0
 
@@ -557,9 +566,12 @@ coc#util#get_config_home()
 						*coc#util#install()*
 coc#util#install([{config}])
 
-	安装 coc 的二进制的分发版本。
+	安装打包后的 coc.nvim javascript 部分代码。
 
-	{config} 可以为 `{terminal: 1}` 来使用终端缓冲区异步安装。
+	{config} 可包含:
+
+	- `terminal` 使用 terminal 来异步安装
+	- `tag` 安装最新的已发布版本
 
 						*coc#util#build()*
 
@@ -725,6 +737,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
 	在代码片段跳转后显示函数签名。
+
+"getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
+
+	获取当前光标所在的函数名称。
 
 "documentSymbols" 				*coc-action-documentSymbols*
 
@@ -1586,7 +1602,7 @@ Q: 	我想用 ale 插件显示错误提示。
 
 A: 	在配置文件中添加：
 >
-	"coc.preferences.diagnostic.displayByAle": false,
+	"coc.preferences.diagnostic.displayByAle": true,
 <
 ------------------------------------------------------------------------------
 

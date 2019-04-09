@@ -95,17 +95,6 @@ describe('completion', () => {
     expect(visible).toBe(0)
   })
 
-  it('should not trigger on number insert', async () => {
-    await helper.edit()
-    await nvim.setLine('123 456')
-    await nvim.input('o')
-    await helper.wait(30)
-    await nvim.input('1')
-    await helper.wait(30)
-    let visible = await nvim.call('pumvisible')
-    expect(visible).toBe(0)
-  })
-
   it('should filter on fast input', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')

@@ -57,26 +57,35 @@ REQUIREMENT					*coc-requirement*
 
 Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
+Node: https://nodejs.org/en/download/ required to run javascript code.
+
 If those requirements are not satisfied, the plugin would not be loaded
 at all.
 
 Yarn (https://yarnpkg.com/en/docs/install) is used for managing coc
 extensions.
 
+Note: yarn is not required if you want to manage extensions by use vim's
+plugin manager like vim-plug.
+
+User of vim8 need to install vim-node-rpc modules by: >
+	
+	yarn global add vim-node-rpc
+
 ==============================================================================
 INSTALL						*coc-install*
 
 Use a plugin manager, like https://github.com/junegunn/vim-plug by adding: >
 
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
 For other plugin managers, run `:coc#util#install()` after the plugin is
-loaded. This command would download the latest coc binary from the GitHub
-release page.
+loaded. This command will download the latest compiled javascript code from
+the release branch.
 
 Use `coc#util#build` to build coc.nvim from source code.
 
@@ -290,6 +299,13 @@ b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 			" Disable completion for 'end' in lua files
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
+b:coc_current_function 				*b:coc_current_function*
+
+			Function string that current cursor in.
+
+			Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
+			in coc-settings.json to update it on CursorHold.
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 			Start coc service on startup, use |CocStart| to start
@@ -367,17 +383,13 @@ g:coc_node_path 				*g:coc_node_path*
 
 			let g:coc_node_path = '/usr/local/opt/node@10/bin/node'
 <
-			Use this when coc has problems with your system node, 
-			it doesn't take into effect if coc service is started 
-			by binary build of coc.
-
-			Note: does not work when using binary release.
+			Use this when coc has problems with your system node,
 
 g:coc_force_debug  				*g:coc_force_debug*
 
-			Coc would use the precompiled binary when the binary 
-			file exists, set this to 1 to use compiled code 
-			instead of prebuilt binary.
+			Coc would use the precompiled bundle when the bundle
+			file exists, set this to 1 to use compiled code instead
+			of bundle.
 
 			Default: 0
 
@@ -582,10 +594,12 @@ coc#util#get_config_home()
 						*coc#util#install()*
 coc#util#install([{config}])
 
-	Install a binary version of coc.nvim.
+	Install compiled javascript code of coc.nvim.
 
-	{config} could be `{terminal: 1}` to use terminal for shell
-	script.
+	{config} could contains:
+
+	- `terminal` use terminal when specified.
+	- `tag` use latest tag when specified.
 
 						*coc#util#build()*
 
@@ -753,6 +767,9 @@ Available Actions ~
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
 <
+"getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
+
+	Return the function string that current cursor in.
 
 "documentSymbols" 				*coc-action-documentSymbols*
 
@@ -943,8 +960,7 @@ COMMANDS 					*coc-commands*
 
 		Run `npm rebuild` for coc extensions.
 
-		May be required if coc is not started using a binary and the 
-		environment's nodejs gets upgraded.
+		May be required when environment nodejs get upgraded.
 
 :CocCommand {name} [{args}] ...			*:CocCommand*
 

@@ -226,7 +226,7 @@ describe('list insert mappings', () => {
     await nvim.eval('feedkeys("\\<tab>", "in")')
     await helper.wait(30)
     await nvim.input('t')
-    await helper.wait(30)
+    await helper.wait(500)
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })

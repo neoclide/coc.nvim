@@ -79,7 +79,7 @@ export default class Complete {
           onFinished()
           reject(new Error('Cancelled request'))
         })
-        source.doComplete(opt, tokenSource.token).then(result => {
+        Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
           onFinished()
           resolve(result)
         }, err => {

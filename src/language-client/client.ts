@@ -1197,7 +1197,9 @@ class DidChangeTextDocumentFeature
     if (event.contentChanges.length === 0) {
       return
     }
-    let { textDocument } = workspace.getDocument(event.textDocument.uri)
+    let doc = workspace.getDocument(event.textDocument.uri)
+    if (!doc) return
+    let { textDocument } = doc
     for (const changeData of this._changeData.values()) {
       if (workspace.match(changeData.documentSelector, textDocument) > 0) {
         let middleware = this._client.clientOptions.middleware!
@@ -1348,7 +1350,8 @@ class WillSaveWaitUntilFeature implements DynamicFeature<TextDocumentRegistratio
           .then(edits => {
             return edits ? edits : []
           }, e => {
-            workspace.showMessage(`Error on willSaveWaitUntil: ${e.message}`, 'error')
+            workspace.showMessage(`Error on willSaveWaitUntil: ${e}`, 'error')
+            logger.error(e)
             return []
           })
       }

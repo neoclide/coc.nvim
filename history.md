@@ -1,3 +1,25 @@
+# 2019-04-09
+
+- **Break change** `--strictMatch` option of list renamed to `--strict`
+- **Break change** `suggest.reloadPumOnInsertChar` support removed.
+- **Break change** no more binary release.
+- **Break change** logic for resolve workspace folder changed.
+- Add `Task` module.
+- Add `getCurrentFunctionSymbol` action.
+- Add `list.source.outline.ctagsFilestypes` setting.
+- Add `suggest.disableMenu` and `suggest.disableMenu` settings.
+- Add `equal` support for complete items.
+- Add support for do action with visual select lines of list.
+- Add expand tilder support for language server command.
+- Add switch matcher support to list.
+- Add select all support to lsit.
+- Add quickfix action to list.
+- Add `selectionRanges` of LSP.
+- Add load extentions for &rtp support.
+- Add `coc#on_enter()` for formatOnType and add new lines on enter.
+- Improve completion by support trigger completion when pumvisible.
+- Remove document check on `BufWritePre`.
+
 # 2019-03-31
 
 - **Break change** not using vim-node-rpc from npm modules any more.

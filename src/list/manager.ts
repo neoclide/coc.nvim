@@ -123,7 +123,7 @@ export class ListManager implements Disposable {
         this.ui.addHighlights(highlights)
         await this.ui.drawItems(items, this.name, this.listOptions.position, reload)
       }
-    })
+    }, null, this.disposables)
 
     this.registerList(new LinksList(nvim))
     this.registerList(new LocationList(nvim))
@@ -153,12 +153,13 @@ export class ListManager implements Disposable {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
+      await this.getCharMap()
       this.prompt.start(options)
       await this.history.load()
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()
-      workspace.showMessage(e.message, 'error')
+      workspace.showMessage(`Task error: ${e}`, 'error')
       logger.error(e)
     }
   }
@@ -405,8 +406,7 @@ export class ListManager implements Disposable {
 
   private async onInsertInput(ch: string, charmod: number): Promise<void> {
     let { nvim } = this
-    let charMap = await this.getCharMap()
-    let inserted = charMap.get(ch) || ch
+    let inserted = this.charMap.get(ch) || ch
     if (mouseKeys.indexOf(inserted) !== -1) {
       await this.onMouseEvent(inserted)
       return
@@ -426,7 +426,7 @@ export class ListManager implements Disposable {
       }
     }
     let done = await this.mappings.doInsertKeymap(inserted)
-    if (done || charmod || charMap.has(ch)) return
+    if (done || charmod || this.charMap.has(ch)) return
     for (let s of ch) {
       let code = s.codePointAt(0)
       if (code == 65533) return
@@ -437,8 +437,7 @@ export class ListManager implements Disposable {
   }
 
   private async onNormalInput(ch: string, _charmod: number): Promise<void> {
-    let charMap = await this.getCharMap()
-    let inserted = charMap.get(ch) || ch
+    let inserted = this.charMap.get(ch) || ch
     if (mouseKeys.indexOf(inserted) !== -1) {
       await this.onMouseEvent(inserted)
       return

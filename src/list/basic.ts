@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import { Disposable, Location, CancellationToken } from 'vscode-languageserver-protocol'
 import URI from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListContext, ListItem, ListTask } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListTask, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
 import { byteIndex } from '../util/string'
@@ -16,7 +16,7 @@ interface ActionOptions {
 }
 
 export default abstract class BasicList implements IList, Disposable {
-  public abstract name: string
+  public name: string
   public defaultAction = 'open'
   public readonly actions: ListAction[] = []
   protected previewHeight = 12
@@ -27,12 +27,10 @@ export default abstract class BasicList implements IList, Disposable {
     let config = workspace.getConfiguration('list')
     this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
     this.previewHeight = config.get<number>('maxPreviewHeight', 12)
-    workspace.onDidChangeConfiguration(e => {
-      if (e.affectsConfiguration('list')) {
-        this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
-        this.previewHeight = config.get<number>('maxPreviewHeight', 12)
-      }
-    })
+  }
+
+  protected getConfig(): WorkspaceConfiguration {
+    return workspace.getConfiguration(`list.source.${this.name}`)
   }
 
   protected addAction(name: string, fn: (item: ListItem, context: ListContext) => ProviderResult<void>, options?: ActionOptions): void {

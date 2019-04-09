@@ -8,6 +8,7 @@ import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { getMatchResult } from '../util/score'
 import { byteIndex, byteLength, upperFirst } from '../util/string'
 import { ListManager } from './manager'
+import workspace from '../workspace'
 import uuidv1 = require('uuid/v1')
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
@@ -23,7 +24,6 @@ export interface ExtendedItem extends ListItem {
 // perform loading task
 export default class Worker {
   private _loading = false
-  private columns: number
   private taskId: string
   private task: ListTask = null
   private timer: NodeJS.Timer
@@ -39,15 +39,15 @@ export default class Worker {
       let { listOptions } = manager
       let { interactive } = listOptions
       if (this.timer) clearTimeout(this.timer)
+      // reload or filter items
       if (interactive) {
         this.stop()
         this.timer = setTimeout(async () => {
           await this.loadItems()
         }, 100)
       } else if (!this._loading && this.length) {
-        let wait = Math.min(Math.floor(this.length / 200), 200)
+        let wait = Math.max(Math.min(Math.floor(this.length / 200), 200), 50)
         this.timer = setTimeout(async () => {
-          if (this._loading) return
           await this.drawItems()
         }, wait)
       }
@@ -79,10 +79,14 @@ export default class Worker {
     }
   }
 
+  public get isLoading(): boolean {
+    return this._loading
+  }
+
   public async loadItems(reload = false): Promise<void> {
     let { context, list, listOptions } = this.manager
     if (!list) return
-    this.columns = await this.nvim.getOption('columns') as number
+    if (this.timer) clearTimeout(this.timer)
     let id = this.taskId = uuidv1()
     this.loading = true
     let { interactive } = listOptions
@@ -170,22 +174,33 @@ export default class Worker {
           timer = setTimeout(_onData, 60)
         }
       })
-      await new Promise<void>((resolve, reject) => {
-        task.on('error', async (error: any) => {
-          if (timer) clearTimeout(timer)
-          this.loading = false
-          reject(error instanceof Error ? error : new Error(error.toString()))
-        })
-        task.on('end', async () => {
-          this.loading = false
-          if (timer) clearTimeout(timer)
-          if (totalItems.length == 0) {
-            this._onDidChangeItems.fire({ items: [], highlights: [] })
-          } else {
-            _onData()
-          }
-          resolve()
-        })
+      let disposable = token.onCancellationRequested(() => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        if (task == this.task) {
+          task.dispose()
+          this.task = null
+          this.taskId = null
+        }
+      })
+      task.on('error', async (error: Error | string) => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        await this.manager.cancel()
+        workspace.showMessage(`Task error: ${error.toString()}`, 'error')
+        logger.error(error)
+      })
+      task.on('end', async () => {
+        this.loading = false
+        disposable.dispose()
+        if (timer) clearTimeout(timer)
+        if (totalItems.length == 0) {
+          this._onDidChangeItems.fire({ items: [], highlights: [] })
+        } else {
+          _onData()
+        }
       })
     }
   }
@@ -374,7 +389,7 @@ export default class Worker {
   }
 
   private fixLabel(label: string): string {
-    let { columns } = this
+    let { columns } = workspace.env
     label = label.split('\n').join(' ')
     return label.slice(0, columns * 2)
   }

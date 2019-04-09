@@ -19,7 +19,12 @@ export default class Outline extends LocationList {
     let buf = await context.window.buffer
     let document = workspace.getDocument(buf.id)
     if (!document) return null
-    let symbols = await languages.getDocumentSymbol(document.textDocument)
+    let config = this.getConfig()
+    let ctagsFilestypes = config.get<string[]>('ctagsFilestypes', [])
+    let symbols: DocumentSymbol[] | SymbolInformation[] | null
+    if (ctagsFilestypes.indexOf(document.filetype) == -1) {
+      symbols = await languages.getDocumentSymbol(document.textDocument)
+    }
     if (!symbols) return await this.loadCtagsSymbols(document)
     if (symbols.length == 0) return []
     let items: ListItem[] = []

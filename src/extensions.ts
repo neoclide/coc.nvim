@@ -608,7 +608,7 @@ export class Extensions {
       directory: root,
       deactivate: () => {
         isActive = false
-        if (ext.deactivate) {
+        if (ext && ext.deactivate) {
           Promise.resolve(ext.deactivate()).catch(e => {
             logger.error(`Error on ${id} deactivate: `, e.message)
           })

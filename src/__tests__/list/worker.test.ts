@@ -45,6 +45,22 @@ class ErrorList extends BasicList {
   }
 }
 
+class ErrorTaskList extends BasicList {
+  public name = 'task'
+  public loadItems(_context: ListContext, _token: CancellationToken): Promise<ListTask> {
+    let emitter: any = new EventEmitter()
+    let i = 0
+    let timeout = setTimeout(() => {
+      emitter.emit('error', new Error('task error'))
+      i++
+    }, 100)
+    emitter.dispose = () => {
+      clearTimeout(timeout)
+    }
+    return emitter
+  }
+}
+
 let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
@@ -64,13 +80,22 @@ describe('list worker', () => {
 
   it('should work with task', async () => {
     let disposable = manager.registerList(new TaskList(nvim))
-    let p = manager.start(['task'])
+    await manager.start(['task'])
     await helper.wait(1500)
     let len = manager.ui.length
     expect(len > 2).toBe(true)
     await manager.cancel()
     disposable.dispose()
-    await p
+  })
+
+  it('should cancel task by use CancellationToken', async () => {
+    let disposable = manager.registerList(new TaskList(nvim))
+    await manager.start(['task'])
+    expect(manager.worker.isLoading).toBe(true)
+    await helper.wait(500)
+    manager.worker.stop()
+    expect(manager.worker.isLoading).toBe(false)
+    disposable.dispose()
   })
 
   it('should work with interactive list', async () => {
@@ -92,6 +117,15 @@ describe('list worker', () => {
   it('should not activate on load error', async () => {
     let disposable = manager.registerList(new ErrorList(nvim))
     await manager.start(['test'])
+    expect(manager.isActivated).toBe(false)
+    disposable.dispose()
+  })
+
+  it('should deactivate on task error', async () => {
+    let disposable = manager.registerList(new ErrorTaskList(nvim))
+    await manager.start(['task'])
+    expect(manager.isActivated).toBe(true)
+    await helper.wait(500)
     expect(manager.isActivated).toBe(false)
     disposable.dispose()
   })
