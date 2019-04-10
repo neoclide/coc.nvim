@@ -233,7 +233,8 @@ export default class Handler {
 
     const currentFunctionName = (() => {
       const sym = symbols[symbolPosition]
-      if (!sym || (position.line > sym.range.end.line)) {
+      const range = sym && (sym.range || sym.selectionRange)
+      if (!sym || !range || (position.line > range.end.line)) {
         return ''
       } else {
           return sym.text
