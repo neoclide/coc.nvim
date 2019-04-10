@@ -177,6 +177,7 @@ export default class FloatFactory implements Disposable {
       let { nvim, alignTop } = this
       // change to normal
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
+      // helps to fix undo issue, don't know why.
       if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u")')
       let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {

@@ -23,7 +23,6 @@ export default class CodeLensManager {
   private disposables: Disposable[] = []
   private codeLensMap: Map<number, CodeLensInfo> = new Map()
   private resolveCodeLens: Function & { clear(): void }
-  private insertMode = false
   constructor(private nvim: Neovim) {
     this.init().catch(e => {
       logger.error(e.message)
@@ -31,11 +30,9 @@ export default class CodeLensManager {
   }
 
   private async init(): Promise<void> {
-    let { nvim } = this
     this.setConfiguration()
     if (!this.enabled) return
-    this.srcId = workspace.createNameSpace('coc-codelens')
-    this.srcId = this.srcId || 1080
+    this.srcId = workspace.createNameSpace('coc-codelens') || 1080
     services.on('ready', async id => {
       let service = services.getService(id)
       let doc = workspace.getDocument(workspace.bufnr)
@@ -46,8 +43,6 @@ export default class CodeLensManager {
         await this.fetchDocumentCodeLenes()
       }
     })
-    let { mode } = await nvim.mode
-    this.insertMode = mode.startsWith('i')
     let timer: NodeJS.Timer
     workspace.onDidChangeTextDocument(async e => {
       let doc = workspace.getDocument(e.textDocument.uri)
@@ -89,12 +84,7 @@ export default class CodeLensManager {
       }, 100)
     }, null, this.disposables)
 
-    events.on('InsertEnter', () => {
-      this.insertMode = true
-    }, null, this.disposables)
-
     events.on('InsertLeave', async () => {
-      this.insertMode = false
       let { bufnr } = workspace
       let info = this.codeLensMap.get(bufnr)
       if (info && info.version != this.version) {
@@ -174,7 +164,7 @@ export default class CodeLensManager {
     let { nvim } = this
     let { bufnr } = workspace
     let { codeLenes, version } = this.codeLensMap.get(bufnr) || {} as any
-    if (this.insertMode) return
+    if (workspace.insertMode) return
     if (codeLenes && codeLenes.length) {
       // resolve codeLens of current window
       let start = await nvim.call('line', 'w0')

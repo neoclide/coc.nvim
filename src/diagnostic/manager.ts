@@ -46,13 +46,11 @@ export class DiagnosticManager implements Disposable {
   private collections: DiagnosticCollection[] = []
   private disposables: Disposable[] = []
   private lastMessage = ''
-  private insertMode = false
   private timer: NodeJS.Timer
 
   public init(): void {
     this.setConfiguration()
     let { nvim } = workspace
-    this.insertMode = workspace.env.mode.startsWith('i')
     let { maxWindowHeight, joinMessageLines } = this.config
     this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, joinMessageLines)
     this.disposables.push(Disposable.create(() => {
@@ -61,7 +59,7 @@ export class DiagnosticManager implements Disposable {
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (this.insertMode) return
+        if (workspace.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
       }, 500)
@@ -70,13 +68,11 @@ export class DiagnosticManager implements Disposable {
     events.on('InsertEnter', async () => {
       this.floatFactory.close()
       if (this.timer) clearTimeout(this.timer)
-      this.insertMode = true
     }, null, this.disposables)
 
     events.on('InsertLeave', async () => {
       this.floatFactory.close()
       let { refreshOnInsertMode, refreshAfterSave } = this.config
-      this.insertMode = false
       let { bufnr } = workspace
       let doc = workspace.getDocument(bufnr)
       if (!this.shouldValidate(doc)) return
@@ -364,7 +360,7 @@ export class DiagnosticManager implements Disposable {
     let buf = await this.nvim.buffer
     let pos = await workspace.getCursorPosition()
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
-    if (!buffer || this.insertMode) return
+    if (!buffer || workspace.insertMode) return
     let { checkCurrentLine } = this.config
     let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
     let diagnostics = buffer.diagnostics.filter(o => {
@@ -492,7 +488,7 @@ export class DiagnosticManager implements Disposable {
 
   private refreshBuffer(uri: string): boolean {
     // vim has issue with diagnostic update
-    if (this.insertMode && !this.config.refreshOnInsertMode) return
+    if (workspace.insertMode && !this.config.refreshOnInsertMode) return
     let buf = this.buffers.find(buf => buf.uri == uri)
     let { displayByAle } = this.config
     if (buf) {

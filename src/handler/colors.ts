@@ -72,8 +72,7 @@ export default class Colors {
     }, null, this.disposables)
 
     workspace.onDidChangeTextDocument(async ({ textDocument, contentChanges }) => {
-      let { mode } = await nvim.mode
-      if (mode.startsWith('i')) return
+      if (workspace.insertMode) return
       let doc = workspace.getDocument(textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
         let { range, text } = contentChanges[0]

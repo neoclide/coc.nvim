@@ -45,6 +45,7 @@ export class Workspace implements IWorkspace {
   private messageLevel: MessageLevel
   private willSaveUntilHandler: WillSaveUntilHandler
   private statusLine: StatusLine
+  private _insertMode = false
   private _env: Env
   private _root: string
   private _cwd = process.cwd()
@@ -102,6 +103,7 @@ export class Workspace implements IWorkspace {
   public async init(): Promise<void> {
     this.statusLine = new StatusLine(this.nvim)
     this._env = await this.nvim.call('coc#util#vim_info') as Env
+    this._insertMode = this._env.mode.startsWith('insert')
     if (this._env.workspaceFolders) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => {
         return {
@@ -112,6 +114,12 @@ export class Workspace implements IWorkspace {
     }
     this.checkProcess()
     this.configurations.updateUserConfig(this._env.config)
+    events.on('InsertEnter', () => {
+      this._insertMode = true
+    }, null, this.disposables)
+    events.on('InsertLeave', () => {
+      this._insertMode = false
+    }, null, this.disposables)
     events.on('BufEnter', this.onBufEnter, this, this.disposables)
     events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
     events.on('DirChanged', this.onDirChanged, this, this.disposables)
@@ -144,8 +152,7 @@ export class Workspace implements IWorkspace {
     this.watchOption('completeopt', async (_, newValue) => {
       this.env.completeOpt = newValue
       if (!this._attached) return
-      let mode = await this.nvim.call('mode') as string
-      if (mode.startsWith('i')) {
+      if (this.insertMode) {
         let suggest = this.getConfiguration('suggest')
         if (suggest.get<string>('autoTrigger') == 'always') {
           console.error(`Some plugin change completeopt on insert mode!`) // tslint:disable-line
@@ -1439,6 +1446,10 @@ augroup end`
       }
     }
     this.rootPatterns.set(filetype, patterns)
+  }
+
+  public get insertMode(): boolean {
+    return this._insertMode
   }
 
   private getDocumentOption(name: string, doc?: Document): Promise<any> {

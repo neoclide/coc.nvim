@@ -270,7 +270,7 @@ export class SnippetSession {
   }
 }
 
-function normalizeSnippetString(snippet: string, indent: string, opts: FormattingOptions): string {
+export function normalizeSnippetString(snippet: string, indent: string, opts: FormattingOptions): string {
   let lines = snippet.split(/\r?\n/)
   let ind = opts.insertSpaces ? ' '.repeat(opts.tabSize) : '\t'
   let tabSize = opts.tabSize || 2
