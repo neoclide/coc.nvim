@@ -143,7 +143,7 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
       this.ready = true
-      logger.info(`coc initialized with node: ${process.version}`)
+      logger.info(`coc ${this.version} initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
       this.ready = false
@@ -208,6 +208,10 @@ export default class Plugin extends EventEmitter {
     return false
   }
 
+  public get version(): string {
+    return workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : '')
+  }
+
   public async showInfo(): Promise<void> {
     if (!this.infoChannel) {
       this.infoChannel = workspace.createOutputChannel('info')
@@ -221,7 +225,7 @@ export default class Plugin extends EventEmitter {
     let out = await this.nvim.call('execute', ['version']) as string
     channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0])
     channel.appendLine('node version: ' + process.version)
-    channel.appendLine('coc.nvim version: ' + workspace.version + (process.env.REVISION ? '-' + process.env.REVISION : ''))
+    channel.appendLine('coc.nvim version: ' + this.version)
     channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM))
     channel.appendLine('platform: ' + process.platform)
     channel.appendLine('')

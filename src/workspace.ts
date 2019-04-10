@@ -30,6 +30,10 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
 import { distinct } from './util/array'
+
+declare var __webpack_require__: any
+declare var __non_webpack_require__: any
+const requireFunc = typeof __webpack_require__ === "function" ? __non_webpack_require__ : require
 const logger = require('./util/logger')('workspace')
 const CONFIG_FILE_NAME = 'coc-settings.json'
 let NAME_SPACE = 1080
@@ -88,7 +92,7 @@ export class Workspace implements IWorkspace {
   public readonly configurations: Configurations
 
   constructor() {
-    let json = require('../package.json')
+    let json = requireFunc('../package.json')
     this.version = json.version
     this.configurations = this.createConfigurations()
     this.willSaveUntilHandler = new WillSaveUntilHandler(this)

@@ -381,7 +381,7 @@ export class Extensions {
     if (engines && engines.hasOwnProperty('coc')) {
       let required = engines.coc.replace(/^\^/, '>=')
       if (!semver.satisfies(workspace.version, required)) {
-        workspace.showMessage(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim >= ${engines.coc}`, 'warning')
+        workspace.showMessage(`Please update coc.nvim, ${packageJSON.name} requires coc.nvim ${engines.coc}`, 'warning')
       }
       this.createExtension(folder, Object.freeze(packageJSON), isLocal)
     } else if (engines && engines.hasOwnProperty('vscode')) {
