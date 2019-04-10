@@ -52838,7 +52838,7 @@ class Plugin extends events_1.EventEmitter {
             nvim.setVar('coc_service_initialized', 1, true);
             nvim.call('coc#_init', [], true);
             this.ready = true;
-            logger.info(`coc initialized with node: ${process.version}`);
+            logger.info(`coc ${this.version} initialized with node: ${process.version}`);
             this.emit('ready');
         }
         catch (e) {
@@ -52906,6 +52906,9 @@ class Plugin extends events_1.EventEmitter {
         }
         return false;
     }
+    get version() {
+        return workspace_1.default.version + ( true ? '-' + "f1af3d56a1" : undefined);
+    }
     async showInfo() {
         if (!this.infoChannel) {
             this.infoChannel = workspace_1.default.createOutputChannel('info');
@@ -52920,7 +52923,7 @@ class Plugin extends events_1.EventEmitter {
         let out = await this.nvim.call('execute', ['version']);
         channel.appendLine('vim version: ' + out.trim().split('\n', 2)[0]);
         channel.appendLine('node version: ' + process.version);
-        channel.appendLine('coc.nvim version: ' + workspace_1.default.version + ( true ? '-' + "f1af3d56a1" : undefined));
+        channel.appendLine('coc.nvim version: ' + this.version);
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
