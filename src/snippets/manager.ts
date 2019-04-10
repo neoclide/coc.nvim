@@ -5,6 +5,7 @@ import workspace from '../workspace'
 import { SnippetSession } from './session'
 import * as Snippets from "./parser"
 import { SnippetVariableResolver } from './variableResolve'
+import { SnippetParser } from './parser'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
@@ -79,6 +80,14 @@ export class SnippetManager implements types.SnippetManager {
     }
     nvim.command('silent! unlet g:coc_last_placeholder g:coc_selected_text', true)
     return isActive
+  }
+
+  public isPlainText(text: string): boolean {
+    let snippet = (new SnippetParser()).parse(text, true)
+    if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+      return true
+    }
+    return false
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {

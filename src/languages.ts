@@ -616,7 +616,9 @@ class Languages {
           })
         }
         await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet)
-        if (snippet) await snippetManager.selectCurrentPlaceholder()
+        if (snippet && !snippetManager.isPlainText(item.textEdit.newText)) {
+          await snippetManager.selectCurrentPlaceholder()
+        }
         if (item.command) commands.execute(item.command)
         doc = null
       },
@@ -645,13 +647,6 @@ class Languages {
     let { line, bufnr, linenr } = option
     let { range, newText } = textEdit
     let isSnippet = item.insertTextFormat === InsertTextFormat.Snippet
-    if (isSnippet) {
-      let snippet = (new SnippetParser()).parse(newText, true)
-      if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
-        isSnippet = false
-        newText = snippet.toString()
-      }
-    }
     // replace inserted word
     let start = line.substr(0, range.start.character)
     let end = line.substr(range.end.character)
