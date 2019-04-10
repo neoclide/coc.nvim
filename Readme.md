@@ -49,11 +49,11 @@ Below are the reasons that led coc.nvim to build its own engine:
   coc extension like `coc-tsserver`.
 - **Asynchronous and parallel completion request**, unless using vim sources,
   your vim will never blocked.
-- **Does completion resolving on completion item change**. The details from 
-  completion items is echoed after being selected, this feature requires the 
+- **Does completion resolving on completion item change**. The details from
+  completion items is echoed after being selected, this feature requires the
   `CompleteChanged` autocmd to work.
 - **Incomplete request and cancel request support**, only incomplete completion
-  requests would be triggered on filtering completion items and cancellation 
+  requests would be triggered on filtering completion items and cancellation
   request is sent to servers only when necessary.
 - **Start completion without timer**. The completion will start after you type the
   first letter of a word by default and is filtered with new input after the completion
@@ -190,6 +190,13 @@ And more, to get a full list of coc extensions, [search coc.nvim on npm](https:/
 **Note:** use `:CocConfig` to edit the configuration file, completion & validation are supported after `coc-json` installed.
 
 ## Example vim configuration
+
+Configuration required to make coc.nvim easier to work with, since it doesn't
+change your key-mappings or vim options as much as possible to avoid conflict with your
+other plugins.
+
+**❗️Important**: some vim plugins could change your keymap, use command like
+`:verbose imap <tab>` to make sure your keymap take effect.
 
 ```vim
 " if hidden is not set, TextEdit might fail.
