@@ -594,11 +594,6 @@ function! coc#util#install(...) abort
     else
       call coc#rpc#restart()
     endif
-    let dir = coc#util#extension_root()
-    if !isdirectory(dir) && empty(get(g:, 'coc_global_extensions', []))
-      echohl WarningMsg | echom 'No extensions found' | echohl None
-      call coc#util#open_url('https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions')
-    endif
   endfunction
   " install.cmd would always exited with code 0 with/without errors.
   if l:terminal
