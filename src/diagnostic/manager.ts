@@ -229,10 +229,14 @@ export class DiagnosticManager implements Disposable {
    */
   public getDiagnostics(uri: string): ReadonlyArray<Diagnostic> {
     let collections = this.getCollections(uri)
+    let { level } = this.config
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(uri)
       if (!items) continue
+      if (level && level < DiagnosticSeverity.Hint) {
+        items = items.filter(s => s.severity == null || s.severity <= level)
+      }
       res.push(...items)
     }
     res.sort((a, b) => {

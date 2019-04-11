@@ -187,4 +187,14 @@ describe('diagnostic manager', () => {
   it('should get severity name', () => {
     expect(getNameFromSeverity(null as any)).toBe('CocError')
   })
+
+  it('should filter diagnostics by level', async () => {
+    helper.updateConfiguration('diagnostic.level', 'warning')
+    let doc = await createDocument()
+    let diagnostics = manager.getDiagnostics(doc.uri)
+    for (let diagnostic of diagnostics) {
+      expect(diagnostic.severity != DiagnosticSeverity.Hint).toBe(true)
+      expect(diagnostic.severity != DiagnosticSeverity.Information).toBe(true)
+    }
+  })
 })
