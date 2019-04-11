@@ -52907,7 +52907,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ee4aac262c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1e08056dd5" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53396,8 +53396,9 @@ const tslib_1 = __webpack_require__(3);
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const session_1 = __webpack_require__(227);
-const Snippets = tslib_1.__importStar(__webpack_require__(281));
+const Snippets = tslib_1.__importStar(__webpack_require__(282));
 const variableResolve_1 = __webpack_require__(330);
+const parser_1 = __webpack_require__(282);
 const logger = __webpack_require__(172)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -53471,6 +53472,13 @@ class SnippetManager {
         }
         nvim.command('silent! unlet g:coc_last_placeholder g:coc_selected_text', true);
         return isActive;
+    }
+    isPlainText(text) {
+        let snippet = (new parser_1.SnippetParser()).parse(text, true);
+        if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+            return true;
+        }
+        return false;
     }
     async selectCurrentPlaceholder(triggerAutocmd = true) {
         let { session } = this;
@@ -58149,11 +58157,10 @@ const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(278));
 const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(279));
 const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(280));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(226));
-const parser_1 = __webpack_require__(281);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const types_1 = __webpack_require__(181);
 const util_1 = __webpack_require__(161);
-const complete = tslib_1.__importStar(__webpack_require__(282));
+const complete = tslib_1.__importStar(__webpack_require__(281));
 const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
@@ -58643,8 +58650,9 @@ class Languages {
                     });
                 }
                 await this.applyAdditionalEdits(additionalTextEdits, opt.bufnr, snippet);
-                if (snippet)
+                if (snippet && !manager_2.default.isPlainText(item.textEdit.newText)) {
                     await manager_2.default.selectCurrentPlaceholder();
+                }
                 if (item.command)
                     commands_1.default.execute(item.command);
                 doc = null;
@@ -58674,13 +58682,6 @@ class Languages {
         let { line, bufnr, linenr } = option;
         let { range, newText } = textEdit;
         let isSnippet = item.insertTextFormat === vscode_languageserver_protocol_1.InsertTextFormat.Snippet;
-        if (isSnippet) {
-            let snippet = (new parser_1.SnippetParser()).parse(newText, true);
-            if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
-                isSnippet = false;
-                newText = snippet.toString();
-            }
-        }
         // replace inserted word
         let start = line.substr(0, range.start.character);
         let end = line.substr(range.end.character);
@@ -59081,11 +59082,15 @@ class DiagnosticManager {
      */
     getDiagnostics(uri) {
         let collections = this.getCollections(uri);
+        let { level } = this.config;
         let res = [];
         for (let collection of collections) {
             let items = collection.get(uri);
             if (!items)
                 continue;
+            if (level && level < vscode_languageserver_protocol_1.DiagnosticSeverity.Hint) {
+                items = items.filter(s => s.severity == null || s.severity <= level);
+            }
             res.push(...items);
         }
         res.sort((a, b) => {
@@ -61864,6 +61869,109 @@ exports.default = WorkspaceSymbolManager;
 
 "use strict";
 
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_languageserver_types_1 = __webpack_require__(150);
+const parser_1 = __webpack_require__(282);
+const string_1 = __webpack_require__(200);
+const logger = __webpack_require__(172)('util-complete');
+const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n'];
+function getPosition(opt) {
+    let { line, linenr, colnr } = opt;
+    let part = string_1.byteSlice(line, 0, colnr - 1);
+    return {
+        line: linenr - 1,
+        character: part.length
+    };
+}
+exports.getPosition = getPosition;
+function getWord(item, opt) {
+    // tslint:disable-next-line: deprecation
+    let { label, data, insertTextFormat, insertText, textEdit } = item;
+    let word;
+    let newText;
+    if (data && data.word)
+        return data.word;
+    if (textEdit) {
+        let { range } = textEdit;
+        newText = textEdit.newText;
+        if (range && range.start.line == range.end.line) {
+            let { line, col, colnr } = opt;
+            let character = string_1.characterIndex(line, col);
+            if (range.start.character > character) {
+                let before = line.slice(character - range.start.character);
+                newText = before + newText;
+            }
+            else {
+                let start = line.slice(range.start.character, character);
+                if (start.length && newText.startsWith(start)) {
+                    newText = newText.slice(start.length);
+                }
+            }
+            character = string_1.characterIndex(line, colnr - 1);
+            if (range.end.character > character) {
+                let end = line.slice(character, range.end.character);
+                if (newText.endsWith(end)) {
+                    newText = newText.slice(0, -end.length);
+                }
+            }
+        }
+    }
+    else {
+        newText = insertText;
+    }
+    if (insertTextFormat == vscode_languageserver_types_1.InsertTextFormat.Snippet
+        && newText
+        && newText.indexOf('$') !== -1) {
+        let parser = new parser_1.SnippetParser();
+        let snippet = parser.text(newText);
+        word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label;
+    }
+    else {
+        word = getValidWord(newText, invalidInsertCharacters) || label;
+    }
+    return word;
+}
+exports.getWord = getWord;
+function getDocumentation(item) {
+    let { documentation } = item;
+    if (!documentation)
+        return '';
+    if (typeof documentation === 'string')
+        return documentation;
+    return documentation.value;
+}
+exports.getDocumentation = getDocumentation;
+function completionKindString(kind, map, defaultValue = '') {
+    return map.get(kind) || defaultValue;
+}
+exports.completionKindString = completionKindString;
+function getSnippetDocumentation(languageId, body) {
+    languageId = languageId.replace(/react$/, '');
+    let str = body.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1');
+    str = '``` ' + languageId + '\n' + str + '\n' + '```';
+    return str;
+}
+exports.getSnippetDocumentation = getSnippetDocumentation;
+function getValidWord(text, invalidChars) {
+    if (!text)
+        return '';
+    for (let i = 0; i < text.length; i++) {
+        let c = text[i];
+        if (invalidChars.indexOf(c) !== -1) {
+            return text.slice(0, i);
+        }
+    }
+    return text;
+}
+exports.getValidWord = getValidWord;
+//# sourceMappingURL=complete.js.map
+
+/***/ }),
+/* 282 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
 /*---------------------------------------------------------------------------------------------
  *  Copyright (c) Microsoft Corporation. All rights reserved.
  *  Licensed under the MIT License. See License.txt in the project root for license information.
@@ -62874,109 +62982,6 @@ class SnippetParser {
 }
 exports.SnippetParser = SnippetParser;
 //# sourceMappingURL=parser.js.map
-
-/***/ }),
-/* 282 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_languageserver_types_1 = __webpack_require__(150);
-const parser_1 = __webpack_require__(281);
-const string_1 = __webpack_require__(200);
-const logger = __webpack_require__(172)('util-complete');
-const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n'];
-function getPosition(opt) {
-    let { line, linenr, colnr } = opt;
-    let part = string_1.byteSlice(line, 0, colnr - 1);
-    return {
-        line: linenr - 1,
-        character: part.length
-    };
-}
-exports.getPosition = getPosition;
-function getWord(item, opt) {
-    // tslint:disable-next-line: deprecation
-    let { label, data, insertTextFormat, insertText, textEdit } = item;
-    let word;
-    let newText;
-    if (data && data.word)
-        return data.word;
-    if (textEdit) {
-        let { range } = textEdit;
-        newText = textEdit.newText;
-        if (range && range.start.line == range.end.line) {
-            let { line, col, colnr } = opt;
-            let character = string_1.characterIndex(line, col);
-            if (range.start.character > character) {
-                let before = line.slice(character - range.start.character);
-                newText = before + newText;
-            }
-            else {
-                let start = line.slice(range.start.character, character);
-                if (start.length && newText.startsWith(start)) {
-                    newText = newText.slice(start.length);
-                }
-            }
-            character = string_1.characterIndex(line, colnr - 1);
-            if (range.end.character > character) {
-                let end = line.slice(character, range.end.character);
-                if (newText.endsWith(end)) {
-                    newText = newText.slice(0, -end.length);
-                }
-            }
-        }
-    }
-    else {
-        newText = insertText;
-    }
-    if (insertTextFormat == vscode_languageserver_types_1.InsertTextFormat.Snippet
-        && newText
-        && newText.indexOf('$') !== -1) {
-        let parser = new parser_1.SnippetParser();
-        let snippet = parser.text(newText);
-        word = snippet ? getValidWord(snippet, invalidInsertCharacters) : label;
-    }
-    else {
-        word = getValidWord(newText, invalidInsertCharacters) || label;
-    }
-    return word;
-}
-exports.getWord = getWord;
-function getDocumentation(item) {
-    let { documentation } = item;
-    if (!documentation)
-        return '';
-    if (typeof documentation === 'string')
-        return documentation;
-    return documentation.value;
-}
-exports.getDocumentation = getDocumentation;
-function completionKindString(kind, map, defaultValue = '') {
-    return map.get(kind) || defaultValue;
-}
-exports.completionKindString = completionKindString;
-function getSnippetDocumentation(languageId, body) {
-    languageId = languageId.replace(/react$/, '');
-    let str = body.replace(/\$\d+/g, '').replace(/\$\{\d+(?::([^{]+))?\}/, '$1');
-    str = '``` ' + languageId + '\n' + str + '\n' + '```';
-    return str;
-}
-exports.getSnippetDocumentation = getSnippetDocumentation;
-function getValidWord(text, invalidChars) {
-    if (!text)
-        return '';
-    for (let i = 0; i < text.length; i++) {
-        let c = text[i];
-        if (invalidChars.indexOf(c) !== -1) {
-            return text.slice(0, i);
-        }
-    }
-    return text;
-}
-exports.getValidWord = getValidWord;
-//# sourceMappingURL=complete.js.map
 
 /***/ }),
 /* 283 */
@@ -71991,7 +71996,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
 const object_1 = __webpack_require__(182);
 const position_1 = __webpack_require__(228);
-const Snippets = tslib_1.__importStar(__webpack_require__(281));
+const Snippets = tslib_1.__importStar(__webpack_require__(282));
 const logger = __webpack_require__(172)('snippets-snipet');
 class CocSnippet {
     constructor(_snippetString, position, _variableResolver) {
@@ -72411,7 +72416,8 @@ class Handler {
         }
         const currentFunctionName = (() => {
             const sym = symbols[symbolPosition];
-            if (!sym || (position.line > sym.range.end.line)) {
+            const range = sym && (sym.range || sym.selectionRange);
+            if (!sym || !range || (position.line > range.end.line)) {
                 return '';
             }
             else {
