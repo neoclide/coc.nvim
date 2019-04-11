@@ -114,12 +114,18 @@ function! s:request(method, args) dict
       return nvim#rpc#request(chan_id, a:method, a:args)
     endif
     return call('rpcrequest', [chan_id, a:method] + a:args)
-  catch /^Vim\%((\a\+)\)\=:E475/
-    if get(g:, 'coc_vim_leaving', 0) | return | endif
-    echohl Error | echom '['.self.name.'] server connection lost' | echohl None
-    let name = self.name
-    call s:on_exit(name, 0)
-    execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
+  catch /.*/
+    if v:exception =~# 'E475'
+      if get(g:, 'coc_vim_leaving', 0) | return | endif
+      echohl Error | echom '['.self.name.'] server connection lost' | echohl None
+      let name = self.name
+      call s:on_exit(name, 0)
+      execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
+    elseif v:exception =~# 'E12'
+      " neovim's bug, ignore it
+    else
+      echohl Error | echo 'Error on request ('.a:method.'): '.v:exception | echohl None
+    endif
   endtry
 endfunction
 
@@ -132,12 +138,18 @@ function! s:notify(method, args) dict
     else
       call call('rpcnotify', [chan_id, a:method] + a:args)
     endif
-  catch /^Vim\%((\a\+)\)\=:E475/
-    if get(g:, 'coc_vim_leaving', 0) | return | endif
-    echohl Error | echom '['.self['name'].'] server connection lost' | echohl None
-    let name = self.name
-    call s:on_exit(name, 0)
-    execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
+  catch /.*/
+    if v:exception =~# 'E475'
+      if get(g:, 'coc_vim_leaving', 0) | return | endif
+      echohl Error | echom '['.self.name.'] server connection lost' | echohl None
+      let name = self.name
+      call s:on_exit(name, 0)
+      execute 'silent do User ConnectionLost'.toupper(name[0]).name[1:]
+    elseif v:exception =~# 'E12'
+      " neovim's bug, ignore it
+    else
+      echohl Error | echo 'Error on notify ('.a:method.'): '.v:exception | echohl None
+    endif
   endtry
 endfunction
 
