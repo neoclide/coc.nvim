@@ -161,6 +161,8 @@ export default class Handler {
     }, null, this.disposables)
 
     events.on('InsertLeave', async bufnr => {
+      await wait(30)
+      if (workspace.insertMode) return
       await this.onCharacterType('\n', bufnr, true)
     }, null, this.disposables)
     events.on('BufUnload', async bufnr => {
@@ -208,8 +210,8 @@ export default class Handler {
     let symbols = await this.getDocumentSymbols()
 
     if (!symbols || symbols.length === 0) {
-        buffer.setVar('coc_current_function', '', true)
-        return ''
+      buffer.setVar('coc_current_function', '', true)
+      return ''
     }
     symbols = symbols.filter(s => [
       'Class',
@@ -227,8 +229,8 @@ export default class Handler {
     // `binarySearch` will return a negative index, which is 2 indices offset to the closest symbol.
     let symbolPosition = binarySearch(symbols, position.line + 1, (e, n) => e.lnum - n)
     if (symbolPosition < 0) {
-        symbolPosition *= -1
-        symbolPosition -= 2
+      symbolPosition *= -1
+      symbolPosition -= 2
     }
 
     const currentFunctionName = (() => {
@@ -237,7 +239,7 @@ export default class Handler {
       if (!sym || !range || (position.line > range.end.line)) {
         return ''
       } else {
-          return sym.text
+        return sym.text
       }
     })()
     buffer.setVar('coc_current_function', currentFunctionName, true)
@@ -1084,10 +1086,10 @@ function addDoucmentSymbol(res: SymbolInfo[], sym: DocumentSymbol, level: number
 }
 
 function sortSymbolInformations(a: SymbolInformation, b: SymbolInformation): number {
-    let sa = a.location.range.start
-    let sb = b.location.range.start
-    let d = sa.line - sb.line
-    return d == 0 ? sa.character - sb.character : d
+  let sa = a.location.range.start
+  let sb = b.location.range.start
+  let d = sa.line - sb.line
+  return d == 0 ? sa.character - sb.character : d
 
 }
 
