@@ -47375,8 +47375,14 @@ function resolveRoot(dir, subs, cwd) {
 }
 exports.resolveRoot = resolveRoot;
 function inDirectory(dir, subs) {
-    let files = fs_1.default.readdirSync(dir);
-    return files.findIndex(f => subs.indexOf(f) !== -1) !== -1;
+    try {
+        let files = fs_1.default.readdirSync(dir);
+        return files.findIndex(f => subs.indexOf(f) !== -1) !== -1;
+    }
+    catch (e) {
+        // could be failed without permission
+        return false;
+    }
 }
 exports.inDirectory = inDirectory;
 function readFile(fullpath, encoding) {
@@ -52907,7 +52913,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1e08056dd5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ba463e0840" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58922,15 +58928,16 @@ class DiagnosticManager {
             if (this.timer)
                 clearTimeout(this.timer);
         }, null, this.disposables);
-        events_1.default.on('InsertLeave', async () => {
+        events_1.default.on('InsertLeave', async (bufnr) => {
             this.floatFactory.close();
-            let { refreshOnInsertMode, refreshAfterSave } = this.config;
-            let { bufnr } = workspace_1.default;
             let doc = workspace_1.default.getDocument(bufnr);
-            if (!this.shouldValidate(doc))
+            if (!doc || !this.shouldValidate(doc))
                 return;
+            let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
                 await util_1.wait(500);
+                if (workspace_1.default.insertMode)
+                    return;
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
@@ -72346,6 +72353,9 @@ class Handler {
             }
         }, null, this.disposables);
         events_1.default.on('InsertLeave', async (bufnr) => {
+            await util_1.wait(30);
+            if (workspace_1.default.insertMode)
+                return;
             await this.onCharacterType('\n', bufnr, true);
         }, null, this.disposables);
         events_1.default.on('BufUnload', async (bufnr) => {
