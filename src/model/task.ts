@@ -35,7 +35,7 @@ export default class Task implements Disposable {
     }, null, this.disposables)
   }
 
-  public async start(opts: TaskOptions): Promise<void> {
+  public async start(opts: TaskOptions): Promise<boolean> {
     let { nvim } = this
     return await nvim.call('coc#task#start', [this.id, opts])
   }
@@ -53,6 +53,9 @@ export default class Task implements Disposable {
   public dispose(): void {
     let { nvim } = this
     nvim.call('coc#task#stop', [this.id], true)
+    this._onStdout.dispose()
+    this._onStderr.dispose()
+    this._onExit.dispose()
     disposeAll(this.disposables)
   }
 }
