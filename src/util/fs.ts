@@ -74,8 +74,13 @@ export function resolveRoot(dir: string, subs: string[], cwd?: string): string |
 }
 
 export function inDirectory(dir: string, subs: string[]): boolean {
-  let files = fs.readdirSync(dir)
-  return files.findIndex(f => subs.indexOf(f) !== -1) !== -1
+  try {
+    let files = fs.readdirSync(dir)
+    return files.findIndex(f => subs.indexOf(f) !== -1) !== -1
+  } catch (e) {
+    // could be failed without permission
+    return false
+  }
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {
