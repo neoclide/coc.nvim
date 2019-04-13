@@ -169,6 +169,29 @@ describe('completion#startCompletion', () => {
     expect(lastOption.triggerForInComplete).toBeFalsy()
     await nvim.input('<esc>')
   })
+
+  it('should trigger completion on CursorMovedI', async () => {
+    let source: ISource = {
+      priority: 0,
+      enable: true,
+      name: 'trigger',
+      sourceType: SourceType.Service,
+      triggerCharacters: ['>'],
+      doComplete: async (opt: CompleteOption): Promise<CompleteResult> => {
+        if (opt.triggerCharacter == '>') {
+          return { items: [{ word: 'foo' }] }
+        }
+        return null
+      }
+    }
+    let disposable = sources.addSource(source)
+    await helper.edit()
+    await nvim.input('i><esc>a')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBe(1)
+    disposable.dispose()
+  })
 })
 
 describe('completion#resumeCompletion', () => {

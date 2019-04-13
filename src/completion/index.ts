@@ -10,6 +10,7 @@ import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 import FloatingWindow from './floating'
+import debounce from 'debounce'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
@@ -55,6 +56,19 @@ export class Completion implements Disposable {
         this.previewBuffer = null
       }
     }, null, this.disposables)
+    events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
+      // try trigger completion
+      if (this.isActivted) return
+      let doc = workspace.getDocument(bufnr)
+      let line = doc.getline(cursor[0] - 1)
+      if (!line) return
+      let { latestInsertChar } = this
+      let pre = byteSlice(line, 0, cursor[1] - 1)
+      if (!latestInsertChar || !pre.endsWith(latestInsertChar)) return
+      if (sources.shouldTrigger(pre, doc.filetype)) {
+        await this.triggerCompletion(doc, pre, false)
+      }
+    }, 20))
     workspace.onDidChangeConfiguration(e => {
       if (e.affectsConfiguration('suggest')) {
         Object.assign(this.config, this.getCompleteConfig())
