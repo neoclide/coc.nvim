@@ -58,8 +58,8 @@ export class Completion implements Disposable {
     }, null, this.disposables)
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
-      if (this.isActivted) return
       let doc = workspace.getDocument(bufnr)
+      if (this.isActivted || !doc || cursor[1] == 1) return
       let line = doc.getline(cursor[0] - 1)
       if (!line) return
       let { latestInsertChar } = this
