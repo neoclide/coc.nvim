@@ -1226,8 +1226,7 @@ augroup end`
     let disposable: Disposable
     try {
       if (document) this.onBufUnload(bufnr, true)
-      let configuration = this.configurations.getConfiguration('coc.preferences')
-      document = new Document(buffer, configuration, this._env)
+      document = new Document(buffer, this._env)
       disposable = token.onCancellationRequested(() => {
         // can create new document of bufnr
         this.creatingSources.delete(bufnr)

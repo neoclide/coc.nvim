@@ -298,8 +298,15 @@ b:coc_suggest_disable 				*b:coc_suggest_disable*
 
 			用于针对特定 buffer 禁用补全，例如: >
 			
-	" 对 python 文件禁用补全
-	autocmd FileType python let b:coc_suggest_disable = 1
+			" 对 python 文件禁用补全
+			autocmd FileType python let b:coc_suggest_disable = 1
+
+b:coc_additional_keywords			*b:coc_additional_keywords*
+
+			生成单词列表所用的额外 keyword 字符，例如： >
+			
+			" Add keyword characers for css
+			autocmd FileType css let b:coc_additional_keywords = ["-"]
 
 b:coc_suggest_blacklist 				*b:coc_suggest_blacklist*
 

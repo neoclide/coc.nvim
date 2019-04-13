@@ -299,6 +299,13 @@ b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 			" Disable completion for 'end' in lua files
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
+b:coc_additional_keywords			*b:coc_additional_keywords*
+
+			Addition keyword characers for generate keywords. ex: >
+			
+			" Add keyword characers for css
+			autocmd FileType css let b:coc_additional_keywords = ["-"]
+
 b:coc_current_function 				*b:coc_current_function*
 
 			Function string that current cursor in.

@@ -39,7 +39,6 @@ export default class Document {
   public readonly onDocumentDetach: Event<string> = this._onDocumentDetach.event
   constructor(
     public readonly buffer: Buffer,
-    private configurations: WorkspaceConfiguration,
     private env: Env) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
@@ -57,12 +56,6 @@ export default class Document {
 
   public get words(): string[] {
     return this._words
-  }
-
-  private generateWords(): void {
-    let limit = this.configurations.get<number>('limitLines', 30000)
-    let lines = this.lines.slice(0, limit)
-    this._words = this.chars.matchKeywords(lines.join('\n'))
   }
 
   public setFiletype(filetype: string): void {
@@ -129,10 +122,16 @@ export default class Document {
 
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
-    let config = this.configurations
-    let hyphenAsKeyword = config.get<boolean>('hyphenAsKeyword', true)
-    if (hyphenAsKeyword) chars.addKeyword('-')
-    this.generateWords()
+    this.buffer.getOption('coc_additional_keywords').then((keywords: string[]) => {
+      if (keywords && keywords.length) {
+        for (let ch of keywords) {
+          chars.addKeyword(ch)
+        }
+        this._words = this.chars.matchKeywords(this.lines.join('\n'))
+      }
+    }, _e => {
+      // noop
+    })
   }
 
   public async attach(): Promise<boolean> {
@@ -214,7 +213,7 @@ export default class Document {
         textDocument: { version, uri },
         contentChanges: changes
       })
-      this.generateWords()
+      this._words = this.chars.matchKeywords(this.lines.join('\n'))
     } catch (e) {
       logger.error(e.message)
     }
@@ -253,10 +252,6 @@ export default class Document {
 
   public get version(): number {
     return this.textDocument ? this.textDocument.version : null
-  }
-
-  public setKeywordOption(option: string): void {
-    this.chars = new Chars(option)
   }
 
   public async applyEdits(_nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
