@@ -138,10 +138,14 @@ export class SnippetSession {
       return
     }
     this._currId = placeholder.id
-    let edits = snippet.updatePlaceholder(placeholder, edit)
+    let { edits, delta } = snippet.updatePlaceholder(placeholder, edit)
     if (!edits.length) return
     this.version = this.document.version
+    // let pos = await workspace.getCursorPosition()
     await this.document.applyEdits(this.nvim, edits)
+    if (delta) {
+      await this.nvim.call('coc#util#move_cursor', delta)
+    }
   }
 
   public async selectCurrentPlaceholder(triggerAutocmd = true): Promise<void> {

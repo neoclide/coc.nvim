@@ -593,6 +593,15 @@ export class TextmateSnippet extends Marker {
     this._placeholders = undefined
   }
 
+  /**
+   * newText after update with value
+   */
+  public getPlaceholderText(id: number, value: string): string {
+    const placeholder = this.placeholders[id]
+    if (!placeholder) return value
+    return placeholder.transform ? placeholder.transform.resolve(value) : value
+  }
+
   public offset(marker: Marker): number {
     let pos = 0
     let found = false

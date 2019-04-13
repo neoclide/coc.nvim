@@ -46,6 +46,13 @@ export class CocSnippet {
   public adjustTextEdit(edit: TextEdit): boolean {
     let { range } = edit
     if (comparePosition(this.range.start, range.end) < 0) return false
+    if (edit.newText.indexOf('\n') == -1 &&
+      this.firstPlaceholder &&
+      comparePosition(this.firstPlaceholder.range.start, this.range.start) == 0 &&
+      comparePosition(range.start, range.end) == 0 &&
+      comparePosition(this.range.start, range.start) == 0) {
+      return false
+    }
     let changed = getChangedPosition(this.range.start, edit)
     if (changed.line == 0 && changed.character == 0) return true
     this.adjustPosition(changed.character, changed.line)
@@ -127,11 +134,22 @@ export class CocSnippet {
 
   // update internal positions, no change of buffer
   // return TextEdit list when needed
-  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): TextEdit[] {
+  public updatePlaceholder(placeholder: CocSnippetPlaceholder, edit: TextEdit): { edits: TextEdit[], delta: number } {
     let { start, end } = edit.range
     let { range } = this
-    let { value, id } = placeholder
+    let { value, id, index } = placeholder
     let newText = editRange(placeholder.range, value, edit)
+    let delta = 0
+    if (newText.indexOf('\n') == -1) {
+      for (let p of this._placeholders) {
+        if (p.index == index &&
+          p.id < id &&
+          p.line == placeholder.range.start.line) {
+          let text = this.tmSnippet.getPlaceholderText(p.id, newText)
+          delta = delta + text.length - p.value.length
+        }
+      }
+    }
     this.tmSnippet.updatePlaceholder(id, newText)
     let endPosition = adjustPosition(range.end, edit)
     let snippetEdit: TextEdit = {
@@ -139,7 +157,7 @@ export class CocSnippet {
       newText: this.tmSnippet.toString()
     }
     this.update()
-    return [snippetEdit]
+    return { edits: [snippetEdit], delta }
   }
 
   private update(): void {

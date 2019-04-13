@@ -323,6 +323,11 @@ function! coc#util#get_input()
   return pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
 endfunction
 
+function! coc#util#move_cursor(delta)
+  let pos = getcurpos()
+  call cursor(pos[1], pos[2] + a:delta)
+endfunction
+
 function! coc#util#get_complete_option()
   let disabled = get(b:, 'coc_suggest_disable', 0)
   if disabled | return | endif

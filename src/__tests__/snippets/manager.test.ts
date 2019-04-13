@@ -77,6 +77,21 @@ describe('snippet provider', () => {
     expect(line).toBe('update update bar')
   })
 
+  it('should adjust cursor position on update', async () => {
+    await helper.createDocument()
+    await nvim.command('startinsert')
+    await snippetManager.insertSnippet('${1/..*/ -> /}$1')
+    let line = await nvim.line
+    expect(line).toBe('')
+    await helper.wait(60)
+    await nvim.input('x')
+    await helper.wait(400)
+    line = await nvim.line
+    expect(line).toBe(' -> x')
+    let col = await nvim.call('col', '.')
+    expect(col).toBe(6)
+  })
+
   it('should check position on InsertEnter', async () => {
     await helper.createDocument()
     await nvim.input('ibar<left><left><left>')

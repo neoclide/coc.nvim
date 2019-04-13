@@ -157,6 +157,16 @@ describe('SnippetSession#start', () => {
     let line = await nvim.line
     expect(line).toBe('foo bar b')
   })
+
+  it('should select none transform placeholder', async () => {
+    let buf = await helper.edit()
+    await nvim.command('startinsert')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('${1/..*/ -> /}xy$1')
+    await helper.wait(30)
+    let col = await nvim.call('col', '.')
+    expect(col).toBe(3)
+  })
 })
 
 describe('SnippetSession#deactivate', () => {
@@ -213,6 +223,20 @@ describe('SnippetSession#nextPlaceholder', () => {
     await session.nextPlaceholder()
     expect(session.placeholder.index).toBe(1)
   })
+
+  it('should jump to none transform placeholder', async () => {
+    let buf = await helper.edit()
+    await helper.wait(60)
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('${1} ${2/^_(.*)/$2/}bar$2')
+    expect(res).toBe(true)
+    let line = await nvim.line
+    expect(line).toBe(' bar')
+    await session.nextPlaceholder()
+    await helper.wait(60)
+    let col = await nvim.call('col', '.')
+    expect(col).toBe(5)
+  })
 })
 
 describe('SnippetSession#previousPlaceholder', () => {
@@ -267,7 +291,7 @@ describe('SnippetSession#synchronizeUpdatedPlaceholders', () => {
   it('should adjust with previous character change', async () => {
     let buf = await helper.edit()
     let session = new SnippetSession(nvim, buf.id)
-    let res = await session.start('${1:foo}')
+    let res = await session.start('foo ${1:foo}')
     await nvim.input('Ibar')
     await helper.wait(30)
     expect(res).toBe(true)
