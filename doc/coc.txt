@@ -1638,7 +1638,7 @@ Change error symbol:
 <
 Change warning symbol:
 >
-	let airline#extensions#coc#error_symbol = 'Warning:'
+	let airline#extensions#coc#warning_symbol = 'Warning:'
 <
 Change error format:
 >
