@@ -44109,8 +44109,7 @@ augroup end`;
         try {
             if (document)
                 this.onBufUnload(bufnr, true);
-            let configuration = this.configurations.getConfiguration('coc.preferences');
-            document = new document_1.default(buffer, configuration, this._env);
+            document = new document_1.default(buffer, this._env);
             disposable = token.onCancellationRequested(() => {
                 // can create new document of bufnr
                 this.creatingSources.delete(bufnr);
@@ -47533,9 +47532,8 @@ const chars_1 = __webpack_require__(201);
 const logger = __webpack_require__(172)('model-document');
 // wrapper class of TextDocument
 class Document {
-    constructor(buffer, configurations, env) {
+    constructor(buffer, env) {
         this.buffer = buffer;
-        this.configurations = configurations;
         this.env = env;
         this.paused = false;
         this.isIgnored = false;
@@ -47564,11 +47562,6 @@ class Document {
     }
     get words() {
         return this._words;
-    }
-    generateWords() {
-        let limit = this.configurations.get('limitLines', 30000);
-        let lines = this.lines.slice(0, limit);
-        this._words = this.chars.matchKeywords(lines.join('\n'));
     }
     setFiletype(filetype) {
         let { uri, version } = this;
@@ -47633,11 +47626,16 @@ class Document {
     }
     setIskeyword(iskeyword) {
         let chars = (this.chars = new chars_1.Chars(iskeyword));
-        let config = this.configurations;
-        let hyphenAsKeyword = config.get('hyphenAsKeyword', true);
-        if (hyphenAsKeyword)
-            chars.addKeyword('-');
-        this.generateWords();
+        this.buffer.getOption('coc_additional_keywords').then((keywords) => {
+            if (keywords && keywords.length) {
+                for (let ch of keywords) {
+                    chars.addKeyword(ch);
+                }
+                this._words = this.chars.matchKeywords(this.lines.join('\n'));
+            }
+        }, _e => {
+            // noop
+        });
     }
     async attach() {
         let attached = await this.buffer.attach(false);
@@ -47716,7 +47714,7 @@ class Document {
                 textDocument: { version, uri },
                 contentChanges: changes
             });
-            this.generateWords();
+            this._words = this.chars.matchKeywords(this.lines.join('\n'));
         }
         catch (e) {
             logger.error(e.message);
@@ -47750,9 +47748,6 @@ class Document {
     }
     get version() {
         return this.textDocument ? this.textDocument.version : null;
-    }
-    setKeywordOption(option) {
-        this.chars = new chars_1.Chars(option);
     }
     async applyEdits(_nvim, edits, sync = true) {
         if (edits.length == 0)
@@ -52916,7 +52911,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6338c14a87" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "23e2806439" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53998,6 +53993,7 @@ const string_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(326));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(328));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(163));
 const logger = __webpack_require__(172)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -54028,6 +54024,22 @@ class Completion {
                 this.previewBuffer = null;
             }
         }, null, this.disposables);
+        events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
+            // try trigger completion
+            if (this.isActivted)
+                return;
+            let doc = workspace_1.default.getDocument(bufnr);
+            let line = doc.getline(cursor[0] - 1);
+            if (!line)
+                return;
+            let { latestInsertChar } = this;
+            let pre = string_1.byteSlice(line, 0, cursor[1] - 1);
+            if (!latestInsertChar || !pre.endsWith(latestInsertChar))
+                return;
+            if (sources_1.default.shouldTrigger(pre, doc.filetype)) {
+                await this.triggerCompletion(doc, pre, false);
+            }
+        }, 20));
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('suggest')) {
                 Object.assign(this.config, this.getCompleteConfig());
