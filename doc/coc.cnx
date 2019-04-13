@@ -1557,7 +1557,7 @@ vim-airline: https://github.com/vim-airline/vim-airline 支持：
 <
 改变警告标签：
 >
-	let airline#extensions#coc#error_symbol = 'Warning:'
+	let airline#extensions#coc#warning_symbol = 'Warning:'
 <
 改变错误格式：
 >
