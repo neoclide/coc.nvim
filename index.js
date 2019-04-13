@@ -47505,6 +47505,9 @@ class Task {
     dispose() {
         let { nvim } = this;
         nvim.call('coc#task#stop', [this.id], true);
+        this._onStdout.dispose();
+        this._onStderr.dispose();
+        this._onExit.dispose();
         util_1.disposeAll(this.disposables);
     }
 }
@@ -52913,7 +52916,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ba463e0840" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6338c14a87" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53696,11 +53699,15 @@ class SnippetSession {
             return;
         }
         this._currId = placeholder.id;
-        let edits = snippet.updatePlaceholder(placeholder, edit);
+        let { edits, delta } = snippet.updatePlaceholder(placeholder, edit);
         if (!edits.length)
             return;
         this.version = this.document.version;
+        // let pos = await workspace.getCursorPosition()
         await this.document.applyEdits(this.nvim, edits);
+        if (delta) {
+            await this.nvim.call('coc#util#move_cursor', delta);
+        }
     }
     async selectCurrentPlaceholder(triggerAutocmd = true) {
         let placeholder = this.snippet.getPlaceholderById(this._currId);
@@ -62496,6 +62503,15 @@ class TextmateSnippet extends Marker {
             }
         }
         this._placeholders = undefined;
+    }
+    /**
+     * newText after update with value
+     */
+    getPlaceholderText(id, value) {
+        const placeholder = this.placeholders[id];
+        if (!placeholder)
+            return value;
+        return placeholder.transform ? placeholder.transform.resolve(value) : value;
     }
     offset(marker) {
         let pos = 0;
@@ -72030,6 +72046,13 @@ class CocSnippet {
         let { range } = edit;
         if (position_1.comparePosition(this.range.start, range.end) < 0)
             return false;
+        if (edit.newText.indexOf('\n') == -1 &&
+            this.firstPlaceholder &&
+            position_1.comparePosition(this.firstPlaceholder.range.start, this.range.start) == 0 &&
+            position_1.comparePosition(range.start, range.end) == 0 &&
+            position_1.comparePosition(this.range.start, range.start) == 0) {
+            return false;
+        }
         let changed = position_1.getChangedPosition(this.range.start, edit);
         if (changed.line == 0 && changed.character == 0)
             return true;
@@ -72106,8 +72129,19 @@ class CocSnippet {
     updatePlaceholder(placeholder, edit) {
         let { start, end } = edit.range;
         let { range } = this;
-        let { value, id } = placeholder;
+        let { value, id, index } = placeholder;
         let newText = position_1.editRange(placeholder.range, value, edit);
+        let delta = 0;
+        if (newText.indexOf('\n') == -1) {
+            for (let p of this._placeholders) {
+                if (p.index == index &&
+                    p.id < id &&
+                    p.line == placeholder.range.start.line) {
+                    let text = this.tmSnippet.getPlaceholderText(p.id, newText);
+                    delta = delta + text.length - p.value.length;
+                }
+            }
+        }
         this.tmSnippet.updatePlaceholder(id, newText);
         let endPosition = position_1.adjustPosition(range.end, edit);
         let snippetEdit = {
@@ -72115,7 +72149,7 @@ class CocSnippet {
             newText: this.tmSnippet.toString()
         };
         this.update();
-        return [snippetEdit];
+        return { edits: [snippetEdit], delta };
     }
     update() {
         const snippet = this.tmSnippet;
