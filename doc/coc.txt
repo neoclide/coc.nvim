@@ -1696,7 +1696,7 @@ Q: 	I want to use ale for diagnostics.
 
 A: 	Yes, you can make coc send diagnostics to ale, just add >
 
-	"coc.preferences.diagnostic.displayByAle": false,
+	"coc.preferences.diagnostic.displayByAle": true,
 <
 	to your coc-settings.json
 
