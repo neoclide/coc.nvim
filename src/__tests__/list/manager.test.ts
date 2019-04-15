@@ -41,6 +41,7 @@ describe('list commands', () => {
     expect(manager.isActivated).toBe(true)
     expect(manager.name).toBe('location')
     await manager.ui.ready
+    await helper.wait(100)
     let line = await nvim.getLine()
     expect(line).toMatch(/manager.test.ts/)
   })
