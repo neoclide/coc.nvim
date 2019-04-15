@@ -52911,7 +52911,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "84f4925148" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6efe8037a6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54026,9 +54026,9 @@ class Completion {
         }, null, this.disposables);
         events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
             // try trigger completion
-            if (this.isActivted)
-                return;
             let doc = workspace_1.default.getDocument(bufnr);
+            if (this.isActivted || !doc || cursor[1] == 1)
+                return;
             let line = doc.getline(cursor[0] - 1);
             if (!line)
                 return;
@@ -63356,7 +63356,10 @@ function getLanguageServerOptions(id, name, config) {
     }
     let documentSelector = [];
     config.filetypes.forEach(filetype => {
-        documentSelector.push({ language: filetype, scheme: 'file' }, { language: filetype, scheme: 'untitled' });
+        let schemes = ['file', 'untitled'].concat(config.additionalSchemes || []);
+        documentSelector.push(...schemes.map(scheme => {
+            return { language: filetype, scheme };
+        }));
     });
     if (documentSelector.length == 0) {
         documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }];
