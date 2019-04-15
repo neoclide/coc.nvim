@@ -59,6 +59,14 @@
             "type": "string"
           }
         },
+        "additionalSchemes": {
+          "type": "array",
+          "default": [],
+          "description": "Additional uri schemes, default schemes including file & untitled.",
+          "items": {
+            "type": "string"
+          }
+        },
         "revealOutputChannelOn": {
           "type": "string",
           "default": "never",
@@ -104,6 +112,7 @@
         "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
+        "additionalSchemes": {},
         "revealOutputChannelOn": {},
         "initializationOptions": {},
         "settings": {},
@@ -161,6 +170,7 @@
         "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
+        "additionalSchemes": {},
         "revealOutputChannelOn": {},
         "initializationOptions": {},
         "stdioEncoding": {},
@@ -205,6 +215,7 @@
         "requireRootPattern": {},
         "ignoredRootPaths": {},
         "filetypes": {},
+        "additionalSchemes": {},
         "revealOutputChannelOn": {},
         "initializationOptions": {},
         "stdioEncoding": {},

@@ -334,7 +334,10 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   }
   let documentSelector: DocumentSelector = []
   config.filetypes.forEach(filetype => {
-    documentSelector.push({ language: filetype, scheme: 'file' }, { language: filetype, scheme: 'untitled' })
+    let schemes = ['file', 'untitled'].concat(config.additionalSchemes || [])
+    documentSelector.push(...schemes.map(scheme => {
+      return { language: filetype, scheme }
+    }))
   })
   if (documentSelector.length == 0) {
     documentSelector = [{ scheme: 'file' }, { scheme: 'untitled' }]

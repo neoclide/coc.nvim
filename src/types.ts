@@ -306,6 +306,7 @@ export interface LanguageServerConfig {
   transportPort?: number
   disableWorkspaceFolders?: boolean
   filetypes: string[]
+  additionalSchemes: string[]
   enable: boolean
   args?: string[]
   cwd?: string
