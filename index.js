@@ -52911,7 +52911,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6efe8037a6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "303d95d2bb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72410,8 +72410,8 @@ class Handler {
         events_1.default.on('BufUnload', async (bufnr) => {
             this.clearHighlight(bufnr);
         }, null, this.disposables);
-        events_1.default.on('InsertEnter', async () => {
-            this.clearHighlight(workspace_1.default.bufnr);
+        events_1.default.on('InsertEnter', async (bufnr) => {
+            this.clearHighlight(bufnr);
         }, null, this.disposables);
         events_1.default.on('CursorMoved', debounce((bufnr, cursor) => {
             if (!this.preferences.previewAutoClose || !this.hoverPosition)
