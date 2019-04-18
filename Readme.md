@@ -155,6 +155,7 @@ For other completion sources, check out:
 - [coc-vimtex](https://github.com/neoclide/coc-vimtex): vimtex integration.
 - [coc-neoinclude](https://github.com/jsfaint/coc-neoinclude): neoinclude
   integration.
+- [coc-powershell](https://github.com/yatli/coc-powershell): PowerShellEditorService integration.
 
 Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
