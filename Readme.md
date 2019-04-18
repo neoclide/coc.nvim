@@ -161,7 +161,7 @@ Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Cr
 
 ## Extensions
 
-Extensions are powerful than configured language server. Checkout
+Extensions are more powerful than a configured language server. Checkout
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
 - **[coc-json](https://github.com/neoclide/coc-json)** for `json`.
@@ -196,7 +196,7 @@ Configuration required to make coc.nvim easier to work with, since it doesn't
 change your key-mappings or vim options as much as possible to avoid conflict with your
 other plugins.
 
-**❗️Important**: some vim plugins could change your keymap, use command like
+**❗️Important**: some vim plugins could change your keymap. Use a command like
 `:verbose imap <tab>` to make sure your keymap take effect.
 
 ```vim
