@@ -118,6 +118,7 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
     nvim.command(`exe ${lnum}`, true)
     nvim.command('setl winfixheight', true)
+    nvim.command('setl nofoldenable', true)
     if (range.start.line == range.end.line && range.start.character != range.end.character) {
       let line = await workspace.getLine(uri, range.start.line)
       let { hlGroup } = this
