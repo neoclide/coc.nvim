@@ -2,7 +2,7 @@
   <a href="https://www.vim.org/scripts/script.php?script_id=5779">
     <img alt="Coc Logo" src="https://user-images.githubusercontent.com/251450/55009068-f4ed2780-501c-11e9-9a3b-cf3aa6ab9272.png" height="160" />
   </a>
-  <p align="center">Make your vim/neovim smart as VSCode.</p>
+  <p align="center">Make your vim/neovim as smart as VSCode.</p>
   <p align="center">
     <a href="/LICENSE.md"><img alt="Software License" src="https://img.shields.io/badge/license-MIT-brightgreen.svg?style=flat-square"></a>
     <a href="https://salt.bountysource.com/teams/coc-nvim"><img alt="Bountysource" src="https://img.shields.io/bountysource/team/coc-nvim/activity.svg?style=flat-square"></a>
@@ -25,9 +25,9 @@ It's a completion framework and language server client which supports [extension
 
 _True snippet and additional text editing support_
 
-Floating window requires master of neovim to work, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
+Floating windows require the master build of neovim to work, [follow steps in the faq](https://github.com/neoclide/coc.nvim/wiki/F.A.Q#how-to-make-preview-window-shown-aside-with-pum).
 
-Check out [doc/coc.txt](doc/coc.txt) for vim interface.
+Check out [doc/coc.txt](doc/coc.txt) for the vim interface.
 
 ## Why?
 
@@ -48,23 +48,23 @@ Below are the reasons that led coc.nvim to build its own engine:
   feature, you'll understand why it's awesome when you experience it with a
   coc extension like `coc-tsserver`.
 - **Asynchronous and parallel completion request**, unless using vim sources,
-  your vim will never blocked.
+  your vim will never be blocked.
 - **Does completion resolving on completion item change**. The details from
-  completion items is echoed after being selected, this feature requires the
+  completion items are echoed after being selected, this feature requires the
   `CompleteChanged` autocmd to work.
 - **Incomplete request and cancel request support**, only incomplete completion
   requests would be triggered on filtering completion items and cancellation
-  request is sent to servers only when necessary.
+  requests are sent to servers only when necessary.
 - **Start completion without timer**. The completion will start after you type the
   first letter of a word by default and is filtered with new input after the completion
   has finished. Other completion engines use a timer to trigger completion so you
   always have to wait after the typed character.
-- **Realtime buffer keywords**. Coc will generate buffer keywords on buffer change in
-  background (with debounce), while some completion engines use a cache which could
-  be wrong sometimes. And [Locality bonus feature](https://code.visualstudio.com/docs/editor/intellisense#_locality-bonus)
+- **Realtime buffer keywords**. Coc will generate buffer keywords on buffer change in the
+  background (with debounce), while some completion engines use a cache which isn't always correct.
+  Plus, [Locality bonus feature](https://code.visualstudio.com/docs/editor/intellisense#_locality-bonus)
   from VSCode is enabled by default.
 - **Filter completion items when possible.** When you do a fuzzy filter with
-  completion items, some completion engines would trigger a new completion, but
+  completion items, some completion engines will trigger a new completion, but
   coc.nvim will filter the items when possible which makes it much faster. Filtering
   completion items on backspace is also supported.
   </p>
@@ -81,29 +81,29 @@ Below are the reasons that led coc.nvim to build its own engine:
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
-  For [vim-plug](https://github.com/junegunn/vim-plug) user:
+  For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
   ```vim
   Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
   ```
 
-  Or build from source code:
+  Or to build from source code:
 
   ```vim
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
-  to your `.vimrc` or `init.vim`, restart vim and run `:PlugInstall`.
+  in your `.vimrc` or `init.vim`, then restart vim and run `:PlugInstall`.
 
   For other plugin managers, run command `:call coc#util#install()` to download lastest compiled javascript bundle.
 
-  **Note:** for vim users, global installed [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module is required.
+  **Note:** for vim users, having the [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module globally installed is required.
 
-  **Note**: The first time building from source code could be slow.
+  **Note**: The first time building from source code may be slow.
 
   **Note**: Nix-os Users must follow these steps:
 
-  1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them on `/etc/nixos/configuration.nix`
+  1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them in `/etc/nixos/configuration.nix`
   2. `sudo nixos-rebuild switch`
   3. `Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}`
   4. Don't forget to put: `set shell=/bin/sh` in your init.vim.
@@ -134,7 +134,6 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Bash](https://github.com/neoclide/coc.nvim/wiki/Language-servers#bash)
     - [Lua](https://github.com/neoclide/coc.nvim/wiki/Language-servers#lua)
     - [OCaml and ReasonML](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ocaml-and-reasonml)
-    - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
 
 - [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
@@ -146,7 +145,7 @@ Below are the reasons that led coc.nvim to build its own engine:
 
 ## Completion sources
 
-Completion from words of buffers and file paths are supported by default.
+Completion from words in buffers and file paths completions are supported by default.
 
 For other completion sources, check out:
 
@@ -180,31 +179,31 @@ Extensions are more powerful than a configured language server. Checkout
   [Rust Language Server](https://github.com/rust-lang/rls)
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
 - **[coc-python](https://github.com/neoclide/coc-python)** for `python`, extension forked from [vscode-python](https://github.com/Microsoft/vscode-python).
-- **[coc-highlight](https://github.com/neoclide/coc-highlight)** provide default
-  document symbol highlight and colors support.
-- **[coc-emmet](https://github.com/neoclide/coc-emmet)** provide emmet
-  suggest in completion list.
-- **[coc-snippets](https://github.com/neoclide/coc-snippets)** provide snippets
+- **[coc-highlight](https://github.com/neoclide/coc-highlight)** provides default
+  document symbol highlighting and color support.
+- **[coc-emmet](https://github.com/neoclide/coc-emmet)** provides emmet
+  suggestions in completion list.
+- **[coc-snippets](https://github.com/neoclide/coc-snippets)** provides snippets
   solution.
 
-And more, to get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
+Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
-**Note:** use `:CocConfig` to edit the configuration file, completion & validation are supported after `coc-json` installed.
+**Note:** use `:CocConfig` to edit the configuration file. Completion & validation are supported after `coc-json` is installed.
 
 ## Example vim configuration
 
-Configuration required to make coc.nvim easier to work with, since it doesn't
-change your key-mappings or vim options as much as possible to avoid conflict with your
+Configuration is required to make coc.nvim easier to work with, since it doesn't
+change your key-mappings or vim options. This is done as much as possible to avoid conflict with your
 other plugins.
 
-**❗️Important**: some vim plugins could change your keymap. Use a command like
-`:verbose imap <tab>` to make sure your keymap take effect.
+**❗️Important**: some vim plugins could change keymapping. Use a command like
+`:verbose imap <tab>` to make sure your keymap takes effect.
 
 ```vim
 " if hidden is not set, TextEdit might fail.
 set hidden
 
-" Some server have issues with backup files, see #649
+" Some servers have issues with backup files, see #649
 set nobackup
 set nowritebackup
 
@@ -233,14 +232,14 @@ function! s:check_back_space() abort
   return !col || getline('.')[col - 1]  =~# '\s'
 endfunction
 
-" Use <c-space> for trigger completion.
+" Use <c-space> to trigger completion.
 inoremap <silent><expr> <c-space> coc#refresh()
 
-" Use <cr> for confirm completion, `<C-g>u` means break undo chain at current position.
+" Use <cr> to confirm completion, `<C-g>u` means break undo chain at current position.
 " Coc only does snippet and additional edit on confirm.
 inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<C-g>u\<CR>"
 
-" Use `[c` and `]c` for navigate diagnostics
+" Use `[c` and `]c` to navigate diagnostics
 nmap <silent> [c <Plug>(coc-diagnostic-prev)
 nmap <silent> ]c <Plug>(coc-diagnostic-next)
 
@@ -250,7 +249,7 @@ nmap <silent> gy <Plug>(coc-type-definition)
 nmap <silent> gi <Plug>(coc-implementation)
 nmap <silent> gr <Plug>(coc-references)
 
-" Use K for show documentation in preview window
+" Use K to show documentation in preview window
 nnoremap <silent> K :call <SID>show_documentation()<CR>
 
 function! s:show_documentation()
@@ -288,10 +287,10 @@ nmap <leader>ac  <Plug>(coc-codeaction)
 " Fix autofix problem of current line
 nmap <leader>qf  <Plug>(coc-fix-current)
 
-" Use `:Format` for format current buffer
+" Use `:Format` to format current buffer
 command! -nargs=0 Format :call CocAction('format')
 
-" Use `:Fold` for fold current buffer
+" Use `:Fold` to fold current buffer
 command! -nargs=? Fold :call     CocAction('fold', <f-args>)
 
 
@@ -381,9 +380,9 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 ## Feedback
 
-- If you think it's useful, consider give it a star.
+- If you think Coc is useful, consider giving it a star.
 
-- If you have a question, [ask at gitter](https://gitter.im/neoclide/coc.nvim)
+- If you have a question, [ask on gitter](https://gitter.im/neoclide/coc.nvim)
 
 - 中文用户请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 讨论。
 
