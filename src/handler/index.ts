@@ -253,6 +253,7 @@ export default class Handler {
     if (hovers && hovers.length) {
       await this.previewHover(hovers)
     } else {
+      workspace.showMessage('No definition found.', 'warning')
       let target = this.preferences.hoverTarget
       if (target == 'float') {
         this.hoverFactory.close()
