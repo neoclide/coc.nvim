@@ -701,10 +701,16 @@ function! coc#util#install_extension(args) abort
           \ 'Callback': funcref('s:OnExtensionInstalled'),
           \})
   else
-    let cwd = getcwd()
-    exe 'lcd '.dir
-    exe '!'.yarncmd.' add '.names.' --ignore-engines'
-    exe 'lcd '.cwd
+    if $NODE_ENV ==# 'test'
+      for name in split(names, ' ')
+        call mkdir(dir . '/node_modules/'.name, 'p', 0700)
+      endfor
+    else
+      let cwd = getcwd()
+      exe 'lcd '.dir
+      exe '!'.yarncmd.' add '.names . ' --ignore-engines'
+      exe 'lcd '.cwd
+    endif
   endif
 endfunction
 

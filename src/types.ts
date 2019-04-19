@@ -9,7 +9,7 @@ import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
-export type ExtensionState = 'disabled' | 'loaded' | 'activited' | 'unknown'
+export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
 
 export interface TaskOptions {
   cmd: string

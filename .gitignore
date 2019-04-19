@@ -9,3 +9,4 @@ doc/tags
 doc/tags-cn
 node_modules
 !src/__tests__/tags
+src/__tests__/extensions/db.json

@@ -45,6 +45,6 @@ describe('terminal properties', () => {
     await helper.wait(100)
     let buf = nvim.createBuffer(terminal.bufnr)
     let lines = await buf.lines
-    expect(lines.join('\n')).toMatch('ls')
+    expect(lines.join('\n')).toMatch('vimrc')
   })
 })

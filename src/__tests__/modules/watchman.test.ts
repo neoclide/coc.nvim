@@ -1,13 +1,27 @@
 // import watchman from 'fb-watchman'
+import { Neovim } from '@chemzqm/neovim'
 import net from 'net'
 import fs from 'fs'
 import bser from 'bser'
 import Watchman, { FileChangeItem } from '../../watchman'
+import helper from '../helper'
+import BufferChannel from '../../model/outputChannel'
 
 let server: net.Server
 let client: net.Socket
 const sockPath = '/tmp/watchman-fake'
 process.env.WATCHMAN_SOCK = sockPath
+
+let nvim: Neovim
+beforeAll(async () => {
+  await helper.setup()
+  nvim = helper.nvim
+})
+
+afterAll(async () => {
+  Watchman.dispose()
+  await helper.shutdown()
+})
 
 function wait(ms: number): Promise<any> {
   return new Promise(resolve => {
@@ -100,7 +114,7 @@ describe('watchman', () => {
   })
 
   it('should subscribe', async () => {
-    let client = new Watchman(null)
+    let client = new Watchman(null, new BufferChannel('watchman', nvim))
     await client.watchProject('/tmp')
     let fn = jest.fn()
     let disposable = await client.subscribe('/tmp/*', fn)
@@ -110,11 +124,7 @@ describe('watchman', () => {
     expect(fn).toBeCalled()
     let call = fn.mock.calls[0][0]
     disposable.dispose()
-    expect(call).toEqual({
-      subscription: (global as any).subscribe,
-      root: '/tmp',
-      files: changes
-    })
+    expect(call.root).toBe('/tmp')
     client.dispose()
   })
 

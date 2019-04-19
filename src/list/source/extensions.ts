@@ -16,7 +16,7 @@ export default class ExtensionList extends BasicList {
     this.addAction('toggle', async item => {
       let { id, state } = item.data
       if (state == 'disabled') return
-      if (state == 'activited') {
+      if (state == 'activated') {
         extensions.deactivate(id)
       } else {
         extensions.activate(id)
@@ -48,7 +48,7 @@ export default class ExtensionList extends BasicList {
     this.addAction('reload', async item => {
       let { id, state } = item.data
       if (state == 'disabled') return
-      if (state == 'activited') {
+      if (state == 'activated') {
         extensions.deactivate(id)
       }
       extensions.activate(id)
@@ -74,7 +74,7 @@ export default class ExtensionList extends BasicList {
       let prefix = '+'
       if (stat.state == 'disabled') {
         prefix = '-'
-      } else if (stat.state == 'activited') {
+      } else if (stat.state == 'activated') {
         prefix = '*'
       } else if (stat.state == 'unknown') {
         prefix = '?'
@@ -126,7 +126,7 @@ function getPriority(stat: string): number {
   switch (stat) {
     case 'unknown':
       return 2
-    case 'activited':
+    case 'activated':
       return 1
     case 'disabled':
       return -1

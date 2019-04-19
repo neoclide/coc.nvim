@@ -62,14 +62,12 @@ describe('task test', () => {
     let file = await createTmpFile('console.error("error")')
     let fn = jest.fn()
     let task = workspace.createTask('error')
-    let called = false
     task.onStderr(lines => {
       expect(lines).toEqual(['error'])
-      called = true
       fn()
     })
     await task.start({ cmd: 'node', args: [file] })
-    await helper.wait(200)
+    await helper.wait(300)
     task.dispose()
     expect(fn).toBeCalled()
   })

@@ -47,7 +47,9 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('installExtensions', debounce(async () => {
       let list = await nvim.getVar('coc_global_extensions') as string[]
-      return extensions.installExtensions(list)
+      return extensions.installExtensions(list).catch(_e => {
+        // noop
+      })
     }, 200))
     this.addMethod('commandList', () => {
       return commandManager.commandList.map(o => o.id)
