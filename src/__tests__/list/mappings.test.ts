@@ -192,13 +192,12 @@ describe('list insert mappings', () => {
     await helper.wait(100)
     expect(manager.isActivated).toBe(false)
     await manager.start(['location'])
-    await helper.wait(30)
     await nvim.eval('feedkeys("\\<C-n>", "in")')
-    await helper.wait(30)
+    await helper.wait(100)
     let input = manager.prompt.input
     expect(input.length).toBeGreaterThan(0)
     await nvim.eval('feedkeys("\\<C-p>", "in")')
-    await helper.wait(30)
+    await helper.wait(100)
     input = manager.prompt.input
     expect(input.length).toBeGreaterThan(0)
   })

@@ -1221,7 +1221,7 @@ augroup end`
   // events for sync buffer of vim
   private initVimEvents(): void {
     if (!this.isVim) return
-    const onChange = async bufnr => {
+    const onChange = async (bufnr: number) => {
       let doc = this.getDocument(bufnr)
       if (doc) doc.fetchContent()
     }
@@ -1354,7 +1354,7 @@ augroup end`
     this._onDidOpenDocument.fire(doc.textDocument)
   }
 
-  private async checkBuffer(bufnr): Promise<void> {
+  private async checkBuffer(bufnr: number): Promise<void> {
     if (this._disposed) return
     let doc = this.getDocument(bufnr)
     if (!doc && !this.creatingSources.has(bufnr)) await this.onBufCreate(bufnr)
