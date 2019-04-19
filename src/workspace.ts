@@ -105,8 +105,9 @@ export class Workspace implements IWorkspace {
   }
 
   public async init(): Promise<void> {
-    this.statusLine = new StatusLine(this.nvim)
-    this._env = await this.nvim.call('coc#util#vim_info') as Env
+    let { nvim } = this
+    this.statusLine = new StatusLine(nvim)
+    this._env = await nvim.call('coc#util#vim_info') as Env
     this._insertMode = this._env.mode.startsWith('insert')
     if (this._env.workspaceFolders) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => {
@@ -171,6 +172,20 @@ export class Workspace implements IWorkspace {
         await this.detach()
       }
     }, this.disposables)
+    let provider: TextDocumentContentProvider = {
+      onDidChange: null,
+      provideTextDocumentContent: async (uri: Uri) => {
+        let channel = this.outputChannels.get(uri.path.slice(1))
+        if (!channel) return ''
+        nvim.pauseNotification()
+        nvim.command('setlocal nospell nofoldenable wrap noswapfile', true)
+        nvim.command('setlocal buftype=nofile bufhidden=hide', true)
+        nvim.command('setfiletype log', true)
+        await nvim.resumeNotification()
+        return channel.content
+      }
+    }
+    this.disposables.push(this.registerTextDocumentContentProvider('output', provider))
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -1135,7 +1150,6 @@ augroup end`
       end: -1,
       strictIndexing: false
     })
-    buf.setOption('readonly', true, true)
     setTimeout(async () => {
       await events.fire('BufCreate', [buf.id])
     }, 30)

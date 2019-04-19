@@ -959,6 +959,7 @@ export interface OutputChannel {
    */
   readonly name: string
 
+  readonly content: string
   /**
    * Append the given value to the channel.
    *

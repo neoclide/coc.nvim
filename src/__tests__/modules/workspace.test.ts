@@ -548,7 +548,7 @@ describe('workspace utility', () => {
     await helper.wait(100)
     let buf = await nvim.buffer
     let name = await buf.name
-    expect(name).toMatch('[coc channel]')
+    expect(name).toMatch('channel')
   })
 
   it('should not show none exists channel', async () => {
