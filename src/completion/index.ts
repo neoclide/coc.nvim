@@ -203,7 +203,7 @@ export class Completion implements Disposable {
       items = complete.filterResults(search)
     }
     if (!this.isActivted) return
-    if (!items || items.length === 0) {
+    if (!complete.isCompleting && (!items || items.length === 0)) {
       this.stop()
       return
     }
@@ -218,7 +218,8 @@ export class Completion implements Disposable {
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document } = this
-    if (this.config.numberSelect) {
+    let { numberSelect, disableKind, disableMenu } = this.config
+    if (numberSelect) {
       items = items.map((item, i) => {
         let idx = i + 1
         if (i < 9) {
@@ -234,12 +235,8 @@ export class Completion implements Disposable {
       nvim.call('coc#_map', [], true)
     }
     let validKeys = completeItemKeys.slice()
-    if (this.config.disableKind) {
-      validKeys = validKeys.filter(s => s != 'kind')
-    }
-    if (this.config.disableMenu) {
-      validKeys = validKeys.filter(s => s != 'menu')
-    }
+    if (disableKind) validKeys = validKeys.filter(s => s != 'kind')
+    if (disableMenu) validKeys = validKeys.filter(s => s != 'menu')
     let vimItems = items.map(item => {
       let obj = { word: item.word, equal: 1 }
       for (let key of validKeys) {
@@ -267,9 +264,9 @@ export class Completion implements Disposable {
       if (s) arr.push(s)
     }
     if (!arr.length) return
-    let complete = new Complete(option, document, this.recentScores, config, nvim)
+    let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
-    let items = await this.complete.doComplete(arr)
+    let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
       this.stop()
@@ -296,7 +293,7 @@ export class Completion implements Disposable {
         await this.showCompletion(option.col, items)
         return
       }
-      await this.resumeCompletion(content, search)
+      await this.resumeCompletion(content, search, true)
     }
   }
 
@@ -372,7 +369,7 @@ export class Completion implements Disposable {
       await this.triggerCompletion(document, content, false)
       return
     }
-    if (!this.isActivted) return
+    if (!this.isActivted || this.complete.isEmpty) return
     let search = content.slice(characterIndex(content, this.option.col))
     return await this.resumeCompletion(content, search)
   }
