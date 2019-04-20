@@ -53085,7 +53085,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7461d45f52" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d964ee08ca" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54320,9 +54320,11 @@ class Completion {
             logger.error(e.stack);
         }
     }
-    async resumeCompletion(pre, search, _isChangedP = false) {
+    async resumeCompletion(pre, search, force = false) {
         let { document, complete, activted } = this;
-        if (!activted || !complete.results || search == this.input)
+        if (!activted || !complete.results)
+            return;
+        if (search == this.input && !force)
             return;
         let last = search == null ? '' : search.slice(-1);
         if (last.length == 0 ||
@@ -54402,7 +54404,7 @@ class Completion {
         let { line, colnr, filetype, source } = option;
         let { nvim, config, document } = this;
         // current input
-        this.input = option.input;
+        let input = this.input = option.input;
         let pre = string_1.byteSlice(line, 0, colnr - 1);
         let isTriggered = source == null && pre && !document.isWord(pre[pre.length - 1]) && sources_1.default.shouldTrigger(pre, filetype);
         let arr = [];
@@ -54419,21 +54421,38 @@ class Completion {
         let complete = new complete_1.default(option, document, this.recentScores, config, nvim);
         this.start(complete);
         let items = await this.complete.doComplete(arr);
-        if (complete.isCanceled || !this.isActivted)
+        if (complete.isCanceled)
             return;
-        if (items.length == 0) {
+        if (items.length == 0 && !complete.isCompleting) {
             this.stop();
             return;
         }
-        let content = await this.getPreviousContent(document);
-        if (complete.isCanceled)
-            return;
-        let search = this.getResumeInput(content);
-        if (search == option.input) {
-            await this.showCompletion(option.col, items);
-            return;
+        complete.onDidComplete(async () => {
+            let content = await this.getPreviousContent(document);
+            let search = this.getResumeInput(content);
+            if (complete.isCanceled)
+                return;
+            let hasSelected = this.hasSelected();
+            if (hasSelected && this.completeOpt.indexOf('noselect') !== -1)
+                return;
+            if (search == input) {
+                let items = complete.filterResults(search, Math.floor(Date.now() / 1000));
+                await this.showCompletion(option.col, items);
+                return;
+            }
+            await this.resumeCompletion(content, search, true);
+        });
+        if (items.length) {
+            let content = await this.getPreviousContent(document);
+            let search = this.getResumeInput(content);
+            if (complete.isCanceled)
+                return;
+            if (search == input) {
+                await this.showCompletion(option.col, items);
+                return;
+            }
+            await this.resumeCompletion(content, search);
         }
-        await this.resumeCompletion(content, search);
     }
     async onTextChangedP() {
         let { option, document } = this;
@@ -54465,7 +54484,7 @@ class Completion {
             await this.triggerCompletion(document, pre, false);
         }
         else {
-            await this.resumeCompletion(pre, search, true);
+            await this.resumeCompletion(pre, search);
         }
     }
     async onTextChangedI(bufnr) {
@@ -54683,7 +54702,7 @@ class Completion {
         this.activted = true;
         this.isResolving = false;
         if (activted) {
-            this.complete.cancel();
+            this.complete.dispose();
         }
         this.complete = complete;
         if (!this.config.keepCompleteopt) {
@@ -54709,7 +54728,7 @@ class Completion {
         this.document.paused = false;
         this.document.fireContentChanges();
         if (this.complete) {
-            this.complete.cancel();
+            this.complete.dispose();
             this.complete = null;
         }
         nvim.pauseNotification();
@@ -71629,19 +71648,27 @@ const fuzzy_1 = __webpack_require__(299);
 const string_1 = __webpack_require__(200);
 const match_1 = __webpack_require__(327);
 const logger = __webpack_require__(172)('completion-complete');
+// first time completion
+const FIRST_TIMEOUT = 100;
 class Complete {
     constructor(option, document, recentScores, config, nvim) {
         this.option = option;
         this.document = document;
         this.config = config;
         this.nvim = nvim;
+        this.completing = new Set();
         this._canceled = false;
         this.tokenSources = new Set();
+        this._onDidComplete = new vscode_languageserver_protocol_1.Emitter();
+        this.onDidComplete = this._onDidComplete.event;
         Object.defineProperty(this, 'recentScores', {
             get: () => {
                 return recentScores || {};
             }
         });
+    }
+    get isCompleting() {
+        return this.completing.size > 0;
     }
     get isCanceled() {
         return this._canceled;
@@ -71660,7 +71687,7 @@ class Complete {
         // new option for each source
         let opt = Object.assign({}, this.option);
         let timeout = this.config.timeout;
-        timeout = Math.min(timeout, 5000);
+        timeout = Math.max(Math.min(timeout, 5000), 1000);
         try {
             if (typeof source.shouldComplete === 'function') {
                 let shouldRun = await Promise.resolve(source.shouldComplete(opt));
@@ -71672,43 +71699,78 @@ class Complete {
             this.tokenSources.add(tokenSource);
             let result = await new Promise((resolve, reject) => {
                 let timer = setTimeout(() => {
-                    disposable.dispose();
+                    this.nvim.command(`echohl WarningMsg| echom 'source ${source.name} timeout after ${timeout}ms'|echohl None`, true);
                     tokenSource.cancel();
-                    util_1.echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`);
-                    resolve(null);
                 }, timeout);
+                let cancelled = false;
                 let called = false;
+                let empty = false;
+                let ft = setTimeout(() => {
+                    if (called)
+                        return;
+                    empty = true;
+                    resolve(null);
+                }, FIRST_TIMEOUT);
                 let onFinished = () => {
                     if (called)
                         return;
                     called = true;
                     disposable.dispose();
+                    clearTimeout(ft);
                     clearTimeout(timer);
                     this.tokenSources.delete(tokenSource);
                 };
+                let { name } = source;
                 let disposable = tokenSource.token.onCancellationRequested(() => {
+                    disposable.dispose();
+                    this.completing.delete(name);
+                    cancelled = true;
                     onFinished();
+                    logger.debug(`Source "${name}" cancelled`);
                     reject(new Error('Cancelled request'));
                 });
+                this.completing.add(name);
                 Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
+                    if (cancelled)
+                        return;
                     onFinished();
-                    resolve(result);
+                    let dt = Date.now() - start;
+                    logger.debug(`Source "${name}" takes ${dt}ms`);
+                    if (result && result.items && result.items.length) {
+                        if (result.startcol != null && result.startcol != col) {
+                            result.engross = true;
+                        }
+                        result.priority = source.priority;
+                        result.source = name;
+                        result.completeInComplete = completeInComplete;
+                        // lazy completed items
+                        if (empty) {
+                            if (result.engross) {
+                                this.results = [result];
+                            }
+                            else {
+                                let results = this.results || [];
+                                let idx = results.findIndex(o => o.source == name);
+                                if (idx != -1)
+                                    results.splice(idx, 1);
+                                results.push(result);
+                                results.sort((a, b) => b.priority - a.priority);
+                                this.results = results;
+                            }
+                            this._onDidComplete.fire();
+                        }
+                        resolve(result);
+                    }
+                    else {
+                        resolve(null);
+                    }
+                    this.completing.delete(name);
                 }, err => {
+                    this.completing.delete(name);
                     onFinished();
                     reject(err);
                 });
             });
-            let dt = Date.now() - start;
-            logger[dt > 1000 ? 'warn' : 'debug'](`Complete source "${source.name}" takes ${dt}ms`);
-            if (result == null || result.items.length == 0) {
-                return null;
-            }
-            if (result.startcol != null && result.startcol != col) {
-                result.engross = true;
-            }
-            result.priority = source.priority;
-            result.source = source.name;
-            result.completeInComplete = completeInComplete;
             return result;
         }
         catch (err) {
@@ -71928,12 +71990,15 @@ class Complete {
         let part = line.slice(idx - line.length);
         return part.match(/^\S?[\w\-]*/)[0];
     }
-    cancel() {
+    dispose() {
+        this._onDidComplete.dispose();
         this._canceled = true;
         for (let tokenSource of this.tokenSources) {
             tokenSource.cancel();
         }
         this.tokenSources.clear();
+        this.sources = [];
+        this.results = [];
     }
 }
 exports.default = Complete;
