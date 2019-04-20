@@ -653,8 +653,9 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: 缓冲区打开方法，默认使用
-	`coc.preferences.jumpCommand` 打开。
-
+	`coc.preferences.jumpCommand` 打开。 设置为 `v:false` 时总是使用
+	locations 列表。
+	
 						*CocLocationsAsync()*
 CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
 
@@ -703,7 +704,8 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	如有多个定义，使用 |coc-list| 展示。
 
-	{openCommand}: 可选打开命令，默认为 `coc.preferences.jumpCommand` 
+	{openCommand}: 可选打开命令，默认为 `coc.preferences.jumpCommand`，
+	设置为 `v:false` 时总是使用 locations 列表。
 
 "jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
 

@@ -681,7 +681,8 @@ CocLocations({id}, {method}, [{params}, {openCommand}])
 	call CocLocations('ccls', '$ccls/call',  {}, 'vsplit')
 <
 	{openCommand}: optional command to open buffer, default to
-	`coc.preferences.jumpCommand` , |:edit| by default
+	`coc.preferences.jumpCommand` , |:edit| by default.  When it's
+	`v:false` locations list would always used.
 
 						*CocLocationsAsync()*
 CocLocationsAsync({id}, {method}, [{params}, {openCommand}])
@@ -738,7 +739,9 @@ Available Actions ~
 
 	jump to declaration position of the current symbol.
 
-	same behavior as "jumpDefinition"
+	same behavior as "jumpDefinition".
+
+	When {openCommand} is `v:false`, location list would be always used.
 
 "jumpImplementation" [{openCommand}] 		*coc-action-jumpImplementation*
 

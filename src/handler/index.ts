@@ -266,47 +266,50 @@ export default class Handler {
   public async gotoDefinition(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDefinition(document, position)
-    if (definition && definition.length != 0) {
-      await this.handleLocations(definition, openCommand)
+    if (isEmpty(definition)) {
+      this.onEmptyLocation('Definition', definition)
     } else {
-      workspace.showMessage('Definition not found', 'warning')
+      await this.handleLocations(definition, openCommand)
     }
   }
 
   public async gotoDeclaration(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDeclaration(document, position)
-    if (!definition) return workspace.showMessage('Declaration not found', 'warning')
-    await this.handleLocations(definition, openCommand)
+    if (isEmpty(definition)) {
+      this.onEmptyLocation('Declaration', definition)
+    } else {
+      await this.handleLocations(definition, openCommand)
+    }
   }
 
   public async gotoTypeDefinition(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getTypeDefinition(document, position)
-    if (definition && definition.length != 0) {
-      await this.handleLocations(definition, openCommand)
+    if (isEmpty(definition)) {
+      this.onEmptyLocation('Type definition', definition)
     } else {
-      workspace.showMessage('Type definition not found', 'warning')
+      await this.handleLocations(definition, openCommand)
     }
   }
 
   public async gotoImplementation(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getImplementation(document, position)
-    if (definition && definition.length != 0) {
-      await this.handleLocations(definition, openCommand)
+    if (isEmpty(definition)) {
+      this.onEmptyLocation('Implementation', definition)
     } else {
-      workspace.showMessage('Implementation not found', 'warning')
+      await this.handleLocations(definition, openCommand)
     }
   }
 
   public async gotoReferences(openCommand?: string): Promise<void> {
     let { document, position } = await workspace.getCurrentState()
     let locs = await languages.getReferences(document, { includeDeclaration: false }, position)
-    if (locs && locs.length) {
-      await this.handleLocations(locs, openCommand)
+    if (isEmpty(locs)) {
+      this.onEmptyLocation('References', locs)
     } else {
-      workspace.showMessage('References not found', 'warning')
+      await this.handleLocations(locs, openCommand)
     }
   }
 
@@ -908,25 +911,21 @@ export default class Handler {
     }
   }
 
-  public async handleLocations(definition: Definition | LocationLink[], openCommand?: string): Promise<void> {
+  public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
     if (!definition) return
-    if (Array.isArray(definition)) {
-      let len = definition.length
-      if (len == 0) return
-      if (len == 1) {
-        let location = definition[0] as Location
-        if (LocationLink.is(definition[0])) {
-          let link = definition[0] as LocationLink
-          location = Location.create(link.targetUri, link.targetRange)
-        }
-        let { uri, range } = location
-        await workspace.jumpTo(uri, range.start, openCommand)
-      } else {
-        await workspace.showLocations(definition as Location[])
+    let locations: Location[] = Array.isArray(definition) ? definition as Location[] : [definition]
+    let len = locations.length
+    if (len == 0) return
+    if (len == 1 && openCommand !== false) {
+      let location = definition[0] as Location
+      if (LocationLink.is(definition[0])) {
+        let link = definition[0] as LocationLink
+        location = Location.create(link.targetUri, link.targetRange)
       }
-    } else {
-      let { uri, range } = definition as Location
+      let { uri, range } = location
       await workspace.jumpTo(uri, range.start, openCommand)
+    } else {
+      await workspace.showLocations(definition as Location[])
     }
   }
 
@@ -1031,6 +1030,14 @@ export default class Handler {
     return col == 1 ? '' : content[content.length - 1]
   }
 
+  private onEmptyLocation(name: string, location: any | null): void {
+    if (location == null) {
+      workspace.showMessage(`${name} provider not found for current document`, 'warning')
+    } else if (location.length == 0) {
+      workspace.showMessage(`${name} not found`, 'warning')
+    }
+  }
+
   public dispose(): void {
     this.colors.dispose()
     disposeAll(this.disposables)
@@ -1096,6 +1103,12 @@ function sortSymbolInformations(a: SymbolInformation, b: SymbolInformation): num
 
 function isDocumentSymbol(a: DocumentSymbol | SymbolInformation): a is DocumentSymbol {
   return a && !a.hasOwnProperty('location')
+}
+
+function isEmpty(location: any): boolean {
+  if (!location) return true
+  if (Array.isArray(location) && location.length == 0) return true
+  return false
 }
 
 function isDocumentSymbols(a: DocumentSymbol[] | SymbolInformation[]): a is DocumentSymbol[] {

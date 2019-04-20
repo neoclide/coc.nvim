@@ -299,37 +299,25 @@ class Languages {
 
   @check
   public async getDeclaration(document: TextDocument, position: Position): Promise<Location[] | Location | LocationLink[] | null> {
-    if (!this.declarationManager.hasProvider(document)) {
-      workspace.showMessage('Declaration provider not found for current document', 'error')
-      return null
-    }
+    if (!this.declarationManager.hasProvider(document)) return null
     return await this.declarationManager.provideDeclaration(document, position, this.token)
   }
 
   @check
   public async getTypeDefinition(document: TextDocument, position: Position): Promise<Location[]> {
-    if (!this.typeDefinitionManager.hasProvider(document)) {
-      workspace.showMessage('Type definition provider not found for current document', 'error')
-      return null
-    }
+    if (!this.typeDefinitionManager.hasProvider(document)) return null
     return await this.typeDefinitionManager.provideTypeDefinition(document, position, this.token)
   }
 
   @check
   public async getImplementation(document: TextDocument, position: Position): Promise<Location[]> {
-    if (!this.implementatioinManager.hasProvider(document)) {
-      workspace.showMessage('Implementation provider not found for current document', 'error')
-      return null
-    }
+    if (!this.implementatioinManager.hasProvider(document)) return null
     return await this.implementatioinManager.provideReferences(document, position, this.token)
   }
 
   @check
   public async getReferences(document: TextDocument, context: ReferenceContext, position: Position): Promise<Location[]> {
-    if (!this.referenceManager.hasProvider(document)) {
-      workspace.showMessage('References provider not found for current document', 'error')
-      return null
-    }
+    if (!this.referenceManager.hasProvider(document)) return null
     return await this.referenceManager.provideReferences(document, position, context, this.token)
   }
 
