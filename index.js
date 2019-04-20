@@ -53085,7 +53085,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d964ee08ca" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8d2c1ac210" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54352,7 +54352,7 @@ class Completion {
         }
         if (!this.isActivted)
             return;
-        if (!items || items.length === 0) {
+        if (!complete.isCompleting && (!items || items.length === 0)) {
             this.stop();
             return;
         }
@@ -54367,7 +54367,8 @@ class Completion {
     }
     async showCompletion(col, items) {
         let { nvim, document } = this;
-        if (this.config.numberSelect) {
+        let { numberSelect, disableKind, disableMenu } = this.config;
+        if (numberSelect) {
             items = items.map((item, i) => {
                 let idx = i + 1;
                 if (i < 9) {
@@ -54383,12 +54384,10 @@ class Completion {
             nvim.call('coc#_map', [], true);
         }
         let validKeys = completeItemKeys.slice();
-        if (this.config.disableKind) {
+        if (disableKind)
             validKeys = validKeys.filter(s => s != 'kind');
-        }
-        if (this.config.disableMenu) {
+        if (disableMenu)
             validKeys = validKeys.filter(s => s != 'menu');
-        }
         let vimItems = items.map(item => {
             let obj = { word: item.word, equal: 1 };
             for (let key of validKeys) {
@@ -54418,9 +54417,9 @@ class Completion {
         }
         if (!arr.length)
             return;
-        let complete = new complete_1.default(option, document, this.recentScores, config, nvim);
+        let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
-        let items = await this.complete.doComplete(arr);
+        let items = await this.complete.doComplete();
         if (complete.isCanceled)
             return;
         if (items.length == 0 && !complete.isCompleting) {
@@ -54451,7 +54450,7 @@ class Completion {
                 await this.showCompletion(option.col, items);
                 return;
             }
-            await this.resumeCompletion(content, search);
+            await this.resumeCompletion(content, search, true);
         }
     }
     async onTextChangedP() {
@@ -54531,7 +54530,7 @@ class Completion {
             await this.triggerCompletion(document, content, false);
             return;
         }
-        if (!this.isActivted)
+        if (!this.isActivted || this.complete.isEmpty)
             return;
         let search = content.slice(string_1.characterIndex(content, this.option.col));
         return await this.resumeCompletion(content, search);
@@ -71643,22 +71642,24 @@ exports.regist = regist;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const util_1 = __webpack_require__(161);
 const fuzzy_1 = __webpack_require__(299);
 const string_1 = __webpack_require__(200);
 const match_1 = __webpack_require__(327);
 const logger = __webpack_require__(172)('completion-complete');
 // first time completion
-const FIRST_TIMEOUT = 100;
+const FIRST_TIMEOUT = 500;
 class Complete {
-    constructor(option, document, recentScores, config, nvim) {
+    constructor(option, document, recentScores, config, sources, nvim) {
         this.option = option;
         this.document = document;
         this.config = config;
+        this.sources = sources;
         this.nvim = nvim;
+        // identify this complete
+        this.results = [];
         this.completing = new Set();
         this._canceled = false;
-        this.tokenSources = new Set();
+        this.tokenSources = new Map();
         this._onDidComplete = new vscode_languageserver_protocol_1.Emitter();
         this.onDidComplete = this._onDidComplete.event;
         Object.defineProperty(this, 'recentScores', {
@@ -71673,6 +71674,9 @@ class Complete {
     get isCanceled() {
         return this._canceled;
     }
+    get isEmpty() {
+        return this.results.length == 0;
+    }
     get startcol() {
         return this.option.col || 0;
     }
@@ -71680,7 +71684,7 @@ class Complete {
         return this.option.input;
     }
     get isIncomplete() {
-        return this.results && this.results.findIndex(o => o.isIncomplete == true) !== -1;
+        return this.results.findIndex(o => o.isIncomplete == true) !== -1;
     }
     async completeSource(source, completeInComplete = false) {
         let { col } = this.option;
@@ -71695,9 +71699,13 @@ class Complete {
                     return null;
             }
             let start = Date.now();
+            let oldSource = this.tokenSources.get(source.name);
+            if (oldSource)
+                oldSource.cancel();
             let tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-            this.tokenSources.add(tokenSource);
-            let result = await new Promise((resolve, reject) => {
+            this.tokenSources.set(source.name, tokenSource);
+            await new Promise((resolve, reject) => {
+                let { name } = source;
                 let timer = setTimeout(() => {
                     this.nvim.command(`echohl WarningMsg| echom 'source ${source.name} timeout after ${timeout}ms'|echohl None`, true);
                     tokenSource.cancel();
@@ -71709,7 +71717,7 @@ class Complete {
                     if (called)
                         return;
                     empty = true;
-                    resolve(null);
+                    resolve();
                 }, FIRST_TIMEOUT);
                 let onFinished = () => {
                     if (called)
@@ -71718,19 +71726,19 @@ class Complete {
                     disposable.dispose();
                     clearTimeout(ft);
                     clearTimeout(timer);
-                    this.tokenSources.delete(tokenSource);
+                    this.tokenSources.delete(name);
                 };
-                let { name } = source;
                 let disposable = tokenSource.token.onCancellationRequested(() => {
                     disposable.dispose();
                     this.completing.delete(name);
                     cancelled = true;
                     onFinished();
                     logger.debug(`Source "${name}" cancelled`);
-                    reject(new Error('Cancelled request'));
+                    resolve();
                 });
                 this.completing.add(name);
                 Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
+                    this.completing.delete(name);
                     if (cancelled)
                         return;
                     onFinished();
@@ -71744,41 +71752,33 @@ class Complete {
                         result.source = name;
                         result.completeInComplete = completeInComplete;
                         // lazy completed items
-                        if (empty) {
-                            if (result.engross) {
-                                this.results = [result];
-                            }
-                            else {
-                                let results = this.results || [];
-                                let idx = results.findIndex(o => o.source == name);
-                                if (idx != -1)
-                                    results.splice(idx, 1);
-                                results.push(result);
-                                results.sort((a, b) => b.priority - a.priority);
-                                this.results = results;
-                            }
-                            this._onDidComplete.fire();
+                        if (result.engross && empty) {
+                            this.results = [result];
                         }
-                        resolve(result);
+                        else {
+                            let { results } = this;
+                            let idx = results.findIndex(o => o.source == name);
+                            if (idx != -1)
+                                results.splice(idx, 1);
+                            this.results.push(result);
+                        }
+                        if (empty)
+                            this._onDidComplete.fire();
+                        resolve();
                     }
                     else {
-                        resolve(null);
+                        resolve();
                     }
-                    this.completing.delete(name);
                 }, err => {
                     this.completing.delete(name);
                     onFinished();
                     reject(err);
                 });
             });
-            return result;
         }
         catch (err) {
-            if (err.message && err.message.indexOf('Cancelled') != -1)
-                return null;
-            util_1.echoErr(this.nvim, `${source.name} complete error: ${err}`);
+            this.nvim.command(`echoerr 'Complete ${source.name} error: ${err.message.replace(/'/g, "''")}'`, true);
             logger.error('Complete error:', source.name, err);
-            return null;
         }
     }
     async completeInComplete(resumeInput) {
@@ -71798,14 +71798,12 @@ class Complete {
             triggerForInComplete: true
         });
         let sources = this.sources.filter(s => names.indexOf(s.name) !== -1);
-        results = await Promise.all(sources.map(s => this.completeSource(s, true)));
-        results = results.concat(remains);
-        results = results.filter(r => r != null && r.items && r.items.length > 0);
-        this.results = results;
+        await Promise.all(sources.map(s => this.completeSource(s, true)));
         return this.filterResults(resumeInput, Math.floor(Date.now() / 1000));
     }
     filterResults(input, cid = 0) {
         let { results } = this;
+        results.sort((a, b) => b.priority - a.priority);
         let now = Date.now();
         let { bufnr } = this.option;
         let { snippetIndicator, fixInsertedWord } = this.config;
@@ -71940,11 +71938,9 @@ class Complete {
         }
         return false;
     }
-    async doComplete(sources) {
+    async doComplete() {
         let opts = this.option;
-        let { line, colnr, linenr } = opts;
-        sources.sort((a, b) => b.priority - a.priority);
-        this.sources = sources;
+        let { line, colnr, linenr } = this.option;
         if (this.config.localityBonus) {
             let line = linenr - 1;
             this.localBonus = this.document.getLocalifyBonus(vscode_languageserver_protocol_1.Position.create(line, opts.col - 1), vscode_languageserver_protocol_1.Position.create(line, colnr));
@@ -71952,8 +71948,8 @@ class Complete {
         else {
             this.localBonus = new Map();
         }
-        let results = await Promise.all(sources.map(s => this.completeSource(s)));
-        results = results.filter(r => r != null && r.items && r.items.length > 0);
+        await Promise.all(this.sources.map(s => this.completeSource(s)));
+        let { results } = this;
         if (results.length == 0)
             return [];
         let engrossResult = results.find(r => r.engross === true);
@@ -71963,10 +71959,9 @@ class Complete {
                 opts.col = startcol;
                 opts.input = string_1.byteSlice(line, startcol, colnr - 1);
             }
-            results = [engrossResult];
+            this.results = [engrossResult];
         }
-        this.results = results;
-        logger.info(`Results from: ${results.map(s => s.source).join(',')}`);
+        logger.info(`Results from: ${this.results.map(s => s.source).join(',')}`);
         return this.filterResults(opts.input, Math.floor(Date.now() / 1000));
     }
     resolveCompletionItem(item) {
@@ -71993,7 +71988,7 @@ class Complete {
     dispose() {
         this._onDidComplete.dispose();
         this._canceled = true;
-        for (let tokenSource of this.tokenSources) {
+        for (let tokenSource of this.tokenSources.values()) {
             tokenSource.cancel();
         }
         this.tokenSources.clear();
