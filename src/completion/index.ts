@@ -177,9 +177,10 @@ export class Completion implements Disposable {
     }
   }
 
-  private async resumeCompletion(pre: string, search: string | null, _isChangedP = false): Promise<void> {
+  private async resumeCompletion(pre: string, search: string | null, force = false): Promise<void> {
     let { document, complete, activted } = this
-    if (!activted || !complete.results || search == this.input) return
+    if (!activted || !complete.results) return
+    if (search == this.input && !force) return
     let last = search == null ? '' : search.slice(-1)
     if (last.length == 0 ||
       /\s/.test(last) ||
@@ -255,7 +256,7 @@ export class Completion implements Disposable {
     let { line, colnr, filetype, source } = option
     let { nvim, config, document } = this
     // current input
-    this.input = option.input
+    let input = this.input = option.input
     let pre = byteSlice(line, 0, colnr - 1)
     let isTriggered = source == null && pre && !document.isWord(pre[pre.length - 1]) && sources.shouldTrigger(pre, filetype)
     let arr: ISource[] = []
@@ -269,19 +270,34 @@ export class Completion implements Disposable {
     let complete = new Complete(option, document, this.recentScores, config, nvim)
     this.start(complete)
     let items = await this.complete.doComplete(arr)
-    if (complete.isCanceled || !this.isActivted) return
-    if (items.length == 0) {
+    if (complete.isCanceled) return
+    if (items.length == 0 && !complete.isCompleting) {
       this.stop()
       return
     }
-    let content = await this.getPreviousContent(document)
-    if (complete.isCanceled) return
-    let search = this.getResumeInput(content)
-    if (search == option.input) {
-      await this.showCompletion(option.col, items)
-      return
+    complete.onDidComplete(async () => {
+      let content = await this.getPreviousContent(document)
+      let search = this.getResumeInput(content)
+      if (complete.isCanceled) return
+      let hasSelected = this.hasSelected()
+      if (hasSelected && this.completeOpt.indexOf('noselect') !== -1) return
+      if (search == input) {
+        let items = complete.filterResults(search, Math.floor(Date.now() / 1000))
+        await this.showCompletion(option.col, items)
+        return
+      }
+      await this.resumeCompletion(content, search, true)
+    })
+    if (items.length) {
+      let content = await this.getPreviousContent(document)
+      let search = this.getResumeInput(content)
+      if (complete.isCanceled) return
+      if (search == input) {
+        await this.showCompletion(option.col, items)
+        return
+      }
+      await this.resumeCompletion(content, search)
     }
-    await this.resumeCompletion(content, search)
   }
 
   private async onTextChangedP(): Promise<void> {
@@ -311,7 +327,7 @@ export class Completion implements Disposable {
     if (sources.shouldTrigger(pre, document.filetype)) {
       await this.triggerCompletion(document, pre, false)
     } else {
-      await this.resumeCompletion(pre, search, true)
+      await this.resumeCompletion(pre, search)
     }
   }
 
@@ -515,7 +531,7 @@ export class Completion implements Disposable {
     this.activted = true
     this.isResolving = false
     if (activted) {
-      this.complete.cancel()
+      this.complete.dispose()
     }
     this.complete = complete
     if (!this.config.keepCompleteopt) {
@@ -541,7 +557,7 @@ export class Completion implements Disposable {
     this.document.paused = false
     this.document.fireContentChanges()
     if (this.complete) {
-      this.complete.cancel()
+      this.complete.dispose()
       this.complete = null
     }
     nvim.pauseNotification()

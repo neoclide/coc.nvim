@@ -18,6 +18,11 @@ export interface CursorPosition {
   col: number
 }
 
+process.on('uncaughtException', err => {
+  let msg = 'Uncaught exception: ' + err.stack
+  // tslint:disable-next-line: no-console
+  console.error(msg)
+})
 export class Helper extends Emitter {
   public nvim: Neovim
   public proc: cp.ChildProcess

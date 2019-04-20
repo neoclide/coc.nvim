@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, Position } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, Position, Emitter, Event } from 'vscode-languageserver-protocol'
 import Document from '../model/document'
 import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types'
 import { echoErr, echoWarning } from '../util'
@@ -10,14 +10,20 @@ const logger = require('../util/logger')('completion-complete')
 
 export type Callback = () => void
 
+// first time completion
+const FIRST_TIMEOUT = 100
+
 export default class Complete {
   // identify this complete
   public results: CompleteResult[] | null
   public readonly recentScores: RecentScore
+  private completing: Set<string> = new Set()
   private _canceled = false
   private sources: ISource[]
   private localBonus: Map<string, number>
   private tokenSources: Set<CancellationTokenSource> = new Set()
+  private readonly _onDidComplete = new Emitter<void>()
+  public readonly onDidComplete: Event<void> = this._onDidComplete.event
   constructor(public option: CompleteOption,
     private document: Document,
     recentScores: RecentScore | null,
@@ -28,6 +34,10 @@ export default class Complete {
         return recentScores || {}
       }
     })
+  }
+
+  public get isCompleting(): boolean {
+    return this.completing.size > 0
   }
 
   public get isCanceled(): boolean {
@@ -51,7 +61,7 @@ export default class Complete {
     // new option for each source
     let opt = Object.assign({}, this.option)
     let timeout = this.config.timeout
-    timeout = Math.min(timeout, 5000)
+    timeout = Math.max(Math.min(timeout, 5000), 1000)
     try {
       if (typeof source.shouldComplete === 'function') {
         let shouldRun = await Promise.resolve(source.shouldComplete(opt))
@@ -62,42 +72,72 @@ export default class Complete {
       this.tokenSources.add(tokenSource)
       let result = await new Promise<CompleteResult>((resolve, reject) => {
         let timer = setTimeout(() => {
-          disposable.dispose()
+          this.nvim.command(`echohl WarningMsg| echom 'source ${source.name} timeout after ${timeout}ms'|echohl None`, true)
           tokenSource.cancel()
-          echoWarning(this.nvim, `source ${source.name} timeout after ${timeout}ms`)
-          resolve(null)
         }, timeout)
+        let cancelled = false
         let called = false
+        let empty = false
+        let ft = setTimeout(() => {
+          if (called) return
+          empty = true
+          resolve(null)
+        }, FIRST_TIMEOUT)
         let onFinished = () => {
           if (called) return
           called = true
           disposable.dispose()
+          clearTimeout(ft)
           clearTimeout(timer)
           this.tokenSources.delete(tokenSource)
         }
+        let { name } = source
         let disposable = tokenSource.token.onCancellationRequested(() => {
+          disposable.dispose()
+          this.completing.delete(name)
+          cancelled = true
           onFinished()
+          logger.debug(`Source "${name}" cancelled`)
           reject(new Error('Cancelled request'))
         })
+        this.completing.add(name)
         Promise.resolve(source.doComplete(opt, tokenSource.token)).then(result => {
+          if (cancelled) return
           onFinished()
-          resolve(result)
+          let dt = Date.now() - start
+          logger.debug(`Source "${name}" takes ${dt}ms`)
+          if (result && result.items && result.items.length) {
+            if (result.startcol != null && result.startcol != col) {
+              result.engross = true
+            }
+            result.priority = source.priority
+            result.source = name
+            result.completeInComplete = completeInComplete
+            // lazy completed items
+            if (empty) {
+              if (result.engross) {
+                this.results = [result]
+              } else {
+                let results = this.results || []
+                let idx = results.findIndex(o => o.source == name)
+                if (idx != -1) results.splice(idx, 1)
+                results.push(result)
+                results.sort((a, b) => b.priority - a.priority)
+                this.results = results
+              }
+              this._onDidComplete.fire()
+            }
+            resolve(result)
+          } else {
+            resolve(null)
+          }
+          this.completing.delete(name)
         }, err => {
+          this.completing.delete(name)
           onFinished()
           reject(err)
         })
       })
-      let dt = Date.now() - start
-      logger[dt > 1000 ? 'warn' : 'debug'](`Complete source "${source.name}" takes ${dt}ms`)
-      if (result == null || result.items.length == 0) {
-        return null
-      }
-      if (result.startcol != null && result.startcol != col) {
-        result.engross = true
-      }
-      result.priority = source.priority
-      result.source = source.name
-      result.completeInComplete = completeInComplete
       return result
     } catch (err) {
       if (err.message && err.message.indexOf('Cancelled') != -1) return null
@@ -299,11 +339,14 @@ export default class Complete {
     return part.match(/^\S?[\w\-]*/)[0]
   }
 
-  public cancel(): void {
+  public dispose(): void {
+    this._onDidComplete.dispose()
     this._canceled = true
     for (let tokenSource of this.tokenSources) {
       tokenSource.cancel()
     }
     this.tokenSources.clear()
+    this.sources = []
+    this.results = []
   }
 }
