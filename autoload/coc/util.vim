@@ -357,8 +357,21 @@ function! coc#util#get_complete_option()
         \}
 endfunction
 
+function! coc#util#with_callback(method, args, cb)
+  function! s:Cb() closure
+    try
+      let res = call(a:method, a:args)
+      call a:cb(v:null, res)
+    catch /.*/
+      call a:cb(v:exception)
+    endtry
+  endfunction
+  let timeout = s:is_vim ? 500 : 0
+  call timer_start(timeout, {-> s:Cb() })
+endfunction
+
 function! coc#util#prompt_confirm(title)
-  if exists('*confirm')
+  if exists('*confirm') && !s:is_vim
     let choice = confirm(a:title, "&Yes\n&No")
     return choice == 1
   else

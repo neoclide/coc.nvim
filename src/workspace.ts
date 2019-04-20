@@ -969,7 +969,7 @@ export class Workspace implements IWorkspace {
    */
   public async showPrompt(title: string): Promise<boolean> {
     this._blocking = true
-    let res = await this.nvim.call('coc#util#prompt_confirm', title)
+    let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]])
     this._blocking = false
     return res == 1
   }
