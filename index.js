@@ -44011,7 +44011,7 @@ class Workspace {
      */
     async showPrompt(title) {
         this._blocking = true;
-        let res = await this.nvim.call('coc#util#prompt_confirm', title);
+        let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]]);
         this._blocking = false;
         return res == 1;
     }
@@ -53043,7 +53043,7 @@ class Plugin extends events_1.EventEmitter {
         });
         let res = await services_1.default.sendRequest(id, method, params);
         if (!res) {
-            workspace_1.default.showMessage(`Location of "${method}" not found!`, 'warning');
+            workspace_1.default.showMessage(`Locations of "${method}" not found!`, 'warning');
             return;
         }
         let locations = [];
@@ -53085,7 +53085,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3b0aee9ce1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7461d45f52" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58562,31 +58562,23 @@ class Languages {
         return await this.definitionManager.provideDefinition(document, position, this.token);
     }
     async getDeclaration(document, position) {
-        if (!this.declarationManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Declaration provider not found for current document', 'error');
+        if (!this.declarationManager.hasProvider(document))
             return null;
-        }
         return await this.declarationManager.provideDeclaration(document, position, this.token);
     }
     async getTypeDefinition(document, position) {
-        if (!this.typeDefinitionManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Type definition provider not found for current document', 'error');
+        if (!this.typeDefinitionManager.hasProvider(document))
             return null;
-        }
         return await this.typeDefinitionManager.provideTypeDefinition(document, position, this.token);
     }
     async getImplementation(document, position) {
-        if (!this.implementatioinManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Implementation provider not found for current document', 'error');
+        if (!this.implementatioinManager.hasProvider(document))
             return null;
-        }
         return await this.implementatioinManager.provideReferences(document, position, this.token);
     }
     async getReferences(document, context, position) {
-        if (!this.referenceManager.hasProvider(document)) {
-            workspace_1.default.showMessage('References provider not found for current document', 'error');
+        if (!this.referenceManager.hasProvider(document))
             return null;
-        }
         return await this.referenceManager.provideReferences(document, position, context, this.token);
     }
     async getDocumentSymbol(document) {
@@ -72679,48 +72671,51 @@ class Handler {
     async gotoDefinition(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getDefinition(document, position);
-        if (definition && definition.length != 0) {
-            await this.handleLocations(definition, openCommand);
+        if (isEmpty(definition)) {
+            this.onEmptyLocation('Definition', definition);
         }
         else {
-            workspace_1.default.showMessage('Definition not found', 'warning');
+            await this.handleLocations(definition, openCommand);
         }
     }
     async gotoDeclaration(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getDeclaration(document, position);
-        if (!definition)
-            return workspace_1.default.showMessage('Declaration not found', 'warning');
-        await this.handleLocations(definition, openCommand);
+        if (isEmpty(definition)) {
+            this.onEmptyLocation('Declaration', definition);
+        }
+        else {
+            await this.handleLocations(definition, openCommand);
+        }
     }
     async gotoTypeDefinition(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getTypeDefinition(document, position);
-        if (definition && definition.length != 0) {
-            await this.handleLocations(definition, openCommand);
+        if (isEmpty(definition)) {
+            this.onEmptyLocation('Type definition', definition);
         }
         else {
-            workspace_1.default.showMessage('Type definition not found', 'warning');
+            await this.handleLocations(definition, openCommand);
         }
     }
     async gotoImplementation(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getImplementation(document, position);
-        if (definition && definition.length != 0) {
-            await this.handleLocations(definition, openCommand);
+        if (isEmpty(definition)) {
+            this.onEmptyLocation('Implementation', definition);
         }
         else {
-            workspace_1.default.showMessage('Implementation not found', 'warning');
+            await this.handleLocations(definition, openCommand);
         }
     }
     async gotoReferences(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let locs = await languages_1.default.getReferences(document, { includeDeclaration: false }, position);
-        if (locs && locs.length) {
-            await this.handleLocations(locs, openCommand);
+        if (isEmpty(locs)) {
+            this.onEmptyLocation('References', locs);
         }
         else {
-            workspace_1.default.showMessage('References not found', 'warning');
+            await this.handleLocations(locs, openCommand);
         }
     }
     async getDocumentSymbols() {
@@ -73356,26 +73351,21 @@ class Handler {
     async handleLocations(definition, openCommand) {
         if (!definition)
             return;
-        if (Array.isArray(definition)) {
-            let len = definition.length;
-            if (len == 0)
-                return;
-            if (len == 1) {
-                let location = definition[0];
-                if (vscode_languageserver_protocol_1.LocationLink.is(definition[0])) {
-                    let link = definition[0];
-                    location = vscode_languageserver_protocol_1.Location.create(link.targetUri, link.targetRange);
-                }
-                let { uri, range } = location;
-                await workspace_1.default.jumpTo(uri, range.start, openCommand);
+        let locations = Array.isArray(definition) ? definition : [definition];
+        let len = locations.length;
+        if (len == 0)
+            return;
+        if (len == 1 && openCommand !== false) {
+            let location = definition[0];
+            if (vscode_languageserver_protocol_1.LocationLink.is(definition[0])) {
+                let link = definition[0];
+                location = vscode_languageserver_protocol_1.Location.create(link.targetUri, link.targetRange);
             }
-            else {
-                await workspace_1.default.showLocations(definition);
-            }
+            let { uri, range } = location;
+            await workspace_1.default.jumpTo(uri, range.start, openCommand);
         }
         else {
-            let { uri, range } = definition;
-            await workspace_1.default.jumpTo(uri, range.start, openCommand);
+            await workspace_1.default.showLocations(definition);
         }
     }
     async getSelectionRanges() {
@@ -73483,6 +73473,14 @@ class Handler {
         let content = string_1.byteSlice(line, 0, col - 1);
         return col == 1 ? '' : content[content.length - 1];
     }
+    onEmptyLocation(name, location) {
+        if (location == null) {
+            workspace_1.default.showMessage(`${name} provider not found for current document`, 'warning');
+        }
+        else if (location.length == 0) {
+            workspace_1.default.showMessage(`${name} not found`, 'warning');
+        }
+    }
     dispose() {
         this.colors.dispose();
         util_1.disposeAll(this.disposables);
@@ -73544,6 +73542,13 @@ function sortSymbolInformations(a, b) {
 }
 function isDocumentSymbol(a) {
     return a && !a.hasOwnProperty('location');
+}
+function isEmpty(location) {
+    if (!location)
+        return true;
+    if (Array.isArray(location) && location.length == 0)
+        return true;
+    return false;
 }
 function isDocumentSymbols(a) {
     return isDocumentSymbol(a[0]);
