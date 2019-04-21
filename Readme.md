@@ -134,6 +134,8 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Bash](https://github.com/neoclide/coc.nvim/wiki/Language-servers#bash)
     - [Lua](https://github.com/neoclide/coc.nvim/wiki/Language-servers#lua)
     - [OCaml and ReasonML](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ocaml-and-reasonml)
+    - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
+
 
 - [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
