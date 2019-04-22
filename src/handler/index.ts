@@ -168,6 +168,12 @@ export default class Handler {
     events.on('BufUnload', async bufnr => {
       this.clearHighlight(bufnr)
     }, null, this.disposables)
+    events.on('BufWinEnter', async bufnr => {
+      this.clearHighlight(bufnr)
+    }, null, this.disposables)
+    events.on('BufWinLeave', async bufnr => {
+      this.clearHighlight(bufnr)
+    }, null, this.disposables)
     events.on('InsertEnter', async bufnr => {
       this.clearHighlight(bufnr)
     }, null, this.disposables)
