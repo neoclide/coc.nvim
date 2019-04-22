@@ -1718,7 +1718,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(337);
+        let json = __webpack_require__(338);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -50020,7 +50020,7 @@ class TerminalModel {
         let winnr = await nvim.call('bufwinnr', bufnr);
         if (winnr == -1)
             return;
-        nvim.command(`${winnr}close!`, true);
+        await nvim.command(`${winnr}close!`);
     }
     dispose() {
         let { bufnr, chanId, nvim } = this;
@@ -52889,7 +52889,7 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(283));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(226));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(230));
 const types_1 = __webpack_require__(181);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(336));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(337));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const debounce = __webpack_require__(163);
 const logger = __webpack_require__(172)('plugin');
@@ -53085,7 +53085,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8d2c1ac210" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "83edaec26e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53242,7 +53242,8 @@ class Plugin extends events_1.EventEmitter {
                     await handler.rename();
                     return;
                 case 'workspaceSymbols':
-                    return await handler.getWorkspaceSymbols();
+                    this.nvim.command('CocList -I symbols', true);
+                    return;
                 case 'formatSelected':
                     return await handler.documentRangeFormatting(args[1]);
                 case 'format':
@@ -72509,7 +72510,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const binary_search_1 = tslib_1.__importDefault(__webpack_require__(332));
 const vscode_languageserver_protocol_1 = __webpack_require__(138);
-const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(164));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(225));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(250));
 const events_1 = tslib_1.__importDefault(__webpack_require__(137));
@@ -72520,13 +72520,14 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(283));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(226));
 const util_1 = __webpack_require__(161);
 const convert_1 = __webpack_require__(312);
+const object_1 = __webpack_require__(182);
 const position_1 = __webpack_require__(228);
 const string_1 = __webpack_require__(200);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(333));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(334));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(336));
 const debounce = __webpack_require__(163);
-const object_1 = __webpack_require__(182);
 const logger = __webpack_require__(172)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -72538,8 +72539,6 @@ const pairs = new Map([
 class Handler {
     constructor(nvim) {
         this.nvim = nvim;
-        /*bufnr and srcId list*/
-        this.highlightsMap = new Map();
         this.documentLines = [];
         this.disposables = [];
         this.getPreferences();
@@ -72630,12 +72629,6 @@ class Handler {
                 return;
             await this.onCharacterType('\n', bufnr, true);
         }, null, this.disposables);
-        events_1.default.on('BufUnload', async (bufnr) => {
-            this.clearHighlight(bufnr);
-        }, null, this.disposables);
-        events_1.default.on('InsertEnter', async (bufnr) => {
-            this.clearHighlight(bufnr);
-        }, null, this.disposables);
         events_1.default.on('CursorMoved', debounce((bufnr, cursor) => {
             if (!this.preferences.previewAutoClose || !this.hoverPosition)
                 return;
@@ -72669,6 +72662,7 @@ class Handler {
         this.disposables.push(workspace_1.default.registerTextDocumentContentProvider('coc', provider));
         this.codeLensManager = new codelens_1.default(nvim);
         this.colors = new colors_1.default(nvim);
+        this.documentHighlighter = new documentHighlight_1.default(nvim, this.colors);
     }
     async getCurrentFunctionSymbol() {
         let { position } = await workspace_1.default.getCurrentState();
@@ -72825,43 +72819,6 @@ class Handler {
             }
         }
         return res;
-    }
-    async getWorkspaceSymbols() {
-        let document = await workspace_1.default.document;
-        if (!document)
-            return;
-        let cword = await this.nvim.call('expand', '<cword>');
-        let query = await this.nvim.call('input', ['Query:', cword]);
-        let symbols = await languages_1.default.getWorkspaceSymbols(document.textDocument, query);
-        if (!symbols) {
-            workspace_1.default.showMessage('service does not support workspace symbols', 'error');
-            return [];
-        }
-        this.currentSymbols = symbols;
-        let res = [];
-        for (let s of symbols) {
-            if (!this.validWorkspaceSymbol(s))
-                continue;
-            let { name, kind, location } = s;
-            let { start } = location.range;
-            res.push({
-                filepath: vscode_uri_1.default.parse(location.uri).fsPath,
-                col: start.character + 1,
-                lnum: start.line + 1,
-                text: name,
-                kind: convert_1.getSymbolKind(kind),
-                selectionRange: location.range
-            });
-        }
-        return res;
-    }
-    async resolveWorkspaceSymbol(symbolIndex) {
-        if (!this.currentSymbols)
-            return null;
-        let symbol = this.currentSymbols[symbolIndex];
-        if (!symbol)
-            return null;
-        return await languages_1.default.resolveWorkspaceSymbol(symbol);
     }
     async rename() {
         let { nvim } = this;
@@ -73091,55 +73048,9 @@ class Handler {
     async pickPresentation() {
         await this.colors.pickPresentation();
     }
-    async highlightDocument(document) {
-        let position = await workspace_1.default.getCursorPosition();
-        let line = document.getline(position.line);
-        let ch = line[position.character];
-        if (!ch || !document.isWord(ch)) {
-            this.clearHighlight(document.bufnr);
-            return;
-        }
-        let highlightNamespace = workspace_1.default.createNameSpace('coc-highlight');
-        if (this.colors.hasColorAtPostion(document.bufnr, position))
-            return;
-        let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
-        let newPosition = await workspace_1.default.getCursorPosition();
-        if (position.line != newPosition.line || position.character != newPosition.character) {
-            return;
-        }
-        let ids = this.highlightsMap.get(document.bufnr);
-        if (workspace_1.default.isVim && workspace_1.default.bufnr != document.bufnr)
-            return;
-        this.nvim.pauseNotification();
-        if (ids && ids.length) {
-            this.clearHighlight(document.bufnr);
-        }
-        if (highlights && highlights.length) {
-            let groups = {};
-            for (let hl of highlights) {
-                let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
-                    ? 'CocHighlightText'
-                    : hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite';
-                groups[hlGroup] = groups[hlGroup] || [];
-                groups[hlGroup].push(hl.range);
-            }
-            let ids = [];
-            for (let hlGroup of Object.keys(groups)) {
-                let ranges = groups[hlGroup];
-                let arr = document.highlightRanges(ranges, hlGroup, highlightNamespace);
-                ids.push(...arr);
-                this.highlightsMap.set(document.bufnr, ids);
-            }
-        }
-        this.nvim.resumeNotification().catch(_e => {
-            // noop
-        });
-    }
     async highlight() {
-        let document = workspace_1.default.getDocument(workspace_1.default.bufnr);
-        if (!document)
-            return;
-        await this.highlightDocument(document);
+        let bufnr = await this.nvim.call('bufnr', '%');
+        await this.documentHighlighter.highlight(bufnr);
     }
     async links() {
         let doc = await workspace_1.default.document;
@@ -73175,21 +73086,6 @@ class Handler {
                 }
                 return false;
             }
-        }
-    }
-    validWorkspaceSymbol(symbol) {
-        switch (symbol.kind) {
-            case vscode_languageserver_protocol_1.SymbolKind.Namespace:
-            case vscode_languageserver_protocol_1.SymbolKind.Class:
-            case vscode_languageserver_protocol_1.SymbolKind.Module:
-            case vscode_languageserver_protocol_1.SymbolKind.Method:
-            case vscode_languageserver_protocol_1.SymbolKind.Package:
-            case vscode_languageserver_protocol_1.SymbolKind.Interface:
-            case vscode_languageserver_protocol_1.SymbolKind.Function:
-            case vscode_languageserver_protocol_1.SymbolKind.Constant:
-                return true;
-            default:
-                return false;
         }
     }
     async getCommands() {
@@ -73492,15 +73388,6 @@ class Handler {
             let arr = await this.nvim.call('getcurpos');
             this.hoverPosition = [workspace_1.default.bufnr, arr[1], arr[2]];
             await this.nvim.command(`pedit coc://document`);
-        }
-    }
-    clearHighlight(bufnr) {
-        let doc = workspace_1.default.getDocument(bufnr);
-        let ids = this.highlightsMap.get(bufnr);
-        if (ids && ids.length) {
-            this.highlightsMap.delete(bufnr);
-            if (doc)
-                doc.clearMatchIds(ids);
         }
     }
     getPreferences() {
@@ -73957,10 +73844,6 @@ class Colors {
                 logger.error('highlight error:', e.stack);
             });
         }, 100);
-        this.init();
-    }
-    init() {
-        let { nvim } = this;
         let config = workspace_1.default.getConfiguration('coc.preferences');
         this._enabled = config.get('colorSupport', true);
         this.srcId = workspace_1.default.createNameSpace('coc-colors');
@@ -74007,13 +73890,13 @@ class Colors {
                 let { range, text } = contentChanges[0];
                 this.highlightColors(doc); // tslint:disable-line
             }
-        });
+        }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(async (e) => {
             if (e.affectsConfiguration('coc.preferences.colorSupport')) {
                 let config = workspace_1.default.getConfiguration('coc.preferences');
                 this._enabled = config.get('colorSupport', true);
             }
-        });
+        }, null, this.disposables);
     }
     async _highlightCurrent() {
         if (!this.enabled)
@@ -74306,6 +74189,130 @@ function isDark(color) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const events_1 = tslib_1.__importDefault(__webpack_require__(137));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(173));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(249));
+const array = tslib_1.__importStar(__webpack_require__(222));
+const vscode_languageserver_protocol_1 = __webpack_require__(138);
+const string_1 = __webpack_require__(200);
+const util_1 = __webpack_require__(161);
+const logger = __webpack_require__(172)('documentHighlight');
+const INITIAL_ID = 9999;
+class DocumentHighlighter {
+    constructor(nvim, colors) {
+        this.nvim = nvim;
+        this.colors = colors;
+        this.colorId = INITIAL_ID;
+        this.disposables = [];
+        this.matchIds = new Set();
+        this.disposables.push(workspace_1.default.registerAutocmd({
+            event: 'WinLeave',
+            request: true,
+            callback: () => {
+                this.clearHighlight();
+            }
+        }));
+        this.disposables.push(workspace_1.default.registerAutocmd({
+            event: 'BufWinLeave',
+            request: true,
+            callback: () => {
+                this.clearHighlight();
+            }
+        }));
+        events_1.default.on(['CursorMoved', 'CursorMovedI'], () => {
+            this.cursorMoveTs = Date.now();
+        }, null, this.disposables);
+        events_1.default.on('InsertEnter', () => {
+            this.clearHighlight();
+        }, null, this.disposables);
+    }
+    // clear matchIds of current window
+    clearHighlight() {
+        let { matchIds } = this;
+        let { nvim } = workspace_1.default;
+        if (matchIds.size == 0)
+            return;
+        nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true);
+        this.matchIds.clear();
+    }
+    async highlight(bufnr) {
+        let { nvim } = this;
+        let document = workspace_1.default.getDocument(bufnr);
+        let highlights = await this.getHighlights(document);
+        if (!highlights || highlights.length == 0) {
+            this.clearHighlight();
+            return;
+        }
+        nvim.pauseNotification();
+        this.clearHighlight();
+        this.colorId = INITIAL_ID;
+        let groups = {};
+        for (let hl of highlights) {
+            let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
+                ? 'CocHighlightText'
+                : hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite';
+            groups[hlGroup] = groups[hlGroup] || [];
+            groups[hlGroup].push(hl.range);
+        }
+        for (let hlGroup of Object.keys(groups)) {
+            this.highlightRanges(document, hlGroup, groups[hlGroup]);
+        }
+        await this.nvim.resumeNotification(false, true);
+    }
+    async getHighlights(document) {
+        if (!document)
+            return null;
+        let ts = Date.now();
+        let { bufnr } = document;
+        let position = await workspace_1.default.getCursorPosition();
+        let line = document.getline(position.line);
+        let ch = line[position.character];
+        if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) {
+            return null;
+        }
+        let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
+        if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+            return null;
+        }
+        return highlights;
+    }
+    highlightRanges(document, hlGroup, ranges) {
+        let { matchIds } = this;
+        let grouped = array.group(ranges, 8);
+        for (let group of grouped) {
+            let arr = [];
+            for (let range of group) {
+                let { start, end } = range;
+                let line = document.getline(start.line);
+                if (end.line - start.line == 1 && end.character == 0) {
+                    arr.push([start.line + 1]);
+                }
+                else {
+                    arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
+                }
+            }
+            let id = this.colorId;
+            this.colorId = id + 1;
+            let method = workspace_1.default.isVim ? 'callTimer' : 'call';
+            this.nvim[method]('matchaddpos', [hlGroup, arr, 9, id], true);
+            matchIds.add(id);
+        }
+    }
+    dispose() {
+        util_1.disposeAll(this.disposables);
+    }
+}
+exports.default = DocumentHighlighter;
+//# sourceMappingURL=documentHighlight.js.map
+
+/***/ }),
+/* 337 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(72));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(65));
 const glob_1 = tslib_1.__importDefault(__webpack_require__(232));
@@ -74346,7 +74353,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 337 */
+/* 338 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.65","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarn clean && yarn build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"pkg":{"targets":["node8-linux-x64","node8-macos-x64","node8-win-x64"],"scripts":["lib/extensions/**/*.js"],"assets":"lib/**/*.json"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.1"},"dependencies":{"@chemzqm/neovim":"4.4.1","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.1","vscode-languageserver-types":"^3.14.0","vscode-uri":"^1.0.6","which":"^1.3.1"}};
