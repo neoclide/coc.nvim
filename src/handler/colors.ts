@@ -24,11 +24,6 @@ export default class Colors {
         logger.error('highlight error:', e.stack)
       })
     }, 100)
-    this.init()
-  }
-
-  private init(): void {
-    let { nvim } = this
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.srcId = workspace.createNameSpace('coc-colors')
@@ -78,14 +73,14 @@ export default class Colors {
         let { range, text } = contentChanges[0]
         this.highlightColors(doc) // tslint:disable-line
       }
-    })
+    }, null, this.disposables)
 
     workspace.onDidChangeConfiguration(async e => {
       if (e.affectsConfiguration('coc.preferences.colorSupport')) {
         let config = workspace.getConfiguration('coc.preferences')
         this._enabled = config.get<boolean>('colorSupport', true)
       }
-    })
+    }, null, this.disposables)
   }
 
   private async _highlightCurrent(): Promise<void> {

@@ -363,7 +363,8 @@ export default class Plugin extends EventEmitter {
           await handler.rename()
           return
         case 'workspaceSymbols':
-          return await handler.getWorkspaceSymbols()
+          this.nvim.command('CocList -I symbols', true)
+          return
         case 'formatSelected':
           return await handler.documentRangeFormatting(args[1])
         case 'format':

@@ -1,13 +1,11 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import binarySearch from 'binary-search'
-import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentHighlight, DocumentHighlightKind, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, SymbolKind, TextEdit, SelectionRange } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
-import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
@@ -15,13 +13,14 @@ import snippetManager from '../snippets/manager'
 import { Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
+import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
 import { byteSlice, indexOf, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
+import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
-import { equals } from '../util/object'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -68,14 +67,13 @@ interface Preferences {
 
 export default class Handler {
   private preferences: Preferences
+  private documentHighlighter: DocumentHighlighter
   /*bufnr and srcId list*/
-  private highlightsMap: Map<number, number[]> = new Map()
   private hoverPosition: [number, number, number]
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
   private documentLines: string[] = []
-  private currentSymbols: SymbolInformation[]
   private codeLensManager: CodeLensManager
   private signatureTokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
@@ -87,7 +85,6 @@ export default class Handler {
         this.getPreferences()
       }
     })
-
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     let { signaturePreferAbove, signatureMaxHeight } = this.preferences
     this.signatureFactory = new FloatFactory(nvim, workspace.env, signaturePreferAbove, signatureMaxHeight)
@@ -165,12 +162,6 @@ export default class Handler {
       if (workspace.insertMode) return
       await this.onCharacterType('\n', bufnr, true)
     }, null, this.disposables)
-    events.on('BufUnload', async bufnr => {
-      this.clearHighlight(bufnr)
-    }, null, this.disposables)
-    events.on('InsertEnter', async bufnr => {
-      this.clearHighlight(bufnr)
-    }, null, this.disposables)
     events.on('CursorMoved', debounce((bufnr: number, cursor: [number, number]) => {
       if (!this.preferences.previewAutoClose || !this.hoverPosition) return
       if (this.preferences.hoverTarget == 'float') return
@@ -181,6 +172,7 @@ export default class Handler {
         nvim.command('pclose', true)
       }
     }, 100), null, this.disposables)
+
     if (this.preferences.currentFunctionSymbolAutoUpdate) {
       events.on('CursorHold', async () => {
         await this.getCurrentFunctionSymbol()
@@ -202,6 +194,7 @@ export default class Handler {
     this.disposables.push(workspace.registerTextDocumentContentProvider('coc', provider))
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
+    this.documentHighlighter = new DocumentHighlighter(nvim, this.colors)
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {
@@ -354,41 +347,6 @@ export default class Handler {
       }
     }
     return res
-  }
-
-  public async getWorkspaceSymbols(): Promise<SymbolInfo[]> {
-    let document = await workspace.document
-    if (!document) return
-    let cword = await this.nvim.call('expand', '<cword>')
-    let query = await this.nvim.call('input', ['Query:', cword])
-    let symbols = await languages.getWorkspaceSymbols(document.textDocument, query)
-    if (!symbols) {
-      workspace.showMessage('service does not support workspace symbols', 'error')
-      return []
-    }
-    this.currentSymbols = symbols
-    let res: SymbolInfo[] = []
-    for (let s of symbols) {
-      if (!this.validWorkspaceSymbol(s)) continue
-      let { name, kind, location } = s
-      let { start } = location.range
-      res.push({
-        filepath: Uri.parse(location.uri).fsPath,
-        col: start.character + 1,
-        lnum: start.line + 1,
-        text: name,
-        kind: getSymbolKind(kind),
-        selectionRange: location.range
-      })
-    }
-    return res
-  }
-
-  public async resolveWorkspaceSymbol(symbolIndex: number): Promise<SymbolInformation> {
-    if (!this.currentSymbols) return null
-    let symbol = this.currentSymbols[symbolIndex]
-    if (!symbol) return null
-    return await languages.resolveWorkspaceSymbol(symbol)
   }
 
   public async rename(): Promise<void> {
@@ -607,53 +565,9 @@ export default class Handler {
     await this.colors.pickPresentation()
   }
 
-  private async highlightDocument(document: Document): Promise<void> {
-    let position = await workspace.getCursorPosition()
-    let line = document.getline(position.line)
-    let ch = line[position.character]
-    if (!ch || !document.isWord(ch)) {
-      this.clearHighlight(document.bufnr)
-      return
-    }
-    let highlightNamespace = workspace.createNameSpace('coc-highlight')
-    if (this.colors.hasColorAtPostion(document.bufnr, position)) return
-    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
-    let newPosition = await workspace.getCursorPosition()
-    if (position.line != newPosition.line || position.character != newPosition.character) {
-      return
-    }
-    let ids = this.highlightsMap.get(document.bufnr)
-    if (workspace.isVim && workspace.bufnr != document.bufnr) return
-    this.nvim.pauseNotification()
-    if (ids && ids.length) {
-      this.clearHighlight(document.bufnr)
-    }
-    if (highlights && highlights.length) {
-      let groups: { [index: string]: Range[] } = {}
-      for (let hl of highlights) {
-        let hlGroup = hl.kind == DocumentHighlightKind.Text
-          ? 'CocHighlightText'
-          : hl.kind == DocumentHighlightKind.Read ? 'CocHighlightRead' : 'CocHighlightWrite'
-        groups[hlGroup] = groups[hlGroup] || []
-        groups[hlGroup].push(hl.range)
-      }
-      let ids = []
-      for (let hlGroup of Object.keys(groups)) {
-        let ranges = groups[hlGroup]
-        let arr = document.highlightRanges(ranges, hlGroup, highlightNamespace)
-        ids.push(...arr)
-        this.highlightsMap.set(document.bufnr, ids)
-      }
-    }
-    this.nvim.resumeNotification().catch(_e => {
-      // noop
-    })
-  }
-
   public async highlight(): Promise<void> {
-    let document = workspace.getDocument(workspace.bufnr)
-    if (!document) return
-    await this.highlightDocument(document)
+    let bufnr = await this.nvim.call('bufnr', '%')
+    await this.documentHighlighter.highlight(bufnr)
   }
 
   public async links(): Promise<DocumentLink[]> {
@@ -689,22 +603,6 @@ export default class Handler {
         }
         return false
       }
-    }
-  }
-
-  private validWorkspaceSymbol(symbol: SymbolInformation): boolean {
-    switch (symbol.kind) {
-      case SymbolKind.Namespace:
-      case SymbolKind.Class:
-      case SymbolKind.Module:
-      case SymbolKind.Method:
-      case SymbolKind.Package:
-      case SymbolKind.Interface:
-      case SymbolKind.Function:
-      case SymbolKind.Constant:
-        return true
-      default:
-        return false
     }
   }
 
@@ -986,15 +884,6 @@ export default class Handler {
       let arr = await this.nvim.call('getcurpos') as number[]
       this.hoverPosition = [workspace.bufnr, arr[1], arr[2]]
       await this.nvim.command(`pedit coc://document`)
-    }
-  }
-
-  private clearHighlight(bufnr: number): void {
-    let doc = workspace.getDocument(bufnr)
-    let ids = this.highlightsMap.get(bufnr)
-    if (ids && ids.length) {
-      this.highlightsMap.delete(bufnr)
-      if (doc) doc.clearMatchIds(ids)
     }
   }
 
