@@ -1,11 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
-import fs from 'fs'
+import events from '../../events'
 import extensions, { API } from '../../extensions'
+import { Extension } from '../../types'
 import helper from '../helper'
 import uuidv1 = require('uuid/v1')
-import { Extension } from '../../types'
-import events from '../../events'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -166,7 +165,7 @@ describe('extensions active events', () => {
     let ext = createExtension('onLanguage:javascript')
     expect(ext.isActive).toBe(false)
     await nvim.command('edit /tmp/a.js')
-    await helper.wait(30)
+    await helper.wait(300)
     expect(ext.isActive).toBe(true)
     ext = createExtension('onLanguage:javascript')
     expect(ext.isActive).toBe(true)

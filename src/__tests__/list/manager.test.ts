@@ -144,6 +144,7 @@ describe('list options', () => {
   it('should respect top option', async () => {
     await manager.start(['--top', 'location'])
     expect(manager.isActivated).toBe(true)
+    await helper.wait(300)
     let nr = await nvim.call('winnr')
     expect(nr).toBe(1)
   })

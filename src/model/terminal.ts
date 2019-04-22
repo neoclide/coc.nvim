@@ -82,7 +82,7 @@ export default class TerminalModel implements Terminal {
     if (!bufnr) return
     let winnr = await nvim.call('bufwinnr', bufnr)
     if (winnr == -1) return
-    nvim.command(`${winnr}close!`, true)
+    await nvim.command(`${winnr}close!`)
   }
 
   public dispose(): void {
