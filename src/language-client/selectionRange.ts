@@ -4,7 +4,8 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, SelectionRange, SelectionRangeProviderOptions, ServerCapabilities, TextDocumentIdentifier, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions, RequestType } from 'vscode-languageserver-protocol'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TextDocumentIdentifier, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions, RequestType } from 'vscode-languageserver-protocol'
+import { SelectionRange, SelectionRangeServerCapabilities, SelectionRangeClientCapabilities } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import languages from '../languages'
 import { ProviderResult } from '../provider'
 import * as Is from '../util/is'
@@ -55,17 +56,17 @@ export class SelectionRangeFeature extends TextDocumentFeature<TextDocumentRegis
     super(client, SelectionRangeRequest.type)
   }
 
-  public fillClientCapabilities(capabilites: ClientCapabilities): void {
+  public fillClientCapabilities(capabilites: ClientCapabilities & SelectionRangeClientCapabilities): void {
     let capability = ensure(ensure(capabilites, 'textDocument')!, 'selectionRange')!
     capability.dynamicRegistration = true
   }
 
-  public initialize(capabilities: ServerCapabilities, documentSelector: DocumentSelector): void {
+  public initialize(capabilities: ServerCapabilities & SelectionRangeServerCapabilities, documentSelector: DocumentSelector): void {
     if (!capabilities.selectionRangeProvider) {
       return
     }
 
-    const implCapabilities = capabilities.selectionRangeProvider as TextDocumentRegistrationOptions & StaticRegistrationOptions & SelectionRangeProviderOptions
+    const implCapabilities = capabilities.selectionRangeProvider as TextDocumentRegistrationOptions & StaticRegistrationOptions
     const id = Is.string(implCapabilities.id) && implCapabilities.id.length > 0 ? implCapabilities.id : UUID.generateUuid()
     const selector = implCapabilities.documentSelector || documentSelector
     if (selector) {
