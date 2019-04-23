@@ -509,7 +509,7 @@ export class DiagnosticManager implements Disposable {
               lnum: range.start.line + 1,
               col: range.start.character + 1,
               end_lnum: range.end.line + 1,
-              enc_col: range.end.character + 1,
+              end_col: range.end.character + 1,
               type: getSeverityType(o.severity)
             }
           })
