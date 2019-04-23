@@ -709,7 +709,7 @@ function! coc#util#install_extension(args) abort
     endfunction
     call coc#util#open_terminal({
           \ 'cwd': dir,
-          \ 'cmd': yarncmd.' add '.names.' --ignore-engines',
+          \ 'cmd': yarncmd.' add '.names.' --ignore-engines --ignore-scripts',
           \ 'keepfocus': 1,
           \ 'Callback': funcref('s:OnExtensionInstalled'),
           \})
@@ -721,7 +721,7 @@ function! coc#util#install_extension(args) abort
     else
       let cwd = getcwd()
       exe 'lcd '.dir
-      exe '!'.yarncmd.' add '.names . ' --ignore-engines'
+      exe '!'.yarncmd.' add '.names . ' --ignore-engines --ignore-scripts'
       exe 'lcd '.cwd
     endif
   endif
