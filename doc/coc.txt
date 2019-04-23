@@ -946,9 +946,12 @@ COMMANDS 					*coc-commands*
 
 		Edit the user config file `coc-setting.json`
 
-:CocInstall {name} ... 				*:CocInstall*
+:CocInstall [{option}] {name} ... 		*:CocInstall*
 
 		Install one or more coc extensions.
+
+		{option}: could be `-sync` for use blocked process to download
+		instead of terminal.
 
 		Check out https://www.npmjs.com/search?q=keywords%3Acoc.nvim 
 		for available extensions.

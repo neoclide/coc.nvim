@@ -912,10 +912,13 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		打开用户的 `coc-setting.json` 文件。
 
-:CocInstall {name} ... 				*:CocInstall*
+:CocInstall [{option}] {name} ... 		*:CocInstall*
 
 		安装一个或多个 coc 插件。
 
+		{option}: 可以使用 `-sync` 用同步方式而不是 terminal
+		安装插件。
+		
 		访问 https://www.npmjs.com/search?q=keywords%3Acoc.nvim
 		获取所有 coc 插件。
 
