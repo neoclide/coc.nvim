@@ -74,22 +74,22 @@ Below are the reasons that led coc.nvim to build its own engine:
 
 - [Installation](https://github.com/neoclide/coc.nvim/wiki/Install-coc.nvim)
 
-  Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install):
+  Install [nodejs](https://nodejs.org/en/download/):
 
   ```sh
   curl -sL install-node.now.sh/lts | sh
+  " Optional install yarn if you want install extension by CocInstall command
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
   For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
   ```vim
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
-  ```
-
-  Or to build from source code:
-
-  ```vim
+  " Install nightly build, replace ./install.sh with install.cmd on windows
+  Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
+  " Or install lastest release tag
+  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': './install.sh'}
+  " Or build from source code
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
