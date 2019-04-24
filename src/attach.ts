@@ -57,6 +57,7 @@ export default (opts: Attach, requestApi = true): Plugin => {
       if (typeof plugin[m] !== 'function') {
         return resp.send(`Method ${m} not found`, true)
       }
+      await plugin.ready
       let res = await Promise.resolve(plugin[m].apply(plugin, args))
       resp.send(res)
     } catch (e) {

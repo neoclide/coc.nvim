@@ -68,18 +68,18 @@ function! coc#rpc#restart()
 endfunction
 
 function! coc#rpc#request(method, args) abort
-  if empty(s:client) | return | endif
+  if !coc#rpc#ready() | return '' | endif
   return s:client['request'](a:method, a:args)
 endfunction
 
 function! coc#rpc#notify(method, args) abort
-  if empty(s:client) | return '' | endif
+  if !coc#rpc#ready() | return '' | endif
   call s:client['notify'](a:method, a:args)
   return ''
 endfunction
 
 function! coc#rpc#request_async(method, args, cb) abort
-  if empty(s:client) | return | endif
+  if !coc#rpc#ready() | return cb('coc.nvim service not started.') | endif
   call s:client['request_async'](a:method, a:args, a:cb)
 endfunction
 

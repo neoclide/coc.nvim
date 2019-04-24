@@ -17,15 +17,11 @@ if get(g:, 'coc_start_at_startup', 1)
       echohl Error | echon 'coc.nvim requires pyx command on vim, checkout ":h pythonx"' | echohl None
       finish
     endtry
-    let g:names = nvim#api#func_names()
   endif
   call coc#rpc#start_server()
 endif
 
 function! CocAction(...) abort
-  if !coc#rpc#ready()
-    throw '[coc.nvim] service not started.'
-  endif
   return coc#rpc#request('CocAction', a:000)
 endfunction
 
@@ -34,9 +30,6 @@ function! CocActionAsync(...) abort
 endfunction
 
 function! CocRequest(...) abort
-  if !coc#rpc#ready()
-    throw '[coc.nvim] service not started.'
-  endif
   return coc#rpc#request('sendRequest', a:000)
 endfunction
 
@@ -47,7 +40,7 @@ endfunction
 
 function! CocLocationsAsync(id, method, ...) abort
   let args = [a:id, a:method] + copy(a:000)
-  call coc#rpc#request('findLocations', args)
+  call coc#rpc#notify('findLocations', args)
 endfunction
 
 function! CocRequestAsync(...)
@@ -69,13 +62,11 @@ function! s:AsyncRequest(name, args) abort
 endfunction
 
 function! s:CommandList(...) abort
-  if !coc#rpc#ready() | return '' | endif
   let list = coc#rpc#request('CommandList', a:000)
   return join(list, "\n")
 endfunction
 
 function! s:ExtensionList(...) abort
-  if !coc#rpc#ready() | return '' | endif
   let list = map(CocAction('extensionStats'), 'v:val["id"]')
   return join(list, "\n")
 endfunction
@@ -138,8 +129,11 @@ function! s:Enable()
     if exists('##CompleteChanged') && exists('*nvim_open_win')
       autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
+    if exists('##MenuPopupChanged') || exists('##CompleteChanged')
+      autocmd CompleteDone      * call coc#util#close_popup()
+    endif
 
-    autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
+    autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
     if s:is_vim
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
       autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
@@ -148,6 +142,7 @@ function! s:Enable()
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
     endif
+    "autocmd WinLeave            * call coc#util#clearmatches(get(w:, 'coc_matchids', []))
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
@@ -203,55 +198,30 @@ hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 
 function! s:FormatFromSelected(type)
-  if !coc#rpc#ready() | return '' | endif
   call CocAction('formatSelected', a:type)
 endfunction
 
 function! s:CodeActionFromSelected(type)
-  if !coc#rpc#ready() | return '' | endif
   call CocAction('codeAction', a:type)
 endfunction
 
-function! s:SendRequest(name, args, ...)
-  let isRequest = get(a:, 1, 0)
-  let method = 'coc#rpc#' . (isRequest ? 'request' : 'notify')
-  if get(g:, 'coc_service_initialized', 0)
-    call call(method, [a:name, a:args])
-    return
-  endif
-  let name = a:name
-  let args = a:args
-  let c = 0
-  while 1
-    let c = c + 1
-    if get(g:, 'coc_service_initialized', 0)
-      call call(method, [a:name, a:args])
-      break
-    endif
-    if c == 50
-      echohl Error | echon '[coc.nvim] service not started' | echohl None
-    endif
-    sleep 100m
-  endw
-endfunction
-
-command! -nargs=0 CocOpenLog      :call s:SendRequest('openLog',  [])
-command! -nargs=0 CocInfo         :call s:SendRequest('showInfo', [])
-command! -nargs=0 CocListResume   :call s:SendRequest('listResume', [])
-command! -nargs=0 CocPrev         :call s:SendRequest('listPrev', [])
-command! -nargs=0 CocNext         :call s:SendRequest('listNext', [])
+command! -nargs=0 CocOpenLog      :call coc#rpc#request('openLog',  [])
+command! -nargs=0 CocUpdate       :call coc#rpc#request('updateExtension', [])
+command! -nargs=0 CocInfo         :call coc#rpc#notify('showInfo', [])
+command! -nargs=0 CocListResume   :call coc#rpc#request('listResume', [])
+command! -nargs=0 CocPrev         :call coc#rpc#request('listPrev', [])
+command! -nargs=0 CocNext         :call coc#rpc#request('listNext', [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
-command! -nargs=0 CocUpdate       :call s:SendRequest('updateExtension', [])
 command! -nargs=0 CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
-command! -nargs=* -complete=custom,coc#list#options CocList      :call s:SendRequest('openList',  [<f-args>])
-command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call s:SendRequest('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call s:SendRequest('CocAction', ['runCommand',         <f-args>])
+command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#request('openList',  [<f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#request('CocAction', ['uninstallExtension', <f-args>])
+command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call coc#rpc#notify('CocAction', ['runCommand',         <f-args>])
 
 call s:Enable()
 

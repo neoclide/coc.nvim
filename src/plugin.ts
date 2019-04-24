@@ -21,7 +21,7 @@ import debounce = require('debounce')
 const logger = require('./util/logger')('plugin')
 
 export default class Plugin extends EventEmitter {
-  private ready = false
+  private _ready = false
   private handler: Handler
   private infoChannel: OutputChannel
 
@@ -144,11 +144,11 @@ export default class Plugin extends EventEmitter {
       extensions.activateExtensions()
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
-      this.ready = true
+      this._ready = true
       logger.info(`coc ${this.version} initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
-      this.ready = false
+      this._ready = false
       console.error(`Error on initialize: ${e.stack}`) // tslint:disable-line
       logger.error(e.stack)
     }
@@ -158,6 +158,15 @@ export default class Plugin extends EventEmitter {
       if (extensions.has('coc-json') || extensions.isDisabled('coc-json')) return
       let res = await workspace.showPrompt('Install coc-json for json intellisense?')
       if (res) await this.nvim.command('CocInstall coc-json')
+    })
+  }
+
+  public get ready(): Promise<void> {
+    if (this._ready) return Promise.resolve()
+    return new Promise<void>(resolve => {
+      this.once('ready', () => {
+        resolve()
+      })
     })
   }
 
@@ -221,7 +230,6 @@ export default class Plugin extends EventEmitter {
       this.infoChannel.clear()
     }
     let channel = this.infoChannel
-    channel.show()
     channel.appendLine('## versions')
     channel.appendLine('')
     let out = await this.nvim.call('execute', ['version']) as string
@@ -236,12 +244,14 @@ export default class Plugin extends EventEmitter {
     channel.append(msgs.join('\n'))
     channel.appendLine('')
     for (let ch of (workspace as any).outputChannels.values()) {
+      logger.debug('name:', ch.name)
       if (ch.name !== 'info') {
-        channel.appendLine(`## Output channel: ${ch.name}`)
+        channel.appendLine(`## Output channel: ${ch.name}\n`)
         channel.append(ch.content)
         channel.appendLine('')
       }
     }
+    channel.show()
   }
 
   public updateExtension(): Promise<void> {
@@ -288,7 +298,7 @@ export default class Plugin extends EventEmitter {
   }
 
   public async cocAction(...args: any[]): Promise<any> {
-    if (!this.ready) return
+    if (!this._ready) return
     let { handler } = this
     try {
       switch (args[0] as string) {

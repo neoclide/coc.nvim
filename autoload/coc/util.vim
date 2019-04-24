@@ -370,6 +370,10 @@ function! coc#util#with_callback(method, args, cb)
   call timer_start(timeout, {-> s:Cb() })
 endfunction
 
+function! coc#util#add_matchids(ids)
+  let w:coc_matchids = get(w:, 'coc_matchids', []) + a:ids
+endfunction
+
 function! coc#util#prompt_confirm(title)
   if exists('*confirm') && !s:is_vim
     let choice = confirm(a:title, "&Yes\n&No")
@@ -582,6 +586,10 @@ function! coc#util#clearmatches(ids)
       " matches have been cleared in other ways,
     endtry
   endfor
+  let exists = get(w:, 'coc_matchids', [])
+  if !empty(exists)
+    call filter(w:coc_matchids, 'index(a:ids, v:val) == -1')
+  endif
 endfunction
 
 function! coc#util#open_url(url)

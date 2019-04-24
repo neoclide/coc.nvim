@@ -75,17 +75,12 @@ export class Completion implements Disposable {
       }
     }, null, this.disposables)
     if (workspace.env.pumevent) {
-      this.disposables.push(workspace.registerAutocmd({
-        event: 'CompleteDone',
-        request: true,
-        callback: async () => {
-          if (this.floatTokenSource) {
-            this.floatTokenSource.cancel()
-            this.floatTokenSource = null
-          }
-          await this.nvim.call('coc#util#close_popup')
+      events.on('CompleteDone', () => {
+        if (this.floatTokenSource) {
+          this.floatTokenSource.cancel()
+          this.floatTokenSource = null
         }
-      }))
+      }, null, this.disposables)
     }
   }
 

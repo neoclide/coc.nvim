@@ -18,20 +18,9 @@ export default class DocumentHighlighter {
   private matchIds: Set<number> = new Set()
   private cursorMoveTs: number
   constructor(private nvim: Neovim, private colors: Colors) {
-    this.disposables.push(workspace.registerAutocmd({
-      event: 'WinLeave',
-      request: true,
-      callback: () => {
-        this.clearHighlight()
-      }
-    }))
-    this.disposables.push(workspace.registerAutocmd({
-      event: 'BufWinLeave',
-      request: true,
-      callback: () => {
-        this.clearHighlight()
-      }
-    }))
+    events.on('BufWinLeave', () => {
+      this.clearHighlight()
+    }, null, this.disposables)
     events.on(['CursorMoved', 'CursorMovedI'], () => {
       this.cursorMoveTs = Date.now()
     }, null, this.disposables)
@@ -71,6 +60,7 @@ export default class DocumentHighlighter {
     for (let hlGroup of Object.keys(groups)) {
       this.highlightRanges(document, hlGroup, groups[hlGroup])
     }
+    this.nvim.call('coc#util#add_matchids', [Array.from(this.matchIds)], true)
     await this.nvim.resumeNotification(false, true)
   }
 

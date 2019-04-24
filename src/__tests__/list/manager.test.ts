@@ -51,8 +51,8 @@ describe('list commands', () => {
   })
 
   it('should resume list', async () => {
-    await nvim.command('CocList --normal location')
-    await helper.wait(100)
+    await manager.start(['--normal', 'location'])
+    await helper.wait(300)
     await nvim.eval('feedkeys("j", "in")')
     await helper.wait(30)
     let line = await nvim.call('line', '.')
@@ -82,7 +82,7 @@ describe('list commands', () => {
   })
 
   it('should parse arguments', async () => {
-    await nvim.command('CocList --input=test --normal --no-sort --ignore-case --top --number-select --auto-preview --strict location')
+    await manager.start(['--input=test', '--normal', '--no-sort', '--ignore-case', '--top', '--number-select', '--auto-preview', '--strict', 'location'])
     await helper.wait(30)
     let opts = manager.listOptions
     expect(opts).toEqual({
