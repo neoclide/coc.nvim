@@ -131,13 +131,13 @@
     lodash "^4.17.11"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@4.4.1":
-  version "4.4.1"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-4.4.1.tgz#b42cda81fdc643d82c77ab7c379a2419d18dbbf7"
-  integrity sha512-5JSuzDuuIXNfb+uo0DW2iodbuJZhvicbbpiF2g1c818fBGGmh2MSBwMTwmxhV/ecH4gculOxTlOHonIkTBGqug==
+"@chemzqm/neovim@5.0.0":
+  version "5.0.0"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.0.0.tgz#c846c18780ac5d3109f2c59f35ee1d92b3296d1c"
+  integrity sha512-vU1yGyrEYievoj3TC8ooASUeMcIOOUblnEx5NEhlMsmbuEjJ3e7cGRm3WOy9taZ6n/e0eG+1Wj+mDnuyMBiF/Q==
   dependencies:
+    log4js "^4.1.0"
     msgpack-lite "^0.1.26"
-    traverse "^0.6.6"
 
 "@chemzqm/tslint-config@^1.0.18":
   version "1.0.18"
@@ -3604,11 +3604,6 @@ tr46@^1.0.1:
   integrity sha1-qLE/1r/SSJUZZ0zN5VujaTtwbQk=
   dependencies:
     punycode "^2.1.0"
-
-traverse@^0.6.6:
-  version "0.6.6"
-  resolved "https://registry.yarnpkg.com/traverse/-/traverse-0.6.6.tgz#cbdf560fd7b9af632502fed40f918c157ea97137"
-  integrity sha1-y99WD9e5r2MlAv7UD5GMFX6pcTc=
 
 trim-right@^1.0.1:
   version "1.0.1"
