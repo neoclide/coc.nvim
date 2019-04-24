@@ -25,17 +25,20 @@ export default class Memos {
 
   private async update(id: string, key: string, value: any): Promise<void> {
     let { filepath } = this
-    // logger.debug('update:', key, JSON.stringify(value, null, 2))
-    let content = fs.readFileSync(filepath, 'utf8')
-    let current = JSON.parse(content)
-    current[id] = current[id] || {}
-    if (value !== undefined) {
-      current[id][key] = deepClone(value)
-    } else {
-      delete current[id][key]
+    try {
+      let content = fs.readFileSync(filepath, 'utf8')
+      let current = content ? JSON.parse(content) : {}
+      current[id] = current[id] || {}
+      if (value !== undefined) {
+        current[id][key] = deepClone(value)
+      } else {
+        delete current[id][key]
+      }
+      content = JSON.stringify(current, null, 2)
+      fs.writeFileSync(filepath, content, 'utf8')
+    } catch (e) {
+      logger.error(`Error on update memos:`, e)
     }
-    content = JSON.stringify(current, null, 2)
-    fs.writeFileSync(filepath, content, 'utf8')
   }
 
   public createMemento(id: string): Memento {
