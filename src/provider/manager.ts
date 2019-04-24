@@ -33,7 +33,7 @@ export default class Manager<T> {
     return providerItem
   }
 
-  protected poviderById(id): T {
+  protected providerById(id): T {
     let item = Array.from(this.providers).find(o => o.id == id)
     return item ? item.provider : null
   }
