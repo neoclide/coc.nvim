@@ -64,7 +64,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', frames[idx], true)
         nvim.command('redraws', true)
-        await nvim.resumeNotification()
+        await nvim.resumeNotification(false, true)
       }, 100)
     } else {
       if (this.interval) {
@@ -72,7 +72,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', '', true)
         nvim.command('redraws', true)
-        nvim.resumeNotification().catch(_e => {
+        nvim.resumeNotification(false, true).catch(_e => {
           // noop
         })
       }

@@ -309,8 +309,9 @@ export default class ListUI {
     }
     if (bufnr == 0 && !this.creating) {
       this.creating = true
-      let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list://${name || 'anonymous'}`
+      let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`
       await nvim.command(cmd)
+      await nvim.call('coc#list#setup', [name])
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
       await this.window.request(`nvim_win_set_height`, [height])

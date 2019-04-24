@@ -122,7 +122,7 @@ export default class Document {
 
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
-    this.buffer.getOption('coc_additional_keywords').then((keywords: string[]) => {
+    this.buffer.getVar('coc_additional_keywords').then((keywords: string[]) => {
       if (keywords && keywords.length) {
         for (let ch of keywords) {
           chars.addKeyword(ch)

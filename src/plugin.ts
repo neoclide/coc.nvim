@@ -161,6 +161,10 @@ export default class Plugin extends EventEmitter {
     })
   }
 
+  public get isReady(): boolean {
+    return this._ready
+  }
+
   public get ready(): Promise<void> {
     if (this._ready) return Promise.resolve()
     return new Promise<void>(resolve => {

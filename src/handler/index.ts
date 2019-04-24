@@ -22,6 +22,7 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
+import listManager from '../list/manager'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -428,7 +429,7 @@ export default class Handler {
       await events.fire('Command', [id])
       await commandManager.executeCommand(id, ...args)
     } else {
-      this.nvim.command(`CocList commands`, true)
+      await listManager.start(['commands'])
     }
   }
 

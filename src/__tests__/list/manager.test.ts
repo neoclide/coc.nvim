@@ -109,7 +109,7 @@ describe('list options', () => {
 
   it('should respect regex filter', async () => {
     await manager.start(['--input=f.o', '--regex', 'location'])
-    await helper.wait(100)
+    await helper.wait(200)
     let item = await manager.ui.item
     expect(item.label).toMatch('foo')
   })
@@ -117,13 +117,14 @@ describe('list options', () => {
   it('should respect normal option', async () => {
     await manager.start(['--normal', 'location'])
     expect(manager.isActivated).toBe(true)
+    await helper.wait(200)
     let line = await helper.getCmdline()
     expect(line).toBe('')
   })
 
   it('should respect nosort option', async () => {
     await manager.start(['--ignore-case', '--no-sort', 'location'])
-    await helper.wait(100)
+    await helper.wait(200)
     expect(manager.isActivated).toBe(true)
     await nvim.input('oo')
     await helper.wait(500)
@@ -131,7 +132,7 @@ describe('list options', () => {
 
   it('should respect ignorecase option', async () => {
     await manager.start(['--ignore-case', '--strict', 'location'])
-    await helper.wait(100)
+    await helper.wait(200)
     expect(manager.isActivated).toBe(true)
     await nvim.input('bar')
     await helper.wait(500)

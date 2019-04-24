@@ -67,7 +67,9 @@ function! s:CommandList(...) abort
 endfunction
 
 function! s:ExtensionList(...) abort
-  let list = map(CocAction('extensionStats'), 'v:val["id"]')
+  let stats = CocAction('extensionStats')
+  call filter(stats, 'v:val["isLocal"] == v:false')
+  let list = map(stats, 'v:val["id"]')
   return join(list, "\n")
 endfunction
 
@@ -142,7 +144,7 @@ function! s:Enable()
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
       autocmd TermClose         * call s:Autocmd('TermClose', +expand('<abuf>'))
     endif
-    "autocmd WinLeave            * call coc#util#clearmatches(get(w:, 'coc_matchids', []))
+    autocmd WinLeave            * call coc#util#clearmatches(get(w:, 'coc_matchids', []))
     autocmd BufWinLeave         * call s:Autocmd('BufWinLeave', +expand('<abuf>'), win_getid())
     autocmd BufWinEnter         * call s:Autocmd('BufWinEnter', +expand('<abuf>'), win_getid())
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
@@ -166,7 +168,6 @@ function! s:Enable()
     autocmd FocusGained         * call s:Autocmd('FocusGained')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
-    autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
 endfunction
 
@@ -205,12 +206,12 @@ function! s:CodeActionFromSelected(type)
   call CocAction('codeAction', a:type)
 endfunction
 
-command! -nargs=0 CocOpenLog      :call coc#rpc#request('openLog',  [])
-command! -nargs=0 CocUpdate       :call coc#rpc#request('updateExtension', [])
 command! -nargs=0 CocInfo         :call coc#rpc#notify('showInfo', [])
-command! -nargs=0 CocListResume   :call coc#rpc#request('listResume', [])
-command! -nargs=0 CocPrev         :call coc#rpc#request('listPrev', [])
-command! -nargs=0 CocNext         :call coc#rpc#request('listNext', [])
+command! -nargs=0 CocUpdate       :call coc#rpc#notify('updateExtension', [])
+command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
+command! -nargs=0 CocListResume   :call coc#rpc#notify('listResume', [])
+command! -nargs=0 CocPrev         :call coc#rpc#notify('listPrev', [])
+command! -nargs=0 CocNext         :call coc#rpc#notify('listNext', [])
 command! -nargs=0 CocDisable      :call s:Disable()
 command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
@@ -219,9 +220,9 @@ command! -nargs=0 CocStart        :call coc#rpc#start_server()
 command! -nargs=0 CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
+command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#request('openList',  [<f-args>])
-command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#request('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call coc#rpc#notify('CocAction', ['runCommand',         <f-args>])
+command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call coc#rpc#request('CocAction', ['runCommand',         <f-args>])
 
 call s:Enable()
 

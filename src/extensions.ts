@@ -299,6 +299,9 @@ export class Extensions {
   }
 
   public async uninstallExtension(ids: string[]): Promise<void> {
+    let status = workspace.createStatusBarItem(99, { progress: true })
+    status.text = `Uninstalling ${ids.join(' ')}`
+    status.show()
     for (let id of ids) {
       if (!this.isGlobalExtension(id)) {
         workspace.showMessage(`Global extension '${id}' not found.`, 'error')
@@ -306,7 +309,7 @@ export class Extensions {
       }
       this.deactivate(id)
     }
-    await wait(100)
+    await wait(30)
     let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
     if (!yarncmd) return
     try {
@@ -318,8 +321,10 @@ export class Extensions {
         if (idx != -1) this.list.splice(idx, 1)
         this._onDidUnloadExtension.fire(id)
       }
+      status.dispose()
       workspace.showMessage(`Extensions ${ids.join(' ')} removed`)
     } catch (e) {
+      status.dispose()
       workspace.showMessage(`Uninstall failed: ${e.message}`, 'error')
     }
   }
