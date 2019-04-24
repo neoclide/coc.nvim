@@ -36,7 +36,7 @@ afterEach(async () => {
 })
 
 describe('list commands', () => {
-  it('should activated', async () => {
+  it('should be activated', async () => {
     await manager.start(['location'])
     expect(manager.isActivated).toBe(true)
     expect(manager.name).toBe('location')

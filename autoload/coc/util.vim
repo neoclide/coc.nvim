@@ -607,11 +607,7 @@ function! coc#util#install(...) abort
   let cmd = (s:is_win ? 'install.cmd' : './install.sh') . (tag ? '' : ' nightly')
   function! s:OnInstalled(status, ...) closure
     if a:status != 0 | return | endif
-    if s:is_vim
-      call coc#rpc#init_vim_rpc()
-    else
-      call coc#rpc#restart()
-    endif
+    call coc#rpc#restart()
   endfunction
   " install.cmd would always exited with code 0 with/without errors.
   if l:terminal

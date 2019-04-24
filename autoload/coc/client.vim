@@ -3,18 +3,24 @@ let s:is_vim = !has('nvim')
 let s:is_win = has("win32") || has("win64")
 let s:clients = {}
 
+let s:logfile = tempname()
+if s:is_vim && get(g:, 'node_client_debug', 0)
+  call ch_logfile(s:logfile, 'w')
+endif
+
 " create a client
 function! coc#client#create(name, command)
   let client = {}
   let client['command'] = a:command
   let client['name'] = a:name
-  let client['chan_id'] = 0
   let client['running'] = 0
   let client['stderrs'] = []
-  " vim only
-  let client['job'] = v:null
   let client['async_req_id'] = 1
   let client['async_callbacks'] = {}
+  " vim only
+  let client['channel'] = v:null
+  " neovim only
+  let client['chan_id'] = 0
 
   let client['start'] = function('s:start', [], client)
   let client['request'] = function('s:request', [], client)
@@ -29,20 +35,14 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if s:is_vim
-    if empty($NVIM_LISTEN_ADDRESS)
-      let folder = coc#rpc#vim_rpc_folder()
-      if empty(folder) | return | endif
-      call nvim#rpc#start_server()
-    endif
-    let self.running = 1
     let options = {
+          \ 'in_mode': 'json',
+          \ 'out_mode': 'json',
           \ 'err_mode': 'nl',
-          \ 'out_mode': 'nl',
           \ 'err_cb': {channel, message -> s:on_stderr(self.name, [message])},
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
           \ 'env': {
           \   'VIM_NODE_RPC': 1,
-          \   'NVIM_LISTEN_ADDRESS': $NVIM_LISTEN_ADDRESS,
           \ }
           \}
     if has("patch-8.1.350")
@@ -55,7 +55,8 @@ function! s:start() dict
       echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
       return
     endif
-    let self['job'] = job
+    let self['running'] = 1
+    let self['channel'] = job_getchannel(job)
   else
     let chan_id = jobstart(self.command, {
           \ 'rpc': 1,
@@ -78,7 +79,8 @@ function! s:on_stderr(name, msgs)
   let data = filter(copy(a:msgs), '!empty(v:val)')
   if empty(data) | return | endif
   call extend(client['stderrs'], data)
-  let data[0] = '[vim-node-'.a:name.']: ' . data[0]
+  let client = a:name ==# 'coc' ? '' : ' client '.a:name
+  let data[0] = '[coc.nvim]'.client.' error: ' . data[0]
   call coc#util#echo_messages('Error', data)
 endfunction
 
@@ -89,31 +91,37 @@ function! s:on_exit(name, code) abort
   if client['running'] != 1 | return | endif
   let client['running'] = 0
   let client['chan_id'] = 0
-  let client['job'] = v:null
+  let client['channel'] = v:null
   let client['async_req_id'] = 1
-  if s:is_vim
-    silent! exe 'unlet g:vim_node_'.a:name.'_client_id'
-  endif
   if a:code != 0
     echohl Error | echon 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
 endfunction
 
-function! s:get_channel_id(client)
+function! s:get_channel(client)
   if s:is_vim
-    return get(g:, 'vim_node_'.a:client['name'].'_client_id', 0)
+    return a:client['channel']
   endif
   return a:client['chan_id']
 endfunction
 
 function! s:request(method, args) dict
-  let chan_id = s:get_channel_id(self)
-  if !chan_id | return '' | endif
+  let channel = s:get_channel(self)
+  if empty(channel) | return '' | endif
   try
     if s:is_vim
-      return nvim#rpc#request(chan_id, a:method, a:args)
+      let res = ch_evalexpr(channel, [a:method, a:args], {'timeout': 30000})
+      if type(res) == 1 && res ==# ''
+        throw 'timeout after 30s'
+      endif
+      let [l:errmsg, res] =  res
+      if !empty(l:errmsg)
+        throw l:errmsg
+      else
+        return res
+      endif
     endif
-    return call('rpcrequest', [chan_id, a:method] + a:args)
+    return call('rpcrequest', [channel, a:method] + a:args)
   catch /.*/
     if v:exception =~# 'E475'
       if get(g:, 'coc_vim_leaving', 0) | return | endif
@@ -130,13 +138,13 @@ function! s:request(method, args) dict
 endfunction
 
 function! s:notify(method, args) dict
-  let chan_id = s:get_channel_id(self)
-  if !chan_id | return | endif
+  let channel = s:get_channel(self)
+  if empty(channel) | return '' | endif
   try
     if s:is_vim
-      call nvim#rpc#notify(chan_id, a:method, a:args)
+      call ch_sendraw(channel, json_encode([0, [a:method, a:args]])."\n")
     else
-      call call('rpcnotify', [chan_id, a:method] + a:args)
+      call call('rpcnotify', [channel, a:method] + a:args)
     endif
   catch /.*/
     if v:exception =~# 'E475'
@@ -154,8 +162,8 @@ function! s:notify(method, args) dict
 endfunction
 
 function! s:request_async(method, args, cb) dict
-  let chan_id = s:get_channel_id(self)
-  if !chan_id | return | endif
+  let channel = s:get_channel(self)
+  if empty(channel) | return '' | endif
   if type(a:cb) != 2
     echohl Error | echom '['.self['name'].'] Callback should be function' | echohl None
     return
@@ -186,7 +194,7 @@ function! coc#client#is_running(name) abort
   if empty(client) | return 0 | endif
   if !client['running'] | return 0 | endif
   if s:is_vim
-    let status = job_status(client['job'])
+    let status = job_status(ch_getjob(client['channel']))
     return status ==# 'run'
   else
     let chan_id = client['chan_id']
@@ -204,7 +212,7 @@ function! coc#client#stop(name) abort
     return 1
   endif
   if s:is_vim
-    call job_stop(client['job'], 'term')
+    call job_stop(ch_getjob(client['channel']), 'term')
   else
     call jobstop(client['chan_id'])
   endif
@@ -257,8 +265,10 @@ endfunction
 
 function! coc#client#restart_all()
   for key in keys(s:clients)
-    if key !=# 'coc'
-      call coc#client#restart(key)
-    endif
+    call coc#client#restart(key)
   endfor
+endfunction
+
+function! coc#client#open_log()
+  execute 'vs '.s:logfile
 endfunction

@@ -1,7 +1,7 @@
 const semver = require('semver')
 const version = process.version.replace('v', '')
-if (!semver.gt(version, '8.0.0')) {
-  console.error('node >= 8.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in vimrc')
+if (!semver.gt(version, '8.10.0')) {
+  console.error('node >= 8.10.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in your vimrc')
   process.exit(1)
 }
 Object.defineProperty(console, 'log', {
@@ -9,18 +9,8 @@ Object.defineProperty(console, 'log', {
 })
 const attach = require('../lib/attach').default
 const logger = require('../lib/util/logger')('server')
-const isVim = process.env.VIM_NODE_RPC == '1'
-const isWindows = process.platform == 'win32'
-let address = process.env.NVIM_LISTEN_ADDRESS || '/tmp/nvim'
 
-if (isVim) {
-  if (isWindows && !address.startsWith('\\\\')) {
-    address = '\\\\?\\pipe\\' + address
-  }
-  attach({ socket: address })
-} else {
-  attach({ reader: process.stdin, writer: process.stdout })
-}
+attach({ reader: process.stdin, writer: process.stdout })
 
 process.on('uncaughtException', function (err) {
   let msg = 'Uncaught exception: ' + err.stack

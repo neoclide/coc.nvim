@@ -23,7 +23,7 @@ describe('completion', () => {
   it('should not show word of word source on empty input', async () => {
     await helper.edit()
     await nvim.setLine('foo bar')
-    await helper.wait(30)
+    await helper.wait(100)
     await nvim.input('of')
     let res = await helper.visible('foo', 'around')
     expect(res).toBe(true)

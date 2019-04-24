@@ -75,16 +75,6 @@ https://yarnpkg.com/en/docs/install
 
 如果你使用 vim-plug 来管理 coc.nvim 插件可以不需要安装 yarn。
 
-如果你是 vim 用户，需要额外安装：
-
-https://github.com/neoclide/vim-node-rpc
-
-提供 rpc 服务，执行命令: >
-
-	yarn global add vim-node-rpc
->
-即可安装。
-
 ==============================================================================
 
 安装						*coc-install*
@@ -427,12 +417,6 @@ g:coc_node_args 				*g:coc_node_args*
 			let g:coc_node_args = ['--nolazy', '--inspect-brk=6045']
 <
 			默认: []
-
-
-g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
-
-			包含 vim-node-rpc 模块的目录，用于加速 vim 启动时间。
-			默认从 yarn 的全局安装路径进行检测。
 
 
 g:coc_process_pid 				*g:coc_process_pid*

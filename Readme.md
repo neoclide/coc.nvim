@@ -97,8 +97,6 @@ Below are the reasons that led coc.nvim to build its own engine:
 
   For other plugin managers, run command `:call coc#util#install()` to download lastest compiled javascript bundle.
 
-  **Note:** for vim users, having the [vim-node-rpc](https://github.com/neoclide/vim-node-rpc) module globally installed is required.
-
   **Note**: The first time building from source code may be slow.
 
   **Note**: Nix-os Users must follow these steps:
@@ -136,14 +134,13 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [OCaml and ReasonML](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ocaml-and-reasonml)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
 
+* [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
-- [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
+* [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
 
-- [Debug language server](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server)
+* [Debug coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Debug-coc.nvim)
 
-- [Debug coc.nvim](https://github.com/neoclide/coc.nvim/wiki/Debug-coc.nvim)
-
-- [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
+* [F.A.Q](https://github.com/neoclide/coc.nvim/wiki/F.A.Q)
 
 ## Completion sources
 

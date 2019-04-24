@@ -313,7 +313,7 @@ export default class ListUI {
       await nvim.command(cmd)
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
-      await this.window.request(`nvim_win_set_height`, [this.window, height])
+      await this.window.request(`nvim_win_set_height`, [height])
       this.height = height
       this._onDidOpen.fire(this.bufnr)
       this.creating = false
@@ -356,7 +356,7 @@ export default class ListUI {
       let height = Math.max(1, Math.min(this.items.length, maxHeight))
       if (height != this.height) {
         this.height = height
-        window.notify(`nvim_win_set_height`, [window, height])
+        window.notify(`nvim_win_set_height`, [height])
         this._onDidChangeHeight.fire()
       }
     }
@@ -375,7 +375,7 @@ export default class ListUI {
     }
     nvim.command('setl nomodifiable', true)
     this.doHighlight()
-    if (!append) window.notify('nvim_win_set_cursor', [window, [index + 1, 0]])
+    if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
     nvim.resumeNotification(false, true).catch(_e => {
       // noop
@@ -387,7 +387,7 @@ export default class ListUI {
     if (window && height) {
       let curr = await window.height
       if (curr != height) {
-        window.notify(`nvim_win_set_height`, [window, height])
+        window.notify(`nvim_win_set_height`, [height])
         this._onDidChangeHeight.fire()
       }
     }
@@ -445,7 +445,7 @@ export default class ListUI {
     let { window, bufnr, items } = this
     let max = items.length == 0 ? 1 : items.length
     if (!bufnr || !window || lnum > max) return
-    window.notify('nvim_win_set_cursor', [window, [lnum, col]])
+    window.notify('nvim_win_set_cursor', [[lnum, col]])
     if (this.currIndex + 1 != lnum) {
       this.currIndex = lnum - 1
       this._onDidChangeLine.fire(lnum)

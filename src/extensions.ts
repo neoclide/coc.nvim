@@ -108,8 +108,6 @@ export class Extensions {
       let { id, packageJSON } = item.extension
       this.setupActiveEvents(id, packageJSON)
     }
-    // update vim-node-rpc
-    if (workspace.isVim) this.updateNodeRpc().logError()
     // check extensions need watch & install
     this.checkExtensions().logError()
     let config = workspace.getConfiguration('coc.preferences')
@@ -176,28 +174,6 @@ export class Extensions {
     return Disposable.create(() => {
       child.kill('SIGKILL')
     })
-  }
-
-  public async updateNodeRpc(): Promise<void> {
-    let now = new Date()
-    let day = new Date(now.getFullYear(), now.getMonth(), now.getDate())
-    let key = 'lastCheckVimNodeRpc'
-    let ts = await this.db.fetch(key)
-    if (ts && Number(ts) > day.getTime() && !global.hasOwnProperty('__TEST__')) return
-    let yarncmd = await workspace.nvim.call('coc#util#yarn_cmd')
-    if (!yarncmd) return
-    await this.db.push(key, Date.now())
-    let filepath = await workspace.nvim.call('coc#rpc#vim_rpc_folder')
-    if (filepath) {
-      let jsonFile = path.join(filepath, 'package.json')
-      let { version } = loadJson(jsonFile)
-      let res = await runCommand(`${yarncmd} info vim-node-rpc version --json`)
-      let newVersion = JSON.parse(res).data
-      if (!semver.gt(newVersion, version)) return
-    }
-    workspace.showMessage(`Upgrading vim-node-rpc`)
-    await runCommand(`${yarncmd} global add vim-node-rpc`)
-    logger.info(`Upgrade vim-node-rpc succeed`)
   }
 
   private async checkExtensions(): Promise<void> {

@@ -360,12 +360,8 @@ export class ListManager implements Disposable {
       total: this.worker.length,
       cwd: this.cwd,
     }
-    nvim.pauseNotification()
     buf.setVar('list_status', status, true)
     if (ui.window) nvim.command('redraws', true)
-    nvim.resumeNotification(false, true).catch(_e => {
-      // noop
-    })
   }
 
   private buildStatusline(): string {

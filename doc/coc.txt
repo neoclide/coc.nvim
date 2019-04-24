@@ -68,10 +68,6 @@ extensions.
 Note: yarn is not required if you want to manage extensions by use vim's
 plugin manager like vim-plug.
 
-User of vim8 need to install vim-node-rpc modules by: >
-	
-	yarn global add vim-node-rpc
-
 ==============================================================================
 INSTALL						*coc-install*
 
@@ -412,16 +408,6 @@ g:coc_node_args 				*g:coc_node_args*
 
 			Default: []
 
-
-g:vim_node_rpc_folder 				*g:vim_node_rpc_folder*
-
-			Folder contains `vim-node-rpc` module, used to speed
-			up vim startup.
-
-			If not defined, the folder is resolved from Yarn 
-			global directory.
-
-			Default: undefined
 
 g:coc_jump_locations 				*g:coc_jump_locations*
 

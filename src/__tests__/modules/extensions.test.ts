@@ -120,12 +120,6 @@ describe('extensions', () => {
     expect(typeof res.echo).toBe('function')
   })
 
-  it('should update vim-node-rpc', async () => {
-    await extensions.updateNodeRpc()
-    let filepath = await nvim.call('coc#rpc#vim_rpc_folder')
-    expect(filepath).toBeDefined()
-  })
-
   it('should get package name from url', () => {
     let name = extensions.packageNameFromUrl('https://github.com/neoclide/coc-tsserver')
     expect(name).toBe('coc-tsserver')

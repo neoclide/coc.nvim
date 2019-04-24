@@ -9,22 +9,17 @@ let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:is_vim = !has('nvim')
 
-if has('nvim') && get(g:, 'coc_start_at_startup', 1)
-  call coc#rpc#start_server()
-endif
-if s:is_vim && !has('pythonx')
-  echohl Error | echon 'coc.nvim require python or python3 on vim' | echohl None
-  finish
-endif
-if s:is_vim
-  call coc#rpc#init_vim_rpc()
-endif
-if s:is_vim && s:is_win
-  let file = $VIM."/vimfiles/coc-settings.json"
-  let dest = $HOME."/vimfiles/coc-settings.json"
-  if filereadable(file)
-    call rename(file, dest)
+if get(g:, 'coc_start_at_startup', 1)
+  if s:is_vim
+    try
+      silent pyx print("")
+    catch /.*/
+      echohl Error | echon 'coc.nvim requires pyx command on vim, checkout ":h pythonx"' | echohl None
+      finish
+    endtry
+    let g:names = nvim#api#func_names()
   endif
+  call coc#rpc#start_server()
 endif
 
 function! CocAction(...) abort
@@ -146,8 +141,6 @@ function! s:Enable()
 
     autocmd VimEnter *           call coc#rpc#notify('VimEnter', [])
     if s:is_vim
-      autocmd User NvimRpcInit    call coc#rpc#start_server()
-      autocmd User NvimRpcExit    call coc#rpc#stop()
       autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
       autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
     else
