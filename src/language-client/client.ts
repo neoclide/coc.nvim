@@ -3413,7 +3413,7 @@ export abstract class BaseLanguageClient {
     if (this._clientOptions.revealOutputChannelOn <= level) {
       this.outputChannel.show(true)
     }
-    if (type == 'Error') {
+    if (type == 'Error' && message.indexOf('UnhandledPromiseRejectionWarning') == -1) {
       message = dataString ? message + '\n' + dataString : message
       workspace.showMessage(`Error output from ${this.id}: ${message}`, 'error')
     }
