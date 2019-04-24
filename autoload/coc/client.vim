@@ -43,6 +43,7 @@ function! s:start() dict
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
           \ 'env': {
           \   'VIM_NODE_RPC': 1,
+          \   'COC_NVIM': 1,
           \ }
           \}
     if has("patch-8.1.350")

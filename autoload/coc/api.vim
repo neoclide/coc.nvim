@@ -79,7 +79,7 @@ function! s:funcs.eval(expr) abort
 endfunction
 
 function! s:funcs.get_api_info()
-  let names = nvim#api#func_names()
+  let names = coc#api#func_names()
   return [1, {'functions': map(names, '{"name": "nvim_".v:val}')}]
 endfunction
 
@@ -481,11 +481,11 @@ function! s:funcs.call_atomic(calls)
   endfor
 endfunction
 
-function! nvim#api#func_names() abort
+function! coc#api#func_names() abort
   return keys(s:funcs)
 endfunction
 
-function! nvim#api#call(method, args) abort
+function! coc#api#call(method, args) abort
   let err = v:null
   let res = v:null
   try
@@ -496,7 +496,7 @@ function! nvim#api#call(method, args) abort
   return [err, res]
 endfunction
 
-function! nvim#api#notify(method, args) abort
+function! coc#api#notify(method, args) abort
   call call(s:funcs[a:method], a:args)
 endfunction
 

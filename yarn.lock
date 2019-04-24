@@ -131,12 +131,11 @@
     lodash "^4.17.11"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@5.0.0":
-  version "5.0.0"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.0.0.tgz#c846c18780ac5d3109f2c59f35ee1d92b3296d1c"
-  integrity sha512-vU1yGyrEYievoj3TC8ooASUeMcIOOUblnEx5NEhlMsmbuEjJ3e7cGRm3WOy9taZ6n/e0eG+1Wj+mDnuyMBiF/Q==
+"@chemzqm/neovim@5.1.0":
+  version "5.1.0"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.1.0.tgz#bcedfdd9b084b912589bd915a35f306c3783fbca"
+  integrity sha512-+DhptFp1+Q8qIJnyZCvfhX9zkl2bVt+n/8xSI++CYyvvHKLSa9PXIYIZLYZ49oWk5XlpdtMekOdijifzWRu5Lw==
   dependencies:
-    log4js "^4.1.0"
     msgpack-lite "^0.1.26"
 
 "@chemzqm/tslint-config@^1.0.18":
