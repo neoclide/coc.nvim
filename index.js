@@ -53539,7 +53539,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0a3fc9f163" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c392bd0fb4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59518,6 +59518,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const buffer_1 = __webpack_require__(262);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(265));
 const util_2 = __webpack_require__(264);
+const object_1 = __webpack_require__(189);
 const logger = __webpack_require__(179)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -59861,6 +59862,13 @@ class DiagnosticManager {
                 return position_1.lineInRange(pos.line, o.range);
             return position_1.positionInRange(pos, o.range) == 0;
         });
+        if (truncate) {
+            if (this.lastShown && object_1.equals(this.lastShown, diagnostics)) {
+                this.floatFactory.close();
+                return;
+            }
+            this.lastShown = diagnostics;
+        }
         if (diagnostics.length == 0) {
             if (useFloat) {
                 this.floatFactory.close();
