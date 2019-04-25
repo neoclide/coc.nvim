@@ -378,8 +378,8 @@ export class DiagnosticManager implements Disposable {
         this.floatFactory.close()
         return
       }
+      this.lastShown = diagnostics
     }
-    this.lastShown = diagnostics
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
