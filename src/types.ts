@@ -737,17 +737,17 @@ export interface ListArgument {
 
 export interface IList {
   name: string
+  actions: ListAction[]
+  defaultAction: string
+  loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
   // support interactive mode
   interactive?: boolean
   description?: string
   detail?: string
   options?: ListArgument[]
   searchHighlight?: boolean
-  defaultAction: string
-  actions: ListAction[]
-  loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
-  doHighlight(): void
-  dispose(): void
+  doHighlight?(): void
+  dispose?(): void
 }
 
 export interface AnsiItem {

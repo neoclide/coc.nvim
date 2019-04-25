@@ -94,7 +94,9 @@ export class ListManager implements Disposable {
     }, 100), null, this.disposables)
     this.ui.onDidOpen(() => {
       if (this.currList) {
-        this.currList.doHighlight()
+        if (typeof this.currList.doHighlight == 'function') {
+          this.currList.doHighlight()
+        }
         nvim.command(`setl statusline=${this.buildStatusline()}`, true)
       }
     }, null, this.disposables)
@@ -582,6 +584,9 @@ export class ListManager implements Disposable {
     }
     this.listMap.set(list.name, list)
     return Disposable.create(() => {
+      if (typeof list.dispose == 'function') {
+        list.dispose()
+      }
       this.listMap.delete(list.name)
     })
   }
