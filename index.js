@@ -53529,7 +53529,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3bdfdd2a86" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a466354e66" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58561,6 +58561,7 @@ function createSandbox(filename, logger) {
     module.paths = Module._nodeModulePaths(filename);
     const sandbox = vm.createContext({
         module,
+        Buffer,
         console: {
             log: (...args) => {
                 logger.debug.apply(logger, args);
