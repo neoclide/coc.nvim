@@ -90,7 +90,7 @@
 
 const semver = __webpack_require__(1)
 const version = process.version.replace('v', '')
-if (!semver.gt(version, '8.10.0')) {
+if (!semver.gte(version, '8.10.0')) {
   console.error('node >= 8.10.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in your vimrc')
   process.exit(1)
 }
@@ -53539,7 +53539,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "30d7cb1dba" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0a3fc9f163" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
