@@ -1,8 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Disposable, Location, CancellationToken } from 'vscode-languageserver-protocol'
-import URI from 'vscode-uri'
+import fs from 'fs'
+import readline from 'readline'
+import { CancellationToken, Position, Disposable, Location, Range } from 'vscode-languageserver-protocol'
+import { default as URI, default as Uri } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListContext, ListItem, ListTask, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
 import { byteIndex } from '../util/string'
@@ -52,7 +54,8 @@ export default abstract class BasicList implements IList, Disposable {
     this.createAction({
       name: 'preview',
       execute: async (item: ListItem, context: ListContext) => {
-        await this.previewLocation(item.location, context)
+        let loc = await this.convertLocation(item.location)
+        await this.previewLocation(loc, context)
       }
     })
     let { nvim } = this
@@ -61,7 +64,9 @@ export default abstract class BasicList implements IList, Disposable {
       multiple: true,
       execute: async (items: ListItem[]) => {
         let quickfixItems = await Promise.all(items.map(item => {
-          return workspace.getQuickfixItem(item.location)
+          return this.convertLocation(item.location).then(loc => {
+            return workspace.getQuickfixItem(loc)
+          })
         }))
         await nvim.call('setqflist', [quickfixItems])
         nvim.command('copen', true)
@@ -71,14 +76,51 @@ export default abstract class BasicList implements IList, Disposable {
       this.createAction({
         name,
         execute: async (item: ListItem) => {
+          let loc = await this.convertLocation(item.location)
           if (name == 'open') {
-            await this.jumpTo(item.location)
+            await this.jumpTo(loc)
           } else {
-            await this.jumpTo(item.location, name)
+            await this.jumpTo(loc, name)
           }
         }
       })
     }
+  }
+
+  public async convertLocation(location: Location | LocationWithLine): Promise<Location> {
+    if (Location.is(location)) return location
+    let u = Uri.parse(location.uri)
+    if (u.scheme != 'file') return Location.create(location.uri, Range.create(0, 0, 0, 0))
+    const rl = readline.createInterface({
+      input: fs.createReadStream(u.fsPath, { encoding: 'utf8' }),
+    })
+    let match = location.line
+    let n = 0
+    let resolved = false
+    let line = await new Promise<string>(resolve => {
+      rl.on('line', line => {
+        if (resolved) return
+        if (line.indexOf(match) !== -1) {
+          rl.removeAllListeners()
+          rl.close()
+          resolved = true
+          resolve(line)
+          return
+        }
+        n = n + 1
+      })
+      rl.on('error', e => {
+        this.nvim.errWriteLine(`Read ${u.fsPath} error: ${e.message}`)
+        resolve(null)
+      })
+    })
+    if (line != null) {
+      let character = location.text ? line.indexOf(location.text) : 0
+      if (character == 0) character = line.match(/^\s*/)[0].length
+      let end = Position.create(n, character + (location.text ? location.text.length : 0))
+      return Location.create(location.uri, Range.create(Position.create(n, character), end))
+    }
+    return Location.create(location.uri, Range.create(0, 0, 0, 0))
   }
 
   public async jumpTo(location: Location, command?: string): Promise<void> {

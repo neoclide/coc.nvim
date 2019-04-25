@@ -655,10 +655,16 @@ export interface IServiceProvider {
   onServiceReady: Event<void>
 }
 
+export interface LocationWithLine {
+  uri: string
+  line: string
+  text?: string
+}
+
 export interface ListItem {
   label: string
   filterText?: string
-  location?: Location
+  location?: Location | LocationWithLine
   data?: any
   recentScore?: number
   ansiHighlights?: AnsiHighlight[]

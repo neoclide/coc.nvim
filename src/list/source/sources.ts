@@ -26,7 +26,7 @@ export default class SourcesList extends BasicList {
 
     this.addAction('open', async item => {
       let { location } = item
-      if (location) await workspace.jumpTo(location.uri, location.range.start)
+      if (location) await workspace.jumpTo(location.uri, (location as Location).range.start)
     })
   }
 
