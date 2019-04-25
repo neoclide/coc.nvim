@@ -131,10 +131,10 @@
     lodash "^4.17.11"
     to-fast-properties "^2.0.0"
 
-"@chemzqm/neovim@5.1.0":
-  version "5.1.0"
-  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.1.0.tgz#bcedfdd9b084b912589bd915a35f306c3783fbca"
-  integrity sha512-+DhptFp1+Q8qIJnyZCvfhX9zkl2bVt+n/8xSI++CYyvvHKLSa9PXIYIZLYZ49oWk5XlpdtMekOdijifzWRu5Lw==
+"@chemzqm/neovim@5.1.1":
+  version "5.1.1"
+  resolved "https://registry.yarnpkg.com/@chemzqm/neovim/-/neovim-5.1.1.tgz#80c94dedbfb8ee3d8ad1e888926d1b8186d3e416"
+  integrity sha512-jHTESPIyoraCCNX92mRPRf9/3AJZbk9i10x0Z6ftx76crghMlZ0keyvzZqACgiowaodwXxFltkrx3TYVtlXDEQ==
   dependencies:
     msgpack-lite "^0.1.26"
 
