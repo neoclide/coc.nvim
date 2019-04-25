@@ -11,6 +11,7 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
+import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -47,6 +48,7 @@ export class DiagnosticManager implements Disposable {
   private disposables: Disposable[] = []
   private lastMessage = ''
   private timer: NodeJS.Timer
+  private lastShown: Diagnostic[]
 
   public init(): void {
     this.setConfiguration()
@@ -371,6 +373,13 @@ export class DiagnosticManager implements Disposable {
       if (checkCurrentLine) return lineInRange(pos.line, o.range)
       return positionInRange(pos, o.range) == 0
     })
+    if (truncate) {
+      if (this.lastShown && equals(this.lastShown, diagnostics)) {
+        this.floatFactory.close()
+        return
+      }
+      this.lastShown = diagnostics
+    }
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
