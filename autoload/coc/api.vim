@@ -1,19 +1,8 @@
 if has('nvim') | finish | endif
-
 scriptencoding utf-8
-let s:save_cpo = &cpo
-set cpo&vim
-
 let s:funcs = {}
 
-pyx << EOF
-def find(f, seq):
-  for item in seq:
-    if f(item):
-      return item
-  return None
-EOF
-
+" helper {{
 function! s:buf_line_count(bufnr) abort
   if bufnr('%') == a:bufnr
     return line('$')
@@ -22,30 +11,61 @@ function! s:buf_line_count(bufnr) abort
   return len(lines)
 endfunction
 
-function! s:switch_tab(tabnr)
-pyx << EOF
-tabnr = int(vim.eval('a:tabnr'))
-tab = find(lambda x: x.number == tabnr, vim.tabpages)
-EOF
+function! s:execute(cmd)
+  if a:cmd =~# '^echo'
+    execute a:cmd
+  else
+    silent! execute a:cmd
+  endif
+endfunction
+" }}"
+
+" nvim client methods {{
+function! s:funcs.set_current_dir(dir) abort
+  execute 'cd '.a:dir
 endfunction
 
-function! s:switch_buf(bufnr)
-pyx << EOF
-bufnr = int(vim.eval('a:bufnr'))
-buf = find(lambda x: x.number == bufnr, vim.buffers)
-EOF
+function! s:funcs.set_var(name, value) abort
+  execute 'let g:'.a:name.'= a:value'
 endfunction
 
-function! s:switch_win(win_id)
+function! s:funcs.del_var(name) abort
+  execute 'unlet g:'.a:name
+endfunction
+
+function! s:funcs.set_option(name, value) abort
+  execute 'let &'.a:name.' = a:value'
+endfunction
+
+function! s:funcs.set_current_buf(bufnr) abort
+  if !bufexists(a:bufnr) | return | endif
+  execute 'buffer '.a:bufnr
+endfunction
+
+function! s:funcs.set_current_win(win_id) abort
   let [tabnr, winnr] = win_id2tabwin(a:win_id)
   if tabnr == 0 | return | endif
-pyx << EOF
-tabnr = int(vim.eval('tabnr'))
-wnr = int(vim.eval('winnr'))
-tab = find(lambda x: x.number == tabnr, vim.tabpages)
-win = find(lambda x: x.number == wnr, tab.windows)
-EOF
-  return 1
+  execute 'normal! '.tabnr.'gt'
+  execute winnr.' wincmd w'
+endfunction
+
+function! s:funcs.set_current_tabpage(tabnr) abort
+  execute 'normal! '.a:tabnr.'gt'
+endfunction
+
+function! s:funcs.list_wins() abort
+  return map(getwininfo(), 'v:val["winid"]')
+endfunction
+
+function! s:funcs.call_atomic(calls)
+  for [key, arglist] in a:calls
+    let name = key[5:]
+    try
+      call call(s:funcs[name], arglist)
+    catch /.*/
+      throw v:exception
+    endtry
+  endfor
 endfunction
 
 function! s:funcs.set_client_info(...) abort
@@ -89,108 +109,6 @@ endfunction
 
 function! s:funcs.feedkeys(keys, mode, escape_csi)
   call feedkeys(a:keys, a:mode)
-endfunction
-
-function! s:funcs.win_get_position(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('[win.row, win.col]')
-endfunction
-
-function! s:funcs.win_get_cursor(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.cursor')
-endfunction
-
-function! s:funcs.win_get_height(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.height')
-endfunction
-
-function! s:funcs.win_get_width(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.width')
-endfunction
-
-function! s:funcs.win_get_var(win_id, name) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.vars["'.a:name.'"]')
-endfunction
-
-function! s:funcs.win_set_width(win_id, width) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  execute 'pyx win.width='.a:width
-  redraw
-endfunction
-
-function! s:funcs.win_get_option(win_id, name) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.options["'.a:name.'"]')
-endfunction
-
-function! s:funcs.win_set_height(win_id, height) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  execute 'pyx win.height='.a:height
-  redraw
-endfunction
-
-function! s:funcs.win_set_option(win_id, name, value) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  if type(a:value) == 0
-    execute 'pyx win.options["'.a:name.'"] = '.a:value.
-  else
-    execute 'pyx win.options["'.a:name.'"] = vim.eval("a:value")'
-  endif
-endfunction
-
-function! s:funcs.win_set_var(win_id, name, value) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  if type(a:value) == 0
-    execute 'pyx value = '.a:value
-  else
-    execute 'pyx value = vim.eval("a:value")'
-  endif
-  execute 'pyx win.vars["'.a:name.'"] = value'
-endfunction
-
-function! s:funcs.win_del_var(win_id, name) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  execute 'pyx win.vars["'.a:name.'"] = None'
-endfunction
-
-function! s:funcs.win_is_valid(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.valid')
-endfunction
-
-function! s:funcs.win_get_number(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.number')
-endfunction
-
-function! s:funcs.win_set_cursor(win_id, pos) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  let [lnum, col] = a:pos
-  execute 'pyx win.cursor = ('.lnum.','.col.')'
-endfunction
-
-function! s:funcs.buf_get_var(bufnr, name)
-  return getbufvar(a:bufnr, a:name)
-endfunction
-
-function! s:funcs.buf_set_var(bufnr, name, val)
-  call setbufvar(a:bufnr, a:name, a:val)
-endfunction
-
-function! s:funcs.buf_del_var(bufnr, name)
-  call setbufvar(a:bufnr, a:name, v:null)
-endfunction
-
-function! s:funcs.buf_get_option(bufnr, name)
-  return getbufvar(a:bufnr, '&'.a:name)
-endfunction
-
-function! s:funcs.buf_get_name(bufnr)
-  return bufname(a:bufnr)
 endfunction
 
 function! s:funcs.list_runtime_paths()
@@ -245,10 +163,6 @@ function! s:funcs.get_mode()
   return {'blocking': v:false, 'mode': mode()}
 endfunction
 
-function! s:funcs.win_get_buf(winid)
-  return winbufnr(a:winid)
-endfunction
-
 function! s:funcs.strwidth(str)
   return strwidth(a:str)
 endfunction
@@ -264,29 +178,27 @@ endfunction
 function! s:funcs.err_writeln(str)
   echoerr a:str
 endfunction
+" }}
 
-function! s:funcs.tabpage_get_number(id)
-  return a:id
-endfunction
-
+" buffer methods {{
 function! s:funcs.buf_set_option(bufnr, name, val)
   return setbufvar(a:bufnr, '&'.a:name, a:val)
 endfunction
 
 function! s:funcs.buf_get_changedtick(bufnr)
-  return getbufvar(a:bufnr, changedtick)
+  return getbufvar(a:bufnr, 'changedtick')
 endfunction
 
 function! s:funcs.buf_is_valid(bufnr)
-  if !bufexists(a:bufnr) | return 0 | endif
-  call s:switch_buf(a:bufnr)
-  return pyxeval('buf.valid')
+  return bufloaded(a:bufnr) ? v:true : v:false
 endfunction
 
 function! s:funcs.buf_get_mark(bufnr, name)
-  if !bufexists(a:bufnr) | return 0 | endif
-  call s:switch_buf(a:bufnr)
-  return pyxeval('buf.mark(vim.eval("a:name"))')
+  let nr = bufnr('%')
+  if a:bufnr != 0 || a:bufnr != nr
+    throw 'buf_get_mark support current buffer only'
+  endif
+  return [line("'" . a:name), col("'" . a:name)]
 endfunction
 
 function! s:funcs.buf_line_count(bufnr) abort
@@ -322,164 +234,185 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   " replace
   if delCount == len(replacement)
     call setbufline(a:bufnr, startLnum, replacement)
-  elseif delCount > 0
-    call deletebufline(a:bufnr, startLnum, startLnum + delCount - 1)
-    let len = len(replacement)
-    if len > 0
-      if startLnum == 1
-        call setbufline(a:bufnr, 1, replacement[0])
-        if len > 1
-          call appendbufline(a:bufnr, 1, replacement[1:])
-        endif
-      else
-        call appendbufline(a:bufnr, startLnum - 1, replacement)
-      endif
+  else
+    if delCount
+      call deletebufline(a:bufnr, startLnum, startLnum + delCount - 1)
     endif
-  elseif len(replacement) > 0
-    " add lines
-    call appendbufline(a:bufnr, startLnum - 1, replacement)
+    if len(replacement)
+      call appendbufline(a:bufnr, startLnum - 1, replacement)
+    endif
   endif
-  redraw
 endfunction
 
 function! s:funcs.buf_set_name(bufnr, name) abort
-pyx << EOF
-name = vim.eval('a:name')
-bufnr = int(vim.eval('a:bufnr'))
-for b in vim.buffers:
-  if b.number = bufnr:
-    b.name = name
-    break
-EOF
-endfunction
-
-function! s:funcs.set_current_dir(dir) abort
-  execute 'cd '.a:dir
-endfunction
-
-function! s:funcs.set_var(name, value) abort
-  execute 'let g:'.a:name.'= a:value'
-endfunction
-
-function! s:funcs.del_var(name) abort
-  execute 'unlet g:'.a:name
-endfunction
-
-function! s:funcs.set_option(name, value) abort
-  execute 'let &'.a:name.' = a:value'
-endfunction
-
-function! s:funcs.set_current_buf(bufnr) abort
-  if !bufexists(a:bufnr) | return | endif
-  execute 'buffer '.a:bufnr
-endfunction
-
-function! s:funcs.set_current_win(win_id) abort
-  let [tabnr, winnr] = win_id2tabwin(a:win_id)
-  if tabnr == 0 | return | endif
-  execute 'normal! '.tabnr.'gt'
-  execute winnr.' wincmd w'
-endfunction
-
-function! s:funcs.set_current_tabpage(tabnr) abort
-  execute 'normal! '.a:tabnr.'gt'
-endfunction
-
-function! s:funcs.tabpage_list_wins(tabnr)
-  call s:switch_tab(a:tabnr)
-pyx << EOF
-res = []
-for w in tab.windows:
-  winid = int(vim.eval('win_getid(%d,%d)' % (w.number, tab.number)))
-  res.append(winid)
-EOF
-  return pyxeval('res')
-endfunction
-
-function! s:funcs.tabpage_get_var(tabnr, name)
-  call s:switch_tab(a:tabnr)
-  return pyxeval('tab.vars["'.a:name.'"]')
-endfunction
-
-function! s:funcs.tabpage_set_var(tabnr, name, value)
-  call s:switch_tab(a:tabnr)
-  if type(a:value) == 0
-    execute 'pyx tab.vars["'.a:name.'"] = '.a:value
-  else
-    execute 'pyx tab.vars["'.a:name.'"] = vim.eval("a:value")'
+  let nr = bufnr('%')
+  if a:bufnr != nr
+    throw 'buf_set_name support current buffer only'
+    execute '0f'
+    execute 'file '.fnameescape(a:name)
   endif
 endfunction
 
-function! s:funcs.tabpage_del_var(tabnr, name)
-  call s:switch_tab(a:tabnr)
-  execute 'pyx tab.vars["'.a:name.'"] = None'
+function! s:funcs.buf_get_var(bufnr, name)
+  return getbufvar(a:bufnr, a:name)
 endfunction
 
-function! s:funcs.tabpage_is_valid()
-  call s:switch_tab(a:tabnr)
-  return pyxeval('tab.valid')
+function! s:funcs.buf_set_var(bufnr, name, val)
+  call setbufvar(a:bufnr, a:name, a:val)
 endfunction
 
-"Get the current window in a tabpage
-function! s:funcs.tabpage_get_win(tabnr)
-  call s:switch_tab(a:tabnr)
-  let wnr = pyxeval('tab.window.number')
-  return win_getid(wnr, a:tabnr)
+function! s:funcs.buf_del_var(bufnr, name)
+  call setbufvar(a:bufnr, a:name, v:null)
+endfunction
+
+function! s:funcs.buf_get_option(bufnr, name)
+  return getbufvar(a:bufnr, '&'.a:name)
+endfunction
+
+function! s:funcs.buf_get_name(bufnr)
+  return bufname(a:bufnr)
+endfunction
+" }}
+
+" window methods {{
+function! s:funcs.win_get_buf(winid)
+  return winbufnr(a:winid)
+endfunction
+
+function! s:funcs.win_get_position(win_id) abort
+  let [row, col] = win_screenpos(a:win_id)
+  if row == 0 && col == 0
+    throw 'Invalid window '.a:win_id
+  endif
+  return [row - 1, col - 1]
+endfunction
+
+function! s:funcs.win_get_height(win_id) abort
+  return winheight(a:win_id)
+endfunction
+
+function! s:funcs.win_get_width(win_id) abort
+  return winwidth(a:win_id)
+endfunction
+
+function! s:funcs.win_get_cursor(win_id) abort
+  let winid = win_getid()
+  call win_gotoid(a:win_id)
+  let pos = [line('.'), col('.')]
+  call win_gotoid(winid)
+  return pos
+endfunction
+
+function! s:funcs.win_get_var(win_id, name) abort
+  return gettabwinvar(0, a:win_id, a:name)
+endfunction
+
+function! s:funcs.win_set_width(win_id, width) abort
+  let winid = win_getid()
+  call win_gotoid(a:win_id)
+  execute 'vertical resize '.a:width
+  call win_gotoid(winid)
+endfunction
+
+function! s:funcs.win_get_option(win_id, name) abort
+  return gettabwinvar(0, a:win_id, '&'.a:name)
+endfunction
+
+function! s:funcs.win_set_height(win_id, height) abort
+  let winnr = win_id2win(a:win_id)
+  if winnr != 0
+    let curr = winnr()
+    if winnr == curr
+      execute 'resize '.a:height
+    else
+      execute winnr.'wincmd w'
+      execute 'resize '.a:height
+      wincmd p
+    endif
+  endif
+endfunction
+
+function! s:funcs.win_set_option(win_id, name, value) abort
+  call settabwinvar(0, a:win_id, '&'.a:name, a:value)
+endfunction
+
+function! s:funcs.win_set_var(win_id, name, value) abort
+  call settabwinvar(0, a:win_id, a:name, a:value)
+endfunction
+
+function! s:funcs.win_del_var(win_id, name) abort
+  call settabwinvar(0, a:win_id, a:name, v:null)
+endfunction
+
+function! s:funcs.win_is_valid(win_id) abort
+  let info = getwininfo(a:win_id)
+  return !empty(info)
+endfunction
+
+function! s:funcs.win_get_number(win_id) abort
+  let info = getwininfo(a:win_id)
+  if !info
+    throw 'Invalid window id '.a:win_id
+  endif
+  return info[0]['winnr']
+endfunction
+
+function! s:funcs.win_set_cursor(win_id, pos) abort
+  let winnr = win_id2win(a:win_id)
+  if winnr != 0
+    let [line, col] = a:pos
+    let curr = winnr()
+    if winnr == curr
+      call cursor(line, col + 1)
+    else
+      execute winnr.'wincmd w'
+      call cursor(line, col + 1)
+      execute curr.'wincmd w'
+    endif
+  endif
 endfunction
 
 function! s:funcs.win_get_tabpage(win_id) abort
-  if !s:switch_win(a:win_id) | return v:null | endif
-  return pyxeval('win.tabpage.number')
+  let info = getwininfo(a:win_id)
+  if !info
+    throw 'Invalid window id '.a:win_id
+  endif
+  return info[0]['tabnr']
+endfunction
+" }}
+
+" tabpage methods {{
+function! s:funcs.tabpage_get_number(id)
+  return a:id
 endfunction
 
-function! s:funcs.list_wins() abort
-pyx << EOF
-wins = []
-for t in vim.tabpages:
-  for w in t.windows:
-    winid = int(vim.eval('win_getid(%d,%d)' % (w.number, t.number)))
-    wins.append(winid)
-EOF
-  return pyxeval('wins')
+function! s:funcs.tabpage_list_wins(tabnr)
+  let info = getwininfo()
+  return map(filter(info, 'v:val["tabnr"] == a:tabnr'), 'v:val["winid"]')
 endfunction
 
-function! s:funcs.call_atomic(calls)
-  for [key, arglist] in a:calls
-    if key ==# 'nvim_win_set_height'
-      let winnr = win_id2win(arglist[0])
-      if winnr != 0
-        let curr = winnr()
-        if winnr == curr
-          execute 'pyx vim.current.window.height='.arglist[1]
-        else
-          execute winnr.'wincmd w'
-          execute 'pyx vim.current.window.height='.arglist[1]
-          execute curr.'wincmd w'
-        endif
-      endif
-    elseif key ==# 'nvim_win_set_cursor'
-      let winnr = win_id2win(arglist[0])
-      if winnr != 0
-        let [line, col] = arglist[1]
-        let curr = winnr()
-        if winnr == curr
-          call cursor(line, col + 1)
-        else
-          execute winnr.'wincmd w'
-          call cursor(line, col + 1)
-          execute curr.'wincmd w'
-        endif
-      endif
-    else
-      let name = key[5:]
-      try
-        call call(s:funcs[name], arglist)
-      catch /.*/
-        throw v:exception
-      endtry
-    endif
-  endfor
+function! s:funcs.tabpage_get_var(tabnr, name)
+  return gettabvar(a:tabnr, a:name, v:null)
 endfunction
+
+function! s:funcs.tabpage_set_var(tabnr, name, value)
+  call settabvar(a:tabnr, a:name, a:value)
+endfunction
+
+function! s:funcs.tabpage_del_var(tabnr, name)
+  call settabvar(a:tabnr, a:name, v:null)
+endfunction
+
+function! s:funcs.tabpage_is_valid(tabnr)
+  let max = tabpagenr('$')
+  return a:tabnr <= max
+endfunction
+
+function! s:funcs.tabpage_get_win(tabnr)
+  let wnr = tabpagewinnr(a:tabnr)
+  return win_getid(wnr, a:tabnr)
+endfunction
+" }}
 
 function! coc#api#func_names() abort
   return keys(s:funcs)
@@ -499,14 +432,4 @@ endfunction
 function! coc#api#notify(method, args) abort
   call call(s:funcs[a:method], a:args)
 endfunction
-
-function! s:execute(cmd)
-  if a:cmd =~# '^echo'
-    execute a:cmd
-  else
-    silent! execute a:cmd
-  endif
-endfunction
-
-let &cpo = s:save_cpo
-unlet s:save_cpo
+" vim: set sw=2 ts=2 sts=2 et tw=78 foldmarker={{,}} foldmethod=marker foldlevel=0:

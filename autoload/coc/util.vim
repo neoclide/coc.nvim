@@ -669,7 +669,8 @@ function! coc#util#extension_root() abort
   return dir
 endfunction
 
-function! coc#util#update_extensions() abort
+function! coc#util#update_extensions(...) abort
+  let useTerminal = get(a:, 1, 0)
   let yarncmd = coc#util#yarn_cmd()
   if empty(yarncmd)
     echohl Error | echon '[coc.nvim] yarn command not found!' | echohl None
@@ -678,10 +679,19 @@ function! coc#util#update_extensions() abort
   if !isdirectory(dir)
     echohl Error | echon '[coc.nvim] extension root '.dir.' not found!' | echohl None
   endif
-  let cwd = getcwd()
-  exe 'lcd '.dir
-  exe '!'.yarncmd.' upgrade --latest --ignore-engines'
-  exe 'lcd '.cwd
+  if !useTerminal
+    let cwd = getcwd()
+    exe 'lcd '.dir
+    exe '!'.yarncmd.' upgrade --latest --ignore-engines'
+    exe 'lcd '.cwd
+  else
+    call coc#util#open_terminal({
+          \ 'cmd': yarncmd.' upgrade --latest --ignore-engines',
+          \ 'autoclose': 1,
+          \ 'cwd': dir,
+          \})
+    wincmd p
+  endif
 endfunction
 
 function! coc#util#install_extension(args) abort

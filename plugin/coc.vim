@@ -10,14 +10,6 @@ let g:coc_service_initialized = 0
 let s:is_vim = !has('nvim')
 
 if get(g:, 'coc_start_at_startup', 1)
-  if s:is_vim
-    try
-      silent pyx print("")
-    catch /.*/
-      echohl Error | echon 'coc.nvim requires pyx command on vim, checkout ":h pythonx"' | echohl None
-      finish
-    endtry
-  endif
   call coc#rpc#start_server()
 endif
 
@@ -207,7 +199,6 @@ function! s:CodeActionFromSelected(type)
 endfunction
 
 command! -nargs=0 CocInfo         :call coc#rpc#notify('showInfo', [])
-command! -nargs=0 CocUpdate       :call coc#rpc#notify('updateExtension', [])
 command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
 command! -nargs=0 CocListResume   :call coc#rpc#notify('listResume', [])
 command! -nargs=0 CocPrev         :call coc#rpc#notify('listPrev', [])
@@ -217,6 +208,7 @@ command! -nargs=0 CocEnable       :call s:Enable()
 command! -nargs=0 CocConfig       :call s:OpenConfig()
 command! -nargs=0 CocRestart      :call coc#rpc#restart()
 command! -nargs=0 CocStart        :call coc#rpc#start_server()
+command! -nargs=0 CocUpdate       :call coc#util#update_extensions(1)
 command! -nargs=0 CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
