@@ -374,12 +374,12 @@ export class DiagnosticManager implements Disposable {
       return positionInRange(pos, o.range) == 0
     })
     if (truncate) {
-      if (this.lastShown && equals(this.lastShown, diagnostics)) {
+      if (diagnostics.length && this.lastShown && equals(this.lastShown, diagnostics)) {
         this.floatFactory.close()
         return
       }
-      this.lastShown = diagnostics
     }
+    this.lastShown = diagnostics
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
