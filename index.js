@@ -42040,7 +42040,7 @@ function echoMsg(nvim, msg, hl) {
 function getUri(fullpath, id, buftype) {
     if (!fullpath)
         return `untitled:${id}`;
-    if (buftype == '' && path_1.default.isAbsolute(fullpath))
+    if (path_1.default.isAbsolute(fullpath))
         return vscode_uri_1.default.file(fullpath).toString();
     if (isuri_1.default.isValid(fullpath))
         return vscode_uri_1.default.parse(fullpath).toString();
@@ -48209,16 +48209,20 @@ class Document {
         this._rootPatterns = opts.rootPatterns;
         this.eol = opts.eol == 1;
         let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype);
-        if (this.shouldAttach(buftype)) {
+        try {
             if (!this.env.isVim) {
                 let res = await this.attach();
                 if (!res)
                     return false;
             }
             else {
-                this.lines = (await buffer.lines);
+                this.lines = await buffer.lines;
             }
             this.attached = true;
+        }
+        catch (e) {
+            logger.error('attach error:', e);
+            return false;
         }
         this._filetype = this.convertFiletype(opts.filetype);
         this.textDocument = vscode_languageserver_protocol_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
@@ -48240,10 +48244,16 @@ class Document {
         });
     }
     async attach() {
-        let attached = await this.buffer.attach(false);
-        if (!attached)
-            return false;
-        this.lines = (await this.buffer.lines);
+        if (this.shouldAttach(this.buftype)) {
+            let attached = await this.buffer.attach(false);
+            if (!attached)
+                return false;
+            this.lines = await this.buffer.lines;
+        }
+        else {
+            this.lines = await this.buffer.lines;
+            return true;
+        }
         if (!this.buffer.isAttached)
             return;
         this.buffer.listen('lines', (...args) => {
@@ -53529,7 +53539,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a466354e66" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "30d7cb1dba" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
