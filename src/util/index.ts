@@ -55,7 +55,7 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
 
 export function getUri(fullpath: string, id: number, buftype: string): string {
   if (!fullpath) return `untitled:${id}`
-  if (buftype == '' && path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
+  if (path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
   if (isuri.isValid(fullpath)) return Uri.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`

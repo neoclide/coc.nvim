@@ -182,7 +182,7 @@ describe('list configuration', () => {
   it('should change indicator', async () => {
     helper.updateConfiguration('list.indicator', '>>')
     await manager.start(['location'])
-    await helper.wait(100)
+    await helper.wait(300)
     let line = await helper.getCmdline()
     expect(line).toMatch('>>')
   })

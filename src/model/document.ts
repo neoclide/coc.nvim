@@ -104,14 +104,17 @@ export default class Document {
     this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
-    if (this.shouldAttach(buftype)) {
+    try {
       if (!this.env.isVim) {
         let res = await this.attach()
         if (!res) return false
       } else {
-        this.lines = (await buffer.lines) as string[]
+        this.lines = await buffer.lines
       }
       this.attached = true
+    } catch (e) {
+      logger.error('attach error:', e)
+      return false
     }
     this._filetype = this.convertFiletype(opts.filetype)
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
@@ -135,9 +138,14 @@ export default class Document {
   }
 
   public async attach(): Promise<boolean> {
-    let attached = await this.buffer.attach(false)
-    if (!attached) return false
-    this.lines = (await this.buffer.lines) as string[]
+    if (this.shouldAttach(this.buftype)) {
+      let attached = await this.buffer.attach(false)
+      if (!attached) return false
+      this.lines = await this.buffer.lines
+    } else {
+      this.lines = await this.buffer.lines
+      return true
+    }
     if (!this.buffer.isAttached) return
     this.buffer.listen('lines', (...args) => {
       this.onChange.apply(this, args)
