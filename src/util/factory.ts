@@ -86,6 +86,7 @@ export interface ISandbox {
   module: NodeModule
   require: (p: string) => any
   console: { [key in keyof Console]?: Function }
+  Buffer: any
   Reflect: any
   String: any
   Promise: any
@@ -97,6 +98,7 @@ function createSandbox(filename: string, logger: Logger): ISandbox {
 
   const sandbox = vm.createContext({
     module,
+    Buffer,
     console: {
       log: (...args: any[]) => {
         logger.debug.apply(logger, args)
