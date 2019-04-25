@@ -28,11 +28,13 @@ function! s:checkEnvironment() abort
   if valid
     call health#report_ok('Environment check passed')
   endif
-  try
-    silent pyx print("")
-  catch /.*/
-    call health#report_warn('pyx command not work, some extensions may fail to work, checkout ":h pythonx"')
-  endtry
+  if has('pythonx')
+    try
+      silent pyx print("")
+    catch /.*/
+      call health#report_warn('pyx command not work, some extensions may fail to work, checkout ":h pythonx"')
+    endtry
+  endif
   return valid
 endfunction
 
