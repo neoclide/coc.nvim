@@ -53345,15 +53345,18 @@ class Plugin extends events_1.EventEmitter {
         });
         this.addMethod('installExtensions', debounce(async () => {
             let list = await nvim.getVar('coc_global_extensions');
-            return extensions_1.default.installExtensions(list).catch(_e => {
-                // noop
-            });
+            await extensions_1.default.installExtensions(list);
         }, 200));
         this.addMethod('commandList', () => {
             return commands_1.default.commandList.map(o => o.id);
         });
         this.addMethod('openList', async (...args) => {
+            await this.ready;
             await manager_2.default.start(args);
+        });
+        this.addMethod('runCommand', async (...args) => {
+            await this.ready;
+            await this.handler.runCommand(...args);
         });
         this.addMethod('listResume', () => {
             return manager_2.default.resume();
@@ -53523,7 +53526,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "81b1e3eeb4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2c35f29fa0" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
