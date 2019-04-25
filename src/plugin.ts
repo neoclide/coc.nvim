@@ -47,15 +47,18 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('installExtensions', debounce(async () => {
       let list = await nvim.getVar('coc_global_extensions') as string[]
-      return extensions.installExtensions(list).catch(_e => {
-        // noop
-      })
+      await extensions.installExtensions(list)
     }, 200))
     this.addMethod('commandList', () => {
       return commandManager.commandList.map(o => o.id)
     })
     this.addMethod('openList', async (...args: string[]) => {
+      await this.ready
       await listManager.start(args)
+    })
+    this.addMethod('runCommand', async (...args: string[]) => {
+      await this.ready
+      await this.handler.runCommand(...args)
     })
     this.addMethod('listResume', () => {
       return listManager.resume()

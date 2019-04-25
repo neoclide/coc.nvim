@@ -492,7 +492,7 @@ function! coc#util#run_terminal(opts, cb)
   endif
   let opts = {
         \ 'cmd': cmd,
-        \ 'cwd': get(a:opts, 'cwd', ''),
+        \ 'cwd': get(a:opts, 'cwd', getcwd()),
         \ 'keepfocus': get(a:opts, 'keepfocus', 0),
         \ 'Callback': {status, bufnr, content -> a:cb(v:null, {'success': status == 0 ? v:true : v:false, 'bufnr': bufnr, 'content': content})}
         \}

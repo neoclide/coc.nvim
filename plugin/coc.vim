@@ -213,8 +213,8 @@ command! -nargs=0 CocUpdateSync   :call coc#util#update_extensions()
 command! -nargs=0 CocRebuild      :call coc#util#rebuild()
 command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#install_extension([<f-args>])
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
-command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#request('openList',  [<f-args>])
-command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call coc#rpc#request('CocAction', ['runCommand',         <f-args>])
+command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
+command! -nargs=* -complete=custom,s:CommandList    CocCommand   :call coc#rpc#notify('runCommand', [<f-args>])
 
 call s:Enable()
 
