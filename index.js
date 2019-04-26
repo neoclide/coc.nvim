@@ -53526,7 +53526,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "354b3ed010" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5effa64974" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -67800,7 +67800,12 @@ class ListManager {
                 if (typeof this.currList.doHighlight == 'function') {
                     this.currList.doHighlight();
                 }
-                nvim.command(`setl statusline=${this.buildStatusline()}`, true);
+                this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()]);
+            }
+        }, null, this.disposables);
+        this.ui.onDidChange(() => {
+            if (this.currList) {
+                this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()]);
             }
         }, null, this.disposables);
         this.ui.onDidClose(async () => {
@@ -68085,11 +68090,11 @@ class ListManager {
             `%#CocListMode#-- %{coc#list#status('mode')} --%*`,
             `%{get(g:, 'coc_list_loading_status', '')}`,
             args.join(' '),
-            `\\(%L/%{coc#list#status('total')}\\)`,
+            `(%L/%{coc#list#status('total')})`,
             '%=',
             `%#CocListPath# %{coc#list#status('cwd')} %l/%L%*`
         ];
-        return parts.join(' ').replace(/\s/g, '\\ ');
+        return parts.join(' ');
     }
     async onInputChar(ch, charmod) {
         let { mode } = this.prompt;
