@@ -53526,7 +53526,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2c35f29fa0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "354b3ed010" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -67797,21 +67797,21 @@ class ListManager {
         }, 100), null, this.disposables);
         this.ui.onDidOpen(() => {
             if (this.currList) {
-                this.currList.doHighlight();
+                if (typeof this.currList.doHighlight == 'function') {
+                    this.currList.doHighlight();
+                }
                 nvim.command(`setl statusline=${this.buildStatusline()}`, true);
             }
         }, null, this.disposables);
         this.ui.onDidClose(async () => {
             await this.cancel();
         }, null, this.disposables);
-        this.ui.onDidChangeHeight(() => {
-            if (workspace_1.default.isNvim) {
-                this.prompt.drawPrompt();
-            }
-        });
         this.ui.onDidChange(async () => {
             if (this.activated) {
                 this.updateStatus();
+            }
+            if (workspace_1.default.isNvim) {
+                this.prompt.drawPrompt();
             }
         }, null, this.disposables);
         this.ui.onDidDoubleClick(async () => {
@@ -68298,6 +68298,9 @@ class ListManager {
         }
         this.listMap.set(list.name, list);
         return vscode_languageserver_protocol_1.Disposable.create(() => {
+            if (typeof list.dispose == 'function') {
+                list.dispose();
+            }
             this.listMap.delete(list.name);
         });
     }
@@ -70687,7 +70690,6 @@ class ListUI {
             this.creating = true;
             let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`;
             await nvim.command(cmd);
-            await nvim.call('coc#list#setup', [name]);
             this._bufnr = await nvim.call('bufnr', '%');
             this.window = await nvim.window;
             await this.window.request(`nvim_win_set_height`, [height]);
