@@ -97,7 +97,12 @@ export class ListManager implements Disposable {
         if (typeof this.currList.doHighlight == 'function') {
           this.currList.doHighlight()
         }
-        nvim.command(`setl statusline=${this.buildStatusline()}`, true)
+        this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()])
+      }
+    }, null, this.disposables)
+    this.ui.onDidChange(() => {
+      if (this.currList) {
+        this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()])
       }
     }, null, this.disposables)
     this.ui.onDidClose(async () => {
@@ -370,11 +375,11 @@ export class ListManager implements Disposable {
       `%#CocListMode#-- %{coc#list#status('mode')} --%*`,
       `%{get(g:, 'coc_list_loading_status', '')}`,
       args.join(' '),
-      `\\(%L/%{coc#list#status('total')}\\)`,
+      `(%L/%{coc#list#status('total')})`,
       '%=',
       `%#CocListPath# %{coc#list#status('cwd')} %l/%L%*`
     ]
-    return parts.join(' ').replace(/\s/g, '\\ ')
+    return parts.join(' ')
   }
 
   private async onInputChar(ch: string, charmod: number): Promise<void> {
