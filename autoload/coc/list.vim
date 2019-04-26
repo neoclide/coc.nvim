@@ -156,7 +156,8 @@ function! coc#list#setup(source)
   setl signcolumn=yes
   setl filetype=list
   syntax case ignore
-  let name = toupper(a:source[0]).a:source[1:]
+  let source = a:source[8:]
+  let name = toupper(source[0]).source[1:]
   execute 'syntax match Coc'.name.'Line /\v^.*$/'
 endfunction
 
