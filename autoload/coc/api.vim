@@ -235,11 +235,12 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   if delCount == len(replacement)
     call setbufline(a:bufnr, startLnum, replacement)
   else
-    if delCount
-      call deletebufline(a:bufnr, startLnum, startLnum + delCount - 1)
-    endif
     if len(replacement)
       call appendbufline(a:bufnr, startLnum - 1, replacement)
+    endif
+    if delCount
+      let start = startLnum + len(replacement)
+      call deletebufline(a:bufnr, start, start + delCount - 1)
     endif
   endif
 endfunction
