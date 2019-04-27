@@ -27,10 +27,14 @@ export class SnippetSession {
     this.preferComplete = config.get<boolean>('preferCompleteThanJumpPlaceholder', suggest.get('preferCompleteThanJumpPlaceholder', false))
   }
 
-  public async start(snippetString: string, select = true, position?: Position): Promise<boolean> {
+  public async start(snippetString: string, select = true, range?: Range): Promise<boolean> {
     const { document, nvim } = this
     if (!document) return false
-    if (!position) position = await workspace.getCursorPosition()
+    if (!range) {
+      let position = await workspace.getCursorPosition()
+      range = Range.create(position, position)
+    }
+    let position = range.start
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
@@ -38,7 +42,7 @@ export class SnippetSession {
     const resolver = new SnippetVariableResolver()
     await resolver.init(document)
     const snippet = new CocSnippet(inserted, position, resolver)
-    const edit = TextEdit.insert(position, snippet.toString())
+    const edit = TextEdit.replace(range, snippet.toString())
     const endPart = currentLine.slice(position.character)
     if (snippetString.endsWith('\n') && endPart) {
       // make next line same indent

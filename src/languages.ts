@@ -645,7 +645,8 @@ class Languages {
         newText: `${start}${end}\n`
       }])
       // can't select, since additionalTextEdits would break selection
-      return await snippetManager.insertSnippet(newText, false, Position.create(linenr - 1, range.start.character))
+      let pos = Position.create(linenr - 1, range.start.character)
+      return await snippetManager.insertSnippet(newText, false, Range.create(pos, pos))
     }
     let newLines = `${start}${newText}${end}`.split('\n')
     if (newLines.length == 1) {

@@ -1,4 +1,4 @@
-import { DidChangeTextDocumentParams, Disposable, Position } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, Position, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
@@ -58,7 +58,7 @@ export class SnippetManager implements types.SnippetManager {
   /**
    * Insert snippet at current cursor position
    */
-  public async insertSnippet(snippet: string, select = true, position?: Position): Promise<boolean> {
+  public async insertSnippet(snippet: string, select = true, range?: Range): Promise<boolean> {
     let { nvim } = workspace
     let bufnr = await nvim.call('bufnr', '%')
     let session = this.getSession(bufnr)
@@ -72,7 +72,7 @@ export class SnippetManager implements types.SnippetManager {
         }
       })
     }
-    let isActive = await session.start(snippet, select, position)
+    let isActive = await session.start(snippet, select, range)
     if (isActive) {
       this.statusItem.show()
     } else if (session) {

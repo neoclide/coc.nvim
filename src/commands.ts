@@ -57,13 +57,8 @@ export class CommandManager implements Disposable {
         let doc = workspace.getDocument(workspace.bufnr)
         if (!doc) return
         await nvim.call('coc#_cancel', [])
-        let { start, end } = edit.range
-        if (comparePosition(start, end) != 0) {
-          await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }])
-        } else if (doc.dirty) {
-          doc.forceSync()
-        }
-        await snipetsManager.insertSnippet(edit.newText, true, start)
+        if (doc.dirty) doc.forceSync()
+        await snipetsManager.insertSnippet(edit.newText, true, edit.range)
       }
     }, true)
     this.register({

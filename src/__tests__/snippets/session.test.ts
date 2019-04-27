@@ -32,6 +32,18 @@ describe('SnippetSession#start', () => {
     expect(pos).toEqual({ line: 0, character: 3 })
   })
 
+  it('should start with range replaced', async () => {
+    let buf = await helper.edit()
+    await helper.wait(30)
+    await nvim.setLine('foo')
+    await nvim.input('i')
+    let session = new SnippetSession(nvim, buf.id)
+    let res = await session.start('bar$0', true, Range.create(0, 0, 0, 3))
+    expect(res).toBe(false)
+    let line = await nvim.line
+    expect(line).toBe('bar')
+  })
+
   it('should fix indent of next line when necessary', async () => {
     let buf = await helper.edit()
     await nvim.setLine('  ab')
