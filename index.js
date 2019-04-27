@@ -44693,33 +44693,24 @@ augroup end`;
         let bufnr = buffer.id;
         if (this.creatingSources.has(bufnr))
             return;
-        let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
-        let token = source.token;
-        this.creatingSources.set(bufnr, source);
         let document = this.getDocument(bufnr);
-        let disposable;
         try {
             if (document)
                 this.onBufUnload(bufnr, true);
             document = new document_1.default(buffer, this._env);
-            disposable = token.onCancellationRequested(() => {
-                // can create new document of bufnr
-                this.creatingSources.delete(bufnr);
-                document.detach();
-            });
-            let created = await document.init(this.nvim);
+            let source = new vscode_languageserver_protocol_1.CancellationTokenSource();
+            let token = source.token;
+            this.creatingSources.set(bufnr, source);
+            let created = await document.init(this.nvim, token);
             if (!created)
                 document = null;
+            if (this.creatingSources.get(bufnr) == source) {
+                source.dispose();
+                this.creatingSources.delete(bufnr);
+            }
         }
         catch (e) {
             logger.error('Error on create buffer:', e);
-        }
-        if (token.isCancellationRequested)
-            document = null;
-        if (disposable)
-            disposable.dispose();
-        if (this.creatingSources.get(bufnr) == source) {
-            this.creatingSources.delete(bufnr);
         }
         if (!document)
             return;
@@ -44775,8 +44766,10 @@ augroup end`;
     onBufUnload(bufnr, recreate = false) {
         if (!recreate) {
             let source = this.creatingSources.get(bufnr);
-            if (source)
+            if (source) {
                 source.cancel();
+                this.creatingSources.delete(bufnr);
+            }
         }
         if (this.terminals.has(bufnr)) {
             let terminal = this.terminals.get(bufnr);
@@ -48182,7 +48175,7 @@ class Document {
     get lineCount() {
         return this.lines.length;
     }
-    async init(nvim) {
+    async init(nvim, token) {
         this.nvim = nvim;
         let { buffer } = this;
         let opts = await nvim.call('coc#util#get_bufoptions', buffer.id);
@@ -48193,6 +48186,9 @@ class Document {
         this._rootPatterns = opts.rootPatterns;
         this.eol = opts.eol == 1;
         let uri = this._uri = index_1.getUri(opts.fullpath, buffer.id, buftype);
+        token.onCancellationRequested(() => {
+            this.detach();
+        });
         try {
             if (!this.env.isVim) {
                 let res = await this.attach();
@@ -48212,6 +48208,8 @@ class Document {
         this.textDocument = vscode_languageserver_protocol_1.TextDocument.create(uri, this.filetype, 1, this.getDocumentContent());
         this.setIskeyword(opts.iskeyword);
         this.gitCheck();
+        if (token.isCancellationRequested)
+            return false;
         return true;
     }
     setIskeyword(iskeyword) {
@@ -48446,7 +48444,7 @@ class Document {
     }
     gitCheck() {
         let { uri } = this;
-        if (!uri.startsWith('file'))
+        if (!uri.startsWith('file') || this.buftype != '')
             return;
         let filepath = vscode_uri_1.default.parse(uri).fsPath;
         fs_1.isGitIgnored(filepath).then(isIgnored => {
@@ -53526,7 +53524,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5effa64974" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e035c9e206" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
