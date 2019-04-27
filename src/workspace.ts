@@ -1233,28 +1233,21 @@ augroup end`
     let buffer = typeof buf === 'number' ? this.nvim.createBuffer(buf) : buf
     let bufnr = buffer.id
     if (this.creatingSources.has(bufnr)) return
-    let source = new CancellationTokenSource()
-    let token = source.token
-    this.creatingSources.set(bufnr, source)
     let document = this.getDocument(bufnr)
-    let disposable: Disposable
     try {
       if (document) this.onBufUnload(bufnr, true)
       document = new Document(buffer, this._env)
-      disposable = token.onCancellationRequested(() => {
-        // can create new document of bufnr
-        this.creatingSources.delete(bufnr)
-        document.detach()
-      })
-      let created = await document.init(this.nvim)
+      let source = new CancellationTokenSource()
+      let token = source.token
+      this.creatingSources.set(bufnr, source)
+      let created = await document.init(this.nvim, token)
       if (!created) document = null
+      if (this.creatingSources.get(bufnr) == source) {
+        source.dispose()
+        this.creatingSources.delete(bufnr)
+      }
     } catch (e) {
       logger.error('Error on create buffer:', e)
-    }
-    if (token.isCancellationRequested) document = null
-    if (disposable) disposable.dispose()
-    if (this.creatingSources.get(bufnr) == source) {
-      this.creatingSources.delete(bufnr)
     }
     if (!document) return
     this.buffers.set(bufnr, document)
@@ -1310,7 +1303,10 @@ augroup end`
   private onBufUnload(bufnr: number, recreate = false): void {
     if (!recreate) {
       let source = this.creatingSources.get(bufnr)
-      if (source) source.cancel()
+      if (source) {
+        source.cancel()
+        this.creatingSources.delete(bufnr)
+      }
     }
     if (this.terminals.has(bufnr)) {
       let terminal = this.terminals.get(bufnr)

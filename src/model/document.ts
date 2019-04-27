@@ -1,6 +1,6 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
@@ -94,7 +94,7 @@ export default class Document {
     return this.lines.length
   }
 
-  public async init(nvim: Neovim): Promise<boolean> {
+  public async init(nvim: Neovim, token: CancellationToken): Promise<boolean> {
     this.nvim = nvim
     let { buffer } = this
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
@@ -104,6 +104,9 @@ export default class Document {
     this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
     let uri = this._uri = getUri(opts.fullpath, buffer.id, buftype)
+    token.onCancellationRequested(() => {
+      this.detach()
+    })
     try {
       if (!this.env.isVim) {
         let res = await this.attach()
@@ -120,6 +123,7 @@ export default class Document {
     this.textDocument = TextDocument.create(uri, this.filetype, 1, this.getDocumentContent())
     this.setIskeyword(opts.iskeyword)
     this.gitCheck()
+    if (token.isCancellationRequested) return false
     return true
   }
 
@@ -363,7 +367,7 @@ export default class Document {
 
   private gitCheck(): void {
     let { uri } = this
-    if (!uri.startsWith('file')) return
+    if (!uri.startsWith('file') || this.buftype != '') return
     let filepath = Uri.parse(uri).fsPath
     isGitIgnored(filepath).then(isIgnored => {
       this.isIgnored = isIgnored

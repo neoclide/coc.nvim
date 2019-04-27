@@ -887,6 +887,18 @@ describe('workspace events', () => {
     doc = workspace.getDocument(buf.id)
     expect(doc.bufnr).toBe(buf.id)
   })
+
+  it('should create document with same bufnr', async () => {
+    await nvim.command('tabe')
+    let buf = await helper.edit()
+    await helper.wait(100)
+    let doc = workspace.getDocument(buf.id)
+    expect(doc).toBeDefined()
+    await nvim.setLine('foo')
+    await helper.wait(30)
+    let content = doc.getDocumentContent()
+    expect(content).toMatch('foo')
+  })
 })
 
 describe('workspace textDocument content provider', () => {
