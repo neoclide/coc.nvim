@@ -1,3 +1,12 @@
+# 2019-04-27
+
+- **Break change** vim-node-rpc not required on vim.
+- **Break change** python not required on vim.
+- **Break change** complete items would refreshed after 500ms when not finished.
+- Add `additionalSchemes` for configured language server.
+- Add support for jumpCommand as false.
+- Fix `diagnostic.level` not work.
+
 # 2019-04-09
 
 - **Break change** `--strictMatch` option of list renamed to `--strict`
