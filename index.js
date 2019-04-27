@@ -53524,7 +53524,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e035c9e206" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c65044198f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53770,7 +53770,6 @@ const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const util_1 = __webpack_require__(168);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(232));
-const position_1 = __webpack_require__(234);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 const logger = __webpack_require__(179)('commands');
 class CommandItem {
@@ -53813,14 +53812,9 @@ class CommandManager {
                 if (!doc)
                     return;
                 await nvim.call('coc#_cancel', []);
-                let { start, end } = edit.range;
-                if (position_1.comparePosition(start, end) != 0) {
-                    await doc.applyEdits(nvim, [{ range: edit.range, newText: '' }]);
-                }
-                else if (doc.dirty) {
+                if (doc.dirty)
                     doc.forceSync();
-                }
-                await manager_1.default.insertSnippet(edit.newText, true, start);
+                await manager_1.default.insertSnippet(edit.newText, true, edit.range);
             }
         }, true);
         this.register({
@@ -54068,7 +54062,7 @@ class SnippetManager {
     /**
      * Insert snippet at current cursor position
      */
-    async insertSnippet(snippet, select = true, position) {
+    async insertSnippet(snippet, select = true, range) {
         let { nvim } = workspace_1.default;
         let bufnr = await nvim.call('bufnr', '%');
         let session = this.getSession(bufnr);
@@ -54082,7 +54076,7 @@ class SnippetManager {
                 }
             });
         }
-        let isActive = await session.start(snippet, select, position);
+        let isActive = await session.start(snippet, select, range);
         if (isActive) {
             this.statusItem.show();
         }
@@ -54194,12 +54188,15 @@ class SnippetSession {
         let suggest = workspace_1.default.getConfiguration('suggest');
         this.preferComplete = config.get('preferCompleteThanJumpPlaceholder', suggest.get('preferCompleteThanJumpPlaceholder', false));
     }
-    async start(snippetString, select = true, position) {
+    async start(snippetString, select = true, range) {
         const { document, nvim } = this;
         if (!document)
             return false;
-        if (!position)
-            position = await workspace_1.default.getCursorPosition();
+        if (!range) {
+            let position = await workspace_1.default.getCursorPosition();
+            range = vscode_languageserver_protocol_1.Range.create(position, position);
+        }
+        let position = range.start;
         const formatOptions = await workspace_1.default.getFormatOptions(this.document.uri);
         const currentLine = document.getline(position.line);
         const currentIndent = currentLine.match(/^\s*/)[0];
@@ -54207,7 +54204,7 @@ class SnippetSession {
         const resolver = new variableResolve_1.SnippetVariableResolver();
         await resolver.init(document);
         const snippet = new snippet_1.CocSnippet(inserted, position, resolver);
-        const edit = vscode_languageserver_protocol_1.TextEdit.insert(position, snippet.toString());
+        const edit = vscode_languageserver_protocol_1.TextEdit.replace(range, snippet.toString());
         const endPart = currentLine.slice(position.character);
         if (snippetString.endsWith('\n') && endPart) {
             // make next line same indent
@@ -59307,7 +59304,8 @@ class Languages {
                     newText: `${start}${end}\n`
                 }]);
             // can't select, since additionalTextEdits would break selection
-            return await manager_2.default.insertSnippet(newText, false, vscode_languageserver_protocol_1.Position.create(linenr - 1, range.start.character));
+            let pos = vscode_languageserver_protocol_1.Position.create(linenr - 1, range.start.character);
+            return await manager_2.default.insertSnippet(newText, false, vscode_languageserver_protocol_1.Range.create(pos, pos));
         }
         let newLines = `${start}${newText}${end}`.split('\n');
         if (newLines.length == 1) {
