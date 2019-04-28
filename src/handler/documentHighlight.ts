@@ -98,7 +98,7 @@ export default class DocumentHighlighter {
       let id = this.colorId
       this.colorId = id + 1
       let method = workspace.isVim ? 'callTimer' : 'call'
-      this.nvim[method]('matchaddpos', [hlGroup, arr, 9, id], true)
+      this.nvim[method]('matchaddpos', [hlGroup, arr, -1, id], true)
       matchIds.add(id)
     }
   }
