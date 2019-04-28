@@ -42,7 +42,7 @@ export default class Document {
     private env: Env) {
     this.fireContentChanges = debounce(() => {
       this._fireContentChanges()
-    }, 50)
+    }, 200)
     this.fetchContent = debounce(() => {
       this._fetchContent().catch(e => {
         logger.error(`Error on fetch content:`, e)
@@ -221,6 +221,7 @@ export default class Document {
         rangeLength: change.end - change.start,
         text: change.newText
       }]
+      logger.debug('changes:', JSON.stringify(changes, null, 2))
       this._onDocumentChange.fire({
         textDocument: { version, uri },
         contentChanges: changes
@@ -268,12 +269,9 @@ export default class Document {
 
   public async applyEdits(_nvim: Neovim, edits: TextEdit[], sync = true): Promise<void> {
     if (edits.length == 0) return
-    let orig = this.lines.join('\n')
-    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig + (this.eol ? '\n' : ''))
+    let orig = this.lines.join('\n') + (this.eol ? '\n' : '')
+    let textDocument = TextDocument.create(this.uri, this.filetype, 1, orig)
     let content = TextDocument.applyEdits(textDocument, edits)
-    if (this.eol && content.endsWith('\n')) {
-      content = content.slice(0, -1)
-    }
     // could be equal sometimes
     if (orig === content) {
       this.createDocument()
@@ -285,7 +283,7 @@ export default class Document {
         strictIndexing: false
       })
       // can't wait vim sync buffer
-      this.lines = content.split('\n')
+      this.lines = (this.eol && content.endsWith('\n') ? content.slice(0, -1) : content).split('\n')
       if (sync) this.forceSync()
     }
   }

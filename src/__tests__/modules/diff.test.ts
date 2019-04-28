@@ -33,6 +33,15 @@ describe('diff lines', () => {
       replacement: []
     })
   })
+
+  it('should diff removed line', () => {
+    let res = diffLines('a\n\n\nb', 'a\n\nb')
+    expect(res).toEqual({
+      start: 2,
+      end: 3,
+      replacement: []
+    })
+  })
 })
 
 describe('patch line', () => {

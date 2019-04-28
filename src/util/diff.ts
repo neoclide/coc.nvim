@@ -27,18 +27,12 @@ export function diffLines(from: string, to: string): ChangedLines {
     }
   }
   if (start != newLines.length) {
-    for (let j = oldLen; j >= 0; j--) {
-      if (j < start) {
-        end = start
+    let maxRemain = Math.min(end - start, len - start)
+    for (let j = 0; j < maxRemain; j++) {
+      if (oldLines[oldLen - j - 1] != newLines[len - j - 1]) {
         break
       }
-      if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
-        end = j
-        break
-      }
-      if (j == 0) {
-        end = 0
-      }
+      end = end - 1
     }
   }
   return {
