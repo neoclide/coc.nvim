@@ -40,7 +40,8 @@ export default class FloatFactory implements Disposable {
     private env: Env,
     private preferTop = false,
     private maxHeight = 999,
-    private joinLines = true) {
+    private joinLines = true,
+    private maxWidth?: number) {
     if (!env.floating) return
     events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
@@ -99,7 +100,7 @@ export default class FloatFactory implements Disposable {
     let alignTop = false
     let offsetX = 0
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    let maxWidth = Math.min(columns - 10, 80)
+    let maxWidth = this.maxWidth || Math.min(columns - 10, 80)
     let height = this.floatBuffer.getHeight(docs, maxWidth)
     height = Math.min(height, this.maxHeight)
     if (!preferTop) {
