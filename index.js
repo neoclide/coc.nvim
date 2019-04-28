@@ -48130,7 +48130,7 @@ class Document {
         this.onDocumentDetach = this._onDocumentDetach.event;
         this.fireContentChanges = debounce_1.default(() => {
             this._fireContentChanges();
-        }, 50);
+        }, 200);
         this.fetchContent = debounce_1.default(() => {
             this._fetchContent().catch(e => {
                 logger.error(`Error on fetch content:`, e);
@@ -48305,6 +48305,7 @@ class Document {
                     rangeLength: change.end - change.start,
                     text: change.newText
                 }];
+            logger.debug('changes:', JSON.stringify(changes, null, 2));
             this._onDocumentChange.fire({
                 textDocument: { version, uri },
                 contentChanges: changes
@@ -48347,12 +48348,9 @@ class Document {
     async applyEdits(_nvim, edits, sync = true) {
         if (edits.length == 0)
             return;
-        let orig = this.lines.join('\n');
-        let textDocument = vscode_languageserver_protocol_1.TextDocument.create(this.uri, this.filetype, 1, orig + (this.eol ? '\n' : ''));
+        let orig = this.lines.join('\n') + (this.eol ? '\n' : '');
+        let textDocument = vscode_languageserver_protocol_1.TextDocument.create(this.uri, this.filetype, 1, orig);
         let content = vscode_languageserver_protocol_1.TextDocument.applyEdits(textDocument, edits);
-        if (this.eol && content.endsWith('\n')) {
-            content = content.slice(0, -1);
-        }
         // could be equal sometimes
         if (orig === content) {
             this.createDocument();
@@ -48365,7 +48363,7 @@ class Document {
                 strictIndexing: false
             });
             // can't wait vim sync buffer
-            this.lines = content.split('\n');
+            this.lines = (this.eol && content.endsWith('\n') ? content.slice(0, -1) : content).split('\n');
             if (sync)
                 this.forceSync();
         }
@@ -48702,18 +48700,12 @@ function diffLines(from, to) {
         }
     }
     if (start != newLines.length) {
-        for (let j = oldLen; j >= 0; j--) {
-            if (j < start) {
-                end = start;
+        let maxRemain = Math.min(end - start, len - start);
+        for (let j = 0; j < maxRemain; j++) {
+            if (oldLines[oldLen - j - 1] != newLines[len - j - 1]) {
                 break;
             }
-            if (oldLines[j - 1] !== newLines[len - (oldLen - j) - 1]) {
-                end = j;
-                break;
-            }
-            if (j == 0) {
-                end = 0;
-            }
+            end = end - 1;
         }
     }
     return {
@@ -53525,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f9652d2f59" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "01b0969ef2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58710,6 +58702,10 @@ const document_1 = tslib_1.__importDefault(__webpack_require__(203));
 exports.Document = document_1.default;
 const mru_1 = tslib_1.__importDefault(__webpack_require__(209));
 exports.Mru = mru_1.default;
+const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
+exports.FloatBuffer = floatBuffer_1.default;
+const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
+exports.FloatFactory = floatFactory_1.default;
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(208));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
@@ -60045,12 +60041,13 @@ const logger = __webpack_require__(179)('model-float');
 const creatingIds = new Set();
 // factory class for floating window
 class FloatFactory {
-    constructor(nvim, env, preferTop = false, maxHeight = 999, joinLines = true) {
+    constructor(nvim, env, preferTop = false, maxHeight = 999, joinLines = true, maxWidth) {
         this.nvim = nvim;
         this.env = env;
         this.preferTop = preferTop;
         this.maxHeight = maxHeight;
         this.joinLines = joinLines;
+        this.maxWidth = maxWidth;
         this._onWindowCreate = new vscode_languageserver_protocol_1.Emitter();
         this.disposables = [];
         this.promise = Promise.resolve(undefined);
@@ -60124,7 +60121,7 @@ class FloatFactory {
         let alignTop = false;
         let offsetX = 0;
         let [row, col] = await nvim.call('coc#util#win_position');
-        let maxWidth = Math.min(columns - 10, 80);
+        let maxWidth = this.maxWidth || Math.min(columns - 10, 80);
         let height = this.floatBuffer.getHeight(docs, maxWidth);
         height = Math.min(height, this.maxHeight);
         if (!preferTop) {
@@ -60794,8 +60791,8 @@ function getHiglights(lines, filetype) {
                                     res.push({
                                         hlGroup,
                                         line,
-                                        colStart,
-                                        colEnd: col,
+                                        colStart: colStart + 1,
+                                        colEnd: col + 1,
                                         isMarkdown: filetype == 'markdown'
                                     });
                                 }
@@ -60821,9 +60818,9 @@ function getHiglights(lines, filetype) {
                 ['nvim_command', ['set laststatus=0']],
             ]);
             let buf = await nvim.buffer;
-            await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false });
+            await buf.setLines(lines.map(s => s.slice(1)), { start: 0, end: -1, strictIndexing: false });
             await buf.setOption('filetype', filetype);
-            await nvim.uiAttach(80, lines.length + 1, {
+            await nvim.uiAttach(200, lines.length + 1, {
                 ext_hlstate: true,
                 ext_linegrid: true
             });
@@ -74813,7 +74810,7 @@ exports.default = default_1;
 /* 344 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.66","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"yarn clean && yarn build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.66","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npx npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
