@@ -35,7 +35,7 @@ describe('native sources', () => {
     await helper.createDocument()
     await nvim.setLine('other')
     await nvim.command('bp')
-    await helper.wait(100)
+    await helper.wait(300)
     let { mode } = await nvim.mode
     expect(mode).toBe('n')
     await nvim.input('io')

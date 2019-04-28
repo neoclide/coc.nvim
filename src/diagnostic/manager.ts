@@ -6,7 +6,7 @@ import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
 import { ConfigurationChangeEvent, DiagnosticItem, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
-import { comparePosition, positionInRange, lineInRange } from '../util/position'
+import { comparePosition, positionInRange, lineInRange, rangeIntersect } from '../util/position'
 import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
@@ -255,16 +255,12 @@ export class DiagnosticManager implements Disposable {
 
   public getDiagnosticsInRange(document: TextDocument, range: Range): Diagnostic[] {
     let collections = this.getCollections(document.uri)
-    let si = document.offsetAt(range.start)
-    let ei = document.offsetAt(range.end)
     let res: Diagnostic[] = []
     for (let collection of collections) {
       let items = collection.get(document.uri)
       if (!items) continue
       for (let item of items) {
-        let { range } = item
-        if (withIn(document.offsetAt(range.start), si, ei)
-          || withIn(document.offsetAt(range.end), si, ei)) {
+        if (rangeIntersect(item.range, range)) {
           res.push(item)
         }
       }

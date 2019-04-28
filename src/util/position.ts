@@ -12,6 +12,19 @@ export function rangeOverlap(r: Range, range: Range): boolean {
   return positionInRange(start, range) == 0 || positionInRange(end, range) == 0
 }
 
+export function rangeIntersect(r: Range, range: Range): boolean {
+  if (positionInRange(r.start, range) == 0) {
+    return true
+  }
+  if (positionInRange(r.end, range) == 0) {
+    return true
+  }
+  if (rangeInRange(range, r)) {
+    return true
+  }
+  return false
+}
+
 export function lineInRange(line: number, range: Range): boolean {
   let { start, end } = range
   return line >= start.line && line <= end.line

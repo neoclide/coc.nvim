@@ -96,7 +96,7 @@ describe('diagnostic manager', () => {
       end: -1,
       strictIndexing: false
     })
-    await helper.wait(100)
+    await helper.wait(300)
     diagnostics.push(createDiagnostic('a', Range.create(0, 0, 0, 1)))
     diagnostics.push(createDiagnostic('b', Range.create(0, 2, 0, 3)))
     diagnostics.push(createDiagnostic('c', Range.create(1, 0, 1, 2)))
