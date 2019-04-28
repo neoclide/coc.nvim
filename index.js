@@ -53517,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "01b0969ef2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3d16ebcc48" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -74748,7 +74748,7 @@ class DocumentHighlighter {
             let id = this.colorId;
             this.colorId = id + 1;
             let method = workspace_1.default.isVim ? 'callTimer' : 'call';
-            this.nvim[method]('matchaddpos', [hlGroup, arr, 9, id], true);
+            this.nvim[method]('matchaddpos', [hlGroup, arr, -1, id], true);
             matchIds.add(id);
         }
     }
