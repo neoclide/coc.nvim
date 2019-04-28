@@ -76,18 +76,14 @@ export default abstract class BasicList implements IList, Disposable {
       this.createAction({
         name,
         execute: async (item: ListItem) => {
-          let loc = await this.convertLocation(item.location)
-          if (name == 'open') {
-            await this.jumpTo(loc)
-          } else {
-            await this.jumpTo(loc, name)
-          }
+          await this.jumpTo(item.location, name == 'open' ? null : name)
         }
       })
     }
   }
 
-  public async convertLocation(location: Location | LocationWithLine): Promise<Location> {
+  public async convertLocation(location: Location | LocationWithLine | string): Promise<Location> {
+    if (typeof location == 'string') return Location.create(location, Range.create(0, 0, 0, 0))
     if (Location.is(location)) return location
     let u = Uri.parse(location.uri)
     if (u.scheme != 'file') return Location.create(location.uri, Range.create(0, 0, 0, 0))
@@ -123,8 +119,12 @@ export default abstract class BasicList implements IList, Disposable {
     return Location.create(location.uri, Range.create(0, 0, 0, 0))
   }
 
-  public async jumpTo(location: Location, command?: string): Promise<void> {
-    let { range, uri } = location
+  public async jumpTo(location: Location | LocationWithLine | string, command?: string): Promise<void> {
+    if (typeof location == 'string') {
+      await workspace.jumpTo(location, null, command)
+      return
+    }
+    let { range, uri } = await this.convertLocation(location)
     let position = range.start
     if (position.line == 0 && position.character == 0 && comparePosition(position, range.end) == 0) {
       // allow plugin that remember position.

@@ -304,7 +304,7 @@ export default class Worker {
         let codes = getCharCodes(input)
         filtered = items.filter(item => fuzzyMatch(codes, item.filterText || item.label))
         filtered = filtered.map(item => {
-          let filename = item.location ? path.basename(item.location.uri) : null
+          let filename = item.location ? path.basename(getItemUri(item)) : null
           let filterLabel = getFilterLabel(item)
           let res = getMatchResult(filterLabel, input, filename)
           return Object.assign({}, item, {
@@ -317,10 +317,12 @@ export default class Worker {
           (filtered as ExtendedItem[]).sort((a, b) => {
             if (a.score != b.score) return b.score - a.score
             if (a.location && b.location) {
-              if (a.location.uri.length != b.location.uri.length) {
-                return a.location.uri.length - b.location.uri.length
+              let au = getItemUri(a)
+              let bu = getItemUri(b)
+              if (au.length != bu.length) {
+                return au.length - bu.length
               }
-              return a.location.uri > b.location.uri ? 1 : -1
+              return au > bu ? 1 : -1
             }
             return a.label > b.label ? 1 : -1
           })
@@ -397,4 +399,10 @@ export default class Worker {
 
 function getFilterLabel(item: ListItem): string {
   return item.filterText != null ? patchLine(item.filterText, item.label) : item.label
+}
+
+function getItemUri(item: ListItem): string {
+  let { location } = item
+  if (typeof location == 'string') return location
+  return location.uri
 }

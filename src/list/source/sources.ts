@@ -3,7 +3,6 @@ import { Location, Range } from 'vscode-languageserver-types'
 import Uri from 'vscode-uri'
 import sources from '../../sources'
 import { ListContext, ListItem } from '../../types'
-import workspace from '../../workspace'
 import BasicList from '../basic'
 
 export default class SourcesList extends BasicList {
@@ -26,7 +25,7 @@ export default class SourcesList extends BasicList {
 
     this.addAction('open', async item => {
       let { location } = item
-      if (location) await workspace.jumpTo(location.uri, (location as Location).range.start)
+      if (location) await this.jumpTo(location)
     })
   }
 

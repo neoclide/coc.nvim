@@ -664,7 +664,7 @@ export interface LocationWithLine {
 export interface ListItem {
   label: string
   filterText?: string
-  location?: Location | LocationWithLine
+  location?: Location | LocationWithLine | string
   data?: any
   recentScore?: number
   ansiHighlights?: AnsiHighlight[]
