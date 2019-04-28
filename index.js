@@ -53517,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3d16ebcc48" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7089761398" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54482,6 +54482,19 @@ function rangeOverlap(r, range) {
     return positionInRange(start, range) == 0 || positionInRange(end, range) == 0;
 }
 exports.rangeOverlap = rangeOverlap;
+function rangeIntersect(r, range) {
+    if (positionInRange(r.start, range) == 0) {
+        return true;
+    }
+    if (positionInRange(r.end, range) == 0) {
+        return true;
+    }
+    if (rangeInRange(range, r)) {
+        return true;
+    }
+    return false;
+}
+exports.rangeIntersect = rangeIntersect;
 function lineInRange(line, range) {
     let { start, end } = range;
     return line >= start.line && line <= end.line;
@@ -59720,17 +59733,13 @@ class DiagnosticManager {
     }
     getDiagnosticsInRange(document, range) {
         let collections = this.getCollections(document.uri);
-        let si = document.offsetAt(range.start);
-        let ei = document.offsetAt(range.end);
         let res = [];
         for (let collection of collections) {
             let items = collection.get(document.uri);
             if (!items)
                 continue;
             for (let item of items) {
-                let { range } = item;
-                if (withIn(document.offsetAt(range.start), si, ei)
-                    || withIn(document.offsetAt(range.end), si, ei)) {
+                if (position_1.rangeIntersect(item.range, range)) {
                     res.push(item);
                 }
             }
@@ -69355,18 +69364,14 @@ class BasicList {
             this.createAction({
                 name,
                 execute: async (item) => {
-                    let loc = await this.convertLocation(item.location);
-                    if (name == 'open') {
-                        await this.jumpTo(loc);
-                    }
-                    else {
-                        await this.jumpTo(loc, name);
-                    }
+                    await this.jumpTo(item.location, name == 'open' ? null : name);
                 }
             });
         }
     }
     async convertLocation(location) {
+        if (typeof location == 'string')
+            return vscode_languageserver_protocol_1.Location.create(location, vscode_languageserver_protocol_1.Range.create(0, 0, 0, 0));
         if (vscode_languageserver_protocol_1.Location.is(location))
             return location;
         let u = vscode_uri_1.default.parse(location.uri);
@@ -69406,7 +69411,11 @@ class BasicList {
         return vscode_languageserver_protocol_1.Location.create(location.uri, vscode_languageserver_protocol_1.Range.create(0, 0, 0, 0));
     }
     async jumpTo(location, command) {
-        let { range, uri } = location;
+        if (typeof location == 'string') {
+            await workspace_1.default.jumpTo(location, null, command);
+            return;
+        }
+        let { range, uri } = await this.convertLocation(location);
         let position = range.start;
         if (position.line == 0 && position.character == 0 && position_1.comparePosition(position, range.end) == 0) {
             // allow plugin that remember position.
@@ -70235,7 +70244,6 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_types_1 = __webpack_require__(155);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(236));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(310));
 class SourcesList extends basic_1.default {
     constructor(nvim) {
@@ -70254,7 +70262,7 @@ class SourcesList extends basic_1.default {
         this.addAction('open', async (item) => {
             let { location } = item;
             if (location)
-                await workspace_1.default.jumpTo(location.uri, location.range.start);
+                await this.jumpTo(location);
         });
     }
     async loadItems(_context) {
@@ -71178,7 +71186,7 @@ class Worker {
                 let codes = fuzzy_1.getCharCodes(input);
                 filtered = items.filter(item => fuzzy_1.fuzzyMatch(codes, item.filterText || item.label));
                 filtered = filtered.map(item => {
-                    let filename = item.location ? path_1.default.basename(item.location.uri) : null;
+                    let filename = item.location ? path_1.default.basename(getItemUri(item)) : null;
                     let filterLabel = getFilterLabel(item);
                     let res = score_1.getMatchResult(filterLabel, input, filename);
                     return Object.assign({}, item, {
@@ -71192,10 +71200,12 @@ class Worker {
                         if (a.score != b.score)
                             return b.score - a.score;
                         if (a.location && b.location) {
-                            if (a.location.uri.length != b.location.uri.length) {
-                                return a.location.uri.length - b.location.uri.length;
+                            let au = getItemUri(a);
+                            let bu = getItemUri(b);
+                            if (au.length != bu.length) {
+                                return au.length - bu.length;
                             }
-                            return a.location.uri > b.location.uri ? 1 : -1;
+                            return au > bu ? 1 : -1;
                         }
                         return a.label > b.label ? 1 : -1;
                     });
@@ -71273,6 +71283,12 @@ class Worker {
 exports.default = Worker;
 function getFilterLabel(item) {
     return item.filterText != null ? diff_1.patchLine(item.filterText, item.label) : item.label;
+}
+function getItemUri(item) {
+    let { location } = item;
+    if (typeof location == 'string')
+        return location;
+    return location.uri;
 }
 //# sourceMappingURL=worker.js.map
 
