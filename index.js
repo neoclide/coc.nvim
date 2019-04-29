@@ -53517,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7089761398" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d6ccd00367" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -68357,8 +68357,12 @@ class ListManager {
         let { nvim, ui } = this;
         let shouldCancel = action.persist !== true && action.name != 'preview';
         try {
-            if (shouldCancel)
+            if (shouldCancel) {
                 await this.cancel();
+            }
+            else {
+                await nvim.call('coc#list#stop_prompt');
+            }
             if (action.name == 'preview') {
                 items = items.slice(0, 1);
             }
@@ -68377,11 +68381,12 @@ class ListManager {
                     await Promise.resolve(action.execute(item, this.context));
                 }
             }
-            if (!shouldCancel && !this.isActivated) {
-                this.nvim.command('pclose', true);
-                return;
-            }
-            if (action.persist || action.name == 'preview') {
+            if (!shouldCancel) {
+                if (!this.isActivated) {
+                    this.nvim.command('pclose', true);
+                    return;
+                }
+                this.prompt.start();
                 let { window } = ui;
                 if (!window)
                     return;
