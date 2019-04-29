@@ -645,7 +645,11 @@ export class ListManager implements Disposable {
     let { nvim, ui } = this
     let shouldCancel = action.persist !== true && action.name != 'preview'
     try {
-      if (shouldCancel) await this.cancel()
+      if (shouldCancel) {
+        await this.cancel()
+      } else {
+        await nvim.call('coc#list#stop_prompt')
+      }
       if (action.name == 'preview') {
         items = items.slice(0, 1)
       }
@@ -661,11 +665,12 @@ export class ListManager implements Disposable {
           await Promise.resolve(action.execute(item, this.context))
         }
       }
-      if (!shouldCancel && !this.isActivated) {
-        this.nvim.command('pclose', true)
-        return
-      }
-      if (action.persist || action.name == 'preview') {
+      if (!shouldCancel) {
+        if (!this.isActivated) {
+          this.nvim.command('pclose', true)
+          return
+        }
+        this.prompt.start()
         let { window } = ui
         if (!window) return
         let valid = await window.valid
