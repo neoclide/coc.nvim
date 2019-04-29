@@ -683,6 +683,9 @@ export class ListManager implements Disposable {
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
+      if (!shouldCancel && this.activated) {
+        this.prompt.start()
+      }
       logger.error(e)
     }
     this.executing = false
