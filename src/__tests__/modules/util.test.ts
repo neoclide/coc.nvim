@@ -12,6 +12,7 @@ import { score } from '../../util/match'
 import { mixin } from '../../util/object'
 import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
+import { ansiparse } from '../../util/ansiparse'
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -137,5 +138,23 @@ describe('getHiglights', () => {
       let res = await getHiglights(['foo'], filetype)
       expect(res.length > 0).toBe(true)
     }
+  })
+})
+
+describe('ansiparse', () => {
+  test('ansiparse #1', () => {
+    let str = '\u001b[33mText\u001b[mnormal'
+    let res = ansiparse(str)
+    expect(res).toEqual([{
+      foreground: 'yellow', text: 'Text'
+    }, {
+      text: 'normal'
+    }])
+  })
+
+  test('ansiparse #2', () => {
+    let str = '\u001b[33m\u001b[mText'
+    let res = ansiparse(str)
+    expect(res).toEqual([{ text: 'Text' }])
   })
 })

@@ -49,7 +49,7 @@ export function ansiparse(str: string): AnsiItem[] {
   // |     matchingData
   // matchingControl
   //
-  // \033\[K
+  // \033\[K or \033\[m
   //
   // In further steps we hope it's all going to be fine. It usually is.
   //
@@ -80,7 +80,7 @@ export function ansiparse(str: string): AnsiItem[] {
 
   for (let i = 0; i < str.length; i++) { // tslint:disable-line
     if (matchingControl != null) {
-      if (matchingControl == '\x1b' && str[i] == '\[') {
+      if (matchingControl == '\x1b' && str[i] == '[') {
         //
         // We've matched full control code. Lets start matching formating data.
         //
@@ -88,9 +88,11 @@ export function ansiparse(str: string): AnsiItem[] {
         //
         // "emit" matched text with correct state
         //
-        if (matchingText) {
+        if (matchingText != null) {
           state.text = matchingText
-          result.push(state)
+          if (matchingText) {
+            result.push(state)
+          }
           state = {}
           matchingText = ''
         }
