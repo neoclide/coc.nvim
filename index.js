@@ -53517,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d6ccd00367" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d7a9ef9a9a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60784,8 +60784,8 @@ function getHiglights(lines, filetype) {
                                             res.push({
                                                 line,
                                                 hlGroup,
-                                                colStart,
-                                                colEnd: col,
+                                                colStart: colStart + 1,
+                                                colEnd: col + 1,
                                                 isMarkdown: filetype == 'markdown'
                                             });
                                         }
