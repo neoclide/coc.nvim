@@ -53517,7 +53517,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "69d61fc593" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ad629df759" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58737,6 +58737,8 @@ const basic_1 = tslib_1.__importDefault(__webpack_require__(310));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
 exports.diagnosticManager = manager_3.default;
+const ansiparse_1 = __webpack_require__(325);
+exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
 exports.Watchman = watchman_1.default;
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
@@ -68403,6 +68405,9 @@ class ListManager {
             }
         }
         catch (e) {
+            if (!shouldCancel && this.activated) {
+                this.prompt.start();
+            }
             logger.error(e);
         }
         this.executing = false;
@@ -71349,7 +71354,7 @@ function ansiparse(str) {
     // |     matchingData
     // matchingControl
     //
-    // \033\[K
+    // \033\[K or \033\[m
     //
     // In further steps we hope it's all going to be fine. It usually is.
     //
@@ -71378,16 +71383,18 @@ function ansiparse(str) {
     };
     for (let i = 0; i < str.length; i++) { // tslint:disable-line
         if (matchingControl != null) {
-            if (matchingControl == '\x1b' && str[i] == '\[') {
+            if (matchingControl == '\x1b' && str[i] == '[') {
                 //
                 // We've matched full control code. Lets start matching formating data.
                 //
                 //
                 // "emit" matched text with correct state
                 //
-                if (matchingText) {
+                if (matchingText != null) {
                     state.text = matchingText;
-                    result.push(state);
+                    if (matchingText) {
+                        result.push(state);
+                    }
                     state = {};
                     matchingText = '';
                 }
