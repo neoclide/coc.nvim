@@ -137,8 +137,8 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                       res.push({
                         line,
                         hlGroup,
-                        colStart,
-                        colEnd: col,
+                        colStart: colStart + 1,
+                        colEnd: col + 1,
                         isMarkdown: filetype == 'markdown'
                       })
                     }
