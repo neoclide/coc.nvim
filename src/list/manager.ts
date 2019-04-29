@@ -675,11 +675,16 @@ export class ListManager implements Disposable {
         if (!window) return
         let valid = await window.valid
         if (!valid) return
-        nvim.pauseNotification()
-        nvim.call('win_gotoid', [window.id], true)
-        await this.ui.restoreWindow()
-        nvim.command('redraw', true)
-        await nvim.resumeNotification()
+        let winid = await nvim.call('win_getid')
+        if (winid != window.id) {
+          nvim.pauseNotification()
+          nvim.call('win_gotoid', [window.id], true)
+          await this.ui.restoreWindow()
+          nvim.command('redraw', true)
+          await nvim.resumeNotification()
+        } else {
+          await this.ui.restoreWindow()
+        }
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
