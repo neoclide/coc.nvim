@@ -401,6 +401,11 @@
       },
       "additionalProperties": false
     },
+    "diagnostic.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable diagnostic display",
+      "default": true
+    },
     "diagnostic.level": {
       "type": "string",
       "description": "Used for filter diagnostics by diagnostic severity.",
@@ -432,11 +437,6 @@
       "type": "boolean",
       "description": "Only refresh diagnostics after save, default false.",
       "default": false
-    },
-    "diagnostic.enable": {
-      "type": "boolean",
-      "description": "Set to false to disable diagnostic display",
-      "default": true
     },
     "diagnostic.displayByAle": {
       "type": "boolean",

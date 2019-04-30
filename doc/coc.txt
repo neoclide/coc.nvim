@@ -88,17 +88,207 @@ Use `coc#util#build` to build coc.nvim from source code.
 ==============================================================================
 CONFIGURATION					*coc-configuration*
 
-Similarly to VSCode, Coc uses a jsonc formated file named `coc-settings.json` 
-for configuration.
+Jsonc formated file named `coc-settings.json` ise used for configuration.
 
 Use the command |:CocConfig| to open the user configuration file, or create
 `.vim/coc-settings.json` in your project root for folder-based configuration.
 
-To enable auto completion in the settings file, install the `coc-json` 
-extension.
+To enable completion and validation support of settings file install
+`coc-json` extension by `:CocInstall coc-json`
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for more details.
+
+Buildin configurations:~
+
+- `http.proxy` http proxy used for json server,  default: `""`
+- `http.proxyStrictSSL` default: `true`
+- `suggest.maxPreviewWidth` Maxmium width of floating preview window.,
+  default: `50`
+- `suggest.enablePreview` Add preview option to completeopt, default: false.,
+  default: `false`
+- `suggest.detailMaxLength` Max length of detail that should be shown in popup
+  menu.,  default: `100`
+- `suggest.detailField` Where to add the detail in complete item when it's
+  less than max length.,  default: `"menu"`
+- `suggest.previewIsKeyword` 'iskeyword' option on floating preview buffer.,
+  default: `"@,48-57,_192-255,<,>,$,#,-,`,*"`
+- `suggest.autoTrigger` How should completion be triggered,  default:
+  `"always"`
+- `suggest.languageSourcePriority` Priority of language sources.,  default:
+  `99`
+- `suggest.numberSelect` Input number to select complete item, it could wrong
+  when using <up> and <down> to select complete item,  default: `false`
+- `suggest.disableKind` Remove kind field from vim complete item.,  default:
+  `false`
+- `suggest.disableMenu` Remove menu field from vim complete item.,  default:
+  `false`
+- `suggest.snippetIndicator` The character used in abbr of complete item to
+  indicate the item could be expand as snippet.,  default: `"~"`
+- `suggest.maxCompleteItemCount` Maxmium number of complete items shown in
+  vim,  default: `50`
+- `suggest.preferCompleteThanJumpPlaceholder` Confirm completion instead of
+  jump to next placeholder when completion is activted.,  default: `false`
+- `suggest.fixInsertedWord` Make inserted word replace word characters after
+  cursor position.,  default: `true`
+- `suggest.localityBonus` Boost suggestions that appear closer to the cursor
+  position.,  default: `true`
+- `suggest.triggerAfterInsertEnter` Trigger completion after InsertEnter, auto
+  trigger should be 'always' to enable this option,  default: `false`
+- `suggest.timeout` Timeout for completion, in miliseconds.,  default: `2000`
+- `suggest.minTriggerInputLength` Mininal input length for trigger completion,
+  default 1,  default: `1`
+- `suggest.triggerCompletionWait` Wait time between trigger character type and
+  completion start, for wait server content synchronize.,  default: `60`
+- `suggest.echodocSupport` When enabled, add function signature to
+  user_data.signature to support echodoc.vim,  default: `false`
+- `suggest.acceptSuggestionOnCommitCharacter` Controls whether suggestions
+  should be accepted on commit characters. For example, in JavaScript, the
+  semi-colon (`;`) can be a commit character that accepts a suggestion and
+  types that character. Requires CompleteChanged event to work.,  default:
+  `false`
+- `suggest.noselect` Not make vim select first item on completion start,
+  default: `true`
+- `suggest.keepCompleteopt` When enabled, completeopt is not overriden, auto
+  completion will be disabled if completeopt doesn't have noinsert and
+  noselect.,  default: `false`
+- `suggest.lowPrioritySourceLimit` Max items count for source priority lower
+  than 90.
+- `suggest.highPrioritySourceLimit` Max items count for source priority bigger
+  than or equal to 90.
+- `suggest.completionItemKindLabels` Set custom labels to completion items'
+  kinds.,  default: `{}`
+- `diagnostic.enable` Set to false to disable diagnostic display,  default:
+  `true`
+- `diagnostic.level` Used for filter diagnostics by diagnostic severity.,
+  default: `"hint"`
+- `diagnostic.checkCurrentLine` When enabled, show all diagnostics of current
+  line instead of current position.,  default: `false`
+- `diagnostic.messageTarget` Diagnostic message target.,  default: `"float"`
+- `diagnostic.joinMessageLines` Join lines messages to reduce lines of
+  floating window.,  default: `false`
+- `diagnostic.refreshOnInsertMode` Enable diagnostic refresh on insert mode,
+  default false.,  default: `false`
+- `diagnostic.refreshAfterSave` Only refresh diagnostics after save, default
+  false.,  default: `false`
+- `diagnostic.displayByAle` Use Ale for display diagnostics in vim, will
+  disable coc for display diagnostics, restart required on change.,  default:
+  `false`
+- `diagnostic.virtualText` Use NeoVim virtual text to display diagnostics,
+  default: `false`
+- `diagnostic.virtualTextPrefix` The prefix added virtual text diagnostics,
+  default: `" "`
+- `diagnostic.virtualTextLines` The number of non empty lines from a
+  diagnostic to display,  default: `3`
+- `diagnostic.virtualTextLineSeparator` The text that will mark a line end
+  from the diagnostic message,  default: `" \\ "`
+- `diagnostic.enableSign` Enable signs for diagnostics.,  default: `true`
+- `diagnostic.enableMessage` When to enable echo messages of diagnostics.,
+  default: `"always"`
+- `diagnostic.locationlist` Create location list for error & warning,
+  default: `true`
+- `diagnostic.highlightOffset` Offset number of buffer.addHighlight, neovim
+  only.,  default: `1000`
+- `diagnostic.signOffset` Offset number of sign,  default: `1000`
+- `diagnostic.errorSign` Text of error sign,  default: `">>"`
+- `diagnostic.warningSign` Text of warning sign,  default: `"⚠"`
+- `diagnostic.infoSign` Text of info sign,  default: `">>"`
+- `diagnostic.hintSign` Text of hint sign,  default: `">>"`
+- `diagnostic.maxWindowHeight` Maxmium height of diagnostics floating window.,
+  default: `8`
+- `signature.enable` Enable signature help when trigger character typed,
+  require restart service on change.,  default: `true`
+- `signature.target` Target of signature help, use float when possible by
+  default.
+- `signature.preferShownAbove` Show signature help float window above cursor
+  when possible, require restart service on change.,  default: `true`
+- `signature.hideOnTextChange` Hide signature float window when text changed,
+  require restart service on change.,  default: `false`
+- `signature.maxWindowHeight` Maxmium height of floating signature help
+  window.,  default: `8`
+- `codeLens.enable` Enable codeLens feature, require neovim with set virtual
+  text feature.,  default: `false`
+- `codeLens.separator` Separator text for codeLens in virtual text,  default:
+  `"‣"`
+- `workspace.ignoredFiletypes` Filetypes that should be ignored for resolve
+  workspace folder.,  default: `["markdown","log","txt","help"]`
+- `list.indicator` The characer used as first characer in prompt line,
+  default: `">"`
+- `list.maxHeight` Maxmium height of list window.,  default: `10`
+- `list.signOffset` Sign offset of list, should be different from other
+  plugins.,  default: `900`
+- `list.selectedSignText` Sign text for selected lines.,  default: `"*"`
+- `list.autoResize` Enable auto resize feature.,  default: `true`
+- `list.limitLines` Limit lines for list buffer.,  default: `1000`
+- `list.maxPreviewHeight` Max height for preview window of list.,  default:
+  `12`
+- `list.previewHighlightGroup` Highlight group used for highlight the range in
+  preview window.,  default: `"Search"`
+- `list.nextKeymap` Key used for select next line on insert mode.,  default:
+  `"<C-j>"`
+- `list.previousKeymap` Key used for select previous line on insert mode.,
+  default: `"<C-k>"`
+- `list.normalMappings` Custom keymappings on normal mode.,  default: `{}`
+- `list.insertMappings` Custom keymappings on insert mode.,  default: `{}`
+- `coc.preferences.useQuickfixForLocations` Use vim's quickfix list for jump
+  locations, need restart on change.,  default: `false`
+- `coc.preferences.extensionUpdateCheck` Interval for check extension update,
+  could be daily, weekly, never,  default: `"daily"`
+- `coc.preferences.snippetStatusText` Text shown in statusline to indicate
+  snippet session is activated.,  default: `"SNIP"`
+- `coc.preferences.hoverTarget` Target to show hover information, default is
+  floating window when possible.
+- `coc.preferences.colorSupport` Enable color highlight if language server
+  support it.,  default: `true`
+- `coc.preferences.previewAutoClose` Auto close preview window on cursor
+  move.,  default: `true`
+- `coc.preferences.currentFunctionSymbolAutoUpdate` Automatically update the
+  value of b:coc_current_function on CursorHold event,  default: `false`
+- `coc.preferences.formatOnSaveFiletypes` Filetypes that should run format on
+  save.,  default: `[]`
+- `coc.preferences.enableFloatHighlight` Enable highlight for floating
+  window.,  default: `true`
+- `coc.preferences.rootPatterns` Root patterns to resolve workspaceFolder from
+  parent folders of opened files, resolved from up to down.,  default:
+  `[".vim",".git",".hg",".projections.json"]`
+- `coc.preferences.watchmanPath` executable path for
+  https://facebook.github.io/watchman/, detected from $PATH by default,
+  default: `null`
+- `coc.preferences.jumpCommand` Command used for location jump, like goto
+  definition, goto references etc.,  default: `"edit"`
+- `coc.preferences.messageLevel` Message level for filter echoed messages,
+  could be 'more', 'warning' and 'error',  default: `"more"`
+- `coc.preferences.bracketEnterImprove` Improve enter inside bracket `<> {} []
+  ()` by add new empty line below and place cursor to it. Works with
+  `coc#on_enter()`,  default: `true`
+- `coc.preferences.formatOnType` Set to true to enable format on type,
+  default: `false`
+- `coc.preferences.snippets.enable` Set to false to disable snippets support.,
+  default: `true`
+- `coc.source.around.enable` default: `true`
+- `coc.source.around.shortcut` default: `"A"`
+- `coc.source.around.priority` default: `1`
+- `coc.source.around.disableSyntaxes` default: `[]`
+- `coc.source.buffer.enable` default: `true`
+- `coc.source.buffer.shortcut` default: `"B"`
+- `coc.source.buffer.priority` default: `1`
+- `coc.source.buffer.ignoreGitignore` Ignore git ignored files for buffer
+  words,  default: `true`
+- `coc.source.buffer.disableSyntaxes` default: `[]`
+- `coc.source.file.enable` default: `true`
+- `coc.source.file.shortcut` default: `"F"`
+- `coc.source.file.priority` default: `10`
+- `coc.source.file.disableSyntaxes` default: `[]`
+- `coc.source.file.triggerCharacters` default: `["/"]`
+- `coc.source.file.trimSameExts` Trim same extension on file completion,
+  default: `[".ts",".js"]`
+- `coc.source.file.ignoreHidden` Ignore completion for hidden files,  default:
+  `true`
+- `coc.source.file.ignorePatterns` Ignore patterns of matcher,  default: `[]`
+- `list.source.outline.ctagsFilestypes` Filetypes that should use ctags for
+  outline instead of language server.,  default: `[]`
+- `languageserver` Dictionary of languageservers, key is used as id of
+  languageserver.,  default: `{}`
 
 ==============================================================================
 COMPLETION					*coc-completion*
@@ -106,61 +296,66 @@ COMPLETION					*coc-completion*
 Completion is triggered automatically by default, you can change completion
 behavior in the configuration file.
 
-To disable automatic trigger, use: >
+Tips:~
 
-	"suggest.autoTrigger": "none",
-<
-To enable trigger after insert enter, use: >
+- 'completeopt' used by coc.nvim default to `noselect,menuone`.
 
-	"suggest.triggerAfterInsertEnter": true,
+- Your 'completeopt' option would be changed and restored during completion,
+  so you can still use `menu,preview` for vim's buildin completion.
 
-To change the timeout of completion, use: >
+- Snippet expand and additional edit feature of LSP requires confirm
+  completion to work.
 
-	"suggest.timeout": 500,
-<
-To make the first complete item selected automatically, use: >
-
-	"suggest.noselect": false,
-
-To prevent overriding `completeopt`, use:
->
-
-	"suggest.keepCompleteopt": true,
-
-To trigger completion with two input characters, use: >
-
-	"suggest.minTriggerInputLength": 2
-<
-To enable commit characters feature, use: >
-
-	"suggest.acceptSuggestionOnCommitCharacter": true
-<
-To change the indicator of snippet items, use: >
-
-	"suggest.snippetIndicator": "⭐︎"
-
-To enable preview in your completeopt, use:
->
-	"suggest.enablePreview": true
-<
-Note: it's vim's preview window, not a floating preview window.
+- Neovim 0.4.0 is required for floating window to work.
 
 ------------------------------------------------------------------------------
 
-Configure your vim to improve completion experience:
+Example configuration:~
 
-Set up keymap for trigger completion, use: >
+Map <tab> for trigger completion and navigate next item: >
+
+    function! s:check_back_space() abort
+      let col = col('.') - 1
+      return !col || getline('.')[col - 1]  =~ '\s'
+    endfunction
+
+    inoremap <silent><expr> <TAB>
+		  \ pumvisible() ? "\<C-n>" :
+		  \ <SID>check_back_space() ? "\<TAB>" :
+		  \ coc#refresh()
+
+
+Map <c-space> for trigger completion: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
-Use `<cr>` to confirm completion, use: >
+<CR> for confirm completion, use: >
 
 	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
 <
-Note: `snippet` and `additionalTextEdit` feature is only triggered after 
-completion is confirmed.
+To make <CR> auto select first complete item and notify coc.nvim for
+format on enter, use: >
 
-Check out https://bit.ly/2VaVQ9A for more tips.
+	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
+				\: "\<C-g>u\<CR>\<c-r>=coc#on_enter()\<CR>"
+
+Map <tab> for trigger completion, completion confirm, snippet expand and jump
+like VSCode. >
+
+	inoremap <silent><expr> <TAB>
+	  \ pumvisible() ? coc#_select_confirm() :
+	  \ coc#expandableOrJumpable() ? "\<C-r>=coc#rpc#request('doKeymap', ['snippets-expand-jump',''])\<CR>" :
+	  \ <SID>check_back_space() ? "\<TAB>" :
+	  \ coc#refresh()
+	
+	function! s:check_back_space() abort
+	  let col = col('.') - 1
+	  return !col || getline('.')[col - 1]  =~# '\s'
+	endfunction
+	
+	let g:coc_snippet_next = '<tab>'
+<
+Note: coc-snippets extension required for this to work.
 
 ==============================================================================
 INTERFACE					*coc-interface*
