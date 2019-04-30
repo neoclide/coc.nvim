@@ -8,6 +8,7 @@ import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength } from '../util/string'
 import { Chars } from './chars'
+import { group } from '../util/array'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -456,47 +457,50 @@ export default class Document {
     return col
   }
 
+  public matchAddRanges(ranges: Range[], hlGroup: string, priority = 10): number[] {
+    let res: number[] = []
+    let method = this.env.isVim ? 'callTimer' : 'call'
+    let arr: number[][] = []
+    let splited: Range[] = ranges.reduce((p, c) => {
+      for (let i = c.start.line; i <= c.end.line; i++) {
+        let curr = this.getline(i) || ''
+        let sc = i == c.start.line ? c.start.character : 0
+        let ec = i == c.end.line ? c.end.character : curr.length
+        if (sc == ec) continue
+        p.push(Range.create(i, sc, i, ec))
+      }
+      return p
+    }, [])
+    for (let range of splited) {
+      let { start, end } = range
+      if (start.character == end.character) continue
+      let line = this.getline(start.line)
+      arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
+    }
+    let id = this.colorId
+    this.colorId = this.colorId + 1
+    for (let grouped of group(arr, 8)) {
+      this.nvim[method]('matchaddpos', [hlGroup, grouped, priority, id], true)
+      res.push(id)
+    }
+    return res
+  }
+
   public highlightRanges(ranges: Range[], hlGroup: string, srcId: number): number[] {
-    let { nvim } = this
     let res: number[] = []
     if (this.env.isVim) {
-      let group: Range[] = []
-      for (let i = 0, l = ranges.length; i < l; i++) {
-        if (group.length < 8) {
-          group.push(ranges[i])
-        } else {
-          group = []
-          group.push(ranges[i])
-        }
-        if (group.length == 8 || i == l - 1) {
-          let arr: number[][] = []
-          for (let range of group) {
-            let { start, end } = range
-            let line = this.getline(start.line)
-            if (end.line - start.line == 1 && end.character == 0) {
-              arr.push([start.line + 1])
-            } else {
-              arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
-            }
-          }
-          let id = this.colorId
-          this.colorId = this.colorId + 1
-          nvim.callTimer('matchaddpos', [hlGroup, arr, 9, id], true)
-          res.push(id)
-        }
-      }
+      res = this.matchAddRanges(ranges, hlGroup, 10)
     } else {
       for (let range of ranges) {
         let { start, end } = range
         let line = this.getline(start.line)
+        // tslint:disable-next-line: no-floating-promises
         this.buffer.addHighlight({
           hlGroup,
           srcId,
           line: start.line,
           colStart: byteIndex(line, start.character),
           colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
-        }).catch(_e => {
-          // noop
         })
         res.push(srcId)
       }

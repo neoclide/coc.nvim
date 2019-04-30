@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Position, Range, TextEdit } from 'vscode-languageserver-protocol'
 import workspace from '../../workspace'
-import helper from '../helper'
+import helper, { createTmpFile } from '../helper'
 
 let nvim: Neovim
 jest.setTimeout(30000)
@@ -111,4 +111,30 @@ describe('document model properties', () => {
     expect(line).toBe('first line')
   })
 
+  it('should add matches to ranges', async () => {
+    let doc = await helper.createDocument()
+    let buf = doc.buffer
+    let lines = [
+      'a'.repeat(30),
+      'b'.repeat(30),
+      'c'.repeat(30),
+      'd'.repeat(30)
+    ]
+    await buf.setLines(lines, { start: 0, end: -1 })
+    await helper.wait(100)
+    let ranges: Range[] = [
+      Range.create(0, 0, 0, 10),
+      Range.create(1, 0, 2, 10),
+      Range.create(3, 0, 4, 0)]
+    nvim.pauseNotification()
+    doc.matchAddRanges(ranges, 'Search')
+    await nvim.resumeNotification()
+    let res = await nvim.call('getmatches')
+    let item = res.find(o => o.group == 'Search')
+    expect(item).toBeDefined()
+    expect(item.pos1).toEqual([1, 1, 10])
+    expect(item.pos2).toEqual([2, 1, 30])
+    expect(item.pos3).toEqual([3, 1, 10])
+    expect(item.pos4).toEqual([4, 1, 30])
+  })
 })

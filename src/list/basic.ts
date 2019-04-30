@@ -154,19 +154,28 @@ export default abstract class BasicList implements IList, Disposable {
     let lnum = range.start.line + 1
     let mod = context.options.position == 'top' ? 'below' : 'above'
     let winid = context.listWindow.id
-    await nvim.command('pclose')
     let exists = await nvim.call('bufloaded', filepath)
     nvim.pauseNotification()
+    nvim.command('pclose', true)
     nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
     nvim.command(`exe ${lnum}`, true)
     nvim.command('setl winfixheight', true)
     nvim.command('setl nofoldenable', true)
-    if (range.start.line == range.end.line && range.start.character != range.end.character) {
-      let line = await workspace.getLine(uri, range.start.line)
-      let { hlGroup } = this
-      let start = byteIndex(line, range.start.character) + 1
-      let end = byteIndex(line, range.end.character) + 1
-      nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true)
+    if (comparePosition(range.start, range.end) !== 0) {
+      let arr: Range[] = []
+      for (let i = range.start.line; i <= range.end.line; i++) {
+        let curr = await workspace.getLine(uri, range.start.line)
+        let sc = i == range.start.line ? range.start.character : 0
+        let ec = i == range.end.line ? range.end.character : curr.length
+        if (sc == ec) continue
+        arr.push(Range.create(i, sc, i, ec))
+      }
+      for (let r of arr) {
+        let line = await workspace.getLine(uri, r.start.line)
+        let start = byteIndex(line, r.start.character) + 1
+        let end = byteIndex(line, r.end.character) + 1
+        nvim.call('matchaddpos', [this.hlGroup, [[lnum, start, end - start]]], true)
+      }
     }
     if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
     nvim.command('normal! zz', true)

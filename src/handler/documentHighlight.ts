@@ -4,16 +4,12 @@ import workspace from '../workspace'
 import languages from '../languages'
 import Colors from './colors'
 import Document from '../model/document'
-import * as array from '../util/array'
 import { Range, Disposable, DocumentHighlight, DocumentHighlightKind } from 'vscode-languageserver-protocol'
 import { byteIndex, byteLength } from '../util/string'
 import { disposeAll } from '../util'
 const logger = require('../util/logger')('documentHighlight')
 
-const INITIAL_ID = 9999
-
 export default class DocumentHighlighter {
-  private colorId = INITIAL_ID
   private disposables: Disposable[] = []
   private matchIds: Set<number> = new Set()
   private cursorMoveTs: number
@@ -48,7 +44,6 @@ export default class DocumentHighlighter {
     }
     nvim.pauseNotification()
     this.clearHighlight()
-    this.colorId = INITIAL_ID
     let groups: { [index: string]: Range[] } = {}
     for (let hl of highlights) {
       let hlGroup = hl.kind == DocumentHighlightKind.Text
@@ -58,7 +53,10 @@ export default class DocumentHighlighter {
       groups[hlGroup].push(hl.range)
     }
     for (let hlGroup of Object.keys(groups)) {
-      this.highlightRanges(document, hlGroup, groups[hlGroup])
+      let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1)
+      for (let id of ids) {
+        this.matchIds.add(id)
+      }
     }
     this.nvim.call('coc#util#add_matchids', [Array.from(this.matchIds)], true)
     await this.nvim.resumeNotification(false, true)
@@ -79,28 +77,6 @@ export default class DocumentHighlighter {
       return null
     }
     return highlights
-  }
-
-  private highlightRanges(document: Document, hlGroup: string, ranges: Range[]): void {
-    let { matchIds } = this
-    let grouped = array.group<Range>(ranges, 8)
-    for (let group of grouped) {
-      let arr: number[][] = []
-      for (let range of group) {
-        let { start, end } = range
-        let line = document.getline(start.line)
-        if (end.line - start.line == 1 && end.character == 0) {
-          arr.push([start.line + 1])
-        } else {
-          arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
-        }
-      }
-      let id = this.colorId
-      this.colorId = id + 1
-      let method = workspace.isVim ? 'callTimer' : 'call'
-      this.nvim[method]('matchaddpos', [hlGroup, arr, -1, id], true)
-      matchIds.add(id)
-    }
   }
 
   public dispose(): void {

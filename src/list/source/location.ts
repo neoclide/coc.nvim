@@ -32,6 +32,9 @@ export default class LocationList extends BasicList {
       if (!loc.range) {
         let { lnum, col } = loc
         loc.range = Range.create(lnum - 1, col - 1, lnum - 1, col - 1)
+      } else {
+        loc.lnum = loc.lnum || loc.range.start.line + 1
+        loc.col = loc.col || loc.range.start.character + 1
       }
     })
     let bufnr: number
