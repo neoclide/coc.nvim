@@ -43524,21 +43524,21 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const db_1 = tslib_1.__importDefault(__webpack_require__(200));
 const task_1 = tslib_1.__importDefault(__webpack_require__(202));
 const document_1 = tslib_1.__importDefault(__webpack_require__(203));
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(208));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(209));
-const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(210));
-const resolver_1 = tslib_1.__importDefault(__webpack_require__(211));
-const status_1 = tslib_1.__importDefault(__webpack_require__(213));
-const terminal_1 = tslib_1.__importDefault(__webpack_require__(217));
-const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(218));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(209));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(210));
+const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(211));
+const resolver_1 = tslib_1.__importDefault(__webpack_require__(212));
+const status_1 = tslib_1.__importDefault(__webpack_require__(214));
+const terminal_1 = tslib_1.__importDefault(__webpack_require__(218));
+const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(219));
 const types_1 = __webpack_require__(188);
 const fs_2 = __webpack_require__(201);
 const index_1 = __webpack_require__(168);
-const match_1 = __webpack_require__(219);
+const match_1 = __webpack_require__(220);
 const string_1 = __webpack_require__(206);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
-const uuid = __webpack_require__(214);
-const array_1 = __webpack_require__(228);
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
+const uuid = __webpack_require__(215);
+const array_1 = __webpack_require__(208);
 const requireFunc =  true ? require : undefined;
 const logger = __webpack_require__(179)('workspace');
 const CONFIG_FILE_NAME = 'coc-settings.json';
@@ -44850,6 +44850,45 @@ augroup end`;
             return this.getServerRootPatterns(document.filetype);
         const preferences = this.getConfiguration('coc.preferences', uri);
         return preferences.get('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice();
+    }
+    async renameCurrent() {
+        let { nvim } = this;
+        let bufnr = await nvim.call('bufnr', '%');
+        let cwd = await nvim.call('getcwd');
+        let doc = this.getDocument(bufnr);
+        if (!doc || doc.buftype != '' || doc.schema != 'file') {
+            nvim.errWriteLine('current buffer is not file.');
+            return;
+        }
+        let oldPath = vscode_uri_1.default.parse(doc.uri).fsPath;
+        let newPath = await nvim.call('input', ['new path:', oldPath, 'file']);
+        if (newPath == oldPath)
+            return;
+        let lines = await doc.buffer.lines;
+        let exists = fs_1.default.existsSync(oldPath);
+        if (exists) {
+            let modified = await nvim.eval('&modified');
+            if (modified)
+                await nvim.command('noa w');
+            if (oldPath.toLowerCase() != newPath.toLowerCase() && fs_1.default.existsSync(newPath)) {
+                let overwrite = await this.showPrompt(`${newPath} exists, overwrite?`);
+                if (!overwrite)
+                    return;
+                fs_1.default.unlinkSync(newPath);
+            }
+            fs_1.default.renameSync(oldPath, newPath);
+        }
+        let filepath = newPath.startsWith(cwd) ? path_1.default.relative(cwd, newPath) : newPath;
+        let cursor = await nvim.call('getcurpos');
+        nvim.pauseNotification();
+        nvim.command(`keepalt ${bufnr}bwipeout!`, true);
+        nvim.call('coc#util#open_file', ['keepalt edit', filepath], true);
+        if (!exists && lines.join('\n') != '\n') {
+            nvim.call('append', [0, lines], true);
+            nvim.command('normal! Gdd', true);
+        }
+        nvim.call('setpos', ['.', cursor], true);
+        await nvim.resumeNotification();
     }
     setMessageLevel() {
         let config = this.getConfiguration('coc.preferences');
@@ -48110,6 +48149,7 @@ const fs_1 = __webpack_require__(201);
 const index_1 = __webpack_require__(168);
 const string_1 = __webpack_require__(206);
 const chars_1 = __webpack_require__(207);
+const array_1 = __webpack_require__(208);
 const logger = __webpack_require__(179)('model-document');
 // wrapper class of TextDocument
 class Document {
@@ -48531,50 +48571,52 @@ class Document {
         }
         return col;
     }
+    matchAddRanges(ranges, hlGroup, priority = 10) {
+        let res = [];
+        let method = this.env.isVim ? 'callTimer' : 'call';
+        let arr = [];
+        let splited = ranges.reduce((p, c) => {
+            for (let i = c.start.line; i <= c.end.line; i++) {
+                let curr = this.getline(i) || '';
+                let sc = i == c.start.line ? c.start.character : 0;
+                let ec = i == c.end.line ? c.end.character : curr.length;
+                if (sc == ec)
+                    continue;
+                p.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, ec));
+            }
+            return p;
+        }, []);
+        for (let range of splited) {
+            let { start, end } = range;
+            if (start.character == end.character)
+                continue;
+            let line = this.getline(start.line);
+            arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
+        }
+        let id = this.colorId;
+        this.colorId = this.colorId + 1;
+        for (let grouped of array_1.group(arr, 8)) {
+            this.nvim[method]('matchaddpos', [hlGroup, grouped, priority, id], true);
+            res.push(id);
+        }
+        return res;
+    }
     highlightRanges(ranges, hlGroup, srcId) {
-        let { nvim } = this;
         let res = [];
         if (this.env.isVim) {
-            let group = [];
-            for (let i = 0, l = ranges.length; i < l; i++) {
-                if (group.length < 8) {
-                    group.push(ranges[i]);
-                }
-                else {
-                    group = [];
-                    group.push(ranges[i]);
-                }
-                if (group.length == 8 || i == l - 1) {
-                    let arr = [];
-                    for (let range of group) {
-                        let { start, end } = range;
-                        let line = this.getline(start.line);
-                        if (end.line - start.line == 1 && end.character == 0) {
-                            arr.push([start.line + 1]);
-                        }
-                        else {
-                            arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
-                        }
-                    }
-                    let id = this.colorId;
-                    this.colorId = this.colorId + 1;
-                    nvim.callTimer('matchaddpos', [hlGroup, arr, 9, id], true);
-                    res.push(id);
-                }
-            }
+            res = this.matchAddRanges(ranges, hlGroup, 10);
         }
         else {
             for (let range of ranges) {
                 let { start, end } = range;
                 let line = this.getline(start.line);
+                // tslint:disable-next-line: no-floating-promises
                 this.buffer.addHighlight({
                     hlGroup,
                     srcId,
                     line: start.line,
                     colStart: string_1.byteIndex(line, start.character),
                     colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : string_1.byteIndex(line, end.character)
-                }).catch(_e => {
-                    // noop
                 });
                 res.push(srcId);
             }
@@ -49779,6 +49821,70 @@ exports.Chars = Chars;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+function intersect(array, other) {
+    for (let item of other) {
+        if (array.indexOf(item) !== -1) {
+            return true;
+        }
+    }
+    return false;
+}
+exports.intersect = intersect;
+function tail(array, n = 0) {
+    return array[array.length - (1 + n)];
+}
+exports.tail = tail;
+function group(array, size) {
+    let len = array.length;
+    let res = [];
+    for (let i = 0; i < Math.ceil(len / size); i++) {
+        res.push(array.slice(i * size, (i + 1) * size));
+    }
+    return res;
+}
+exports.group = group;
+/**
+ * Removes duplicates from the given array. The optional keyFn allows to specify
+ * how elements are checked for equalness by returning a unique string for each.
+ */
+function distinct(array, keyFn) {
+    if (!keyFn) {
+        return array.filter((element, position) => {
+            return array.indexOf(element) === position;
+        });
+    }
+    const seen = Object.create(null);
+    return array.filter(elem => {
+        const key = keyFn(elem);
+        if (seen[key]) {
+            return false;
+        }
+        seen[key] = true;
+        return true;
+    });
+}
+exports.distinct = distinct;
+function lastIndex(array, fn) {
+    let i = array.length - 1;
+    while (i >= 0) {
+        if (fn(array[i])) {
+            break;
+        }
+        i--;
+    }
+    return i;
+}
+exports.lastIndex = lastIndex;
+exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
+//# sourceMappingURL=array.js.map
+
+/***/ }),
+/* 209 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
@@ -49854,7 +49960,7 @@ exports.default = FileSystemWatcher;
 //# sourceMappingURL=fileSystemWatcher.js.map
 
 /***/ }),
-/* 209 */
+/* 210 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -49911,7 +50017,7 @@ exports.default = Mru;
 //# sourceMappingURL=mru.js.map
 
 /***/ }),
-/* 210 */
+/* 211 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50032,7 +50138,7 @@ exports.default = BufferChannel;
 //# sourceMappingURL=outputChannel.js.map
 
 /***/ }),
-/* 211 */
+/* 212 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50042,7 +50148,7 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = __webpack_require__(168);
 const fs_1 = __webpack_require__(201);
-const decorator_1 = __webpack_require__(212);
+const decorator_1 = __webpack_require__(213);
 const logger = __webpack_require__(179)('model-resolver');
 class Resolver {
     get nodeFolder() {
@@ -50085,7 +50191,7 @@ exports.default = Resolver;
 //# sourceMappingURL=resolver.js.map
 
 /***/ }),
-/* 212 */
+/* 213 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50114,13 +50220,13 @@ exports.memorize = memorize;
 //# sourceMappingURL=decorator.js.map
 
 /***/ }),
-/* 213 */
+/* 214 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
-const uuidv1 = __webpack_require__(214);
+const uuidv1 = __webpack_require__(215);
 const logger = __webpack_require__(179)('model-status');
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 class StatusLine {
@@ -50194,11 +50300,11 @@ exports.default = StatusLine;
 //# sourceMappingURL=status.js.map
 
 /***/ }),
-/* 214 */
+/* 215 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var rng = __webpack_require__(215);
-var bytesToUuid = __webpack_require__(216);
+var rng = __webpack_require__(216);
+var bytesToUuid = __webpack_require__(217);
 
 // **`v1()` - Generate time-based UUID**
 //
@@ -50309,7 +50415,7 @@ module.exports = v1;
 
 
 /***/ }),
-/* 215 */
+/* 216 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Unique ID creation requires a high quality random # generator.  In node.js
@@ -50323,7 +50429,7 @@ module.exports = function nodeRNG() {
 
 
 /***/ }),
-/* 216 */
+/* 217 */
 /***/ (function(module, exports) {
 
 /**
@@ -50353,7 +50459,7 @@ module.exports = bytesToUuid;
 
 
 /***/ }),
-/* 217 */
+/* 218 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50452,7 +50558,7 @@ exports.default = TerminalModel;
 //# sourceMappingURL=terminal.js.map
 
 /***/ }),
-/* 218 */
+/* 219 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50551,14 +50657,14 @@ exports.default = WillSaveUntilHandler;
 //# sourceMappingURL=willSaveHandler.js.map
 
 /***/ }),
-/* 219 */
+/* 220 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(220));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(221));
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
@@ -50634,7 +50740,7 @@ exports.score = score;
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 220 */
+/* 221 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = minimatch
@@ -50646,7 +50752,7 @@ try {
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(221)
+var expand = __webpack_require__(222)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -51563,11 +51669,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 221 */
+/* 222 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var concatMap = __webpack_require__(222);
-var balanced = __webpack_require__(223);
+var concatMap = __webpack_require__(223);
+var balanced = __webpack_require__(224);
 
 module.exports = expandTop;
 
@@ -51770,7 +51876,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 222 */
+/* 223 */
 /***/ (function(module, exports) {
 
 module.exports = function (xs, fn) {
@@ -51789,7 +51895,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 223 */
+/* 224 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -51855,17 +51961,17 @@ function range(a, b, str) {
 
 
 /***/ }),
-/* 224 */
+/* 225 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
+const fb_watchman_1 = tslib_1.__importDefault(__webpack_require__(226));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const uuidv1 = __webpack_require__(214);
+const uuidv1 = __webpack_require__(215);
 const vscode_jsonrpc_1 = __webpack_require__(144);
 const logger = __webpack_require__(179)('watchman');
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch'];
@@ -52027,7 +52133,7 @@ exports.default = Watchman;
 //# sourceMappingURL=watchman.js.map
 
 /***/ }),
-/* 225 */
+/* 226 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -52040,7 +52146,7 @@ var net = __webpack_require__(6);
 var EE = __webpack_require__(49).EventEmitter;
 var util = __webpack_require__(40);
 var childProcess = __webpack_require__(169);
-var bser = __webpack_require__(226);
+var bser = __webpack_require__(227);
 
 // We'll emit the responses to these when they get sent down to us
 var unilateralTags = ['subscription', 'log'];
@@ -52356,7 +52462,7 @@ Client.prototype.end = function() {
 
 
 /***/ }),
-/* 226 */
+/* 227 */
 /***/ (function(module, exports, __webpack_require__) {
 
 /* Copyright 2015-present Facebook, Inc.
@@ -52366,7 +52472,7 @@ var EE = __webpack_require__(49).EventEmitter;
 var util = __webpack_require__(40);
 var os = __webpack_require__(55);
 var assert = __webpack_require__(104);
-var Int64 = __webpack_require__(227);
+var Int64 = __webpack_require__(228);
 
 // BSER uses the local endianness to reduce byte swapping overheads
 // (the protocol is expressly local IPC only).  We need to tell node
@@ -52947,7 +53053,7 @@ function dumpToBuffer(val) {
 exports.dumpToBuffer = dumpToBuffer
 
 /***/ }),
-/* 227 */
+/* 228 */
 /***/ (function(module, exports) {
 
 //     Int64.js
@@ -53221,70 +53327,6 @@ Int64.prototype = {
 
 
 /***/ }),
-/* 228 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function intersect(array, other) {
-    for (let item of other) {
-        if (array.indexOf(item) !== -1) {
-            return true;
-        }
-    }
-    return false;
-}
-exports.intersect = intersect;
-function tail(array, n = 0) {
-    return array[array.length - (1 + n)];
-}
-exports.tail = tail;
-function group(array, size) {
-    let len = array.length;
-    let res = [];
-    for (let i = 0; i < Math.ceil(len / size); i++) {
-        res.push(array.slice(i * size, (i + 1) * size));
-    }
-    return res;
-}
-exports.group = group;
-/**
- * Removes duplicates from the given array. The optional keyFn allows to specify
- * how elements are checked for equalness by returning a unique string for each.
- */
-function distinct(array, keyFn) {
-    if (!keyFn) {
-        return array.filter((element, position) => {
-            return array.indexOf(element) === position;
-        });
-    }
-    const seen = Object.create(null);
-    return array.filter(elem => {
-        const key = keyFn(elem);
-        if (seen[key]) {
-            return false;
-        }
-        seen[key] = true;
-        return true;
-    });
-}
-exports.distinct = distinct;
-function lastIndex(array, fn) {
-    let i = array.length - 1;
-    while (i >= 0) {
-        if (fn(array[i])) {
-            break;
-        }
-        i--;
-    }
-    return i;
-}
-exports.lastIndex = lastIndex;
-exports.flatMap = (xs, f) => xs.reduce((x, y) => [...x, ...f(y)], []);
-//# sourceMappingURL=array.js.map
-
-/***/ }),
 /* 229 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -53518,7 +53560,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "af1436517d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "696bb44e1b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53879,6 +53921,12 @@ class CommandManager {
                 let folders = workspace_1.default.workspaceFolders;
                 let lines = folders.map(folder => vscode_uri_1.default.parse(folder.uri).fsPath);
                 await workspace_1.default.echoLines(lines);
+            }
+        });
+        this.register({
+            id: 'workspace.renameCurrentFile',
+            execute: async () => {
+                await workspace_1.default.renameCurrent();
             }
         });
         this.register({
@@ -55566,10 +55614,10 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const db_1 = tslib_1.__importDefault(__webpack_require__(200));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(249));
 const util_2 = __webpack_require__(168);
-const array_1 = __webpack_require__(228);
+const array_1 = __webpack_require__(208);
 const factory_1 = __webpack_require__(250);
 const fs_2 = __webpack_require__(201);
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 __webpack_require__(307);
 const createLogger = __webpack_require__(179);
@@ -56344,7 +56392,7 @@ module.exports = glob
 
 var fs = __webpack_require__(54)
 var rp = __webpack_require__(239)
-var minimatch = __webpack_require__(220)
+var minimatch = __webpack_require__(221)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(241)
 var EE = __webpack_require__(49).EventEmitter
@@ -57551,7 +57599,7 @@ globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(54)
 var rp = __webpack_require__(239)
-var minimatch = __webpack_require__(220)
+var minimatch = __webpack_require__(221)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(238).Glob
 var util = __webpack_require__(40)
@@ -58053,7 +58101,7 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(56)
-var minimatch = __webpack_require__(220)
+var minimatch = __webpack_require__(221)
 var isAbsolute = __webpack_require__(243)
 var Minimatch = minimatch.Minimatch
 
@@ -58714,13 +58762,13 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
 exports.languages = languages_1.default;
 const document_1 = tslib_1.__importDefault(__webpack_require__(203));
 exports.Document = document_1.default;
-const mru_1 = tslib_1.__importDefault(__webpack_require__(209));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(210));
 exports.Mru = mru_1.default;
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
 exports.FloatBuffer = floatBuffer_1.default;
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
 exports.FloatFactory = floatFactory_1.default;
-const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(208));
+const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(209));
 exports.FileSystemWatcher = fileSystemWatcher_1.default;
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
 exports.services = services_1.default;
@@ -58740,7 +58788,7 @@ const manager_3 = tslib_1.__importDefault(__webpack_require__(256));
 exports.diagnosticManager = manager_3.default;
 const ansiparse_1 = __webpack_require__(325);
 exports.ansiparse = ansiparse_1.ansiparse;
-const watchman_1 = tslib_1.__importDefault(__webpack_require__(224));
+const watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
 exports.Watchman = watchman_1.default;
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 exports.Uri = vscode_uri_1.default;
@@ -60050,7 +60098,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(232));
 const util_1 = __webpack_require__(168);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
-const uuid = __webpack_require__(214);
+const uuid = __webpack_require__(215);
 const object_1 = __webpack_require__(189);
 const logger = __webpack_require__(179)('model-float');
 const creatingIds = new Set();
@@ -60320,7 +60368,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const highlight_1 = __webpack_require__(259);
 const string_1 = __webpack_require__(206);
-const array_1 = __webpack_require__(228);
+const array_1 = __webpack_require__(208);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const chars_1 = __webpack_require__(207);
 const logger = __webpack_require__(179)('model-floatBuffer');
@@ -60910,8 +60958,8 @@ exports.terminate = terminate;
 /* 261 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var rng = __webpack_require__(215);
-var bytesToUuid = __webpack_require__(216);
+var rng = __webpack_require__(216);
+var bytesToUuid = __webpack_require__(217);
 
 function v4(options, buf, offset) {
   var i = buf && offset || 0;
@@ -69465,19 +69513,29 @@ class BasicList {
         let lnum = range.start.line + 1;
         let mod = context.options.position == 'top' ? 'below' : 'above';
         let winid = context.listWindow.id;
-        await nvim.command('pclose');
         let exists = await nvim.call('bufloaded', filepath);
         nvim.pauseNotification();
+        nvim.command('pclose', true);
         nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
         nvim.command(`exe ${lnum}`, true);
         nvim.command('setl winfixheight', true);
         nvim.command('setl nofoldenable', true);
-        if (range.start.line == range.end.line && range.start.character != range.end.character) {
-            let line = await workspace_1.default.getLine(uri, range.start.line);
-            let { hlGroup } = this;
-            let start = string_1.byteIndex(line, range.start.character) + 1;
-            let end = string_1.byteIndex(line, range.end.character) + 1;
-            nvim.call('matchaddpos', [hlGroup, [[lnum, start, end - start]]], true);
+        if (position_1.comparePosition(range.start, range.end) !== 0) {
+            let arr = [];
+            for (let i = range.start.line; i <= range.end.line; i++) {
+                let curr = await workspace_1.default.getLine(uri, range.start.line);
+                let sc = i == range.start.line ? range.start.character : 0;
+                let ec = i == range.end.line ? range.end.character : curr.length;
+                if (sc == ec)
+                    continue;
+                arr.push(vscode_languageserver_protocol_1.Range.create(i, sc, i, ec));
+            }
+            for (let r of arr) {
+                let line = await workspace_1.default.getLine(uri, r.start.line);
+                let start = string_1.byteIndex(line, r.start.character) + 1;
+                let end = string_1.byteIndex(line, r.end.character) + 1;
+                nvim.call('matchaddpos', [this.hlGroup, [[lnum, start, end - start]]], true);
+            }
         }
         if (!exists)
             nvim.command('setl nobuflisted bufhidden=wipe', true);
@@ -69583,6 +69641,10 @@ class LocationList extends basic_1.default {
             if (!loc.range) {
                 let { lnum, col } = loc;
                 loc.range = vscode_languageserver_types_1.Range.create(lnum - 1, col - 1, lnum - 1, col - 1);
+            }
+            else {
+                loc.lnum = loc.lnum || loc.range.start.line + 1;
+                loc.col = loc.col || loc.range.start.character + 1;
             }
         });
         let bufnr;
@@ -69898,7 +69960,7 @@ function formatUri(uri) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const basic_1 = tslib_1.__importDefault(__webpack_require__(310));
-const mru_1 = tslib_1.__importDefault(__webpack_require__(209));
+const mru_1 = tslib_1.__importDefault(__webpack_require__(210));
 class LinksList extends basic_1.default {
     constructor(nvim, listMap) {
         super(nvim);
@@ -70422,6 +70484,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const util_1 = __webpack_require__(168);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
+const debounce = __webpack_require__(170);
 const logger = __webpack_require__(179)('list-ui');
 class ListUI {
     constructor(nvim, config) {
@@ -70466,11 +70529,20 @@ class ListUI {
             if (bufnr != this.bufnr)
                 return;
             let lnum = cursor[0];
-            if (this.currIndex + 1 == lnum)
-                return;
-            this.currIndex = lnum - 1;
-            this._onDidChangeLine.fire(lnum);
+            if (this.currIndex + 1 != lnum) {
+                this.currIndex = lnum - 1;
+                this._onDidChangeLine.fire(lnum);
+            }
         }, null, this.disposables);
+        events_1.default.on('CursorMoved', debounce(async (bufnr) => {
+            if (bufnr != this.bufnr)
+                return;
+            let [start, end] = await nvim.eval('[line("w0"),line("w$")]');
+            nvim.pauseNotification();
+            this.doHighlight(start - 1, end - 1);
+            nvim.command('redraw', true);
+            await nvim.resumeNotification(false, true);
+        }, 50));
     }
     set index(n) {
         if (n < 0 || n >= this.items.length)
@@ -70782,7 +70854,7 @@ class ListUI {
             buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true);
         }
         nvim.command('setl nomodifiable', true);
-        this.doHighlight();
+        this.doHighlight(0, 100);
         if (!append)
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
         this._onDidChange.fire();
@@ -70815,10 +70887,10 @@ class ListUI {
         }
         return res;
     }
-    doHighlight() {
+    doHighlight(start, end) {
         let { nvim } = workspace_1.default;
         let { highlights, items } = this;
-        for (let i = 0; i < items.length; i++) {
+        for (let i = start; i <= Math.min(end, items.length - 1); i++) {
             let { ansiHighlights } = items[i];
             let highlight = highlights[i];
             if (ansiHighlights) {
@@ -70899,7 +70971,7 @@ const fuzzy_1 = __webpack_require__(305);
 const score_1 = __webpack_require__(326);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
-const uuidv1 = __webpack_require__(214);
+const uuidv1 = __webpack_require__(215);
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(179)('list-worker');
 const controlCode = '\x1b';
@@ -71393,20 +71465,21 @@ function ansiparse(str) {
     };
     for (let i = 0; i < str.length; i++) { // tslint:disable-line
         if (matchingControl != null) {
-            if (matchingControl == '\x1b' && str[i] == '[') {
+            if (matchingControl == '\x1b' && str[i] == '\[') {
                 //
                 // We've matched full control code. Lets start matching formating data.
                 //
                 //
                 // "emit" matched text with correct state
                 //
-                if (matchingText != null) {
+                if (matchingText) {
                     state.text = matchingText;
-                    if (matchingText) {
-                        result.push(state);
-                    }
+                    result.push(state);
                     state = {};
                     matchingText = '';
+                }
+                if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+                    state = {};
                 }
                 matchingControl = null;
                 matchingData = '';
@@ -72005,7 +72078,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(220));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(221));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
@@ -73016,9 +73089,10 @@ const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(302));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(232));
 const util_1 = __webpack_require__(168);
 const convert_1 = __webpack_require__(318);
 const object_1 = __webpack_require__(189);
@@ -73029,7 +73103,6 @@ const codelens_1 = tslib_1.__importDefault(__webpack_require__(339));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(340));
 const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(342));
 const debounce = __webpack_require__(170);
-const manager_3 = tslib_1.__importDefault(__webpack_require__(302));
 const logger = __webpack_require__(179)('Handler');
 const pairs = new Map([
     ['<', '>'],
@@ -73410,7 +73483,7 @@ class Handler {
             await commands_1.default.executeCommand(id, ...args);
         }
         else {
-            await manager_3.default.start(['commands']);
+            await manager_2.default.start(['commands']);
         }
     }
     async doCodeAction(mode, only) {
@@ -73613,7 +73686,7 @@ class Handler {
     async onCharacterType(ch, bufnr, insertLeave = false) {
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
             return;
-        if (manager_2.default.getSession(bufnr) != null)
+        if (manager_3.default.getSession(bufnr) != null)
             return;
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc || doc.paused)
@@ -74542,7 +74615,7 @@ exports.default = Colors;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const array_1 = __webpack_require__(228);
+const array_1 = __webpack_require__(208);
 const object_1 = __webpack_require__(189);
 const position_1 = __webpack_require__(234);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
@@ -74694,17 +74767,13 @@ const tslib_1 = __webpack_require__(3);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
-const array = tslib_1.__importStar(__webpack_require__(228));
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
-const string_1 = __webpack_require__(206);
 const util_1 = __webpack_require__(168);
 const logger = __webpack_require__(179)('documentHighlight');
-const INITIAL_ID = 9999;
 class DocumentHighlighter {
     constructor(nvim, colors) {
         this.nvim = nvim;
         this.colors = colors;
-        this.colorId = INITIAL_ID;
         this.disposables = [];
         this.matchIds = new Set();
         events_1.default.on('BufWinLeave', () => {
@@ -74736,7 +74805,6 @@ class DocumentHighlighter {
         }
         nvim.pauseNotification();
         this.clearHighlight();
-        this.colorId = INITIAL_ID;
         let groups = {};
         for (let hl of highlights) {
             let hlGroup = hl.kind == vscode_languageserver_protocol_1.DocumentHighlightKind.Text
@@ -74746,7 +74814,10 @@ class DocumentHighlighter {
             groups[hlGroup].push(hl.range);
         }
         for (let hlGroup of Object.keys(groups)) {
-            this.highlightRanges(document, hlGroup, groups[hlGroup]);
+            let ids = document.matchAddRanges(groups[hlGroup], hlGroup, -1);
+            for (let id of ids) {
+                this.matchIds.add(id);
+            }
         }
         this.nvim.call('coc#util#add_matchids', [Array.from(this.matchIds)], true);
         await this.nvim.resumeNotification(false, true);
@@ -74767,28 +74838,6 @@ class DocumentHighlighter {
             return null;
         }
         return highlights;
-    }
-    highlightRanges(document, hlGroup, ranges) {
-        let { matchIds } = this;
-        let grouped = array.group(ranges, 8);
-        for (let group of grouped) {
-            let arr = [];
-            for (let range of group) {
-                let { start, end } = range;
-                let line = document.getline(start.line);
-                if (end.line - start.line == 1 && end.character == 0) {
-                    arr.push([start.line + 1]);
-                }
-                else {
-                    arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
-                }
-            }
-            let id = this.colorId;
-            this.colorId = id + 1;
-            let method = workspace_1.default.isVim ? 'callTimer' : 'call';
-            this.nvim[method]('matchaddpos', [hlGroup, arr, -1, id], true);
-            matchIds.add(id);
-        }
     }
     dispose() {
         util_1.disposeAll(this.disposables);
