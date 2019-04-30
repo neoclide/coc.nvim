@@ -1384,6 +1384,43 @@ augroup end`
     return preferences.get<string[]>('rootPatterns', ['.vim', '.git', '.hg', '.projections.json']).slice()
   }
 
+  public async renameCurrent(): Promise<void> {
+    let { nvim } = this
+    let bufnr = await nvim.call('bufnr', '%')
+    let cwd = await nvim.call('getcwd')
+    let doc = this.getDocument(bufnr)
+    if (!doc || doc.buftype != '' || doc.schema != 'file') {
+      nvim.errWriteLine('current buffer is not file.')
+      return
+    }
+    let oldPath = Uri.parse(doc.uri).fsPath
+    let newPath = await nvim.call('input', ['new path:', oldPath, 'file'])
+    if (newPath == oldPath) return
+    let lines = await doc.buffer.lines
+    let exists = fs.existsSync(oldPath)
+    if (exists) {
+      let modified = await nvim.eval('&modified')
+      if (modified) await nvim.command('noa w')
+      if (oldPath.toLowerCase() != newPath.toLowerCase() && fs.existsSync(newPath)) {
+        let overwrite = await this.showPrompt(`${newPath} exists, overwrite?`)
+        if (!overwrite) return
+        fs.unlinkSync(newPath)
+      }
+      fs.renameSync(oldPath, newPath)
+    }
+    let filepath = newPath.startsWith(cwd) ? path.relative(cwd, newPath) : newPath
+    let cursor = await nvim.call('getcurpos')
+    nvim.pauseNotification()
+    nvim.command(`keepalt ${bufnr}bwipeout!`, true)
+    nvim.call('coc#util#open_file', ['keepalt edit', filepath], true)
+    if (!exists && lines.join('\n') != '\n') {
+      nvim.call('append', [0, lines], true)
+      nvim.command('normal! Gdd', true)
+    }
+    nvim.call('setpos', ['.', cursor], true)
+    await nvim.resumeNotification()
+  }
+
   private setMessageLevel(): void {
     let config = this.getConfiguration('coc.preferences')
     let level = config.get<string>('messageLevel', 'more')

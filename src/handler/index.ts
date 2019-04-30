@@ -7,6 +7,7 @@ import diagnosticManager from '../diagnostic/manager'
 import events from '../events'
 import extensions from '../extensions'
 import languages from '../languages'
+import listManager from '../list/manager'
 import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
@@ -22,7 +23,6 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
-import listManager from '../list/manager'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],

@@ -384,6 +384,33 @@ describe('workspace methods', () => {
     expect(typeof pid == 'number').toBe(true)
     terminal.dispose()
   })
+
+  it('should rename buffer', async () => {
+    await nvim.command('edit a')
+    await helper.wait(100)
+    let p = workspace.renameCurrent()
+    await helper.wait(100)
+    await nvim.input('<backspace>b<cr>')
+    await p
+    let name = await nvim.eval('bufname("%")') as string
+    expect(name.endsWith('b')).toBe(true)
+  })
+
+  it('should rename file', async () => {
+    let cwd = await nvim.call('getcwd')
+    let file = path.join(cwd, 'a')
+    fs.writeFileSync(file, 'foo', 'utf8')
+    await nvim.command('edit a')
+    await helper.wait(100)
+    let p = workspace.renameCurrent()
+    await helper.wait(100)
+    await nvim.input('<backspace>b<cr>')
+    await p
+    let name = await nvim.eval('bufname("%")') as string
+    expect(name.endsWith('b')).toBe(true)
+    expect(fs.existsSync(path.join(cwd, 'b'))).toBe(true)
+    fs.unlinkSync(path.join(cwd, 'b'))
+  })
 })
 
 describe('workspace utility', () => {

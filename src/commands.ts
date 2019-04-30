@@ -5,7 +5,6 @@ import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
-import { comparePosition } from './util/position'
 import URI from 'vscode-uri'
 const logger = require('./util/logger')('commands')
 
@@ -128,6 +127,12 @@ export class CommandManager implements Disposable {
         let folders = workspace.workspaceFolders
         let lines = folders.map(folder => URI.parse(folder.uri).fsPath)
         await workspace.echoLines(lines)
+      }
+    })
+    this.register({
+      id: 'workspace.renameCurrentFile',
+      execute: async () => {
+        await workspace.renameCurrent()
       }
     })
     this.register({
