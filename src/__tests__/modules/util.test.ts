@@ -157,4 +157,13 @@ describe('ansiparse', () => {
     let res = ansiparse(str)
     expect(res).toEqual([{ text: 'Text' }])
   })
+
+  test('ansiparse #3', () => {
+    let str = 'this.\u001b[0m\u001b[31m\u001b[1mhistory\u001b[0m.add()'
+    let res = ansiparse(str)
+    expect(res[1]).toEqual({
+      foreground: 'red',
+      bold: true, text: 'history'
+    })
+  })
 })

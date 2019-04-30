@@ -5,6 +5,7 @@ import { ListHighlights, ListItem } from '../types'
 import { disposeAll } from '../util'
 import workspace from '../workspace'
 import ListConfiguration from './configuration'
+import debounce = require('debounce')
 const logger = require('../util/logger')('list-ui')
 
 export type MouseEvent = 'mouseDown' | 'mouseDrag' | 'mouseUp' | 'doubleClick'
@@ -62,10 +63,20 @@ export default class ListUI {
       if (timer) clearTimeout(timer)
       if (bufnr != this.bufnr) return
       let lnum = cursor[0]
-      if (this.currIndex + 1 == lnum) return
-      this.currIndex = lnum - 1
-      this._onDidChangeLine.fire(lnum)
+      if (this.currIndex + 1 != lnum) {
+        this.currIndex = lnum - 1
+        this._onDidChangeLine.fire(lnum)
+      }
     }, null, this.disposables)
+
+    events.on('CursorMoved', debounce(async bufnr => {
+      if (bufnr != this.bufnr) return
+      let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
+      nvim.pauseNotification()
+      this.doHighlight(start - 1, end - 1)
+      nvim.command('redraw', true)
+      await nvim.resumeNotification(false, true)
+    }, 50))
   }
 
   public set index(n: number) {
@@ -374,7 +385,7 @@ export default class ListUI {
       buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     }
     nvim.command('setl nomodifiable', true)
-    this.doHighlight()
+    this.doHighlight(0, 100)
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
     nvim.resumeNotification(false, true).catch(_e => {
@@ -410,10 +421,10 @@ export default class ListUI {
     return res
   }
 
-  private doHighlight(): void {
+  private doHighlight(start: number, end: number): void {
     let { nvim } = workspace
     let { highlights, items } = this
-    for (let i = 0; i < items.length; i++) {
+    for (let i = start; i <= Math.min(end, items.length - 1); i++) {
       let { ansiHighlights } = items[i]
       let highlight = highlights[i]
       if (ansiHighlights) {

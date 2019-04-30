@@ -584,7 +584,7 @@
     },
     "list.limitLines": {
       "type": "number",
-      "default": 1000,
+      "default": 30000,
       "description": "Limit lines for list buffer."
     },
     "list.maxPreviewHeight": {

@@ -80,7 +80,7 @@ export function ansiparse(str: string): AnsiItem[] {
 
   for (let i = 0; i < str.length; i++) { // tslint:disable-line
     if (matchingControl != null) {
-      if (matchingControl == '\x1b' && str[i] == '[') {
+      if (matchingControl == '\x1b' && str[i] == '\[') {
         //
         // We've matched full control code. Lets start matching formating data.
         //
@@ -88,13 +88,14 @@ export function ansiparse(str: string): AnsiItem[] {
         //
         // "emit" matched text with correct state
         //
-        if (matchingText != null) {
+        if (matchingText) {
           state.text = matchingText
-          if (matchingText) {
-            result.push(state)
-          }
+          result.push(state)
           state = {}
           matchingText = ''
+        }
+        if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+          state = {}
         }
 
         matchingControl = null
