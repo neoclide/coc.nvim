@@ -41985,15 +41985,6 @@ exports.platform = platform;
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(177));
 const logger = __webpack_require__(179)('util-index');
 const prefix = '[coc.nvim] ';
-var FileSchemes;
-(function (FileSchemes) {
-    FileSchemes["File"] = "file";
-    FileSchemes["Untitled"] = "untitled";
-})(FileSchemes = exports.FileSchemes || (exports.FileSchemes = {}));
-function isSupportedScheme(scheme) {
-    return ([FileSchemes.File, FileSchemes.Untitled].indexOf(scheme) >= 0);
-}
-exports.isSupportedScheme = isSupportedScheme;
 function escapeSingleQuote(str) {
     return str.replace(/'/g, "''");
 }
@@ -42157,7 +42148,17 @@ exports.mkdirp = mkdirp;
 function nfcall(fn, ...args) {
     return new Promise((c, e) => fn(...args, (err, r) => err ? e(err) : c(r)));
 }
-exports.nfcall = nfcall;
+// consider textDocument without version to be valid
+function isDocumentEdit(edit) {
+    if (edit == null)
+        return false;
+    if (!vscode_languageserver_protocol_1.TextDocumentIdentifier.is(edit.textDocument))
+        return false;
+    if (!Array.isArray(edit.edits))
+        return false;
+    return true;
+}
+exports.isDocumentEdit = isDocumentEdit;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -43937,7 +43938,7 @@ class Workspace {
             if (documentChanges && documentChanges.length) {
                 let n = documentChanges.length;
                 for (let change of documentChanges) {
-                    if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
+                    if (index_1.isDocumentEdit(change)) {
                         let { textDocument, edits } = change;
                         let doc = await this.loadFile(textDocument.uri);
                         await doc.applyEdits(nvim, edits);
@@ -44635,7 +44636,7 @@ augroup end`;
         if (!documentChanges)
             return true;
         for (let change of documentChanges) {
-            if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
+            if (index_1.isDocumentEdit(change)) {
                 let { textDocument } = change;
                 let { uri, version } = textDocument;
                 let doc = this.getDocument(uri);
@@ -44868,7 +44869,7 @@ augroup end`;
         let res = [];
         let documentEdits = [];
         for (let change of changes) {
-            if (vscode_languageserver_protocol_1.TextDocumentEdit.is(change)) {
+            if (index_1.isDocumentEdit(change)) {
                 let { edits, textDocument } = change;
                 let documentEdit = documentEdits.find(o => o.textDocument.uri == textDocument.uri && o.textDocument.version === textDocument.version);
                 if (documentEdit) {
@@ -53517,7 +53518,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ad629df759" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "af1436517d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58755,6 +58756,9 @@ tslib_1.__exportStar(__webpack_require__(188), exports);
 tslib_1.__exportStar(__webpack_require__(290), exports);
 var util_1 = __webpack_require__(168);
 exports.disposeAll = util_1.disposeAll;
+exports.runCommand = util_1.runCommand;
+exports.isRunning = util_1.isRunning;
+exports.executable = util_1.executable;
 //# sourceMappingURL=index.js.map
 
 /***/ }),
@@ -68395,11 +68399,17 @@ class ListManager {
                 let valid = await window.valid;
                 if (!valid)
                     return;
-                nvim.pauseNotification();
-                nvim.call('win_gotoid', [window.id], true);
-                await this.ui.restoreWindow();
-                nvim.command('redraw', true);
-                await nvim.resumeNotification();
+                let winid = await nvim.call('win_getid');
+                if (winid != window.id) {
+                    nvim.pauseNotification();
+                    nvim.call('win_gotoid', [window.id], true);
+                    await this.ui.restoreWindow();
+                    nvim.command('redraw', true);
+                    await nvim.resumeNotification();
+                }
+                else {
+                    await this.ui.restoreWindow();
+                }
                 if (action.reload)
                     await this.worker.loadItems(true);
             }
