@@ -877,7 +877,10 @@ export default class Handler {
       i++
     }
     if (target == 'echo') {
-      await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim())
+      const msg = lines.join('\n').trim()
+      if (msg.length) {
+        await this.nvim.call('coc#util#echo_hover', msg)
+      }
     } else if (target == 'float') {
       diagnosticManager.hideFloat()
       await this.hoverFactory.create(docs)
