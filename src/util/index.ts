@@ -3,7 +3,7 @@ import path, { dirname } from 'path'
 import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
-import { Disposable } from 'vscode-languageserver-protocol'
+import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
 import Uri from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
@@ -13,17 +13,6 @@ import { MapMode } from '../types'
 export { platform }
 const logger = require('./logger')('util-index')
 const prefix = '[coc.nvim] '
-
-export enum FileSchemes {
-  File = 'file',
-  Untitled = 'untitled'
-}
-
-export function isSupportedScheme(scheme: string): boolean {
-  return (
-    [FileSchemes.File, FileSchemes.Untitled].indexOf(scheme as FileSchemes) >= 0
-  )
-}
 
 export function escapeSingleQuote(str: string): string {
   return str.replace(/'/g, "''")
@@ -181,6 +170,14 @@ export async function mkdirp(path: string, mode?: number): Promise<boolean> {
   return true
 }
 
-export function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
+function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
   return new Promise<R>((c, e) => fn(...args, (err: any, r: any) => err ? e(err) : c(r)))
+}
+
+// consider textDocument without version to be valid
+export function isDocumentEdit(edit: any): boolean {
+  if (edit == null) return false
+  if (!TextDocumentIdentifier.is(edit.textDocument)) return false
+  if (!Array.isArray(edit.edits)) return false
+  return true
 }

@@ -24,7 +24,7 @@ import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, LanguageServerConfig, PatternType } from './types'
 import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
-import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait } from './util/index'
+import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait, isDocumentEdit } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
@@ -475,8 +475,8 @@ export class Workspace implements IWorkspace {
       if (documentChanges && documentChanges.length) {
         let n = documentChanges.length
         for (let change of documentChanges) {
-          if (TextDocumentEdit.is(change)) {
-            let { textDocument, edits } = change
+          if (isDocumentEdit(change)) {
+            let { textDocument, edits } = change as TextDocumentEdit
             let doc = await this.loadFile(textDocument.uri)
             await doc.applyEdits(nvim, edits)
           } else if (CreateFile.is(change)) {
@@ -1175,8 +1175,8 @@ augroup end`
   private validteDocumentChanges(documentChanges: any[] | null): boolean {
     if (!documentChanges) return true
     for (let change of documentChanges) {
-      if (TextDocumentEdit.is(change)) {
-        let { textDocument } = change
+      if (isDocumentEdit(change)) {
+        let { textDocument } = change as TextDocumentEdit
         let { uri, version } = textDocument
         let doc = this.getDocument(uri)
         if (version && !doc) {
@@ -1403,13 +1403,13 @@ augroup end`
     let res: any[] = []
     let documentEdits: TextDocumentEdit[] = []
     for (let change of changes) {
-      if (TextDocumentEdit.is(change)) {
-        let { edits, textDocument } = change
+      if (isDocumentEdit(change)) {
+        let { edits, textDocument } = change as TextDocumentEdit
         let documentEdit = documentEdits.find(o => o.textDocument.uri == textDocument.uri && o.textDocument.version === textDocument.version)
         if (documentEdit) {
           documentEdit.edits.push(...edits)
         } else {
-          documentEdits.push(change)
+          documentEdits.push(change as TextDocumentEdit)
         }
       } else {
         res.push(change)

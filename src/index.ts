@@ -26,4 +26,4 @@ export * from './provider'
 
 export { Neovim, Buffer, Window, Mru, Watchman, Uri, Disposable, Event, Emitter, FloatFactory, FloatBuffer, ansiparse }
 export { workspace, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
-export { disposeAll } from './util'
+export { disposeAll, runCommand, isRunning, executable } from './util'
