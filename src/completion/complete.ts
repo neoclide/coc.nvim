@@ -198,7 +198,9 @@ export default class Complete {
         if (maxScore > 5 && priority <= 10 && score < maxScore) continue
         if (followPart.length && !item.isSnippet) {
           if (item.word.endsWith(followPart)) {
+            let { word } = item
             item.word = item.word.slice(0, - followPart.length)
+            item.abbr = item.abbr || word
           }
         }
         if (!item.user_data) {
