@@ -95,6 +95,10 @@ export function ansiparse(str: string): AnsiItem[] {
           matchingText = ''
         }
         if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+          if (state.foreground || state.background) {
+            state.text = ''
+            result.push(state)
+          }
           state = {}
         }
 

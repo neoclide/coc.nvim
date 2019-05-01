@@ -150,8 +150,8 @@ export class ListManager implements Disposable {
     if (!res) return
     this.activated = true
     this.args = args
+    let { list, options, listArgs } = res
     try {
-      let { list, options, listArgs } = res
       this.reset()
       this.listOptions = options
       this.currList = list
@@ -164,7 +164,8 @@ export class ListManager implements Disposable {
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()
-      workspace.showMessage(`Task error: ${e}`, 'error')
+      let msg = e instanceof Error ? e.message : e.toString()
+      workspace.showMessage(`Error on "CocList ${list.name}" ${msg}`, 'error')
       logger.error(e)
     }
   }

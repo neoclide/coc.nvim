@@ -155,7 +155,9 @@ describe('ansiparse', () => {
   test('ansiparse #2', () => {
     let str = '\u001b[33m\u001b[mText'
     let res = ansiparse(str)
-    expect(res).toEqual([{ text: 'Text' }])
+    expect(res).toEqual([
+      { foreground: 'yellow', text: '' },
+      { text: 'Text' }])
   })
 
   test('ansiparse #3', () => {

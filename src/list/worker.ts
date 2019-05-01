@@ -370,6 +370,7 @@ export default class Worker {
     let newLabel = ''
     let highlights: AnsiHighlight[] = []
     for (let item of ansiItems) {
+      if (!item.text) continue
       let old = newLabel
       newLabel = newLabel + item.text
       let { foreground, background } = item
