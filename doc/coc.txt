@@ -504,6 +504,14 @@ b:coc_current_function 				*b:coc_current_function*
 			Set `"coc.preferences.currentFunctionSymbolAutoUpdate": true`
 			in coc-settings.json to update it on CursorHold.
 
+g:coc_last_hover_message 			*g:coc_last_hover_message*
+
+			Last message echoed from `doHover`, can be used in
+			statusline.
+
+			Note: not used when floating or preview window used
+			for `doHover`.
+
 g:coc_start_at_startup 				*g:coc_start_at_startup*
 
 			Start coc service on startup, use |CocStart| to start

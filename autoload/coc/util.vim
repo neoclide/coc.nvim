@@ -208,6 +208,7 @@ function! coc#util#echo_hover(msg)
   echohl MoreMsg
   echo a:msg
   echohl None
+  let g:coc_last_hover_message = a:msg
 endfunction
 
 function! coc#util#execute(cmd)
