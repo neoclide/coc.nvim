@@ -71,7 +71,9 @@ export default class ListUI {
 
     events.on('CursorMoved', debounce(async bufnr => {
       if (bufnr != this.bufnr) return
+      // if (this.length < 500) return
       let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
+      // if (end < 500) return
       nvim.pauseNotification()
       this.doHighlight(start - 1, end - 1)
       nvim.command('redraw', true)
@@ -320,11 +322,17 @@ export default class ListUI {
     }
     if (bufnr == 0 && !this.creating) {
       this.creating = true
+      let saved = await nvim.call('winsaveview')
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`
-      await nvim.command(cmd)
+      nvim.pauseNotification()
+      nvim.command(cmd, true)
+      nvim.command(`resize ${height}`, true)
+      nvim.command('wincmd p', true)
+      nvim.call('winrestview', [saved], true)
+      nvim.command('wincmd p', true)
+      await nvim.resumeNotification()
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
-      await this.window.request(`nvim_win_set_height`, [height])
       this.height = height
       this._onDidOpen.fire(this.bufnr)
       this.creating = false
@@ -385,7 +393,11 @@ export default class ListUI {
       buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true)
     }
     nvim.command('setl nomodifiable', true)
-    this.doHighlight(0, 100)
+    if (!append && index == 0) {
+      this.doHighlight(0, 500)
+    } else {
+      this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height, this.length - 1))
+    }
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
     nvim.resumeNotification(false, true).catch(_e => {
@@ -431,13 +443,13 @@ export default class ListUI {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
           this.setHighlightGroup(hlGroup)
-          nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true)
+          nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true)
         }
       }
       if (highlight) {
         let { spans, hlGroup } = highlight
         for (let span of spans) {
-          nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true)
+          nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true)
         }
       }
     }
