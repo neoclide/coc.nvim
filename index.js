@@ -45314,14 +45314,14 @@ class Configurations {
     get foldConfigurations() {
         return this._folderConfigurations;
     }
-    // used for extensions, not change event fired
+    // used for extensions, no change event fired
     extendsDefaults(props) {
         let { defaults } = this._configuration;
         let { contents } = defaults;
         contents = object_1.deepClone(contents);
         Object.keys(props).forEach(key => {
             util_2.addToValueTree(contents, key, props[key], msg => {
-                console.error(msg); // tslint:disable-line
+                logger.error(msg); // tslint:disable-line
             });
         });
         let data = {
@@ -45880,8 +45880,8 @@ exports.Configuration = Configuration;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const is_1 = __webpack_require__(190);
-const util_1 = __webpack_require__(193);
 const object_1 = __webpack_require__(189);
+const util_1 = __webpack_require__(193);
 class ConfigurationModel {
     constructor(_contents = {}) {
         this._contents = _contents;
@@ -46083,6 +46083,10 @@ function addToValueTree(settingsTreeRoot, key, value, conflictReporter) {
         let s = segments[i];
         let obj = curr[s];
         switch (typeof obj) {
+            case 'function': {
+                obj = curr[s] = {};
+                break;
+            }
             case 'undefined': {
                 obj = curr[s] = {};
                 break;
@@ -46156,7 +46160,7 @@ function loadDefaultConfigurations() {
         let value = properties[key].default;
         if (value !== undefined) {
             addToValueTree(config, key, value, message => {
-                console.error(message); // tslint:disable-line
+                logger.error(message); // tslint:disable-line
             });
         }
     });
@@ -53560,7 +53564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "696bb44e1b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bbfa4ac03f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -67852,6 +67856,8 @@ class ListManager {
                 return;
             await this.doAction('preview');
         }, 100), null, this.disposables);
+        this.ui.onDidChangeLine(this.resolveItem, this, this.disposables);
+        this.ui.onDidLineChange(this.resolveItem, this, this.disposables);
         this.ui.onDidOpen(() => {
             if (this.currList) {
                 if (typeof this.currList.doHighlight == 'function') {
@@ -67912,8 +67918,8 @@ class ListManager {
             return;
         this.activated = true;
         this.args = args;
+        let { list, options, listArgs } = res;
         try {
-            let { list, options, listArgs } = res;
             this.reset();
             this.listOptions = options;
             this.currList = list;
@@ -67927,7 +67933,8 @@ class ListManager {
         }
         catch (e) {
             await this.cancel();
-            workspace_1.default.showMessage(`Task error: ${e}`, 'error');
+            let msg = e instanceof Error ? e.message : e.toString();
+            workspace_1.default.showMessage(`Error on "CocList ${list.name}" ${msg}`, 'error');
             logger.error(e);
         }
     }
@@ -68469,6 +68476,21 @@ class ListManager {
             logger.error(e);
         }
         this.executing = false;
+    }
+    async resolveItem() {
+        if (!this.activated)
+            return;
+        let index = this.ui.index;
+        let item = this.ui.getItem(0);
+        if (!item || item.resolved)
+            return;
+        let { list } = this;
+        if (typeof list.resolveItem == 'function') {
+            let resolved = await list.resolveItem(item);
+            if (resolved && index == this.ui.index) {
+                await this.ui.updateItem(resolved, index);
+            }
+        }
     }
     get defaultAction() {
         let { currList } = this;
@@ -70435,10 +70457,29 @@ class Symbols extends location_1.default {
             items.push({
                 label: `${s.name} [${kind}]\t${file}`,
                 filterText: `${s.name}`,
-                location: s.location
+                location: s.location,
+                data: { original: s }
             });
         }
         return items;
+    }
+    async resolveItem(item) {
+        let s = item.data.original;
+        if (!s)
+            return null;
+        let resolved = await languages_1.default.resolveWorkspaceSymbol(s);
+        if (!resolved)
+            return null;
+        let kind = convert_1.getSymbolKind(resolved.kind);
+        let file = vscode_uri_1.default.parse(resolved.location.uri).fsPath;
+        if (file.startsWith(workspace_1.default.cwd)) {
+            file = path_1.default.relative(workspace_1.default.cwd, file);
+        }
+        return {
+            label: `${s.name} [${kind}]\t${file}`,
+            filterText: `${s.name}`,
+            location: s.location
+        };
     }
     doHighlight() {
         let { nvim } = this;
@@ -70537,7 +70578,9 @@ class ListUI {
         events_1.default.on('CursorMoved', debounce(async (bufnr) => {
             if (bufnr != this.bufnr)
                 return;
+            // if (this.length < 500) return
             let [start, end] = await nvim.eval('[line("w0"),line("w$")]');
+            // if (end < 500) return
             nvim.pauseNotification();
             this.doHighlight(start - 1, end - 1);
             nvim.command('redraw', true);
@@ -70583,6 +70626,20 @@ class ListUI {
         let idx = items.indexOf(item);
         let msg = `[${idx + 1}/${items.length}] ${item.label || ''}`;
         this.nvim.callTimer('coc#util#echo_lines', [[msg]], true);
+    }
+    async updateItem(item, index) {
+        if (!this.bufnr || workspace_1.default.bufnr != this.bufnr)
+            return;
+        let obj = Object.assign({ resolved: true }, item);
+        if (index < this.length) {
+            this.items[index] = obj;
+            let { nvim } = this;
+            nvim.pauseNotification();
+            nvim.command('setl modifiable', true);
+            nvim.call('setline', [index + 1, obj.label], true);
+            nvim.command('setl nomodifiable', true);
+            await nvim.resumeNotification();
+        }
     }
     async getItems() {
         if (this.length == 0)
@@ -70787,11 +70844,17 @@ class ListUI {
         }
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
+            let saved = await nvim.call('winsaveview');
             let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`;
-            await nvim.command(cmd);
+            nvim.pauseNotification();
+            nvim.command(cmd, true);
+            nvim.command(`resize ${height}`, true);
+            nvim.command('wincmd p', true);
+            nvim.call('winrestview', [saved], true);
+            nvim.command('wincmd p', true);
+            await nvim.resumeNotification();
             this._bufnr = await nvim.call('bufnr', '%');
             this.window = await nvim.window;
-            await this.window.request(`nvim_win_set_height`, [height]);
             this.height = height;
             this._onDidOpen.fire(this.bufnr);
             this.creating = false;
@@ -70854,7 +70917,12 @@ class ListUI {
             buf.setLines(lines, { start: append ? -1 : 0, end: -1, strictIndexing: false }, true);
         }
         nvim.command('setl nomodifiable', true);
-        this.doHighlight(0, 100);
+        if (!append && index == 0) {
+            this.doHighlight(0, 500);
+        }
+        else {
+            this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height, this.length - 1));
+        }
         if (!append)
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
         this._onDidChange.fire();
@@ -70897,13 +70965,13 @@ class ListUI {
                 for (let hi of ansiHighlights) {
                     let { span, hlGroup } = hi;
                     this.setHighlightGroup(hlGroup);
-                    nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true);
+                    nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true);
                 }
             }
             if (highlight) {
                 let { spans, hlGroup } = highlight;
                 for (let span of spans) {
-                    nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 99], true);
+                    nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true);
                 }
             }
         }
@@ -71345,6 +71413,8 @@ class Worker {
         let newLabel = '';
         let highlights = [];
         for (let item of ansiItems) {
+            if (!item.text)
+                continue;
             let old = newLabel;
             newLabel = newLabel + item.text;
             let { foreground, background } = item;
@@ -71479,6 +71549,10 @@ function ansiparse(str) {
                     matchingText = '';
                 }
                 if (matchingText == '' && (str[i + 1] == 'm' || str[i + 1] == 'K')) {
+                    if (state.foreground || state.background) {
+                        state.text = '';
+                        result.push(state);
+                    }
                     state = {};
                 }
                 matchingControl = null;
@@ -74897,7 +74971,7 @@ exports.default = default_1;
 /* 344 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.66","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npx npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.66","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
