@@ -53564,7 +53564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bbfa4ac03f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bedfc091dc" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72488,7 +72488,9 @@ class Complete {
                     continue;
                 if (followPart.length && !item.isSnippet) {
                     if (item.word.endsWith(followPart)) {
+                        let { word } = item;
                         item.word = item.word.slice(0, -followPart.length);
+                        item.abbr = item.abbr || word;
                     }
                 }
                 if (!item.user_data) {
@@ -73846,15 +73848,13 @@ class Handler {
                         let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
                         paramDoc = active.documentation;
                         if (typeof active.label === 'string') {
-                            let startIndex = activeParameter == 0 ? 0 : string_1.indexOf(after, ',', activeParameter);
-                            startIndex = startIndex == -1 ? 0 : startIndex;
-                            let str = after.slice(startIndex);
+                            let str = after.slice(0);
                             let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
                             let index = ms ? ms.index : str.indexOf(active.label);
                             if (index != -1) {
                                 activeIndexes = [
-                                    index + startIndex + nameIndex,
-                                    index + startIndex + active.label.length + nameIndex
+                                    index + nameIndex,
+                                    index + active.label.length + nameIndex
                                 ];
                             }
                         }
@@ -73919,26 +73919,27 @@ class Handler {
                             let start;
                             let end;
                             if (typeof active.label === 'string') {
-                                let startIndex = activeParameter == 0 ? 0 : string_1.indexOf(after, ',', activeParameter);
-                                startIndex = startIndex == -1 ? 0 : startIndex;
-                                let str = after.slice(startIndex);
+                                let str = after.slice(0);
                                 let ms = str.match(new RegExp('\\b' + active.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b'));
                                 let idx = ms ? ms.index : str.indexOf(active.label);
                                 if (idx == -1) {
                                     parts.push({ text: after, type: 'Normal' });
-                                    continue;
                                 }
-                                start = idx + startIndex;
-                                end = idx + startIndex + active.label.length;
+                                else {
+                                    start = idx;
+                                    end = idx + active.label.length;
+                                }
                             }
                             else {
                                 [start, end] = active.label;
                                 start = start - nameIndex;
                                 end = end - nameIndex;
                             }
-                            parts.push({ text: after.slice(0, start), type: 'Normal' });
-                            parts.push({ text: after.slice(start, end), type: 'MoreMsg' });
-                            parts.push({ text: after.slice(end), type: 'Normal' });
+                            if (start != null && end != null) {
+                                parts.push({ text: after.slice(0, start), type: 'Normal' });
+                                parts.push({ text: after.slice(start, end), type: 'MoreMsg' });
+                                parts.push({ text: after.slice(end), type: 'Normal' });
+                            }
                         }
                     }
                     else {
