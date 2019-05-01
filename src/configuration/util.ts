@@ -141,6 +141,10 @@ export function addToValueTree(
     let s = segments[i]
     let obj = curr[s]
     switch (typeof obj) {
+      case 'function': {
+        obj = curr[s] = {}
+        break
+      }
       case 'undefined': {
         obj = curr[s] = {}
         break
@@ -226,7 +230,7 @@ export function loadDefaultConfigurations(): IConfigurationModel {
     let value = properties[key].default
     if (value !== undefined) {
       addToValueTree(config, key, value, message => {
-        console.error(message) // tslint:disable-line
+        logger.error(message) // tslint:disable-line
       })
     }
   })

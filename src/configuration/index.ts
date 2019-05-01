@@ -71,14 +71,14 @@ export default class Configurations {
     return this._folderConfigurations
   }
 
-  // used for extensions, not change event fired
+  // used for extensions, no change event fired
   public extendsDefaults(props: { [key: string]: any }): void {
     let { defaults } = this._configuration
     let { contents } = defaults
     contents = deepClone(contents)
     Object.keys(props).forEach(key => {
       addToValueTree(contents, key, props[key], msg => {
-        console.error(msg) // tslint:disable-line
+        logger.error(msg) // tslint:disable-line
       })
     })
     let data: IConfigurationData = {

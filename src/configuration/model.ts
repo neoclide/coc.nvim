@@ -1,7 +1,7 @@
 import { IConfigurationModel } from '../types'
 import { objectLiteral } from '../util/is'
-import { addToValueTree, removeFromValueTree, getConfigurationValue } from './util'
-import { deepClone, deepFreeze } from '../util/object'
+import { deepClone } from '../util/object'
+import { addToValueTree, getConfigurationValue, removeFromValueTree } from './util'
 
 export class ConfigurationModel implements IConfigurationModel {
 
