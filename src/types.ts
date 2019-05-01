@@ -668,6 +668,7 @@ export interface ListItem {
   data?: any
   recentScore?: number
   ansiHighlights?: AnsiHighlight[]
+  resolved?: boolean
 }
 
 export interface ListHighlights {
@@ -740,6 +741,7 @@ export interface IList {
   actions: ListAction[]
   defaultAction: string
   loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
+  resolveItem?(item: ListItem): Promise<ListItem | null>
   // support interactive mode
   interactive?: boolean
   description?: string

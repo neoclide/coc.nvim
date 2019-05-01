@@ -37,10 +37,28 @@ export default class Symbols extends LocationList {
       items.push({
         label: `${s.name} [${kind}]\t${file}`,
         filterText: `${s.name}`,
-        location: s.location
+        location: s.location,
+        data: { original: s }
       })
     }
     return items
+  }
+
+  public async resolveItem(item: ListItem): Promise<ListItem> {
+    let s = item.data.original
+    if (!s) return null
+    let resolved = await languages.resolveWorkspaceSymbol(s)
+    if (!resolved) return null
+    let kind = getSymbolKind(resolved.kind)
+    let file = Uri.parse(resolved.location.uri).fsPath
+    if (file.startsWith(workspace.cwd)) {
+      file = path.relative(workspace.cwd, file)
+    }
+    return {
+      label: `${s.name} [${kind}]\t${file}`,
+      filterText: `${s.name}`,
+      location: s.location
+    }
   }
 
   public doHighlight(): void {

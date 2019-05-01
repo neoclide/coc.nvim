@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import manager from '../../list/manager'
-import { QuickfixItem } from '../../types'
+import { QuickfixItem, IList } from '../../types'
 import helper from '../helper'
 
 let nvim: Neovim
@@ -26,13 +26,14 @@ beforeAll(async () => {
   await nvim.setVar('coc_jump_locations', locations)
 })
 
-afterAll(async () => {
-  await helper.shutdown()
-})
-
 afterEach(async () => {
   await manager.cancel()
   await helper.reset()
+})
+
+afterAll(async () => {
+  await helper.wait(300)
+  await helper.shutdown()
 })
 
 describe('list commands', () => {
@@ -276,5 +277,30 @@ describe('list configuration', () => {
     await helper.wait(100)
     let has = await nvim.call('coc#list#has_preview')
     expect(has).toBe(1)
+  })
+
+  it('should resolve list item', async () => {
+    let list: IList = {
+      name: 'test',
+      actions: [{
+        name: 'open', execute: _item => {
+          // noop
+        }
+      }],
+      defaultAction: 'open',
+      loadItems: () => {
+        return Promise.resolve([{ label: 'foo' }, { label: 'bar' }])
+      },
+      resolveItem: item => {
+        item.label = item.label.slice(0, 1)
+        return Promise.resolve(item)
+      }
+    }
+    let disposable = manager.registerList(list)
+    await manager.start(['--normal', 'test'])
+    await helper.wait(500)
+    let line = await nvim.line
+    expect(line).toBe('f')
+    disposable.dispose()
   })
 })

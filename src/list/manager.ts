@@ -92,6 +92,8 @@ export class ListManager implements Disposable {
       if (!autoPreview || !this.activated) return
       await this.doAction('preview')
     }, 100), null, this.disposables)
+    this.ui.onDidChangeLine(this.resolveItem, this, this.disposables)
+    this.ui.onDidLineChange(this.resolveItem, this, this.disposables)
     this.ui.onDidOpen(() => {
       if (this.currList) {
         if (typeof this.currList.doHighlight == 'function') {
@@ -695,6 +697,20 @@ export class ListManager implements Disposable {
       logger.error(e)
     }
     this.executing = false
+  }
+
+  private async resolveItem(): Promise<void> {
+    if (!this.activated) return
+    let index = this.ui.index
+    let item = this.ui.getItem(0)
+    if (!item || item.resolved) return
+    let { list } = this
+    if (typeof list.resolveItem == 'function') {
+      let resolved = await list.resolveItem(item)
+      if (resolved && index == this.ui.index) {
+        await this.ui.updateItem(resolved, index)
+      }
+    }
   }
 
   private get defaultAction(): ListAction {

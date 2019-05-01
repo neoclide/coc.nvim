@@ -123,6 +123,20 @@ export default class ListUI {
     this.nvim.callTimer('coc#util#echo_lines', [[msg]], true)
   }
 
+  public async updateItem(item: ListItem, index: number): Promise<void> {
+    if (!this.bufnr || workspace.bufnr != this.bufnr) return
+    let obj: ListItem = Object.assign({ resolved: true }, item)
+    if (index < this.length) {
+      this.items[index] = obj
+      let { nvim } = this
+      nvim.pauseNotification()
+      nvim.command('setl modifiable', true)
+      nvim.call('setline', [index + 1, obj.label], true)
+      nvim.command('setl nomodifiable', true)
+      await nvim.resumeNotification()
+    }
+  }
+
   public async getItems(): Promise<ListItem[]> {
     if (this.length == 0) return []
     let mode = await this.nvim.call('mode')
