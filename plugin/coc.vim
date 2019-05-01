@@ -129,8 +129,12 @@ function! s:Enable()
 
     autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
     if s:is_vim
-      autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
-      autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
+      if exists('##DirChanged')
+        autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
+      endif
+      if exists('##TerminalOpen')
+        autocmd TerminalOpen      * call s:Autocmd('TermOpen', +expand('<abuf>'))
+      endif
     else
       autocmd DirChanged        * call s:Autocmd('DirChanged', get(v:event, 'cwd', ''))
       autocmd TermOpen          * call s:Autocmd('TermOpen', +expand('<abuf>'))
@@ -142,7 +146,9 @@ function! s:Enable()
     autocmd FileType            * call s:Autocmd('FileType', expand('<amatch>'), +expand('<abuf>'))
     autocmd CompleteDone        * call s:Autocmd('CompleteDone', get(v:, 'completed_item', {}))
     autocmd InsertCharPre       * call s:Autocmd('InsertCharPre', v:char)
-    autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
+    if exists('##TextChangedP')
+      autocmd TextChangedP        * call s:Autocmd('TextChangedP', +expand('<abuf>'))
+    endif
     autocmd TextChangedI        * call s:Autocmd('TextChangedI', +expand('<abuf>'))
     autocmd InsertLeave         * call s:Autocmd('InsertLeave', +expand('<abuf>'))
     autocmd InsertEnter         * call s:Autocmd('InsertEnter', +expand('<abuf>'))
