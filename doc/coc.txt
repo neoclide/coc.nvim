@@ -1987,11 +1987,13 @@ lists 							 *coc-list-lists*
 
 STATUSLINE SUPPORT 				*coc-status*
 
-Diagnostics info and other status info contributed by extensions could be 
+Diagnostics info and other status info contributed by extensions could be
 shown in statusline.
 
-The easiest way is add `%{coc#status()}` to your 'statusline' option.
+The easiest way is add `%{coc#status()}` to your 'statusline' option. Ex: >
 
+	set statusline^=%{coc#status()}
+>
 ------------------------------------------------------------------------------
 
 						*coc-status-manual*
@@ -2021,12 +2023,22 @@ With vim-airline: https://github.com/vim-airline/vim-airline
 
 Add configuration like: >
 
-	" if you want to disable auto detect, comment out those two lines
-	"let g:airline#extensions#disable_rtp_load = 1
-	"let g:airline_extensions = ['branch', 'hunks', 'coc']
-
+	" use error & warning count of diagnostics form coc.nvim
 	let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
 	let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
+
+	" create a part for server status.
+	function! GetServerStatus()
+	  return get(g:, 'coc_status', '')
+	endfunction
+	call airline#parts#define_function('coc', 'GetServerStatus')
+	function! AirlineInit()
+	  let g:airline_section_a = airline#section#create(['coc'])
+	endfunction
+	autocmd User AirlineAfterInit call AirlineInit()
+
+	" exclude overwrite statusline of list filetype
+	let g:airline_exclude_filetypes = ["list"]
 
 Change error symbol:
 >
@@ -2062,8 +2074,6 @@ Use configuration like: >
 	\ },
 	\ }
 <
-To your .vimrc
-
 Use autocmd |CocDiagnosticChange| to force lightline refresh on diagnostics
 change.
 
