@@ -81,6 +81,9 @@ export default class Mappings {
     this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'))
     this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'))
 
+    this.add('normal', '<C-o>', () => {
+      // do nothing, avoid buffer switch by accident
+    })
     this.add('normal', 't', () => {
       return manager.doAction('tabe')
     })

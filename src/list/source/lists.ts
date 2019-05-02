@@ -13,9 +13,9 @@ export default class LinksList extends BasicList {
     super(nvim)
 
     this.addAction('open', async item => {
-      let { name, interactive } = item.data
+      let { name } = item.data
       await this.mru.add(name)
-      await nvim.command(`CocList ${interactive ? '-I' : ''} ${name}`)
+      await nvim.command(`CocList ${name}`)
     })
   }
 

@@ -1167,7 +1167,7 @@ LIST COMMAND 					*coc-list-command*
 <
 		打开当前的跳转列表。
 
-		查看 |coc-list-command-options| 获取可用的 {options}。
+		查看 |coc-command-options| 获取可用的 {options}。
 
 		{args} 为传递给对应源的参数。
 

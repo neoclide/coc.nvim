@@ -151,7 +151,7 @@ export class ListManager implements Disposable {
     let res = this.parseArgs(args)
     if (!res) return
     this.activated = true
-    this.args = args
+    this.args = [...res.listOptions, res.list.name, ...res.listArgs]
     let { list, options, listArgs } = res
     try {
       this.reset()
@@ -295,42 +295,53 @@ export class ListManager implements Disposable {
     return this.currList
   }
 
-  public parseArgs(args: string[]): { list: IList, options: ListOptions, listArgs: string[] } | null {
+  public parseArgs(args: string[]): { list: IList, options: ListOptions, listOptions: string[], listArgs: string[] } | null {
     let options: string[] = []
     let interactive = false
     let autoPreview = false
     let numberSelect = false
     let name: string
-    let listArgs: string[] = []
     let input = ''
     let matcher: Matcher = 'fuzzy'
+    let listArgs: string[] = []
+    let listOptions: string[] = []
     for (let arg of args) {
       if (!name && arg.startsWith('-')) {
-        if (arg.startsWith('--input')) {
-          input = arg.slice(8)
-        } else if (arg == '--number-select' || arg == '-N') {
-          numberSelect = true
-        } else if (arg == '--auto-preview' || arg == '-A') {
-          autoPreview = true
-        } else if (arg == '--regex' || arg == '-R') {
-          matcher = 'regex'
-        } else if (arg == '--strict' || arg == '-S') {
-          matcher = 'strict'
-        } else if (arg == '--interactive' || arg == '-I') {
-          interactive = true
-        } else if (arg == '--ignore-case' || arg == '--top' || arg == '--normal' || arg == '--no-sort') {
-          options.push(arg.slice(2))
-        } else {
-          workspace.showMessage(`Invalid option "${arg}" of list`, 'error')
+        listOptions.push(arg)
+      } else if (!name) {
+        if (!/^\w+$/.test(arg)) {
+          workspace.showMessage(`Invalid list option: "${arg}"`, 'error')
           return null
         }
-      } else if (!name) {
         name = arg
       } else {
         listArgs.push(arg)
       }
     }
-    if (!name) name = 'lists'
+    name = name || 'lists'
+    let config = workspace.getConfiguration(`list.source.${name}`)
+    if (!listOptions.length && !listArgs.length) listOptions = config.get<string[]>('defaultOptions', [])
+    if (!listArgs.length) listArgs = config.get<string[]>('defaultArgs', [])
+    for (let opt of listOptions) {
+      if (opt.startsWith('--input')) {
+        input = opt.slice(8)
+      } else if (opt == '--number-select' || opt == '-N') {
+        numberSelect = true
+      } else if (opt == '--auto-preview' || opt == '-A') {
+        autoPreview = true
+      } else if (opt == '--regex' || opt == '-R') {
+        matcher = 'regex'
+      } else if (opt == '--strict' || opt == '-S') {
+        matcher = 'strict'
+      } else if (opt == '--interactive' || opt == '-I') {
+        interactive = true
+      } else if (opt == '--ignore-case' || opt == '--top' || opt == '--normal' || opt == '--no-sort') {
+        options.push(opt.slice(2))
+      } else {
+        workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
+        return null
+      }
+    }
     let list = this.listMap.get(name)
     if (!list) {
       workspace.showMessage(`List ${name} not found`, 'error')
@@ -343,6 +354,7 @@ export class ListManager implements Disposable {
     return {
       list,
       listArgs,
+      listOptions,
       options: {
         numberSelect,
         autoPreview,
@@ -515,7 +527,7 @@ export class ListManager implements Disposable {
     echoHl('NAME', 'Label')
     cmds.push(`echon "  ${list.name} - ${list.description || ''}\\n\\n"`)
     echoHl('SYNOPSIS', 'Label')
-    cmds.push(`echon "  :CocList [LIST OPTIONS] ${list.name} [OPTIONS]\\n\\n"`)
+    cmds.push(`echon "  :CocList [LIST OPTIONS] ${list.name} [ARGUMENTS]\\n\\n"`)
     if (list.detail) {
       echoHl('DESCRIPTION', 'Label')
       let lines = list.detail.split('\n').map(s => '  ' + s)
@@ -523,7 +535,7 @@ export class ListManager implements Disposable {
       cmds.push(`echon "\\n"`)
     }
     if (list.options) {
-      echoHl('OPTIONS', 'Label')
+      echoHl('ARGUMENTS', 'Label')
       cmds.push(`echon "\\n"`)
       for (let opt of list.options) {
         echoHl(opt.name, 'Special')
@@ -582,18 +594,42 @@ export class ListManager implements Disposable {
   }
 
   public registerList(list: IList): Disposable {
-    if (this.listMap.has(list.name)) {
-      workspace.showMessage(`list ${list.name} already exists.`)
-      return Disposable.create(() => {
-        // noop
-      })
+    const { name } = list
+    let exists = this.listMap.get(name)
+    if (this.listMap.has(name)) {
+      if (exists) {
+        if (typeof exists.dispose == 'function') {
+          exists.dispose()
+        }
+        this.listMap.delete(name)
+      }
+      workspace.showMessage(`list "${name}" recreated.`)
     }
-    this.listMap.set(list.name, list)
+    this.listMap.set(name, list)
+    extensions.addSchemeProperty(`list.source.${name}.defaultOptions`, {
+      type: 'array',
+      default: list.interactive ? ['--interactive'] : [],
+      description: `Default list options of "${name}" list, only used when both list option and argument are empty.`,
+      uniqueItems: true,
+      items: {
+        type: 'string',
+        enum: ['--top', '--normal', '--no-sort', '--input',
+          '--strict', '--regex', '--ignore-case', '--number-select',
+          '--interactive', '--auto-preview']
+      }
+    })
+    extensions.addSchemeProperty(`list.source.${name}.defaultArgs`, {
+      type: 'array',
+      default: [],
+      description: `Default argument list of "${name}" list, only used when list argument is empty.`,
+      uniqueItems: true,
+      items: { type: 'string' }
+    })
     return Disposable.create(() => {
       if (typeof list.dispose == 'function') {
         list.dispose()
       }
-      this.listMap.delete(list.name)
+      this.listMap.delete(name)
     })
   }
 

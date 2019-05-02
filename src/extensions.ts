@@ -28,6 +28,15 @@ const extensionFolder = global.hasOwnProperty('__TEST__') ? '' : 'node_modules'
 
 export type API = { [index: string]: any } | void | null | undefined
 
+export interface PropertyScheme {
+  type: string
+  default: any
+  description: string
+  enum?: string[]
+  items?: any
+  [key: string]: any
+}
+
 export interface ExtensionItem {
   id: string
   extension: Extension<API>
@@ -54,6 +63,7 @@ export class Extensions {
   private _onDidLoadExtension = new Emitter<Extension<API>>()
   private _onDidActiveExtension = new Emitter<Extension<API>>()
   private _onDidUnloadExtension = new Emitter<string>()
+  private _additionalSchemes: { [key: string]: PropertyScheme } = {}
   private activated = false
   public ready = true
   public readonly onDidLoadExtension: Event<Extension<API>> = this._onDidLoadExtension.event
@@ -563,6 +573,15 @@ export class Extensions {
       if (val == url) return key
     }
     return null
+  }
+
+  public get schemes(): { [key: string]: PropertyScheme } {
+    return this._additionalSchemes
+  }
+
+  public addSchemeProperty(key: string, def: PropertyScheme): void {
+    this._additionalSchemes[key] = def
+    workspace.configurations.extendsDefaults({ [key]: def.default })
   }
 
   private setupActiveEvents(id: string, packageJSON: any): void {

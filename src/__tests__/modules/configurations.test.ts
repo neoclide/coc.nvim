@@ -188,8 +188,9 @@ describe('Configurations', () => {
   it('should extends defaults', () => {
     let configurations = createConfigurations()
     configurations.extendsDefaults({ 'a.b': 1 })
+    configurations.extendsDefaults({ 'a.b': 2 })
     let o = configurations.defaults.contents
-    expect(o.a.b).toBe(1)
+    expect(o.a.b).toBe(2)
     configurations.dispose()
   })
 

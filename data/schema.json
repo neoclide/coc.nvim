@@ -228,7 +228,7 @@
     "http.proxy": {
       "type": "string",
       "default": "",
-      "description": "http proxy used for json server"
+      "description": "http proxy uri, used for extensions that send request"
     },
     "http.proxyStrictSSL": {
       "type": "boolean",
