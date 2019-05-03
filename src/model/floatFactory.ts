@@ -262,4 +262,10 @@ export default class FloatFactory implements Disposable {
   public static get isCreating(): boolean {
     return creatingIds.size > 0
   }
+
+  public async activated(): Promise<boolean> {
+    if (!this.window) return false
+    let valid = await this.window.valid
+    return valid
+  }
 }

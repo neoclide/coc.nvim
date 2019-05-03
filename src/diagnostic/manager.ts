@@ -371,8 +371,11 @@ export class DiagnosticManager implements Disposable {
     })
     if (truncate) {
       if (diagnostics.length && this.lastShown && equals(this.lastShown, diagnostics)) {
-        this.floatFactory.close()
-        return
+        let activated = await this.floatFactory.activated()
+        if (activated) {
+          this.floatFactory.close()
+          return
+        }
       }
       this.lastShown = diagnostics
     }
