@@ -87,7 +87,7 @@ Below are the reasons that led coc.nvim to build its own engine:
   ```vim
   " Install nightly build, replace ./install.sh with install.cmd on windows
   Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
-  " Or install lastest release tag
+  " Or install latest release tag
   Plug 'neoclide/coc.nvim', {'tag': '*', 'do': './install.sh'}
   " Or build from source code
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
