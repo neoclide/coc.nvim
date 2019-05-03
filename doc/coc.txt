@@ -13,7 +13,7 @@ Configuration 					|coc-configuration|
 Completion   					|coc-completion|
 LanguageServer 					|coc-languageserver|
 Interface					|coc-interface|
-  Keymapings 					|coc-key-mappings|
+  Keymappings 					|coc-key-mappings|
   Variables					  |coc-variables|
   Functions					  |coc-functions|
   Commands					  |coc-commands|
@@ -39,7 +39,7 @@ Statusline support      			|coc-status|
   Manual                			|coc-status-manual|
   Airline 					|coc-status-airline|
   Lightline  					|coc-stauts-lightline|
-Faq						|coc-faq|
+FAQ						|coc-faq|
 Changelog					|coc-changelog|
 
 ==============================================================================
@@ -57,21 +57,21 @@ REQUIREMENT					*coc-requirement*
 
 Note: this plugin requires neovim > 0.3 or vim > 8.1.
 
-Node: https://nodejs.org/en/download/ required to run javascript code.
+Node: https://nodejs.org/en/download/ is required to run javascript code.
 
-If those requirements are not satisfied, the plugin would not be loaded
+If those requirements are not satisfied, the plugin will not be loaded
 at all.
 
 Yarn (https://yarnpkg.com/en/docs/install) is used for managing coc
 extensions.
 
-Note: yarn is not required if you want to manage extensions by use vim's
-plugin manager like vim-plug.
+Note: yarn is not required if you want to manage extensions using a vim
+plugin manager such as vim-plug.
 
 ==============================================================================
 INSTALL						*coc-install*
 
-Use a plugin manager, like https://github.com/junegunn/vim-plug by adding: >
+To use the [vim-plug](https://github.com/junegunn/vim-plug) plugin manager, add this: >
 
   Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
 
@@ -88,22 +88,22 @@ Use `:call coc#util#build()` to build coc.nvim from source code.
 ==============================================================================
 CONFIGURATION					*coc-configuration*
 
-Jsonc formated file named `coc-settings.json` ise used for configuration.
+A JSONC formatted file named `coc-settings.json` is used for configuration.
 
 Use the command |:CocConfig| to open the user configuration file, or create
 `.vim/coc-settings.json` in your project root for folder-based configuration.
 
-To enable completion and validation support of settings file install
-`coc-json` extension by `:CocInstall coc-json`
+To enable completion and validation support of the settings file, install the
+`coc-json` extension: `:CocInstall coc-json`.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
 for more details.
 
-Buildin configurations:~
+Builtin configurations:~
 
 "http.proxy":~
 
-	http proxy uri, used for extensions that send request,  default: `""`
+	HTTP proxy URI, used for extensions that send request, default: `""`
 
 "http.proxyStrictSSL":~
 
@@ -111,11 +111,11 @@ Buildin configurations:~
 
 "suggest.maxPreviewWidth":~
 
-	Maxmium width of floating preview window.,  default: `50`
+	Maximum width of floating preview window.,  default: `50`
 
 "suggest.enablePreview":~
 
-	Add preview option to completeopt, default: false.,  default: `false`
+	Add preview option to `completeopt`, default: false.,  default: `false`
 
 "suggest.detailMaxLength":~
 
@@ -188,37 +188,37 @@ Buildin configurations:~
 
 "suggest.timeout":~
 
-	Timeout for completion, in miliseconds.,  default: `2000`
+	Timeout for completion, in milliseconds.,  default: `2000`
 
 "suggest.minTriggerInputLength":~
 
-	Mininal input length for trigger completion, default 1,  default: `1`
+	Minimal input length that triggers completion, default 1,  default: `1`
 
 "suggest.triggerCompletionWait":~
 
-	Wait time between trigger character type and completion start, for
-	wait server content synchronize.,  default: `60`
+	Wait time between typing the trigger character and starting
+	completion, to wait for server content synchronization.,  default: `60`
 
 "suggest.echodocSupport":~
 
-	When enabled, add function signature to user_data.signature to support
-	echodoc.vim,  default: `false`
+	When enabled, add function signature to `user_data.signature` to support
+	`echodoc.vim`,  default: `false`
 
 "suggest.acceptSuggestionOnCommitCharacter":~
 
 	Controls whether suggestions should be accepted on commit characters.
 	For example, in JavaScript, the semi-colon (`;`) can be a commit
 	character that accepts a suggestion and types that character. Requires
-	CompleteChanged event to work.,  default: `false`
+	`CompleteChanged` event to work.,  default: `false`
 
 "suggest.noselect":~
 
-	Not make vim select first item on completion start,  default: `true`
+	Prevent vim from selecting the first item on completion start,  default: `true`
 
 "suggest.keepCompleteopt":~
 
-	When enabled, completeopt is not overriden, auto completion will be
-	disabled if completeopt doesn't have noinsert and noselect.,  default:
+	When enabled, `completeopt` is not overridden. Autocompletion will be
+	disabled if `completeopt` doesn't have `noinsert` and `noselect`.,  default:
 	`false`
 
 "suggest.lowPrioritySourceLimit":~
@@ -271,8 +271,8 @@ Buildin configurations:~
 
 "diagnostic.displayByAle":~
 
-	Use Ale for display diagnostics in vim, will disable coc for display
-	diagnostics, restart required on change.,  default: `false`
+	Use Ale for displaying diagnostics in vim. This will disable coc for
+	displaying diagnostics. Restart required on change.,  default: `false`
 
 "diagnostic.virtualText":~
 
@@ -284,7 +284,7 @@ Buildin configurations:~
 
 "diagnostic.virtualTextLines":~
 
-	The number of non empty lines from a diagnostic to display,  default:
+	The number of non-empty lines from a diagnostic to display,  default:
 	`3`
 
 "diagnostic.virtualTextLineSeparator":~
@@ -357,16 +357,16 @@ Buildin configurations:~
 
 "signature.maxWindowHeight":~
 
-	Maxmium height of floating signature help window.,  default: `8`
+	Maximum height of floating signature help window.,  default: `8`
 
 "codeLens.enable":~
 
-	Enable codeLens feature, require neovim with set virtual text
+	Enable `codeLens` feature, require neovim with set virtual text
 	feature.,  default: `false`
 
 "codeLens.separator":~
 
-	Separator text for codeLens in virtual text,  default: `"‣"`
+	Separator text for `codeLens` in virtual text,  default: `"‣"`
 
 "workspace.ignoredFiletypes":~
 
@@ -375,11 +375,11 @@ Buildin configurations:~
 
 "list.indicator":~
 
-	The characer used as first characer in prompt line,  default: `">"`
+	The character used as first character in prompt line,  default: `">"`
 
 "list.maxHeight":~
 
-	Maxmium height of list window.,  default: `10`
+	Maximum height of list window.,  default: `10`
 
 "list.signOffset":~
 
@@ -392,7 +392,7 @@ Buildin configurations:~
 
 "list.autoResize":~
 
-	Enable auto resize feature.,  default: `true`
+	Enable auto-resize feature.,  default: `true`
 
 "list.limitLines":~
 
@@ -458,8 +458,8 @@ Buildin configurations:~
 
 "coc.preferences.currentFunctionSymbolAutoUpdate":~
 
-	Automatically update the value of b:coc_current_function on CursorHold
-	event,  default: `false`
+	Automatically update the value of `b:coc_current_function` on
+	`CursorHold` event,  default: `false`
 
 "coc.preferences.formatOnSaveFiletypes":~
 
@@ -477,7 +477,7 @@ Buildin configurations:~
 
 "coc.preferences.watchmanPath":~
 
-	executable path for https://facebook.github.io/watchman/, detected
+	Executable path for https://facebook.github.io/watchman/, detected
 	from $PATH by default,  default: `null`
 
 "coc.preferences.jumpCommand":~
@@ -496,8 +496,9 @@ Buildin configurations:~
 
 "coc.preferences.bracketEnterImprove":~
 
-	Improve enter inside bracket `<> {} [] ()` by add new empty line below
-	and place cursor to it. Works with `coc#on_enter()`,  default: `true`
+	Improve handling of pressing enter inside brackets (`<> {} [] ()`) by
+	adding a new empty line below and moving the cursor to it. Works with
+	`coc#on_enter()`,  default: `true`
 
 "coc.preferences.formatOnType":~
 
@@ -509,7 +510,7 @@ Buildin configurations:~
 
 "list.source.outline.ctagsFilestypes":~
 
-	Filetypes that should use ctags for outline instead of language
+	Filetypes that should use `ctags` for outline instead of language
 	server.,  default: `[]`
 
 "languageserver":~
@@ -528,7 +529,7 @@ Tips:~
 - 'completeopt' used by coc.nvim default to `noselect,menuone`.
 
 - Your 'completeopt' option would be changed and restored during completion,
-  so you can still use `menu,preview` for vim's buildin completion.
+  so you can still use `menu,preview` for vim's builtin completion.
 
 - Snippet expand and additional edit feature of LSP requires confirm
   completion to work.
@@ -539,7 +540,7 @@ Tips:~
 
 Example configuration:~
 
-Map <tab> for trigger completion and navigate next item: >
+Map <tab> to trigger completion and navigate to the next item: >
 
     function! s:check_back_space() abort
       let col = col('.') - 1
@@ -552,15 +553,15 @@ Map <tab> for trigger completion and navigate next item: >
 		  \ coc#refresh()
 
 
-Map <c-space> for trigger completion: >
+Map <c-space> to trigger completion: >
 
 	inoremap <silent><expr> <c-space> coc#refresh()
 <
-<CR> for confirm completion, use: >
+<CR> to confirm completion, use: >
 
 	inoremap <expr> <cr> pumvisible() ? "\<C-y>" : "\<CR>"
 <
-To make <CR> auto select first complete item and notify coc.nvim for
+To make <CR> auto-select the first completion item and notify coc.nvim to
 format on enter, use: >
 
 	inoremap <silent><expr> <cr> pumvisible() ? coc#_select_confirm()
@@ -582,7 +583,7 @@ like VSCode. >
 	
 	let g:coc_snippet_next = '<tab>'
 <
-Note: coc-snippets extension required for this to work.
+Note: the `coc-snippets` extension is required for this to work.
 
 ==============================================================================
 INTERFACE					*coc-interface*
@@ -592,10 +593,10 @@ INTERFACE					*coc-interface*
 Coc doesn't come with a default global keymap, you need to configure the 
 mappings yourself.
 
-Keymapings 					*coc-key-mappings*
+Keymappings 					*coc-key-mappings*
 
-Note: Mappings that start with 'i_' works for insert mode 'n_' works for 
-normal mode, 'v_' works for visual mode.
+Note: Mappings that start with `i_` works for insert mode `n_` works for 
+normal mode, `v_` works for visual mode.
 
 <Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
 
@@ -697,7 +698,7 @@ b:coc_root_patterns 				*b:coc_root_patterns*
 
 			Root patterns used for resolving workspaceFolder for 
 			the current file, will be used instead of 
-			`"coc.preferences.rootPatterns"` setting. ex: >
+			`"coc.preferences.rootPatterns"` setting. E.g.: >
 
 			autocmd FileType python let b:coc_root_patterns =
 						\ ['.git', '.env']
@@ -705,23 +706,23 @@ b:coc_root_patterns 				*b:coc_root_patterns*
 
 b:coc_suggest_disable 				*b:coc_suggest_disable*
 
-			Disable completion support of current buffer. ex: >
+			Disable completion support of current buffer. E.g.: >
 			
 			" Disable completion for python
 			autocmd FileType python let b:coc_suggest_disable = 1
 
 b:coc_suggest_blacklist 			*b:coc_suggest_blacklist*
 
-			Words for which completion should be disabled. ex: >
+			Words for which completion should be disabled. E.g.: >
 			
 			" Disable completion for 'end' in lua files
 			autocmd FileType lua let b:coc_suggest_blacklist = ["end"]
 
 b:coc_additional_keywords			*b:coc_additional_keywords*
 
-			Addition keyword characers for generate keywords. ex: >
+			Addition keyword characters for generate keywords. E.g.: >
 			
-			" Add keyword characers for css
+			" Add keyword characters for css
 			autocmd FileType css let b:coc_additional_keywords = ["-"]
 
 b:coc_current_function 				*b:coc_current_function*
@@ -1231,12 +1232,12 @@ Available Actions ~
 	Format the selected range, {mode} should be one of visual mode: `v` , 
 	`V`, `char`, `line`.
 
-	When {mode} is omited, it should be called using |formatexpr|.
+	When {mode} is omitted, it should be called using |formatexpr|.
 	
 
 "codeAction" [{mode}] 				*coc-action-codeAction*
 
-	prompty for a code action and do it.
+	Prompt for a code action and do it.
 
 	{mode} should be result of visualmode(), when used in visualmode,
 	could be empty string for none visualmode.
@@ -1282,13 +1283,14 @@ Available Actions ~
 
 	Open a link under the cursor with {command}.
 	{command} default to `edit`.
-	File and url links are supported.
+	File and URL links are supported.
 	
 "extensionStats" 				*coc-action-extensionStats*
 
-	Get all extension states as a list. Including `id`, `root` and `state`
+	Get all extension states as a list. Including `id`, `root` and
+	`state`.
 
-	State could be `disabled`, `activated` and `loaded`
+	State could be `disabled`, `activated` and `loaded`.
 
 "toggleExtension" {id} 				*coc-action-toggleExtension*
 
@@ -1352,11 +1354,11 @@ COMMANDS 					*coc-commands*
 
 :CocDisable 					*:CocDisable*
 
-		Disable all events of coc
+		Disable all events of coc.
 
 :CocEnable 					*:CocEnable*
 
-		Enable events of coc
+		Enable events of coc.
 
 :CocConfig 					*:CocConfig*
 
@@ -1400,7 +1402,7 @@ COMMANDS 					*coc-commands*
 
 		Open the log file of coc.nvim. To change the log level 
 		(default `info`), use the environment variable 
-		`NVIM_COC_LOG_LEVEL`. ex: >
+		`NVIM_COC_LOG_LEVEL`. E.g.: >
 		
 		export NVIM_COC_LOG_LEVEL=debug
 <
@@ -1575,7 +1577,7 @@ CocHintLine 					*CocHintLine*
 
 CocCodeLens 					*CocCodeLens*
 
-  Default: ``ctermfg=Gray    guifg=#999999`
+  Default: `ctermfg=Gray    guifg=#999999`
 
   Highlight group of virtual text for codeLens.
 
@@ -1618,14 +1620,14 @@ The following features are supported:
 
 * Insert & normal mode.
 * Default key-mappings for insert & normal mode.
-* Cutomize key-mappings for insert & normal mode.
+* Customize key-mappings for insert & normal mode.
 * Commands for reopening & doing actions with a previous list.
 * Different match modes.
 * Interactive mode.
 * Auto preview on cursor move.
 * Number select support.
 * Built-in actions for locations.
-* Parse ansi code.
+* Parse ANSI code.
 * Mouse support.
 * Select actions using <tab>.
 * Multiple selections using <space> in normal mode.
@@ -1677,8 +1679,8 @@ Command options 					*coc-list-options*
 	Start list in normal mode, recommended for short list.
 
 --no-sort
-	Disable sort made by fuzzy score or mru, use it when it's already
-	sorted.
+	Disable sort made by fuzzy score or most recently used, use it when
+	it's already sorted.
 
 --input={input}
 	Specify the input on session start.
@@ -1770,10 +1772,10 @@ Default mappings in insert mode:
 <C-a>       - same as <Home>.
 <C-f>       - scroll window forward.
 <C-b>       - scroll window backward.
-<Backspace> - remove previous characer of cursor.
-<C-h>       - remove previous characer of cursor.
+<Backspace> - remove previous character of cursor.
+<C-h>       - remove previous character of cursor.
 <C-w>       - remove previous word of cursor.
-<C-u>       - remove characers before cursor.
+<C-u>       - remove characters before cursor.
 <C-n>       - navigate to next input in history.
 <C-p>       - navigate to previous input in history.
 <C-s>       - switch matcher for filter items.
@@ -1842,12 +1844,12 @@ The mapping expression should be `command:arguments`, available commands:
 	'end' - move cursor to end.
 	'left' - move cursor left.
 	'right' - move cursor right.
-	'deleteforward' - remove previous characer.
-	'deletebackward' - remove next characer.
-	'removetail' - remove characers afterwards.
-	'removeahead' - remove characer ahead.
+	'deleteforward' - remove previous character.
+	'deletebackward' - remove next character.
+	'removetail' - remove characters afterwards.
+	'removeahead' - remove character ahead.
 'action' - execute action of list, use <tab> to find available actions.
-'feedkeys' - feedkeys to list window, use `\\` in json to escape special characer.
+'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
 'normal' - execute normal command in list window.
 'normal!' -  execute normal command without remap.
 'command' - execute command.
@@ -1869,7 +1871,7 @@ Context argument contains the following properties:
 
 Target contains the following properties:
 
-'label' - mandatory properity that is shown in the buffer.
+'label' - mandatory property that is shown in the buffer.
 'filtertext' - optional filter text used for filtering items.
 'location' - optional location of item, check out https://bit.ly/2Rtb6Bo
 'data' - optional additional properties.
@@ -2080,7 +2082,7 @@ change.
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
 
-Creating a custom source in viml is supported.
+Creating a custom source in VimL is supported.
 
 Check out https://github.com/neoclide/coc.nvim/wiki/Create-custom-source
 

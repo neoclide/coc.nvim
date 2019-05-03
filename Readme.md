@@ -95,16 +95,16 @@ Below are the reasons that led coc.nvim to build its own engine:
 
   in your `.vimrc` or `init.vim`, then restart vim and run `:PlugInstall`.
 
-  For other plugin managers, run command `:call coc#util#install()` to download lastest compiled javascript bundle.
+  For other plugin managers, run command `:call coc#util#install()` to download the latest compiled javascript bundle.
 
   **Note**: The first time building from source code may be slow.
 
-  **Note**: Nix-os Users must follow these steps:
+  **Note**: NixOS users must follow these steps:
 
   1. Install [nodejs](https://nodejs.org/en/download/) and [yarn](https://yarnpkg.com/en/docs/install) via `nix-env` or put them in `/etc/nixos/configuration.nix`
   2. `sudo nixos-rebuild switch`
   3. `Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}`
-  4. Don't forget to put: `set shell=/bin/sh` in your init.vim.
+  4. Don't forget to put: `set shell=/bin/sh` in your `init.vim`.
 
 - [Completion with sources](https://github.com/neoclide/coc.nvim/wiki/Completion-with-sources)
 
@@ -160,7 +160,7 @@ Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Cr
 
 ## Extensions
 
-Extensions are more powerful than a configured language server. Checkout
+Extensions are more powerful than a configured language server. Check out
 [Using coc extensions](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
 - **[coc-json](https://github.com/neoclide/coc-json)** for `json`.
@@ -195,8 +195,8 @@ Configuration is required to make coc.nvim easier to work with, since it doesn't
 change your key-mappings or vim options. This is done as much as possible to avoid conflict with your
 other plugins.
 
-**❗️Important**: some vim plugins could change keymapping. Use a command like
-`:verbose imap <tab>` to make sure your keymap takes effect.
+**❗️Important**: some vim plugins could change keymappings. Use a command like
+`:verbose imap <tab>` to make sure that your keymap has taken effect.
 
 ```vim
 " if hidden is not set, TextEdit might fail.
