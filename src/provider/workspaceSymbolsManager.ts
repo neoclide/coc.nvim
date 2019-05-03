@@ -34,13 +34,16 @@ export default class WorkspaceSymbolManager extends Manager<WorkspaceSymbolProvi
   }
 
   public async resolveWorkspaceSymbol(
-    symbol: SymbolInformation,
+    symbolInfo: SymbolInformation,
     token: CancellationToken
   ): Promise<SymbolInformation> {
-    let item = Array.from(this.providers).find(o => o.id == (symbol as any).source)
+    let item = Array.from(this.providers).find(o => o.id == (symbolInfo as any).source)
     if (!item) return
     let { provider } = item
-    return await Promise.resolve(provider.resolveWorkspaceSymbol(symbol, token))
+    if (typeof provider.resolveWorkspaceSymbol != 'function') {
+      return Promise.resolve(symbolInfo)
+    }
+    return await Promise.resolve(provider.resolveWorkspaceSymbol(symbolInfo, token))
   }
 
   public dispose(): void {
