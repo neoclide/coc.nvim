@@ -53564,7 +53564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bedfc091dc" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dc39373a44" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55643,6 +55643,7 @@ class Extensions {
         this._onDidLoadExtension = new vscode_languageserver_protocol_1.Emitter();
         this._onDidActiveExtension = new vscode_languageserver_protocol_1.Emitter();
         this._onDidUnloadExtension = new vscode_languageserver_protocol_1.Emitter();
+        this._additionalSchemes = {};
         this.activated = false;
         this.ready = true;
         this.onDidLoadExtension = this._onDidLoadExtension.event;
@@ -56171,6 +56172,13 @@ class Extensions {
                 return key;
         }
         return null;
+    }
+    get schemes() {
+        return this._additionalSchemes;
+    }
+    addSchemeProperty(key, def) {
+        this._additionalSchemes[key] = def;
+        workspace_1.default.configurations.extendsDefaults({ [key]: def.default });
     }
     setupActiveEvents(id, packageJSON) {
         let { activationEvents } = packageJSON;
@@ -59911,8 +59919,11 @@ class DiagnosticManager {
         });
         if (truncate) {
             if (diagnostics.length && this.lastShown && object_1.equals(this.lastShown, diagnostics)) {
-                this.floatFactory.close();
-                return;
+                let activated = await this.floatFactory.activated();
+                if (activated) {
+                    this.floatFactory.close();
+                    return;
+                }
             }
             this.lastShown = diagnostics;
         }
@@ -60357,6 +60368,12 @@ class FloatFactory {
     }
     static get isCreating() {
         return creatingIds.size > 0;
+    }
+    async activated() {
+        if (!this.window)
+            return false;
+        let valid = await this.window.valid;
+        return valid;
     }
 }
 exports.default = FloatFactory;
@@ -62536,12 +62553,15 @@ class WorkspaceSymbolManager extends manager_1.default {
         }
         return res;
     }
-    async resolveWorkspaceSymbol(symbol, token) {
-        let item = Array.from(this.providers).find(o => o.id == symbol.source);
+    async resolveWorkspaceSymbol(symbolInfo, token) {
+        let item = Array.from(this.providers).find(o => o.id == symbolInfo.source);
         if (!item)
             return;
         let { provider } = item;
-        return await Promise.resolve(provider.resolveWorkspaceSymbol(symbol, token));
+        if (typeof provider.resolveWorkspaceSymbol != 'function') {
+            return Promise.resolve(symbolInfo);
+        }
+        return await Promise.resolve(provider.resolveWorkspaceSymbol(symbolInfo, token));
     }
     dispose() {
         this.providers = new Set();
@@ -67917,7 +67937,7 @@ class ListManager {
         if (!res)
             return;
         this.activated = true;
-        this.args = args;
+        this.args = [...res.listOptions, res.list.name, ...res.listArgs];
         let { list, options, listArgs } = res;
         try {
             this.reset();
@@ -68067,46 +68087,58 @@ class ListManager {
         let autoPreview = false;
         let numberSelect = false;
         let name;
-        let listArgs = [];
         let input = '';
         let matcher = 'fuzzy';
+        let listArgs = [];
+        let listOptions = [];
         for (let arg of args) {
             if (!name && arg.startsWith('-')) {
-                if (arg.startsWith('--input')) {
-                    input = arg.slice(8);
-                }
-                else if (arg == '--number-select' || arg == '-N') {
-                    numberSelect = true;
-                }
-                else if (arg == '--auto-preview' || arg == '-A') {
-                    autoPreview = true;
-                }
-                else if (arg == '--regex' || arg == '-R') {
-                    matcher = 'regex';
-                }
-                else if (arg == '--strict' || arg == '-S') {
-                    matcher = 'strict';
-                }
-                else if (arg == '--interactive' || arg == '-I') {
-                    interactive = true;
-                }
-                else if (arg == '--ignore-case' || arg == '--top' || arg == '--normal' || arg == '--no-sort') {
-                    options.push(arg.slice(2));
-                }
-                else {
-                    workspace_1.default.showMessage(`Invalid option "${arg}" of list`, 'error');
-                    return null;
-                }
+                listOptions.push(arg);
             }
             else if (!name) {
+                if (!/^\w+$/.test(arg)) {
+                    workspace_1.default.showMessage(`Invalid list option: "${arg}"`, 'error');
+                    return null;
+                }
                 name = arg;
             }
             else {
                 listArgs.push(arg);
             }
         }
-        if (!name)
-            name = 'lists';
+        name = name || 'lists';
+        let config = workspace_1.default.getConfiguration(`list.source.${name}`);
+        if (!listOptions.length && !listArgs.length)
+            listOptions = config.get('defaultOptions', []);
+        if (!listArgs.length)
+            listArgs = config.get('defaultArgs', []);
+        for (let opt of listOptions) {
+            if (opt.startsWith('--input')) {
+                input = opt.slice(8);
+            }
+            else if (opt == '--number-select' || opt == '-N') {
+                numberSelect = true;
+            }
+            else if (opt == '--auto-preview' || opt == '-A') {
+                autoPreview = true;
+            }
+            else if (opt == '--regex' || opt == '-R') {
+                matcher = 'regex';
+            }
+            else if (opt == '--strict' || opt == '-S') {
+                matcher = 'strict';
+            }
+            else if (opt == '--interactive' || opt == '-I') {
+                interactive = true;
+            }
+            else if (opt == '--ignore-case' || opt == '--top' || opt == '--normal' || opt == '--no-sort') {
+                options.push(opt.slice(2));
+            }
+            else {
+                workspace_1.default.showMessage(`Invalid option "${opt}" of list`, 'error');
+                return null;
+            }
+        }
         let list = this.listMap.get(name);
         if (!list) {
             workspace_1.default.showMessage(`List ${name} not found`, 'error');
@@ -68119,6 +68151,7 @@ class ListManager {
         return {
             list,
             listArgs,
+            listOptions,
             options: {
                 numberSelect,
                 autoPreview,
@@ -68292,7 +68325,7 @@ class ListManager {
         echoHl('NAME', 'Label');
         cmds.push(`echon "  ${list.name} - ${list.description || ''}\\n\\n"`);
         echoHl('SYNOPSIS', 'Label');
-        cmds.push(`echon "  :CocList [LIST OPTIONS] ${list.name} [OPTIONS]\\n\\n"`);
+        cmds.push(`echon "  :CocList [LIST OPTIONS] ${list.name} [ARGUMENTS]\\n\\n"`);
         if (list.detail) {
             echoHl('DESCRIPTION', 'Label');
             let lines = list.detail.split('\n').map(s => '  ' + s);
@@ -68300,7 +68333,7 @@ class ListManager {
             cmds.push(`echon "\\n"`);
         }
         if (list.options) {
-            echoHl('OPTIONS', 'Label');
+            echoHl('ARGUMENTS', 'Label');
             cmds.push(`echon "\\n"`);
             for (let opt of list.options) {
                 echoHl(opt.name, 'Special');
@@ -68359,18 +68392,42 @@ class ListManager {
         };
     }
     registerList(list) {
-        if (this.listMap.has(list.name)) {
-            workspace_1.default.showMessage(`list ${list.name} already exists.`);
-            return vscode_languageserver_protocol_1.Disposable.create(() => {
-                // noop
-            });
+        const { name } = list;
+        let exists = this.listMap.get(name);
+        if (this.listMap.has(name)) {
+            if (exists) {
+                if (typeof exists.dispose == 'function') {
+                    exists.dispose();
+                }
+                this.listMap.delete(name);
+            }
+            workspace_1.default.showMessage(`list "${name}" recreated.`);
         }
-        this.listMap.set(list.name, list);
+        this.listMap.set(name, list);
+        extensions_1.default.addSchemeProperty(`list.source.${name}.defaultOptions`, {
+            type: 'array',
+            default: list.interactive ? ['--interactive'] : [],
+            description: `Default list options of "${name}" list, only used when both list option and argument are empty.`,
+            uniqueItems: true,
+            items: {
+                type: 'string',
+                enum: ['--top', '--normal', '--no-sort', '--input',
+                    '--strict', '--regex', '--ignore-case', '--number-select',
+                    '--interactive', '--auto-preview']
+            }
+        });
+        extensions_1.default.addSchemeProperty(`list.source.${name}.defaultArgs`, {
+            type: 'array',
+            default: [],
+            description: `Default argument list of "${name}" list, only used when list argument is empty.`,
+            uniqueItems: true,
+            items: { type: 'string' }
+        });
         return vscode_languageserver_protocol_1.Disposable.create(() => {
             if (typeof list.dispose == 'function') {
                 list.dispose();
             }
-            this.listMap.delete(list.name);
+            this.listMap.delete(name);
         });
     }
     get names() {
@@ -68855,6 +68912,9 @@ class Mappings {
         this.add('insert', ['<ScrollWheelDown>'], this.doScroll.bind(this, '<ScrollWheelDown>'));
         this.add('insert', ['<C-f>'], this.doScroll.bind(this, '<C-f>'));
         this.add('insert', ['<C-b>'], this.doScroll.bind(this, '<C-b>'));
+        this.add('normal', '<C-o>', () => {
+            // do nothing, avoid buffer switch by accident
+        });
         this.add('normal', 't', () => {
             return manager.doAction('tabe');
         });
@@ -69992,9 +70052,9 @@ class LinksList extends basic_1.default {
         this.description = 'registed lists of coc.nvim';
         this.mru = new mru_1.default('lists');
         this.addAction('open', async (item) => {
-            let { name, interactive } = item.data;
+            let { name } = item.data;
             await this.mru.add(name);
-            await nvim.command(`CocList ${interactive ? '-I' : ''} ${name}`);
+            await nvim.command(`CocList ${name}`);
         });
     }
     async loadItems(_context) {
@@ -74027,7 +74087,10 @@ class Handler {
             i++;
         }
         if (target == 'echo') {
-            await this.nvim.call('coc#util#echo_hover', lines.join('\n').trim());
+            const msg = lines.join('\n').trim();
+            if (msg.length) {
+                await this.nvim.call('coc#util#echo_hover', msg);
+            }
         }
         else if (target == 'float') {
             manager_1.default.hideFloat();
