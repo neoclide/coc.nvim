@@ -50,6 +50,7 @@ export default class FloatingWindow {
         win.setVar('popup', 1, true)
         win.setVar('float', 1, true)
         win.setOption('list', false, true)
+        win.setOption('spell', false, true)
         win.setOption('listchars', 'eol: ', true)
         win.setOption('number', false, true)
         win.setOption('cursorline', false, true)

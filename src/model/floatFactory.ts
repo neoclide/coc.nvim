@@ -190,6 +190,7 @@ export default class FloatFactory implements Disposable {
       nvim.pauseNotification()
       window.setVar('float', 1, true)
       window.setCursor([1, 1], true)
+      window.setOption('spell', false, true)
       window.setOption('list', false, true)
       window.setOption('listchars', 'eol: ', true)
       window.setOption('wrap', false, true)
