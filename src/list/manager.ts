@@ -35,6 +35,7 @@ export class ListManager implements Disposable {
   public listOptions: ListOptions
   public config: ListConfiguration
   public worker: Worker
+  private plugTs = 0
   private disposables: Disposable[] = []
   private args: string[] = []
   private listArgs: string[] = []
@@ -160,6 +161,7 @@ export class ListManager implements Disposable {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
+      await this.nvim.command('nohlsearch')
       await this.getCharMap()
       this.prompt.start(options)
       await this.history.load()
@@ -399,6 +401,12 @@ export class ListManager implements Disposable {
 
   private async onInputChar(ch: string, charmod: number): Promise<void> {
     let { mode } = this.prompt
+    let mapped = this.charMap.get(ch)
+    let now = Date.now()
+    if (mapped == '<plug>' || now - this.plugTs < 2) {
+      this.plugTs = now
+      return
+    }
     if (!ch) return
     if (ch == '\x1b') {
       await this.cancel()

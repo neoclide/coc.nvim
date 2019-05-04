@@ -4,6 +4,7 @@ let s:saved_ve = &t_ve
 
 function! coc#list#get_chars()
   return {
+        \ '<plug>': "\<Plug>",
         \ '<esc>': "\<Esc>",
         \ '<tab>': "\<Tab>",
         \ '<s-tab>': "\<S-Tab>",
