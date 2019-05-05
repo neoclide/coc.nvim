@@ -53564,7 +53564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "dc39373a44" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f8fe934f6b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60297,6 +60297,7 @@ class FloatFactory {
             nvim.pauseNotification();
             window.setVar('float', 1, true);
             window.setCursor([1, 1], true);
+            window.setOption('spell', false, true);
             window.setOption('list', false, true);
             window.setOption('listchars', 'eol: ', true);
             window.setOption('wrap', false, true);
@@ -60408,10 +60409,8 @@ class FloatBuffer {
         this.enableHighlight = config.get('enableFloatHighlight', true);
     }
     getHeight(docs, maxWidth) {
-        let height = docs.reduce((p, c) => {
-            return p + this.getLineCount(c, maxWidth);
-        }, 0);
-        return height + docs.length - 1;
+        this.calculateFragments(docs, maxWidth);
+        return this.lines.length;
     }
     get valid() {
         return this.buffer.valid;
@@ -60422,7 +60421,7 @@ class FloatBuffer {
         let vals = this.positions.map(s => s[1] - 1);
         return Math.min(...vals);
     }
-    async setDocuments(docs, maxWidth) {
+    calculateFragments(docs, maxWidth) {
         let fragments = [];
         let idx = 0;
         let currLine = 0;
@@ -60520,6 +60519,10 @@ class FloatBuffer {
                 return s + ' '.repeat(width - string_1.byteLength(s));
             return s;
         });
+        return fragments;
+    }
+    async setDocuments(docs, maxWidth) {
+        let fragments = this.calculateFragments(docs, maxWidth);
         let filetype = await this.nvim.eval('&filetype');
         fragments = fragments.reduce((p, c) => {
             p.push(...this.splitFragment(c, filetype));
@@ -60654,43 +60657,6 @@ class FloatBuffer {
             }
         } while (!finished);
         return res;
-    }
-    getLineCount(doc, maxWidth) {
-        let count = 0;
-        let isMarkdown = doc.filetype == 'markdown';
-        let content = doc.content.replace(/\r?\n/g, '\n');
-        let arr = content.replace(/\t/g, '  ').split('\n');
-        let inBlock = false;
-        // join the lines when necessary
-        if (this.joinLines) {
-            arr = arr.reduce((list, curr) => {
-                if (isMarkdown && /^\s*```/.test(curr)) {
-                    inBlock = !inBlock;
-                }
-                if (list.length && curr) {
-                    let pre = list[list.length - 1];
-                    if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
-                        list[list.length - 1] = pre + ' ' + curr;
-                        return list;
-                    }
-                }
-                list.push(curr);
-                return list;
-            }, []);
-        }
-        for (let str of arr) {
-            let len = string_1.byteLength(str);
-            if (len > maxWidth - 2) {
-                // don't split on word
-                let parts = this.softSplit(str, maxWidth - 2);
-                parts = parts.filter(s => !/^\s*```/.test(s));
-                count += parts.length;
-            }
-            else if (!/^\s*```/.test(str)) {
-                count += 1;
-            }
-        }
-        return count;
     }
 }
 exports.default = FloatBuffer;
@@ -67816,6 +67782,7 @@ const logger = __webpack_require__(179)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
     constructor() {
+        this.plugTs = 0;
         this.disposables = [];
         this.args = [];
         this.listArgs = [];
@@ -67946,6 +67913,7 @@ class ListManager {
             this.listArgs = listArgs;
             this.cwd = workspace_1.default.cwd;
             this.window = await this.nvim.window;
+            await this.nvim.command('nohlsearch');
             await this.getCharMap();
             this.prompt.start(options);
             await this.history.load();
@@ -68195,6 +68163,12 @@ class ListManager {
     }
     async onInputChar(ch, charmod) {
         let { mode } = this.prompt;
+        let mapped = this.charMap.get(ch);
+        let now = Date.now();
+        if (mapped == '<plug>' || now - this.plugTs < 2) {
+            this.plugTs = now;
+            return;
+        }
         if (!ch)
             return;
         if (ch == '\x1b') {
@@ -72896,6 +72870,7 @@ class FloatingWindow {
                 win.setVar('popup', 1, true);
                 win.setVar('float', 1, true);
                 win.setOption('list', false, true);
+                win.setOption('spell', false, true);
                 win.setOption('listchars', 'eol: ', true);
                 win.setOption('number', false, true);
                 win.setOption('cursorline', false, true);
