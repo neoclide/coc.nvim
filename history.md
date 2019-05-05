@@ -449,7 +449,7 @@
 - **Break change** snippet support reworked: support nest snippets, independent
   session in each buffer and lots of fixes.
 - **Break change** diagnostic list now sort by severity first.
-- Add commands: `:CocUnInstall` and `:CocOpenLog`
+- Add commands: `:CocUninstall` and `:CocOpenLog`
 - Add cterm color for highlights.
 - Add line highlight support for diagnostic.
 - Add `coc.preferences.fixInsertedWord` to make complete item replace current word.

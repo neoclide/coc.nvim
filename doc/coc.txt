@@ -1374,7 +1374,7 @@ COMMANDS 					*coc-commands*
 		Check out https://www.npmjs.com/search?q=keywords%3Acoc.nvim 
 		for available extensions.
 
-:CocUninstall {name} 				*:CocUnInstall*
+:CocUninstall {name} 				*:CocUninstall*
 
 		Uninstall an extension, use <tab> to complete the extension 
 		name.
@@ -1383,7 +1383,7 @@ COMMANDS 					*coc-commands*
 
 		Update all coc extensions to the latest version.
 
-:CocUpdateSync 					*:CocUpdatSynce*
+:CocUpdateSync 					*:CocUpdateSync*
 
 		Block version of update coc extensions.
 

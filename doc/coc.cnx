@@ -906,7 +906,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		访问 https://www.npmjs.com/search?q=keywords%3Acoc.nvim
 		获取所有 coc 插件。
 
-:CocUninstall {name} 				*:CocUnInstall*
+:CocUninstall {name} 				*:CocUninstall*
 
 		卸载指定 coc 插件，支持使用 <tab> 进行补全。
 
@@ -917,7 +917,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		升级前请尽可能确保 coc 为最新版本，否则升级可能失败，
 		因为插件可能使用了新版 API 导致不兼容。
 
-:CocUpdateSync 					*:CocUpdatSynce*
+:CocUpdateSync 					*:CocUpdateSync*
 
 		同步方式升级所有插件。
 
