@@ -47,8 +47,8 @@ export default class FloatBuffer {
     let positions = this.positions = []
     for (let doc of docs) {
       let lines: string[] = []
-      let content = doc.content.replace(/\r?\n/g, '\n')
-      let arr = content.replace(/\t/g, '  ').split('\n')
+      let content = doc.content.replace(/\s+$/, '')
+      let arr = content.split(/\r?\n/)
       let inBlock = false
       if (['Error', 'Info', 'Warning', 'Hint'].indexOf(doc.filetype) !== -1) {
         fill = true
@@ -105,9 +105,6 @@ export default class FloatBuffer {
           lines.push(str)
           if (active) positions.push([currLine + 1, active[0] + 2, active[1] - active[0]])
         }
-      }
-      if (!lines[lines.length - 1].trim().length) {
-        lines = lines.slice(0, lines.length - 1)
       }
       lines = lines.map(s => s.length ? ' ' + s : '')
       fragments.push({
