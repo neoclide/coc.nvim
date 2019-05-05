@@ -124,7 +124,6 @@ Below are the reasons that led coc.nvim to build its own engine:
   - [Register custom language servers](https://github.com/neoclide/coc.nvim/wiki/Language-servers#register-custom-language-servers)
 
     - [Dart](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dart)
-    - [Flow](https://github.com/neoclide/coc.nvim/wiki/Language-servers#flow)
     - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
     - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
     - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
@@ -132,6 +131,11 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Bash](https://github.com/neoclide/coc.nvim/wiki/Language-servers#bash)
     - [Lua](https://github.com/neoclide/coc.nvim/wiki/Language-servers#lua)
     - [OCaml and ReasonML](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ocaml-and-reasonml)
+    - [PureScript](https://github.com/neoclide/coc.nvim/wiki/Language-servers#purescript)
+    - [Flow](https://github.com/neoclide/coc.nvim/wiki/Language-servers#flow)
+    - [Haskell](https://github.com/neoclide/coc.nvim/wiki/Language-servers#haskell)
+    - [vim/erb/markdown](https://github.com/neoclide/coc.nvim/wiki/Language-servers#vimerbmarkdown)
+    - [Elixir](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elixir)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
