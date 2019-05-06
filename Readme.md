@@ -137,6 +137,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [vim/erb/markdown](https://github.com/neoclide/coc.nvim/wiki/Language-servers#vimerbmarkdown)
     - [Elixir](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elixir)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
+    - [Tex](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
@@ -159,6 +160,7 @@ For other completion sources, check out:
 - [coc-neoinclude](https://github.com/jsfaint/coc-neoinclude): neoinclude
   integration.
 - [coc-powershell](https://github.com/yatli/coc-powershell): PowerShellEditorService integration.
+- [coc-lbdbq](https://github.com/zidhuss/coc-lbdbq): email address completion.
 
 Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
