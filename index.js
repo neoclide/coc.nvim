@@ -45238,7 +45238,6 @@ const pTry = (fn, ...arguments_) => new Promise(resolve => {
 });
 
 module.exports = pTry;
-// TODO: remove this in the next major version
 module.exports.default = pTry;
 
 
@@ -53564,7 +53563,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f8fe934f6b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "722a83d0e1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55295,6 +55294,7 @@ const fs_2 = __webpack_require__(201);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const string_1 = __webpack_require__(206);
 const logger = __webpack_require__(179)('sources');
+const readonlyProps = ['priority', 'sourceType', 'triggerPatterns', 'enable', 'filetypes', 'disableSyntaxes', 'firstMatch'];
 class Sources {
     constructor() {
         this.sourceMap = new Map();
@@ -55583,8 +55583,12 @@ class Sources {
         }
     }
     createSource(config) {
-        let source = new source_1.default({ name: config.name, sourceType: types_1.SourceType.Remote });
-        Object.assign(source, config);
+        if (!config.name || !config.doComplete) {
+            // tslint:disable-next-line: no-console
+            console.error(`name and doComplete required for createSource`);
+            return;
+        }
+        let source = new source_1.default(Object.assign({ sourceType: types_1.SourceType.Service }, config));
         return this.addSource(source);
     }
     dispose() {
@@ -55674,6 +55678,7 @@ class Extensions {
         let localStats = await this.localExtensionStats(names);
         stats = stats.concat(localStats);
         this.memos = new memos_1.default(path_1.default.resolve(this.root, '../memos.json'));
+        await this.loadFileExtensions();
         await Promise.all(stats.map(stat => {
             return this.loadExtension(stat.root, stat.isLocal).catch(e => {
                 workspace_1.default.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error');
@@ -55991,6 +55996,33 @@ class Extensions {
         else {
             logger.info(`engine coc & vscode not found in ${jsonFile}`);
         }
+    }
+    async loadFileExtensions() {
+        if (global.hasOwnProperty('__TEST__'))
+            return;
+        let folder = path_1.default.join(process.env.VIMCONFIG, 'coc-extensions');
+        if (!fs_1.default.existsSync(folder))
+            return;
+        let files = await fs_2.readdirAsync(folder);
+        files = files.filter(f => f.endsWith('.js'));
+        for (let file of files) {
+            this.loadExtensionFile(path_1.default.join(folder, file));
+        }
+    }
+    /**
+     * Load single javascript file as extension.
+     */
+    loadExtensionFile(filepath) {
+        let filename = path_1.default.basename(filepath);
+        let name = path_1.default.basename(filepath, 'js');
+        if (this.isDisabled(name))
+            return;
+        let root = path_1.default.dirname(filepath);
+        let packageJSON = {
+            name,
+            main: filename,
+        };
+        this.createExtension(root, packageJSON);
     }
     activate(id, silent = true) {
         if (this.isDisabled(id)) {
@@ -60430,8 +60462,8 @@ class FloatBuffer {
         let positions = this.positions = [];
         for (let doc of docs) {
             let lines = [];
-            let content = doc.content.replace(/\r?\n/g, '\n');
-            let arr = content.replace(/\t/g, '  ').split('\n');
+            let content = doc.content.replace(/\s+$/, '');
+            let arr = content.split(/\r?\n/);
             let inBlock = false;
             if (['Error', 'Info', 'Warning', 'Hint'].indexOf(doc.filetype) !== -1) {
                 fill = true;
@@ -60494,9 +60526,6 @@ class FloatBuffer {
                     if (active)
                         positions.push([currLine + 1, active[0] + 2, active[1] - active[0]]);
                 }
-            }
-            if (!lines[lines.length - 1].trim().length) {
-                lines = lines.slice(0, lines.length - 1);
             }
             lines = lines.map(s => s.length ? ' ' + s : '');
             fragments.push({
@@ -68429,7 +68458,9 @@ class ListManager {
         this.ui.reset();
     }
     dispose() {
-        this.config.dispose();
+        if (this.config) {
+            this.config.dispose();
+        }
         util_1.disposeAll(this.disposables);
     }
     async getCharMap() {
@@ -71845,26 +71876,34 @@ const logger = __webpack_require__(179)('model-source');
 class Source {
     constructor(option) {
         this._disabled = false;
-        let { name, optionalFns } = option;
-        this.name = name;
         this.nvim = workspace_1.default.nvim;
-        this.isSnippet = !!option.isSnippet;
-        this.optionalFns = optionalFns || [];
+        // readonly properties
+        this.name = option.name;
         this.filepath = option.filepath || '';
         this.sourceType = option.sourceType || types_1.SourceType.Native;
-        this.triggerCharacters = option.triggerCharacters || this.getConfig('triggerCharacters', []);
+        this.isSnippet = !!option.isSnippet;
+        this.defaults = option;
     }
     get priority() {
         return this.getConfig('priority', 1);
+    }
+    get triggerCharacters() {
+        return this.getConfig('triggerCharacters', null);
+    }
+    // exists opitonnal function names for remote source
+    get optionalFns() {
+        return this.getDefault('optionalFns', []);
     }
     get triggerPatterns() {
         let patterns = this.getConfig('triggerPatterns', null);
         if (!patterns || patterns.length == 0)
             return null;
-        return patterns.map(s => new RegExp(s + '$'));
+        return patterns.map(s => {
+            return (s instanceof RegExp) ? s : new RegExp(s + '$');
+        });
     }
     get shortcut() {
-        let shortcut = this.getConfig('shortcut', null);
+        let shortcut = this.getConfig('shortcut', '');
         return shortcut ? shortcut : this.name.slice(0, 3);
     }
     get enable() {
@@ -71880,7 +71919,13 @@ class Source {
     }
     getConfig(key, defaultValue) {
         let config = workspace_1.default.getConfiguration(`coc.source.${this.name}`);
-        return config.get(key, defaultValue);
+        return config.get(key, this.getDefault(key, defaultValue));
+    }
+    getDefault(key, defaultValue) {
+        let { defaults } = this;
+        if (defaults.hasOwnProperty(key))
+            return defaults[key];
+        return defaultValue == undefined ? null : defaultValue;
     }
     toggle() {
         this._disabled = !this._disabled;
@@ -71937,21 +71982,31 @@ class Source {
         opt.input = input;
         return col;
     }
-    async refresh() {
-        // do nothing
-    }
     async shouldComplete(opt) {
         let { disableSyntaxes } = this;
         let synname = opt.synname.toLowerCase();
         if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
             return false;
         }
+        let fn = this.getDefault('shouldComplete');
+        if (fn)
+            return await Promise.resolve(fn.call(this, opt));
         return true;
     }
-    async onCompleteDone(_item, _opt) {
-        // do nothing
+    async refresh() {
+        let fn = this.getDefault('refresh');
+        if (fn)
+            await Promise.resolve(fn.call(this));
     }
-    async doComplete(_opt) {
+    async onCompleteDone(item, opt) {
+        let fn = this.getDefault('onCompleteDone');
+        if (fn)
+            await Promise.resolve(fn.call(this, item, opt));
+    }
+    async doComplete(opt) {
+        let fn = this.getDefault('doComplete');
+        if (fn)
+            return await Promise.resolve(fn.call(this, opt));
         return null;
     }
 }
