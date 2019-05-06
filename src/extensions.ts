@@ -16,7 +16,7 @@ import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './ty
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
 import { createExtension, ExtensionExport } from './util/factory'
-import { readFile, statAsync } from './util/fs'
+import { readFile, statAsync, readdirAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
 import { Neovim } from '@chemzqm/neovim'
@@ -93,6 +93,7 @@ export class Extensions {
     let localStats = await this.localExtensionStats(names)
     stats = stats.concat(localStats)
     this.memos = new Memos(path.resolve(this.root, '../memos.json'))
+    await this.loadFileExtensions()
     await Promise.all(stats.map(stat => {
       return this.loadExtension(stat.root, stat.isLocal).catch(e => {
         workspace.showMessage(`Can't load extension from ${stat.root}: ${e.message}'`, 'error')
@@ -396,6 +397,32 @@ export class Extensions {
     } else {
       logger.info(`engine coc & vscode not found in ${jsonFile}`)
     }
+  }
+
+  private async loadFileExtensions(): Promise<void> {
+    if (global.hasOwnProperty('__TEST__')) return
+    let folder = path.join(process.env.VIMCONFIG, 'coc-extensions')
+    if (!fs.existsSync(folder)) return
+    let files = await readdirAsync(folder)
+    files = files.filter(f => f.endsWith('.js'))
+    for (let file of files) {
+      this.loadExtensionFile(path.join(folder, file))
+    }
+  }
+
+  /**
+   * Load single javascript file as extension.
+   */
+  public loadExtensionFile(filepath: string): void {
+    let filename = path.basename(filepath)
+    let name = path.basename(filepath, 'js')
+    if (this.isDisabled(name)) return
+    let root = path.dirname(filepath)
+    let packageJSON = {
+      name,
+      main: filename,
+    }
+    this.createExtension(root, packageJSON)
   }
 
   public activate(id, silent = true): void {
