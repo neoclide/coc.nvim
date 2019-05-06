@@ -9,35 +9,43 @@ export default class Source implements ISource {
   public readonly name: string
   public readonly filepath: string
   public readonly sourceType: SourceType
-  public readonly triggerCharacters: string[]
-  // exists opitonnal function names for remote source
-  public readonly optionalFns: string[]
   public readonly isSnippet: boolean
   protected readonly nvim: Neovim
   private _disabled = false
-  constructor(option: SourceConfig) {
-    let { name, optionalFns } = option
-    this.name = name
+  private defaults: any
+  constructor(option: Partial<SourceConfig>) {
     this.nvim = workspace.nvim
-    this.isSnippet = !!option.isSnippet
-    this.optionalFns = optionalFns || []
+    // readonly properties
+    this.name = option.name
     this.filepath = option.filepath || ''
     this.sourceType = option.sourceType || SourceType.Native
-    this.triggerCharacters = option.triggerCharacters || this.getConfig<string[]>('triggerCharacters', [])
+    this.isSnippet = !!option.isSnippet
+    this.defaults = option
   }
 
   public get priority(): number {
     return this.getConfig('priority', 1)
   }
 
+  public get triggerCharacters(): string[] {
+    return this.getConfig('triggerCharacters', null)
+  }
+
+  // exists opitonnal function names for remote source
+  public get optionalFns(): string[] {
+    return this.getDefault('optionalFns', [])
+  }
+
   public get triggerPatterns(): RegExp[] | null {
-    let patterns = this.getConfig<string[]>('triggerPatterns', null)
+    let patterns = this.getConfig<any[]>('triggerPatterns', null)
     if (!patterns || patterns.length == 0) return null
-    return patterns.map(s => new RegExp(s + '$'))
+    return patterns.map(s => {
+      return (s instanceof RegExp) ? s : new RegExp(s + '$')
+    })
   }
 
   public get shortcut(): string {
-    let shortcut = this.getConfig('shortcut', null)
+    let shortcut = this.getConfig('shortcut', '')
     return shortcut ? shortcut : this.name.slice(0, 3)
   }
 
@@ -56,7 +64,13 @@ export default class Source implements ISource {
 
   public getConfig<T>(key: string, defaultValue?: T): T | null {
     let config = workspace.getConfiguration(`coc.source.${this.name}`)
-    return config.get(key, defaultValue)
+    return config.get(key, this.getDefault<T>(key, defaultValue))
+  }
+
+  private getDefault<T>(key: string, defaultValue?: T): T | null {
+    let { defaults } = this
+    if (defaults.hasOwnProperty(key)) return defaults[key]
+    return defaultValue == undefined ? null : defaultValue
   }
 
   public toggle(): void {
@@ -114,24 +128,30 @@ export default class Source implements ISource {
     return col
   }
 
-  public async refresh(): Promise<void> {
-    // do nothing
-  }
-
   public async shouldComplete(opt: CompleteOption): Promise<boolean> {
     let { disableSyntaxes } = this
     let synname = opt.synname.toLowerCase()
     if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
       return false
     }
+    let fn = this.getDefault<Function>('shouldComplete')
+    if (fn) return await Promise.resolve(fn.call(this, opt))
     return true
   }
 
-  public async onCompleteDone(_item: VimCompleteItem, _opt: CompleteOption): Promise<void> {
-    // do nothing
+  public async refresh(): Promise<void> {
+    let fn = this.getDefault<Function>('refresh')
+    if (fn) await Promise.resolve(fn.call(this))
   }
 
-  public async doComplete(_opt: CompleteOption): Promise<CompleteResult | null> {
+  public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
+    let fn = this.getDefault<Function>('onCompleteDone')
+    if (fn) await Promise.resolve(fn.call(this, item, opt))
+  }
+
+  public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
+    let fn = this.getDefault<Function>('doComplete')
+    if (fn) return await Promise.resolve(fn.call(this, opt))
     return null
   }
 }

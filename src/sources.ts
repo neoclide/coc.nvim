@@ -8,17 +8,15 @@ import events from './events'
 import extensions from './extensions'
 import Source from './model/source'
 import VimSource from './model/source-vim'
-import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem } from './types'
+import { CompleteOption, ISource, SourceStat, SourceType, VimCompleteItem, SourceConfig } from './types'
 import { disposeAll } from './util'
 import { statAsync } from './util/fs'
 import workspace from './workspace'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('sources')
 
-type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
-
+// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
-type ReadonlyProps = 'priority' | 'sourceType' | 'triggerPatterns' | 'enable' | 'filetypes' | 'disableSyntaxes' | 'firstMatch'
 
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
@@ -182,7 +180,7 @@ export class Sources {
     let source = this.getSource(item.source)
     if (source && typeof source.onCompleteResolve == 'function') {
       try {
-        await source.onCompleteResolve(item, token)
+        await Promise.resolve(source.onCompleteResolve(item, token))
       } catch (e) {
         logger.error('Error on complete resolve:', e.stack)
       }
@@ -311,9 +309,13 @@ export class Sources {
     }
   }
 
-  public createSource(config: Omit<ISource, ReadonlyProps>): Disposable {
-    let source = new Source({ name: config.name, sourceType: SourceType.Remote })
-    Object.assign(source, config)
+  public createSource(config: SourceConfig): Disposable {
+    if (!config.name || !config.doComplete) {
+      // tslint:disable-next-line: no-console
+      console.error(`name and doComplete required for createSource`)
+      return
+    }
+    let source = new Source(Object.assign({ sourceType: SourceType.Service } as any, config))
     return this.addSource(source)
   }
 

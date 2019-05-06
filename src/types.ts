@@ -387,17 +387,6 @@ export interface DiagnosticItem {
   location: Location
 }
 
-// Config property of source
-export interface SourceConfig {
-  name: string
-  sourceType?: SourceType
-  triggerCharacters?: string[]
-  optionalFns?: string[]
-  shortcut?: string
-  filepath?: string
-  isSnippet?: boolean
-}
-
 export interface RecentScore {
   [index: string]: number
 }
@@ -764,9 +753,9 @@ export interface AnsiItem {
 export interface ISource {
   // identifier
   name: string
-  enable: boolean
-  priority: number
-  sourceType: SourceType
+  enable?: boolean
+  priority?: number
+  sourceType?: SourceType
   triggerCharacters?: string[]
   // regex to detect trigger completetion, ignored when triggerCharacters exists.
   triggerPatterns?: RegExp[]
@@ -811,7 +800,7 @@ export interface ISource {
    * @param {CancellationToken} token
    * @returns {Promise<CompleteResult | null>}
    */
-  doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null>
+  doComplete(opt: CompleteOption, token: CancellationToken): ProviderResult<CompleteResult | null>
   /**
    * Action for complete item on complete item selected
    *
@@ -820,7 +809,7 @@ export interface ISource {
    * @param {CancellationToken} token
    * @returns {Promise<void>}
    */
-  onCompleteResolve?(item: VimCompleteItem, token: CancellationToken): Promise<void> | void
+  onCompleteResolve?(item: VimCompleteItem, token: CancellationToken): ProviderResult<void> | void
   /**
    * Action for complete item on complete done
    *
@@ -828,9 +817,16 @@ export interface ISource {
    * @param {VimCompleteItem} item
    * @returns {Promise<void>}
    */
-  onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): Promise<void>
+  onCompleteDone?(item: VimCompleteItem, opt: CompleteOption): ProviderResult<void>
 
   shouldCommit?(item: VimCompleteItem, character: string): boolean
+}
+
+// Config property of source
+export interface SourceConfig extends ISource {
+  filepath?: string
+  optionalFns?: string[]
+  shortcut?: string
 }
 
 /**

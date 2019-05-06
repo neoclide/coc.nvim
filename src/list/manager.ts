@@ -672,7 +672,9 @@ export class ListManager implements Disposable {
   }
 
   public dispose(): void {
-    this.config.dispose()
+    if (this.config) {
+      this.config.dispose()
+    }
     disposeAll(this.disposables)
   }
 
