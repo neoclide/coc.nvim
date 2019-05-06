@@ -190,6 +190,11 @@ Extensions are more powerful than a configured language server. Check out
   suggestions in completion list.
 - **[coc-snippets](https://github.com/neoclide/coc-snippets)** provides snippets
   solution.
+- **[coc-lists](https://github.com/neoclide/coc-lists)** provides some basic
+  lists like fzf.vim.
+- **[coc-git](https://github.com/neoclide/coc-git)** provides git integration.
+- **[coc-yank](https://github.com/neoclide/coc-yank)** provides yank highlights
+  and yank history list.
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
