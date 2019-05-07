@@ -41,7 +41,7 @@ describe('extensions', () => {
 
   it('should udpate extensions', async () => {
     let disposable = await extensions.updateExtensions('', true)
-    disposable.dispose()
+    if (disposable) disposable.dispose()
   })
 
   it('should get all extensions', () => {
