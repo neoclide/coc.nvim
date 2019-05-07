@@ -1,3 +1,13 @@
+# 2019-05-07
+
+- **New feature** load extensions from coc-extensions folder.
+- Add `workspace.renameCurrentFile` command.
+- Add `FloatBuffer`, `FloatFactory` and `Uri` to exports.
+- Add `resolveItem` support to list.
+- Fix prompt can't work when execute list action.
+- Fix ansiparser for empty color ranges.
+- Fix highlight only work with first 8 items.
+
 # 2019-04-27
 
 - **Break change** vim-node-rpc not required on vim.
