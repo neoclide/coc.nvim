@@ -44862,7 +44862,8 @@ augroup end`;
         }
         let oldPath = vscode_uri_1.default.parse(doc.uri).fsPath;
         let newPath = await nvim.call('input', ['new path:', oldPath, 'file']);
-        if (newPath == oldPath)
+        newPath = newPath ? newPath.trim() : null;
+        if (newPath == oldPath || !newPath)
             return;
         let lines = await doc.buffer.lines;
         let exists = fs_1.default.existsSync(oldPath);
@@ -48596,9 +48597,9 @@ class Document {
             let line = this.getline(start.line);
             arr.push([start.line + 1, string_1.byteIndex(line, start.character) + 1, string_1.byteLength(line.slice(start.character, end.character))]);
         }
-        let id = this.colorId;
-        this.colorId = this.colorId + 1;
         for (let grouped of array_1.group(arr, 8)) {
+            let id = this.colorId;
+            this.colorId = this.colorId + 1;
             this.nvim[method]('matchaddpos', [hlGroup, grouped, priority, id], true);
             res.push(id);
         }
@@ -53563,7 +53564,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "722a83d0e1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8741e930c9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55294,7 +55295,8 @@ const fs_2 = __webpack_require__(201);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const string_1 = __webpack_require__(206);
 const logger = __webpack_require__(179)('sources');
-const readonlyProps = ['priority', 'sourceType', 'triggerPatterns', 'enable', 'filetypes', 'disableSyntaxes', 'firstMatch'];
+// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
+// priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
 class Sources {
     constructor() {
         this.sourceMap = new Map();
@@ -55453,7 +55455,7 @@ class Sources {
         let source = this.getSource(item.source);
         if (source && typeof source.onCompleteResolve == 'function') {
             try {
-                await source.onCompleteResolve(item, token);
+                await Promise.resolve(source.onCompleteResolve(item, token));
             }
             catch (e) {
                 logger.error('Error on complete resolve:', e.stack);
@@ -75065,7 +75067,7 @@ exports.default = default_1;
 /* 344 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.66","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.67","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.2","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
