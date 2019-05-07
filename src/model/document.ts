@@ -477,9 +477,9 @@ export default class Document {
       let line = this.getline(start.line)
       arr.push([start.line + 1, byteIndex(line, start.character) + 1, byteLength(line.slice(start.character, end.character))])
     }
-    let id = this.colorId
-    this.colorId = this.colorId + 1
     for (let grouped of group(arr, 8)) {
+      let id = this.colorId
+      this.colorId = this.colorId + 1
       this.nvim[method]('matchaddpos', [hlGroup, grouped, priority, id], true)
       res.push(id)
     }
