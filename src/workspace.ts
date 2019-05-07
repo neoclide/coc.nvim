@@ -1395,7 +1395,8 @@ augroup end`
     }
     let oldPath = Uri.parse(doc.uri).fsPath
     let newPath = await nvim.call('input', ['new path:', oldPath, 'file'])
-    if (newPath == oldPath) return
+    newPath = newPath ? newPath.trim() : null
+    if (newPath == oldPath || !newPath) return
     let lines = await doc.buffer.lines
     let exists = fs.existsSync(oldPath)
     if (exists) {
