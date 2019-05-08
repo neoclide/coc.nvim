@@ -1504,7 +1504,12 @@ augroup end`
   }
 
   private getDocumentOption(name: string, doc?: Document): Promise<any> {
-    return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name)
+    if (doc) {
+      return doc.buffer.getOption(name).catch(_e => {
+        return this.nvim.getOption(name)
+      })
+    }
+    return this.nvim.getOption(name)
   }
 
   private checkProcess(): void {
