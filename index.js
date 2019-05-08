@@ -44969,7 +44969,12 @@ augroup end`;
         return this._insertMode;
     }
     getDocumentOption(name, doc) {
-        return doc ? doc.buffer.getOption(name) : this.nvim.getOption(name);
+        if (doc) {
+            return doc.buffer.getOption(name).catch(_e => {
+                return this.nvim.getOption(name);
+            });
+        }
+        return this.nvim.getOption(name);
     }
     checkProcess() {
         if (global.hasOwnProperty('__TEST__'))
@@ -53564,7 +53569,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7f499520b4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d309365039" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
