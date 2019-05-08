@@ -334,11 +334,15 @@ function! coc#util#get_complete_option()
   if disabled | return | endif
   let blacklist = get(b:, 'coc_suggest_blacklist', [])
   let pos = getcurpos()
-  let line = getline(pos[1])
   let l:start = pos[2] - 1
-  while l:start > 0 && line[l:start - 1] =~# '\k'
-    let l:start -= 1
-  endwhile
+  let line = getline(pos[1])
+  for char in reverse(split(line[0: l:start - 1], '\zs'))
+    if l:start > 0 && char =~# '\k'
+      let l:start = l:start - strlen(char)
+    else
+      break
+    endif
+  endfor
   let input = pos[2] == 1 ? '' : line[l:start : pos[2] - 2]
   if !empty(blacklist) && index(blacklist, input) >= 0
     return
