@@ -53569,7 +53569,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b8a4300234" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8668f301e4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54902,7 +54902,7 @@ class Completion {
         // current input
         let input = this.input = option.input;
         let pre = string_1.byteSlice(line, 0, colnr - 1);
-        let isTriggered = source == null && pre && !document.isWord(pre[pre.length - 1]) && sources_1.default.shouldTrigger(pre, filetype);
+        let isTriggered = source == null && option.triggerCharacter && sources_1.default.shouldTrigger(pre, filetype);
         let arr = [];
         if (source == null) {
             arr = sources_1.default.getCompleteSources(option, isTriggered);
@@ -55485,7 +55485,7 @@ class Sources {
     }
     getCompleteSources(opt, isTriggered) {
         let { filetype } = opt;
-        let pre = string_1.byteSlice(opt.line, 0, opt.col);
+        let pre = string_1.byteSlice(opt.line, 0, opt.colnr);
         if (isTriggered)
             return this.getTriggerSources(pre, filetype);
         return this.getSourcesForFiletype(filetype);
