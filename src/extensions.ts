@@ -559,6 +559,7 @@ export class Extensions {
             return resolve(null)
           }
           if (exclude.indexOf(obj.name) !== -1) {
+            workspace.showMessage(`Skipped extension at "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning')
             return resolve(null)
           }
           let version = obj ? obj.version || '' : ''
