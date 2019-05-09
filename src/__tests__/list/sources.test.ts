@@ -1,6 +1,23 @@
 import { Neovim } from '@chemzqm/neovim'
+import { BasicList, ListContext, ListItem, ListArgument } from '../..'
 import manager from '../../list/manager'
 import helper from '../helper'
+import { CancellationToken } from 'vscode-jsonrpc'
+
+class OptionList extends BasicList {
+  public name = 'option'
+  public options: ListArgument[] = [{
+    name: '-w, -word',
+    description: 'word'
+  }, {
+    name: '-i, -input INPUT',
+    hasValue: true,
+    description: 'input'
+  }]
+  public loadItems(_context: ListContext, _token: CancellationToken): Promise<ListItem[]> {
+    return Promise.resolve([])
+  }
+}
 
 let nvim: Neovim
 beforeAll(async () => {
@@ -15,6 +32,28 @@ afterAll(async () => {
 afterEach(async () => {
   await manager.cancel()
   await helper.reset()
+})
+
+describe('BasicList', () => {
+  describe('parse arguments', () => {
+    it('should parse args #1', () => {
+      let list = new OptionList(nvim)
+      let res = list.parseArguments(['-w'])
+      expect(res).toEqual({ word: true })
+    })
+
+    it('should parse args #2', () => {
+      let list = new OptionList(nvim)
+      let res = list.parseArguments(['-word'])
+      expect(res).toEqual({ word: true })
+    })
+
+    it('should parse args #3', () => {
+      let list = new OptionList(nvim)
+      let res = list.parseArguments(['-input', 'foo'])
+      expect(res).toEqual({ input: 'foo' })
+    })
+  })
 })
 
 describe('list sources', () => {

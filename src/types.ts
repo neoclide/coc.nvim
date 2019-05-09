@@ -721,6 +721,8 @@ export interface ListTask {
 }
 
 export interface ListArgument {
+  key?: string
+  hasValue?: boolean
   name: string
   description: string
 }

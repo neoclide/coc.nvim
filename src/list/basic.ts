@@ -4,7 +4,7 @@ import readline from 'readline'
 import { CancellationToken, Position, Disposable, Location, Range } from 'vscode-languageserver-protocol'
 import { default as URI, default as Uri } from 'vscode-uri'
 import { ProviderResult } from '../provider'
-import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration } from '../types'
+import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration, ListArgument } from '../types'
 import { disposeAll } from '../util'
 import { comparePosition } from '../util/position'
 import { byteIndex } from '../util/string'
@@ -17,18 +17,54 @@ interface ActionOptions {
   parallel?: boolean
 }
 
+interface ArgumentItem {
+  hasValue: boolean
+  name: string
+}
+
 export default abstract class BasicList implements IList, Disposable {
   public name: string
   public defaultAction = 'open'
   public readonly actions: ListAction[] = []
+  public options: ListArgument[] = []
   protected previewHeight = 12
   protected disposables: Disposable[] = []
   private hlGroup: string
+  private optionMap: Map<string, ArgumentItem>
 
   constructor(protected nvim: Neovim) {
     let config = workspace.getConfiguration('list')
     this.hlGroup = config.get<string>('previewHighlightGroup', 'Search')
     this.previewHeight = config.get<number>('maxPreviewHeight', 12)
+  }
+
+  public parseArguments(args: string[]): { [key: string]: string | boolean } {
+    if (!this.optionMap) {
+      this.optionMap = new Map()
+      for (let opt of this.options) {
+        let parts = opt.name.split(/,\s*/g).map(s => s.replace(/\s+.*/g, ''))
+        let name = opt.key ? opt.key : parts[parts.length - 1].replace(/^-/, '')
+        for (let p of parts) {
+          this.optionMap.set(p, { name, hasValue: opt.hasValue })
+        }
+      }
+    }
+    let res: { [key: string]: string | boolean } = {}
+    for (let i = 0; i < args.length; i++) {
+      let arg = args[i]
+      let def = this.optionMap.get(arg)
+      if (!def) {
+        logger.error(`Option "${arg}" of "${this.name}" not found`)
+        continue
+      }
+      let value: string | boolean = true
+      if (def.hasValue) {
+        value = args[i + 1] || ''
+        i = i + 1
+      }
+      res[def.name] = value
+    }
+    return res
   }
 
   protected getConfig(): WorkspaceConfiguration {
