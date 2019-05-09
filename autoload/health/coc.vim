@@ -11,8 +11,9 @@ function! s:checkEnvironment() abort
     let valid = 0
     call health#report_error('Executable node.js not found, install node.js from http://nodejs.org/')
   endif
-  if !executable('yarnpkg')
-    call health#report_warn('Environment executable yarnpkg not found, check https://yarnpkg.com/en/docs/install for installation.')
+  let yarncmd = coc#util#yarn_cmd()
+  if empty(yarncmd)
+    call health#report_warn('Environment executable yarnpkg & yarn not found, check https://yarnpkg.com/en/docs/install for installation.')
     call health#report_info('yarn is required for install extensions.')
   endif
   let output = system(node . ' --version')
@@ -39,14 +40,14 @@ function! s:checkEnvironment() abort
 endfunction
 
 function! s:checkCommand()
-  let binary = coc#util#binary()
-  if executable(binary) && !get(g:, 'coc_force_debug', 0)
-    call health#report_ok('Binary found')
+  let file = s:root.'/build/index.js'
+  if filereadable(file) && !get(g:, 'coc_force_debug', 0)
+    call health#report_ok('Javascript bundle found')
     return
   endif
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
-    call health#report_error('Build javascript not found, run '':call coc#util#build()'' to fix it.')
+    call health#report_error('Javascript entry not found, run ":call coc#util#install()" to fix it.')
   else
     call health#report_ok('Build javascript found')
   endif

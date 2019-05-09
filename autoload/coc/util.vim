@@ -175,16 +175,6 @@ function! coc#util#remote_fns(name)
   return res
 endfunction
 
-function! coc#util#binary()
-  let platform = coc#util#platform()
-  if platform ==# 'windows'
-    return s:root.'/build/coc-win.exe'
-  elseif platform ==# 'mac'
-    return s:root.'/build/coc-macos'
-  endif
-  return s:root.'/build/coc-linux'
-endfunction
-
 function! coc#util#job_command()
   let node = get(g:, 'coc_node_path', 'node')
   if !executable(node)
@@ -192,7 +182,6 @@ function! coc#util#job_command()
     return
   endif
   let file = s:root.'/build/index.js'
-  "let binary = coc#util#binary()
   if filereadable(file) && !get(g:, 'coc_force_debug', 0)
     return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
   endif
