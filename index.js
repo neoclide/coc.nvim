@@ -48066,14 +48066,12 @@ function validSocket(path) {
     });
 }
 exports.validSocket = validSocket;
-async function readdirAsync(path) {
-    return await util_1.default.promisify(fs_1.default.readdir)(path);
-}
-exports.readdirAsync = readdirAsync;
 function isFile(uri) {
     return uri.startsWith('file:');
 }
 exports.isFile = isFile;
+exports.readdirAsync = util_1.default.promisify(fs_1.default.readdir);
+exports.realpathAsync = util_1.default.promisify(fs_1.default.realpath);
 //# sourceMappingURL=fs.js.map
 
 /***/ }),
@@ -53569,7 +53567,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "b0d60d8394" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "61f14d6fd3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55485,7 +55483,7 @@ class Sources {
     }
     getCompleteSources(opt, isTriggered) {
         let { filetype } = opt;
-        let pre = string_1.byteSlice(opt.line, 0, opt.colnr);
+        let pre = string_1.byteSlice(opt.line, 0, opt.colnr - 1);
         if (isTriggered)
             return this.getTriggerSources(pre, filetype);
         return this.getSourcesForFiletype(filetype, isTriggered);
@@ -55684,8 +55682,7 @@ class Extensions {
         if (process.env.COC_NO_PLUGINS)
             return;
         let stats = await this.globalExtensionStats();
-        let names = stats.map(info => info.id);
-        let localStats = await this.localExtensionStats(names);
+        let localStats = await this.localExtensionStats(stats);
         stats = stats.concat(localStats);
         this.memos = new memos_1.default(path_1.default.resolve(this.root, '../memos.json'));
         await this.loadFileExtensions();
@@ -55867,8 +55864,7 @@ class Extensions {
     }
     async getExtensionStates() {
         let globalStats = await this.globalExtensionStats();
-        let names = globalStats.map(info => info.id);
-        let localStats = await this.localExtensionStats(names);
+        let localStats = await this.localExtensionStats(globalStats);
         return globalStats.concat(localStats);
     }
     async toggleExtension(id) {
@@ -56130,6 +56126,7 @@ class Extensions {
                     if (!stat || !stat.isFile())
                         return resolve(null);
                     let content = await fs_2.readFile(jsonFile, 'utf8');
+                    root = await fs_2.realpathAsync(root);
                     let obj = JSON.parse(content);
                     let { engines } = obj;
                     if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
@@ -56157,10 +56154,15 @@ class Extensions {
     }
     async localExtensionStats(exclude) {
         let runtimepath = await workspace_1.default.nvim.eval('&runtimepath');
+        let included = exclude.map(o => o.root);
+        let names = exclude.map(o => o.id);
         let paths = runtimepath.split(',');
         let res = await Promise.all(paths.map(root => {
             return new Promise(async (resolve) => {
                 try {
+                    if (included.includes(root)) {
+                        return resolve(null);
+                    }
                     let jsonFile = path_1.default.join(root, 'package.json');
                     let stat = await fs_2.statAsync(jsonFile);
                     if (!stat || !stat.isFile())
@@ -56171,8 +56173,8 @@ class Extensions {
                     if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
                         return resolve(null);
                     }
-                    if (exclude.indexOf(obj.name) !== -1) {
-                        workspace_1.default.showMessage(`Skipped extension at "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning');
+                    if (names.indexOf(obj.name) !== -1) {
+                        workspace_1.default.showMessage(`Skipped extension  "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning');
                         return resolve(null);
                     }
                     let version = obj ? obj.version || '' : '';
