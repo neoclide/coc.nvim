@@ -129,10 +129,10 @@ export function validSocket(path: string): Promise<boolean> {
   })
 }
 
-export async function readdirAsync(path: string): Promise<string[]> {
-  return await util.promisify(fs.readdir)(path)
-}
-
 export function isFile(uri: string): boolean {
   return uri.startsWith('file:')
 }
+
+export const readdirAsync = util.promisify(fs.readdir)
+
+export const realpathAsync = util.promisify(fs.realpath)

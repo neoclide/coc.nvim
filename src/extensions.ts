@@ -16,7 +16,7 @@ import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './ty
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
 import { createExtension, ExtensionExport } from './util/factory'
-import { readFile, statAsync, readdirAsync } from './util/fs'
+import { readFile, statAsync, readdirAsync, realpathAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
 import { Neovim } from '@chemzqm/neovim'
@@ -89,8 +89,7 @@ export class Extensions {
     }
     if (process.env.COC_NO_PLUGINS) return
     let stats = await this.globalExtensionStats()
-    let names = stats.map(info => info.id)
-    let localStats = await this.localExtensionStats(names)
+    let localStats = await this.localExtensionStats(stats)
     stats = stats.concat(localStats)
     this.memos = new Memos(path.resolve(this.root, '../memos.json'))
     await this.loadFileExtensions()
@@ -266,8 +265,7 @@ export class Extensions {
 
   public async getExtensionStates(): Promise<ExtensionInfo[]> {
     let globalStats = await this.globalExtensionStats()
-    let names = globalStats.map(info => info.id)
-    let localStats = await this.localExtensionStats(names)
+    let localStats = await this.localExtensionStats(globalStats)
     return globalStats.concat(localStats)
   }
 
@@ -518,6 +516,7 @@ export class Extensions {
           let stat = await statAsync(jsonFile)
           if (!stat || !stat.isFile()) return resolve(null)
           let content = await readFile(jsonFile, 'utf8')
+          root = await realpathAsync(root)
           let obj = JSON.parse(content)
           let { engines } = obj
           if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
@@ -543,12 +542,17 @@ export class Extensions {
     return res.filter(info => info != null)
   }
 
-  private async localExtensionStats(exclude: string[]): Promise<ExtensionInfo[]> {
+  private async localExtensionStats(exclude: ExtensionInfo[]): Promise<ExtensionInfo[]> {
     let runtimepath = await workspace.nvim.eval('&runtimepath') as string
+    let included = exclude.map(o => o.root)
+    let names = exclude.map(o => o.id)
     let paths = runtimepath.split(',')
     let res: ExtensionInfo[] = await Promise.all(paths.map(root => {
       return new Promise<ExtensionInfo>(async resolve => {
         try {
+          if (included.includes(root)) {
+            return resolve(null)
+          }
           let jsonFile = path.join(root, 'package.json')
           let stat = await statAsync(jsonFile)
           if (!stat || !stat.isFile()) return resolve(null)
@@ -558,8 +562,8 @@ export class Extensions {
           if (!engines || (!engines.hasOwnProperty('coc') && !engines.hasOwnProperty('vscode'))) {
             return resolve(null)
           }
-          if (exclude.indexOf(obj.name) !== -1) {
-            workspace.showMessage(`Skipped extension at "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning')
+          if (names.indexOf(obj.name) !== -1) {
+            workspace.showMessage(`Skipped extension  "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning')
             return resolve(null)
           }
           let version = obj ? obj.version || '' : ''
