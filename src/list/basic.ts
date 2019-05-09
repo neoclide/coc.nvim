@@ -149,6 +149,10 @@ export default abstract class BasicList implements IList, Disposable {
     if (doc) lineCount = doc.lineCount
     let height = Math.min(this.previewHeight, lineCount)
     let u = URI.parse(uri)
+    if (u.scheme == 'untitled' || u.scheme == 'unknown') {
+      await nvim.command('pclose')
+      return
+    }
     let filepath = u.scheme == 'file' ? u.fsPath : u.toString()
     let escaped = await nvim.call('fnameescape', filepath)
     let lnum = range.start.line + 1
