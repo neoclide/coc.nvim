@@ -53569,7 +53569,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d309365039" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b8a4300234" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56169,6 +56169,7 @@ class Extensions {
                         return resolve(null);
                     }
                     if (exclude.indexOf(obj.name) !== -1) {
+                        workspace_1.default.showMessage(`Skipped extension at "${root}", please uninstall "${obj.name}" by :CocUninstall ${obj.name}`, 'warning');
                         return resolve(null);
                     }
                     let version = obj ? obj.version || '' : '';
@@ -69478,11 +69479,40 @@ class BasicList {
         this.nvim = nvim;
         this.defaultAction = 'open';
         this.actions = [];
+        this.options = [];
         this.previewHeight = 12;
         this.disposables = [];
         let config = workspace_1.default.getConfiguration('list');
         this.hlGroup = config.get('previewHighlightGroup', 'Search');
         this.previewHeight = config.get('maxPreviewHeight', 12);
+    }
+    parseArguments(args) {
+        if (!this.optionMap) {
+            this.optionMap = new Map();
+            for (let opt of this.options) {
+                let parts = opt.name.split(/,\s*/g).map(s => s.replace(/\s+.*/g, ''));
+                let name = opt.key ? opt.key : parts[parts.length - 1].replace(/^-/, '');
+                for (let p of parts) {
+                    this.optionMap.set(p, { name, hasValue: opt.hasValue });
+                }
+            }
+        }
+        let res = {};
+        for (let i = 0; i < args.length; i++) {
+            let arg = args[i];
+            let def = this.optionMap.get(arg);
+            if (!def) {
+                logger.error(`Option "${arg}" of "${this.name}" not found`);
+                continue;
+            }
+            let value = true;
+            if (def.hasValue) {
+                value = args[i + 1] || '';
+                i = i + 1;
+            }
+            res[def.name] = value;
+        }
+        return res;
     }
     getConfig() {
         return workspace_1.default.getConfiguration(`list.source.${this.name}`);
@@ -69602,6 +69632,10 @@ class BasicList {
             lineCount = doc.lineCount;
         let height = Math.min(this.previewHeight, lineCount);
         let u = vscode_uri_1.default.parse(uri);
+        if (u.scheme == 'untitled' || u.scheme == 'unknown') {
+            await nvim.command('pclose');
+            return;
+        }
         let filepath = u.scheme == 'file' ? u.fsPath : u.toString();
         let escaped = await nvim.call('fnameescape', filepath);
         let lnum = range.start.line + 1;
