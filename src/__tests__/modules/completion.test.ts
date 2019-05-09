@@ -514,18 +514,15 @@ describe('completion trigger', () => {
         if (!opt.input.startsWith('EM')) return null
         return Promise.resolve({
           items: [
-            { word: 'a', filterText: 'EMa' },
-            { word: 'b', filterText: 'EMb' }
+            { word: 'foo', filterText: 'EMfoo' },
+            { word: 'bar', filterText: 'EMbar' }
           ]
         })
       },
     }
     let disposable = sources.addSource(source)
     await nvim.input('i')
-    await helper.wait(10)
-    await nvim.input('E')
-    await helper.wait(10)
-    await nvim.input('M')
+    await nvim.input('EM')
     await helper.waitPopup()
     let items = await helper.getItems()
     expect(items.length).toBe(2)
@@ -558,7 +555,7 @@ describe('completion trigger', () => {
     await nvim.input('M')
     await helper.waitPopup()
     let items = await helper.getItems()
-    expect(items.length).toBeGreaterThan(2)
+    expect(items.length).toBe(2)
     disposable.dispose()
   })
 })

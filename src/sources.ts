@@ -206,7 +206,7 @@ export class Sources {
 
   public getCompleteSources(opt: CompleteOption, isTriggered: boolean): ISource[] {
     let { filetype } = opt
-    let pre = byteSlice(opt.line, 0, opt.col)
+    let pre = byteSlice(opt.line, 0, opt.colnr)
     if (isTriggered) return this.getTriggerSources(pre, filetype)
     return this.getSourcesForFiletype(filetype)
   }

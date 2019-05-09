@@ -250,7 +250,7 @@ export class Completion implements Disposable {
     // current input
     let input = this.input = option.input
     let pre = byteSlice(line, 0, colnr - 1)
-    let isTriggered = source == null && pre && !document.isWord(pre[pre.length - 1]) && sources.shouldTrigger(pre, filetype)
+    let isTriggered = source == null && option.triggerCharacter && sources.shouldTrigger(pre, filetype)
     let arr: ISource[] = []
     if (source == null) {
       arr = sources.getCompleteSources(option, isTriggered)

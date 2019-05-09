@@ -21,7 +21,6 @@ afterEach(async () => {
 describe('completion', () => {
 
   it('should not show word of word source on empty input', async () => {
-    await helper.edit()
     await nvim.setLine('foo bar')
     await helper.wait(200)
     await nvim.input('of')
