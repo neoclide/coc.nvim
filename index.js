@@ -53569,7 +53569,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8668f301e4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b0d60d8394" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55488,7 +55488,7 @@ class Sources {
         let pre = string_1.byteSlice(opt.line, 0, opt.colnr);
         if (isTriggered)
             return this.getTriggerSources(pre, filetype);
-        return this.getSourcesForFiletype(filetype);
+        return this.getSourcesForFiletype(filetype, isTriggered);
     }
     shouldTrigger(pre, languageId) {
         if (pre.length == 0)
@@ -55509,7 +55509,7 @@ class Sources {
         return idx !== -1;
     }
     getTriggerSources(pre, languageId) {
-        let sources = this.getSourcesForFiletype(languageId);
+        let sources = this.getSourcesForFiletype(languageId, true);
         let character = pre[pre.length - 1];
         return sources.filter(o => {
             if (o.triggerCharacters && o.triggerCharacters.indexOf(character) !== -1)
@@ -55519,9 +55519,12 @@ class Sources {
             return false;
         });
     }
-    getSourcesForFiletype(filetype) {
+    getSourcesForFiletype(filetype, isTriggered) {
         return this.sources.filter(source => {
             let { filetypes } = source;
+            if (source.triggerOnly && isTriggered === false) {
+                return false;
+            }
             if (source.enable && (!filetypes || filetypes.indexOf(filetype) !== -1)) {
                 return true;
             }
@@ -71927,6 +71930,15 @@ class Source {
     }
     get priority() {
         return this.getConfig('priority', 1);
+    }
+    get triggerOnly() {
+        let triggerOnly = this.getDefault('triggerOnly', null);
+        if (triggerOnly != null)
+            return triggerOnly;
+        if (!this.triggerCharacters && !this.triggerPatterns) {
+            return false;
+        }
+        return Array.isArray(this.triggerPatterns) && this.triggerPatterns.length != 0;
     }
     get triggerCharacters() {
         return this.getConfig('triggerCharacters', null);
