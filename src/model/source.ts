@@ -27,6 +27,15 @@ export default class Source implements ISource {
     return this.getConfig('priority', 1)
   }
 
+  public get triggerOnly(): boolean {
+    let triggerOnly = this.getDefault('triggerOnly', null)
+    if (triggerOnly != null) return triggerOnly
+    if (!this.triggerCharacters && !this.triggerPatterns) {
+      return false
+    }
+    return Array.isArray(this.triggerPatterns) && this.triggerPatterns.length != 0
+  }
+
   public get triggerCharacters(): string[] {
     return this.getConfig('triggerCharacters', null)
   }

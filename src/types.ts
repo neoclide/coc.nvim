@@ -759,6 +759,8 @@ export interface ISource {
   priority?: number
   sourceType?: SourceType
   triggerCharacters?: string[]
+  // should only be used when trigger match.
+  triggerOnly?: boolean
   // regex to detect trigger completetion, ignored when triggerCharacters exists.
   triggerPatterns?: RegExp[]
   disableSyntaxes?: string[]

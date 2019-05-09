@@ -208,7 +208,7 @@ export class Sources {
     let { filetype } = opt
     let pre = byteSlice(opt.line, 0, opt.colnr)
     if (isTriggered) return this.getTriggerSources(pre, filetype)
-    return this.getSourcesForFiletype(filetype)
+    return this.getSourcesForFiletype(filetype, isTriggered)
   }
 
   public shouldTrigger(pre: string, languageId: string): boolean {
@@ -226,7 +226,7 @@ export class Sources {
   }
 
   public getTriggerSources(pre: string, languageId: string): ISource[] {
-    let sources = this.getSourcesForFiletype(languageId)
+    let sources = this.getSourcesForFiletype(languageId, true)
     let character = pre[pre.length - 1]
     return sources.filter(o => {
       if (o.triggerCharacters && o.triggerCharacters.indexOf(character) !== -1) return true
@@ -235,9 +235,12 @@ export class Sources {
     })
   }
 
-  public getSourcesForFiletype(filetype: string): ISource[] {
+  public getSourcesForFiletype(filetype: string, isTriggered: boolean): ISource[] {
     return this.sources.filter(source => {
       let { filetypes } = source
+      if (source.triggerOnly && isTriggered === false) {
+        return false
+      }
       if (source.enable && (!filetypes || filetypes.indexOf(filetype) !== -1)) {
         return true
       }

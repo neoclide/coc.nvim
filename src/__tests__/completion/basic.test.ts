@@ -123,12 +123,13 @@ describe('completion', () => {
         return Promise.resolve(result)
       }
     }
-    sources.addSource(source)
+    let disposable = sources.addSource(source)
     await nvim.setLine('foo.')
     await nvim.input('Ab')
     await helper.waitPopup()
     let val = await nvim.getVar('coc#_context') as any
     expect(val.start).toBe(0)
+    disposable.dispose()
   })
 
   it('should trigger on triggerCharacters', async () => {
@@ -210,6 +211,34 @@ describe('completion', () => {
     sources.removeSource(source)
     let res = await helper.visible('foo', 'pattern')
     expect(res).toBe(true)
+  })
+
+  it('should not trigger triggerOnly source', async () => {
+    await helper.edit()
+    await nvim.setLine('foo bar')
+    let source: ISource = {
+      name: 'pattern',
+      triggerOnly: true,
+      priority: 10,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerPatterns: [/^From:\s*/],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }]
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('o')
+    await helper.wait(10)
+    await nvim.input('f')
+    await helper.wait(10)
+    let res = await helper.visible('foo', 'around')
+    expect(res).toBe(true)
+    let items = await helper.items()
+    expect(items.length).toBe(1)
+    disposable.dispose()
   })
 
   it('should not trigger when cursor moved', async () => {
