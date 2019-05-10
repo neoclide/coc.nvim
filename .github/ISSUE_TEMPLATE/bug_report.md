@@ -4,23 +4,32 @@ about: Create a report to help us improve
 ---
 
 <!--
-If the problem related to specific language server, please checkout:
-https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel
+If your issue is a simple question, please ask at https://gitter.im/neoclide/coc.nvim
 -->
 
-**Result from CocInfo**
+<!--
+If the problem related to specific language server, please checkout: https://git.io/fjCEM
+-->
+
+<!--
+If your have performance issue, checkout: https://git.io/fjCEX
+If your still have performance issue, please upload profile log https://git.io/fjCE1
+-->
+
+## Result from CocInfo
 
 <!--Run `:CocInfo` command and paste the content below.-->
 
-**Describe the bug**
+## Describe the bug
+
 A clear and concise description of what the bug is.
 
-**To Reproduce**
+## Reproduce the bug
 
 **Note**, if you can't provide minimal vimrc that could reproduce the issue,
 it's most likely we can't do anything to help.
 
-- Create a minimal mini.vim with：
+- Create file `mini.vim` with：
 
   ```vim
   set nocompatible
@@ -30,11 +39,10 @@ it's most likely we can't do anything to help.
   set hidden
   ```
 
-- Start vim with command: `vim -u mini.vim`
-
-- Start neovim with command: `nvim -u mini.vim`
+- Start (neo)vim with command: `vim -u mini.vim`
 
 - Operate vim.
 
-**Screenshots**
+## Screenshots (optional)
+
 If applicable, add screenshots to help explain your problem.
