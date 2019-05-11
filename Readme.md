@@ -384,10 +384,6 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
   <img src="https://github.com/darthShadow.png?size=64" width="64" height="64" alt="darthShadow">
 </a>
 
-<!--
-<img src="https://user-images.githubusercontent.com/251450/54328311-5e962a80-4648-11e9-9491-0712c7821326.png" width="540" height="275">
--->
-
 ## Feedback
 
 - If you think Coc is useful, consider giving it a star.
@@ -397,3 +393,9 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 - 中文用户请到 [中文 gitter](https://gitter.im/neoclide/coc-cn) 讨论。
 
 - If something is not working, [create an issue](https://github.com/neoclide/coc.nvim/issues/new).
+
+<img src="https://user-images.githubusercontent.com/251450/57566955-fb850200-7404-11e9-960f-711673f1a461.png" width="593" height="574">
+
+## License
+
+MIT
