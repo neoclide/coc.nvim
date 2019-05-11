@@ -75,7 +75,7 @@ export default class ListUI {
       let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
       // if (end < 500) return
       nvim.pauseNotification()
-      this.doHighlight(start - 1, end - 1)
+      this.doHighlight(start - 1, end)
       nvim.command('redraw', true)
       await nvim.resumeNotification(false, true)
     }, 50))
@@ -410,7 +410,7 @@ export default class ListUI {
     if (!append && index == 0) {
       this.doHighlight(0, 500)
     } else {
-      this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height, this.length - 1))
+      this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height + 1, this.length - 1))
     }
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
