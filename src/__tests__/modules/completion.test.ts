@@ -218,7 +218,7 @@ describe('completion#resumeCompletion', () => {
         return { isIncomplete: false, items: [{ word: 'foo' }, { word: opt.input }] }
       }
     }
-    sources.addSource(source)
+    let disposable = sources.addSource(source)
     await helper.edit()
     await nvim.input('i.')
     await helper.waitPopup()
@@ -228,7 +228,7 @@ describe('completion#resumeCompletion', () => {
     await helper.wait(10)
     await nvim.input('b')
     await helper.wait(100)
-    sources.removeSource(source)
+    disposable.dispose()
     items = await helper.items()
     expect(items[0].word).toBe('ab')
     await nvim.input('<esc>')

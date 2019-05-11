@@ -128,9 +128,7 @@ describe('diagnostic buffer', () => {
     let lines: string[] = content.split('\n')
     let line = lines.find(s => s.indexOf('CocError') != -1)
     expect(line).toBeUndefined()
-    let winid = await nvim.call('bufwinid', buf.bufnr) as number
-    let curr = await nvim.call('getloclist', [winid, { title: 1 }])
-    expect(curr.title).toBeUndefined()
+    await helper.wait(50)
     let buffer = await nvim.buffer
     let res = await buffer.getVar('coc_diagnostic_info')
     expect(res).toEqual({
