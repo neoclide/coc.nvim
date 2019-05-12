@@ -53567,7 +53567,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "61f14d6fd3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bf6fad2b94" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55099,7 +55099,7 @@ class Completion {
     }
     get latestInsert() {
         let { lastInsert } = this;
-        if (!lastInsert || Date.now() - lastInsert.timestamp > 100) {
+        if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
             return null;
         }
         return lastInsert;
@@ -70693,7 +70693,7 @@ class ListUI {
             let [start, end] = await nvim.eval('[line("w0"),line("w$")]');
             // if (end < 500) return
             nvim.pauseNotification();
-            this.doHighlight(start - 1, end - 1);
+            this.doHighlight(start - 1, end);
             nvim.command('redraw', true);
             await nvim.resumeNotification(false, true);
         }, 50));
@@ -71032,7 +71032,7 @@ class ListUI {
             this.doHighlight(0, 500);
         }
         else {
-            this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height, this.length - 1));
+            this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height + 1, this.length - 1));
         }
         if (!append)
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
@@ -71954,7 +71954,7 @@ class Source {
         if (!patterns || patterns.length == 0)
             return null;
         return patterns.map(s => {
-            return (s instanceof RegExp) ? s : new RegExp(s + '$');
+            return (typeof s === 'string') ? new RegExp(s + '$') : s;
         });
     }
     get shortcut() {
