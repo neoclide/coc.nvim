@@ -434,7 +434,7 @@ export class Completion implements Disposable {
 
   private get latestInsert(): LastInsert | null {
     let { lastInsert } = this
-    if (!lastInsert || Date.now() - lastInsert.timestamp > 100) {
+    if (!lastInsert || Date.now() - lastInsert.timestamp > 200) {
       return null
     }
     return lastInsert

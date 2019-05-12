@@ -49,7 +49,7 @@ export default class Source implements ISource {
     let patterns = this.getConfig<any[]>('triggerPatterns', null)
     if (!patterns || patterns.length == 0) return null
     return patterns.map(s => {
-      return (s instanceof RegExp) ? s : new RegExp(s + '$')
+      return (typeof s === 'string') ? new RegExp(s + '$') : s
     })
   }
 
