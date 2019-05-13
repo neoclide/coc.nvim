@@ -53567,7 +53567,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "bf6fad2b94" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "cb567b1d59" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -69478,6 +69478,7 @@ const util_1 = __webpack_require__(168);
 const position_1 = __webpack_require__(234);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
+const configuration_1 = tslib_1.__importDefault(__webpack_require__(303));
 const logger = __webpack_require__(179)('list-basic');
 class BasicList {
     constructor(nvim) {
@@ -69485,11 +69486,17 @@ class BasicList {
         this.defaultAction = 'open';
         this.actions = [];
         this.options = [];
-        this.previewHeight = 12;
         this.disposables = [];
-        let config = workspace_1.default.getConfiguration('list');
-        this.hlGroup = config.get('previewHighlightGroup', 'Search');
-        this.previewHeight = config.get('maxPreviewHeight', 12);
+        this.config = new configuration_1.default();
+    }
+    get hlGroup() {
+        return this.config.get('previewHighlightGroup', 'Search');
+    }
+    get previewHeight() {
+        return this.config.get('maxPreviewHeight', 12);
+    }
+    get splitRight() {
+        return this.config.get('previewSplitRight', false);
     }
     parseArguments(args) {
         if (!this.optionMap) {
@@ -69638,7 +69645,19 @@ class BasicList {
         let height = Math.min(this.previewHeight, lineCount);
         let u = vscode_uri_1.default.parse(uri);
         if (u.scheme == 'untitled' || u.scheme == 'unknown') {
-            await nvim.command('pclose');
+            let bufnr = parseInt(u.path, 10);
+            let valid = await nvim.call('bufloaded', [bufnr]);
+            let lnum = location.range.start.line + 1;
+            if (valid) {
+                let name = await nvim.call('bufname', [bufnr]);
+                name = name || '[No Name]';
+                let filetype = await nvim.call('getbufvar', [bufnr, '&filetype']);
+                let lines = await nvim.call('getbufline', [bufnr, 1, '$']);
+                await this.preview({ bufname: name, sketch: true, filetype, lnum, lines }, context);
+            }
+            else {
+                await this.preview({ bufname: '[No Name]', sketch: true, filetype: 'txt', lines: [] }, context);
+            }
             return;
         }
         let filepath = u.scheme == 'file' ? u.fsPath : u.toString();
@@ -69647,9 +69666,17 @@ class BasicList {
         let mod = context.options.position == 'top' ? 'below' : 'above';
         let winid = context.listWindow.id;
         let exists = await nvim.call('bufloaded', filepath);
+        let valid = await context.window.valid;
         nvim.pauseNotification();
         nvim.command('pclose', true);
-        nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
+        if (this.splitRight) {
+            if (valid)
+                nvim.call('win_gotoid', [context.window.id], true);
+            nvim.command(`belowright vs +setl\\ previewwindow ${escaped}`, true);
+        }
+        else {
+            nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
+        }
         nvim.command(`exe ${lnum}`, true);
         nvim.command('setl winfixheight', true);
         nvim.command('setl nofoldenable', true);
@@ -69672,6 +69699,42 @@ class BasicList {
         }
         if (!exists)
             nvim.command('setl nobuflisted bufhidden=wipe', true);
+        nvim.command('normal! zz', true);
+        nvim.call('win_gotoid', [winid], true);
+        await nvim.resumeNotification();
+    }
+    async preview(options, context) {
+        let { nvim } = this;
+        let { bufname, filetype, sketch, lines, lnum } = options;
+        let mod = context.options.position == 'top' ? 'below' : 'above';
+        let height = Math.min(this.previewHeight, lines ? Math.max(lines.length, 1) : Infinity);
+        let winid = context.listWindow.id;
+        let valid = await context.window.valid;
+        nvim.pauseNotification();
+        nvim.command('pclose', true);
+        if (this.splitRight) {
+            if (valid)
+                nvim.call('win_gotoid', [context.window.id], true);
+            nvim.command(`belowright vs +setl\\ previewwindow ${bufname}`, true);
+        }
+        else {
+            nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true);
+        }
+        if (lines) {
+            nvim.call('append', [0, lines], true);
+            nvim.command('normal! Gdd', true);
+        }
+        if (lnum)
+            nvim.command(`exe ${lnum}`, true);
+        nvim.command('setl winfixheight nomodifiable', true);
+        if (sketch)
+            nvim.command('setl buftype=nofile bufhidden=wipe nobuflisted', true);
+        if (filetype == 'detect') {
+            nvim.command('filetype detect', true);
+        }
+        else {
+            nvim.command(`setf ${filetype}`, true);
+        }
         nvim.command('normal! zz', true);
         nvim.call('win_gotoid', [winid], true);
         await nvim.resumeNotification();
