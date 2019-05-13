@@ -728,19 +728,55 @@ export interface ListArgument {
 }
 
 export interface IList {
+  /**
+   * Unique name of list.
+   */
   name: string
+  /**
+   * Action list.
+   */
   actions: ListAction[]
+  /**
+   * Default action name.
+   */
   defaultAction: string
+  /**
+   * Load list items.
+   */
   loadItems(context: ListContext, token: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>
+  /**
+   * Resolve list item.
+   */
   resolveItem?(item: ListItem): Promise<ListItem | null>
-  // support interactive mode
+  /**
+   * Should be true when interactive is supported.
+   */
   interactive?: boolean
+  /**
+   * Description of list.
+   */
   description?: string
+  /**
+   * Detail description, shown in help.
+   */
   detail?: string
+  /**
+   * Options supported by list.
+   */
   options?: ListArgument[]
-  searchHighlight?: boolean
+  /**
+   * Highlight buffer by vim's syntax commands.
+   */
   doHighlight?(): void
   dispose?(): void
+}
+
+export interface PreiewOptions {
+  bufname: string
+  sketch: boolean
+  filetype: string
+  lines?: string[]
+  lnum?: number
 }
 
 export interface AnsiItem {

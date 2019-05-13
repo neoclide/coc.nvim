@@ -592,6 +592,11 @@
       "default": 12,
       "description": "Max height for preview window of list."
     },
+    "list.previewSplitRight": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use vsplit for preview window."
+    },
     "list.previewHighlightGroup": {
       "type": "string",
       "default": "Search",

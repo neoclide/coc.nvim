@@ -198,6 +198,23 @@ describe('list configuration', () => {
     helper.updateConfiguration('list.maxHeight', 12)
   })
 
+  it('should split right for preview window', async () => {
+    helper.updateConfiguration('list.previewSplitRight', true)
+    let win = await nvim.window
+    await manager.start(['location'])
+    await helper.wait(100)
+    await manager.doAction('preview')
+    await helper.wait(100)
+    manager.prompt.cancel()
+    await helper.wait(10)
+    await nvim.call('win_gotoid', [win.id])
+    await nvim.command('wincmd l')
+    let curr = await nvim.window
+    let isPreview = await curr.getOption('previewwindow')
+    expect(isPreview).toBe(true)
+    helper.updateConfiguration('list.previewSplitRight', false)
+  })
+
   it('should change autoResize', async () => {
     helper.updateConfiguration('list.autoResize', false)
     await manager.start(['location'])
