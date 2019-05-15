@@ -676,11 +676,11 @@ function! coc#util#update_extensions(...) abort
   if !useTerminal
     let cwd = getcwd()
     exe 'lcd '.dir
-    exe '!'.yarncmd.' upgrade --latest --ignore-engines'
+    exe '!'.yarncmd.' upgrade --latest --ignore-engines --ignore-scripts'
     exe 'lcd '.cwd
   else
     call coc#util#open_terminal({
-          \ 'cmd': yarncmd.' upgrade --latest --ignore-engines',
+          \ 'cmd': yarncmd.' upgrade --latest --ignore-engines --ignore-scripts',
           \ 'autoclose': 1,
           \ 'cwd': dir,
           \})
