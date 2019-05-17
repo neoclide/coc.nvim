@@ -45181,7 +45181,7 @@ module.exports = (iterable, tester, opts) => {
 
 const pTry = __webpack_require__(186);
 
-const pLimit = concurrency => {
+module.exports = concurrency => {
 	if (concurrency < 1) {
 		throw new TypeError('Expected `concurrency` to be a number from 1 and up');
 	}
@@ -45215,21 +45215,8 @@ const pLimit = concurrency => {
 		}
 	};
 
-	const generator = (fn, ...args) => new Promise(resolve => enqueue(fn, resolve, ...args));
-	Object.defineProperties(generator, {
-		activeCount: {
-			get: () => activeCount
-		},
-		pendingCount: {
-			get: () => queue.length
-		}
-	});
-
-	return generator;
+	return (fn, ...args) => new Promise(resolve => enqueue(fn, resolve, ...args));
 };
-
-module.exports = pLimit;
-module.exports.default = pLimit;
 
 
 /***/ }),
@@ -45239,12 +45226,9 @@ module.exports.default = pLimit;
 "use strict";
 
 
-const pTry = (fn, ...arguments_) => new Promise(resolve => {
-	resolve(fn(...arguments_));
+module.exports = (callback, ...args) => new Promise(resolve => {
+	resolve(callback(...args));
 });
-
-module.exports = pTry;
-module.exports.default = pTry;
 
 
 /***/ }),
@@ -53567,7 +53551,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "eeb306e8f4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4bfc6e0087" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
