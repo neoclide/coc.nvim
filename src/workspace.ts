@@ -462,16 +462,7 @@ export class Workspace implements IWorkspace {
       if (!this.validteDocumentChanges(documentChanges)) return false
     }
     let curpos = await nvim.call('getcurpos')
-    // let origIgnore = await nvim.getOption('eventignore') as string
-    // await nvim.setOption('eventignore', 'Syntax')
     try {
-      if (changes) {
-        for (let uri of Object.keys(changes)) {
-          let document = await this.loadFile(uri)
-          await document.applyEdits(nvim, changes[uri])
-        }
-        this.showMessage(`${Object.keys(changes).length} buffers changed.`)
-      }
       if (documentChanges && documentChanges.length) {
         let n = documentChanges.length
         for (let change of documentChanges) {
@@ -489,6 +480,12 @@ export class Workspace implements IWorkspace {
           }
         }
         this.showMessage(`${n} buffers changed.`)
+      } else if (changes) {
+        for (let uri of Object.keys(changes)) {
+          let document = await this.loadFile(uri)
+          await document.applyEdits(nvim, changes[uri])
+        }
+        this.showMessage(`${Object.keys(changes).length} buffers changed.`)
       }
       await nvim.call('setpos', ['.', curpos])
     } catch (e) {
