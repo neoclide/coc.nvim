@@ -155,6 +155,7 @@ export class Workspace implements IWorkspace {
       if (doc) doc.setIskeyword(newValue)
     }, this.disposables)
     this.watchOption('completeopt', async (_, newValue) => {
+      if (this.env.completeOpt === newValue) return
       this.env.completeOpt = newValue
       if (!this._attached) return
       if (this.insertMode) {
