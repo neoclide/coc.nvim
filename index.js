@@ -53560,7 +53560,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fb5f17a9f6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dfc8dc2277" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
