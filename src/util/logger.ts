@@ -5,13 +5,17 @@ import path from 'path'
 
 const MAX_LOG_SIZE = 1024 * 1024
 const MAX_LOG_BACKUPS = 10
-const LOG_FILE_PATH = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), 'coc-nvim.log')
+const filename = `coc-nvim-${process.pid}.log`
+const logfile = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), filename)
 
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
-if (!fs.existsSync(LOG_FILE_PATH)) {
-  fs.writeFileSync(LOG_FILE_PATH, '', { encoding: 'utf8', mode: 0o666 })
-  fs.chmodSync(LOG_FILE_PATH, 0o666)
+if (!fs.existsSync(logfile)) {
+  fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
+  fs.unlinkSync(path.join(os.tmpdir(), 'coc-nvim.log'))
+  if (level == 'debug' || level == 'trace') {
+    fs.symlinkSync(logfile, path.join(os.tmpdir(), 'coc-nvim.log'))
+  }
 }
 
 const isRoot = process.getuid && process.getuid() == 0
@@ -23,7 +27,7 @@ if (!isRoot) {
       out: {
         type: 'file',
         mode: 0o666,
-        filename: LOG_FILE_PATH,
+        filename: logfile,
         maxLogSize: MAX_LOG_SIZE,
         backups: MAX_LOG_BACKUPS,
         layout: {
