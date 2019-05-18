@@ -21,7 +21,7 @@ function! s:checkEnvironment() abort
     echohl Error | echon output | echohl None
     return
   endif
-  let ms = matchlist(output, 'v\(\d\+\).\d\+.\d\+')
+  let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
   if empty(ms) || str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
     let valid = 0
     call health#report_error('Node.js version '.output.' < 8.10.0, please upgrade node.js')
