@@ -205,6 +205,9 @@ function! coc#util#execute(cmd)
   if &l:filetype ==# ''
     filetype detect
   endif
+  if s:is_vim
+    redraw!
+  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
