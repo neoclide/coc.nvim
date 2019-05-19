@@ -43471,7 +43471,12 @@ const logfile = process.env.NVIM_COC_LOG_FILE || path_1.default.join(os_1.defaul
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
 if (!fs_1.default.existsSync(logfile)) {
     fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
-    fs_1.default.unlinkSync(path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
+    try {
+        fs_1.default.unlinkSync(path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
+    }
+    catch (e) {
+        // noop
+    }
     if (level == 'debug' || level == 'trace') {
         fs_1.default.symlinkSync(logfile, path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
     }
