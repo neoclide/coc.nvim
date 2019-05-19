@@ -53565,7 +53565,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "dfc8dc2277" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "97239363eb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54897,7 +54897,7 @@ class Completion {
         nvim.call('coc#_do_complete', [col, vimItems], true);
     }
     async _doComplete(option) {
-        let { line, colnr, filetype, source } = option;
+        let { line, colnr, filetype, source, preserved } = option;
         let { nvim, config, document } = this;
         // current input
         let input = this.input = option.input;
@@ -54916,7 +54916,7 @@ class Completion {
             return;
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
-        let items = await this.complete.doComplete();
+        let items = await this.complete.doComplete(preserved);
         if (complete.isCanceled)
             return;
         if (items.length == 0 && !complete.isCompleting) {
@@ -54976,8 +54976,13 @@ class Completion {
         let col = await this.nvim.call('col', '.');
         let search = string_1.byteSlice(line, option.col, col - 1);
         let pre = string_1.byteSlice(line, 0, col - 1);
-        if (sources_1.default.shouldTrigger(pre, document.filetype)) {
-            await this.triggerCompletion(document, pre, false);
+        let last = pre.length ? pre[pre.length - 1] : '';
+        let isKeyword = last.length ? document.chars.isKeywordChar(last) : false;
+        let triggerSources = sources_1.default.getTriggerSources(pre, document.filetype);
+        let names = triggerSources.map(s => s.name);
+        if (names.length) {
+            let preserved = isKeyword ? this.complete.excludeResults(names) : [];
+            await this.triggerCompletion(document, pre, false, preserved);
         }
         else {
             await this.resumeCompletion(pre, search);
@@ -55032,7 +55037,7 @@ class Completion {
         let search = content.slice(string_1.characterIndex(content, this.option.col));
         return await this.resumeCompletion(content, search);
     }
-    async triggerCompletion(document, pre, checkTrigger = true) {
+    async triggerCompletion(document, pre, checkTrigger = true, preserved) {
         // check trigger
         if (checkTrigger) {
             let shouldTrigger = await this.shouldTrigger(document, pre);
@@ -55043,6 +55048,7 @@ class Completion {
         if (!option)
             return;
         option.triggerCharacter = pre.slice(-1);
+        option.preserved = preserved;
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
     }
@@ -72659,6 +72665,14 @@ class Complete {
         await Promise.all(sources.map(s => this.completeSource(s, true)));
         return this.filterResults(resumeInput, Math.floor(Date.now() / 1000));
     }
+    excludeResults(names) {
+        let { results } = this;
+        if (!results)
+            return [];
+        let arr = this.results.filter(o => names.indexOf(o.source) == -1);
+        arr.forEach(o => o.engross = false);
+        return arr;
+    }
     filterResults(input, cid = 0) {
         let { results } = this;
         results.sort((a, b) => b.priority - a.priority);
@@ -72798,7 +72812,7 @@ class Complete {
         }
         return false;
     }
-    async doComplete() {
+    async doComplete(preserved) {
         let opts = this.option;
         let { line, colnr, linenr } = this.option;
         if (this.config.localityBonus) {
@@ -72810,6 +72824,9 @@ class Complete {
         }
         await Promise.all(this.sources.map(s => this.completeSource(s)));
         let { results } = this;
+        if (preserved && preserved.length) {
+            results = this.results = results.concat(preserved);
+        }
         if (results.length == 0)
             return [];
         let engrossResult = results.find(r => r.engross === true);
