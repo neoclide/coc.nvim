@@ -555,7 +555,7 @@ describe('completion trigger', () => {
     await nvim.input('M')
     await helper.waitPopup()
     let items = await helper.getItems()
-    expect(items.length).toBe(2)
+    expect(items.length).toBe(3)
     disposable.dispose()
   })
 })

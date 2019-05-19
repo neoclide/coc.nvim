@@ -166,6 +166,14 @@ export default class Complete {
     return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
   }
 
+  public excludeResults(names: string[]): CompleteResult[] {
+    let { results } = this
+    if (!results) return []
+    let arr = this.results.filter(o => names.indexOf(o.source) == -1)
+    arr.forEach(o => o.engross = false)
+    return arr
+  }
+
   public filterResults(input: string, cid = 0): VimCompleteItem[] {
     let { results } = this
     results.sort((a, b) => b.priority - a.priority)
@@ -289,7 +297,7 @@ export default class Complete {
     return false
   }
 
-  public async doComplete(): Promise<VimCompleteItem[]> {
+  public async doComplete(preserved?: CompleteResult[]): Promise<VimCompleteItem[]> {
     let opts = this.option
     let { line, colnr, linenr } = this.option
     if (this.config.localityBonus) {
@@ -300,6 +308,9 @@ export default class Complete {
     }
     await Promise.all(this.sources.map(s => this.completeSource(s)))
     let { results } = this
+    if (preserved && preserved.length) {
+      results = this.results = results.concat(preserved)
+    }
     if (results.length == 0) return []
     let engrossResult = results.find(r => r.engross === true)
     if (engrossResult) {
