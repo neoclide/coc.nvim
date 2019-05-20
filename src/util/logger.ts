@@ -11,14 +11,14 @@ const logfile = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), filename
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 
 if (!fs.existsSync(logfile)) {
-  fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
   try {
+    fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
     fs.unlinkSync(path.join(os.tmpdir(), 'coc-nvim.log'))
+    if (level == 'debug' || level == 'trace') {
+      fs.symlinkSync(logfile, path.join(os.tmpdir(), 'coc-nvim.log'))
+    }
   } catch (e) {
     // noop
-  }
-  if (level == 'debug' || level == 'trace') {
-    fs.symlinkSync(logfile, path.join(os.tmpdir(), 'coc-nvim.log'))
   }
 }
 
