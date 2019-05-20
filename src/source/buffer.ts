@@ -20,7 +20,7 @@ export default class Buffer extends Source {
     let { ignoreGitignore } = this
     let words: string[] = []
     workspace.documents.forEach(document => {
-      if (document.buftype != '' || (ignoreGitignore && document.isIgnored)) return
+      if (ignoreGitignore && document.isIgnored) return
       if (document.bufnr == bufnr) return
       for (let word of document.words) {
         if (words.indexOf(word) == -1) {
