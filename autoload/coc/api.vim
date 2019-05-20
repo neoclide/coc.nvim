@@ -87,7 +87,7 @@ endfunction
 
 function! s:funcs.command(command) abort
   " command that could cause cursor vanish
-  if a:command =~# '^echo' || a:command =~# '^redraws' || a:command =~# '^sign place'
+  if a:command =~# '^echo' || a:command =~# '^redraw' || a:command =~# '^sign place'
     call timer_start(0, {-> s:execute(a:command)})
   else
     execute a:command
