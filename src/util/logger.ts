@@ -13,9 +13,10 @@ const level = process.env.NVIM_COC_LOG_LEVEL || 'info'
 if (!fs.existsSync(logfile)) {
   try {
     fs.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 })
-    fs.unlinkSync(path.join(os.tmpdir(), 'coc-nvim.log'))
     if (level == 'debug' || level == 'trace') {
-      fs.symlinkSync(logfile, path.join(os.tmpdir(), 'coc-nvim.log'))
+      let linkfile = path.join(os.tmpdir(), 'coc-nvim.log')
+      if (fs.existsSync(linkfile)) fs.unlinkSync(linkfile)
+      fs.symlinkSync(logfile, linkfile)
     }
   } catch (e) {
     // noop
