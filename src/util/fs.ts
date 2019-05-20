@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
+import glob = require('glob')
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -75,11 +76,15 @@ export function resolveRoot(dir: string, subs: string[], cwd?: string): string |
 
 export function inDirectory(dir: string, subs: string[]): boolean {
   try {
-    let files = fs.readdirSync(dir)
-    return files.findIndex(f => subs.indexOf(f) !== -1) !== -1
+    for(let pattern of subs) {
+      if (glob.sync(pattern, { cwd:dir, nosort:true, silent:true, strict:false, nounique:true, matchBase:false}).length != 0) { 
+        return true; 
+      }
+    }
   } catch (e) {
     // could be failed without permission
-    return false
+  } finally {
+    return false;
   }
 }
 
