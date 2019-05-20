@@ -43470,15 +43470,15 @@ const filename = `coc-nvim-${process.pid}.log`;
 const logfile = process.env.NVIM_COC_LOG_FILE || path_1.default.join(os_1.default.tmpdir(), filename);
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
 if (!fs_1.default.existsSync(logfile)) {
-    fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
     try {
+        fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
         fs_1.default.unlinkSync(path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
+        if (level == 'debug' || level == 'trace') {
+            fs_1.default.symlinkSync(logfile, path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
+        }
     }
     catch (e) {
         // noop
-    }
-    if (level == 'debug' || level == 'trace') {
-        fs_1.default.symlinkSync(logfile, path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
     }
 }
 const isRoot = process.getuid && process.getuid() == 0;
@@ -53565,7 +53565,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "97239363eb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "236add21a8" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
