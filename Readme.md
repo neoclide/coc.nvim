@@ -195,6 +195,10 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-git](https://github.com/neoclide/coc-git)** provides git integration.
 - **[coc-yank](https://github.com/neoclide/coc-yank)** provides yank highlights
 - **[coc-fsharp](https://github.com/yatli/coc-fsharp)** for `fsharp`.
+- **[coc-svg](https://github.com/iamcco/coc-svg)** for `svg`.
+- **[coc-tailwindcss](https://github.com/iamcco/coc-tailwindcss)** for `tailwindcss`.
+- **[coc-angular](https://github.com/iamcco/coc-angular)** for `angular`.
+- **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
 
