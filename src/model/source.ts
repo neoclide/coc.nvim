@@ -3,6 +3,7 @@ import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimC
 import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-source')
 
 export default class Source implements ISource {
@@ -158,9 +159,9 @@ export default class Source implements ISource {
     if (fn) await Promise.resolve(fn.call(this, item, opt))
   }
 
-  public async doComplete(opt: CompleteOption): Promise<CompleteResult | null> {
+  public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
     let fn = this.getDefault<Function>('doComplete')
-    if (fn) return await Promise.resolve(fn.call(this, opt))
+    if (fn) return await Promise.resolve(fn.call(this, opt, token))
     return null
   }
 }
