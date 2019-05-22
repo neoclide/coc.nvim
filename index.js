@@ -1642,7 +1642,7 @@ const tslib_1 = __webpack_require__(3);
 const neovim_1 = __webpack_require__(4);
 const log4js_1 = tslib_1.__importDefault(__webpack_require__(63));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
-const plugin_1 = tslib_1.__importDefault(__webpack_require__(229));
+const plugin_1 = tslib_1.__importDefault(__webpack_require__(230));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 __webpack_require__(307);
 const logger = __webpack_require__(179)('attach');
@@ -43555,6 +43555,7 @@ const string_1 = __webpack_require__(206);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
 const uuid = __webpack_require__(215);
 const array_1 = __webpack_require__(208);
+const position_1 = __webpack_require__(229);
 const requireFunc =  true ? require : undefined;
 const logger = __webpack_require__(179)('workspace');
 const CONFIG_FILE_NAME = 'coc-settings.json';
@@ -43940,13 +43941,19 @@ class Workspace {
             if (!this.validteDocumentChanges(documentChanges))
                 return false;
         }
-        let curpos = await nvim.call('getcurpos');
+        let pos = await this.getCursorPosition();
+        let bufnr = await nvim.eval('bufnr("%")');
+        let currUri = this.getDocument(bufnr) ? this.getDocument(bufnr).uri : null;
+        let changed = null;
         try {
             if (documentChanges && documentChanges.length) {
                 let n = documentChanges.length;
                 for (let change of documentChanges) {
                     if (index_1.isDocumentEdit(change)) {
                         let { textDocument, edits } = change;
+                        if (vscode_uri_1.default.parse(textDocument.uri).toString() == currUri) {
+                            changed = position_1.getChangedFromEdits(pos, edits);
+                        }
                         let doc = await this.loadFile(textDocument.uri);
                         await doc.applyEdits(nvim, edits);
                     }
@@ -43966,11 +43973,18 @@ class Workspace {
             else if (changes) {
                 for (let uri of Object.keys(changes)) {
                     let document = await this.loadFile(uri);
+                    if (vscode_uri_1.default.parse(uri).toString() == currUri) {
+                        changed = position_1.getChangedFromEdits(pos, changes[uri]);
+                    }
                     await document.applyEdits(nvim, changes[uri]);
                 }
                 this.showMessage(`${Object.keys(changes).length} buffers changed.`);
             }
-            await nvim.call('setpos', ['.', curpos]);
+            if (changed) {
+                pos.line = pos.line + changed.line;
+                pos.character = pos.character + changed.character;
+            }
+            await this.moveTo(pos);
         }
         catch (e) {
             // await nvim.setOption('eventignore', origIgnore)
@@ -53360,21 +53374,161 @@ Int64.prototype = {
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+function rangeInRange(r, range) {
+    return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0;
+}
+exports.rangeInRange = rangeInRange;
+function rangeOverlap(r, range) {
+    let { start, end } = r;
+    if (comparePosition(start, range.start) < 0 && comparePosition(end, range.end) > 0) {
+        return true;
+    }
+    return positionInRange(start, range) == 0 || positionInRange(end, range) == 0;
+}
+exports.rangeOverlap = rangeOverlap;
+function rangeIntersect(r, range) {
+    if (positionInRange(r.start, range) == 0) {
+        return true;
+    }
+    if (positionInRange(r.end, range) == 0) {
+        return true;
+    }
+    if (rangeInRange(range, r)) {
+        return true;
+    }
+    return false;
+}
+exports.rangeIntersect = rangeIntersect;
+function lineInRange(line, range) {
+    let { start, end } = range;
+    return line >= start.line && line <= end.line;
+}
+exports.lineInRange = lineInRange;
+function emptyRange(range) {
+    let { start, end } = range;
+    return start.line == end.line && start.character == end.character;
+}
+exports.emptyRange = emptyRange;
+function positionInRange(position, range) {
+    let { start, end } = range;
+    if (comparePosition(position, start) < 0)
+        return -1;
+    if (comparePosition(position, end) > 0)
+        return 1;
+    return 0;
+}
+exports.positionInRange = positionInRange;
+function comparePosition(position, other) {
+    if (position.line > other.line)
+        return 1;
+    if (other.line == position.line && position.character > other.character)
+        return 1;
+    if (other.line == position.line && position.character == other.character)
+        return 0;
+    return -1;
+}
+exports.comparePosition = comparePosition;
+function isSingleLine(range) {
+    return range.start.line == range.end.line;
+}
+exports.isSingleLine = isSingleLine;
+function getChangedPosition(start, edit) {
+    let { range, newText } = edit;
+    if (comparePosition(range.end, start) <= 0) {
+        let lines = newText.split('\n');
+        let lineCount = lines.length - (range.end.line - range.start.line) - 1;
+        let characterCount = 0;
+        if (range.end.line == start.line) {
+            let single = isSingleLine(range) && lineCount == 0;
+            let removed = single ? range.end.character - range.start.character : range.end.character;
+            let added = single ? newText.length : lines[lines.length - 1].length;
+            characterCount = added - removed;
+        }
+        return { line: lineCount, character: characterCount };
+    }
+    return { line: 0, character: 0 };
+}
+exports.getChangedPosition = getChangedPosition;
+function adjustPosition(pos, edit) {
+    let { range, newText } = edit;
+    if (comparePosition(range.start, pos) > 1)
+        return pos;
+    let { start, end } = range;
+    let newLines = newText.split('\n');
+    let delta = (end.line - start.line) - newLines.length + 1;
+    let lastLine = newLines[newLines.length - 1];
+    let line = pos.line - delta;
+    if (pos.line != end.line)
+        return { line, character: pos.character };
+    let pre = newLines.length == 1 && start.line != end.line ? start.character : 0;
+    let removed = start.line == end.line && newLines.length == 1 ? end.character - start.character : end.character;
+    let character = pre + pos.character + lastLine.length - removed;
+    return {
+        line,
+        character
+    };
+}
+exports.adjustPosition = adjustPosition;
+function positionToOffset(lines, line, character) {
+    let offset = 0;
+    for (let i = 0; i <= line; i++) {
+        if (i == line) {
+            offset += character;
+        }
+        else {
+            offset += lines[i].length + 1;
+        }
+    }
+    return offset;
+}
+exports.positionToOffset = positionToOffset;
+// edit a range to newText
+function editRange(range, text, edit) {
+    // outof range
+    if (!rangeInRange(edit.range, range))
+        return text;
+    let { start, end } = edit.range;
+    let lines = text.split('\n');
+    let character = start.line == range.start.line ? start.character - range.start.character : start.character;
+    let startOffset = positionToOffset(lines, start.line - range.start.line, character);
+    character = end.line == range.start.line ? end.character - range.start.character : end.character;
+    let endOffset = positionToOffset(lines, end.line - range.start.line, character);
+    return `${text.slice(0, startOffset)}${edit.newText}${text.slice(endOffset, text.length)}`;
+}
+exports.editRange = editRange;
+function getChangedFromEdits(start, edits) {
+    let changed = { line: 0, character: 0 };
+    for (let edit of edits) {
+        let d = getChangedPosition(start, edit);
+        changed = { line: changed.line + d.line, character: changed.character + d.character };
+    }
+    return changed.line == 0 && changed.character == 0 ? null : changed;
+}
+exports.getChangedFromEdits = getChangedFromEdits;
+//# sourceMappingURL=position.js.map
+
+/***/ }),
+/* 230 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(49);
-const https_1 = tslib_1.__importDefault(__webpack_require__(230));
+const https_1 = tslib_1.__importDefault(__webpack_require__(231));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(235));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
 const handler_1 = tslib_1.__importDefault(__webpack_require__(337));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(302));
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(233));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(236));
 const types_1 = __webpack_require__(188);
 const clean_1 = tslib_1.__importDefault(__webpack_require__(343));
@@ -53588,7 +53742,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "536565f52d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2379b6f81f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53821,13 +53975,13 @@ exports.default = Plugin;
 //# sourceMappingURL=plugin.js.map
 
 /***/ }),
-/* 230 */
+/* 231 */
 /***/ (function(module, exports) {
 
 module.exports = require("https");
 
 /***/ }),
-/* 231 */
+/* 232 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -53837,7 +53991,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const util_1 = __webpack_require__(168);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(233));
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 const logger = __webpack_require__(179)('commands');
 class CommandItem {
@@ -54073,7 +54227,7 @@ exports.default = new CommandManager();
 //# sourceMappingURL=commands.js.map
 
 /***/ }),
-/* 232 */
+/* 233 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -54082,7 +54236,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
-const session_1 = __webpack_require__(233);
+const session_1 = __webpack_require__(234);
 const Snippets = tslib_1.__importStar(__webpack_require__(288));
 const variableResolve_1 = __webpack_require__(336);
 const parser_1 = __webpack_require__(288);
@@ -54230,7 +54384,7 @@ exports.default = new SnippetManager();
 //# sourceMappingURL=manager.js.map
 
 /***/ }),
-/* 233 */
+/* 234 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -54239,7 +54393,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const util_1 = __webpack_require__(168);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(235));
@@ -54543,137 +54697,6 @@ function normalizeSnippetString(snippet, indent, opts) {
 }
 exports.normalizeSnippetString = normalizeSnippetString;
 //# sourceMappingURL=session.js.map
-
-/***/ }),
-/* 234 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-function rangeInRange(r, range) {
-    return positionInRange(r.start, range) === 0 && positionInRange(r.end, range) === 0;
-}
-exports.rangeInRange = rangeInRange;
-function rangeOverlap(r, range) {
-    let { start, end } = r;
-    if (comparePosition(start, range.start) < 0 && comparePosition(end, range.end) > 0) {
-        return true;
-    }
-    return positionInRange(start, range) == 0 || positionInRange(end, range) == 0;
-}
-exports.rangeOverlap = rangeOverlap;
-function rangeIntersect(r, range) {
-    if (positionInRange(r.start, range) == 0) {
-        return true;
-    }
-    if (positionInRange(r.end, range) == 0) {
-        return true;
-    }
-    if (rangeInRange(range, r)) {
-        return true;
-    }
-    return false;
-}
-exports.rangeIntersect = rangeIntersect;
-function lineInRange(line, range) {
-    let { start, end } = range;
-    return line >= start.line && line <= end.line;
-}
-exports.lineInRange = lineInRange;
-function emptyRange(range) {
-    let { start, end } = range;
-    return start.line == end.line && start.character == end.character;
-}
-exports.emptyRange = emptyRange;
-function positionInRange(position, range) {
-    let { start, end } = range;
-    if (comparePosition(position, start) < 0)
-        return -1;
-    if (comparePosition(position, end) > 0)
-        return 1;
-    return 0;
-}
-exports.positionInRange = positionInRange;
-function comparePosition(position, other) {
-    if (position.line > other.line)
-        return 1;
-    if (other.line == position.line && position.character > other.character)
-        return 1;
-    if (other.line == position.line && position.character == other.character)
-        return 0;
-    return -1;
-}
-exports.comparePosition = comparePosition;
-function isSingleLine(range) {
-    return range.start.line == range.end.line;
-}
-exports.isSingleLine = isSingleLine;
-function getChangedPosition(start, edit) {
-    let { range, newText } = edit;
-    if (comparePosition(range.end, start) <= 0) {
-        let lines = newText.split('\n');
-        let lineCount = lines.length - (range.end.line - range.start.line) - 1;
-        let characterCount = 0;
-        if (range.end.line == start.line) {
-            let single = isSingleLine(range) && lineCount == 0;
-            let removed = single ? range.end.character - range.start.character : range.end.character;
-            let added = single ? newText.length : lines[lines.length - 1].length;
-            characterCount = added - removed;
-        }
-        return { line: lineCount, character: characterCount };
-    }
-    return { line: 0, character: 0 };
-}
-exports.getChangedPosition = getChangedPosition;
-function adjustPosition(pos, edit) {
-    let { range, newText } = edit;
-    if (comparePosition(range.start, pos) > 1)
-        return pos;
-    let { start, end } = range;
-    let newLines = newText.split('\n');
-    let delta = (end.line - start.line) - newLines.length + 1;
-    let lastLine = newLines[newLines.length - 1];
-    let line = pos.line - delta;
-    if (pos.line != end.line)
-        return { line, character: pos.character };
-    let pre = newLines.length == 1 && start.line != end.line ? start.character : 0;
-    let removed = start.line == end.line && newLines.length == 1 ? end.character - start.character : end.character;
-    let character = pre + pos.character + lastLine.length - removed;
-    return {
-        line,
-        character
-    };
-}
-exports.adjustPosition = adjustPosition;
-function positionToOffset(lines, line, character) {
-    let offset = 0;
-    for (let i = 0; i <= line; i++) {
-        if (i == line) {
-            offset += character;
-        }
-        else {
-            offset += lines[i].length + 1;
-        }
-    }
-    return offset;
-}
-exports.positionToOffset = positionToOffset;
-// edit a range to newText
-function editRange(range, text, edit) {
-    // outof range
-    if (!rangeInRange(edit.range, range))
-        return text;
-    let { start, end } = edit.range;
-    let lines = text.split('\n');
-    let character = start.line == range.start.line ? start.character - range.start.character : start.character;
-    let startOffset = positionToOffset(lines, start.line - range.start.line, character);
-    character = end.line == range.start.line ? end.character - range.start.character : end.character;
-    let endOffset = positionToOffset(lines, end.line - range.start.line, character);
-    return `${text.slice(0, startOffset)}${edit.newText}${text.slice(endOffset, text.length)}`;
-}
-exports.editRange = editRange;
-//# sourceMappingURL=position.js.map
 
 /***/ }),
 /* 235 */
@@ -55601,6 +55624,7 @@ class Sources {
         for (let item of items) {
             res.push({
                 name: item.name,
+                shortcut: item.shortcut || '',
                 filetypes: item.filetypes || [],
                 filepath: item.filepath || '',
                 type: item.sourceType == types_1.SourceType.Native
@@ -58842,7 +58866,7 @@ module.exports = require("module");
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 exports.commands = commands_1.default;
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 exports.events = events_1.default;
@@ -58868,7 +58892,7 @@ const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
 exports.extensions = extensions_1.default;
 const manager_1 = tslib_1.__importDefault(__webpack_require__(302));
 exports.listManager = manager_1.default;
-const manager_2 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(233));
 exports.snippetManager = manager_2.default;
 const basic_1 = tslib_1.__importDefault(__webpack_require__(310));
 exports.BasicList = basic_1.default;
@@ -58906,7 +58930,7 @@ exports.executable = util_1.executable;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
 const codeActionmanager_1 = tslib_1.__importDefault(__webpack_require__(266));
 const rangeManager_1 = tslib_1.__importDefault(__webpack_require__(268));
@@ -58928,12 +58952,12 @@ const renameManager_1 = tslib_1.__importDefault(__webpack_require__(283));
 const signatureManager_1 = tslib_1.__importDefault(__webpack_require__(284));
 const typeDefinitionManager_1 = tslib_1.__importDefault(__webpack_require__(285));
 const workspaceSymbolsManager_1 = tslib_1.__importDefault(__webpack_require__(286));
-const manager_2 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_2 = tslib_1.__importDefault(__webpack_require__(233));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(236));
 const types_1 = __webpack_require__(188);
 const util_1 = __webpack_require__(168);
 const complete = tslib_1.__importStar(__webpack_require__(287));
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const logger = __webpack_require__(179)('languages');
@@ -59289,6 +59313,7 @@ class Languages {
         let source = {
             name,
             priority,
+            shortcut,
             enable: true,
             sourceType: types_1.SourceType.Service,
             filetypes: languageIds,
@@ -59487,16 +59512,12 @@ class Languages {
             return;
         await util_1.wait(workspace_1.default.isVim ? 100 : 10);
         // how to move cursor after edit
-        let changed = { line: 0, character: 0 };
+        let changed = null;
         let pos = await workspace_1.default.getCursorPosition();
-        if (!snippet) {
-            for (let edit of textEdits) {
-                let d = position_1.getChangedPosition(pos, edit);
-                changed = { line: changed.line + d.line, character: changed.character + d.character };
-            }
-        }
+        if (!snippet)
+            changed = position_1.getChangedFromEdits(pos, textEdits);
         await document.applyEdits(this.nvim, textEdits);
-        if (changed.line != 0 || changed.character != 0) {
+        if (changed) {
             await workspace_1.default.moveTo(vscode_languageserver_protocol_1.Position.create(pos.line + changed.line, pos.character + changed.character));
         }
     }
@@ -59648,7 +59669,7 @@ const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
 const util_1 = __webpack_require__(168);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const buffer_1 = __webpack_require__(262);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(265));
@@ -60175,7 +60196,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
-const manager_1 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_1 = tslib_1.__importDefault(__webpack_require__(233));
 const util_1 = __webpack_require__(168);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
 const uuid = __webpack_require__(215);
@@ -61521,7 +61542,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const logger = __webpack_require__(179)('diagnostic-collection');
 class Collection {
     constructor(owner) {
@@ -64624,7 +64645,7 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
 const fs_1 = __webpack_require__(201);
 const Is = tslib_1.__importStar(__webpack_require__(190));
@@ -69419,7 +69440,7 @@ exports.default = Prompt;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
@@ -69495,7 +69516,7 @@ const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const vscode_uri_1 = tslib_1.__importDefault(__webpack_require__(171));
 const util_1 = __webpack_require__(168);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(303));
@@ -70577,7 +70598,7 @@ class SourcesList extends basic_1.default {
                 location = vscode_languageserver_types_1.Location.create(vscode_uri_1.default.file(stat.filepath).toString(), vscode_languageserver_types_1.Range.create(0, 0, 0, 0));
             }
             return {
-                label: `${prefix}\t${stat.name}\t[${stat.type}]\t${stat.filetypes.join(',')}`,
+                label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.filetypes.join(',')}`,
                 location,
                 data: { name: stat.name }
             };
@@ -71046,6 +71067,7 @@ class ListUI {
             nvim.command('wincmd p', true);
             nvim.call('winrestview', [saved], true);
             nvim.command('wincmd p', true);
+            nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true);
             await nvim.resumeNotification();
             this._bufnr = await nvim.call('bufnr', '%');
             this.window = await nvim.window;
@@ -73146,7 +73168,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const object_1 = __webpack_require__(189);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const Snippets = tslib_1.__importStar(__webpack_require__(288));
 const logger = __webpack_require__(179)('snippets-snipet');
 class CocSnippet {
@@ -73399,7 +73421,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const binary_search_1 = tslib_1.__importDefault(__webpack_require__(338));
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
@@ -73407,11 +73429,11 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(302));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
-const manager_3 = tslib_1.__importDefault(__webpack_require__(232));
+const manager_3 = tslib_1.__importDefault(__webpack_require__(233));
 const util_1 = __webpack_require__(168);
 const convert_1 = __webpack_require__(318);
 const object_1 = __webpack_require__(189);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(339));
@@ -74452,7 +74474,7 @@ module.exports = function(haystack, needle, comparator, low, high) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(170));
-const commands_1 = tslib_1.__importDefault(__webpack_require__(231));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
 const services_1 = tslib_1.__importDefault(__webpack_require__(289));
@@ -74934,7 +74956,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const array_1 = __webpack_require__(208);
 const object_1 = __webpack_require__(189);
-const position_1 = __webpack_require__(234);
+const position_1 = __webpack_require__(229);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const logger = __webpack_require__(179)('highlighter');
 const usedColors = new Set();
