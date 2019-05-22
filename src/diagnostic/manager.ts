@@ -48,7 +48,6 @@ export class DiagnosticManager implements Disposable {
   private disposables: Disposable[] = []
   private lastMessage = ''
   private timer: NodeJS.Timer
-  private lastShown: Diagnostic[]
 
   public init(): void {
     this.setConfiguration()
@@ -369,16 +368,6 @@ export class DiagnosticManager implements Disposable {
       if (checkCurrentLine) return lineInRange(pos.line, o.range)
       return positionInRange(pos, o.range) == 0
     })
-    if (truncate) {
-      if (diagnostics.length && this.lastShown && equals(this.lastShown, diagnostics)) {
-        let activated = await this.floatFactory.activated()
-        if (activated) {
-          this.floatFactory.close()
-          return
-        }
-      }
-      this.lastShown = diagnostics
-    }
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
@@ -455,7 +444,7 @@ export class DiagnosticManager implements Disposable {
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
       enableSign: getConfig<boolean>('enableSign', true),
-      maxWindowHeight: getConfig<number>('maxWindowHeight', 8),
+      maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       joinMessageLines: getConfig<boolean>('joinMessageLines', false),
       messageTarget: getConfig<string>('messageTarget', 'float'),
