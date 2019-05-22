@@ -53742,7 +53742,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2379b6f81f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ce102d528c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54977,7 +54977,7 @@ class Completion {
             let hasSelected = this.hasSelected();
             if (hasSelected && this.completeOpt.indexOf('noselect') !== -1)
                 return;
-            if (search == input) {
+            if (search == this.option.input) {
                 let items = complete.filterResults(search, Math.floor(Date.now() / 1000));
                 await this.showCompletion(option.col, items);
                 return;
@@ -54989,7 +54989,7 @@ class Completion {
             let search = this.getResumeInput(content);
             if (complete.isCanceled)
                 return;
-            if (search == input) {
+            if (search == this.option.input) {
                 await this.showCompletion(option.col, items);
                 return;
             }
@@ -72163,10 +72163,10 @@ class Source {
         if (fn)
             await Promise.resolve(fn.call(this, item, opt));
     }
-    async doComplete(opt) {
+    async doComplete(opt, token) {
         let fn = this.getDefault('doComplete');
         if (fn)
-            return await Promise.resolve(fn.call(this, opt));
+            return await Promise.resolve(fn.call(this, opt, token));
         return null;
     }
 }
@@ -72235,9 +72235,11 @@ class VimSource extends source_1.default {
                 languageId: doc.filetype
             }]); // tslint:disable-line
     }
-    async doComplete(opt) {
+    async doComplete(opt, token) {
         let { col, input, line, colnr } = opt;
         let startcol = await this.callOptinalFunc('get_startcol', [opt]);
+        if (token.isCancellationRequested)
+            return;
         if (startcol) {
             if (startcol < 0)
                 return null;
@@ -72255,7 +72257,7 @@ class VimSource extends source_1.default {
             }
         }
         let items = await this.nvim.callAsync('coc#util#do_complete', [this.name, opt]);
-        if (!items || items.length == 0)
+        if (!items || items.length == 0 || token.isCancellationRequested)
             return null;
         if (this.firstMatch && input.length) {
             let ch = input[0];
@@ -72409,7 +72411,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const source_1 = tslib_1.__importDefault(__webpack_require__(327));
 const fs_2 = __webpack_require__(201);
 const string_1 = __webpack_require__(206);
-// const logger = require('../util/logger')('source-file')
+const logger = __webpack_require__(179)('source-file');
 const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
     constructor() {
@@ -72429,7 +72431,8 @@ class File extends source_1.default {
             if (pathstr.startsWith('~')) {
                 pathstr = os_1.default.homedir() + pathstr.slice(1);
             }
-            return { pathstr, part: ms[1] };
+            let input = ms[0].match(/[^/]*$/)[0];
+            return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input };
         }
         return null;
     }
@@ -72478,11 +72481,11 @@ class File extends source_1.default {
         return this.getConfig('trimSameExts', []);
     }
     async doComplete(opt) {
-        let { input, col, filepath } = opt;
+        let { col, filepath } = opt;
         let option = this.getPathOption(opt);
         if (!option)
             return null;
-        let { pathstr, part } = option;
+        let { pathstr, part, startcol, input } = option;
         let dirname = path_1.default.dirname(filepath);
         let ext = path_1.default.extname(path_1.default.basename(filepath));
         let cwd = await this.nvim.call('getcwd', []);
@@ -72508,7 +72511,6 @@ class File extends source_1.default {
             return null;
         let items = await this.getItemsFromRoot(pathstr, root);
         let trimExt = this.trimSameExts.indexOf(ext) != -1;
-        let startcol = this.fixStartcol(opt, ['-', '@', '.']);
         let first = input[0];
         if (first && col == startcol)
             items = items.filter(o => o.word[0] === first);
