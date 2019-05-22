@@ -273,7 +273,7 @@ export class Completion implements Disposable {
       if (complete.isCanceled) return
       let hasSelected = this.hasSelected()
       if (hasSelected && this.completeOpt.indexOf('noselect') !== -1) return
-      if (search == input) {
+      if (search == this.option.input) {
         let items = complete.filterResults(search, Math.floor(Date.now() / 1000))
         await this.showCompletion(option.col, items)
         return
@@ -284,7 +284,7 @@ export class Completion implements Disposable {
       let content = await this.getPreviousContent(document)
       let search = this.getResumeInput(content)
       if (complete.isCanceled) return
-      if (search == input) {
+      if (search == this.option.input) {
         await this.showCompletion(option.col, items)
         return
       }

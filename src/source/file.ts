@@ -15,6 +15,7 @@ interface PathOption {
   pathstr: string
   part: string
   startcol: number
+  input: string
 }
 
 export default class File extends Source {
@@ -36,7 +37,7 @@ export default class File extends Source {
         pathstr = os.homedir() + pathstr.slice(1)
       }
       let input = ms[0].match(/[^/]*$/)[0]
-      return { pathstr, part: ms[1], startcol: colnr - input.length - 1 }
+      return { pathstr, part: ms[1], startcol: colnr - input.length - 1, input }
     }
     return null
   }
@@ -87,10 +88,10 @@ export default class File extends Source {
   }
 
   public async doComplete(opt: CompleteOption): Promise<CompleteResult> {
-    let { input, col, filepath } = opt
+    let { col, filepath } = opt
     let option = this.getPathOption(opt)
     if (!option) return null
-    let { pathstr, part, startcol } = option
+    let { pathstr, part, startcol, input } = option
     let dirname = path.dirname(filepath)
     let ext = path.extname(path.basename(filepath))
     let cwd = await this.nvim.call('getcwd', [])
