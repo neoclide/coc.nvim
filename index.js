@@ -38918,6 +38918,10 @@ class SocketMessageWriter extends AbstractMessageWriter {
         this.socket.on('error', (error) => this.fireError(error));
         this.socket.on('close', () => this.fireClose());
     }
+    dispose() {
+        super.dispose();
+        this.socket.destroy();
+    }
     write(msg) {
         if (!this.sending && this.queue.length === 0) {
             // See https://github.com/nodejs/node/issues/7657
@@ -43473,9 +43477,11 @@ const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
 if (!fs_1.default.existsSync(logfile)) {
     try {
         fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
-        fs_1.default.unlinkSync(path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
         if (level == 'debug' || level == 'trace') {
-            fs_1.default.symlinkSync(logfile, path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log'));
+            let linkfile = path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log');
+            if (fs_1.default.existsSync(linkfile))
+                fs_1.default.unlinkSync(linkfile);
+            fs_1.default.symlinkSync(logfile, linkfile);
         }
     }
     catch (e) {
@@ -53582,7 +53588,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "727982667e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "536565f52d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59647,7 +59653,6 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const buffer_1 = __webpack_require__(262);
 const collection_1 = tslib_1.__importDefault(__webpack_require__(265));
 const util_2 = __webpack_require__(264);
-const object_1 = __webpack_require__(189);
 const logger = __webpack_require__(179)('diagnostic-manager');
 class DiagnosticManager {
     constructor() {
@@ -59987,16 +59992,6 @@ class DiagnosticManager {
                 return position_1.lineInRange(pos.line, o.range);
             return position_1.positionInRange(pos, o.range) == 0;
         });
-        if (truncate) {
-            if (diagnostics.length && this.lastShown && object_1.equals(this.lastShown, diagnostics)) {
-                let activated = await this.floatFactory.activated();
-                if (activated) {
-                    this.floatFactory.close();
-                    return;
-                }
-            }
-            this.lastShown = diagnostics;
-        }
         if (diagnostics.length == 0) {
             if (useFloat) {
                 this.floatFactory.close();
@@ -60074,7 +60069,7 @@ class DiagnosticManager {
             virtualTextSrcId: workspace_1.default.createNameSpace('diagnostic-virtualText'),
             checkCurrentLine: getConfig('checkCurrentLine', false),
             enableSign: getConfig('enableSign', true),
-            maxWindowHeight: getConfig('maxWindowHeight', 8),
+            maxWindowHeight: getConfig('maxWindowHeight', 10),
             enableMessage: getConfig('enableMessage', 'always'),
             joinMessageLines: getConfig('joinMessageLines', false),
             messageTarget: getConfig('messageTarget', 'float'),
@@ -72337,7 +72332,7 @@ class Buffer extends source_1.default {
         let { ignoreGitignore } = this;
         let words = [];
         workspace_1.default.documents.forEach(document => {
-            if (document.buftype != '' || (ignoreGitignore && document.isIgnored))
+            if (ignoreGitignore && document.isIgnored)
                 return;
             if (document.bufnr == bufnr)
                 return;
