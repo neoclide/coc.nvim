@@ -344,6 +344,7 @@ export default class ListUI {
       nvim.command('wincmd p', true)
       nvim.call('winrestview', [saved], true)
       nvim.command('wincmd p', true)
+      nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true)
       await nvim.resumeNotification()
       this._bufnr = await nvim.call('bufnr', '%')
       this.window = await nvim.window
