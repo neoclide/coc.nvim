@@ -30,6 +30,7 @@ import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
 import { distinct } from './util/array'
+import { getChangedFromEdits } from './util/position'
 
 declare var __webpack_require__: any
 declare var __non_webpack_require__: any
@@ -461,13 +462,19 @@ export class Workspace implements IWorkspace {
       documentChanges = this.mergeDocumentChanges(documentChanges)
       if (!this.validteDocumentChanges(documentChanges)) return false
     }
-    let curpos = await nvim.call('getcurpos')
+    let pos = await this.getCursorPosition()
+    let bufnr = await nvim.eval('bufnr("%")') as number
+    let currUri = this.getDocument(bufnr) ? this.getDocument(bufnr).uri : null
+    let changed = null
     try {
       if (documentChanges && documentChanges.length) {
         let n = documentChanges.length
         for (let change of documentChanges) {
           if (isDocumentEdit(change)) {
             let { textDocument, edits } = change as TextDocumentEdit
+            if (Uri.parse(textDocument.uri).toString() == currUri) {
+              changed = getChangedFromEdits(pos, edits)
+            }
             let doc = await this.loadFile(textDocument.uri)
             await doc.applyEdits(nvim, edits)
           } else if (CreateFile.is(change)) {
@@ -483,11 +490,18 @@ export class Workspace implements IWorkspace {
       } else if (changes) {
         for (let uri of Object.keys(changes)) {
           let document = await this.loadFile(uri)
+          if (Uri.parse(uri).toString() == currUri) {
+            changed = getChangedFromEdits(pos, changes[uri])
+          }
           await document.applyEdits(nvim, changes[uri])
         }
         this.showMessage(`${Object.keys(changes).length} buffers changed.`)
       }
-      await nvim.call('setpos', ['.', curpos])
+      if (changed) {
+        pos.line = pos.line + changed.line
+        pos.character = pos.character + changed.character
+      }
+      await this.moveTo(pos)
     } catch (e) {
       // await nvim.setOption('eventignore', origIgnore)
       this.showMessage(`Error on applyEdits: ${e}`, 'error')

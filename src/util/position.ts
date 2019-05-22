@@ -112,3 +112,12 @@ export function editRange(range: Range, text: string, edit: TextEdit): string {
   let endOffset = positionToOffset(lines, end.line - range.start.line, character)
   return `${text.slice(0, startOffset)}${edit.newText}${text.slice(endOffset, text.length)}`
 }
+
+export function getChangedFromEdits(start: Position, edits: TextEdit[]): Position | null {
+  let changed = { line: 0, character: 0 }
+  for (let edit of edits) {
+    let d = getChangedPosition(start, edit)
+    changed = { line: changed.line + d.line, character: changed.character + d.character }
+  }
+  return changed.line == 0 && changed.character == 0 ? null : changed
+}

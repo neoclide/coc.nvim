@@ -151,6 +151,19 @@ describe('workspace applyEdits', () => {
     expect(res).toBe(false)
   })
 
+  it('should adjust cursor position after applyEdits', async () => {
+    let doc = await helper.createDocument()
+    let pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({ line: 0, character: 0 })
+    let edit = TextEdit.insert(Position.create(0, 0), 'foo\n')
+    let versioned = VersionedTextDocumentIdentifier.create(doc.uri, null)
+    let documentChanges = [TextDocumentEdit.create(versioned, [edit])]
+    let res = await workspace.applyEdit({ documentChanges })
+    expect(res).toBe(true)
+    pos = await workspace.getCursorPosition()
+    expect(pos).toEqual({ line: 1, character: 0 })
+  })
+
   it('should support null version of documentChanges', async () => {
     let file = path.join(__dirname, 'foo')
     await workspace.createFile(file, { ignoreIfExists: true, overwrite: true })

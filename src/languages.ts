@@ -30,7 +30,7 @@ import sources from './sources'
 import { CompleteOption, CompleteResult, CompletionContext, DiagnosticCollection, Documentation, ISource, SourceType, VimCompleteItem } from './types'
 import { wait } from './util'
 import * as complete from './util/complete'
-import { getChangedPosition, rangeOverlap } from './util/position'
+import { getChangedFromEdits, rangeOverlap } from './util/position'
 import { byteLength } from './util/string'
 import workspace from './workspace'
 const logger = require('./util/logger')('languages')
@@ -677,16 +677,11 @@ class Languages {
     if (!document) return
     await wait(workspace.isVim ? 100 : 10)
     // how to move cursor after edit
-    let changed = { line: 0, character: 0 }
+    let changed = null
     let pos = await workspace.getCursorPosition()
-    if (!snippet) {
-      for (let edit of textEdits) {
-        let d = getChangedPosition(pos, edit)
-        changed = { line: changed.line + d.line, character: changed.character + d.character }
-      }
-    }
+    if (!snippet) changed = getChangedFromEdits(pos, textEdits)
     await document.applyEdits(this.nvim, textEdits)
-    if (changed.line != 0 || changed.character != 0) {
+    if (changed) {
       await workspace.moveTo(Position.create(pos.line + changed.line, pos.character + changed.character))
     }
   }
