@@ -494,6 +494,7 @@ class Languages {
     let source: ISource = {
       name,
       priority,
+      shortcut,
       enable: true,
       sourceType: SourceType.Service,
       filetypes: languageIds,

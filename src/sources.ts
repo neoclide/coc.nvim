@@ -291,6 +291,7 @@ export class Sources {
     for (let item of items) {
       res.push({
         name: item.name,
+        shortcut: item.shortcut || '',
         filetypes: item.filetypes || [],
         filepath: item.filepath || '',
         type: item.sourceType == SourceType.Native

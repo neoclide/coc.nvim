@@ -42,7 +42,7 @@ export default class SourcesList extends BasicList {
         location = Location.create(Uri.file(stat.filepath).toString(), Range.create(0, 0, 0, 0))
       }
       return {
-        label: `${prefix}\t${stat.name}\t[${stat.type}]\t${stat.filetypes.join(',')}`,
+        label: `${prefix}\t${stat.name}\t[${stat.shortcut}]\t${stat.filetypes.join(',')}`,
         location,
         data: { name: stat.name }
       }

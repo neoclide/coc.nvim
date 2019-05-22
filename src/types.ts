@@ -490,6 +490,7 @@ export interface CompleteResult {
 export interface SourceStat {
   name: string
   type: string
+  shortcut: string
   filepath: string
   disabled: boolean
   filetypes: string[]
@@ -793,6 +794,7 @@ export interface ISource {
   // identifier
   name: string
   enable?: boolean
+  shortcut?: string
   priority?: number
   sourceType?: SourceType
   triggerCharacters?: string[]
