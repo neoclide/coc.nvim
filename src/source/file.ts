@@ -14,6 +14,7 @@ const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 interface PathOption {
   pathstr: string
   part: string
+  startcol: number
 }
 
 export default class File extends Source {
@@ -34,7 +35,8 @@ export default class File extends Source {
       if (pathstr.startsWith('~')) {
         pathstr = os.homedir() + pathstr.slice(1)
       }
-      return { pathstr, part: ms[1] }
+      let input = ms[0].match(/[^/]*$/)[0]
+      return { pathstr, part: ms[1], startcol: colnr - input.length - 1 }
     }
     return null
   }
@@ -88,7 +90,7 @@ export default class File extends Source {
     let { input, col, filepath } = opt
     let option = this.getPathOption(opt)
     if (!option) return null
-    let { pathstr, part } = option
+    let { pathstr, part, startcol } = option
     let dirname = path.dirname(filepath)
     let ext = path.extname(path.basename(filepath))
     let cwd = await this.nvim.call('getcwd', [])
@@ -109,7 +111,6 @@ export default class File extends Source {
     if (!root) return null
     let items = await this.getItemsFromRoot(pathstr, root)
     let trimExt = this.trimSameExts.indexOf(ext) != -1
-    let startcol = this.fixStartcol(opt, ['-', '@', '.'])
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
     return {
