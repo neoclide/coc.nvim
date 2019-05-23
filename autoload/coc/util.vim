@@ -279,6 +279,7 @@ function! coc#util#preview_info(info, ...) abort
   setl filetype=markdown
   setl conceallevel=2
   setl nofoldenable
+  nnoremap <silent><nowait> q <C-w>c
   let lines = a:info
   call append(0, lines)
   exe "normal! z" . len(lines) . "\<cr>"

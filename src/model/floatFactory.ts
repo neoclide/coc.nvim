@@ -203,6 +203,7 @@ export default class FloatFactory implements Disposable {
       window.setOption('relativenumber', false, true)
       window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
       nvim.command(`noa call win_gotoid(${window.id})`, true)
+      nvim.command(`nnoremap <silent><nowait> q <C-w>c`, true)
       floatBuffer.setLines()
       if (alignTop) nvim.command('normal! G', true)
       nvim.command('noa wincmd p', true)
