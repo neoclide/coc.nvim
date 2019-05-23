@@ -279,7 +279,7 @@ function! coc#util#preview_info(info, ...) abort
   setl filetype=markdown
   setl conceallevel=2
   setl nofoldenable
-  let lines = split(a:info, "\n")
+  let lines = a:info
   call append(0, lines)
   exe "normal! z" . len(lines) . "\<cr>"
   exe "normal! gg"
