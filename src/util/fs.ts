@@ -5,6 +5,7 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
+import minimatch = require('minimatch')
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -76,11 +77,18 @@ export function resolveRoot(dir: string, subs: string[], cwd?: string): string |
 export function inDirectory(dir: string, subs: string[]): boolean {
   try {
     let files = fs.readdirSync(dir)
-    return files.findIndex(f => subs.indexOf(f) !== -1) !== -1
+    for(let pattern of subs) {
+      // note, only '*' expanded
+      let is_wildcard = (pattern.indexOf('*') !== -1)
+      let res = is_wildcard ?
+        (minimatch.match(files, pattern, {nobrace:true, noext:true, nocomment:true, nonegate:true, dot:true}).length !== 0) :
+        (files.indexOf(pattern) !== -1)
+      if (res) return true;
+    }
   } catch (e) {
     // could be failed without permission
-    return false
-  }
+  } 
+  return false;
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {
