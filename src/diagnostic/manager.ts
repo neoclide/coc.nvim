@@ -11,7 +11,6 @@ import workspace from '../workspace'
 import { DiagnosticBuffer } from './buffer'
 import DiagnosticCollection from './collection'
 import { getSeverityName, getSeverityType, severityLevel } from './util'
-import { equals } from '../util/object'
 const logger = require('../util/logger')('diagnostic-manager')
 
 export interface DiagnosticConfig {
@@ -495,7 +494,7 @@ export class DiagnosticManager implements Disposable {
     if (buf) {
       if (displayByAle) {
         let { nvim } = this
-        nvim.pauseNotification()
+        let allDiagnostics: Map<string, any[]> = new Map()
         for (let collection of this.collections) {
           let diagnostics = collection.get(uri)
           let aleItems = diagnostics.map(o => {
@@ -510,7 +509,16 @@ export class DiagnosticManager implements Disposable {
               type: getSeverityType(o.severity)
             }
           })
-          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true)
+          let exists = allDiagnostics.get(collection.name)
+          if (exists) {
+            exists.push(...aleItems)
+          } else {
+            allDiagnostics.set(collection.name, aleItems)
+          }
+        }
+        nvim.pauseNotification()
+        for (let key of allDiagnostics.keys()) {
+          this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, allDiagnostics.get(key)], true)
         }
         nvim.resumeNotification(false, true).catch(_e => {
           // noop
