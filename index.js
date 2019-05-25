@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2b1656232c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "94f7ae497d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60363,9 +60363,8 @@ class FloatFactory {
         }
         if (!floatBuffer) {
             let buf = await this.createBuffer();
-            let srcId = workspace_1.default.createNameSpace('coc-float');
             this.buffer = buf;
-            floatBuffer = this.floatBuffer = new floatBuffer_1.default(buf, this.nvim, srcId, this.joinLines);
+            floatBuffer = this.floatBuffer = new floatBuffer_1.default(buf, this.nvim, this.joinLines);
         }
         let config = await this.getBoundings(docs);
         if (!config || token.isCancellationRequested)
@@ -60382,7 +60381,6 @@ class FloatFactory {
             // helps to fix undo issue, don't know why.
             if (mode.startsWith('i'))
                 await nvim.eval('feedkeys("\\<C-g>u")');
-            await nvim.request('nvim_buf_clear_namespace', [this.buffer, -1, 0, -1]);
             let window = await this.nvim.openFloatWindow(this.buffer, false, config);
             if (token.isCancellationRequested) {
                 this.closeWindow(window);
@@ -60491,10 +60489,9 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const chars_1 = __webpack_require__(211);
 const logger = __webpack_require__(179)('model-floatBuffer');
 class FloatBuffer {
-    constructor(buffer, nvim, srcId, joinLines = true) {
+    constructor(buffer, nvim, joinLines = true) {
         this.buffer = buffer;
         this.nvim = nvim;
-        this.srcId = srcId;
         this.joinLines = joinLines;
         this.lines = [];
         this.chars = new chars_1.Chars('@,48-57,_192-255,<,>,$,#,-,`,*');
@@ -60551,25 +60548,27 @@ class FloatBuffer {
                     return list;
                 }, []);
             }
-            let { active } = doc;
+            let start = doc.active ? doc.active[0] : null;
+            let end = doc.active ? doc.active[1] : null;
+            // let [start, end] = doc.active || []
             for (let str of arr) {
                 let len = string_1.byteLength(str);
                 if (len > maxWidth - 2) {
                     // don't split on word
                     let parts = this.softSplit(str, maxWidth - 2);
-                    if (active) {
+                    if (start != null) {
                         let count = 0;
                         let inLine = false;
                         let idx = 1;
-                        let total = active[1] - active[0];
+                        let total = end - start;
                         for (let line of parts) {
                             if (count >= total)
                                 break;
-                            if (!inLine && active[0] < line.length) {
+                            if (!inLine && start < line.length) {
                                 inLine = true;
-                                let len = line.length > active[1] ? total : line.length - active[0];
+                                let len = line.length > end ? total : line.length - start;
                                 count = len;
-                                positions.push([currLine + idx, active[0] + 2, len]);
+                                positions.push([currLine + idx, start + 2, len]);
                             }
                             else if (inLine && total > count) {
                                 let len = (total - count) > line.length ? line.length : total - count;
@@ -60577,8 +60576,8 @@ class FloatBuffer {
                                 positions.push([currLine + idx, 2, len]);
                             }
                             else if (!inLine) {
-                                active[0] = active[0] - line.length;
-                                active[1] = active[1] - line.length;
+                                start = start - line.length;
+                                end = end - line.length;
                             }
                             idx = idx + 1;
                         }
@@ -60587,8 +60586,8 @@ class FloatBuffer {
                 }
                 else {
                     lines.push(str);
-                    if (active)
-                        positions.push([currLine + 1, active[0] + 2, active[1] - active[0]]);
+                    if (start != null)
+                        positions.push([currLine + 1, start + 2, end - start]);
                 }
             }
             lines = lines.map(s => s.length ? ' ' + s : '');
@@ -60675,22 +60674,14 @@ class FloatBuffer {
         return this.lines.length;
     }
     setLines() {
-        let { buffer, lines, nvim, highlights, srcId } = this;
+        let { buffer, lines, nvim, highlights } = this;
         nvim.call('clearmatches', [], true);
-        buffer.clearNamespace(-1);
+        buffer.clearNamespace(-1, 0, -1);
         buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true);
         if (highlights.length) {
             let positions = [];
             for (let highlight of highlights) {
-                buffer.addHighlight({
-                    srcId,
-                    hlGroup: highlight.hlGroup,
-                    line: highlight.line,
-                    colStart: highlight.colStart,
-                    colEnd: highlight.colEnd
-                }).catch(_e => {
-                    // noop
-                });
+                nvim.call('matchaddpos', [highlight.hlGroup, [[highlight.line + 1, highlight.colStart + 1, highlight.colEnd - highlight.colStart]], 10], true);
                 if (highlight.isMarkdown) {
                     let line = lines[highlight.line];
                     let before = line[string_1.characterIndex(line, highlight.colStart)];
@@ -60705,12 +60696,20 @@ class FloatBuffer {
                 }
             }
             for (let arr of array_1.group(positions, 8)) {
-                nvim.call('matchaddpos', ['Conceal', arr], true);
+                nvim.call('matchaddpos', ['Conceal', arr, 11], true);
             }
         }
         if (this.positions.length) {
-            for (let arr of array_1.group(this.positions, 8)) {
-                nvim.call('matchaddpos', ['CocUnderline', arr], true);
+            for (let pos of this.positions) {
+                buffer.addHighlight({
+                    srcId: -1,
+                    hlGroup: 'CocUnderline',
+                    line: pos[0] - 1,
+                    colStart: pos[1] - 1,
+                    colEnd: pos[1] + pos[2] - 1
+                }).catch(_e => {
+                    // noop
+                });
             }
         }
     }
@@ -60728,12 +60727,12 @@ class FloatBuffer {
                 let iskeyword = code < 255 && chars.isKeywordCode(code);
                 if (len >= maxWidth) {
                     if (iskeyword && lastNonKeyword) {
-                        res.push(line.slice(start, lastNonKeyword + 1).replace(/\s+$/, ''));
+                        res.push(line.slice(start, lastNonKeyword + 1));
                         start = lastNonKeyword + 1;
                     }
                     else {
                         let end = len == maxWidth ? i : i - 1;
-                        res.push(line.slice(start, end).replace(/\s+$/, ''));
+                        res.push(line.slice(start, end));
                         start = end;
                     }
                     break;
@@ -60742,7 +60741,7 @@ class FloatBuffer {
                 if (!iskeyword)
                     lastNonKeyword = i;
                 if (i == line.length - 1) {
-                    let content = line.slice(start, i + 1).replace(/\s+$/, '');
+                    let content = line.slice(start, i + 1);
                     if (content.length)
                         res.push(content);
                     finished = true;
@@ -73084,7 +73083,7 @@ class FloatingWindow {
         this.nvim = nvim;
         this.buffer = buffer;
         this.config = config;
-        this.floatBuffer = new floatBuffer_1.default(buffer, nvim, config.srcId);
+        this.floatBuffer = new floatBuffer_1.default(buffer, nvim);
     }
     async show(docs, bounding, token) {
         this.bounding = bounding;
@@ -73103,7 +73102,6 @@ class FloatingWindow {
                     relative: 'editor',
                     focusable: true
                 }, rect);
-                await nvim.request('nvim_buf_clear_namespace', [this.buffer, -1, 0, -1]);
                 let win = this.window = await nvim.openFloatWindow(this.buffer, false, config);
                 nvim.pauseNotification();
                 win.setVar('popup', 1, true);
