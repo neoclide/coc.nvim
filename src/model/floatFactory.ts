@@ -165,9 +165,8 @@ export default class FloatFactory implements Disposable {
     }
     if (!floatBuffer) {
       let buf = await this.createBuffer()
-      let srcId = workspace.createNameSpace('coc-float')
       this.buffer = buf
-      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, srcId, this.joinLines)
+      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, this.joinLines)
     }
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
@@ -180,7 +179,6 @@ export default class FloatFactory implements Disposable {
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
       // helps to fix undo issue, don't know why.
       if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u")')
-      await nvim.request('nvim_buf_clear_namespace', [this.buffer, -1, 0, -1])
       let window = await this.nvim.openFloatWindow(this.buffer, false, config)
       if (token.isCancellationRequested) {
         this.closeWindow(window)

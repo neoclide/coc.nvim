@@ -17,7 +17,6 @@ export default class FloatBuffer {
   constructor(
     public buffer: Buffer,
     private nvim: Neovim,
-    private srcId: number,
     private joinLines = true) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
@@ -188,22 +187,13 @@ export default class FloatBuffer {
   }
 
   public setLines(): void {
-    let { buffer, lines, nvim, highlights, srcId } = this
+    let { buffer, lines, nvim, highlights } = this
     nvim.call('clearmatches', [], true)
-    buffer.clearNamespace(-1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
       let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
-        buffer.addHighlight({
-          srcId,
-          hlGroup: highlight.hlGroup,
-          line: highlight.line,
-          colStart: highlight.colStart,
-          colEnd: highlight.colEnd
-        }).catch(_e => {
-          // noop
-        })
+        nvim.call('matchaddpos', [highlight.hlGroup, [[highlight.line + 1, highlight.colStart + 1, highlight.colEnd - highlight.colStart]], 10], true)
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]
           let before = line[characterIndex(line, highlight.colStart)]
@@ -218,12 +208,12 @@ export default class FloatBuffer {
         }
       }
       for (let arr of group(positions, 8)) {
-        nvim.call('matchaddpos', ['Conceal', arr], true)
+        nvim.call('matchaddpos', ['Conceal', arr, 11], true)
       }
     }
     if (this.positions.length) {
       for (let arr of group(this.positions, 8)) {
-        nvim.call('matchaddpos', ['CocUnderline', arr], true)
+        nvim.call('matchaddpos', ['CocUnderline', arr, 11], true)
       }
     }
   }

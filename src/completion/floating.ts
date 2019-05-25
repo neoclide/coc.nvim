@@ -27,7 +27,7 @@ export default class FloatingWindow {
   constructor(private nvim: Neovim,
     private buffer: Buffer,
     private config: FloatingConfig) {
-    this.floatBuffer = new FloatBuffer(buffer, nvim, config.srcId)
+    this.floatBuffer = new FloatBuffer(buffer, nvim)
   }
 
   public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
@@ -45,7 +45,6 @@ export default class FloatingWindow {
           relative: 'editor',
           focusable: true
         }, rect)
-        await nvim.request('nvim_buf_clear_namespace', [this.buffer, -1, 0, -1])
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, config)
         nvim.pauseNotification()
         win.setVar('popup', 1, true)
