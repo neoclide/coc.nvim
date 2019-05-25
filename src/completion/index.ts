@@ -136,6 +136,7 @@ export class Completion implements Disposable {
     return {
       autoTrigger,
       keepCompleteopt,
+      disableMenuShortcut: getConfig<boolean>('disableMenuShortcut', false),
       acceptSuggestionOnCommitCharacter,
       disableKind: getConfig<boolean>('disableKind', false),
       disableMenu: getConfig<boolean>('disableMenu', false),
@@ -213,7 +214,7 @@ export class Completion implements Disposable {
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document } = this
-    let { numberSelect, disableKind, disableMenu } = this.config
+    let { numberSelect, disableKind, disableMenuShortcut, disableMenu } = this.config
     if (numberSelect) {
       items = items.map((item, i) => {
         let idx = i + 1
@@ -236,7 +237,11 @@ export class Completion implements Disposable {
       let obj = { word: item.word, equal: 1 }
       for (let key of validKeys) {
         if (item.hasOwnProperty(key)) {
-          obj[key] = item[key]
+          if (disableMenuShortcut && key == 'menu') {
+            obj[key] = item[key].replace(/\[\w+\]$/, '')
+          } else {
+            obj[key] = item[key]
+          }
         }
       }
       return obj
@@ -248,7 +253,7 @@ export class Completion implements Disposable {
     let { line, colnr, filetype, source, preserved } = option
     let { nvim, config, document } = this
     // current input
-    let input = this.input = option.input
+    this.input = option.input
     let pre = byteSlice(line, 0, colnr - 1)
     let isTriggered = source == null && option.triggerCharacter && sources.shouldTrigger(pre, filetype)
     let arr: ISource[] = []

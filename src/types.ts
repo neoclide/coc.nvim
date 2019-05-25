@@ -499,6 +499,7 @@ export interface SourceStat {
 export interface CompleteConfig {
   disableKind: boolean
   disableMenu: boolean
+  disableMenuShortcut: boolean
   enablePreview: boolean
   maxPreviewWidth: number
   autoTrigger: string
