@@ -5,6 +5,7 @@ import { group } from '../util/array'
 import { Documentation, Fragment } from '../types'
 import workspace from '../workspace'
 import { Chars } from './chars'
+import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-floatBuffer')
 
 export default class FloatBuffer {
@@ -70,31 +71,33 @@ export default class FloatBuffer {
           return list
         }, [])
       }
-      let { active } = doc
+      let start = doc.active ? doc.active[0] : null
+      let end = doc.active ? doc.active[1] : null
+      // let [start, end] = doc.active || []
       for (let str of arr) {
         let len = byteLength(str)
         if (len > maxWidth - 2) {
           // don't split on word
           let parts = this.softSplit(str, maxWidth - 2)
-          if (active) {
+          if (start != null) {
             let count = 0
             let inLine = false
             let idx = 1
-            let total = active[1] - active[0]
+            let total = end - start
             for (let line of parts) {
               if (count >= total) break
-              if (!inLine && active[0] < line.length) {
+              if (!inLine && start < line.length) {
                 inLine = true
-                let len = line.length > active[1] ? total : line.length - active[0]
+                let len = line.length > end ? total : line.length - start
                 count = len
-                positions.push([currLine + idx, active[0] + 2, len])
+                positions.push([currLine + idx, start + 2, len])
               } else if (inLine && total > count) {
                 let len = (total - count) > line.length ? line.length : total - count
                 count = count + len
                 positions.push([currLine + idx, 2, len])
               } else if (!inLine) {
-                active[0] = active[0] - line.length
-                active[1] = active[1] - line.length
+                start = start - line.length
+                end = end - line.length
               }
               idx = idx + 1
             }
@@ -102,7 +105,7 @@ export default class FloatBuffer {
           lines.push(...parts)
         } else {
           lines.push(str)
-          if (active) positions.push([currLine + 1, active[0] + 2, active[1] - active[0]])
+          if (start != null) positions.push([currLine + 1, start + 2, end - start])
         }
       }
       lines = lines.map(s => s.length ? ' ' + s : '')
@@ -189,6 +192,7 @@ export default class FloatBuffer {
   public setLines(): void {
     let { buffer, lines, nvim, highlights } = this
     nvim.call('clearmatches', [], true)
+    buffer.clearNamespace(-1, 0, -1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
       let positions: [number, number, number?][] = []
@@ -212,8 +216,16 @@ export default class FloatBuffer {
       }
     }
     if (this.positions.length) {
-      for (let arr of group(this.positions, 8)) {
-        nvim.call('matchaddpos', ['CocUnderline', arr, 11], true)
+      for (let pos of this.positions) {
+        buffer.addHighlight({
+          srcId: -1,
+          hlGroup: 'CocUnderline',
+          line: pos[0] - 1,
+          colStart: pos[1] - 1,
+          colEnd: pos[1] + pos[2] - 1
+        }).catch(_e => {
+          // noop
+        })
       }
     }
   }
@@ -232,11 +244,11 @@ export default class FloatBuffer {
         let iskeyword = code < 255 && chars.isKeywordCode(code)
         if (len >= maxWidth) {
           if (iskeyword && lastNonKeyword) {
-            res.push(line.slice(start, lastNonKeyword + 1).replace(/\s+$/, ''))
+            res.push(line.slice(start, lastNonKeyword + 1))
             start = lastNonKeyword + 1
           } else {
             let end = len == maxWidth ? i : i - 1
-            res.push(line.slice(start, end).replace(/\s+$/, ''))
+            res.push(line.slice(start, end))
             start = end
           }
           break
@@ -244,7 +256,7 @@ export default class FloatBuffer {
         len = len + byteLength(ch)
         if (!iskeyword) lastNonKeyword = i
         if (i == line.length - 1) {
-          let content = line.slice(start, i + 1).replace(/\s+$/, '')
+          let content = line.slice(start, i + 1)
           if (content.length) res.push(content)
           finished = true
         }
