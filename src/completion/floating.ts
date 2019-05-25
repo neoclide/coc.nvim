@@ -45,6 +45,7 @@ export default class FloatingWindow {
           relative: 'editor',
           focusable: true
         }, rect)
+        await nvim.request('nvim_buf_clear_namespace', [this.buffer, -1, 0, -1])
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, config)
         nvim.pauseNotification()
         win.setVar('popup', 1, true)
