@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d12f77bd3f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3ebf5fd812" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59711,8 +59711,6 @@ class DiagnosticManager {
             if (this.timer)
                 clearTimeout(this.timer);
             this.timer = setTimeout(async () => {
-                if (workspace_1.default.insertMode)
-                    return;
                 if (!this.config || this.config.enableMessage != 'always')
                     return;
                 await this.echoMessage(true);
@@ -59731,8 +59729,6 @@ class DiagnosticManager {
             let { refreshOnInsertMode, refreshAfterSave } = this.config;
             if (!refreshOnInsertMode && !refreshAfterSave) {
                 await util_1.wait(500);
-                if (workspace_1.default.insertMode)
-                    return;
                 this.refreshBuffer(doc.uri);
             }
         }, null, this.disposables);
@@ -59803,6 +59799,8 @@ class DiagnosticManager {
             let buf = new buffer_1.DiagnosticBuffer(doc, this.config);
             this.buffers.push(buf);
             buf.onDidRefresh(() => {
+                if (workspace_1.default.insertMode)
+                    return;
                 this.echoMessage(true).catch(_e => {
                     // noop
                 });
@@ -60019,7 +60017,7 @@ class DiagnosticManager {
         let buf = await this.nvim.buffer;
         let pos = await workspace_1.default.getCursorPosition();
         let buffer = this.buffers.find(o => o.bufnr == buf.id);
-        if (!buffer || workspace_1.default.insertMode)
+        if (!buffer)
             return;
         let { checkCurrentLine } = this.config;
         let useFloat = workspace_1.default.env.floating && this.config.messageTarget == 'float';
@@ -60041,6 +60039,8 @@ class DiagnosticManager {
             }
             return;
         }
+        if (truncate && workspace_1.default.insertMode)
+            return;
         let lines = [];
         let docs = [];
         diagnostics.forEach(diagnostic => {
