@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ec1a725539" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6758265487" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54836,6 +54836,7 @@ class Completion {
         return {
             autoTrigger,
             keepCompleteopt,
+            disableMenuShortcut: getConfig('disableMenuShortcut', false),
             acceptSuggestionOnCommitCharacter,
             disableKind: getConfig('disableKind', false),
             disableMenu: getConfig('disableMenu', false),
@@ -54919,7 +54920,7 @@ class Completion {
     }
     async showCompletion(col, items) {
         let { nvim, document } = this;
-        let { numberSelect, disableKind, disableMenu } = this.config;
+        let { numberSelect, disableKind, disableMenuShortcut, disableMenu } = this.config;
         if (numberSelect) {
             items = items.map((item, i) => {
                 let idx = i + 1;
@@ -54944,7 +54945,12 @@ class Completion {
             let obj = { word: item.word, equal: 1 };
             for (let key of validKeys) {
                 if (item.hasOwnProperty(key)) {
-                    obj[key] = item[key];
+                    if (disableMenuShortcut && key == 'menu') {
+                        obj[key] = item[key].replace(/\[\w+\]$/, '');
+                    }
+                    else {
+                        obj[key] = item[key];
+                    }
                 }
             }
             return obj;
@@ -54955,7 +54961,7 @@ class Completion {
         let { line, colnr, filetype, source, preserved } = option;
         let { nvim, config, document } = this;
         // current input
-        let input = this.input = option.input;
+        this.input = option.input;
         let pre = string_1.byteSlice(line, 0, colnr - 1);
         let isTriggered = source == null && option.triggerCharacter && sources_1.default.shouldTrigger(pre, filetype);
         let arr = [];
