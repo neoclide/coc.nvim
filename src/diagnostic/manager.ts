@@ -32,6 +32,7 @@ export interface DiagnosticConfig {
   joinMessageLines: boolean
   maxWindowHeight: number
   refreshAfterSave: boolean
+  showInInsertMode: boolean
   refreshOnInsertMode: boolean
   virtualTextSrcId: number
   virtualTextPrefix: string
@@ -60,7 +61,7 @@ export class DiagnosticManager implements Disposable {
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (workspace.insertMode) return
+        if(!this.config.showInInsertMode && workspace.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
       }, 500)
@@ -78,7 +79,7 @@ export class DiagnosticManager implements Disposable {
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
         await wait(500)
-        if (workspace.insertMode) return
+        if(!this.config.showInInsertMode && workspace.insertMode) return
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
@@ -361,7 +362,7 @@ export class DiagnosticManager implements Disposable {
     let buf = await this.nvim.buffer
     let pos = await workspace.getCursorPosition()
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
-    if (!buffer || workspace.insertMode) return
+    if (!buffer || (!this.config.showInInsertMode && workspace.insertMode)) return
     let { checkCurrentLine } = this.config
     let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
     let diagnostics = buffer.diagnostics.filter(o => {
@@ -461,6 +462,7 @@ export class DiagnosticManager implements Disposable {
       infoSign: getConfig<string>('infoSign', '>>'),
       hintSign: getConfig<string>('hintSign', '>>'),
       refreshAfterSave: getConfig<boolean>('refreshAfterSave', false),
+      showInInsertMode: getConfig<boolean>('showInInsertMode', false),
       refreshOnInsertMode: getConfig<boolean>('refreshOnInsertMode', false),
     }
     this.enabled = getConfig<boolean>('enable', true)

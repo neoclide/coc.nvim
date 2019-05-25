@@ -428,6 +428,11 @@
       "description": "Join lines messages to reduce lines of floating window.",
       "default": false
     },
+    "diagnostic.showInInsertMode": {
+      "type": "boolean",
+      "description": "Allow viewing of diagnostic messages in Insert Mode, default false.",
+      "default": false
+    },
     "diagnostic.refreshOnInsertMode": {
       "type": "boolean",
       "description": "Enable diagnostic refresh on insert mode, default false.",

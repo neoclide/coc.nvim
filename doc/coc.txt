@@ -260,9 +260,19 @@ Builtin configurations:~
 	Join lines messages to reduce lines of floating window.,  default:
 	`false`
 
+"diagnostic.showInInsertMode":~
+
+	Allow display of diagnostics in insert mode, default false.,  default:
+	`false`
+
 "diagnostic.refreshOnInsertMode":~
 
 	Enable diagnostic refresh on insert mode, default false.,  default:
+	`false`
+
+"diagnostic.showInInsertMode":~
+
+	Allow display of diagnostics in insert mode, default false.,  default:
 	`false`
 
 "diagnostic.refreshAfterSave":~
