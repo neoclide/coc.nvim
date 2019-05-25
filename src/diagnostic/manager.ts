@@ -59,7 +59,6 @@ export class DiagnosticManager implements Disposable {
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (workspace.insertMode) return
         if (!this.config || this.config.enableMessage != 'always') return
         await this.echoMessage(true)
       }, 500)
@@ -77,7 +76,6 @@ export class DiagnosticManager implements Disposable {
       let { refreshOnInsertMode, refreshAfterSave } = this.config
       if (!refreshOnInsertMode && !refreshAfterSave) {
         await wait(500)
-        if (workspace.insertMode) return
         this.refreshBuffer(doc.uri)
       }
     }, null, this.disposables)
@@ -149,6 +147,7 @@ export class DiagnosticManager implements Disposable {
       let buf = new DiagnosticBuffer(doc, this.config)
       this.buffers.push(buf)
       buf.onDidRefresh(() => {
+        if (workspace.insertMode) return
         this.echoMessage(true).catch(_e => {
           // noop
         })
@@ -360,7 +359,7 @@ export class DiagnosticManager implements Disposable {
     let buf = await this.nvim.buffer
     let pos = await workspace.getCursorPosition()
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
-    if (!buffer || workspace.insertMode) return
+    if (!buffer) return
     let { checkCurrentLine } = this.config
     let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
     let diagnostics = buffer.diagnostics.filter(o => {
@@ -379,6 +378,7 @@ export class DiagnosticManager implements Disposable {
       }
       return
     }
+    if (truncate && workspace.insertMode) return
     let lines: string[] = []
     let docs: Documentation[] = []
     diagnostics.forEach(diagnostic => {
