@@ -179,33 +179,21 @@ export default class FloatFactory implements Disposable {
       if (mode == 's') await nvim.call('feedkeys', ['\x1b', 'in'])
       // helps to fix undo issue, don't know why.
       if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u")')
-      let window = await this.nvim.openFloatWindow(this.buffer, false, config)
-      if (token.isCancellationRequested) {
-        this.closeWindow(window)
-        return
-      }
-      this.window = window
-      this._onWindowCreate.fire(window)
+      if (token.isCancellationRequested) return
       nvim.pauseNotification()
-      window.setVar('float', 1, true)
-      window.setCursor([1, 1], true)
-      window.setOption('spell', false, true)
-      window.setOption('list', false, true)
-      window.setOption('listchars', 'eol: ', true)
-      window.setOption('wrap', false, true)
-      window.setOption('previewwindow', true, true)
-      window.setOption('number', false, true)
-      window.setOption('cursorline', false, true)
-      window.setOption('cursorcolumn', false, true)
-      window.setOption('signcolumn', 'no', true)
-      window.setOption('conceallevel', 2, true)
-      window.setOption('relativenumber', false, true)
-      window.setOption('winhl', `Normal:CocFloating,NormalNC:CocFloating`, true)
-      nvim.command(`noa call win_gotoid(${window.id})`, true)
+      nvim.notify('nvim_open_win', [this.buffer, true, config])
+      nvim.command(`let w:float = 1`, true)
+      nvim.command(`setl nospell nolist nowrap previewwindow`, true)
+      nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
+      nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true)
+      nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true)
+      nvim.command(`silent doautocmd User CocOpenFloat`, true)
       floatBuffer.setLines()
-      if (alignTop) nvim.command('normal! G', true)
+      nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
       nvim.command('noa wincmd p', true)
-      await nvim.resumeNotification()
+      let res = await nvim.resumeNotification()
+      let window = this.window = res[0][0]
+      this._onWindowCreate.fire(window)
       this.moving = true
       if (mode == 's') {
         await snippetsManager.selectCurrentPlaceholder(false)

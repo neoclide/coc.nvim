@@ -60,6 +60,7 @@ export default class FloatingWindow {
         win.setOption('relativenumber', false, true)
         win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating', true)
         this.showBuffer()
+        nvim.command(`silent doautocmd User CocOpenFloat`, true)
         await nvim.resumeNotification()
       } catch (e) {
         logger.error(`Create preview error:`, e.stack)

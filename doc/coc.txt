@@ -1467,6 +1467,12 @@ AUTOCMD 					*coc-autocmds*
 		showwing signature help like so: >
 
 	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+<
+						*CocOpenFloat*
+
+:autocmd User CocOpenFloat {command}
+
+		Triggered when floating window opened.
 
 ------------------------------------------------------------------------------
 
