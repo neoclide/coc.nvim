@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "94f7ae497d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ec1a725539" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60148,7 +60148,7 @@ class DiagnosticManager {
         if (buf) {
             if (displayByAle) {
                 let { nvim } = this;
-                nvim.pauseNotification();
+                let allDiagnostics = new Map();
                 for (let collection of this.collections) {
                     let diagnostics = collection.get(uri);
                     let aleItems = diagnostics.map(o => {
@@ -60163,7 +60163,17 @@ class DiagnosticManager {
                             type: util_2.getSeverityType(o.severity)
                         };
                     });
-                    this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, collection.name, aleItems], true);
+                    let exists = allDiagnostics.get(collection.name);
+                    if (exists) {
+                        exists.push(...aleItems);
+                    }
+                    else {
+                        allDiagnostics.set(collection.name, aleItems);
+                    }
+                }
+                nvim.pauseNotification();
+                for (let key of allDiagnostics.keys()) {
+                    this.nvim.call('ale#other_source#ShowResults', [buf.bufnr, key, allDiagnostics.get(key)], true);
                 }
                 nvim.resumeNotification(false, true).catch(_e => {
                     // noop
