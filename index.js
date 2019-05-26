@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3ebf5fd812" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9f89ddb852" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53910,7 +53910,7 @@ class Plugin extends events_1.EventEmitter {
                 case 'selectionRanges':
                     return await handler.getSelectionRanges();
                 case 'rename':
-                    await handler.rename();
+                    await handler.rename(args[1]);
                     return;
                 case 'workspaceSymbols':
                     this.nvim.command('CocList -I symbols', true);
@@ -73748,7 +73748,7 @@ class Handler {
         }
         return res;
     }
-    async rename() {
+    async rename(newName) {
         let { nvim } = this;
         let { document, position } = await workspace_1.default.getCurrentState();
         if (!document)
@@ -73781,11 +73781,13 @@ class Handler {
             workspace_1.default.showMessage('Invalid position', 'warning');
             return;
         }
-        let newName = await nvim.call('input', ['new name:', curname]);
-        nvim.command('normal! :<C-u>', true);
         if (!newName) {
-            workspace_1.default.showMessage('Empty word, canceled', 'warning');
-            return;
+            newName = await nvim.call('input', ['new name:', curname]);
+            nvim.command('normal! :<C-u>', true);
+            if (!newName) {
+                workspace_1.default.showMessage('Empty word, canceled', 'warning');
+                return;
+            }
         }
         let edit = await languages_1.default.provideRenameEdits(document, position, newName);
         if (!edit) {
