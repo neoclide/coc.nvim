@@ -382,7 +382,7 @@ export default class Plugin extends EventEmitter {
         case 'selectionRanges':
           return await handler.getSelectionRanges()
         case 'rename':
-          await handler.rename()
+          await handler.rename(args[1])
           return
         case 'workspaceSymbols':
           this.nvim.command('CocList -I symbols', true)

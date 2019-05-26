@@ -19,7 +19,7 @@ Coc is an intellisense engine for vim8 & neovim.
 
 It works on `vim >= 8.1` and `neovim >= 0.3.1`.
 
-It's a completion framework and language server client which supports [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions)
+It's a completion framework and language server client which supports [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
 <img alt="Gif" src="https://user-images.githubusercontent.com/251450/55285193-400a9000-53b9-11e9-8cff-ffe4983c5947.gif" width="60%" />
 

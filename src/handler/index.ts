@@ -351,7 +351,7 @@ export default class Handler {
     return res
   }
 
-  public async rename(): Promise<void> {
+  public async rename(newName?: string): Promise<void> {
     let { nvim } = this
     let { document, position } = await workspace.getCurrentState()
     if (!document) return
@@ -379,11 +379,13 @@ export default class Handler {
       workspace.showMessage('Invalid position', 'warning')
       return
     }
-    let newName = await nvim.call('input', ['new name:', curname])
-    nvim.command('normal! :<C-u>', true)
     if (!newName) {
-      workspace.showMessage('Empty word, canceled', 'warning')
-      return
+      newName = await nvim.call('input', ['new name:', curname])
+      nvim.command('normal! :<C-u>', true)
+      if (!newName) {
+        workspace.showMessage('Empty word, canceled', 'warning')
+        return
+      }
     }
     let edit = await languages.provideRenameEdits(document, position, newName)
     if (!edit) {
