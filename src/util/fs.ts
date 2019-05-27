@@ -77,18 +77,18 @@ export function resolveRoot(dir: string, subs: string[], cwd?: string): string |
 export function inDirectory(dir: string, subs: string[]): boolean {
   try {
     let files = fs.readdirSync(dir)
-    for(let pattern of subs) {
+    for (let pattern of subs) {
       // note, only '*' expanded
       let is_wildcard = (pattern.indexOf('*') !== -1)
       let res = is_wildcard ?
-        (minimatch.match(files, pattern, {nobrace:true, noext:true, nocomment:true, nonegate:true, dot:true}).length !== 0) :
+        (minimatch.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
         (files.indexOf(pattern) !== -1)
-      if (res) return true;
+      if (res) return true
     }
   } catch (e) {
     // could be failed without permission
-  } 
-  return false;
+  }
+  return false
 }
 
 export function readFile(fullpath: string, encoding: string): Promise<string> {

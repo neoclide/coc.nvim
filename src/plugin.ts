@@ -1,9 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import https from 'https'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
 import semver from 'semver'
 import { Location } from 'vscode-languageserver-types'
 import commandManager from './commands'
@@ -99,10 +96,9 @@ export default class Plugin extends EventEmitter {
         await extensions.onExtensionInstall(name)
       }
     })
-    this.addMethod('openLog', async () => {
-      let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
-      let escaped = await this.nvim.call('fnameescape', file)
-      await this.nvim.command(`edit ${escaped}`)
+    this.addMethod('openLog', () => {
+      let file = logger.getLogFile()
+      nvim.call(`coc#util#open_file`, ['edit', file], true)
     })
     this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
       let fn = workspace.keymaps.get(key)
@@ -250,11 +246,6 @@ export default class Plugin extends EventEmitter {
     channel.appendLine('## Error messages')
     let msgs = await this.nvim.call('coc#rpc#get_errors') as string[]
     channel.append(msgs.join('\n'))
-    channel.appendLine('')
-    channel.appendLine('## Log of coc.nvim')
-    let file = process.env.NVIM_COC_LOG_FILE || path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
-    let content = fs.readFileSync(file, 'utf8')
-    channel.append(content)
     channel.appendLine('')
     for (let ch of (workspace as any).outputChannels.values()) {
       if (ch.name !== 'info') {
