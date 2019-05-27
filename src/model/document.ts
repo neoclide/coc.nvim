@@ -52,7 +52,7 @@ export default class Document {
   }
 
   private shouldAttach(buftype: string): boolean {
-    return buftype == '' || buftype == 'acwrite'
+    return buftype == '' || buftype == 'acwrite' || buftype == 'nofile'
   }
 
   public get words(): string[] {
