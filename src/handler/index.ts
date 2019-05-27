@@ -145,7 +145,7 @@ export default class Handler {
       if (!pre || isWord(pre) || doc.paused) return
       await this.onCharacterType(pre, bufnr)
       if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        if (workspace.isVim) await wait(50)
+        await wait(50)
         if (doc.dirty) {
           doc.forceSync()
           await wait(60)
