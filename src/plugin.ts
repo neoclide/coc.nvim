@@ -73,6 +73,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('sendRequest', (id: string, method: string, params?: any) => {
       return services.sendRequest(id, method, params)
     })
+    this.addMethod('registNotification', async (id: string, method: string) => {
+      await services.registNotification(id, method)
+    })
     this.addMethod('doAutocmd', async (id: number, ...args: []) => {
       let autocmd = (workspace as any).autocmds.get(id) as Autocmd
       if (autocmd) await Promise.resolve(autocmd.callback.apply(autocmd.thisArg, args))

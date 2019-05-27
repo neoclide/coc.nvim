@@ -7,6 +7,7 @@ let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
 let s:warning_sign = get(g:, 'coc_status_warning_sign', has('mac') ? '⚠️ ' : 'W')
 let s:select_api = exists('*nvim_select_popupmenu_item')
+let s:callbacks = {}
 
 function! coc#expandable() abort
   return coc#rpc#request('snippetCheck', [1, 0])
@@ -182,5 +183,19 @@ endfunction
 function! coc#_init()
   if exists('#User#CocNvimInit')
     doautocmd User CocNvimInit
+  endif
+endfunction
+
+function! coc#on_notify(id, method, Cb)
+  let key = a:id. '-'.a:method
+  let s:callbacks[key] = a:Cb
+  call coc#rpc#notify('registNotification', [a:id, a:method])
+endfunction
+
+function! coc#do_notify(id, method, result)
+  let key = a:id. '-'.a:method
+  let Fn = s:callbacks[key]
+  if !empty(Fn)
+    call Fn(a:result)
   endif
 endfunction

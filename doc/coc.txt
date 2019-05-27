@@ -1087,6 +1087,21 @@ CocRequestAsync({id}, {method}, [{params}, [{callback}]])
 	Async request for remote language client. {callback} is called with
 	error and response.
 
+						*CocRegistNotification()*
+
+CocRegistNotification({id}, {method}, {callback})
+
+	Regist notification callback for specified client {id} and {method},
+	example: >
+
+	autocmd User CocNvimInit call CocRegistNotification('ccls',
+		\ '$ccls/publishSemanticHighlight', function('s:Handler')) 
+<
+	{callback} is called with single param as notification result.
+
+	Note: when register notification with same {id} and {method}, only the
+	later registered would work.
+
 						*CocLocations()*
 CocLocations({id}, {method}, [{params}, {openCommand}])
 

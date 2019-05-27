@@ -25,6 +25,10 @@ function! CocRequest(...) abort
   return coc#rpc#request('sendRequest', a:000)
 endfunction
 
+function! CocRegistNotification(id, method, cb) abort
+  call coc#on_notify(a:id, a:method, a:cb)
+endfunction
+
 function! CocLocations(id, method, ...) abort
   let args = [a:id, a:method] + copy(a:000)
   call coc#rpc#request('findLocations', args)
