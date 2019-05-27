@@ -53751,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9f89ddb852" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9399640bbf" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60705,6 +60705,8 @@ class FloatBuffer {
         }
         if (this.positions.length) {
             for (let pos of this.positions) {
+                if (pos[2] == 0)
+                    continue;
                 buffer.addHighlight({
                     srcId: -1,
                     hlGroup: 'CocUnderline',
@@ -73535,8 +73537,7 @@ class Handler {
                 return;
             await this.onCharacterType(pre, bufnr);
             if (languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-                if (workspace_1.default.isVim)
-                    await util_1.wait(50);
+                await util_1.wait(50);
                 if (doc.dirty) {
                     doc.forceSync();
                     await util_1.wait(60);
@@ -74141,6 +74142,10 @@ class Handler {
                             activeIndexes = active.label;
                         }
                     }
+                }
+                if (activeIndexes == null) {
+                    let nameIndex = c.label.indexOf('(');
+                    activeIndexes = [nameIndex + 1, nameIndex + 1];
                 }
                 p.push({
                     content: c.label,
