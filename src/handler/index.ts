@@ -724,6 +724,10 @@ export default class Handler {
             }
           }
         }
+        if (activeIndexes == null) {
+          let nameIndex = c.label.indexOf('(')
+          activeIndexes = [nameIndex + 1, nameIndex + 1]
+        }
         p.push({
           content: c.label,
           filetype: document.filetype,

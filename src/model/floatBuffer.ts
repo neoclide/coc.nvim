@@ -5,7 +5,6 @@ import { group } from '../util/array'
 import { Documentation, Fragment } from '../types'
 import workspace from '../workspace'
 import { Chars } from './chars'
-import { deepClone } from '../util/object'
 const logger = require('../util/logger')('model-floatBuffer')
 
 export default class FloatBuffer {
@@ -217,6 +216,7 @@ export default class FloatBuffer {
     }
     if (this.positions.length) {
       for (let pos of this.positions) {
+        if (pos[2] == 0) continue
         buffer.addHighlight({
           srcId: -1,
           hlGroup: 'CocUnderline',
