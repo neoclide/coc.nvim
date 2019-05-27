@@ -53596,6 +53596,9 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('sendRequest', (id, method, params) => {
             return services_1.default.sendRequest(id, method, params);
         });
+        this.addMethod('registNotification', async (id, method) => {
+            await services_1.default.registNotification(id, method);
+        });
         this.addMethod('doAutocmd', async (id, ...args) => {
             let autocmd = workspace_1.default.autocmds.get(id);
             if (autocmd)
@@ -53748,7 +53751,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "454e0dec07" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "98fd9d6cb3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -63940,6 +63943,38 @@ class ServiceManager extends events_1.EventEmitter {
             let client = new language_client_1.LanguageClient(id, key, opts[1], opts[0]);
             this.registLanguageClient(client);
         }
+    }
+    waitClient(id) {
+        let service = this.getService(id);
+        if (service && service.state == types_1.ServiceStat.Running)
+            return Promise.resolve();
+        if (service)
+            return new Promise(resolve => {
+                service.onServiceReady(() => {
+                    resolve();
+                });
+            });
+        return new Promise(resolve => {
+            let listener = clientId => {
+                if (clientId == id || clientId == `languageserver.${id}`) {
+                    this.off('ready', listener);
+                    resolve();
+                }
+            };
+            this.on('ready', listener);
+        });
+    }
+    async registNotification(id, method) {
+        await this.waitClient(id);
+        let service = this.getService(id);
+        if (!service.client) {
+            workspace_1.default.showMessage(`Not a language client: ${id}`, 'error');
+            return;
+        }
+        let client = service.client;
+        client.onNotification(method, async (result) => {
+            await workspace_1.default.nvim.call('coc#do_notify', [id, method, result]);
+        });
     }
     async sendRequest(id, method, params) {
         if (!method) {
