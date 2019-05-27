@@ -43467,53 +43467,54 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const log4js_1 = tslib_1.__importDefault(__webpack_require__(63));
-const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const os_1 = tslib_1.__importDefault(__webpack_require__(55));
+function getLogFile() {
+    let file = process.env.NVIM_COC_LOG_FILE;
+    if (file)
+        return file;
+    let dir = process.env.XDG_RUNTIME_DIR;
+    if (dir)
+        return path_1.default.join(dir, 'coc-nvim.log');
+    return path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
+}
 const MAX_LOG_SIZE = 1024 * 1024;
 const MAX_LOG_BACKUPS = 10;
-const filename = `coc-nvim-${process.pid}.log`;
-const logfile = process.env.NVIM_COC_LOG_FILE || path_1.default.join(os_1.default.tmpdir(), filename);
+const logfile = getLogFile();
 const level = process.env.NVIM_COC_LOG_LEVEL || 'info';
 if (!fs_1.default.existsSync(logfile)) {
     try {
         fs_1.default.writeFileSync(logfile, '', { encoding: 'utf8', mode: 0o666 });
-        if (level == 'debug' || level == 'trace') {
-            let linkfile = path_1.default.join(os_1.default.tmpdir(), 'coc-nvim.log');
-            if (fs_1.default.existsSync(linkfile))
-                fs_1.default.unlinkSync(linkfile);
-            fs_1.default.symlinkSync(logfile, linkfile);
-        }
     }
     catch (e) {
         // noop
     }
 }
-const isRoot = process.getuid && process.getuid() == 0;
-if (!isRoot) {
-    log4js_1.default.configure({
-        disableClustering: true,
-        appenders: {
-            out: {
-                type: 'file',
-                mode: 0o666,
-                filename: logfile,
-                maxLogSize: MAX_LOG_SIZE,
-                backups: MAX_LOG_BACKUPS,
-                layout: {
-                    type: 'pattern',
-                    // Format log in following pattern:
-                    // yyyy-MM-dd HH:mm:ss.mil $Level (pid:$pid) $categroy - $message.
-                    pattern: `%d{ISO8601} %p (pid:${process.pid}) [%c] - %m`,
-                },
-            }
-        },
-        categories: {
-            default: { appenders: ['out'], level }
+log4js_1.default.configure({
+    disableClustering: true,
+    appenders: {
+        out: {
+            type: 'file',
+            mode: 0o666,
+            filename: logfile,
+            maxLogSize: MAX_LOG_SIZE,
+            backups: MAX_LOG_BACKUPS,
+            layout: {
+                type: 'pattern',
+                // Format log in following pattern:
+                // yyyy-MM-dd HH:mm:ss.mil $Level (pid:$pid) $categroy - $message.
+                pattern: `%d{ISO8601} %p (pid:${process.pid}) [%c] - %m`,
+            },
         }
-    });
-}
+    },
+    categories: {
+        default: { appenders: ['out'], level }
+    }
+});
 module.exports = (name = 'coc-nvim') => {
-    return log4js_1.default.getLogger(name);
+    let logger = log4js_1.default.getLogger(name);
+    logger.getLogFile = getLogFile;
+    return logger;
 };
 //# sourceMappingURL=logger.js.map
 
@@ -49450,7 +49451,7 @@ class Document {
         }, 50);
     }
     shouldAttach(buftype) {
-        return buftype == '' || buftype == 'acwrite';
+        return buftype == '' || buftype == 'acwrite' || buftype == 'nofile';
     }
     get words() {
         return this._words;
@@ -53526,9 +53527,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(49);
 const https_1 = tslib_1.__importDefault(__webpack_require__(231));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const os_1 = tslib_1.__importDefault(__webpack_require__(55));
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(235));
@@ -53622,10 +53620,9 @@ class Plugin extends events_1.EventEmitter {
                 await extensions_1.default.onExtensionInstall(name);
             }
         });
-        this.addMethod('openLog', async () => {
-            let file = process.env.NVIM_COC_LOG_FILE || path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
-            let escaped = await this.nvim.call('fnameescape', file);
-            await this.nvim.command(`edit ${escaped}`);
+        this.addMethod('openLog', () => {
+            let file = logger.getLogFile();
+            nvim.call(`coc#util#open_file`, ['edit', file], true);
         });
         this.addMethod('doKeymap', async (key, defaultReturn = '') => {
             let fn = workspace_1.default.keymaps.get(key);
@@ -53751,7 +53748,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9399640bbf" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "454e0dec07" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53773,11 +53770,6 @@ class Plugin extends events_1.EventEmitter {
         channel.appendLine('## Error messages');
         let msgs = await this.nvim.call('coc#rpc#get_errors');
         channel.append(msgs.join('\n'));
-        channel.appendLine('');
-        channel.appendLine('## Log of coc.nvim');
-        let file = process.env.NVIM_COC_LOG_FILE || path_1.default.join(os_1.default.tmpdir(), `coc-nvim-${process.pid}.log`);
-        let content = fs_1.default.readFileSync(file, 'utf8');
-        channel.append(content);
         channel.appendLine('');
         for (let ch of workspace_1.default.outputChannels.values()) {
             if (ch.name !== 'info') {
