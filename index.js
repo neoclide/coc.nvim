@@ -49451,7 +49451,9 @@ class Document {
         }, 50);
     }
     shouldAttach(buftype) {
-        return buftype == '' || buftype == 'acwrite' || buftype == 'nofile';
+        if (this.uri.endsWith('%5BCommand%20Line%5D'))
+            return true;
+        return buftype == '' || buftype == 'acwrite';
     }
     get words() {
         return this._words;
@@ -53753,7 +53755,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "391ec815bd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5787dbedd5" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60052,6 +60054,7 @@ class DiagnosticManager {
         }
         this.buffers.splice(0, this.buffers.length);
         this.collections = [];
+        this.floatFactory.dispose();
         util_1.disposeAll(this.disposables);
     }
     get nvim() {
@@ -60169,9 +60172,6 @@ class DiagnosticManager {
     }
 }
 exports.DiagnosticManager = DiagnosticManager;
-function withIn(a, s, e) {
-    return a >= s && a <= e;
-}
 exports.default = new DiagnosticManager();
 //# sourceMappingURL=manager.js.map
 
@@ -60185,12 +60185,12 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(233));
 const util_1 = __webpack_require__(168);
+const object_1 = __webpack_require__(189);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
 const uuid = __webpack_require__(219);
-const object_1 = __webpack_require__(189);
 const logger = __webpack_require__(179)('model-float');
 const creatingIds = new Set();
 // factory class for floating window
@@ -60202,7 +60202,6 @@ class FloatFactory {
         this.maxHeight = maxHeight;
         this.joinLines = joinLines;
         this.maxWidth = maxWidth;
-        this._onWindowCreate = new vscode_languageserver_protocol_1.Emitter();
         this.disposables = [];
         this.promise = Promise.resolve(undefined);
         this.alignTop = false;
@@ -60210,7 +60209,6 @@ class FloatFactory {
         this.moving = false;
         this.createTs = 0;
         this.cursor = [0, 0];
-        this.onWindowCreate = this._onWindowCreate.event;
         if (!env.floating)
             return;
         events_1.default.on('BufEnter', bufnr => {
@@ -60235,15 +60233,15 @@ class FloatFactory {
                 this.close();
             }
         }, null, this.disposables);
-        events_1.default.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables);
-        events_1.default.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables);
+        events_1.default.on('CursorMovedI', this.onCursorMoved, this, this.disposables);
+        events_1.default.on('CursorMoved', this.onCursorMoved, this, this.disposables);
     }
-    onCursorMoved(insert, bufnr, cursor) {
+    onCursorMoved(bufnr, cursor) {
         if (this.buffer && bufnr == this.buffer.id)
             return;
         if (this.moving || (bufnr == this.targetBufnr && object_1.equals(cursor, this.cursor)))
             return;
-        if (insert) {
+        if (workspace_1.default.insertMode) {
             if (!this.window)
                 return;
             let ts = Date.now();
@@ -60257,11 +60255,17 @@ class FloatFactory {
             this.close();
         }
     }
-    async createBuffer() {
+    async checkFloatBuffer() {
+        let { floatBuffer } = this;
+        if (floatBuffer) {
+            let valid = await floatBuffer.valid;
+            if (valid)
+                return;
+        }
         let buf = await this.nvim.createNewBuffer(false, true);
         await buf.setOption('buftype', 'nofile');
         await buf.setOption('bufhidden', 'hide');
-        return buf;
+        this.floatBuffer = new floatBuffer_1.default(buf, this.nvim, this.joinLines);
     }
     get columns() {
         return this.env.columns;
@@ -60313,7 +60317,6 @@ class FloatFactory {
         let id = uuid();
         creatingIds.add(id);
         this.targetBufnr = workspace_1.default.bufnr;
-        this.close();
         let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let token = tokenSource.token;
         this._creating = true;
@@ -60336,17 +60339,7 @@ class FloatFactory {
             return;
         let [, line, col] = await this.nvim.call('getpos', ['.']);
         this.cursor = [line, col];
-        let { floatBuffer } = this;
-        if (floatBuffer) {
-            let valid = await floatBuffer.valid;
-            if (!valid)
-                floatBuffer = null;
-        }
-        if (!floatBuffer) {
-            let buf = await this.createBuffer();
-            this.buffer = buf;
-            floatBuffer = this.floatBuffer = new floatBuffer_1.default(buf, this.nvim, this.joinLines);
-        }
+        await this.checkFloatBuffer();
         let config = await this.getBoundings(docs);
         if (!config || token.isCancellationRequested)
             return;
@@ -60364,26 +60357,32 @@ class FloatFactory {
                 await nvim.eval('feedkeys("\\<C-g>u")');
             if (token.isCancellationRequested)
                 return;
+            let reuse = false;
+            if (this.window)
+                reuse = await this.window.valid;
             nvim.pauseNotification();
-            nvim.notify('nvim_open_win', [this.buffer, true, config]);
-            nvim.command(`let w:float = 1`, true);
-            nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true);
-            nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
-            nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
-            nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
-            nvim.command(`silent doautocmd User CocOpenFloat`, true);
-            nvim.call('cursor', [1, 1], true);
-            floatBuffer.setLines();
+            if (!reuse) {
+                nvim.notify('nvim_open_win', [this.buffer, true, config]);
+                nvim.command(`let w:float = 1`, true);
+                nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true);
+                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
+                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
+                nvim.command(`silent doautocmd User CocOpenFloat`, true);
+            }
+            else {
+                this.window.setConfig(config, true);
+                nvim.command(`noa call win_gotoid(${this.window.id})`, true);
+            }
+            this.floatBuffer.setLines();
             nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true);
             nvim.command('noa wincmd p', true);
             let res = await nvim.resumeNotification();
-            let window = this.window = res[0][0];
-            this._onWindowCreate.fire(window);
+            if (!reuse)
+                this.window = res[0][0];
             this.moving = true;
-            if (mode == 's') {
+            if (mode == 's')
                 await manager_1.default.selectCurrentPlaceholder(false);
-            }
-            await util_1.wait(30);
             this.moving = false;
         }
     }
@@ -60425,11 +60424,13 @@ class FloatFactory {
         if (this.tokenSource) {
             this.tokenSource.cancel();
         }
-        this._onWindowCreate.dispose();
         util_1.disposeAll(this.disposables);
     }
     get creating() {
         return this._creating;
+    }
+    get buffer() {
+        return this.floatBuffer ? this.floatBuffer.buffer : null;
     }
     static get isCreating() {
         return creatingIds.size > 0;
@@ -73513,8 +73514,10 @@ class Handler {
             }
         });
         this.hoverFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
+        this.disposables.push(this.hoverFactory);
         let { signaturePreferAbove, signatureMaxHeight } = this.preferences;
         this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight);
+        this.disposables.push(this.signatureFactory);
         events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
             if (this.preferences.signatureHideOnChange) {
                 this.signatureFactory.close();
