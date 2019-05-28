@@ -88,8 +88,10 @@ export default class Handler {
       }
     })
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
+    this.disposables.push(this.hoverFactory)
     let { signaturePreferAbove, signatureMaxHeight } = this.preferences
     this.signatureFactory = new FloatFactory(nvim, workspace.env, signaturePreferAbove, signatureMaxHeight)
+    this.disposables.push(this.signatureFactory)
 
     events.on(['TextChangedI', 'TextChangedP'], async () => {
       if (this.preferences.signatureHideOnChange) {

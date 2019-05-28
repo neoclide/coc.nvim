@@ -424,6 +424,7 @@ export class DiagnosticManager implements Disposable {
     }
     this.buffers.splice(0, this.buffers.length)
     this.collections = []
+    this.floatFactory.dispose()
     disposeAll(this.disposables)
   }
 
@@ -540,10 +541,6 @@ export class DiagnosticManager implements Disposable {
     await this.nvim.call('cursor', [start.line + 1, start.character + 1])
     await this.echoMessage()
   }
-}
-
-function withIn(a: number, s: number, e: number): boolean {
-  return a >= s && a <= e
 }
 
 export default new DiagnosticManager()

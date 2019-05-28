@@ -1,13 +1,13 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
-import { CancellationTokenSource, Disposable, Emitter, Event, CancellationToken } from 'vscode-languageserver-protocol'
+import { CancellationToken, CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import workspace from '../workspace'
 import snippetsManager from '../snippets/manager'
 import { Documentation, Env } from '../types'
-import { disposeAll, wait } from '../util'
+import { disposeAll } from '../util'
+import { equals } from '../util/object'
+import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
 import uuid = require('uuid/v1')
-import { equals } from '../util/object'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -22,10 +22,8 @@ const creatingIds: Set<string> = new Set()
 
 // factory class for floating window
 export default class FloatFactory implements Disposable {
-  private buffer: Buffer
   private targetBufnr: number
   private window: Window
-  private readonly _onWindowCreate = new Emitter<Window>()
   private disposables: Disposable[] = []
   private floatBuffer: FloatBuffer
   private tokenSource: CancellationTokenSource
@@ -35,7 +33,6 @@ export default class FloatFactory implements Disposable {
   private moving = false
   private createTs = 0
   private cursor: [number, number] = [0, 0]
-  public readonly onWindowCreate: Event<Window> = this._onWindowCreate.event
   constructor(private nvim: Neovim,
     private env: Env,
     private preferTop = false,
@@ -60,14 +57,14 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMovedI', this.onCursorMoved.bind(this, true), null, this.disposables)
-    events.on('CursorMoved', this.onCursorMoved.bind(this, false), null, this.disposables)
+    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
+    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
   }
 
-  private onCursorMoved(insert: boolean, bufnr: number, cursor: [number, number]): void {
+  private onCursorMoved(bufnr: number, cursor: [number, number]): void {
     if (this.buffer && bufnr == this.buffer.id) return
     if (this.moving || (bufnr == this.targetBufnr && equals(cursor, this.cursor))) return
-    if (insert) {
+    if (workspace.insertMode) {
       if (!this.window) return
       let ts = Date.now()
       setTimeout(() => {
@@ -79,11 +76,16 @@ export default class FloatFactory implements Disposable {
     }
   }
 
-  private async createBuffer(): Promise<Buffer> {
+  private async checkFloatBuffer(): Promise<void> {
+    let { floatBuffer } = this
+    if (floatBuffer) {
+      let valid = await floatBuffer.valid
+      if (valid) return
+    }
     let buf = await this.nvim.createNewBuffer(false, true)
     await buf.setOption('buftype', 'nofile')
     await buf.setOption('bufhidden', 'hide')
-    return buf
+    this.floatBuffer = new FloatBuffer(buf, this.nvim, this.joinLines)
   }
 
   private get columns(): number {
@@ -136,7 +138,6 @@ export default class FloatFactory implements Disposable {
     let id = uuid()
     creatingIds.add(id)
     this.targetBufnr = workspace.bufnr
-    this.close()
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
     this._creating = true
@@ -158,16 +159,7 @@ export default class FloatFactory implements Disposable {
     if (docs.length == 0) return
     let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
     this.cursor = [line, col]
-    let { floatBuffer } = this
-    if (floatBuffer) {
-      let valid = await floatBuffer.valid
-      if (!valid) floatBuffer = null
-    }
-    if (!floatBuffer) {
-      let buf = await this.createBuffer()
-      this.buffer = buf
-      floatBuffer = this.floatBuffer = new FloatBuffer(buf, this.nvim, this.joinLines)
-    }
+    await this.checkFloatBuffer()
     let config = await this.getBoundings(docs)
     if (!config || token.isCancellationRequested) return
     let mode = await this.nvim.call('mode') as string
@@ -180,26 +172,28 @@ export default class FloatFactory implements Disposable {
       // helps to fix undo issue, don't know why.
       if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u")')
       if (token.isCancellationRequested) return
+      let reuse = false
+      if (this.window) reuse = await this.window.valid
       nvim.pauseNotification()
-      nvim.notify('nvim_open_win', [this.buffer, true, config])
-      nvim.command(`let w:float = 1`, true)
-      nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true)
-      nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
-      nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true)
-      nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true)
-      nvim.command(`silent doautocmd User CocOpenFloat`, true)
-      nvim.call('cursor', [1, 1], true)
-      floatBuffer.setLines()
+      if (!reuse) {
+        nvim.notify('nvim_open_win', [this.buffer, true, config])
+        nvim.command(`let w:float = 1`, true)
+        nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true)
+        nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
+        nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true)
+        nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true)
+        nvim.command(`silent doautocmd User CocOpenFloat`, true)
+      } else {
+        this.window.setConfig(config, true)
+        nvim.command(`noa call win_gotoid(${this.window.id})`, true)
+      }
+      this.floatBuffer.setLines()
       nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
       nvim.command('noa wincmd p', true)
       let res = await nvim.resumeNotification()
-      let window = this.window = res[0][0]
-      this._onWindowCreate.fire(window)
+      if (!reuse) this.window = res[0][0]
       this.moving = true
-      if (mode == 's') {
-        await snippetsManager.selectCurrentPlaceholder(false)
-      }
-      await wait(30)
+      if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
       this.moving = false
     }
   }
@@ -240,12 +234,15 @@ export default class FloatFactory implements Disposable {
     if (this.tokenSource) {
       this.tokenSource.cancel()
     }
-    this._onWindowCreate.dispose()
     disposeAll(this.disposables)
   }
 
   public get creating(): boolean {
     return this._creating
+  }
+
+  private get buffer(): Buffer {
+    return this.floatBuffer ? this.floatBuffer.buffer : null
   }
 
   public static get isCreating(): boolean {
