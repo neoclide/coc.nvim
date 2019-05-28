@@ -75,8 +75,6 @@ endfunction
 
 function! s:on_stderr(name, msgs)
   if get(g:, 'coc_vim_leaving', 0) | return | endif
-  let client = get(s:clients, a:name, v:null)
-  if empty(client) | return | endif
   let data = filter(copy(a:msgs), '!empty(v:val)')
   if empty(data) | return | endif
   call extend(client['stderrs'], data)

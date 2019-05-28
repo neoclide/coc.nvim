@@ -1,7 +1,6 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
-import { Chars } from '../model/chars'
 import Document from '../model/document'
 import sources from '../sources'
 import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem, CompleteResult } from '../types'
@@ -9,7 +8,7 @@ import { disposeAll, wait } from '../util'
 import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
-import FloatingWindow from './floating'
+import Floating from './floating'
 import debounce from 'debounce'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
@@ -22,7 +21,7 @@ export interface LastInsert {
 export class Completion implements Disposable {
   public config: CompleteConfig
   private document: Document
-  private floating: FloatingWindow
+  private floating: Floating
   private currItem: VimCompleteItem
   // current input string
   private activted = false
@@ -39,11 +38,11 @@ export class Completion implements Disposable {
   private insertLeaveTs = 0
   // only used when no pum change event
   private isResolving = false
-  private previewBuffer: Buffer
 
   public init(nvim: Neovim): void {
     this.nvim = nvim
     this.config = this.getCompleteConfig()
+    this.floating = new Floating(nvim)
     events.on('InsertCharPre', this.onInsertCharPre, this, this.disposables)
     events.on('InsertLeave', this.onInsertLeave, this, this.disposables)
     events.on('InsertEnter', this.onInsertEnter, this, this.disposables)
@@ -51,11 +50,6 @@ export class Completion implements Disposable {
     events.on('TextChangedI', this.onTextChangedI, this, this.disposables)
     events.on('CompleteDone', this.onCompleteDone, this, this.disposables)
     events.on('MenuPopupChanged', this.onPumChange, this, this.disposables)
-    events.on('BufUnload', async bufnr => {
-      if (this.previewBuffer && bufnr == this.previewBuffer.id) {
-        this.previewBuffer = null
-      }
-    }, null, this.disposables)
     events.on('CursorMovedI', debounce(async (bufnr, cursor) => {
       // try trigger completion
       let doc = workspace.getDocument(bufnr)
@@ -74,14 +68,6 @@ export class Completion implements Disposable {
         Object.assign(this.config, this.getCompleteConfig())
       }
     }, null, this.disposables)
-    if (workspace.env.pumevent) {
-      events.on('CompleteDone', () => {
-        if (this.floatTokenSource) {
-          this.floatTokenSource.cancel()
-          this.floatTokenSource = null
-        }
-      }, null, this.disposables)
-    }
   }
 
   public get option(): CompleteOption {
@@ -395,6 +381,11 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, nvim } = this
+    if (this.floatTokenSource) {
+      this.floatTokenSource.cancel()
+      this.floatTokenSource = null
+      this.floating.close()
+    }
     if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
@@ -489,7 +480,7 @@ export class Completion implements Disposable {
     if (this.lastInsert) return
     let resolvedItem = this.getCompleteItem(completed_item)
     if (!resolvedItem) {
-      this.closePreviewWindow()
+      this.floating.close()
       return
     }
     let source = this.resolveTokenSource = new CancellationTokenSource()
@@ -503,30 +494,13 @@ export class Completion implements Disposable {
       docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }]
     }
     if (!docs || docs.length == 0) {
-      this.closePreviewWindow()
+      this.floating.close()
     } else {
-      if (this.previewBuffer) {
-        let valid = await this.previewBuffer.valid
-        if (!valid) this.previewBuffer = null
-      }
-      if (!this.previewBuffer) await this.createPreviewBuffer()
-      if (!this.floating) {
-        let srcId = workspace.createNameSpace('coc-pum-float')
-        let chars = new Chars(this.config.previewIsKeyword)
-        let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars }
-        this.floating = new FloatingWindow(this.nvim, this.previewBuffer, config)
-      }
       if (token.isCancellationRequested || !this.isActivted) return
       this.floatTokenSource = new CancellationTokenSource()
       await this.floating.show(docs, bounding, this.floatTokenSource.token)
     }
     this.resolveTokenSource = null
-  }
-
-  private async createPreviewBuffer(): Promise<void> {
-    let buf = this.previewBuffer = await this.nvim.createNewBuffer(false, true)
-    await buf.setOption('buftype', 'nofile')
-    await buf.setOption('bufhidden', 'hide')
   }
 
   public start(complete: Complete): void {
@@ -575,13 +549,6 @@ export class Completion implements Disposable {
     nvim.resumeNotification(false, true).catch(_e => {
       // noop
     })
-  }
-
-  private closePreviewWindow(): void {
-    if (this.floating) {
-      this.nvim.call('coc#util#close_popup', [], true)
-      this.floating = null
-    }
   }
 
   private getInput(document: Document, pre: string): string {
