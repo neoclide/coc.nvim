@@ -52,7 +52,8 @@ export default class Document {
   }
 
   private shouldAttach(buftype: string): boolean {
-    return buftype == '' || buftype == 'acwrite' || buftype == 'nofile'
+    if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
+    return buftype == '' || buftype == 'acwrite'
   }
 
   public get words(): string[] {
