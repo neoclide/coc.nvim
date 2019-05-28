@@ -42,7 +42,7 @@ let NAME_SPACE = 1080
 export class Workspace implements IWorkspace {
   public readonly nvim: Neovim
   public readonly version: string
-  public readonly keymaps: Map<string, Function> = new Map()
+  public readonly keymaps: Map<string, [Function, boolean]> = new Map()
   public bufnr: number
   private resolver: Resolver = new Resolver()
   private rootPatterns: Map<string, string[]> = new Map()
@@ -1040,7 +1040,7 @@ export class Workspace implements IWorkspace {
     if (this.keymaps.has(key)) return
     opts = Object.assign({ sync: true, cancel: true, silent: true }, opts)
     let { nvim } = this
-    this.keymaps.set(key, fn)
+    this.keymaps.set(key, [fn, true])
     let method = opts.sync ? 'request' : 'notify'
     let silent = opts.silent ? '<silent>' : ''
     for (let m of modes) {
@@ -1065,7 +1065,7 @@ export class Workspace implements IWorkspace {
   public registerExprKeymap(mode: 'i' | 'n' | 'v' | 's' | 'x', key: string, fn: Function, buffer = false): Disposable {
     let id = uuid()
     let { nvim } = this
-    this.keymaps.set(id, fn)
+    this.keymaps.set(id, [fn, false])
     if (mode == 'i') {
       nvim.command(`inoremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#_insert_key('request', '${id}')`, true)
     } else {
