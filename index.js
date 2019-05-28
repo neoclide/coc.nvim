@@ -44522,7 +44522,7 @@ class Workspace {
             return;
         opts = Object.assign({ sync: true, cancel: true, silent: true }, opts);
         let { nvim } = this;
-        this.keymaps.set(key, fn);
+        this.keymaps.set(key, [fn, true]);
         let method = opts.sync ? 'request' : 'notify';
         let silent = opts.silent ? '<silent>' : '';
         for (let m of modes) {
@@ -44547,7 +44547,7 @@ class Workspace {
     registerExprKeymap(mode, key, fn, buffer = false) {
         let id = uuid();
         let { nvim } = this;
-        this.keymaps.set(id, fn);
+        this.keymaps.set(id, [fn, false]);
         if (mode == 'i') {
             nvim.command(`inoremap <silent><expr>${buffer ? '<nowait><buffer>' : ''} ${key} coc#_insert_key('request', '${id}')`, true);
         }
@@ -53628,12 +53628,14 @@ class Plugin extends events_1.EventEmitter {
             nvim.call(`coc#util#open_file`, ['edit', file], true);
         });
         this.addMethod('doKeymap', async (key, defaultReturn = '') => {
-            let fn = workspace_1.default.keymaps.get(key);
+            let [fn, isPlug] = workspace_1.default.keymaps.get(key);
             if (!fn) {
                 logger.error(`keymap for ${key} not found`);
                 return defaultReturn;
             }
             let res = await Promise.resolve(fn());
+            if (isPlug)
+                await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
             return res || defaultReturn;
         });
         this.addMethod('registExtensions', async (...folders) => {
@@ -53751,7 +53753,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "98fd9d6cb3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "391ec815bd" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54712,7 +54714,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
-const chars_1 = __webpack_require__(211);
 const sources_1 = tslib_1.__importDefault(__webpack_require__(236));
 const util_1 = __webpack_require__(168);
 const string_1 = __webpack_require__(210);
@@ -54738,6 +54739,7 @@ class Completion {
     init(nvim) {
         this.nvim = nvim;
         this.config = this.getCompleteConfig();
+        this.floating = new floating_1.default(nvim);
         events_1.default.on('InsertCharPre', this.onInsertCharPre, this, this.disposables);
         events_1.default.on('InsertLeave', this.onInsertLeave, this, this.disposables);
         events_1.default.on('InsertEnter', this.onInsertEnter, this, this.disposables);
@@ -54745,11 +54747,6 @@ class Completion {
         events_1.default.on('TextChangedI', this.onTextChangedI, this, this.disposables);
         events_1.default.on('CompleteDone', this.onCompleteDone, this, this.disposables);
         events_1.default.on('MenuPopupChanged', this.onPumChange, this, this.disposables);
-        events_1.default.on('BufUnload', async (bufnr) => {
-            if (this.previewBuffer && bufnr == this.previewBuffer.id) {
-                this.previewBuffer = null;
-            }
-        }, null, this.disposables);
         events_1.default.on('CursorMovedI', debounce_1.default(async (bufnr, cursor) => {
             // try trigger completion
             let doc = workspace_1.default.getDocument(bufnr);
@@ -54771,14 +54768,6 @@ class Completion {
                 Object.assign(this.config, this.getCompleteConfig());
             }
         }, null, this.disposables);
-        if (workspace_1.default.env.pumevent) {
-            events_1.default.on('CompleteDone', () => {
-                if (this.floatTokenSource) {
-                    this.floatTokenSource.cancel();
-                    this.floatTokenSource = null;
-                }
-            }, null, this.disposables);
-        }
     }
     get option() {
         if (!this.complete)
@@ -55110,6 +55099,11 @@ class Completion {
     }
     async onCompleteDone(item) {
         let { document, nvim } = this;
+        if (this.floatTokenSource) {
+            this.floatTokenSource.cancel();
+            this.floatTokenSource = null;
+            this.floating.close();
+        }
         if (!this.isActivted || !document || !item.hasOwnProperty('word'))
             return;
         let opt = Object.assign({}, this.option);
@@ -55212,7 +55206,7 @@ class Completion {
             return;
         let resolvedItem = this.getCompleteItem(completed_item);
         if (!resolvedItem) {
-            this.closePreviewWindow();
+            this.floating.close();
             return;
         }
         let source = this.resolveTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
@@ -55227,33 +55221,15 @@ class Completion {
             docs = [{ filetype: isText ? 'txt' : this.document.filetype, content: info }];
         }
         if (!docs || docs.length == 0) {
-            this.closePreviewWindow();
+            this.floating.close();
         }
         else {
-            if (this.previewBuffer) {
-                let valid = await this.previewBuffer.valid;
-                if (!valid)
-                    this.previewBuffer = null;
-            }
-            if (!this.previewBuffer)
-                await this.createPreviewBuffer();
-            if (!this.floating) {
-                let srcId = workspace_1.default.createNameSpace('coc-pum-float');
-                let chars = new chars_1.Chars(this.config.previewIsKeyword);
-                let config = { srcId, maxPreviewWidth: this.config.maxPreviewWidth, chars };
-                this.floating = new floating_1.default(this.nvim, this.previewBuffer, config);
-            }
             if (token.isCancellationRequested || !this.isActivted)
                 return;
             this.floatTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
             await this.floating.show(docs, bounding, this.floatTokenSource.token);
         }
         this.resolveTokenSource = null;
-    }
-    async createPreviewBuffer() {
-        let buf = this.previewBuffer = await this.nvim.createNewBuffer(false, true);
-        await buf.setOption('buftype', 'nofile');
-        await buf.setOption('bufhidden', 'hide');
     }
     start(complete) {
         let { activted } = this;
@@ -55301,12 +55277,6 @@ class Completion {
         nvim.resumeNotification(false, true).catch(_e => {
             // noop
         });
-    }
-    closePreviewWindow() {
-        if (this.floating) {
-            this.nvim.call('coc#util#close_popup', [], true);
-            this.floating = null;
-        }
     }
     getInput(document, pre) {
         let input = '';
@@ -60397,11 +60367,12 @@ class FloatFactory {
             nvim.pauseNotification();
             nvim.notify('nvim_open_win', [this.buffer, true, config]);
             nvim.command(`let w:float = 1`, true);
-            nvim.command(`setl nospell nolist nowrap previewwindow`, true);
+            nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true);
             nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
             nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
             nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
             nvim.command(`silent doautocmd User CocOpenFloat`, true);
+            nvim.call('cursor', [1, 1], true);
             floatBuffer.setLines();
             nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true);
             nvim.command('noa wincmd p', true);
@@ -73108,19 +73079,25 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const chars_1 = __webpack_require__(211);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const logger = __webpack_require__(179)('floating');
-class FloatingWindow {
-    constructor(nvim, buffer, config) {
+class Floating {
+    constructor(nvim) {
         this.nvim = nvim;
-        this.buffer = buffer;
-        this.config = config;
-        this.floatBuffer = new floatBuffer_1.default(buffer, nvim);
+        let configuration = workspace_1.default.getConfiguration('suggest');
+        this.config = {
+            srcId: workspace_1.default.createNameSpace('coc-pum-float'),
+            chars: new chars_1.Chars(configuration.get('previewIsKeyword', '@,48-57,_192-255')),
+            maxPreviewWidth: configuration.get('maxPreviewWidth', 50)
+        };
     }
     async show(docs, bounding, token) {
-        this.bounding = bounding;
         let { nvim } = this;
+        this.bounding = bounding;
+        let curr = await nvim.call('win_getid');
+        await this.checkBuffer();
         let rect = await this.calculateBounding(docs);
         if (this.window) {
             let valid = await this.window.valid;
@@ -73136,21 +73113,23 @@ class FloatingWindow {
                     focusable: true
                 }, rect);
                 let win = this.window = await nvim.openFloatWindow(this.buffer, false, config);
+                if (token.isCancellationRequested) {
+                    this.window = null;
+                    await win.close();
+                    return;
+                }
                 nvim.pauseNotification();
-                win.setVar('popup', 1, true);
-                win.setVar('float', 1, true);
-                win.setOption('list', false, true);
-                win.setOption('spell', false, true);
-                win.setOption('listchars', 'eol: ', true);
-                win.setOption('number', false, true);
-                win.setOption('cursorline', false, true);
-                win.setOption('cursorcolumn', false, true);
-                win.setOption('signcolumn', 'no', true);
-                win.setOption('conceallevel', 2, true);
-                win.setOption('relativenumber', false, true);
-                win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating', true);
-                this.showBuffer();
+                nvim.command(`noa call win_gotoid(${win.id})`, true);
+                nvim.command(`let w:float = 1`, true);
+                nvim.command(`let w:popup = 1`, true);
+                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
+                nvim.command(`setl nospell nolist nowrap foldcolumn=0`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
+                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
                 nvim.command(`silent doautocmd User CocOpenFloat`, true);
+                nvim.call('cursor', [1, 1], true);
+                this.floatBuffer.setLines();
+                nvim.command(`noa call win_gotoid(${curr})`, true);
                 await nvim.resumeNotification();
             }
             catch (e) {
@@ -73163,19 +73142,12 @@ class FloatingWindow {
                 relative: 'editor'
             }, rect);
             this.window.setConfig(config, true);
-            this.showBuffer();
+            nvim.command(`noa call win_gotoid(${this.window.id})`, true);
+            nvim.call('cursor', [1, 1], true);
+            this.floatBuffer.setLines();
+            nvim.command(`noa call win_gotoid(${curr})`, true);
             await nvim.resumeNotification();
         }
-        if (token.isCancellationRequested) {
-            nvim.call('coc#util#close_win', [this.window.id], true);
-        }
-    }
-    showBuffer() {
-        let { window, nvim } = this;
-        nvim.command(`noa call win_gotoid(${this.window.id})`, true);
-        window.notify('nvim_win_set_cursor', [window, [1, 1]]);
-        this.floatBuffer.setLines();
-        nvim.command('noa wincmd p', true);
     }
     async calculateBounding(docs) {
         // drawn lines
@@ -73199,8 +73171,44 @@ class FloatingWindow {
             width: floatBuffer.width
         };
     }
+    async checkBuffer() {
+        let { buffer, nvim } = this;
+        if (buffer) {
+            let valid = await buffer.valid;
+            if (valid)
+                return;
+        }
+        buffer = this.buffer = await this.nvim.createNewBuffer(false, true);
+        await buffer.setOption('buftype', 'nofile');
+        await buffer.setOption('bufhidden', 'hide');
+        this.floatBuffer = new floatBuffer_1.default(buffer, nvim);
+    }
+    close() {
+        let { window } = this;
+        if (!window)
+            return;
+        this.window = null;
+        this.nvim.call('coc#util#close_win', window.id, true);
+        this.window = null;
+        let count = 0;
+        let interval = setInterval(() => {
+            count++;
+            if (count == 5)
+                clearInterval(interval);
+            window.valid.then(valid => {
+                if (valid) {
+                    this.nvim.call('coc#util#close_win', window.id, true);
+                }
+                else {
+                    clearInterval(interval);
+                }
+            }, _e => {
+                clearInterval(interval);
+            });
+        }, 200);
+    }
 }
-exports.default = FloatingWindow;
+exports.default = Floating;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
