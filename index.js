@@ -6051,7 +6051,8 @@ const os_1 = __importDefault(__webpack_require__(55));
 const path_1 = __importDefault(__webpack_require__(56));
 const LOG_FILE_PATH = process.env.NODE_CLIENT_LOG_FILE || path_1.default.join(os_1.default.tmpdir(), 'node-client.log');
 const level = process.env.NODE_CLIENT_LOG_LEVEL || 'info';
-if (level === 'debug') {
+const isRoot = process.getuid && process.getuid() == 0;
+if (level === 'debug' && !isRoot) {
     fs_1.default.writeFileSync(LOG_FILE_PATH, '', 'utf8');
 }
 function toObject(arg) {
@@ -6087,18 +6088,22 @@ class Logger {
         return `${new Date().toLocaleTimeString()} ${level.toUpperCase()} [${this.name}] - ${data}${more}\n`;
     }
     debug(data, ...meta) {
-        if (level != 'debug')
+        if (level != 'debug' || isRoot)
             return;
         stream.write(this.getText('debug', data, meta));
     }
     info(data, ...meta) {
+        if (isRoot)
+            return;
         stream.write(this.getText('info', data, meta));
     }
     error(data, ...meta) {
+        if (isRoot)
+            return;
         stream.write(this.getText('error', data, meta));
     }
     trace(data, ...meta) {
-        if (level != 'debug')
+        if (level != 'debug' || isRoot)
             return;
         stream.write(this.getText('trace', data, meta));
     }
@@ -6146,6 +6151,7 @@ class VimTransport extends base_1.default {
         this.pending = new Map();
         this.nextRequestId = 0;
         this.attached = false;
+        this.notifyMethod = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify';
     }
     attach(writer, reader, client) {
         let connection = this.connection = new connection_1.default(reader, writer);
@@ -6208,8 +6214,7 @@ class VimTransport extends base_1.default {
             this.paused.push([method, args]);
             return;
         }
-        let m = process.env.COC_NVIM == '1' ? 'coc#api#notify' : 'nvim#api#notify';
-        this.connection.call(m, [method.slice(5), args]);
+        this.connection.call(this.notifyMethod, [method.slice(5), args]);
     }
     createResponse(requestId) {
         let called = false;
@@ -6255,7 +6260,7 @@ class Connection extends events_1.default {
             this.parseData(line);
         });
         rl.on('close', () => {
-            logger.error('stdin get closed');
+            logger.error('connection closed');
             process.exit(0);
         });
     }
@@ -6273,11 +6278,7 @@ class Connection extends events_1.default {
         }
         // request, notification, response
         let [id, obj] = arr;
-        if (debug)
-            logger.debug('received:', id, obj);
-        if (arr.length > 2) {
-            logger.error('Result array length > 2', arr);
-        }
+        logger.debug('received:', arr);
         if (id > 0) {
             this.emit('request', id, obj);
         }
@@ -6344,6 +6345,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const logger_1 = __webpack_require__(53);
 const logger = logger_1.createLogger('request');
 const debug = process.env.NODE_CLIENT_LOG_LEVEL == 'debug';
+const func = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call';
 class Request {
     constructor(connection, cb, id) {
         this.connection = connection;
@@ -6353,8 +6355,7 @@ class Request {
     request(method, args = []) {
         this.method = method;
         this.args = args;
-        let m = process.env.COC_NVIM == '1' ? 'coc#api#call' : 'nvim#api#call';
-        this.connection.call(m, [method.slice(5), args], this.id);
+        this.connection.call(func, [method.slice(5), args], this.id);
     }
     callback(client, err, result) {
         let { method, cb } = this;
@@ -38918,10 +38919,6 @@ class SocketMessageWriter extends AbstractMessageWriter {
         this.socket.on('error', (error) => this.fireError(error));
         this.socket.on('close', () => this.fireClose());
     }
-    dispose() {
-        super.dispose();
-        this.socket.destroy();
-    }
     write(msg) {
         if (!this.sending && this.queue.length === 0) {
             // See https://github.com/nodejs/node/issues/7657
@@ -53755,7 +53752,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5787dbedd5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "bee563d81c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54607,7 +54604,6 @@ class SnippetSession {
         if (mode != 'n')
             move_cmd += "\\<Esc>";
         if (len == 0) {
-            triggerAutocmd = false;
             if (col == 0 || (!mode.startsWith('i') && col < string_1.byteLength(line))) {
                 move_cmd += 'i';
             }
@@ -55101,11 +55097,6 @@ class Completion {
     }
     async onCompleteDone(item) {
         let { document, nvim } = this;
-        if (this.floatTokenSource) {
-            this.floatTokenSource.cancel();
-            this.floatTokenSource = null;
-            this.floating.close();
-        }
         if (!this.isActivted || !document || !item.hasOwnProperty('word'))
             return;
         let opt = Object.assign({}, this.option);
@@ -55192,14 +55183,7 @@ class Completion {
     async onPumChange(ev) {
         if (!this.activted)
             return;
-        if (this.resolveTokenSource) {
-            this.resolveTokenSource.cancel();
-            this.resolveTokenSource = null;
-        }
-        if (this.floatTokenSource) {
-            this.floatTokenSource.cancel();
-            this.floatTokenSource = null;
-        }
+        this.cancel();
         let { completed_item, col, row, height, width, scrollbar } = ev;
         let bounding = { col, row, height, width, scrollbar };
         this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null;
@@ -55226,10 +55210,9 @@ class Completion {
             this.floating.close();
         }
         else {
-            if (token.isCancellationRequested || !this.isActivted)
+            if (token.isCancellationRequested)
                 return;
-            this.floatTokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
-            await this.floating.show(docs, bounding, this.floatTokenSource.token);
+            await this.floating.show(docs, bounding, token);
         }
         this.resolveTokenSource = null;
     }
@@ -55247,18 +55230,17 @@ class Completion {
         this.document.forceSync(true);
         this.document.paused = true;
     }
-    stop() {
-        let { nvim } = this;
-        if (!this.activted)
-            return;
+    cancel() {
         if (this.resolveTokenSource) {
             this.resolveTokenSource.cancel();
             this.resolveTokenSource = null;
         }
-        if (this.floatTokenSource) {
-            this.floatTokenSource.cancel();
-            this.floatTokenSource = null;
-        }
+    }
+    stop() {
+        let { nvim } = this;
+        if (!this.activted)
+            return;
+        this.cancel();
         this.currItem = null;
         this.activted = false;
         this.document.paused = false;
@@ -58943,6 +58925,9 @@ const position_1 = __webpack_require__(229);
 const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const logger = __webpack_require__(179)('languages');
+function fixDocumentation(str) {
+    return str.replace(/&nbsp;/g, ' ');
+}
 function check(_target, key, descriptor) {
     let fn = descriptor.value;
     if (typeof fn !== 'function') {
@@ -59380,13 +59365,13 @@ class Languages {
                         if (typeof documentation == 'string') {
                             docs.push({
                                 filetype: 'markdown',
-                                content: documentation
+                                content: fixDocumentation(documentation)
                             });
                         }
                         else if (documentation.value) {
                             docs.push({
                                 filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-                                content: documentation.value
+                                content: fixDocumentation(documentation.value)
                             });
                         }
                     }
@@ -59668,8 +59653,8 @@ class DiagnosticManager {
     init() {
         this.setConfiguration();
         let { nvim } = workspace_1.default;
-        let { maxWindowHeight, joinMessageLines } = this.config;
-        this.floatFactory = new floatFactory_1.default(nvim, workspace_1.default.env, false, maxWindowHeight, joinMessageLines);
+        let { maxWindowHeight } = this.config;
+        this.floatFactory = new floatFactory_1.default(nvim, workspace_1.default.env, false, maxWindowHeight);
         this.disposables.push(vscode_languageserver_protocol_1.Disposable.create(() => {
             if (this.timer)
                 clearTimeout(this.timer);
@@ -60030,8 +60015,6 @@ class DiagnosticManager {
             lines.push(...str.split('\n'));
         });
         if (useFloat) {
-            if (floatFactory_1.default.isCreating)
-                return;
             let hasFloat = await this.nvim.call('coc#util#has_float');
             if (hasFloat)
                 return;
@@ -60190,22 +60173,17 @@ const util_1 = __webpack_require__(168);
 const object_1 = __webpack_require__(189);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(258));
-const uuid = __webpack_require__(219);
 const logger = __webpack_require__(179)('model-float');
-const creatingIds = new Set();
 // factory class for floating window
 class FloatFactory {
-    constructor(nvim, env, preferTop = false, maxHeight = 999, joinLines = true, maxWidth) {
+    constructor(nvim, env, preferTop = false, maxHeight = 999, maxWidth) {
         this.nvim = nvim;
         this.env = env;
         this.preferTop = preferTop;
         this.maxHeight = maxHeight;
-        this.joinLines = joinLines;
         this.maxWidth = maxWidth;
         this.disposables = [];
-        this.promise = Promise.resolve(undefined);
         this.alignTop = false;
-        this._creating = false;
         this.moving = false;
         this.createTs = 0;
         this.cursor = [0, 0];
@@ -60265,7 +60243,7 @@ class FloatFactory {
         let buf = await this.nvim.createNewBuffer(false, true);
         await buf.setOption('buftype', 'nofile');
         await buf.setOption('bufhidden', 'hide');
-        this.floatBuffer = new floatBuffer_1.default(buf, this.nvim, this.joinLines);
+        this.floatBuffer = new floatBuffer_1.default(buf, this.nvim);
     }
     get columns() {
         return this.env.columns;
@@ -60273,13 +60251,12 @@ class FloatFactory {
     get lines() {
         return this.env.lines - this.env.cmdheight - 1;
     }
-    async getBoundings(docs) {
+    async getBoundings(docs, offsetX = 0) {
         let { nvim, preferTop } = this;
         let { columns, lines } = this;
         let alignTop = false;
-        let offsetX = 0;
         let [row, col] = await nvim.call('coc#util#win_position');
-        let maxWidth = this.maxWidth || Math.min(columns - 10, 80);
+        let maxWidth = this.maxWidth || Math.min(columns - 10, 82);
         let height = this.floatBuffer.getHeight(docs, maxWidth);
         height = Math.min(height, this.maxHeight);
         if (!preferTop) {
@@ -60295,12 +60272,11 @@ class FloatFactory {
         if (alignTop)
             docs.reverse();
         await this.floatBuffer.setDocuments(docs, maxWidth);
-        let { width, highlightOffset } = this.floatBuffer;
-        if (col + width > columns) {
-            offsetX = col + width - columns;
+        let { width } = this.floatBuffer;
+        offsetX = Math.min(col - 1, offsetX);
+        if (col - offsetX + width > columns) {
+            offsetX = col - offsetX + width - columns;
         }
-        offsetX = Math.max(offsetX, highlightOffset);
-        offsetX = Math.min(col, offsetX);
         this.alignTop = alignTop;
         return {
             height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
@@ -60310,37 +60286,24 @@ class FloatFactory {
             relative: 'cursor'
         };
     }
-    async create(docs, allowSelection = false) {
+    async create(docs, allowSelection = false, offsetX = 0) {
         if (!this.env.floating)
             return;
+        if (docs.length == 0) {
+            this.close();
+            return;
+        }
+        if (this.tokenSource) {
+            this.tokenSource.cancel();
+        }
         this.createTs = Date.now();
-        let id = uuid();
-        creatingIds.add(id);
         this.targetBufnr = workspace_1.default.bufnr;
         let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let token = tokenSource.token;
-        this._creating = true;
-        this.promise = this.promise.then(() => {
-            if (token.isCancellationRequested)
-                return;
-            return this._create(docs, allowSelection, token).then(() => {
-                creatingIds.delete(id);
-                this._creating = false;
-            }, e => {
-                creatingIds.delete(id);
-                logger.error('Error on create float window:', e);
-                this._creating = false;
-            });
-        });
-        await this.promise;
-    }
-    async _create(docs, allowSelection = false, token) {
-        if (docs.length == 0)
-            return;
         let [, line, col] = await this.nvim.call('getpos', ['.']);
         this.cursor = [line, col];
         await this.checkFloatBuffer();
-        let config = await this.getBoundings(docs);
+        let config = await this.getBoundings(docs, offsetX);
         if (!config || token.isCancellationRequested)
             return;
         let mode = await this.nvim.call('mode');
@@ -60355,19 +60318,19 @@ class FloatFactory {
             // helps to fix undo issue, don't know why.
             if (mode.startsWith('i'))
                 await nvim.eval('feedkeys("\\<C-g>u")');
-            if (token.isCancellationRequested)
-                return;
             let reuse = false;
             if (this.window)
                 reuse = await this.window.valid;
+            if (token.isCancellationRequested)
+                return;
             nvim.pauseNotification();
             if (!reuse) {
                 nvim.notify('nvim_open_win', [this.buffer, true, config]);
                 nvim.command(`let w:float = 1`, true);
-                nvim.command(`setl nospell nolist nowrap previewwindow foldcolumn=0`, true);
+                nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
-                nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
-                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2`, true);
+                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.command(`silent doautocmd User CocOpenFloat`, true);
             }
             else {
@@ -60426,14 +60389,8 @@ class FloatFactory {
         }
         util_1.disposeAll(this.disposables);
     }
-    get creating() {
-        return this._creating;
-    }
     get buffer() {
         return this.floatBuffer ? this.floatBuffer.buffer : null;
-    }
-    static get isCreating() {
-        return creatingIds.size > 0;
     }
     async activated() {
         if (!this.window)
@@ -60457,15 +60414,12 @@ const highlight_1 = __webpack_require__(259);
 const string_1 = __webpack_require__(210);
 const array_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
-const chars_1 = __webpack_require__(211);
 const logger = __webpack_require__(179)('model-floatBuffer');
 class FloatBuffer {
-    constructor(buffer, nvim, joinLines = true) {
+    constructor(buffer, nvim) {
         this.buffer = buffer;
         this.nvim = nvim;
-        this.joinLines = joinLines;
         this.lines = [];
-        this.chars = new chars_1.Chars('@,48-57,_192-255,<,>,$,#,-,`,*');
         this.positions = [];
         this.enableHighlight = true;
         this.width = 0;
@@ -60473,17 +60427,20 @@ class FloatBuffer {
         this.enableHighlight = config.get('enableFloatHighlight', true);
     }
     getHeight(docs, maxWidth) {
-        this.calculateFragments(docs, maxWidth);
-        return this.lines.length;
+        let l = 0;
+        for (let doc of docs) {
+            let lines = doc.content.split(/\r?\n/);
+            if (doc.filetype == 'markdown') {
+                lines = lines.filter(s => !s.startsWith('```'));
+            }
+            for (let line of lines) {
+                l = l + Math.ceil(string_1.byteLength(line) / (maxWidth - 4));
+            }
+        }
+        return l + docs.length - 1;
     }
     get valid() {
         return this.buffer.valid;
-    }
-    get highlightOffset() {
-        if (this.positions.length == 0)
-            return 0;
-        let vals = this.positions.map(s => s[1] - 1);
-        return Math.min(...vals);
     }
     calculateFragments(docs, maxWidth) {
         let fragments = [];
@@ -60496,72 +60453,17 @@ class FloatBuffer {
             let lines = [];
             let content = doc.content.replace(/\s+$/, '');
             let arr = content.split(/\r?\n/);
-            let inBlock = false;
             if (['Error', 'Info', 'Warning', 'Hint'].indexOf(doc.filetype) !== -1) {
                 fill = true;
             }
-            if (this.joinLines) {
-                // join the lines when necessary
-                arr = arr.reduce((list, curr) => {
-                    if (!curr)
-                        return list;
-                    if (/^\s*```/.test(curr)) {
-                        inBlock = !inBlock;
-                    }
-                    if (list.length) {
-                        let pre = list[list.length - 1];
-                        if (!inBlock && !isSingleLine(pre) && !isBreakCharacter(curr[0])) {
-                            list[list.length - 1] = pre + ' ' + curr;
-                            return list;
-                        }
-                    }
-                    list.push(curr);
-                    return list;
-                }, []);
-            }
-            let start = doc.active ? doc.active[0] : null;
-            let end = doc.active ? doc.active[1] : null;
             // let [start, end] = doc.active || []
             for (let str of arr) {
-                let len = string_1.byteLength(str);
-                if (len > maxWidth - 2) {
-                    // don't split on word
-                    let parts = this.softSplit(str, maxWidth - 2);
-                    if (start != null) {
-                        let count = 0;
-                        let inLine = false;
-                        let idx = 1;
-                        let total = end - start;
-                        for (let line of parts) {
-                            if (count >= total)
-                                break;
-                            if (!inLine && start < line.length) {
-                                inLine = true;
-                                let len = line.length > end ? total : line.length - start;
-                                count = len;
-                                positions.push([currLine + idx, start + 2, len]);
-                            }
-                            else if (inLine && total > count) {
-                                let len = (total - count) > line.length ? line.length : total - count;
-                                count = count + len;
-                                positions.push([currLine + idx, 2, len]);
-                            }
-                            else if (!inLine) {
-                                start = start - line.length;
-                                end = end - line.length;
-                            }
-                            idx = idx + 1;
-                        }
-                    }
-                    lines.push(...parts);
-                }
-                else {
-                    lines.push(str);
-                    if (start != null)
-                        positions.push([currLine + 1, start + 2, end - start]);
+                lines.push(str);
+                if (doc.active) {
+                    let part = str.slice(doc.active[0], doc.active[1]);
+                    positions.push([currLine + 1, doc.active[0] + 1, string_1.byteLength(part)]);
                 }
             }
-            lines = lines.map(s => s.length ? ' ' + s : '');
             fragments.push({
                 start: currLine,
                 lines,
@@ -60574,12 +60476,10 @@ class FloatBuffer {
             }
             idx = idx + 1;
         }
-        let width = this.width = Math.max(...newLines.map(s => string_1.byteLength(s))) + 1;
+        let width = this.width = Math.min(Math.max(...newLines.map(s => string_1.byteLength(s))) + 2, maxWidth);
         this.lines = newLines.map(s => {
             if (s == '—')
-                return '—'.repeat(width);
-            if (fill)
-                return s + ' '.repeat(width - string_1.byteLength(s));
+                return '—'.repeat(width - 2);
             return s;
         });
         return fragments;
@@ -60641,9 +60541,6 @@ class FloatBuffer {
             return 'sh';
         return filetype;
     }
-    get height() {
-        return this.lines.length;
-    }
     setLines() {
         let { buffer, lines, nvim, highlights } = this;
         nvim.call('clearmatches', [], true);
@@ -60686,71 +60583,8 @@ class FloatBuffer {
             }
         }
     }
-    softSplit(line, maxWidth) {
-        let { chars } = this;
-        let res = [];
-        let finished = false;
-        let start = 0;
-        do {
-            let len = 0;
-            let lastNonKeyword = 0;
-            for (let i = start; i < line.length; i++) {
-                let ch = line[i];
-                let code = ch.charCodeAt(0);
-                let iskeyword = code < 255 && chars.isKeywordCode(code);
-                if (len >= maxWidth) {
-                    if (iskeyword && lastNonKeyword) {
-                        res.push(line.slice(start, lastNonKeyword + 1));
-                        start = lastNonKeyword + 1;
-                    }
-                    else {
-                        let end = len == maxWidth ? i : i - 1;
-                        res.push(line.slice(start, end));
-                        start = end;
-                    }
-                    break;
-                }
-                len = len + string_1.byteLength(ch);
-                if (!iskeyword)
-                    lastNonKeyword = i;
-                if (i == line.length - 1) {
-                    let content = line.slice(start, i + 1);
-                    if (content.length)
-                        res.push(content);
-                    finished = true;
-                }
-            }
-        } while (!finished);
-        return res;
-    }
 }
 exports.default = FloatBuffer;
-function isSingleLine(line) {
-    if (line.trim().length == 0)
-        return true;
-    let str = line.trim();
-    if (str.startsWith('```') || str.length == 0)
-        return true;
-    if (str.startsWith('-'))
-        return true;
-    if (str.startsWith('*'))
-        return true;
-    if (str.startsWith('#'))
-        return true;
-    return false;
-}
-function isBreakCharacter(ch) {
-    let code = ch.charCodeAt(0);
-    if (code > 255)
-        return false;
-    if (code >= 48 && code <= 57)
-        return false;
-    if (code >= 97 && code <= 122)
-        return false;
-    if (code >= 65 && code <= 90)
-        return false;
-    return true;
-}
 //# sourceMappingURL=floatBuffer.js.map
 
 /***/ }),
@@ -60890,8 +60724,8 @@ function getHiglights(lines, filetype) {
                                             res.push({
                                                 line,
                                                 hlGroup,
-                                                colStart: colStart + 1,
-                                                colEnd: col + 1,
+                                                colStart,
+                                                colEnd: col,
                                                 isMarkdown: filetype == 'markdown'
                                             });
                                         }
@@ -60906,8 +60740,8 @@ function getHiglights(lines, filetype) {
                                     res.push({
                                         hlGroup,
                                         line,
-                                        colStart: colStart + 1,
-                                        colEnd: col + 1,
+                                        colStart,
+                                        colEnd: col,
                                         isMarkdown: filetype == 'markdown'
                                     });
                                 }
@@ -60933,7 +60767,7 @@ function getHiglights(lines, filetype) {
                 ['nvim_command', ['set laststatus=0']],
             ]);
             let buf = await nvim.buffer;
-            await buf.setLines(lines.map(s => s.slice(1)), { start: 0, end: -1, strictIndexing: false });
+            await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false });
             await buf.setOption('filetype', filetype);
             await nvim.uiAttach(200, lines.length + 1, {
                 ext_hlstate: true,
@@ -73091,10 +72925,10 @@ class Floating {
         this.config = {
             srcId: workspace_1.default.createNameSpace('coc-pum-float'),
             chars: new chars_1.Chars(configuration.get('previewIsKeyword', '@,48-57,_192-255')),
-            maxPreviewWidth: configuration.get('maxPreviewWidth', 50)
+            maxPreviewWidth: configuration.get('maxPreviewWidth', 80)
         };
     }
-    async show(docs, bounding, token) {
+    async showDocumentationFloating(docs, bounding, token) {
         let { nvim } = this;
         this.bounding = bounding;
         let curr = await nvim.call('win_getid');
@@ -73123,11 +72957,10 @@ class Floating {
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
                 nvim.command(`let w:float = 1`, true);
                 nvim.command(`let w:popup = 1`, true);
+                nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
-                nvim.command(`setl nospell nolist nowrap foldcolumn=0`, true);
-                nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true);
-                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true);
-                nvim.command(`silent doautocmd User CocOpenFloat`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2`, true);
+                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
                 nvim.call('cursor', [1, 1], true);
                 this.floatBuffer.setLines();
                 nvim.command(`noa call win_gotoid(${curr})`, true);
@@ -73150,6 +72983,27 @@ class Floating {
             await nvim.resumeNotification();
         }
     }
+    async showDocumentationVim(docs) {
+        if (workspace_1.default.completeOpt.indexOf('preview') == -1)
+            return;
+        let lines = [];
+        for (let i = 0; i < docs.length; i++) {
+            let { content } = docs[i];
+            lines.push(...content.split(/\r?\n/));
+            if (i != docs.length - 1) {
+                lines.push('---');
+            }
+        }
+        await this.nvim.call('coc#util#preview_info', [lines, 'txt']);
+    }
+    async show(docs, bounding, token) {
+        if (workspace_1.default.env.floating) {
+            await this.showDocumentationFloating(docs, bounding, token);
+        }
+        else {
+            await this.showDocumentationVim(docs);
+        }
+    }
     async calculateBounding(docs) {
         // drawn lines
         let { bounding, config, floatBuffer } = this;
@@ -73157,18 +73011,17 @@ class Floating {
         let { maxPreviewWidth } = config;
         let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0);
         let showRight = true;
-        let delta = columns - bounding.col - pumWidth;
-        if (delta < maxPreviewWidth && bounding.col > maxPreviewWidth) {
-            // show left
+        let paddingRight = columns - bounding.col - pumWidth;
+        if (bounding.col > paddingRight)
             showRight = false;
-        }
-        let maxWidth = !showRight || delta > maxPreviewWidth ? maxPreviewWidth : delta;
+        let maxWidth = showRight ? paddingRight : bounding.col - 1;
+        maxWidth = Math.min(maxPreviewWidth, maxWidth);
         await floatBuffer.setDocuments(docs, maxWidth);
         let maxHeight = lines - bounding.row - workspace_1.default.env.cmdheight - 1;
         return {
             col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width,
             row: bounding.row,
-            height: Math.min(maxHeight, floatBuffer.height),
+            height: Math.min(maxHeight, floatBuffer.getHeight(docs, maxWidth)),
             width: floatBuffer.width
         };
     }
@@ -73185,6 +73038,10 @@ class Floating {
         this.floatBuffer = new floatBuffer_1.default(buffer, nvim);
     }
     close() {
+        if (workspace_1.default.isVim) {
+            this.nvim.command('pclose', true);
+            return;
+        }
         let { window } = this;
         if (!window)
             return;
@@ -73671,8 +73528,6 @@ class Handler {
         return currentFunctionName;
     }
     async onHover() {
-        if (this.hoverFactory.creating)
-            return;
         let { document, position } = await workspace_1.default.getCurrentState();
         let hovers = await languages_1.default.getHover(document, position);
         if (hovers && hovers.length) {
@@ -74159,8 +74014,8 @@ class Handler {
             let paramDoc = null;
             let docs = signatures.reduce((p, c, idx) => {
                 let activeIndexes = null;
+                let nameIndex = c.label.indexOf('(');
                 if (idx == 0 && activeParameter != null) {
-                    let nameIndex = c.label.indexOf('(');
                     let active = c.parameters[activeParameter];
                     if (active) {
                         let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex);
@@ -74182,7 +74037,6 @@ class Handler {
                     }
                 }
                 if (activeIndexes == null) {
-                    let nameIndex = c.label.indexOf('(');
                     activeIndexes = [nameIndex + 1, nameIndex + 1];
                 }
                 p.push({
@@ -74211,7 +74065,12 @@ class Handler {
                 }
                 return p;
             }, []);
-            await this.signatureFactory.create(docs, true);
+            let offset = 0;
+            if (docs.length && docs[0].active) {
+                let [start, end] = docs[0].active;
+                offset = end < 80 ? start + 1 : docs[0].content.indexOf('(') + 1;
+            }
+            await this.signatureFactory.create(docs, true, offset);
             // show float
         }
         else {
@@ -75297,7 +75156,7 @@ exports.default = default_1;
 /* 344 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.67","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.3","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.67","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.11","@types/minimatch":"^3.0.3","@types/node":"^11.13.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.7.1","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.16.0","typescript":"3.4.4","vscode-languageserver":"^5.3.0-next.5"},"dependencies":{"@chemzqm/neovim":"5.1.5","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^3.0.0","glob":"^7.1.3","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.1.0","minimatch":"^3.0.4","semver":"^6.0.0","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.4","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^1.0.6","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
