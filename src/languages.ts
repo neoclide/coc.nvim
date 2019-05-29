@@ -50,6 +50,10 @@ interface CompleteConfig {
   detailField: string
 }
 
+function fixDocumentation(str: string): string {
+  return str.replace(/&nbsp;/g, ' ')
+}
+
 export function check<R extends (...args: any[]) => Promise<R>>(_target: any, key: string, descriptor: any): void {
   let fn = descriptor.value
   if (typeof fn !== 'function') {
@@ -567,12 +571,12 @@ class Languages {
             if (typeof documentation == 'string') {
               docs.push({
                 filetype: 'markdown',
-                content: documentation
+                content: fixDocumentation(documentation)
               })
             } else if (documentation.value) {
               docs.push({
                 filetype: documentation.kind == 'markdown' ? 'markdown' : 'txt',
-                content: documentation.value
+                content: fixDocumentation(documentation.value)
               })
             }
           }
