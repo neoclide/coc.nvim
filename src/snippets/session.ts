@@ -205,7 +205,6 @@ export class SnippetSession {
     await nvim.call('cursor', [start.line + 1, col + 1])
     if (mode != 'n') move_cmd += "\\<Esc>"
     if (len == 0) {
-      triggerAutocmd = false
       if (col == 0 || (!mode.startsWith('i') && col < byteLength(line))) {
         move_cmd += 'i'
       } else {

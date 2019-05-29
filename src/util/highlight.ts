@@ -137,8 +137,8 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                       res.push({
                         line,
                         hlGroup,
-                        colStart: colStart + 1,
-                        colEnd: col + 1,
+                        colStart,
+                        colEnd: col,
                         isMarkdown: filetype == 'markdown'
                       })
                     }
@@ -152,8 +152,8 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
                   res.push({
                     hlGroup,
                     line,
-                    colStart: colStart + 1,
-                    colEnd: col + 1,
+                    colStart,
+                    colEnd: col,
                     isMarkdown: filetype == 'markdown'
                   })
                 }
@@ -179,7 +179,7 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
         ['nvim_command', ['set laststatus=0']],
       ])
       let buf = await nvim.buffer
-      await buf.setLines(lines.map(s => s.slice(1)), { start: 0, end: -1, strictIndexing: false })
+      await buf.setLines(lines, { start: 0, end: -1, strictIndexing: false })
       await buf.setOption('filetype', filetype)
       await nvim.uiAttach(200, lines.length + 1, {
         ext_hlstate: true,

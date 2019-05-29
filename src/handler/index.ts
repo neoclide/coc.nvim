@@ -244,7 +244,6 @@ export default class Handler {
   }
 
   public async onHover(): Promise<void> {
-    if (this.hoverFactory.creating) return
     let { document, position } = await workspace.getCurrentState()
     let hovers = await languages.getHover(document, position)
     if (hovers && hovers.length) {
@@ -705,8 +704,8 @@ export default class Handler {
       let paramDoc: string | MarkupContent = null
       let docs: Documentation[] = signatures.reduce((p: Documentation[], c, idx) => {
         let activeIndexes: [number, number] = null
+        let nameIndex = c.label.indexOf('(')
         if (idx == 0 && activeParameter != null) {
-          let nameIndex = c.label.indexOf('(')
           let active = c.parameters[activeParameter]
           if (active) {
             let after = c.label.slice(nameIndex == -1 ? 0 : nameIndex)
@@ -727,7 +726,6 @@ export default class Handler {
           }
         }
         if (activeIndexes == null) {
-          let nameIndex = c.label.indexOf('(')
           activeIndexes = [nameIndex + 1, nameIndex + 1]
         }
         p.push({
@@ -756,7 +754,12 @@ export default class Handler {
         }
         return p
       }, [])
-      await this.signatureFactory.create(docs, true)
+      let offset = 0
+      if (docs.length && docs[0].active) {
+        let [start, end] = docs[0].active
+        offset = end < 80 ? start + 1 : docs[0].content.indexOf('(') + 1
+      }
+      await this.signatureFactory.create(docs, true, offset)
       // show float
     } else {
       let columns = workspace.env.columns

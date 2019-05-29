@@ -51,8 +51,8 @@ export class DiagnosticManager implements Disposable {
   public init(): void {
     this.setConfiguration()
     let { nvim } = workspace
-    let { maxWindowHeight, joinMessageLines } = this.config
-    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight, joinMessageLines)
+    let { maxWindowHeight } = this.config
+    this.floatFactory = new FloatFactory(nvim, workspace.env, false, maxWindowHeight)
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
@@ -401,7 +401,6 @@ export class DiagnosticManager implements Disposable {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      if (FloatFactory.isCreating) return
       let hasFloat = await this.nvim.call('coc#util#has_float')
       if (hasFloat) return
       await this.floatFactory.create(docs)

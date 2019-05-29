@@ -125,12 +125,16 @@ function! coc#util#win_position()
 endfunction
 
 function! coc#util#close_popup()
-  for winnr in range(1, winnr('$'))
-    let popup = getwinvar(winnr, 'popup')
-    if !empty(popup)
-      exe winnr.'close!'
-    endif
-  endfor
+  if s:is_vim
+    pclose
+  else
+    for winnr in range(1, winnr('$'))
+      let popup = getwinvar(winnr, 'popup')
+      if !empty(popup)
+        exe winnr.'close!'
+      endif
+    endfor
+  endif
 endfunction
 
 function! coc#util#version()
@@ -271,12 +275,13 @@ function! coc#util#on_error(msg) abort
 endfunction
 
 function! coc#util#preview_info(info, ...) abort
+  let filetype = get(a:, 1, 'markdown')
   pclose
   keepalt new +setlocal\ previewwindow|setlocal\ buftype=nofile|setlocal\ noswapfile|setlocal\ wrap [Document]
   setl bufhidden=wipe
   setl nobuflisted
   setl nospell
-  setl filetype=markdown
+  exe 'setl filetype='.filetype
   setl conceallevel=2
   setl nofoldenable
   let lines = a:info

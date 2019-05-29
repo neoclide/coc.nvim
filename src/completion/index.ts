@@ -32,7 +32,6 @@ export class Completion implements Disposable {
   private complete: Complete | null = null
   private recentScores: RecentScore = {}
   private resolveTokenSource: CancellationTokenSource
-  private floatTokenSource: CancellationTokenSource
   private changedTick = 0
   private insertCharTs = 0
   private insertLeaveTs = 0
@@ -381,11 +380,6 @@ export class Completion implements Disposable {
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
     let { document, nvim } = this
-    if (this.floatTokenSource) {
-      this.floatTokenSource.cancel()
-      this.floatTokenSource = null
-      this.floating.close()
-    }
     if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
@@ -465,14 +459,7 @@ export class Completion implements Disposable {
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
     if (!this.activted) return
-    if (this.resolveTokenSource) {
-      this.resolveTokenSource.cancel()
-      this.resolveTokenSource = null
-    }
-    if (this.floatTokenSource) {
-      this.floatTokenSource.cancel()
-      this.floatTokenSource = null
-    }
+    this.cancel()
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
     this.currItem = completed_item.hasOwnProperty('word') ? completed_item : null
@@ -496,9 +483,8 @@ export class Completion implements Disposable {
     if (!docs || docs.length == 0) {
       this.floating.close()
     } else {
-      if (token.isCancellationRequested || !this.isActivted) return
-      this.floatTokenSource = new CancellationTokenSource()
-      await this.floating.show(docs, bounding, this.floatTokenSource.token)
+      if (token.isCancellationRequested) return
+      await this.floating.show(docs, bounding, token)
     }
     this.resolveTokenSource = null
   }
@@ -518,17 +504,17 @@ export class Completion implements Disposable {
     this.document.paused = true
   }
 
-  public stop(): void {
-    let { nvim } = this
-    if (!this.activted) return
+  private cancel(): void {
     if (this.resolveTokenSource) {
       this.resolveTokenSource.cancel()
       this.resolveTokenSource = null
     }
-    if (this.floatTokenSource) {
-      this.floatTokenSource.cancel()
-      this.floatTokenSource = null
-    }
+  }
+
+  public stop(): void {
+    let { nvim } = this
+    if (!this.activted) return
+    this.cancel()
     this.currItem = null
     this.activted = false
     this.document.paused = false

@@ -31,11 +31,11 @@ export default class Floating {
     this.config = {
       srcId: workspace.createNameSpace('coc-pum-float'),
       chars: new Chars(configuration.get<string>('previewIsKeyword', '@,48-57,_192-255')),
-      maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 50)
+      maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80)
     }
   }
 
-  public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
+  private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = this
     this.bounding = bounding
     let curr = await nvim.call('win_getid')
@@ -62,11 +62,10 @@ export default class Floating {
         nvim.command(`noa call win_gotoid(${win.id})`, true)
         nvim.command(`let w:float = 1`, true)
         nvim.command(`let w:popup = 1`, true)
+        nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true)
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
-        nvim.command(`setl nospell nolist nowrap foldcolumn=0`, true)
-        nvim.command(`setl signcolumn=no conceallevel=2 listchars=eol:\\ `, true)
-        nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating`, true)
-        nvim.command(`silent doautocmd User CocOpenFloat`, true)
+        nvim.command(`setl signcolumn=no conceallevel=2`, true)
+        nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
         nvim.call('cursor', [1, 1], true)
         this.floatBuffer.setLines()
         nvim.command(`noa call win_gotoid(${curr})`, true)
@@ -88,6 +87,27 @@ export default class Floating {
     }
   }
 
+  private async showDocumentationVim(docs: Documentation[]): Promise<void> {
+    if (workspace.completeOpt.indexOf('preview') == -1) return
+    let lines = []
+    for (let i = 0; i < docs.length; i++) {
+      let { content } = docs[i]
+      lines.push(...content.split(/\r?\n/))
+      if (i != docs.length - 1) {
+        lines.push('---')
+      }
+    }
+    await this.nvim.call('coc#util#preview_info', [lines, 'txt'])
+  }
+
+  public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
+    if (workspace.env.floating) {
+      await this.showDocumentationFloating(docs, bounding, token)
+    } else {
+      await this.showDocumentationVim(docs)
+    }
+  }
+
   private async calculateBounding(docs: Documentation[]): Promise<Bounding> {
     // drawn lines
     let { bounding, config, floatBuffer } = this
@@ -95,18 +115,16 @@ export default class Floating {
     let { maxPreviewWidth } = config
     let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0)
     let showRight = true
-    let delta = columns - bounding.col - pumWidth
-    if (delta < maxPreviewWidth && bounding.col > maxPreviewWidth) {
-      // show left
-      showRight = false
-    }
-    let maxWidth = !showRight || delta > maxPreviewWidth ? maxPreviewWidth : delta
+    let paddingRight = columns - bounding.col - pumWidth
+    if (bounding.col > paddingRight) showRight = false
+    let maxWidth = showRight ? paddingRight : bounding.col - 1
+    maxWidth = Math.min(maxPreviewWidth, maxWidth)
     await floatBuffer.setDocuments(docs, maxWidth)
     let maxHeight = lines - bounding.row - workspace.env.cmdheight - 1
     return {
       col: showRight ? bounding.col + pumWidth : bounding.col - floatBuffer.width,
       row: bounding.row,
-      height: Math.min(maxHeight, floatBuffer.height),
+      height: Math.min(maxHeight, floatBuffer.getHeight(docs, maxWidth)),
       width: floatBuffer.width
     }
   }
@@ -124,6 +142,10 @@ export default class Floating {
   }
 
   public close(): void {
+    if (workspace.isVim) {
+      this.nvim.command('pclose', true)
+      return
+    }
     let { window } = this
     if (!window) return
     this.window = null

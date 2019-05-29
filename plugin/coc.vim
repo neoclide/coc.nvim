@@ -124,7 +124,7 @@ function! s:Enable()
     if exists('##MenuPopupChanged') && exists('*nvim_open_win')
       autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
-    if exists('##CompleteChanged') && exists('*nvim_open_win')
+    if exists('##CompleteChanged')
       autocmd CompleteChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
     if exists('##MenuPopupChanged') || exists('##CompleteChanged')

@@ -84,8 +84,6 @@ describe('BasicList', () => {
       let win = await nvim.window
       let isPreview = await win.getOption('previewwindow')
       expect(isPreview).toBe(true)
-      let bufname = await nvim.call('bufname', '%')
-      expect(bufname).toBe('[No Name]')
       let line = await nvim.line
       expect(line).toBe('foo')
       disposable.dispose()

@@ -67,7 +67,7 @@ describe('completion float', () => {
     await nvim.input('f')
     await helper.visible('foo', 'float')
     await nvim.input('<C-n>')
-    await helper.wait(200)
+    await helper.wait(300)
     let floatWin = await helper.getFloat()
     let config = await floatWin.getConfig()
     expect(config.col + config.width).toBeLessThan(80)
