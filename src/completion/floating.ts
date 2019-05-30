@@ -21,8 +21,6 @@ export interface FloatingConfig {
 
 export default class Floating {
   private window: Window
-  private buffer: Buffer
-  private bounding: PumBounding
   private floatBuffer: FloatBuffer
   private config: FloatingConfig
 
@@ -35,11 +33,16 @@ export default class Floating {
     }
   }
 
+  private get buffer(): Buffer {
+    let { floatBuffer } = this
+    return floatBuffer ? floatBuffer.buffer : null
+  }
+
   private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = this
-    this.bounding = bounding
     await this.checkBuffer()
-    let rect = await this.calculateBounding(docs)
+    let rect = await this.calculateBounding(docs, bounding)
+    let config = Object.assign({ relative: 'editor', }, rect)
     if (this.window) {
       let valid = await this.window.valid
       if (!valid) this.window = null
@@ -47,7 +50,6 @@ export default class Floating {
     if (token.isCancellationRequested) return
     if (!this.window) {
       try {
-        let config = Object.assign({ relative: 'editor', }, rect)
         let win = this.window = await nvim.openFloatWindow(this.buffer, false, config)
         if (token.isCancellationRequested) {
           this.close()
@@ -56,22 +58,14 @@ export default class Floating {
         nvim.pauseNotification()
         win.setVar('float', 1, true)
         win.setVar('popup', 1, true)
-        win.setOption('wrap', true, true)
-        win.setOption('linebreak', true, true)
-        win.setOption('foldcolumn', 1, true)
-        win.setOption('list', false, true)
-        win.setOption('spell', false, true)
-        win.setOption('listchars', 'eol: ', true)
-        win.setOption('number', false, true)
-        win.setOption('cursorline', false, true)
-        win.setOption('cursorcolumn', false, true)
-        win.setOption('signcolumn', 'no', true)
-        win.setOption('conceallevel', 2, true)
-        win.setOption('relativenumber', false, true)
-        win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating', true)
         nvim.command(`noa call win_gotoid(${win.id})`, true)
+        nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true)
+        nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
+        nvim.command(`setl signcolumn=no conceallevel=2`, true)
+        nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
+        nvim.command(`silent doautocmd User CocOpenFloat`, true)
         this.floatBuffer.setLines()
-        nvim.command(`normal! gg0`, true)
+        nvim.call('cursor', [1, 1], true)
         nvim.command(`noa wincmd p`, true)
         let [, err] = await nvim.resumeNotification()
         if (err) workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
@@ -80,12 +74,9 @@ export default class Floating {
       }
     } else {
       nvim.pauseNotification()
-      let config = Object.assign({
-        relative: 'editor'
-      }, rect)
       this.window.setConfig(config, true)
       nvim.command(`noa call win_gotoid(${this.window.id})`, true)
-      nvim.command(`normal! gg0`, true)
+      nvim.call('cursor', [1, 1], true)
       this.floatBuffer.setLines()
       nvim.command(`noa wincmd p`, true)
       let [, err] = await nvim.resumeNotification()
@@ -114,9 +105,9 @@ export default class Floating {
     }
   }
 
-  private async calculateBounding(docs: Documentation[]): Promise<Bounding> {
+  private async calculateBounding(docs: Documentation[], bounding: PumBounding): Promise<Bounding> {
     // drawn lines
-    let { bounding, config, floatBuffer } = this
+    let { config, floatBuffer } = this
     let { columns, lines } = workspace.env
     let { maxPreviewWidth } = config
     let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0)
@@ -141,7 +132,7 @@ export default class Floating {
       let valid = await buffer.valid
       if (valid) return
     }
-    buffer = this.buffer = await this.nvim.createNewBuffer(false, true)
+    buffer = await this.nvim.createNewBuffer(false, true)
     await buffer.setOption('buftype', 'nofile')
     await buffer.setOption('bufhidden', 'hide')
     this.floatBuffer = new FloatBuffer(buffer, nvim)
