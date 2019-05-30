@@ -59,7 +59,7 @@ export default class Complete {
     return this.results.findIndex(o => o.isIncomplete == true) !== -1
   }
 
-  private async completeSource(source: ISource, completeInComplete = false): Promise<void> {
+  private async completeSource(source: ISource): Promise<void> {
     let { col } = this.option
     // new option for each source
     let opt = Object.assign({}, this.option)
@@ -113,14 +113,10 @@ export default class Complete {
           let dt = Date.now() - start
           logger.debug(`Source "${name}" takes ${dt}ms`)
           if (result && result.items && result.items.length) {
-            if (result.startcol != null && result.startcol != col) {
-              result.engross = true
-            }
             result.priority = source.priority
             result.source = name
-            result.completeInComplete = completeInComplete
             // lazy completed items
-            if (result.engross && empty) {
+            if (empty && result.startcol && result.startcol != col) {
               this.results = [result]
             } else {
               let { results } = this
@@ -147,7 +143,7 @@ export default class Complete {
 
   public async completeInComplete(resumeInput: string): Promise<VimCompleteItem[]> {
     let { results, document } = this
-    let remains = results.filter(res => !res.isIncomplete)
+    let remains = results.filter(res => res.isIncomplete != true)
     remains.forEach(res => {
       res.items.forEach(item => delete item.user_data)
     })
@@ -162,16 +158,8 @@ export default class Complete {
       triggerForInComplete: true
     })
     let sources = this.sources.filter(s => names.indexOf(s.name) !== -1)
-    await Promise.all(sources.map(s => this.completeSource(s, true)))
+    await Promise.all(sources.map(s => this.completeSource(s)))
     return this.filterResults(resumeInput, Math.floor(Date.now() / 1000))
-  }
-
-  public excludeResults(names: string[]): CompleteResult[] {
-    let { results } = this
-    if (!results) return []
-    let arr = this.results.filter(o => names.indexOf(o.source) == -1)
-    arr.forEach(o => o.engross = false)
-    return arr
   }
 
   public filterResults(input: string, cid = 0): VimCompleteItem[] {
@@ -297,9 +285,9 @@ export default class Complete {
     return false
   }
 
-  public async doComplete(preserved?: CompleteResult[]): Promise<VimCompleteItem[]> {
+  public async doComplete(): Promise<VimCompleteItem[]> {
     let opts = this.option
-    let { line, colnr, linenr } = this.option
+    let { line, colnr, linenr, col } = this.option
     if (this.config.localityBonus) {
       let line = linenr - 1
       this.localBonus = this.document.getLocalifyBonus(Position.create(line, opts.col - 1), Position.create(line, colnr))
@@ -308,17 +296,12 @@ export default class Complete {
     }
     await Promise.all(this.sources.map(s => this.completeSource(s)))
     let { results } = this
-    if (preserved && preserved.length) {
-      results = this.results = results.concat(preserved)
-    }
     if (results.length == 0) return []
-    let engrossResult = results.find(r => r.engross === true)
+    let engrossResult = results.find(r => r.startcol != null && r.startcol != col)
     if (engrossResult) {
       let { startcol } = engrossResult
-      if (startcol != null) {
-        opts.col = startcol
-        opts.input = byteSlice(line, startcol, colnr - 1)
-      }
+      opts.col = startcol
+      opts.input = byteSlice(line, startcol, colnr - 1)
       this.results = [engrossResult]
     }
     logger.info(`Results from: ${this.results.map(s => s.source).join(',')}`)

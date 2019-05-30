@@ -425,7 +425,6 @@ export interface CompleteOption {
   readonly source?: string
   readonly blacklist: string[]
   triggerForInComplete?: boolean
-  preserved?: CompleteResult[]
 }
 
 export interface PumBounding {
@@ -479,9 +478,7 @@ export interface PopupChangeEvent {
 
 export interface CompleteResult {
   items: VimCompleteItem[]
-  completeInComplete?: boolean
   isIncomplete?: boolean
-  engross?: boolean
   startcol?: number
   source?: string
   priority?: number

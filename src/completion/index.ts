@@ -1,15 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
+import debounce from 'debounce'
 import { CancellationTokenSource, Disposable } from 'vscode-languageserver-protocol'
 import events from '../events'
 import Document from '../model/document'
 import sources from '../sources'
-import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem, CompleteResult } from '../types'
+import { CompleteConfig, CompleteOption, ISource, PopupChangeEvent, PumBounding, RecentScore, VimCompleteItem } from '../types'
 import { disposeAll, wait } from '../util'
 import { byteSlice, characterIndex } from '../util/string'
 import workspace from '../workspace'
 import Complete from './complete'
 import Floating from './floating'
-import debounce from 'debounce'
 const logger = require('../util/logger')('completion')
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data']
 
@@ -235,15 +235,13 @@ export class Completion implements Disposable {
   }
 
   private async _doComplete(option: CompleteOption): Promise<void> {
-    let { line, colnr, filetype, source, preserved } = option
+    let { source } = option
     let { nvim, config, document } = this
     // current input
     this.input = option.input
-    let pre = byteSlice(line, 0, colnr - 1)
-    let isTriggered = source == null && option.triggerCharacter && sources.shouldTrigger(pre, filetype)
     let arr: ISource[] = []
     if (source == null) {
-      arr = sources.getCompleteSources(option, isTriggered)
+      arr = sources.getCompleteSources(option)
     } else {
       let s = sources.getSource(source)
       if (s) arr.push(s)
@@ -251,7 +249,7 @@ export class Completion implements Disposable {
     if (!arr.length) return
     let complete = new Complete(option, document, this.recentScores, config, arr, nvim)
     this.start(complete)
-    let items = await this.complete.doComplete(preserved)
+    let items = await this.complete.doComplete()
     if (complete.isCanceled) return
     if (items.length == 0 && !complete.isCompleting) {
       this.stop()
@@ -306,13 +304,8 @@ export class Completion implements Disposable {
     let col = await this.nvim.call('col', '.')
     let search = byteSlice(line, option.col, col - 1)
     let pre = byteSlice(line, 0, col - 1)
-    let last = pre.length ? pre[pre.length - 1] : ''
-    let isKeyword = last.length ? document.chars.isKeywordChar(last) : false
-    let triggerSources = sources.getTriggerSources(pre, document.filetype)
-    let names = triggerSources.map(s => s.name)
-    if (names.length) {
-      let preserved = isKeyword ? this.complete.excludeResults(names) : []
-      await this.triggerCompletion(document, pre, false, preserved)
+    if (sources.shouldTrigger(pre, document.filetype)) {
+      await this.triggerCompletion(document, pre, false)
     } else {
       await this.resumeCompletion(pre, search)
     }
@@ -364,7 +357,7 @@ export class Completion implements Disposable {
     return await this.resumeCompletion(content, search)
   }
 
-  private async triggerCompletion(document: Document, pre: string, checkTrigger = true, preserved?: CompleteResult[]): Promise<void> {
+  private async triggerCompletion(document: Document, pre: string, checkTrigger = true): Promise<void> {
     // check trigger
     if (checkTrigger) {
       let shouldTrigger = await this.shouldTrigger(document, pre)
@@ -373,7 +366,6 @@ export class Completion implements Disposable {
     let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
     if (!option) return
     option.triggerCharacter = pre.slice(-1)
-    option.preserved = preserved
     logger.debug('trigger completion with', option)
     await this.startCompletion(option)
   }
