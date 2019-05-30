@@ -11,3 +11,5 @@ coverage
 data
 tslint.json
 tsconfig.json
+.zip
+.DS_Store
