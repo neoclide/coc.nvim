@@ -138,6 +138,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Elixir](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elixir)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
     - [Tex](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
+    - [Elm](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elm)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
