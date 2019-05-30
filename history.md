@@ -1,3 +1,18 @@
+# 2019-05-30
+
+- **Break change** logger folder changed.
+- Add support of vim-repeat for `<Plug>` keymaps.
+- Add `CocRegistNotification()` function.
+- Add argument to rename action.
+- Add `suggest.disableMenuShortcut` configuration.
+- Add glob support for root patterns.
+- Add `<esc>` keymap to list window.
+- Add shortcut in sources list.
+- Add `list.previewSplitRight` configuration.
+- Add `triggerOnly` property to source.
+- Add warning for duplicate extension.
+- Bug fixes.
+
 # 2019-05-07
 
 - **New feature** load extensions from coc-extensions folder.
