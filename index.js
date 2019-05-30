@@ -53752,7 +53752,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3f2de09345" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7785070b02" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54710,6 +54710,7 @@ exports.normalizeSnippetString = normalizeSnippetString;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(170));
 const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(236));
@@ -54718,7 +54719,6 @@ const string_1 = __webpack_require__(210);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(332));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(334));
-const debounce_1 = tslib_1.__importDefault(__webpack_require__(170));
 const logger = __webpack_require__(179)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -54940,15 +54940,13 @@ class Completion {
         nvim.call('coc#_do_complete', [col, vimItems], true);
     }
     async _doComplete(option) {
-        let { line, colnr, filetype, source, preserved } = option;
+        let { source } = option;
         let { nvim, config, document } = this;
         // current input
         this.input = option.input;
-        let pre = string_1.byteSlice(line, 0, colnr - 1);
-        let isTriggered = source == null && option.triggerCharacter && sources_1.default.shouldTrigger(pre, filetype);
         let arr = [];
         if (source == null) {
-            arr = sources_1.default.getCompleteSources(option, isTriggered);
+            arr = sources_1.default.getCompleteSources(option);
         }
         else {
             let s = sources_1.default.getSource(source);
@@ -54959,7 +54957,7 @@ class Completion {
             return;
         let complete = new complete_1.default(option, document, this.recentScores, config, arr, nvim);
         this.start(complete);
-        let items = await this.complete.doComplete(preserved);
+        let items = await this.complete.doComplete();
         if (complete.isCanceled)
             return;
         if (items.length == 0 && !complete.isCompleting) {
@@ -55019,13 +55017,8 @@ class Completion {
         let col = await this.nvim.call('col', '.');
         let search = string_1.byteSlice(line, option.col, col - 1);
         let pre = string_1.byteSlice(line, 0, col - 1);
-        let last = pre.length ? pre[pre.length - 1] : '';
-        let isKeyword = last.length ? document.chars.isKeywordChar(last) : false;
-        let triggerSources = sources_1.default.getTriggerSources(pre, document.filetype);
-        let names = triggerSources.map(s => s.name);
-        if (names.length) {
-            let preserved = isKeyword ? this.complete.excludeResults(names) : [];
-            await this.triggerCompletion(document, pre, false, preserved);
+        if (sources_1.default.shouldTrigger(pre, document.filetype)) {
+            await this.triggerCompletion(document, pre, false);
         }
         else {
             await this.resumeCompletion(pre, search);
@@ -55080,7 +55073,7 @@ class Completion {
         let search = content.slice(string_1.characterIndex(content, this.option.col));
         return await this.resumeCompletion(content, search);
     }
-    async triggerCompletion(document, pre, checkTrigger = true, preserved) {
+    async triggerCompletion(document, pre, checkTrigger = true) {
         // check trigger
         if (checkTrigger) {
             let shouldTrigger = await this.shouldTrigger(document, pre);
@@ -55091,7 +55084,6 @@ class Completion {
         if (!option)
             return;
         option.triggerCharacter = pre.slice(-1);
-        option.preserved = preserved;
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
     }
@@ -55499,24 +55491,43 @@ class Sources {
         }
         return false;
     }
-    getCompleteSources(opt, isTriggered) {
+    getCompleteSources(opt) {
         let { filetype } = opt;
         let pre = string_1.byteSlice(opt.line, 0, opt.colnr - 1);
+        let isTriggered = opt.input == '' && opt.triggerCharacter;
         if (isTriggered)
             return this.getTriggerSources(pre, filetype);
-        return this.getSourcesForFiletype(filetype, isTriggered);
+        let character = pre.length ? pre[pre.length - 1] : '';
+        return this.sources.filter(source => {
+            let { filetypes, triggerOnly, enable } = source;
+            if (!enable || (filetypes && filetypes.indexOf(filetype) == -1)) {
+                return false;
+            }
+            if (triggerOnly && !this.checkTrigger(source, pre, character)) {
+                return false;
+            }
+            return true;
+        });
+    }
+    checkTrigger(source, pre, character) {
+        let { triggerCharacters, triggerPatterns } = source;
+        if (!triggerCharacters && !triggerPatterns)
+            return false;
+        if (character && triggerCharacters && triggerCharacters.indexOf(character) !== -1) {
+            return true;
+        }
+        if (triggerPatterns && triggerPatterns.findIndex(p => p.test(pre)) !== -1) {
+            return true;
+        }
+        return false;
     }
     shouldTrigger(pre, languageId) {
-        if (pre.length == 0)
-            return false;
-        let last = pre[pre.length - 1];
+        let last = pre.length ? pre[pre.length - 1] : '';
         let idx = this.sources.findIndex(s => {
             let { enable, triggerCharacters, triggerPatterns, filetypes } = s;
-            if (!enable)
+            if (!enable || (filetypes && filetypes.indexOf(languageId) == -1))
                 return false;
-            if ((filetypes && filetypes.indexOf(languageId) == -1))
-                return false;
-            if (triggerCharacters)
+            if (last && triggerCharacters)
                 return triggerCharacters.indexOf(last) !== -1;
             if (triggerPatterns)
                 return triggerPatterns.findIndex(p => p.test(pre)) !== -1;
@@ -55525,14 +55536,13 @@ class Sources {
         return idx !== -1;
     }
     getTriggerSources(pre, languageId) {
-        let sources = this.getSourcesForFiletype(languageId, true);
-        let character = pre[pre.length - 1];
-        return sources.filter(o => {
-            if (o.triggerCharacters && o.triggerCharacters.indexOf(character) !== -1)
-                return true;
-            if (o.triggerPatterns && o.triggerPatterns.findIndex(p => p.test(pre)) !== -1)
-                return true;
-            return false;
+        let character = pre.length ? pre[pre.length - 1] : '';
+        return this.sources.filter(source => {
+            let { filetypes, enable } = source;
+            if (!enable || (filetypes && filetypes.indexOf(languageId) == -1)) {
+                return false;
+            }
+            return this.checkTrigger(source, pre, character);
         });
     }
     getSourcesForFiletype(filetype, isTriggered) {
@@ -72426,7 +72436,7 @@ class Complete {
     get isIncomplete() {
         return this.results.findIndex(o => o.isIncomplete == true) !== -1;
     }
-    async completeSource(source, completeInComplete = false) {
+    async completeSource(source) {
         let { col } = this.option;
         // new option for each source
         let opt = Object.assign({}, this.option);
@@ -72485,14 +72495,10 @@ class Complete {
                     let dt = Date.now() - start;
                     logger.debug(`Source "${name}" takes ${dt}ms`);
                     if (result && result.items && result.items.length) {
-                        if (result.startcol != null && result.startcol != col) {
-                            result.engross = true;
-                        }
                         result.priority = source.priority;
                         result.source = name;
-                        result.completeInComplete = completeInComplete;
                         // lazy completed items
-                        if (result.engross && empty) {
+                        if (empty && result.startcol && result.startcol != col) {
                             this.results = [result];
                         }
                         else {
@@ -72523,7 +72529,7 @@ class Complete {
     }
     async completeInComplete(resumeInput) {
         let { results, document } = this;
-        let remains = results.filter(res => !res.isIncomplete);
+        let remains = results.filter(res => res.isIncomplete != true);
         remains.forEach(res => {
             res.items.forEach(item => delete item.user_data);
         });
@@ -72538,16 +72544,8 @@ class Complete {
             triggerForInComplete: true
         });
         let sources = this.sources.filter(s => names.indexOf(s.name) !== -1);
-        await Promise.all(sources.map(s => this.completeSource(s, true)));
+        await Promise.all(sources.map(s => this.completeSource(s)));
         return this.filterResults(resumeInput, Math.floor(Date.now() / 1000));
-    }
-    excludeResults(names) {
-        let { results } = this;
-        if (!results)
-            return [];
-        let arr = this.results.filter(o => names.indexOf(o.source) == -1);
-        arr.forEach(o => o.engross = false);
-        return arr;
     }
     filterResults(input, cid = 0) {
         let { results } = this;
@@ -72688,9 +72686,9 @@ class Complete {
         }
         return false;
     }
-    async doComplete(preserved) {
+    async doComplete() {
         let opts = this.option;
-        let { line, colnr, linenr } = this.option;
+        let { line, colnr, linenr, col } = this.option;
         if (this.config.localityBonus) {
             let line = linenr - 1;
             this.localBonus = this.document.getLocalifyBonus(vscode_languageserver_protocol_1.Position.create(line, opts.col - 1), vscode_languageserver_protocol_1.Position.create(line, colnr));
@@ -72700,18 +72698,13 @@ class Complete {
         }
         await Promise.all(this.sources.map(s => this.completeSource(s)));
         let { results } = this;
-        if (preserved && preserved.length) {
-            results = this.results = results.concat(preserved);
-        }
         if (results.length == 0)
             return [];
-        let engrossResult = results.find(r => r.engross === true);
+        let engrossResult = results.find(r => r.startcol != null && r.startcol != col);
         if (engrossResult) {
             let { startcol } = engrossResult;
-            if (startcol != null) {
-                opts.col = startcol;
-                opts.input = string_1.byteSlice(line, startcol, colnr - 1);
-            }
+            opts.col = startcol;
+            opts.input = string_1.byteSlice(line, startcol, colnr - 1);
             this.results = [engrossResult];
         }
         logger.info(`Results from: ${this.results.map(s => s.source).join(',')}`);
