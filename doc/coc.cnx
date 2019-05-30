@@ -1531,15 +1531,12 @@ lists 							 *coc-list-lists*
 
 vim-airline: https://github.com/vim-airline/vim-airline 支持：
 
-添加如下配置： >
+vim-airline 提供开箱即用的支持。
 
-	" if you want to disable auto detect, comment out those two lines
-	"let g:airline#extensions#disable_rtp_load = 1
-	"let g:airline_extensions = ['branch', 'hunks', 'coc']
-
-	let g:airline_section_error = '%{airline#util#wrap(airline#extensions#coc#get_error(),0)}'
-	let g:airline_section_warning = '%{airline#util#wrap(airline#extensions#coc#get_warning(),0)}'
-
+关闭 vim-airline 集成：
+>
+	let g:airline#extensions#coc#enabled = 0
+<
 改变错误标签：
 >
 	let airline#extensions#coc#error_symbol = 'Error:'
