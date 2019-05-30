@@ -91,8 +91,8 @@
 const semver = __webpack_require__(1)
 const version = process.version.replace('v', '')
 if (!semver.gte(version, '8.10.0')) {
-  console.error('node >= 8.10.0 required, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in your vimrc')
-  process.exit(1)
+  console.error('node version ' + version + ' < 8.10.0, please upgrade nodejs, or use `let g:coc_node_path = "/path/to/node"` in your vimrc')
+  process.exit()
 }
 Object.defineProperty(console, 'log', {
   value: () => { }
@@ -53752,7 +53752,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7785070b02" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "18f0230ee9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72913,11 +72913,15 @@ class Floating {
             maxPreviewWidth: configuration.get('maxPreviewWidth', 80)
         };
     }
+    get buffer() {
+        let { floatBuffer } = this;
+        return floatBuffer ? floatBuffer.buffer : null;
+    }
     async showDocumentationFloating(docs, bounding, token) {
         let { nvim } = this;
-        this.bounding = bounding;
         await this.checkBuffer();
-        let rect = await this.calculateBounding(docs);
+        let rect = await this.calculateBounding(docs, bounding);
+        let config = Object.assign({ relative: 'editor', }, rect);
         if (this.window) {
             let valid = await this.window.valid;
             if (!valid)
@@ -72927,7 +72931,6 @@ class Floating {
             return;
         if (!this.window) {
             try {
-                let config = Object.assign({ relative: 'editor', }, rect);
                 let win = this.window = await nvim.openFloatWindow(this.buffer, false, config);
                 if (token.isCancellationRequested) {
                     this.close();
@@ -72936,22 +72939,14 @@ class Floating {
                 nvim.pauseNotification();
                 win.setVar('float', 1, true);
                 win.setVar('popup', 1, true);
-                win.setOption('wrap', true, true);
-                win.setOption('linebreak', true, true);
-                win.setOption('foldcolumn', 1, true);
-                win.setOption('list', false, true);
-                win.setOption('spell', false, true);
-                win.setOption('listchars', 'eol: ', true);
-                win.setOption('number', false, true);
-                win.setOption('cursorline', false, true);
-                win.setOption('cursorcolumn', false, true);
-                win.setOption('signcolumn', 'no', true);
-                win.setOption('conceallevel', 2, true);
-                win.setOption('relativenumber', false, true);
-                win.setOption('winhl', 'Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating', true);
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
+                nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true);
+                nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
+                nvim.command(`setl signcolumn=no conceallevel=2`, true);
+                nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
+                nvim.command(`silent doautocmd User CocOpenFloat`, true);
                 this.floatBuffer.setLines();
-                nvim.command(`normal! gg0`, true);
+                nvim.call('cursor', [1, 1], true);
                 nvim.command(`noa wincmd p`, true);
                 let [, err] = await nvim.resumeNotification();
                 if (err)
@@ -72963,12 +72958,9 @@ class Floating {
         }
         else {
             nvim.pauseNotification();
-            let config = Object.assign({
-                relative: 'editor'
-            }, rect);
             this.window.setConfig(config, true);
             nvim.command(`noa call win_gotoid(${this.window.id})`, true);
-            nvim.command(`normal! gg0`, true);
+            nvim.call('cursor', [1, 1], true);
             this.floatBuffer.setLines();
             nvim.command(`noa wincmd p`, true);
             let [, err] = await nvim.resumeNotification();
@@ -72997,9 +72989,9 @@ class Floating {
             await this.showDocumentationVim(docs);
         }
     }
-    async calculateBounding(docs) {
+    async calculateBounding(docs, bounding) {
         // drawn lines
-        let { bounding, config, floatBuffer } = this;
+        let { config, floatBuffer } = this;
         let { columns, lines } = workspace_1.default.env;
         let { maxPreviewWidth } = config;
         let pumWidth = bounding.width + (bounding.scrollbar ? 1 : 0);
@@ -73025,7 +73017,7 @@ class Floating {
             if (valid)
                 return;
         }
-        buffer = this.buffer = await this.nvim.createNewBuffer(false, true);
+        buffer = await this.nvim.createNewBuffer(false, true);
         await buffer.setOption('buftype', 'nofile');
         await buffer.setOption('bufhidden', 'hide');
         this.floatBuffer = new floatBuffer_1.default(buffer, nvim);
