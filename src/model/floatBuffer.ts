@@ -142,7 +142,12 @@ export default class FloatBuffer {
     if (highlights.length) {
       let positions: [number, number, number?][] = []
       for (let highlight of highlights) {
-        nvim.call('matchaddpos', [highlight.hlGroup, [[highlight.line + 1, highlight.colStart + 1, highlight.colEnd - highlight.colStart]], 10], true)
+        buffer.addHighlight({
+          srcId: workspace.createNameSpace('coc-float'),
+          ...highlight
+        }).catch(_e => {
+          // noop
+        })
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]
           let before = line[characterIndex(line, highlight.colStart)]
@@ -160,19 +165,9 @@ export default class FloatBuffer {
         nvim.call('matchaddpos', ['Conceal', arr, 11], true)
       }
     }
-    if (this.positions.length) {
-      for (let pos of this.positions) {
-        if (pos[2] == 0) continue
-        buffer.addHighlight({
-          srcId: -1,
-          hlGroup: 'CocUnderline',
-          line: pos[0] - 1,
-          colStart: pos[1] - 1,
-          colEnd: pos[1] + pos[2] - 1
-        }).catch(_e => {
-          // noop
-        })
-      }
+    for (let arr of group(this.positions || [], 8)) {
+      arr = arr.filter(o => o[2] != 0)
+      if (arr.length) nvim.call('matchaddpos', ['CocUnderline', arr, 12], true)
     }
   }
 }
