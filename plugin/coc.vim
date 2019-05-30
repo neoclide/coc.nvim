@@ -4,6 +4,7 @@ endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
 if !has('nvim') && !has('patch-8.1.001') | finish | endif
 let s:is_win = has('win32') || has('win64')
+let s:root = expand('<sfile>:h:h')
 
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
@@ -209,7 +210,39 @@ function! s:CodeActionFromSelected(type)
   call CocAction('codeAction', a:type)
 endfunction
 
-command! -nargs=0 CocInfo         :call coc#rpc#notify('showInfo', [])
+function! s:ShowInfo()
+  if coc#rpc#ready()
+    call coc#rpc#notify('showInfo', [])
+  else
+    let lines = []
+    echomsg 'coc.nvim service not started, checking environment...'
+    let node = get(g:, 'coc_node_path', 'node')
+    if !executable(node)
+      call add(lines, 'Error: '.node.' is not executable!')
+    else
+      let output = trim(system(node . ' --version'))
+      let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')
+      if empty(ms) || str2nr(ms[1]) < 8 || (str2nr(ms[1]) == 8 && str2nr(ms[2]) < 10)
+        call add(lines, 'Error: Node version '.output.' < 8.10.0, please upgrade node.js')
+      endif
+    endif
+    " check bundle
+    let file = s:root.'/lib/attach.js'
+    if !filereadable(file)
+      let file = s:root.'/build/index.js'
+      if !filereadable(file)
+        call add(lines, 'Error: javascript bundle not found, run :call coc#util#install() to fix.')
+      endif
+    endif
+    if !empty(lines)
+      belowright vnew
+      setl filetype=nofile
+      call setline(1, lines)
+    endif
+  endif
+endfunction
+
+command! -nargs=0 CocInfo         :call s:ShowInfo()
 command! -nargs=0 CocOpenLog      :call coc#rpc#notify('openLog',  [])
 command! -nargs=0 CocListResume   :call coc#rpc#notify('listResume', [])
 command! -nargs=0 CocPrev         :call coc#rpc#notify('listPrev', [])
