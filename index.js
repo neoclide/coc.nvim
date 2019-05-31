@@ -53661,6 +53661,14 @@ class Plugin extends events_1.EventEmitter {
             value: fn
         });
     }
+    addCommand(cmd) {
+        let id = `vim.${cmd.id}`;
+        commands_1.default.registerCommand(id, async () => {
+            await this.nvim.command(cmd.cmd);
+        });
+        if (cmd.title)
+            commands_1.default.titles.set(id, cmd.title);
+    }
     async init() {
         let { nvim } = this;
         try {
@@ -53679,6 +53687,12 @@ class Plugin extends events_1.EventEmitter {
             nvim.setVar('coc_service_initialized', 1, true);
             nvim.call('coc#_init', [], true);
             this._ready = true;
+            let cmds = await nvim.getVar('coc_vim_commands');
+            if (cmds && cmds.length) {
+                for (let cmd of cmds) {
+                    this.addCommand(cmd);
+                }
+            }
             logger.info(`coc ${this.version} initialized with node: ${process.version}`);
             this.emit('ready');
         }
@@ -53760,7 +53774,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "64beb5822e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4fee42c30c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54026,6 +54040,7 @@ class CommandItem {
 class CommandManager {
     constructor() {
         this.commands = new Map();
+        this.titles = new Map();
     }
     init(nvim, plugin) {
         this.register({
@@ -55672,6 +55687,7 @@ const factory_1 = __webpack_require__(250);
 const fs_2 = __webpack_require__(201);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(225));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
+const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 __webpack_require__(307);
 const createLogger = __webpack_require__(179);
 const logger = createLogger('extensions');
@@ -55873,21 +55889,6 @@ class Extensions {
     }
     getExtension(id) {
         return this.list.find(o => o.id == id);
-    }
-    get commands() {
-        let res = {};
-        for (let item of this.list) {
-            let { packageJSON } = item.extension;
-            if (packageJSON.contributes) {
-                let { commands } = packageJSON.contributes;
-                if (commands && commands.length) {
-                    for (let cmd of commands) {
-                        res[cmd.command] = cmd.title;
-                    }
-                }
-            }
-        }
-        return res;
     }
     getExtensionState(id) {
         let disabled = this.isDisabled(id);
@@ -56410,7 +56411,7 @@ class Extensions {
         });
         let { contributes } = packageJSON;
         if (contributes) {
-            let { configuration, rootPatterns } = contributes;
+            let { configuration, rootPatterns, commands } = contributes;
             if (configuration && configuration.properties) {
                 let { properties } = configuration;
                 let props = {};
@@ -56424,6 +56425,11 @@ class Extensions {
             if (rootPatterns && rootPatterns.length) {
                 for (let item of rootPatterns) {
                     workspace_1.default.addRootPatterns(item.filetype, item.patterns);
+                }
+            }
+            if (commands && commands.length) {
+                for (let cmd of commands) {
+                    commands_1.default.titles.set(cmd.command, cmd.title);
                 }
             }
         }
@@ -69310,7 +69316,6 @@ const tslib_1 = __webpack_require__(3);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(310));
 class CommandsList extends basic_1.default {
     constructor(nvim) {
@@ -69329,18 +69334,18 @@ class CommandsList extends basic_1.default {
     async loadItems(_context) {
         let items = [];
         let list = commands_1.default.commandList;
-        let { commands } = extensions_1.default;
+        let { titles } = commands_1.default;
         let mruList = await this.mru.load();
-        for (let key of Object.keys(commands)) {
+        for (let key of titles.keys()) {
             items.push({
-                label: `${key}\t${commands[key]}`,
+                label: `${key}\t${titles.get(key)}`,
                 filterText: key,
                 data: { cmd: key, score: score(mruList, key) }
             });
         }
         for (let o of list) {
             let { id } = o;
-            if (items.findIndex(item => item.filterText == id) == -1) {
+            if (!titles.has(id)) {
                 items.push({
                     label: id,
                     filterText: id,
@@ -73337,7 +73342,6 @@ const vscode_languageserver_protocol_1 = __webpack_require__(143);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(256));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(237));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(255));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(302));
 const floatFactory_1 = tslib_1.__importDefault(__webpack_require__(257));
@@ -73410,7 +73414,14 @@ class Handler {
                         let pos = vscode_languageserver_protocol_1.Position.create(line - 1, pre.length);
                         // make sure indent of current line
                         if (preIndent != currIndent) {
-                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(vscode_languageserver_protocol_1.Position.create(line, 0), vscode_languageserver_protocol_1.Position.create(line, currIndent.length)), newText: preIndent });
+                            let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent;
+                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(vscode_languageserver_protocol_1.Position.create(line, 0), vscode_languageserver_protocol_1.Position.create(line, currIndent.length)), newText });
+                        }
+                        else if (doc.filetype == 'vim') {
+                            edits.push({ range: vscode_languageserver_protocol_1.Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' });
+                        }
+                        if (doc.filetype == 'vim') {
+                            newText = newText + '\\ ';
                         }
                         edits.push({ range: vscode_languageserver_protocol_1.Range.create(pos, pos), newText });
                         await doc.applyEdits(nvim, edits);
@@ -73920,17 +73931,12 @@ class Handler {
         let document = await workspace_1.default.document;
         if (!document)
             return [];
-        let { commands } = extensions_1.default;
-        for (let key of Object.keys(commands)) {
+        let { titles } = commands_1.default;
+        for (let key of Object.keys(list)) {
             res.push({
                 id: key,
-                title: commands[key] || ''
+                title: titles[key] || ''
             });
-        }
-        for (let o of list) {
-            if (commands[o.id] == null) {
-                res.push({ id: o.id, title: '' });
-            }
         }
         return res;
     }
