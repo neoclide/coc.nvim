@@ -1066,7 +1066,7 @@ CocHintHighlight 				*CocHintHighlight*
 
 CocHighlightText 				*CocHighlightText*
 
-  默认： `hi default CocHighlightText  guibg=#111111 ctermbg=223`
+  默认： `hi default link CursorColumn`
 
   Document highlight 特性使用的高亮。用于高亮显示全部当前缓冲区的相同
   变量。

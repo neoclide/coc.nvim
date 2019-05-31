@@ -193,12 +193,8 @@ hi default link CocHintHighlight    CocUnderline
 hi default link CocListMode ModeMsg
 hi default link CocListPath Comment
 hi default link CocFloating Pmenu
+hi default link CocHighlightText  CursorColumn
 
-if &background ==# 'dark'
-  hi default CocHighlightText  guibg=#222222 ctermbg=233
-else
-  hi default CocHighlightText  guibg=#f9f9f9 ctermbg=15
-endif
 hi default link CocHighlightRead  CocHighlightText
 hi default link CocHighlightWrite CocHighlightText
 

@@ -1565,7 +1565,7 @@ CocHintHighlight 				*CocHintHighlight*
 
 CocHighlightText 				*CocHighlightText*
 
-  Default `hi default CocHighlightText  guibg=#111111 ctermbg=223`
+  Default `hi default link CursorColumn`
 
   The highlight used for document highlight feature. Normally used for
   highlighting same symbols in the buffer at the current cursor position.
