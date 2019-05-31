@@ -53760,7 +53760,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "404358f5a7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "64beb5822e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -68377,13 +68377,13 @@ class ListManager {
     }
     async getCharMap() {
         if (this.charMap)
-            return this.charMap;
+            return;
         this.charMap = new Map();
         let chars = await this.nvim.call('coc#list#get_chars');
         Object.keys(chars).forEach(key => {
             this.charMap.set(chars[key], key);
         });
-        return this.charMap;
+        return;
     }
     async doItemAction(items, action) {
         if (this.executing)
@@ -68818,6 +68818,15 @@ class Mappings {
         });
         this.add('insert', '<C-u>', () => {
             prompt.removeAhead();
+        });
+        this.add('insert', '<C-d>', () => {
+            return manager.feedkeys('<C-d>');
+        });
+        this.add('insert', '<PageUp>', () => {
+            return manager.feedkeys('<PageUp>');
+        });
+        this.add('insert', '<PageDown>', () => {
+            return manager.feedkeys('<PageDown>');
         });
         this.add('insert', '<down>', () => {
             return manager.normal('j');
