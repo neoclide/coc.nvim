@@ -237,7 +237,7 @@
     "suggest.maxPreviewWidth": {
       "type": "number",
       "default": 80,
-      "description": "Maxmium width of floating preview window."
+      "description": "Maximum width of floating preview window."
     },
     "suggest.enablePreview": {
       "type": "boolean",
@@ -299,7 +299,7 @@
     "suggest.maxCompleteItemCount": {
       "type": "number",
       "default": 50,
-      "description": "Maxmium number of complete items shown in vim"
+      "description": "Maximum number of complete items shown in vim"
     },
     "suggest.preferCompleteThanJumpPlaceholder": {
       "type": "boolean",
@@ -516,7 +516,7 @@
     },
     "diagnostic.maxWindowHeight": {
       "type": "number",
-      "description": "Maxmium height of diagnostics floating window.",
+      "description": "Maximum height of diagnostics floating window.",
       "default": 8
     },
     "signature.enable": {
@@ -541,7 +541,7 @@
     },
     "signature.maxWindowHeight": {
       "type": "number",
-      "description": "Maxmium height of floating signature help window.",
+      "description": "Maximum height of floating signature help window.",
       "default": 8
     },
     "codeLens.enable": {
@@ -570,7 +570,7 @@
     "list.maxHeight": {
       "type": "number",
       "default": 10,
-      "description": "Maxmium height of list window."
+      "description": "Maximum height of list window."
     },
     "list.signOffset": {
       "type": "number",

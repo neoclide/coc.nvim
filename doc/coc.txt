@@ -164,7 +164,7 @@ Builtin configurations:~
 
 "suggest.maxCompleteItemCount":~
 
-	Maxmium number of complete items shown in vim,  default: `50`
+	Maximum number of complete items shown in vim,  default: `50`
 
 "suggest.preferCompleteThanJumpPlaceholder":~
 
@@ -332,7 +332,7 @@ Builtin configurations:~
 
 "diagnostic.maxWindowHeight":~
 
-	Maxmium height of diagnostics floating window.,  default: `8`
+	Maximum height of diagnostics floating window.,  default: `8`
 
 "signature.enable":~
 
