@@ -36,6 +36,7 @@ class CommandItem implements Disposable, Command {
 
 export class CommandManager implements Disposable {
   private readonly commands = new Map<string, CommandItem>()
+  public titles = new Map<string, string>()
 
   public init(nvim: Neovim, plugin: Plugin): void {
     this.register({

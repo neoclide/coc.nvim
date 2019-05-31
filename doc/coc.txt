@@ -942,7 +942,17 @@ coc#add_extension({name}, ...) 			*coc#add_extension()*
 <
 	This function can be called before service initialized.
 	This function can be called multiple times.
+	
+coc#add_command({id}, {command}, [{title}]) 	*coc#add_command()*
 
+	Add custom vim command to commands list opened by
+	`:CocList commands` .
+
+	Example: >
+
+	call coc#add_command('mundoToggle', 'MundoToggle',
+		\ 'toggle mundo window')
+<
 						*coc#refresh()*
 coc#refresh()
 

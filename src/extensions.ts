@@ -20,6 +20,7 @@ import { readFile, statAsync, readdirAsync, realpathAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
 import { Neovim } from '@chemzqm/neovim'
+import commandManager from './commands'
 import './util/extensions'
 
 const createLogger = require('./util/logger')
@@ -236,22 +237,6 @@ export class Extensions {
 
   public getExtension(id: string): ExtensionItem {
     return this.list.find(o => o.id == id)
-  }
-
-  public get commands(): { [index: string]: string } {
-    let res = {}
-    for (let item of this.list) {
-      let { packageJSON } = item.extension
-      if (packageJSON.contributes) {
-        let { commands } = packageJSON.contributes
-        if (commands && commands.length) {
-          for (let cmd of commands) {
-            res[cmd.command] = cmd.title
-          }
-        }
-      }
-    }
-    return res
   }
 
   public getExtensionState(id: string): ExtensionState {
@@ -758,7 +743,7 @@ export class Extensions {
     })
     let { contributes } = packageJSON
     if (contributes) {
-      let { configuration, rootPatterns } = contributes
+      let { configuration, rootPatterns, commands } = contributes
       if (configuration && configuration.properties) {
         let { properties } = configuration
         let props = {}
@@ -771,6 +756,11 @@ export class Extensions {
       if (rootPatterns && rootPatterns.length) {
         for (let item of rootPatterns) {
           workspace.addRootPatterns(item.filetype, item.patterns)
+        }
+      }
+      if (commands && commands.length) {
+        for (let cmd of commands) {
+          commandManager.titles.set(cmd.command, cmd.title)
         }
       }
     }

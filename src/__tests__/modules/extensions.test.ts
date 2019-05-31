@@ -49,11 +49,6 @@ describe('extensions', () => {
     expect(list.length).toBeGreaterThan(0)
   })
 
-  it('should commands from extensions', () => {
-    let { commands } = extensions
-    expect(Object.keys(commands).length).toBeGreaterThan(0)
-  })
-
   it('should get extensions stat', async () => {
     let stats = await extensions.getExtensionStates()
     expect(stats.length).toBeGreaterThan(0)

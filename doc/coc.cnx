@@ -475,6 +475,7 @@ coc#config({section}, {value})
 
 	注意: 该函数可以同时和配置文件工作，建议主要使用配置文件。
 
+						*coc#add_extension()*
 coc#add_extension({name}, ...)
 
 
@@ -485,6 +486,15 @@ coc#add_extension({name}, ...)
 <
 	注意: 该函数可以多处或者在服务未启动时调用。
 
+	
+						*coc#add_command()*
+coc#add_command({id}, {command}, [{title}])
+
+	添加自定义的 vim 命令到 `:CocList commands` 列表中，例如： >
+
+	call coc#add_command('mundoToggle', 'MundoToggle',
+		\ 'toggle mundo window')
+<
 						*coc#refresh()*
 coc#refresh()
 

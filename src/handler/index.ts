@@ -5,7 +5,6 @@ import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.sele
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import events from '../events'
-import extensions from '../extensions'
 import languages from '../languages'
 import listManager from '../list/manager'
 import FloatFactory from '../model/floatFactory'
@@ -622,17 +621,12 @@ export default class Handler {
     let res: CommandItem[] = []
     let document = await workspace.document
     if (!document) return []
-    let { commands } = extensions
-    for (let key of Object.keys(commands)) {
+    let { titles } = commandManager
+    for (let key of Object.keys(list)) {
       res.push({
         id: key,
-        title: commands[key] || ''
+        title: titles[key] || ''
       })
-    }
-    for (let o of list) {
-      if (commands[o.id] == null) {
-        res.push({ id: o.id, title: '' })
-      }
     }
     return res
   }

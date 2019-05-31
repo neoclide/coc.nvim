@@ -2,6 +2,7 @@ let g:coc#_context = {'start': 0, 'candidates': []}
 let g:coc_user_config = get(g:, 'coc_user_config', {})
 let g:coc_global_extensions = get(g:, 'coc_global_extensions', [])
 let g:coc_selected_text = ''
+let g:coc_vim_commands = []
 let s:watched_keys = []
 let s:is_vim = !has('nvim')
 let s:error_sign = get(g:, 'coc_status_error_sign', has('mac') ? '❌ ' : 'E')
@@ -19,6 +20,14 @@ endfunction
 
 function! coc#expandableOrJumpable() abort
   return coc#rpc#request('snippetCheck', [1, 1])
+endfunction
+
+" add vim command to CocCommand list
+function! coc#add_command(id, cmd, ...)
+  let config = {'id':a:id, 'cmd':a:cmd, 'title': get(a:,1,'')}
+  call add(g:coc_vim_commands, config)
+  if !coc#rpc#ready() | return | endif
+  call coc#rpc#notify('addCommand', [config])
 endfunction
 
 function! coc#refresh() abort

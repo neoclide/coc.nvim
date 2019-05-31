@@ -131,6 +131,14 @@ export default class Plugin extends EventEmitter {
     })
   }
 
+  public addCommand(cmd: { id: string, cmd: string, title?: string }): void {
+    let id = `vim.${cmd.id}`
+    commandManager.registerCommand(id, async () => {
+      await this.nvim.command(cmd.cmd)
+    })
+    if (cmd.title) commandManager.titles.set(id, cmd.title)
+  }
+
   public async init(): Promise<void> {
     let { nvim } = this
     try {
@@ -149,6 +157,12 @@ export default class Plugin extends EventEmitter {
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
       this._ready = true
+      let cmds = await nvim.getVar('coc_vim_commands') as any[]
+      if (cmds && cmds.length) {
+        for (let cmd of cmds) {
+          this.addCommand(cmd)
+        }
+      }
       logger.info(`coc ${this.version} initialized with node: ${process.version}`)
       this.emit('ready')
     } catch (e) {
