@@ -5,7 +5,7 @@ import rimraf from 'rimraf'
 import Uri from 'vscode-uri'
 import os from 'os'
 import { mkdirp } from '../../util'
-import { isGitIgnored, resolveRoot, statAsync } from '../../util/fs'
+import { isGitIgnored, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { getHiglights } from '../../util/highlight'
 import { score } from '../../util/match'
@@ -38,6 +38,19 @@ describe('mkdirp', () => {
     let res = await mkdirp(dir)
     expect(res).toBe(true)
     rimraf.sync(path.join(__dirname, 'a'))
+  })
+})
+
+describe('parentDirs', () => {
+  test('get parentDirs', () => {
+    let dirs = parentDirs('/a/b/c')
+    expect(dirs).toEqual(['/', '/a', '/a/b'])
+  })
+})
+
+describe('isParentFolder', () => {
+  test('check parent folder', () => {
+    expect(isParentFolder('/a', '/a/b')).toBe(true)
   })
 })
 

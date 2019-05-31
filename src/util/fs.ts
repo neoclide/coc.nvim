@@ -5,6 +5,8 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
+import { isLinux } from './platform'
+import { equalsIgnoreCase } from './string'
 import minimatch = require('minimatch')
 const logger = require('./logger')('util-fs')
 
@@ -144,3 +146,20 @@ export function isFile(uri: string): boolean {
 export const readdirAsync = util.promisify(fs.readdir)
 
 export const realpathAsync = util.promisify(fs.realpath)
+
+export function parentDirs(pth: string): string[] {
+  let { root, dir } = path.parse(pth)
+  if (dir === root) return [root]
+  const dirs = [root]
+  const parts = dir.slice(root.length).split(path.sep)
+  for (let i = 1; i <= parts.length; i++) {
+    dirs.push(path.join(root, parts.slice(0, i).join(path.sep)))
+  }
+  return dirs
+}
+
+export function isParentFolder(folder: string, filepath: string): boolean {
+  let dirs = parentDirs(filepath)
+  if (isLinux) return dirs.indexOf(folder) !== -1
+  return dirs.findIndex(s => equalsIgnoreCase(s, folder)) !== -1
+}

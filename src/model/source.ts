@@ -104,7 +104,7 @@ export default class Source implements ISource {
     let cFirst = input[0]
     for (let word of words) {
       if (!word || word.length < 3) continue
-      if (cFirst && !fuzzyChar(cFirst, word[0])) continue
+      if (cFirst && cFirst != word[0]) continue
       if (word == cword || word == input) continue
       res.push(word)
     }

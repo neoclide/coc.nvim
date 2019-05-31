@@ -23,7 +23,7 @@ import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, LanguageServerConfig, PatternType } from './types'
-import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
+import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, isParentFolder } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait, isDocumentEdit } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
@@ -602,7 +602,9 @@ export class Workspace implements IWorkspace {
    * Get WorkspaceFolder of uri
    */
   public getWorkspaceFolder(uri: string): WorkspaceFolder | null {
-    return this.workspaceFolders.find(f => uri.startsWith(f.uri))
+    this.workspaceFolders.sort((a, b) => b.uri.length - a.uri.length)
+    let filepath = Uri.parse(uri).fsPath
+    return this.workspaceFolders.find(folder => isParentFolder(Uri.parse(folder.uri).fsPath, filepath))
   }
 
   /**
@@ -1275,11 +1277,12 @@ augroup end`
       let config = this.getConfiguration('workspace')
       let filetypes = config.get<string[]>('ignoredFiletypes', [])
       if (filetypes.indexOf(document.filetype) == -1) {
-        let root = this.resolveRoot(document) || this.cwd
-        this.addWorkspaceFolder(root)
-        let workspaceFolder = this.getWorkspaceFolder(document.uri)
-        if (this.bufnr == buffer.id && workspaceFolder) {
-          this._root = Uri.parse(workspaceFolder.uri).fsPath
+        let root = this.resolveRoot(document)
+        if (root) {
+          this.addWorkspaceFolder(root)
+          if (this.bufnr == buffer.id) {
+            this._root = root
+          }
         }
       }
       this.configurations.checkFolderConfiguration(document.uri)
