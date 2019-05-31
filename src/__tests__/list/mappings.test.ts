@@ -2,7 +2,8 @@ import { Neovim } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
 import BasicList from '../../list/basic'
 import manager from '../../list/manager'
-import { ListContext, ListItem, QuickfixItem } from '../../types'
+import workspace from '../../workspace'
+import { ListContext, IList, ListItem, QuickfixItem } from '../../types'
 import helper from '../helper'
 
 class TestList extends BasicList {
@@ -42,6 +43,33 @@ const locations: ReadonlyArray<QuickfixItem> = [{
   lnum: 3,
   text: 'option'
 }]
+
+const lineList: IList = {
+  name: 'lines',
+  actions: [{
+    name: 'open',
+    execute: async item => {
+      await workspace.moveTo({
+        line: (item as ListItem).data.line,
+        character: 0
+      })
+      // noop
+    }
+  }],
+  defaultAction: 'open',
+  async loadItems(_context, _token): Promise<ListItem[]> {
+    let lines = []
+    for (let i = 0; i < 100; i++) {
+      lines.push(i.toString())
+    }
+    return lines.map((line, idx) => {
+      return {
+        label: line,
+        data: { line: idx }
+      }
+    })
+  }
+}
 
 beforeAll(async () => {
   await helper.setup()
@@ -131,6 +159,19 @@ describe('list insert mappings', () => {
     await helper.wait(30)
     let input = manager.prompt.input
     expect(input).toBe('a')
+  })
+
+  it('should move cursor by <PageUp> and <PageDown>', async () => {
+    let disposable = manager.registerList(lineList)
+    await manager.start(['lines'])
+    await helper.wait(60)
+    await nvim.eval('feedkeys("\\<PageDown>", "in")')
+    await helper.wait(60)
+    let line = await nvim.eval('line(".")')
+    expect(line).toBeGreaterThan(1)
+    await nvim.eval('feedkeys("\\<PageUp>", "in")')
+    await helper.wait(60)
+    disposable.dispose()
   })
 
   it('should scroll window by <C-f> and <C-b>', async () => {

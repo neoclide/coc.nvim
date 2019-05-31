@@ -16,6 +16,8 @@ function! coc#list#get_chars()
         \ '<home>': "\<home>",
         \ '<end>': "\<end>",
         \ '<cr>': "\<cr>",
+        \ '<PageUp>' : "\<PageUp>",
+        \ '<PageDown>' : "\<PageDown>",
         \ '<FocusGained>' : "\<FocusGained>",
         \ '<ScrollWheelUp>': "\<ScrollWheelUp>",
         \ '<ScrollWheelDown>': "\<ScrollWheelDown>",

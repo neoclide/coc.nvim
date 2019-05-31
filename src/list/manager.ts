@@ -678,14 +678,14 @@ export class ListManager implements Disposable {
     disposeAll(this.disposables)
   }
 
-  private async getCharMap(): Promise<Map<string, string>> {
-    if (this.charMap) return this.charMap
+  private async getCharMap(): Promise<void> {
+    if (this.charMap) return
     this.charMap = new Map()
     let chars = await this.nvim.call('coc#list#get_chars')
     Object.keys(chars).forEach(key => {
       this.charMap.set(chars[key], key)
     })
-    return this.charMap
+    return
   }
 
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
