@@ -126,7 +126,13 @@ export default class Handler {
             let pos: Position = Position.create(line - 1, pre.length)
             // make sure indent of current line
             if (preIndent != currIndent) {
-              edits.push({ range: Range.create(Position.create(line, 0), Position.create(line, currIndent.length)), newText: preIndent })
+              let newText = doc.filetype == 'vim' ? '  \\ ' + preIndent : preIndent
+              edits.push({ range: Range.create(Position.create(line, 0), Position.create(line, currIndent.length)), newText })
+            } else if (doc.filetype == 'vim') {
+              edits.push({ range: Range.create(line, currIndent.length, line, currIndent.length), newText: '  \\ ' })
+            }
+            if (doc.filetype == 'vim') {
+              newText = newText + '\\ '
             }
             edits.push({ range: Range.create(pos, pos), newText })
             await doc.applyEdits(nvim, edits)
