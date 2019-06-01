@@ -368,6 +368,7 @@ export interface BufferOption {
   iskeyword: string
   changedtick: number
   rootPatterns: string[] | null
+  additionalKeywords: string[]
 }
 
 export interface DiagnosticInfo {

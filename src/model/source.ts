@@ -1,9 +1,8 @@
 import { Neovim } from '@chemzqm/neovim'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, ISource, SourceConfig, SourceType, VimCompleteItem } from '../types'
-import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
 import workspace from '../workspace'
-import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-source')
 
 export default class Source implements ISource {

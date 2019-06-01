@@ -30,6 +30,7 @@ export default class Document {
   // real current lines
   private lines: string[] = []
   private _filetype: string
+  private _additionalKeywords: string[] = []
   private _uri: string
   private _rootPatterns: string[]
   private _changedtick: number
@@ -102,6 +103,7 @@ export default class Document {
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
+    this._additionalKeywords = opts.additionalKeywords
     this._changedtick = opts.changedtick
     this._rootPatterns = opts.rootPatterns
     this.eol = opts.eol == 1
@@ -131,16 +133,10 @@ export default class Document {
 
   public setIskeyword(iskeyword: string): void {
     let chars = (this.chars = new Chars(iskeyword))
-    this.buffer.getVar('coc_additional_keywords').then((keywords: string[]) => {
-      if (keywords && keywords.length) {
-        for (let ch of keywords) {
-          chars.addKeyword(ch)
-        }
-        this._words = this.chars.matchKeywords(this.lines.join('\n'))
-      }
-    }, _e => {
-      // noop
-    })
+    for (let ch of this._additionalKeywords) {
+      chars.addKeyword(ch)
+    }
+    this._words = this.chars.matchKeywords(this.lines.join('\n'))
   }
 
   public async attach(): Promise<boolean> {

@@ -263,6 +263,7 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'iskeyword': getbufvar(a:bufnr, '&iskeyword'),
         \ 'changedtick': getbufvar(a:bufnr, 'changedtick'),
         \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
+        \ 'additionalKeywords': getbufvar(a:bufnr, 'coc_additional_keywords', []),
         \}
 endfunction
 
