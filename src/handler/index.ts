@@ -759,6 +759,11 @@ export default class Handler {
         let [start, end] = docs[0].active
         offset = end < 80 ? start + 1 : docs[0].content.indexOf('(') + 1
       }
+      let session = snippetManager.getSession(document.bufnr)
+      if (session && session.isActive) {
+        let { value } = session.placeholder
+        if (value.indexOf('\n') == -1) offset += value.length - 1
+      }
       await this.signatureFactory.create(docs, true, offset)
       // show float
     } else {

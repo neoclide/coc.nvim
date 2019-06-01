@@ -1,11 +1,11 @@
-import { DidChangeTextDocumentParams, Disposable, Position, Range } from 'vscode-languageserver-protocol'
+import { DidChangeTextDocumentParams, Disposable, Range } from 'vscode-languageserver-protocol'
 import events from '../events'
 import * as types from '../types'
 import workspace from '../workspace'
-import { SnippetSession } from './session'
 import * as Snippets from "./parser"
-import { SnippetVariableResolver } from './variableResolve'
 import { SnippetParser } from './parser'
+import { SnippetSession } from './session'
+import { SnippetVariableResolver } from './variableResolve'
 const logger = require('../util/logger')('snippets-manager')
 
 export class SnippetManager implements types.SnippetManager {
