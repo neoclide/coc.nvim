@@ -2,7 +2,6 @@ import { spawn } from 'child_process'
 import { debounce } from 'debounce'
 import fastDiff from 'fast-diff'
 import fs from 'fs'
-import glob from 'glob'
 import isuri from 'isuri'
 import path from 'path'
 import semver from 'semver'
@@ -16,7 +15,7 @@ import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './ty
 import { disposeAll, runCommand, wait } from './util'
 import { distinct } from './util/array'
 import { createExtension, ExtensionExport } from './util/factory'
-import { readFile, statAsync, readdirAsync, realpathAsync } from './util/fs'
+import { readFile, inDirectory, statAsync, readdirAsync, realpathAsync } from './util/fs'
 import Watchman from './watchman'
 import workspace from './workspace'
 import { Neovim } from '@chemzqm/neovim'
@@ -637,16 +636,17 @@ export class Extensions {
           }
         }, null, disposables)
       } else if (ev == 'workspaceContains') {
-        let check = (cwd: string) => {
-          glob(parts[1], { cwd }, (err, files) => {
-            if (err) return
-            if (files && files.length) {
+        let check = () => {
+          let folders = workspace.workspaceFolders.map(o => Uri.parse(o.uri).fsPath)
+          for (let folder of folders) {
+            if (inDirectory(folder, parts[1].split(/\s+/))) {
               active()
+              break
             }
-          })
+          }
         }
-        check(workspace.cwd)
-        events.on('DirChanged', check, null, disposables)
+        check()
+        workspace.onDidChangeWorkspaceFolders(check, null, disposables)
       } else if (ev == 'onFileSystem') {
         for (let doc of workspace.documents) {
           let u = Uri.parse(doc.uri)
