@@ -380,6 +380,8 @@ export function getLanguageServerOptions(id: string, name: string, config: Langu
   let clientOptions: LanguageClientOptions = {
     ignoredRootPaths,
     disableWorkspaceFolders,
+    disableCompletion: !!config.disableCompletion,
+    disableDiagnostics: !!config.disableDiagnostics,
     documentSelector,
     revealOutputChannelOn: getRevealOutputChannelOn(config.revealOutputChannelOn),
     synchronize: {

@@ -644,6 +644,8 @@ export interface LanguageClientOptions {
   synchronize?: SynchronizeOptions
   diagnosticCollectionName?: string
   disableWorkspaceFolders?: boolean
+  disableDiagnostics?: boolean
+  disableCompletion?: boolean
   outputChannelName?: string
   outputChannel?: OutputChannel
   revealOutputChannelOn?: RevealOutputChannelOn
@@ -662,6 +664,8 @@ export interface LanguageClientOptions {
 interface ResolvedClientOptions {
   ignoredRootPaths?: string[]
   disableWorkspaceFolders?: boolean
+  disableDiagnostics?: boolean
+  disableCompletion?: boolean
   documentSelector?: DocumentSelector
   synchronize: SynchronizeOptions
   diagnosticCollectionName?: string
@@ -3119,6 +3123,8 @@ export abstract class BaseLanguageClient {
     clientOptions = clientOptions || {}
     this._clientOptions = {
       disableWorkspaceFolders: clientOptions.disableWorkspaceFolders,
+      disableDiagnostics: clientOptions.disableDiagnostics,
+      disableCompletion: clientOptions.disableCompletion,
       ignoredRootPaths: clientOptions.ignoredRootPaths,
       documentSelector: clientOptions.documentSelector || [],
       synchronize: clientOptions.synchronize || {},
@@ -3620,8 +3626,9 @@ export abstract class BaseLanguageClient {
         this._capabilities = Object.assign({}, result.capabilities, {
           resolvedTextDocumentSync: textDocumentSyncOptions
         })
-
-        connection.onDiagnostics(params => this.handleDiagnostics(params))
+        if (!this._clientOptions.disableDiagnostics) {
+          connection.onDiagnostics(params => this.handleDiagnostics(params))
+        }
         connection.onRequest(RegistrationRequest.type, params =>
           this.handleRegistrationRequest(params)
         )
@@ -3941,7 +3948,9 @@ export abstract class BaseLanguageClient {
     this.registerFeature(new DidSaveTextDocumentFeature(this))
     this.registerFeature(new DidCloseTextDocumentFeature(this, this._syncedDocuments))
     this.registerFeature(new FileSystemWatcherFeature(this, event => this.notifyFileEvent(event)))
-    this.registerFeature(new CompletionItemFeature(this))
+    if (!this._clientOptions.disableCompletion) {
+      this.registerFeature(new CompletionItemFeature(this))
+    }
     this.registerFeature(new HoverFeature(this))
     this.registerFeature(new SignatureHelpFeature(this))
     this.registerFeature(new DefinitionFeature(this))

@@ -20,6 +20,16 @@
           "default": false,
           "description": "Disable workspaceFolders feature for this languageserver."
         },
+        "disableDiagnostics": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable handle diagnostics for this languageserver."
+        },
+        "disableCompletion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable completion feature for this languageserver."
+        },
         "env": {
           "type": "object",
           "default": null,
@@ -106,6 +116,8 @@
           "default": "127.0.0.1",
           "description": "Host of server"
         },
+        "disableDiagnostics": {},
+        "disableCompletion": {},
         "enable": {},
         "disableWorkspaceFolders": {},
         "rootPatterns": {},
@@ -166,6 +178,8 @@
         "env": {},
         "enable": {},
         "disableWorkspaceFolders": {},
+        "disableDiagnostics": {},
+        "disableCompletion": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},
@@ -211,6 +225,8 @@
         "env": {},
         "enable": {},
         "disableWorkspaceFolders": {},
+        "disableDiagnostics": {},
+        "disableCompletion": {},
         "rootPatterns": {},
         "requireRootPattern": {},
         "ignoredRootPaths": {},

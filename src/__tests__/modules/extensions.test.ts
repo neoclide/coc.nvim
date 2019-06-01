@@ -170,8 +170,8 @@ describe('extensions active events', () => {
   it('should activate on workspace contains', async () => {
     let ext = createExtension('workspaceContains:package.json')
     let root = path.resolve(__dirname, '../../..')
-    await nvim.command(`cd ${root}`)
-    await helper.wait(30)
+    await nvim.command(`edit ${path.join(root, 'file.js')}`)
+    await helper.wait(100)
     expect(ext.isActive).toBe(true)
   })
 

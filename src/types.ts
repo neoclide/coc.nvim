@@ -305,6 +305,8 @@ export interface LanguageServerConfig {
   transport?: string
   transportPort?: number
   disableWorkspaceFolders?: boolean
+  disableCompletion?: boolean
+  disableDiagnostics?: boolean
   filetypes: string[]
   additionalSchemes: string[]
   enable: boolean
