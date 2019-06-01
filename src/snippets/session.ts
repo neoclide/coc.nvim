@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import { FormattingOptions } from 'jsonc-parser'
-import { Emitter, Event, Position, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import { Emitter, Event, Range, TextDocumentContentChangeEvent, TextEdit } from 'vscode-languageserver-protocol'
+import completion from '../completion'
 import Document from '../model/document'
 import { wait } from '../util'
 import { comparePosition, positionInRange, rangeInRange } from '../util/position'
 import { byteLength } from '../util/string'
 import workspace from '../workspace'
-import completion from '../completion'
 import { CocSnippet, CocSnippetPlaceholder } from "./snippet"
 import { SnippetVariableResolver } from "./variableResolve"
 const logger = require('../util/logger')('snippets-session')
@@ -38,15 +38,16 @@ export class SnippetSession {
     const formatOptions = await workspace.getFormatOptions(this.document.uri)
     const currentLine = document.getline(position.line)
     const currentIndent = currentLine.match(/^\s*/)[0]
-    const inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
+    let inserted = normalizeSnippetString(snippetString, currentIndent, formatOptions)
     const resolver = new SnippetVariableResolver()
     await resolver.init(document)
     const snippet = new CocSnippet(inserted, position, resolver)
     const edit = TextEdit.replace(range, snippet.toString())
-    const endPart = currentLine.slice(position.character)
-    if (snippetString.endsWith('\n') && endPart) {
+    if (snippetString.endsWith('\n')
+      && currentLine.slice(position.character).length) {
       // make next line same indent
       edit.newText = edit.newText + currentIndent
+      inserted = inserted + currentIndent
     }
     if (snippet.isPlainText) {
       // insert as text
@@ -61,11 +62,11 @@ export class SnippetSession {
     await document.applyEdits(nvim, [edit])
     if (this._isActive) {
       // insert check
-      let placeholder = this.findPlaceholder(Range.create(position, position))
+      let placeholder = this.findPlaceholder(range)
       // insert to placeholder
       if (placeholder && !placeholder.isFinalTabstop) {
         // don't repeat snippet insert
-        let index = this.snippet.insertSnippet(placeholder, inserted, position)
+        let index = this.snippet.insertSnippet(placeholder, inserted, range)
         let p = this.snippet.getPlaceholder(index)
         this._currId = p.id
         if (select) await this.selectPlaceholder(p)

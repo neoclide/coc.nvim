@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { CharCode } from '../util/charCode'
+import { Range, TextDocument } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('snippets-parser')
 
 export const enum TokenType {
@@ -550,16 +551,15 @@ export class TextmateSnippet extends Marker {
     return nums[0] || 0
   }
 
-  public insertSnippet(snippet: string, id: number, offset: number, insertFinal: boolean): number {
+  public insertSnippet(snippet: string, id: number, range: Range): number {
     let placeholder = this.placeholders[id]
     if (!placeholder) return
     let { index } = placeholder
-    let str = placeholder.toString()
-    if (!insertFinal) snippet = snippet.replace(/\$0$/, '')
-    snippet = `${str.slice(0, offset)}${snippet}${offset == str.length ? '' : str.slice(offset - str.length)}`
-    let nested = new SnippetParser().parse(snippet, insertFinal)
+    const document = TextDocument.create('untitled:/1', 'snippet', 0, placeholder.toString())
+    snippet = TextDocument.applyEdits(document, [{ range, newText: snippet.replace(/\$0$/, '') }])
+    let nested = new SnippetParser().parse(snippet, false)
     let maxIndexAdded = nested.maxIndexNumber
-    let totalAdd = maxIndexAdded + (insertFinal ? 1 : 0) - 1
+    let totalAdd = maxIndexAdded + - 1
     for (let p of nested.placeholders) {
       if (p.isFinalTabstop) {
         p.index = maxIndexAdded + index + 1

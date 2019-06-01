@@ -371,7 +371,7 @@ export class Completion implements Disposable {
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
-    let { document, nvim } = this
+    let { document } = this
     if (!this.isActivted || !document || !item.hasOwnProperty('word')) return
     let opt = Object.assign({}, this.option)
     let resolvedItem = this.getCompleteItem(item)
@@ -383,8 +383,8 @@ export class Completion implements Disposable {
       await sources.doCompleteResolve(resolvedItem, (new CancellationTokenSource()).token)
       this.addRecent(resolvedItem.word, document.bufnr)
       await wait(50)
-      let mode = await nvim.call('mode')
-      if (mode != 'i' || this.insertCharTs != timestamp || this.insertLeaveTs != insertLeaveTs) return
+      if (this.insertCharTs != timestamp
+        || this.insertLeaveTs != insertLeaveTs) return
       await document.patchChange()
       let content = await this.getPreviousContent(document)
       if (!content.endsWith(resolvedItem.word)) return

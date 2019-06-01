@@ -5,6 +5,7 @@
 /* tslint:disable */
 import * as assert from 'assert'
 import { Scanner, TokenType, SnippetParser, Text, Placeholder, Variable, Marker, TextmateSnippet, Choice, FormatString, Transform } from '../../snippets/parser'
+import { Range } from 'vscode-languageserver-types'
 
 describe('SnippetParser', () => {
 
@@ -620,7 +621,7 @@ describe('SnippetParser', () => {
 
   test('TextmateSnippet#insertSnippet', function() {
     let snippet = new SnippetParser().parse('${1:aaa} ${1:aaa} bbb ${2:ccc}}$0', true)
-    snippet.insertSnippet('|${1:dd} ${2:ff}|', 1, 0, false)
+    snippet.insertSnippet('|${1:dd} ${2:ff}|', 1, Range.create(0, 0, 0, 0))
     const [one, two, three] = snippet.placeholders
     assert.equal(one.index, 1)
     assert.equal(one.toString(), 'aaa')

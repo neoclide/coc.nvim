@@ -1,6 +1,5 @@
 import { Position, Range, TextDocument, TextEdit } from 'vscode-languageserver-protocol'
-import { equals } from '../util/object'
-import { getChangedPosition, rangeInRange, comparePosition, adjustPosition, editRange } from '../util/position'
+import { adjustPosition, comparePosition, editRange, getChangedPosition, rangeInRange } from '../util/position'
 import * as Snippets from "./parser"
 import { VariableResolver } from './parser'
 const logger = require('../util/logger')('snippets-snipet')
@@ -119,15 +118,19 @@ export class CocSnippet {
     })
   }
 
-  public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, position: Position): number {
+  public insertSnippet(placeholder: CocSnippetPlaceholder, snippet: string, range: Range): number {
     let { start } = placeholder.range
-    let offset = position.character - start.character
-    let insertFinal = true
-    let next = this._placeholders[placeholder.id + 1]
-    if (next && equals(next.range.start, position)) {
-      insertFinal = false
-    }
-    let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, offset, insertFinal)
+    // let offset = position.character - start.character
+    let editStart = Position.create(
+      range.start.line - start.line,
+      range.start.line == start.line ? range.start.character - start.character : range.start.character
+    )
+    let editEnd = Position.create(
+      range.end.line - start.line,
+      range.end.line == start.line ? range.end.character - start.character : range.end.character
+    )
+    let editRange = Range.create(editStart, editEnd)
+    let first = this.tmSnippet.insertSnippet(snippet, placeholder.id, editRange)
     this.update()
     return first
   }
