@@ -49593,6 +49593,7 @@ class Document {
         this.attached = false;
         // real current lines
         this.lines = [];
+        this._additionalKeywords = [];
         this._words = [];
         this._onDocumentChange = new vscode_languageserver_protocol_1.Emitter();
         this._onDocumentDetach = new vscode_languageserver_protocol_1.Emitter();
@@ -49655,6 +49656,7 @@ class Document {
         if (opts == null)
             return false;
         let buftype = this.buftype = opts.buftype;
+        this._additionalKeywords = opts.additionalKeywords;
         this._changedtick = opts.changedtick;
         this._rootPatterns = opts.rootPatterns;
         this.eol = opts.eol == 1;
@@ -49687,16 +49689,10 @@ class Document {
     }
     setIskeyword(iskeyword) {
         let chars = (this.chars = new chars_1.Chars(iskeyword));
-        this.buffer.getVar('coc_additional_keywords').then((keywords) => {
-            if (keywords && keywords.length) {
-                for (let ch of keywords) {
-                    chars.addKeyword(ch);
-                }
-                this._words = this.chars.matchKeywords(this.lines.join('\n'));
-            }
-        }, _e => {
-            // noop
-        });
+        for (let ch of this._additionalKeywords) {
+            chars.addKeyword(ch);
+        }
+        this._words = this.chars.matchKeywords(this.lines.join('\n'));
     }
     async attach() {
         if (this.shouldAttach(this.buftype)) {
@@ -53841,7 +53837,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9ac212093b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6925a3b9b2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72294,9 +72290,9 @@ class Buffer extends source_1.default {
         let { ignoreGitignore } = this;
         let words = [];
         workspace_1.default.documents.forEach(document => {
-            if (ignoreGitignore && document.isIgnored)
-                return;
             if (document.bufnr == bufnr)
+                return;
+            if (ignoreGitignore && document.isIgnored)
                 return;
             for (let word of document.words) {
                 if (words.indexOf(word) == -1) {
