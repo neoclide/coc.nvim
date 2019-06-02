@@ -53837,7 +53837,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d797aba768" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1933fb7d51" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71375,20 +71375,19 @@ class Handler {
             let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences;
             if (!triggerSignatureHelp && !formatOnType)
                 return;
-            let pre = await this.getPreviousCharacter();
-            if (!pre || string_1.isWord(pre) || doc.paused)
+            let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]');
+            let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1]);
+            if (!pre || string_1.isWord(pre))
                 return;
-            await this.onCharacterType(pre, bufnr);
+            if (!doc.paused)
+                await this.onCharacterType(pre, bufnr);
             if (languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+                doc.forceSync();
                 await util_1.wait(Math.max(triggerSignatureWait, 50));
-                if (doc.dirty) {
-                    doc.forceSync();
-                    await util_1.wait(100);
-                }
                 if (lastInsert > curr)
                     return;
                 try {
-                    await this.showSignatureHelp();
+                    await this.triggerSignatureHelp(doc, { line: pos[0], character: pos[1] });
                 }
                 catch (e) {
                     logger.error(`Error on signature help:`, e);
@@ -71918,15 +71917,11 @@ class Handler {
             }
         }
     }
-    async showSignatureHelp() {
+    async triggerSignatureHelp(document, position) {
         if (this.signatureTokenSource) {
             this.signatureTokenSource.cancel();
             this.signatureTokenSource = null;
         }
-        let document = workspace_1.default.getDocument(workspace_1.default.bufnr);
-        if (!document)
-            return;
-        let position = await workspace_1.default.getCursorPosition();
         let part = document.getline(position.line).slice(0, position.character);
         if (/\)\s*$/.test(part))
             return;
@@ -72084,6 +72079,14 @@ class Handler {
             this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true);
         }
     }
+    async showSignatureHelp() {
+        let buffer = await this.nvim.buffer;
+        let document = workspace_1.default.getDocument(buffer.id);
+        if (!document)
+            return;
+        let position = await workspace_1.default.getCursorPosition();
+        await this.triggerSignatureHelp(document, position);
+    }
     async handleLocations(definition, openCommand) {
         if (!definition)
             return;
@@ -72197,12 +72200,6 @@ class Handler {
             previewAutoClose: config.get('previewAutoClose', false),
             currentFunctionSymbolAutoUpdate: config.get('currentFunctionSymbolAutoUpdate', false),
         };
-    }
-    async getPreviousCharacter() {
-        let col = await this.nvim.call('col', '.');
-        let line = await this.nvim.call('getline', '.');
-        let content = string_1.byteSlice(line, 0, col - 1);
-        return col == 1 ? '' : content[content.length - 1];
     }
     onEmptyLocation(name, location) {
         if (location == null) {
