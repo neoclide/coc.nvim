@@ -53837,7 +53837,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f18f890d3d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d797aba768" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71372,7 +71372,7 @@ class Handler {
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc)
                 return;
-            let { triggerSignatureHelp, formatOnType } = this.preferences;
+            let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences;
             if (!triggerSignatureHelp && !formatOnType)
                 return;
             let pre = await this.getPreviousCharacter();
@@ -71380,10 +71380,10 @@ class Handler {
                 return;
             await this.onCharacterType(pre, bufnr);
             if (languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-                await util_1.wait(50);
+                await util_1.wait(Math.max(triggerSignatureWait, 50));
                 if (doc.dirty) {
                     doc.forceSync();
-                    await util_1.wait(60);
+                    await util_1.wait(100);
                 }
                 if (lastInsert > curr)
                     return;
@@ -72189,6 +72189,7 @@ class Handler {
             signatureHelpTarget,
             signatureMaxHeight: signatureConfig.get('maxWindowHeight', 8),
             triggerSignatureHelp: signatureConfig.get('enable', true),
+            triggerSignatureWait: signatureConfig.get('triggerSignatureWait', 50),
             signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
             formatOnType: config.get('formatOnType', false),
