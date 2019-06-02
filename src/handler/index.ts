@@ -22,6 +22,7 @@ import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
+import { Document } from '..'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -149,18 +150,16 @@ export default class Handler {
       if (!doc) return
       let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
-      let pre = await this.getPreviousCharacter()
-      if (!pre || isWord(pre) || doc.paused) return
-      await this.onCharacterType(pre, bufnr)
+      let [pos, line] = await nvim.eval('[coc#util#cursor(), getline(".")]') as [[number, number], string]
+      let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
+      if (!pre || isWord(pre)) return
+      if (!doc.paused) await this.onCharacterType(pre, bufnr)
       if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+        doc.forceSync()
         await wait(Math.max(triggerSignatureWait, 50))
-        if (doc.dirty) {
-          doc.forceSync()
-          await wait(100)
-        }
         if (lastInsert > curr) return
         try {
-          await this.showSignatureHelp()
+          await this.triggerSignatureHelp(doc, { line: pos[0], character: pos[1] })
         } catch (e) {
           logger.error(`Error on signature help:`, e)
         }
@@ -670,14 +669,11 @@ export default class Handler {
     }
   }
 
-  public async showSignatureHelp(): Promise<void> {
+  private async triggerSignatureHelp(document: Document, position: Position): Promise<void> {
     if (this.signatureTokenSource) {
       this.signatureTokenSource.cancel()
       this.signatureTokenSource = null
     }
-    let document = workspace.getDocument(workspace.bufnr)
-    if (!document) return
-    let position = await workspace.getCursorPosition()
     let part = document.getline(position.line).slice(0, position.character)
     if (/\)\s*$/.test(part)) return
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
@@ -826,6 +822,14 @@ export default class Handler {
     }
   }
 
+  public async showSignatureHelp(): Promise<void> {
+    let buffer = await this.nvim.buffer
+    let document = workspace.getDocument(buffer.id)
+    if (!document) return
+    let position = await workspace.getCursorPosition()
+    await this.triggerSignatureHelp(document, position)
+  }
+
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
     if (!definition) return
     let locations: Location[] = Array.isArray(definition) ? definition as Location[] : [definition]
@@ -931,13 +935,6 @@ export default class Handler {
       previewAutoClose: config.get<boolean>('previewAutoClose', false),
       currentFunctionSymbolAutoUpdate: config.get<boolean>('currentFunctionSymbolAutoUpdate', false),
     }
-  }
-
-  private async getPreviousCharacter(): Promise<string> {
-    let col = await this.nvim.call('col', '.')
-    let line = await this.nvim.call('getline', '.')
-    let content = byteSlice(line, 0, col - 1)
-    return col == 1 ? '' : content[content.length - 1]
   }
 
   private onEmptyLocation(name: string, location: any | null): void {
