@@ -369,6 +369,11 @@ Builtin configurations:~
 	Enable signature help when trigger character typed, require restart
 	service on change.,  default: `true`
 
+"signature.triggerSignatureWait":~
+
+	Wait time for trigger signature, default: `50`.
+	Change to higher value if your language server is slow.
+
 "signature.target":~
 
 	Target of signature help, use float when possible by default.

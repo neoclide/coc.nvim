@@ -59,6 +59,7 @@ interface Preferences {
   signatureHideOnChange: boolean
   signatureHelpTarget: string
   triggerSignatureHelp: boolean
+  triggerSignatureWait: number
   formatOnType: boolean
   hoverTarget: string
   previewAutoClose: boolean
@@ -146,16 +147,16 @@ export default class Handler {
       if (!lastInsert || curr - lastInsert > 50) return
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
-      let { triggerSignatureHelp, formatOnType } = this.preferences
+      let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
       if (!triggerSignatureHelp && !formatOnType) return
       let pre = await this.getPreviousCharacter()
       if (!pre || isWord(pre) || doc.paused) return
       await this.onCharacterType(pre, bufnr)
       if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
-        await wait(50)
+        await wait(Math.max(triggerSignatureWait, 50))
         if (doc.dirty) {
           doc.forceSync()
-          await wait(60)
+          await wait(100)
         }
         if (lastInsert > curr) return
         try {
@@ -922,6 +923,7 @@ export default class Handler {
       signatureHelpTarget,
       signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
+      triggerSignatureWait: signatureConfig.get<number>('triggerSignatureWait', 50),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
