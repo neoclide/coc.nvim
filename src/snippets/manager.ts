@@ -121,6 +121,11 @@ export class SnippetManager implements types.SnippetManager {
     return session && session.isActive ? session : null
   }
 
+  public isActived(bufnr: number): boolean {
+    let session = this.getSession(bufnr)
+    return session && session.isActive
+  }
+
   public jumpable(): boolean {
     let { session } = this
     if (!session) return false

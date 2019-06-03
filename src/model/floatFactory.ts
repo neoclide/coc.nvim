@@ -7,6 +7,7 @@ import { disposeAll } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
+import debounce from 'debounce'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -25,7 +26,6 @@ export default class FloatFactory implements Disposable {
   private floatBuffer: FloatBuffer
   private tokenSource: CancellationTokenSource
   private alignTop = false
-  private moving = false
   private createTs = 0
   private cursor: [number, number] = [0, 0]
   constructor(private nvim: Neovim,
@@ -41,7 +41,7 @@ export default class FloatFactory implements Disposable {
     }, null, this.disposables)
     events.on('InsertLeave', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
-      if (this.moving) return
+      if (snippetsManager.isActived(bufnr)) return
       this.close()
     }, null, this.disposables)
     events.on('MenuPopupChanged', async (ev, cursorline) => {
@@ -51,23 +51,24 @@ export default class FloatFactory implements Disposable {
         this.close()
       }
     }, null, this.disposables)
-    events.on('CursorMovedI', this.onCursorMoved, this, this.disposables)
-    events.on('CursorMoved', this.onCursorMoved, this, this.disposables)
+    let onCursorMoved = debounce(this.onCursorMoved.bind(this), 100)
+    events.on('CursorMovedI', onCursorMoved, this, this.disposables)
+    events.on('CursorMoved', onCursorMoved, this, this.disposables)
   }
 
   private onCursorMoved(bufnr: number, cursor: [number, number]): void {
+    if (!this.window) return
     if (this.buffer && bufnr == this.buffer.id) return
-    if (this.moving || (bufnr == this.targetBufnr && equals(cursor, this.cursor))) return
-    if (workspace.insertMode) {
-      if (!this.window) return
-      let ts = Date.now()
-      setTimeout(() => {
-        if (this.createTs > ts) return
-        this.close()
-      }, 2000)
-    } else {
+    if (bufnr == this.targetBufnr && equals(cursor, this.cursor)) return
+    if (!workspace.insertMode || bufnr != this.targetBufnr) {
       this.close()
+      return
     }
+    let ts = Date.now()
+    setTimeout(() => {
+      if (this.createTs > ts) return
+      this.close()
+    }, 500)
   }
 
   private async checkFloatBuffer(): Promise<void> {
@@ -137,12 +138,11 @@ export default class FloatFactory implements Disposable {
     this.targetBufnr = workspace.bufnr
     let tokenSource = this.tokenSource = new CancellationTokenSource()
     let token = tokenSource.token
-    let [, line, col] = await this.nvim.call('getpos', ['.']) as number[]
-    this.cursor = [line, col]
     await this.checkFloatBuffer()
     let config = await this.getBoundings(docs, offsetX)
+    let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]') as [string, number, number]
+    this.cursor = [line, col]
     if (!config || token.isCancellationRequested) return
-    let mode = await this.nvim.call('mode') as string
     allowSelection = mode == 's' && allowSelection
     if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
@@ -172,9 +172,7 @@ export default class FloatFactory implements Disposable {
       nvim.command('noa wincmd p', true)
       let res = await nvim.resumeNotification()
       if (!reuse) this.window = res[0][0]
-      this.moving = true
       if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
-      this.moving = false
     }
   }
 
