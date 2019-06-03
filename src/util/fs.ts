@@ -160,6 +160,10 @@ export function parentDirs(pth: string): string[] {
 
 export function isParentFolder(folder: string, filepath: string): boolean {
   let dirs = parentDirs(filepath)
+  if (filepath.endsWith(path.sep)) {
+    filepath = filepath.slice(0, - path.sep.length)
+  }
+  if (folder == filepath) return true
   if (isLinux) return dirs.indexOf(folder) !== -1
   return dirs.findIndex(s => equalsIgnoreCase(s, folder)) !== -1
 }

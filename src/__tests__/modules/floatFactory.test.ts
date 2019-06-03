@@ -73,7 +73,7 @@ describe('FloatFactory', () => {
     expect(hasFloat).toBe(1)
     await helper.wait(30)
     await nvim.input('$')
-    await helper.wait(100)
+    await helper.wait(200)
     hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(0)
   })
