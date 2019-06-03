@@ -53842,7 +53842,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "fa924a3fbd" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dbc2ad174c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58662,15 +58662,29 @@ class DiagnosticManager {
             if (this.timer)
                 clearTimeout(this.timer);
         }));
+        let hasFloat = workspace_1.default.env.floating;
         events_1.default.on('CursorMoved', async () => {
             if (this.timer)
                 clearTimeout(this.timer);
             this.timer = setTimeout(async () => {
-                if (!this.config || this.config.enableMessage != 'always')
+                if (this.config.enableMessage != 'always')
+                    return;
+                if (hasFloat && this.config.messageTarget == 'float')
                     return;
                 await this.echoMessage(true);
             }, 500);
         }, null, this.disposables);
+        if (hasFloat) {
+            this.disposables.push(workspace_1.default.registerAutocmd({
+                event: 'CursorHold',
+                request: true,
+                callback: async () => {
+                    if (this.config.messageTarget == 'float') {
+                        await this.echoMessage(true);
+                    }
+                }
+            }));
+        }
         events_1.default.on('InsertEnter', async () => {
             this.floatFactory.close();
             if (this.timer)
