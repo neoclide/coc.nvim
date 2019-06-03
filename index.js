@@ -48140,6 +48140,11 @@ function parentDirs(pth) {
 exports.parentDirs = parentDirs;
 function isParentFolder(folder, filepath) {
     let dirs = parentDirs(filepath);
+    if (filepath.endsWith(path_1.default.sep)) {
+        filepath = filepath.slice(0, -path_1.default.sep.length);
+    }
+    if (folder == filepath)
+        return true;
     if (platform_1.isLinux)
         return dirs.indexOf(folder) !== -1;
     return dirs.findIndex(s => string_1.equalsIgnoreCase(s, folder)) !== -1;
@@ -53837,7 +53842,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "98e2277d37" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9d2bfe2336" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
