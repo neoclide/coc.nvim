@@ -156,6 +156,30 @@ describe('completion', () => {
     expect(res).toBe(true)
   })
 
+  it('should should complete items without input', async () => {
+    await helper.edit()
+    let source: ISource = {
+      enable: true,
+      name: 'trigger',
+      priority: 10,
+      sourceType: SourceType.Native,
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: [{ word: 'foo' }, { word: 'bar' }]
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.command('inoremap <silent><expr> <c-space> coc#refresh()')
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('<c-space>')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    expect(items.length).toBeGreaterThan(1)
+    disposable.dispose()
+  })
+
   it('should show float window', async () => {
     await helper.edit()
     let source: ISource = {

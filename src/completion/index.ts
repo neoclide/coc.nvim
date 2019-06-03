@@ -88,7 +88,8 @@ export class Completion implements Disposable {
 
   public getResumeInput(pre: string): string {
     let { option, activted } = this
-    if (!activted || !pre) return null
+    if (!activted) return null
+    if (!pre) return ''
     let input = byteSlice(pre, option.col)
     if (option.blacklist && option.blacklist.indexOf(input) !== -1) return null
     return input
