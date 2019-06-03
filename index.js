@@ -53837,7 +53837,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "66d839ecf3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "98e2277d37" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54016,6 +54016,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.getQuickfixActions();
                 case 'doQuickfix':
                     return await handler.doQuickfix();
+                case 'repeatCommand':
+                    return await commands_1.default.repeatCommand();
                 case 'doCodeAction':
                     return await handler.applyCodeAction(args[1]);
                 case 'extensionStats':
@@ -54311,6 +54313,15 @@ class CommandManager {
             workspace_1.default.showMessage(`Command error: ${e.message}`, 'error');
             logger.error(e.stack);
         });
+    }
+    async repeatCommand() {
+        let mru = workspace_1.default.createMru('commands');
+        let mruList = await mru.load();
+        let first = mruList[0];
+        if (first) {
+            await this.executeCommand(first);
+            await workspace_1.default.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
+        }
     }
 }
 exports.CommandManager = CommandManager;
@@ -67254,8 +67265,8 @@ exports.default = Prompt;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(232));
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const events_1 = tslib_1.__importDefault(__webpack_require__(142));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(299));
 class CommandsList extends basic_1.default {
     constructor(nvim) {
@@ -67269,6 +67280,7 @@ class CommandsList extends basic_1.default {
             await events_1.default.fire('Command', [cmd]);
             await commands_1.default.executeCommand(cmd);
             await this.mru.add(cmd);
+            await nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
         });
     }
     async loadItems(_context) {
@@ -71678,6 +71690,7 @@ class Handler {
         if (id) {
             await events_1.default.fire('Command', [id]);
             await commands_1.default.executeCommand(id, ...args);
+            await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`);
         }
         else {
             await manager_2.default.start(['commands']);
@@ -71759,6 +71772,7 @@ class Handler {
             return workspace_1.default.showMessage('No action available', 'warning');
         }
         await this.applyCodeAction(actions[0]);
+        await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`);
     }
     async applyCodeAction(action) {
         let { command, edit } = action;
