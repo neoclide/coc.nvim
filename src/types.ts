@@ -29,6 +29,7 @@ export interface KeymapOption {
   sync: boolean
   cancel: boolean
   silent: boolean
+  repeat: boolean
 }
 
 export interface Autocmd {

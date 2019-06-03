@@ -104,13 +104,13 @@ export default class Plugin extends EventEmitter {
       nvim.call(`coc#util#open_file`, ['edit', file], true)
     })
     this.addMethod('doKeymap', async (key: string, defaultReturn = '') => {
-      let [fn, isPlug] = workspace.keymaps.get(key)
+      let [fn, repeat] = workspace.keymaps.get(key)
       if (!fn) {
         logger.error(`keymap for ${key} not found`)
         return defaultReturn
       }
       let res = await Promise.resolve(fn())
-      if (isPlug) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
+      if (repeat) await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`)
       return res || defaultReturn
     })
     this.addMethod('registExtensions', async (...folders: string[]) => {

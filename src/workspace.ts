@@ -1040,9 +1040,9 @@ export class Workspace implements IWorkspace {
    */
   public registerKeymap(modes: MapMode[], key: string, fn: Function, opts: Partial<KeymapOption> = {}): Disposable {
     if (this.keymaps.has(key)) return
-    opts = Object.assign({ sync: true, cancel: true, silent: true }, opts)
+    opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts)
     let { nvim } = this
-    this.keymaps.set(key, [fn, true])
+    this.keymaps.set(key, [fn, !!opts.repeat])
     let method = opts.sync ? 'request' : 'notify'
     let silent = opts.silent ? '<silent>' : ''
     for (let m of modes) {
