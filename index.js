@@ -44527,9 +44527,9 @@ class Workspace {
     registerKeymap(modes, key, fn, opts = {}) {
         if (this.keymaps.has(key))
             return;
-        opts = Object.assign({ sync: true, cancel: true, silent: true }, opts);
+        opts = Object.assign({ sync: true, cancel: true, silent: true, repeat: false }, opts);
         let { nvim } = this;
-        this.keymaps.set(key, [fn, true]);
+        this.keymaps.set(key, [fn, !!opts.repeat]);
         let method = opts.sync ? 'request' : 'notify';
         let silent = opts.silent ? '<silent>' : '';
         for (let m of modes) {
@@ -53703,13 +53703,13 @@ class Plugin extends events_1.EventEmitter {
             nvim.call(`coc#util#open_file`, ['edit', file], true);
         });
         this.addMethod('doKeymap', async (key, defaultReturn = '') => {
-            let [fn, isPlug] = workspace_1.default.keymaps.get(key);
+            let [fn, repeat] = workspace_1.default.keymaps.get(key);
             if (!fn) {
                 logger.error(`keymap for ${key} not found`);
                 return defaultReturn;
             }
             let res = await Promise.resolve(fn());
-            if (isPlug)
+            if (repeat)
                 await nvim.command(`silent! call repeat#set("\\<Plug>(coc-${key})", -1)`);
             return res || defaultReturn;
         });
@@ -53842,7 +53842,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9d2bfe2336" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8ffd2c0d5a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55918,8 +55918,10 @@ class Completion {
     }
     getResumeInput(pre) {
         let { option, activted } = this;
-        if (!activted || !pre)
+        if (!activted)
             return null;
+        if (!pre)
+            return '';
         let input = string_1.byteSlice(pre, option.col);
         if (option.blacklist && option.blacklist.indexOf(input) !== -1)
             return null;
