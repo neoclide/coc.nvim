@@ -278,4 +278,5 @@ nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<C
 nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
 nnoremap <Plug>(coc-float-hide)          :<C-u>call coc#util#float_hide()<CR>
 nnoremap <Plug>(coc-float-jump)          :<c-u>call coc#util#float_jump()<cr>
+nnoremap <Plug>(coc-command-repeat)      :<C-u>call CocAction('repeatCommand')<CR>
 inoremap <silent> <Plug>CocRefresh       <C-r>=coc#_complete()<CR>

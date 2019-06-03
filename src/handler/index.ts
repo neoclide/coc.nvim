@@ -2,6 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import binarySearch from 'binary-search'
 import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
+import { Document } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
 import events from '../events'
@@ -16,13 +17,12 @@ import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
 import { positionInRange } from '../util/position'
-import { byteSlice, isWord } from '../util/string'
+import { isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
 import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
-import { Document } from '..'
 const logger = require('../util/logger')('Handler')
 const pairs: Map<string, string> = new Map([
   ['<', '>'],
@@ -436,6 +436,7 @@ export default class Handler {
     if (id) {
       await events.fire('Command', [id])
       await commandManager.executeCommand(id, ...args)
+      await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
     } else {
       await listManager.start(['commands'])
     }
@@ -510,6 +511,7 @@ export default class Handler {
       return workspace.showMessage('No action available', 'warning')
     }
     await this.applyCodeAction(actions[0])
+    await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`)
   }
 
   public async applyCodeAction(action: CodeAction): Promise<void> {

@@ -242,6 +242,16 @@ export class CommandManager implements Disposable {
       logger.error(e.stack)
     })
   }
+
+  public async repeatCommand(): Promise<void> {
+    let mru = workspace.createMru('commands')
+    let mruList = await mru.load()
+    let first = mruList[0]
+    if (first) {
+      await this.executeCommand(first)
+      await workspace.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+    }
+  }
 }
 
 export default new CommandManager()

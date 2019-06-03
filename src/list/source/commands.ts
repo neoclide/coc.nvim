@@ -1,11 +1,10 @@
 import { Neovim } from '@chemzqm/neovim'
 import commandManager from '../../commands'
-import workspace from '../../workspace'
 import events from '../../events'
-import extensions from '../../extensions'
-import { ListContext, ListItem } from '../../types'
-import BasicList from '../basic'
 import Mru from '../../model/mru'
+import { ListContext, ListItem } from '../../types'
+import workspace from '../../workspace'
+import BasicList from '../basic'
 
 export default class CommandsList extends BasicList {
   public defaultAction = 'run'
@@ -21,6 +20,7 @@ export default class CommandsList extends BasicList {
       await events.fire('Command', [cmd])
       await commandManager.executeCommand(cmd)
       await this.mru.add(cmd)
+      await nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
     })
   }
 

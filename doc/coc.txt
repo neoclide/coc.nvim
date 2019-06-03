@@ -235,31 +235,31 @@ Builtin configurations:~
 
 	Example configuration: with https://nerdfonts.com:  >
 
-	"suggest.completionItemKindLabels": {
-		"function": "\uf794",
-		"method": "\uf6a6",
-		"variable": "\uf71b",
-		"constant": "\uf8ff",
+	  "suggest.completionItemKindLabels": {
+		"keyword": "\uf1de",
+		"variable": "\ue79b",
+		"value": "\uf89f",
+		"operator": "\u03a8",
+		"function": "\u0192",
+		"reference": "\ufa46",
+		"constant": "\uf8fe",
+		"method": "\uf09a",
 		"struct": "\ufb44",
 		"class": "\uf0e8",
-		"interface": "\ufa52",
+		"interface": "\uf417",
 		"text": "\ue612",
 		"enum": "\uf435",
 		"enumMember": "\uf02b",
-		"module": "\uf668",
+		"module": "\uf40d",
 		"color": "\ue22b",
-		"property": "\ufab6",
-		"field": "\uf93d",
+		"property": "\ue624",
+		"field": "\uf9be",
 		"unit": "\uf475",
-		"file": "\uf471",
-		"value": "\uf8a3",
 		"event": "\ufacd",
-		"folder": "\uf115",
-		"keyword": "\uf893",
-		"snippet": "\uf64d",
-		"operator": "\uf915",
-		"reference": "\uf87a",
-		"typeParameter": "\uf278",
+		"file": "\uf723",
+		"folder": "\uf114",
+		"snippet": "\ue60b",
+		"typeParameter": "\uf728",
 		"default": "\uf29c"
 	}
 <

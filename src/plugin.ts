@@ -416,6 +416,8 @@ export default class Plugin extends EventEmitter {
           return await handler.getQuickfixActions()
         case 'doQuickfix':
           return await handler.doQuickfix()
+        case 'repeatCommand':
+          return await commandManager.repeatCommand()
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
         case 'extensionStats':
