@@ -56,14 +56,26 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
+    let hasFloat = workspace.env.floating
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
-        if (!this.config || this.config.enableMessage != 'always') return
+        if (this.config.enableMessage != 'always') return
+        if (hasFloat && this.config.messageTarget == 'float') return
         await this.echoMessage(true)
       }, 500)
     }, null, this.disposables)
-
+    if (hasFloat) {
+      this.disposables.push(workspace.registerAutocmd({
+        event: 'CursorHold',
+        request: true,
+        callback: async () => {
+          if (this.config.messageTarget == 'float') {
+            await this.echoMessage(true)
+          }
+        }
+      }))
+    }
     events.on('InsertEnter', async () => {
       this.floatFactory.close()
       if (this.timer) clearTimeout(this.timer)

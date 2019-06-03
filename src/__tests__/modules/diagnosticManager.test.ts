@@ -47,6 +47,18 @@ async function createDocument(): Promise<Document> {
 }
 
 describe('diagnostic manager', () => {
+  it('should get all diagnostics', async () => {
+    await createDocument()
+    let list = manager.getDiagnosticList()
+    expect(list).toBeDefined()
+    expect(list.length).toBeGreaterThanOrEqual(5)
+    expect(list[0].severity).toBe('Error')
+    expect(list[1].severity).toBe('Error')
+    expect(list[2].severity).toBe('Warning')
+    expect(list[3].severity).toBe('Information')
+    expect(list[4].severity).toBe('Hint')
+  })
+
   it('should refresh on InsertLeave', async () => {
     let doc = await helper.createDocument()
     await nvim.input('i')
@@ -128,23 +140,12 @@ describe('diagnostic manager', () => {
     }
   })
 
-  it('should get all diagnostics', async () => {
-    await createDocument()
-    let list = manager.getDiagnosticList()
-    expect(list).toBeDefined()
-    expect(list.length).toBe(5)
-    expect(list[0].severity).toBe('Error')
-    expect(list[1].severity).toBe('Error')
-    expect(list[2].severity).toBe('Warning')
-    expect(list[3].severity).toBe('Information')
-    expect(list[4].severity).toBe('Hint')
-  })
-
   it('should show floating window on cursor hold', async () => {
     let config = workspace.getConfiguration('diagnostic')
     config.update('messageTarget', 'float')
     await createDocument()
     await nvim.call('cursor', [1, 3])
+    await nvim.command('doautocmd CursorHold')
     let winid = await helper.waitFloat()
     let bufnr = await nvim.call('nvim_win_get_buf', winid) as number
     let buf = nvim.createBuffer(bufnr)
