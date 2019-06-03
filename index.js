@@ -53837,7 +53837,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1933fb7d51" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "66d839ecf3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54442,6 +54442,10 @@ class SnippetManager {
     get session() {
         let session = this.getSession(workspace_1.default.bufnr);
         return session && session.isActive ? session : null;
+    }
+    isActived(bufnr) {
+        let session = this.getSession(bufnr);
+        return session && session.isActive;
     }
     jumpable() {
         let { session } = this;
@@ -59154,6 +59158,7 @@ const util_1 = __webpack_require__(168);
 const object_1 = __webpack_require__(189);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(248));
+const debounce_1 = tslib_1.__importDefault(__webpack_require__(170));
 const logger = __webpack_require__(179)('model-float');
 // factory class for floating window
 class FloatFactory {
@@ -59165,7 +59170,6 @@ class FloatFactory {
         this.maxWidth = maxWidth;
         this.disposables = [];
         this.alignTop = false;
-        this.moving = false;
         this.createTs = 0;
         this.cursor = [0, 0];
         if (!env.floating)
@@ -59180,7 +59184,7 @@ class FloatFactory {
         events_1.default.on('InsertLeave', bufnr => {
             if (this.buffer && bufnr == this.buffer.id)
                 return;
-            if (this.moving)
+            if (manager_1.default.isActived(bufnr))
                 return;
             this.close();
         }, null, this.disposables);
@@ -59192,27 +59196,27 @@ class FloatFactory {
                 this.close();
             }
         }, null, this.disposables);
-        events_1.default.on('CursorMovedI', this.onCursorMoved, this, this.disposables);
-        events_1.default.on('CursorMoved', this.onCursorMoved, this, this.disposables);
+        let onCursorMoved = debounce_1.default(this.onCursorMoved.bind(this), 100);
+        events_1.default.on('CursorMovedI', onCursorMoved, this, this.disposables);
+        events_1.default.on('CursorMoved', onCursorMoved, this, this.disposables);
     }
     onCursorMoved(bufnr, cursor) {
+        if (!this.window)
+            return;
         if (this.buffer && bufnr == this.buffer.id)
             return;
-        if (this.moving || (bufnr == this.targetBufnr && object_1.equals(cursor, this.cursor)))
+        if (bufnr == this.targetBufnr && object_1.equals(cursor, this.cursor))
             return;
-        if (workspace_1.default.insertMode) {
-            if (!this.window)
-                return;
-            let ts = Date.now();
-            setTimeout(() => {
-                if (this.createTs > ts)
-                    return;
-                this.close();
-            }, 2000);
-        }
-        else {
+        if (!workspace_1.default.insertMode || bufnr != this.targetBufnr) {
             this.close();
+            return;
         }
+        let ts = Date.now();
+        setTimeout(() => {
+            if (this.createTs > ts)
+                return;
+            this.close();
+        }, 500);
     }
     async checkFloatBuffer() {
         let { floatBuffer } = this;
@@ -59281,13 +59285,12 @@ class FloatFactory {
         this.targetBufnr = workspace_1.default.bufnr;
         let tokenSource = this.tokenSource = new vscode_languageserver_protocol_1.CancellationTokenSource();
         let token = tokenSource.token;
-        let [, line, col] = await this.nvim.call('getpos', ['.']);
-        this.cursor = [line, col];
         await this.checkFloatBuffer();
         let config = await this.getBoundings(docs, offsetX);
+        let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]');
+        this.cursor = [line, col];
         if (!config || token.isCancellationRequested)
             return;
-        let mode = await this.nvim.call('mode');
         allowSelection = mode == 's' && allowSelection;
         if (token.isCancellationRequested)
             return;
@@ -59324,10 +59327,8 @@ class FloatFactory {
             let res = await nvim.resumeNotification();
             if (!reuse)
                 this.window = res[0][0];
-            this.moving = true;
             if (mode == 's')
                 await manager_1.default.selectCurrentPlaceholder(false);
-            this.moving = false;
         }
     }
     /**
