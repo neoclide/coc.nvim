@@ -242,11 +242,15 @@ export default class Complete {
       let wb = b.filterText
       if (a.score != b.score) return b.score - a.score
       if (a.priority != b.priority) return b.priority - a.priority
-      if (wa.startsWith(wb)) return 1
-      if (wb.startsWith(wa)) return -1
       if (sa && sb && sa != sb) return sa < sb ? -1 : 1
       if (a.recentScore != b.recentScore) return b.recentScore - a.recentScore
-      if (a.localBonus != b.localBonus) return b.localBonus - a.localBonus
+      if (a.localBonus != b.localBonus) {
+        if (a.localBonus && b.localBonus && wa != wb) {
+          if (wa.startsWith(wb)) return 1
+          if (wb.startsWith(wa)) return -1
+        }
+        return b.localBonus - a.localBonus
+      }
       return a.filterText.length - b.filterText.length
     })
     let items = arr.slice(0, this.config.maxItemCount)
