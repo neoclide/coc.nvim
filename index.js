@@ -53842,7 +53842,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "dbc2ad174c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "449de40844" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -69883,12 +69883,11 @@ class Source {
         return this.getConfig('priority', 1);
     }
     get triggerOnly() {
-        let triggerOnly = this.getDefault('triggerOnly', null);
-        if (triggerOnly != null)
+        let triggerOnly = this.defaults['triggerOnly'];
+        if (typeof triggerOnly == 'boolean')
             return triggerOnly;
-        if (!this.triggerCharacters && !this.triggerPatterns) {
+        if (!this.triggerCharacters && !this.triggerPatterns)
             return false;
-        }
         return Array.isArray(this.triggerPatterns) && this.triggerPatterns.length != 0;
     }
     get triggerCharacters() {
@@ -69896,7 +69895,7 @@ class Source {
     }
     // exists opitonnal function names for remote source
     get optionalFns() {
-        return this.getDefault('optionalFns', []);
+        return this.defaults['optionalFns'] || [];
     }
     get triggerPatterns() {
         let patterns = this.getConfig('triggerPatterns', null);
@@ -69923,13 +69922,8 @@ class Source {
     }
     getConfig(key, defaultValue) {
         let config = workspace_1.default.getConfiguration(`coc.source.${this.name}`);
-        return config.get(key, this.getDefault(key, defaultValue));
-    }
-    getDefault(key, defaultValue) {
-        let { defaults } = this;
-        if (defaults.hasOwnProperty(key))
-            return defaults[key];
-        return defaultValue == undefined ? null : defaultValue;
+        defaultValue = this.defaults.hasOwnProperty(key) ? this.defaults[key] : defaultValue;
+        return config.get(key, defaultValue);
     }
     toggle() {
         this._disabled = !this._disabled;
@@ -69939,8 +69933,11 @@ class Source {
     }
     get menu() {
         let { shortcut } = this;
-        return `[${shortcut.toUpperCase()}]`;
+        return shortcut ? `[${shortcut.toUpperCase()}]` : '';
     }
+    /**
+     * Filter words that too short or doesn't match input
+     */
     filterWords(words, opt) {
         let res = [];
         let { input } = opt;
@@ -69992,23 +69989,23 @@ class Source {
         if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
             return false;
         }
-        let fn = this.getDefault('shouldComplete');
+        let fn = this.defaults['shouldComplete'];
         if (fn)
             return await Promise.resolve(fn.call(this, opt));
         return true;
     }
     async refresh() {
-        let fn = this.getDefault('refresh');
+        let fn = this.defaults['refresh'];
         if (fn)
             await Promise.resolve(fn.call(this));
     }
     async onCompleteDone(item, opt) {
-        let fn = this.getDefault('onCompleteDone');
+        let fn = this.defaults['onCompleteDone'];
         if (fn)
             await Promise.resolve(fn.call(this, item, opt));
     }
     async doComplete(opt, token) {
-        let fn = this.getDefault('doComplete');
+        let fn = this.defaults['doComplete'];
         if (fn)
             return await Promise.resolve(fn.call(this, opt, token));
         return null;
@@ -70025,9 +70022,9 @@ exports.default = Source;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const fuzzy_1 = __webpack_require__(294);
 const string_1 = __webpack_require__(202);
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const source_1 = tslib_1.__importDefault(__webpack_require__(316));
 const logger = __webpack_require__(179)('model-source-vim');
 class VimSource extends source_1.default {
