@@ -28,11 +28,9 @@ export default class Source implements ISource {
   }
 
   public get triggerOnly(): boolean {
-    let triggerOnly = this.getDefault('triggerOnly', null)
-    if (triggerOnly != null) return triggerOnly
-    if (!this.triggerCharacters && !this.triggerPatterns) {
-      return false
-    }
+    let triggerOnly = this.defaults['triggerOnly']
+    if (typeof triggerOnly == 'boolean') return triggerOnly
+    if (!this.triggerCharacters && !this.triggerPatterns) return false
     return Array.isArray(this.triggerPatterns) && this.triggerPatterns.length != 0
   }
 
@@ -42,7 +40,7 @@ export default class Source implements ISource {
 
   // exists opitonnal function names for remote source
   public get optionalFns(): string[] {
-    return this.getDefault('optionalFns', [])
+    return this.defaults['optionalFns'] || []
   }
 
   public get triggerPatterns(): RegExp[] | null {
@@ -73,13 +71,8 @@ export default class Source implements ISource {
 
   public getConfig<T>(key: string, defaultValue?: T): T | null {
     let config = workspace.getConfiguration(`coc.source.${this.name}`)
-    return config.get(key, this.getDefault<T>(key, defaultValue))
-  }
-
-  private getDefault<T>(key: string, defaultValue?: T): T | null {
-    let { defaults } = this
-    if (defaults.hasOwnProperty(key)) return defaults[key]
-    return defaultValue == undefined ? null : defaultValue
+    defaultValue = this.defaults.hasOwnProperty(key) ? this.defaults[key] : defaultValue
+    return config.get(key, defaultValue)
   }
 
   public toggle(): void {
@@ -92,9 +85,12 @@ export default class Source implements ISource {
 
   public get menu(): string {
     let { shortcut } = this
-    return `[${shortcut.toUpperCase()}]`
+    return shortcut ? `[${shortcut.toUpperCase()}]` : ''
   }
 
+  /**
+   * Filter words that too short or doesn't match input
+   */
   protected filterWords(words: string[], opt: CompleteOption): string[] {
     let res = []
     let { input } = opt
@@ -143,23 +139,23 @@ export default class Source implements ISource {
     if (disableSyntaxes && disableSyntaxes.length && disableSyntaxes.findIndex(s => synname.indexOf(s.toLowerCase()) != -1) !== -1) {
       return false
     }
-    let fn = this.getDefault<Function>('shouldComplete')
+    let fn = this.defaults['shouldComplete']
     if (fn) return await Promise.resolve(fn.call(this, opt))
     return true
   }
 
   public async refresh(): Promise<void> {
-    let fn = this.getDefault<Function>('refresh')
+    let fn = this.defaults['refresh']
     if (fn) await Promise.resolve(fn.call(this))
   }
 
   public async onCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void> {
-    let fn = this.getDefault<Function>('onCompleteDone')
+    let fn = this.defaults['onCompleteDone']
     if (fn) await Promise.resolve(fn.call(this, item, opt))
   }
 
   public async doComplete(opt: CompleteOption, token: CancellationToken): Promise<CompleteResult | null> {
-    let fn = this.getDefault<Function>('doComplete')
+    let fn = this.defaults['doComplete']
     if (fn) return await Promise.resolve(fn.call(this, opt, token))
     return null
   }

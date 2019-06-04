@@ -1,9 +1,9 @@
-import workspace from '../workspace'
+import { CancellationToken } from 'vscode-languageserver-protocol'
 import { CompleteOption, CompleteResult, VimCompleteItem } from '../types'
 import { fuzzyChar } from '../util/fuzzy'
 import { byteSlice } from '../util/string'
+import workspace from '../workspace'
 import Source from './source'
-import { CancellationToken } from 'vscode-languageserver-protocol'
 const logger = require('../util/logger')('model-source-vim')
 
 export default class VimSource extends Source {
