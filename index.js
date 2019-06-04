@@ -53774,9 +53774,7 @@ class Plugin extends events_1.EventEmitter {
                 return;
             if (extensions_1.default.has('coc-json') || extensions_1.default.isDisabled('coc-json'))
                 return;
-            let res = await workspace_1.default.showPrompt('Install coc-json for json intellisense?');
-            if (res)
-                await this.nvim.command('CocInstall coc-json');
+            workspace_1.default.showMessage(`Run :CocInstall coc-json for json intellisense`, 'more');
         });
     }
     get isReady() {
@@ -53842,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "449de40844" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c6280f6aab" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71740,10 +71738,18 @@ class Handler {
         for (let clientId of codeActionsMap.keys()) {
             let actions = codeActionsMap.get(clientId);
             for (let action of actions) {
-                action.clientId = clientId;
-                codeActions.push(action);
+                codeActions.push(Object.assign({ clientId }, action));
             }
         }
+        codeActions.sort((a, b) => {
+            if (a.isPrefered && !b.isPrefered) {
+                return -1;
+            }
+            if (b.isPrefered && !a.isPrefered) {
+                return 1;
+            }
+            return 0;
+        });
         let idx = await workspace_1.default.showQuickpick(codeActions.map(o => o.title));
         if (idx == -1)
             return;
@@ -71773,10 +71779,19 @@ class Handler {
             for (let action of actions) {
                 if (action.kind !== vscode_languageserver_protocol_1.CodeActionKind.QuickFix)
                     continue;
-                action.clientId = clientId;
-                codeActions.push(action);
+                codeActions.push(Object.assign({ clientId }, action));
             }
         }
+        codeActions.sort((a, b) => {
+            if (a.isPrefered && !b.isPrefered) {
+                return -1;
+            }
+            if (b.isPrefered && !a.isPrefered) {
+                return 1;
+            }
+            return 0;
+        });
+        logger.debug('actions:', codeActions);
         return codeActions;
     }
     async doQuickfix() {
