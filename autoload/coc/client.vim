@@ -14,20 +14,17 @@ function! coc#client#create(name, command)
   let client['command'] = a:command
   let client['name'] = a:name
   let client['running'] = 0
-  let client['stderrs'] = []
   let client['async_req_id'] = 1
   let client['async_callbacks'] = {}
   " vim only
   let client['channel'] = v:null
   " neovim only
   let client['chan_id'] = 0
-
   let client['start'] = function('s:start', [], client)
   let client['request'] = function('s:request', [], client)
   let client['notify'] = function('s:notify', [], client)
   let client['request_async'] = function('s:request_async', [], client)
   let client['on_async_response'] = function('s:on_async_response', [], client)
-
   let s:clients[a:name] = client
   return client
 endfunction
@@ -39,7 +36,7 @@ function! s:start() dict
           \ 'in_mode': 'json',
           \ 'out_mode': 'json',
           \ 'err_mode': 'nl',
-          \ 'err_cb': {channel, message -> s:on_stderr(self.name, [message])},
+          \ 'err_cb': {channel, message -> s:on_stderr(self.name, split(message, "\n"))},
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
           \ 'env': {
           \   'VIM_NODE_RPC': 1,

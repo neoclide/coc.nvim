@@ -47,8 +47,7 @@ function! coc#rpc#kill()
 endfunction
 
 function! coc#rpc#get_errors()
-  if empty(s:client) | return | endif
-  return s:client['stderrs']
+  return split(execute('messages'), "\n")
 endfunction
 
 function! coc#rpc#stop()

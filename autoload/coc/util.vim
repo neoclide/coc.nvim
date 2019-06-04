@@ -216,16 +216,12 @@ endfunction
 
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
-  if pumvisible() | return | endif
   execute 'echohl '.a:hl
-  let msgs = copy(a:msgs)
+  let msgs = filter(copy(a:msgs), '!empty(v:val)')
   for msg in msgs
-    if !empty(msg)
-      echom msg
-    endif
+    echom msg
   endfor
   echohl None
-  redraw
 endfunction
 
 function! coc#util#echo_lines(lines)
