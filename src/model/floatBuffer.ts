@@ -27,7 +27,7 @@ export default class FloatBuffer {
         lines = lines.filter(s => !s.startsWith('```'))
       }
       for (let line of lines) {
-        l = l + Math.ceil(byteLength(line) / (maxWidth - 4))
+        l = l + Math.max(1, Math.ceil(byteLength(line) / (maxWidth - 4)))
       }
     }
     return l + docs.length - 1
