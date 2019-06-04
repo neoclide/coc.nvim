@@ -53840,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c6280f6aab" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a1b455651d" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59446,7 +59446,7 @@ class FloatBuffer {
                 lines = lines.filter(s => !s.startsWith('```'));
             }
             for (let line of lines) {
-                l = l + Math.ceil(string_1.byteLength(line) / (maxWidth - 4));
+                l = l + Math.max(1, Math.ceil(string_1.byteLength(line) / (maxWidth - 4)));
             }
         }
         return l + docs.length - 1;
@@ -70626,16 +70626,19 @@ class Complete {
                 return b.score - a.score;
             if (a.priority != b.priority)
                 return b.priority - a.priority;
-            if (wa.startsWith(wb))
-                return 1;
-            if (wb.startsWith(wa))
-                return -1;
             if (sa && sb && sa != sb)
                 return sa < sb ? -1 : 1;
             if (a.recentScore != b.recentScore)
                 return b.recentScore - a.recentScore;
-            if (a.localBonus != b.localBonus)
+            if (a.localBonus != b.localBonus) {
+                if (a.localBonus && b.localBonus && wa != wb) {
+                    if (wa.startsWith(wb))
+                        return 1;
+                    if (wb.startsWith(wa))
+                        return -1;
+                }
                 return b.localBonus - a.localBonus;
+            }
             return a.filterText.length - b.filterText.length;
         });
         let items = arr.slice(0, this.config.maxItemCount);
