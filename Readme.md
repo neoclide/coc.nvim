@@ -342,6 +342,15 @@ nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
 nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 ```
 
+## Trouble shooting
+
+Try these steps when you have problem with coc.nvim.
+
+- Make sure your vim version >= 8.1 by command `:version`.
+- If service failed to start, use command `:CocInfo` or `:checkhealth` on neovim.
+- Checkout the log of coc.nvim by command `:CocOpenLog`.
+- When you have issue with a languageserver, [checkout output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel) of server by `:CocCommand workspace.showOutput`.
+
 ## Backers
 
 ❤️ coc.nvim? Help us keep it alive by [donating funds](https://www.bountysource.com/teams/coc-nvim)😘!
