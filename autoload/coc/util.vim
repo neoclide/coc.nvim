@@ -182,7 +182,7 @@ endfunction
 function! coc#util#job_command()
   let node = get(g:, 'coc_node_path', 'node')
   if !executable(node)
-    echohl Error | echon '[coc.nvim] '.node.' is not executable' | echohl None
+    echohl Error | echom '[coc.nvim] '.node.' is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
   let file = s:root.'/build/index.js'
@@ -191,7 +191,7 @@ function! coc#util#job_command()
   endif
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
-    echohl Error | echon '[coc.nvim] compiled javascript file not found!' | echohl None
+    echohl Error | echom '[coc.nvim] compiled javascript file not found!' | echohl None
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
@@ -606,7 +606,7 @@ function! coc#util#open_url(url)
   endif
   call system('cmd /c start "" /b '. substitute(a:url, '&', '^&', 'g'))
   if v:shell_error
-    echohl Error | echon 'Failed to open '.a:url | echohl None
+    echohl Error | echom 'Failed to open '.a:url | echohl None
     return
   endif
 endfunction
@@ -676,11 +676,11 @@ function! coc#util#update_extensions(...) abort
   let useTerminal = get(a:, 1, 0)
   let yarncmd = coc#util#yarn_cmd()
   if empty(yarncmd)
-    echohl Error | echon '[coc.nvim] yarn command not found!' | echohl None
+    echohl Error | echom '[coc.nvim] yarn command not found!' | echohl None
   endif
   let dir = coc#util#extension_root()
   if !isdirectory(dir)
-    echohl Error | echon '[coc.nvim] extension root '.dir.' not found!' | echohl None
+    echohl Error | echom '[coc.nvim] extension root '.dir.' not found!' | echohl None
   endif
   if !useTerminal
     let cwd = getcwd()
@@ -702,10 +702,10 @@ function! coc#util#install_extension(args) abort
   if empty(yarncmd)
     if get(s:, 'install_yarn', 0) == 0 && !s:is_win
       let s:install_yarn = 1
-      echohl MoreMsg | echon 'Installing yarn' | echohl None
+      echohl MoreMsg | echom 'Installing yarn' | echohl None
       exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh +m'
     else
-      echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
+      echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     endif
     return
   endif
@@ -750,7 +750,7 @@ function! coc#util#init_extension_root(root) abort
     let file = a:root.'/package.json'
     let res = writefile(['{"dependencies":{}}'], file)
     if res == -1
-      echohl Error | echon 'Create package.json failed: '.v:errmsg | echohl None
+      echohl Error | echom 'Create package.json failed: '.v:errmsg | echohl None
       return -1
     endif
   endif
@@ -770,7 +770,7 @@ endfunction
 function! coc#util#update()
   let yarncmd = coc#util#yarn_cmd()
   if empty(yarncmd)
-    echohl Error | echon "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
+    echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     return
   endif
   let dir = coc#util#extension_root()
@@ -816,13 +816,13 @@ function! coc#util#pick_color(default_color)
   let default_color = printf('#%02x%02x%02x', a:default_color[0], a:default_color[1], a:default_color[2])
   let rgb = []
   if !has('python')
-    echohl Error | echon 'python support required, checkout :echo has(''python'')' | echohl None
+    echohl Error | echom 'python support required, checkout :echo has(''python'')' | echohl None
     return
   endif
   try
     execute 'py import gtk'
   catch /.*/
-    echohl Error | echon 'python gtk module not found' | echohl None
+    echohl Error | echom 'python gtk module not found' | echohl None
     return
   endtry
 python << endpython
@@ -880,7 +880,7 @@ endfunction
 function! s:system(cmd)
   let output = system(a:cmd)
   if v:shell_error && output !=# ""
-    echohl Error | echon output | echohl None
+    echohl Error | echom output | echohl None
     return
   endif
   return output

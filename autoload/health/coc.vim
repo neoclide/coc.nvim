@@ -18,7 +18,7 @@ function! s:checkEnvironment() abort
   endif
   let output = system(node . ' --version')
   if v:shell_error && output !=# ""
-    echohl Error | echon output | echohl None
+    echohl Error | echom output | echohl None
     return
   endif
   let ms = matchlist(output, 'v\(\d\+\).\(\d\+\).\(\d\+\)')

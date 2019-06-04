@@ -53,7 +53,7 @@ function! s:start() dict
     let status = job_status(job)
     if status !=# 'run'
       let self.running = 0
-      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
+      echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['running'] = 1
@@ -65,7 +65,7 @@ function! s:start() dict
           \ 'on_exit': {channel, code -> s:on_exit(self.name, code)},
           \})
     if chan_id <= 0
-      echohl Error | echon 'Failed to start '.self.name.' service' | echohl None
+      echohl Error | echom 'Failed to start '.self.name.' service' | echohl None
       return
     endif
     let self['chan_id'] = chan_id
@@ -92,7 +92,7 @@ function! s:on_exit(name, code) abort
   let client['channel'] = v:null
   let client['async_req_id'] = 1
   if a:code != 0
-    echohl Error | echon 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
+    echohl Error | echom 'client '.a:name. ' abnormal exit with: '.a:code | echohl None
   endif
 endfunction
 
