@@ -7,9 +7,15 @@ import { LanguageClient } from './language-client'
 import Document from './model/document'
 import FileSystemWatcher from './model/fileSystemWatcher'
 import { ProviderResult, TextDocumentContentProvider } from './provider'
+import * as protocol from 'vscode-languageserver-protocol'
 
 export type MsgTypes = 'error' | 'warning' | 'more'
 export type ExtensionState = 'disabled' | 'loaded' | 'activated' | 'unknown'
+
+export interface CodeAction extends protocol.CodeAction {
+  isPrefered?: boolean
+  clientId?: string
+}
 
 export interface TaskOptions {
   cmd: string

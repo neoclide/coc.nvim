@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import binarySearch from 'binary-search'
-import { CancellationTokenSource, CodeAction, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import { Document } from '..'
 import commandManager from '../commands'
@@ -12,7 +12,7 @@ import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import snippetManager from '../snippets/manager'
-import { Documentation } from '../types'
+import { Documentation, CodeAction } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
@@ -464,10 +464,18 @@ export default class Handler {
     for (let clientId of codeActionsMap.keys()) {
       let actions = codeActionsMap.get(clientId)
       for (let action of actions) {
-        (action as any).clientId = clientId
-        codeActions.push(action)
+        codeActions.push({ clientId, ...action })
       }
     }
+    codeActions.sort((a, b) => {
+      if (a.isPrefered && !b.isPrefered) {
+        return -1
+      }
+      if (b.isPrefered && !a.isPrefered) {
+        return 1
+      }
+      return 0
+    })
     let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
     if (idx == -1) return
     let action = codeActions[idx]
@@ -493,10 +501,19 @@ export default class Handler {
       let actions = codeActionsMap.get(clientId)
       for (let action of actions) {
         if (action.kind !== CodeActionKind.QuickFix) continue
-        (action as any).clientId = clientId
-        codeActions.push(action)
+        codeActions.push({ clientId, ...action })
       }
     }
+    codeActions.sort((a, b) => {
+      if (a.isPrefered && !b.isPrefered) {
+        return -1
+      }
+      if (b.isPrefered && !a.isPrefered) {
+        return 1
+      }
+      return 0
+    })
+    logger.debug('actions:', codeActions)
     return codeActions
   }
 
