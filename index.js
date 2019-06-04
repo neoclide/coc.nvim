@@ -53840,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a1b455651d" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2b723006c6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -53859,7 +53859,7 @@ class Plugin extends events_1.EventEmitter {
         channel.appendLine('term: ' + (process.env.TERM_PROGRAM || process.env.TERM));
         channel.appendLine('platform: ' + process.platform);
         channel.appendLine('');
-        channel.appendLine('## Error messages');
+        channel.appendLine('## Messages');
         let msgs = await this.nvim.call('coc#rpc#get_errors');
         channel.append(msgs.join('\n'));
         channel.appendLine('');
