@@ -55964,6 +55964,7 @@ class Completion {
             previewIsKeyword: getConfig('previewIsKeyword', '@,48-57,_192-255'),
             enablePreview: getConfig('enablePreview', false),
             maxPreviewWidth: getConfig('maxPreviewWidth', 50),
+            labelMaxLength: getConfig('labelMaxLength', 100),
             triggerAfterInsertEnter: getConfig('triggerAfterInsertEnter', false),
             noselect: getConfig('noselect', true),
             numberSelect: getConfig('numberSelect', false),
@@ -56041,7 +56042,7 @@ class Completion {
     }
     async showCompletion(col, items) {
         let { nvim, document } = this;
-        let { numberSelect, disableKind, disableMenuShortcut, disableMenu } = this.config;
+        let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config;
         if (numberSelect) {
             items = items.map((item, i) => {
                 let idx = i + 1;
@@ -56068,6 +56069,9 @@ class Completion {
                 if (item.hasOwnProperty(key)) {
                     if (disableMenuShortcut && key == 'menu') {
                         obj[key] = item[key].replace(/\[\w+\]$/, '');
+                    }
+                    else if (key == 'abbr' && item[key].length > labelMaxLength) {
+                        obj[key] = item[key].slice(0, labelMaxLength);
                     }
                     else {
                         obj[key] = item[key];
@@ -70615,6 +70619,7 @@ class Complete {
                     item.source = source;
                 }
                 item.priority = priority;
+                item.abbr = item.abbr || item.word;
                 item.score = input.length ? score : 0;
                 item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0;
                 item.recentScore = item.recentScore || 0;
@@ -70951,7 +70956,7 @@ class Floating {
                 win.setVar('float', 1, true);
                 win.setVar('popup', 1, true);
                 nvim.command(`noa call win_gotoid(${win.id})`, true);
-                nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true);
+                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
