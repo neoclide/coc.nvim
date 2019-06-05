@@ -1384,9 +1384,11 @@ Available Actions ~
 	Requires a language server that supports color representation 
 	requests.
 
-"quickfixes" 					*coc-action-quickfixes*
+"quickfixes" [{lnum}]				*coc-action-quickfixes*
 
-	Get all quickfix codeActions of current buffer.
+	Get quickfix codeActions of current buffer.
+
+	Add {lnum} as second argument fi get codeActions of that line.
 
 	Could be used with |CocDiagnosticChange| autocmd to get available fix
 	actions.
