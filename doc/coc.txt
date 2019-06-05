@@ -103,7 +103,7 @@ Use the command |:CocConfig| to open the user configuration file, or create
 To enable completion and validation support of the settings file, install the
 `coc-json` extension: `:CocInstall coc-json`.
 
-Check out https://github.com/neoclide/coc.nvim/wiki/Using-configuration-file
+Check out https://github.com/neoclide/coc.nvim/wiki/Using-the-configuration-file
 for more details.
 
 Builtin configurations:~
