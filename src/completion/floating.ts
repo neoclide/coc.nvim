@@ -1,6 +1,5 @@
 import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import { CancellationToken } from 'vscode-jsonrpc'
-import { Chars } from '../model/chars'
 import FloatBuffer from '../model/floatBuffer'
 import { Documentation, PumBounding } from '../types'
 import workspace from '../workspace'
@@ -16,7 +15,6 @@ interface Bounding {
 export interface FloatingConfig {
   srcId: number
   maxPreviewWidth: number
-  chars: Chars
 }
 
 export default class Floating {
@@ -28,7 +26,6 @@ export default class Floating {
     let configuration = workspace.getConfiguration('suggest')
     this.config = {
       srcId: workspace.createNameSpace('coc-pum-float'),
-      chars: new Chars(configuration.get<string>('previewIsKeyword', '@,48-57,_192-255')),
       maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80)
     }
   }
@@ -140,7 +137,7 @@ export default class Floating {
 
   public close(): void {
     if (workspace.isVim) {
-      this.nvim.command('pclose', true)
+      this.nvim.call('coc#util#pclose', [], true)
       return
     }
     let { window } = this

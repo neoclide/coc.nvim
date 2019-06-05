@@ -881,3 +881,12 @@ function! s:system(cmd)
   endif
   return output
 endfunction
+
+function! coc#util#pclose()
+  for i in range(1, winnr('$'))
+    if getwinvar(i, '&previewwindow')
+      pclose
+      redraw
+    endif
+  endfor
+endfunction

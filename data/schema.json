@@ -271,11 +271,6 @@
       "description": "Where to add the detail in complete item when it's less than max length.",
       "enum": ["abbr", "menu", "preview"]
     },
-    "suggest.previewIsKeyword": {
-      "type": "string",
-      "default": "@,48-57,_192-255,<,>,$,#,-,`,*",
-      "description": "'iskeyword' option on floating preview buffer."
-    },
     "suggest.autoTrigger": {
       "type": "string",
       "default": "always",
