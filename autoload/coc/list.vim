@@ -153,6 +153,16 @@ function! coc#list#status(name)
 endfunction
 
 function! coc#list#setup(source)
+  let b:list_status = {}
+  let statusParts = [
+    \ '%#CocListMode#-- %{get(b:list_status, "mode")} --%*',
+    \ '%{get(g:, "coc_list_loading_status", "")}',
+    \ '%{get(b:list_status, "args", "")}',
+    \ '(%L/%{get(b:list_status, "total", "")})',
+    \ '%=',
+    \ '%#CocListPath# %{get(b:list_status, "cwd", "")} %l/%L%*'
+    \ ]
+  call setwinvar(winnr(), '&statusline', join(statusParts, ' '))
   setl buftype=nofile nobuflisted nofen nowrap
   setl number norelativenumber bufhidden=wipe cursorline winfixheight
   setl tabstop=1 nolist nocursorcolumn
