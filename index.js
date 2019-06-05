@@ -53840,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2b723006c6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "afd143e949" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54016,7 +54016,14 @@ class Plugin extends events_1.EventEmitter {
                 case 'runCommand':
                     return await handler.runCommand(...args.slice(1));
                 case 'quickfixes':
-                    return await handler.getQuickfixActions();
+                    let range;
+                    if (args[1]) {
+                        range = {
+                            start: { line: args[1] - 1, character: 0 },
+                            end: { line: args[1], character: 0 }
+                        };
+                    }
+                    return await handler.getQuickfixActions(range);
                 case 'doQuickfix':
                     return await handler.doQuickfix();
                 case 'repeatCommand':
