@@ -53840,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "afd143e949" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "992278a640" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -67038,6 +67038,9 @@ class Mappings {
                     return prompt.removeTail();
                 case 'removeahead':
                     return prompt.removeAhead();
+                case 'paste':
+                    await prompt.paste();
+                    return;
                 default:
                     await this.onError(`prompt '${action}' not supported`);
             }
@@ -67275,6 +67278,17 @@ class Prompt {
         let pre = input.slice(0, cusorIndex);
         let post = input.slice(cusorIndex);
         this._input = `${pre}${ch}${post}`;
+        this.drawPrompt();
+        this._onDidChangeInput.fire(this._input);
+    }
+    async paste() {
+        let { cusorIndex, input } = this;
+        let text = await this.nvim.eval('@*');
+        text = text.replace(/\n/g, '');
+        this.cusorIndex = cusorIndex + text.length;
+        let pre = input.slice(0, cusorIndex);
+        let post = input.slice(cusorIndex);
+        this._input = `${pre}${text}${post}`;
         this.drawPrompt();
         this._onDidChangeInput.fire(this._input);
     }
@@ -69938,7 +69952,7 @@ class Source {
     }
     get menu() {
         let { shortcut } = this;
-        return shortcut ? `[${shortcut.toUpperCase()}]` : '';
+        return shortcut ? `[${shortcut}]` : '';
     }
     /**
      * Filter words that too short or doesn't match input
