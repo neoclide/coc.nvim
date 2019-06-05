@@ -53840,7 +53840,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "992278a640" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "edfa3ad120" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -70912,7 +70912,6 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const chars_1 = __webpack_require__(211);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(248));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(180));
 const logger = __webpack_require__(179)('floating');
@@ -70922,7 +70921,6 @@ class Floating {
         let configuration = workspace_1.default.getConfiguration('suggest');
         this.config = {
             srcId: workspace_1.default.createNameSpace('coc-pum-float'),
-            chars: new chars_1.Chars(configuration.get('previewIsKeyword', '@,48-57,_192-255')),
             maxPreviewWidth: configuration.get('maxPreviewWidth', 80)
         };
     }
@@ -71037,7 +71035,7 @@ class Floating {
     }
     close() {
         if (workspace_1.default.isVim) {
-            this.nvim.command('pclose', true);
+            this.nvim.call('coc#util#pclose', [], true);
             return;
         }
         let { window } = this;
