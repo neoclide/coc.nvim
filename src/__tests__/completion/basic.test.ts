@@ -366,4 +366,33 @@ describe('completion', () => {
     expect(items.length).toBe(2)
     disposable.dispose()
   })
+
+  it('should truncate label of complete items', async () => {
+    helper.updateConfiguration('suggest.labelMaxLength', 10)
+    await helper.edit()
+    let source: ISource = {
+      name: 'high',
+      priority: 90,
+      enable: true,
+      sourceType: SourceType.Native,
+      triggerCharacters: ['.'],
+      doComplete: async (): Promise<CompleteResult> => {
+        return Promise.resolve({
+          items: ['a', 'b', 'c', 'd'].map(key => {
+            return { word: key.repeat(20) }
+          })
+        })
+      }
+    }
+    let disposable = sources.addSource(source)
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('.')
+    await helper.waitPopup()
+    let items = await helper.getItems()
+    for (let item of items) {
+      expect(item.abbr.length).toBeLessThanOrEqual(10)
+    }
+    disposable.dispose()
+  })
 })

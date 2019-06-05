@@ -508,6 +508,7 @@ export interface CompleteConfig {
   disableMenu: boolean
   disableMenuShortcut: boolean
   enablePreview: boolean
+  labelMaxLength: number
   maxPreviewWidth: number
   autoTrigger: string
   previewIsKeyword: string

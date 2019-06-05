@@ -113,6 +113,10 @@ Builtin configurations:~
 
 	Maximum width of floating preview window.,  default: `50`
 
+"suggest.labelMaxLength":~
+
+	Maximum length of label shown in pum, default: `100`
+
 "suggest.enablePreview":~
 
 	Add preview option to `completeopt`, default: false.,  default: `false`

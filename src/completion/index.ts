@@ -129,6 +129,7 @@ export class Completion implements Disposable {
       previewIsKeyword: getConfig<string>('previewIsKeyword', '@,48-57,_192-255'),
       enablePreview: getConfig<boolean>('enablePreview', false),
       maxPreviewWidth: getConfig<number>('maxPreviewWidth', 50),
+      labelMaxLength: getConfig<number>('labelMaxLength', 100),
       triggerAfterInsertEnter: getConfig<boolean>('triggerAfterInsertEnter', false),
       noselect: getConfig<boolean>('noselect', true),
       numberSelect: getConfig<boolean>('numberSelect', false),
@@ -200,7 +201,7 @@ export class Completion implements Disposable {
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
     let { nvim, document } = this
-    let { numberSelect, disableKind, disableMenuShortcut, disableMenu } = this.config
+    let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
     if (numberSelect) {
       items = items.map((item, i) => {
         let idx = i + 1
@@ -225,6 +226,8 @@ export class Completion implements Disposable {
         if (item.hasOwnProperty(key)) {
           if (disableMenuShortcut && key == 'menu') {
             obj[key] = item[key].replace(/\[\w+\]$/, '')
+          } else if (key == 'abbr' && item[key].length > labelMaxLength) {
+            obj[key] = item[key].slice(0, labelMaxLength)
           } else {
             obj[key] = item[key]
           }

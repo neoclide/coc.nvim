@@ -56,7 +56,7 @@ export default class Floating {
         win.setVar('float', 1, true)
         win.setVar('popup', 1, true)
         nvim.command(`noa call win_gotoid(${win.id})`, true)
-        nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true)
+        nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true)
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
         nvim.command(`setl signcolumn=no conceallevel=2`, true)
         nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)

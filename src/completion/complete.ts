@@ -213,6 +213,7 @@ export default class Complete {
           item.source = source
         }
         item.priority = priority
+        item.abbr = item.abbr || item.word
         item.score = input.length ? score : 0
         item.localBonus = this.localBonus ? this.localBonus.get(filterText) || 0 : 0
         item.recentScore = item.recentScore || 0

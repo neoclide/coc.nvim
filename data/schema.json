@@ -260,6 +260,11 @@
       "description": "Add preview option to completeopt, default: false.",
       "default": false
     },
+    "suggest.labelMaxLength": {
+      "type": "number",
+      "description": "Max length of abbr that shown as label of complete item.",
+      "default": 100
+    },
     "suggest.detailMaxLength": {
       "type": "number",
       "description": "Max length of detail that should be shown in popup menu.",
