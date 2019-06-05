@@ -563,4 +563,17 @@ describe('User mappings', () => {
     let nr = await nvim.call('tabpagenr')
     expect(nr).toBe(2)
   })
+
+  it('should insert clipboard to prompt', async () => {
+    helper.updateConfiguration('list.insertMappings', {
+      '<C-r>': 'prompt:paste',
+    })
+    await nvim.command('let @* = "foo"')
+    await manager.start(['location'])
+    await helper.wait(100)
+    await nvim.eval(`feedkeys("\\<C-r>", "in")`)
+    await helper.wait(200)
+    let { input } = manager.prompt
+    expect(input).toMatch('foo')
+  })
 })

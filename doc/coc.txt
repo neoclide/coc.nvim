@@ -1916,6 +1916,7 @@ The mapping expression should be `command:arguments`, available commands:
 	'deletebackward' - remove next character.
 	'removetail' - remove characters afterwards.
 	'removeahead' - remove character ahead.
+	'paste' - append text from system clipboard to prompt.
 'action' - execute action of list, use <tab> to find available actions.
 'feedkeys' - feedkeys to list window, use `\\` in JSON to escape special characters.
 'normal' - execute normal command in list window.

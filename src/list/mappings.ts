@@ -307,6 +307,9 @@ export default class Mappings {
           return prompt.removeTail()
         case 'removeahead':
           return prompt.removeAhead()
+        case 'paste':
+          await prompt.paste()
+          return
         default:
           await this.onError(`prompt '${action}' not supported`)
       }
