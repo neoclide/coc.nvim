@@ -132,12 +132,6 @@ export class DiagnosticManager implements Disposable {
       this.setConfiguration(e)
     }, null, this.disposables)
 
-    let { errorSign, warningSign, infoSign, hintSign } = this.config
-    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
-    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
-    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
-    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-
     // create buffers
     for (let doc of workspace.documents) {
       this.createDiagnosticBuffer(doc)
@@ -150,6 +144,19 @@ export class DiagnosticManager implements Disposable {
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
     }, null, this.disposables)
+
+    let { errorSign, warningSign, infoSign, hintSign } = this.config
+    nvim.pauseNotification()
+    nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)
+    nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
+    nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
+    nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
+    if (this.config.virtualText) {
+      nvim.call('coc#util#init_virtual_hl', [], true)
+    }
+    nvim.resumeNotification(false, true).catch(_e => {
+      // noop
+    })
   }
 
   private createDiagnosticBuffer(doc: Document): void {

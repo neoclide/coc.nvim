@@ -890,3 +890,12 @@ function! coc#util#pclose()
     endif
   endfor
 endfunction
+
+function! coc#util#init_virtual_hl()
+  let names = ['Error', 'Warning', 'Info', 'Hint']
+  for name in names
+    if !hlexists('Coc'.name.'VirtualText')
+      exe 'hi default link Coc'.name.'VirtualText Coc'.name.'Sign'
+    endif
+  endfor
+endfunction

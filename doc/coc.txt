@@ -1586,6 +1586,30 @@ CocHintSign 					*CocHintSign*
 
   The highlight used for hint signs.
 
+CocErrorVirtualText 					*CocErrorVirtualText*
+
+  Default: `hi default link CocErrorVirtualText  CocErrorSign`
+
+  The highlight used for error signs.
+
+CocWarningVirtualText 					*CocWarningVirtualText*
+
+  Default: `hi default link CocWarningVirtualText CocWarningSign`
+
+  The highlight used for warning signs.
+
+CocInfoVirtualText 					*CocInfoVirtualText*
+
+  Default: `hi default link CocInfoVirtualText CocInfoSign`
+
+  The highlight used for information signs.
+
+CocHintVirtualText 					*CocHintVirtualText*
+
+  Default: `hi default link CocHintVirtualText CocHintSign`
+
+  The highlight used for hint signs.
+
 CocErrorHighlight 				*CocErrorHighlight*
 
   Default: `hi default link CocErrorHighlight   CocUnderline`
