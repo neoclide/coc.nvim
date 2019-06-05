@@ -53847,7 +53847,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "32f5551c7e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ebae7b9b57" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58758,11 +58758,6 @@ class DiagnosticManager {
         workspace_1.default.onDidChangeConfiguration(async (e) => {
             this.setConfiguration(e);
         }, null, this.disposables);
-        let { errorSign, warningSign, infoSign, hintSign } = this.config;
-        nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true);
-        nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true);
-        nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true);
-        nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true);
         // create buffers
         for (let doc of workspace_1.default.documents) {
             this.createDiagnosticBuffer(doc);
@@ -58775,6 +58770,18 @@ class DiagnosticManager {
         workspace_1.default.configurations.onError(async () => {
             this.setConfigurationErrors();
         }, null, this.disposables);
+        let { errorSign, warningSign, infoSign, hintSign } = this.config;
+        nvim.pauseNotification();
+        nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true);
+        nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true);
+        nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true);
+        nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true);
+        if (this.config.virtualText) {
+            nvim.call('coc#util#init_virtual_hl', [], true);
+        }
+        nvim.resumeNotification(false, true).catch(_e => {
+            // noop
+        });
     }
     createDiagnosticBuffer(doc) {
         if (!this.shouldValidate(doc))
