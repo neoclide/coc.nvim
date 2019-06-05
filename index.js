@@ -53847,7 +53847,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "132c099563" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "cc0d9481c6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -70933,7 +70933,8 @@ class Floating {
         let configuration = workspace_1.default.getConfiguration('suggest');
         this.config = {
             srcId: workspace_1.default.createNameSpace('coc-pum-float'),
-            maxPreviewWidth: configuration.get('maxPreviewWidth', 80)
+            maxPreviewWidth: configuration.get('maxPreviewWidth', 80),
+            enable: configuration.get('floatEnable', true)
         };
     }
     get buffer() {
@@ -70942,6 +70943,9 @@ class Floating {
     }
     async showDocumentationFloating(docs, bounding, token) {
         let { nvim } = this;
+        let { enable } = this.config;
+        if (!enable)
+            return;
         await this.checkBuffer();
         let rect = await this.calculateBounding(docs, bounding);
         let config = Object.assign({ relative: 'editor', }, rect);
@@ -71066,6 +71070,7 @@ class Floating {
                     this.nvim.call('coc#util#close_win', window.id, true);
                 }
                 else {
+                    window = null;
                     clearInterval(interval);
                 }
             }, _e => {
