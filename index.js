@@ -53847,7 +53847,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "cc0d9481c6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "32f5551c7e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -65785,12 +65785,6 @@ class ListManager {
                 if (typeof this.currList.doHighlight == 'function') {
                     this.currList.doHighlight();
                 }
-                this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()]);
-            }
-        }, null, this.disposables);
-        this.ui.onDidChange(() => {
-            if (this.currList) {
-                this.ui.window.notify('nvim_win_set_option', ['statusline', this.buildStatusline()]);
             }
         }, null, this.disposables);
         this.ui.onDidClose(async () => {
@@ -66069,13 +66063,13 @@ class ListManager {
         };
     }
     updateStatus() {
-        let { ui, currList, listArgs, activated, nvim } = this;
+        let { ui, currList, activated, nvim } = this;
         if (!activated)
             return;
         let buf = nvim.createBuffer(ui.bufnr);
         let status = {
             mode: this.prompt.mode.toUpperCase(),
-            args: listArgs.join(' '),
+            args: this.args.join(' '),
             name: currList.name,
             total: this.worker.length,
             cwd: this.cwd,
@@ -66083,18 +66077,6 @@ class ListManager {
         buf.setVar('list_status', status, true);
         if (ui.window)
             nvim.command('redraws', true);
-    }
-    buildStatusline() {
-        let { args } = this;
-        let parts = [
-            `%#CocListMode#-- %{coc#list#status('mode')} --%*`,
-            `%{get(g:, 'coc_list_loading_status', '')}`,
-            args.join(' '),
-            `(%L/%{coc#list#status('total')})`,
-            '%=',
-            `%#CocListPath# %{coc#list#status('cwd')} %l/%L%*`
-        ];
-        return parts.join(' ');
     }
     async onInputChar(ch, charmod) {
         let { mode } = this.prompt;
