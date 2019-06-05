@@ -15,6 +15,7 @@ interface Bounding {
 export interface FloatingConfig {
   srcId: number
   maxPreviewWidth: number
+  enable: boolean
 }
 
 export default class Floating {
@@ -26,7 +27,8 @@ export default class Floating {
     let configuration = workspace.getConfiguration('suggest')
     this.config = {
       srcId: workspace.createNameSpace('coc-pum-float'),
-      maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80)
+      maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80),
+      enable: configuration.get<boolean>('floatEnable', true)
     }
   }
 
@@ -37,6 +39,8 @@ export default class Floating {
 
   private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = this
+    let { enable } = this.config
+    if (!enable) return
     await this.checkBuffer()
     let rect = await this.calculateBounding(docs, bounding)
     let config = Object.assign({ relative: 'editor', }, rect)
@@ -153,6 +157,7 @@ export default class Floating {
         if (valid) {
           this.nvim.call('coc#util#close_win', window.id, true)
         } else {
+          window = null
           clearInterval(interval)
         }
       }, _e => {

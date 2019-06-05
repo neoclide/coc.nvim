@@ -260,10 +260,15 @@
       "description": "Add preview option to completeopt, default: false.",
       "default": false
     },
+    "suggest.floatEnable": {
+      "type": "boolean",
+      "description": "Enable floating window for documentation when possible.",
+      "default": true
+    },
     "suggest.labelMaxLength": {
       "type": "number",
       "description": "Max length of abbr that shown as label of complete item.",
-      "default": 100
+      "default": 200
     },
     "suggest.detailMaxLength": {
       "type": "number",

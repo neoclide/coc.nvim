@@ -41,6 +41,19 @@ afterEach(async () => {
 
 describe('completion float', () => {
 
+  it('should not show float window when disabled', async () => {
+    helper.updateConfiguration('suggest.floatEnable', false)
+    await helper.edit()
+    await nvim.input('i')
+    await helper.wait(30)
+    await nvim.input('f')
+    await helper.wait(30)
+    await helper.pumvisible()
+    helper.updateConfiguration('suggest.floatEnable', true)
+    let hasFloat = await nvim.call('coc#util#has_float')
+    expect(hasFloat).toBe(0)
+  })
+
   it('should cancel float window', async () => {
     await helper.edit()
     await nvim.input('i')

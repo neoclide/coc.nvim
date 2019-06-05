@@ -45,17 +45,24 @@ Changelog					|coc-changelog|
 ==============================================================================
 INTRODUCTION					*coc-introduction*
 
-Coc.nvim tries to provide the best experience for various LSP features,
-especially for completion.
+Coc.nvim is created to make your (neo)vim have more intelligence like VSCode.
 
-It is built to work with extensions which have features similar to
-extensions of VSCode. You can configure coc to work with custom
-language servers as well.
+It can:~
+
+- Provide APIs that work on both vim8 and neovim.
+- Load VSCode like extensions.
+- Configure coc.nvim and extensions by use jsonc configuration file.
+- Configure language servers that implements LSP.
+
+It's designed to work well with your other vim plugins as much as possible.
+
+Note: unlike some of IDEs, it doesn't hijack your experience, you can turn
+off any feature whenever you want.
 
 ==============================================================================
 REQUIREMENT					*coc-requirement*
 
-Note: this plugin requires neovim > 0.3 or vim > 8.1.
+Note: this plugin requires neovim >= 0.3.0 or vim >= 8.1.
 
 Node: https://nodejs.org/en/download/ is required to run javascript code.
 
@@ -115,11 +122,15 @@ Builtin configurations:~
 
 "suggest.labelMaxLength":~
 
-	Maximum length of label shown in pum, default: `100`
+	Maximum length of label shown in pum, default: `200`
 
 "suggest.enablePreview":~
 
-	Add preview option to `completeopt`, default: false.,  default: `false`
+	Add preview option to `completeopt`, default: false,  default: `false`
+
+"suggest.floatEnable"~
+
+	Enable floating window for documentation when possible, default: `true`
 
 "suggest.detailMaxLength":~
 
@@ -133,11 +144,6 @@ Builtin configurations:~
 
 	Valid options: ["abbr","menu","preview"]
 
-"suggest.previewIsKeyword":~
-
-	'iskeyword' option on floating preview buffer.,  default:
-	`"@,48-57,_192-255,<,>,$,#,-,`,*"`
-
 "suggest.autoTrigger":~
 
 	How should completion be triggered,  default: `"always"`
@@ -150,8 +156,8 @@ Builtin configurations:~
 
 "suggest.numberSelect":~
 
-	Input number to select complete item, it could wrong when using <up>
-	and <down> to select complete item,  default: `false`
+	Input number to select complete item, it could be wrong when
+	using <up> and <down> to select complete item,  default: `false`
 
 "suggest.disableKind":~
 
