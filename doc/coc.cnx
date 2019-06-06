@@ -786,7 +786,7 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	{mode} 为 visualmode() 返回结果。
 
-	{only} 可以是莫个 codeAction 的 title，或者是 CodeActionKind 列表
+	{only} 可以是某个 codeAction 的 title，或者是 CodeActionKind 列表
 
 "codeLensAction" 				*coc-action-codeLensAction*
 
