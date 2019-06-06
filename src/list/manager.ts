@@ -157,8 +157,14 @@ export class ListManager implements Disposable {
       this.window = await this.nvim.window
       await this.nvim.command('nohlsearch')
       await this.getCharMap()
-      this.prompt.start(options)
       await this.history.load()
+      if (workspace.isVim) {
+        setTimeout(() => {
+          this.prompt.start(options)
+        }, 100)
+      } else {
+        this.prompt.start(options)
+      }
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()

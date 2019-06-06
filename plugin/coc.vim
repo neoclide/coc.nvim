@@ -120,7 +120,7 @@ function! s:Enable()
     autocmd!
 
     if get(g:,'coc_enable_locationlist', 1)
-      autocmd User CocLocationsChange CocList --normal --auto-preview location
+      autocmd User CocLocationsChange call coc#rpc#notify('openList',  ['--normal', '--auto-preview', 'location'])
     endif
     if exists('##MenuPopupChanged') && exists('*nvim_open_win')
       autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)

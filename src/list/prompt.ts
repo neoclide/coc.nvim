@@ -9,7 +9,7 @@ export default class Prompt {
   private cusorIndex = 0
   private _input = ''
   private _matcher: Matcher | ''
-  private _mode: ListMode
+  private _mode: ListMode = 'insert'
   private interactive = false
 
   private _onDidChangeInput = new Emitter<string>()
