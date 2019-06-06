@@ -1305,12 +1305,14 @@ Available Actions ~
 	When {mode} is omitted, it should be called using |formatexpr|.
 	
 
-"codeAction" [{mode}] 				*coc-action-codeAction*
+"codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
 	Prompt for a code action and do it.
 
 	{mode} should be result of visualmode(), when used in visualmode,
-	could be empty string for none visualmode.
+	could be empty string or v:null for none visualmode.
+
+	{only} can be title of a codeAction or list of CodeActionKind.
 
 
 "codeLensAction" 				*coc-action-codeLensAction*
@@ -1391,17 +1393,15 @@ Available Actions ~
 
 	Change the color presentation at the current color position.
 
-	Requires a language server that supports color representation 
+	Requires a language server that supports color representation
 	requests.
 
-"quickfixes" [{lnum}]				*coc-action-quickfixes*
+"quickfixes" [{visualmode}]				*coc-action-quickfixes*
 
 	Get quickfix codeActions of current buffer.
 
-	Add {lnum} as second argument fi get codeActions of that line.
-
-	Could be used with |CocDiagnosticChange| autocmd to get available fix
-	actions.
+	Add {visualmode} as second argument get quickfix actions with range of
+	latest |visualmode()|
 
 "doCodeAction" {codeAction} 			*coc-action-doCodeAction*
 

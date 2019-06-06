@@ -780,11 +780,13 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 	如果不提供 {mode}, 该函数必须设置为 |formatexpr| 使用。
 	
 
-"codeAction" [{mode}] 				*coc-action-codeAction*
+"codeAction" [{mode}] [{only}]			*coc-action-codeAction*
 
 	执行 codeAction。
 
 	{mode} 为 visualmode() 返回结果。
+
+	{only} 可以是莫个 codeAction 的 title，或者是 CodeActionKind 列表
 
 "codeLensAction" 				*coc-action-codeLensAction*
 
@@ -868,9 +870,10 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	推荐安装 coc-highlight 插件在所有文件中支持该功能。
 
-"quickfixes" 					*coc-action-quickfixes*
+"quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
-	获取当前缓冲区的 quickfix codeActions。
+	获取当前行的 quickfix codeActions，指定 {visualmode}
+	获取上一次选择区间的中的 quickfixes.
 
 "doCodeAction" {codeAction} 			*coc-action-doCodeAction*
 

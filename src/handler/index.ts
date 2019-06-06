@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import binarySearch from 'binary-search'
-import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit, TextDocument } from 'vscode-languageserver-protocol'
 import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import { Document } from '..'
 import commandManager from '../commands'
@@ -442,13 +442,10 @@ export default class Handler {
     }
   }
 
-  public async doCodeAction(mode: string | null, only?: CodeActionKind[]): Promise<void> {
-    let document = await workspace.document
-    if (!document) return
-    let range: Range
-    if (mode) {
-      range = await workspace.getSelectedRange(mode, document.textDocument)
-    } else {
+  public async getCodeActions(bufnr: number, range?: Range, only?: CodeActionKind[]): Promise<CodeAction[]> {
+    let document = workspace.getDocument(bufnr)
+    if (!document) return []
+    if (!range) {
       let lnum = await this.nvim.call('line', ['.'])
       range = {
         start: { line: lnum - 1, character: 0 },
@@ -457,9 +454,9 @@ export default class Handler {
     }
     let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
     let context: CodeActionContext = { diagnostics }
-    if (only) context.only = only
+    if (only && Array.isArray(only)) context.only = only
     let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context)
-    if (!codeActionsMap) return workspace.showMessage('No action available', 'warning')
+    if (!codeActionsMap) return []
     let codeActions: CodeAction[] = []
     for (let clientId of codeActionsMap.keys()) {
       let actions = codeActionsMap.get(clientId)
@@ -476,10 +473,28 @@ export default class Handler {
       }
       return 0
     })
-    let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
-    if (idx == -1) return
-    let action = codeActions[idx]
-    if (action) await this.applyCodeAction(action)
+    return codeActions
+  }
+
+  public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
+    let bufnr = await this.nvim.call('bufnr', '%')
+    let range: Range
+    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr).textDocument)
+    let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null)
+    if (!codeActions || codeActions.length == 0) {
+      workspace.showMessage('No action available', 'warning')
+      return
+    }
+    if (only && typeof only == 'string') {
+      let action = codeActions.find(o => o.title == only || (o.command && o.command.title == only))
+      if (!action) return workspace.showMessage(`action "${only}" not found.`, 'warning')
+      await this.applyCodeAction(action)
+    } else {
+      let idx = await workspace.showQuickpick(codeActions.map(o => o.title))
+      if (idx == -1) return
+      let action = codeActions[idx]
+      if (action) await this.applyCodeAction(action)
+    }
   }
 
   /**
@@ -488,44 +503,19 @@ export default class Handler {
    * @public
    * @returns {Promise<CodeAction[]>}
    */
-  public async getQuickfixActions(range?: Range): Promise<CodeAction[]> {
-    let document = await workspace.document
+  public async getQuickfixActions(mode?: string): Promise<CodeAction[]> {
+    let bufnr = await this.nvim.call('bufnr', '%') as number
+    let document = workspace.getDocument(bufnr)
     if (!document) return []
-    range = range || Range.create(0, 0, document.lineCount, 0)
-    let diagnostics = diagnosticManager.getDiagnosticsInRange(document.textDocument, range)
-    let context: CodeActionContext = { diagnostics, only: [CodeActionKind.QuickFix] }
-    let codeActionsMap = await languages.getCodeActions(document.textDocument, range, context, true)
-    if (!codeActionsMap) return []
-    let codeActions: CodeAction[] = []
-    for (let clientId of codeActionsMap.keys()) {
-      let actions = codeActionsMap.get(clientId)
-      for (let action of actions) {
-        if (action.kind !== CodeActionKind.QuickFix) continue
-        codeActions.push({ clientId, ...action })
-      }
-    }
-    codeActions.sort((a, b) => {
-      if (a.isPrefered && !b.isPrefered) {
-        return -1
-      }
-      if (b.isPrefered && !a.isPrefered) {
-        return 1
-      }
-      return 0
-    })
-    logger.debug('actions:', codeActions)
-    return codeActions
+    let range: Range
+    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr).textDocument)
+    return await this.getCodeActions(bufnr, range, [CodeActionKind.QuickFix])
   }
 
   public async doQuickfix(): Promise<void> {
-    let lnum = await this.nvim.call('line', ['.'])
-    let range: Range = {
-      start: { line: lnum - 1, character: 0 },
-      end: { line: lnum, character: 0 }
-    }
-    let actions = await this.getQuickfixActions(range)
+    let actions = await this.getQuickfixActions()
     if (!actions || actions.length == 0) {
-      return workspace.showMessage('No action available', 'warning')
+      return workspace.showMessage('No quickfix action available', 'warning')
     }
     await this.applyCodeAction(actions[0])
     await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`)

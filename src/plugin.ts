@@ -406,26 +406,19 @@ export default class Plugin extends EventEmitter {
         case 'toggleService':
           return services.toggle(args[1])
         case 'codeAction':
-          return handler.doCodeAction(args[1])
+          return handler.doCodeAction(args[1], args[2])
+        case 'doCodeAction':
+          return await handler.applyCodeAction(args[1])
         case 'codeLensAction':
           return handler.doCodeLensAction()
         case 'runCommand':
           return await handler.runCommand(...args.slice(1))
         case 'quickfixes':
-          let range
-          if (args[1]) {
-            range = {
-              start: { line: args[1] - 1, character: 0 },
-              end: { line: args[1], character: 0 }
-            }
-          }
-          return await handler.getQuickfixActions(range)
+          return await handler.getQuickfixActions(args[1])
         case 'doQuickfix':
           return await handler.doQuickfix()
         case 'repeatCommand':
           return await commandManager.repeatCommand()
-        case 'doCodeAction':
-          return await handler.applyCodeAction(args[1])
         case 'extensionStats':
           return await extensions.getExtensionStates()
         case 'activeExtension':
