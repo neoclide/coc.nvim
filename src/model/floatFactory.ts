@@ -158,7 +158,7 @@ export default class FloatFactory implements Disposable {
       if (!reuse) {
         nvim.notify('nvim_open_win', [this.buffer, true, config])
         nvim.command(`let w:float = 1`, true)
-        nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true)
+        nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true)
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
         nvim.command(`setl signcolumn=no conceallevel=2`, true)
         nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true)
@@ -170,8 +170,12 @@ export default class FloatFactory implements Disposable {
       this.floatBuffer.setLines()
       nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true)
       nvim.command('noa wincmd p', true)
-      let res = await nvim.resumeNotification()
-      if (!reuse) this.window = res[0][0]
+      let [res, err] = await nvim.resumeNotification()
+      if (err) {
+        workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
+        return
+      }
+      if (!reuse) this.window = res[0]
       if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
     }
   }
