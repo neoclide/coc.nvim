@@ -2,7 +2,7 @@ if exists('g:did_coc_loaded') || v:version < 800
   finish
 endif
 if has('nvim') && !has('nvim-0.3.0') | finish | endif
-if !has('nvim') && !has('patch-8.1.001') | finish | endif
+if !has('nvim') && !has('patch-8.0.1453') | finish | endif
 let s:is_win = has('win32') || has('win64')
 let s:root = expand('<sfile>:h:h')
 
