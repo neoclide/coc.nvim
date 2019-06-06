@@ -204,7 +204,7 @@ export default class Handler {
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new DocumentHighlighter(nvim, this.colors)
-    this.disposables.push(commandManager.registerCommand('editor.action.orgnizeImport', async (bufnr?: number) => {
+    this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
       if (!bufnr) bufnr = await nvim.call('bufnr', '%')
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
@@ -216,7 +216,7 @@ export default class Handler {
         workspace.showMessage(`Orgnize import action not found.`, 'warning')
       }
     }))
-    commandManager.titles.set('editor.action.orgnizeImport', 'run orgnize import code action.')
+    commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {
