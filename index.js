@@ -53850,7 +53850,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "44870f024c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3c512aa9bc" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -55723,24 +55723,14 @@ class SnippetSession {
             start: { line: start.line, col },
             end: { line: end.line, col: endCol }
         }, true);
-        let ve = await nvim.getOption('virtualedit');
-        let selection = await nvim.getOption('selection');
-        let mode = await nvim.call('mode');
+        let [ve, selection, pumvisible, mode] = await nvim.eval('[&virtualedit, &selection, pumvisible(), mode()]');
         let move_cmd = '';
-        if (mode.startsWith('i')) {
-            let pum = await nvim.call('pumvisible');
-            if (pum && this.preferComplete) {
-                let pre = completion_1.default.hasSelected() ? '' : '\\<C-n>';
-                await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`);
-                return;
-            }
+        if (pumvisible && this.preferComplete) {
+            let pre = completion_1.default.hasSelected() ? '' : '\\<C-n>';
+            await nvim.eval(`feedkeys("${pre}\\<C-y>", 'in')`);
+            return;
         }
         let resetVirtualEdit = false;
-        if (ve != 'onemore') {
-            resetVirtualEdit = true;
-            await nvim.setOption('virtualedit', 'onemore');
-        }
-        await nvim.call('cursor', [start.line + 1, col + 1]);
         if (mode != 'n')
             move_cmd += "\\<Esc>";
         if (len == 0) {
@@ -55771,12 +55761,18 @@ class SnippetSession {
             col = await this.getVirtualCol(start.line + 1, col);
             move_cmd += `o${start.line + 1}G${col + 1}|o\\<c-g>`;
         }
-        await nvim.eval(`feedkeys("${move_cmd}", 'in')`);
-        if (workspace_1.default.env.isVim) {
-            nvim.command('redraw', true);
+        nvim.pauseNotification();
+        if (ve != 'onemore') {
+            resetVirtualEdit = true;
+            nvim.setOption('virtualedit', 'onemore', true);
         }
+        nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true);
+        nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true);
         if (resetVirtualEdit)
-            await nvim.setOption('virtualedit', ve);
+            nvim.setOption('virtualedit', ve, true);
+        if (workspace_1.default.env.isVim)
+            nvim.command('redraw', true);
+        await nvim.resumeNotification();
         if (triggerAutocmd)
             nvim.command('silent doautocmd User CocJumpPlaceholder', true);
     }
