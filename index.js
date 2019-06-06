@@ -53850,7 +53850,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "85162d829e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "44870f024c" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59362,7 +59362,7 @@ class FloatFactory {
             if (!reuse) {
                 nvim.notify('nvim_open_win', [this.buffer, true, config]);
                 nvim.command(`let w:float = 1`, true);
-                nvim.command(`setl nospell nolist wrap previewwindow linebreak foldcolumn=1`, true);
+                nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2`, true);
                 nvim.command(`setl winhl=Normal:CocFloating,NormalNC:CocFloating,FoldColumn:CocFloating`, true);
@@ -59375,9 +59375,13 @@ class FloatFactory {
             this.floatBuffer.setLines();
             nvim.command(`normal! ${alignTop ? 'G' : 'gg'}0`, true);
             nvim.command('noa wincmd p', true);
-            let res = await nvim.resumeNotification();
+            let [res, err] = await nvim.resumeNotification();
+            if (err) {
+                workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
+                return;
+            }
             if (!reuse)
-                this.window = res[0][0];
+                this.window = res[0];
             if (mode == 's')
                 await manager_1.default.selectCurrentPlaceholder(false);
         }
