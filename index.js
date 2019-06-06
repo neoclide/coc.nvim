@@ -53847,7 +53847,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "cf4d9769ce" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e88b86eac1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54017,26 +54017,19 @@ class Plugin extends events_1.EventEmitter {
                 case 'toggleService':
                     return services_1.default.toggle(args[1]);
                 case 'codeAction':
-                    return handler.doCodeAction(args[1]);
+                    return handler.doCodeAction(args[1], args[2]);
+                case 'doCodeAction':
+                    return await handler.applyCodeAction(args[1]);
                 case 'codeLensAction':
                     return handler.doCodeLensAction();
                 case 'runCommand':
                     return await handler.runCommand(...args.slice(1));
                 case 'quickfixes':
-                    let range;
-                    if (args[1]) {
-                        range = {
-                            start: { line: args[1] - 1, character: 0 },
-                            end: { line: args[1], character: 0 }
-                        };
-                    }
-                    return await handler.getQuickfixActions(range);
+                    return await handler.getQuickfixActions(args[1]);
                 case 'doQuickfix':
                     return await handler.doQuickfix();
                 case 'repeatCommand':
                     return await commands_1.default.repeatCommand();
-                case 'doCodeAction':
-                    return await handler.applyCodeAction(args[1]);
                 case 'extensionStats':
                     return await extensions_1.default.getExtensionStates();
                 case 'activeExtension':
@@ -59156,7 +59149,7 @@ class DiagnosticManager {
                             lnum: range.start.line + 1,
                             col: range.start.character + 1,
                             end_lnum: range.end.line + 1,
-                            end_col: range.end.character + 1,
+                            end_col: range.end.character,
                             type: util_2.getSeverityType(o.severity)
                         };
                     });
@@ -71740,15 +71733,11 @@ class Handler {
             await manager_2.default.start(['commands']);
         }
     }
-    async doCodeAction(mode, only) {
-        let document = await workspace_1.default.document;
+    async getCodeActions(bufnr, range, only) {
+        let document = workspace_1.default.getDocument(bufnr);
         if (!document)
-            return;
-        let range;
-        if (mode) {
-            range = await workspace_1.default.getSelectedRange(mode, document.textDocument);
-        }
-        else {
+            return [];
+        if (!range) {
             let lnum = await this.nvim.call('line', ['.']);
             range = {
                 start: { line: lnum - 1, character: 0 },
@@ -71757,11 +71746,11 @@ class Handler {
         }
         let diagnostics = manager_1.default.getDiagnosticsInRange(document.textDocument, range);
         let context = { diagnostics };
-        if (only)
+        if (only && Array.isArray(only))
             context.only = only;
         let codeActionsMap = await languages_1.default.getCodeActions(document.textDocument, range, context);
         if (!codeActionsMap)
-            return workspace_1.default.showMessage('No action available', 'warning');
+            return [];
         let codeActions = [];
         for (let clientId of codeActionsMap.keys()) {
             let actions = codeActionsMap.get(clientId);
@@ -71778,12 +71767,32 @@ class Handler {
             }
             return 0;
         });
-        let idx = await workspace_1.default.showQuickpick(codeActions.map(o => o.title));
-        if (idx == -1)
+        return codeActions;
+    }
+    async doCodeAction(mode, only) {
+        let bufnr = await this.nvim.call('bufnr', '%');
+        let range;
+        if (mode)
+            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr).textDocument);
+        let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
+        if (!codeActions || codeActions.length == 0) {
+            workspace_1.default.showMessage('No action available', 'warning');
             return;
-        let action = codeActions[idx];
-        if (action)
+        }
+        if (only && typeof only == 'string') {
+            let action = codeActions.find(o => o.title == only || (o.command && o.command.title == only));
+            if (!action)
+                return workspace_1.default.showMessage(`action "${only}" not found.`, 'warning');
             await this.applyCodeAction(action);
+        }
+        else {
+            let idx = await workspace_1.default.showQuickpick(codeActions.map(o => o.title));
+            if (idx == -1)
+                return;
+            let action = codeActions[idx];
+            if (action)
+                await this.applyCodeAction(action);
+        }
     }
     /**
      * Get all quickfix actions of current buffer
@@ -71791,46 +71800,20 @@ class Handler {
      * @public
      * @returns {Promise<CodeAction[]>}
      */
-    async getQuickfixActions(range) {
-        let document = await workspace_1.default.document;
+    async getQuickfixActions(mode) {
+        let bufnr = await this.nvim.call('bufnr', '%');
+        let document = workspace_1.default.getDocument(bufnr);
         if (!document)
             return [];
-        range = range || vscode_languageserver_protocol_1.Range.create(0, 0, document.lineCount, 0);
-        let diagnostics = manager_1.default.getDiagnosticsInRange(document.textDocument, range);
-        let context = { diagnostics, only: [vscode_languageserver_protocol_1.CodeActionKind.QuickFix] };
-        let codeActionsMap = await languages_1.default.getCodeActions(document.textDocument, range, context, true);
-        if (!codeActionsMap)
-            return [];
-        let codeActions = [];
-        for (let clientId of codeActionsMap.keys()) {
-            let actions = codeActionsMap.get(clientId);
-            for (let action of actions) {
-                if (action.kind !== vscode_languageserver_protocol_1.CodeActionKind.QuickFix)
-                    continue;
-                codeActions.push(Object.assign({ clientId }, action));
-            }
-        }
-        codeActions.sort((a, b) => {
-            if (a.isPrefered && !b.isPrefered) {
-                return -1;
-            }
-            if (b.isPrefered && !a.isPrefered) {
-                return 1;
-            }
-            return 0;
-        });
-        logger.debug('actions:', codeActions);
-        return codeActions;
+        let range;
+        if (mode)
+            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr).textDocument);
+        return await this.getCodeActions(bufnr, range, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
     }
     async doQuickfix() {
-        let lnum = await this.nvim.call('line', ['.']);
-        let range = {
-            start: { line: lnum - 1, character: 0 },
-            end: { line: lnum, character: 0 }
-        };
-        let actions = await this.getQuickfixActions(range);
+        let actions = await this.getQuickfixActions();
         if (!actions || actions.length == 0) {
-            return workspace_1.default.showMessage('No action available', 'warning');
+            return workspace_1.default.showMessage('No quickfix action available', 'warning');
         }
         await this.applyCodeAction(actions[0]);
         await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`);
