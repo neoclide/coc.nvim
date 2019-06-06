@@ -58,14 +58,16 @@ function! s:funcs.list_wins() abort
 endfunction
 
 function! s:funcs.call_atomic(calls)
+  let res = []
   for [key, arglist] in a:calls
     let name = key[5:]
     try
-      call call(s:funcs[name], arglist)
+      call add(res, call(s:funcs[name], arglist))
     catch /.*/
-      throw v:exception
+      return [res, v:exception]
     endtry
   endfor
+  return [res, v:null]
 endfunction
 
 function! s:funcs.set_client_info(...) abort

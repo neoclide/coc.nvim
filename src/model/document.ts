@@ -52,7 +52,8 @@ export default class Document {
     }, 50)
   }
 
-  private shouldAttach(buftype: string): boolean {
+  public get shouldAttach(): boolean {
+    let { buftype } = this
     if (this.uri.endsWith('%5BCommand%20Line%5D')) return true
     return buftype == '' || buftype == 'acwrite'
   }
@@ -140,7 +141,7 @@ export default class Document {
   }
 
   public async attach(): Promise<boolean> {
-    if (this.shouldAttach(this.buftype)) {
+    if (this.shouldAttach) {
       let attached = await this.buffer.attach(false)
       if (!attached) return false
       this.lines = await this.buffer.lines

@@ -1241,7 +1241,7 @@ augroup end`
     if (!this.isVim) return
     const onChange = async (bufnr: number) => {
       let doc = this.getDocument(bufnr)
-      if (doc) doc.fetchContent()
+      if (doc && doc.shouldAttach) doc.fetchContent()
     }
     events.on('TextChangedI', onChange, null, this.disposables)
     events.on('TextChanged', onChange, null, this.disposables)

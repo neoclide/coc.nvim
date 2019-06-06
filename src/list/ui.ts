@@ -79,6 +79,22 @@ export default class ListUI {
       nvim.command('redraw', true)
       await nvim.resumeNotification(false, true)
     }, 50))
+    nvim.call('coc#list#get_colors').then(map => {
+      for (let key of Object.keys(map)) {
+        let foreground = key[0].toUpperCase() + key.slice(1)
+        let foregroundColor = map[key]
+        for (let key of Object.keys(map)) {
+          let background = key[0].toUpperCase() + key.slice(1)
+          let backgroundColor = map[key]
+          let group = `CocList${foreground}${background}`
+          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
+        }
+        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
+        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
+      }
+    }, _e => {
+      // noop
+    })
   }
 
   public set index(n: number) {
@@ -319,35 +335,22 @@ export default class ListUI {
     let limitLines = config.get<number>('limitLines', 1000)
     let curr = this.items[this.index]
     this.items = items.slice(0, limitLines)
-    if (this.hlGroupMap.size == 0) {
-      let map = await nvim.call('coc#list#get_colors')
-      for (let key of Object.keys(map)) {
-        let foreground = key[0].toUpperCase() + key.slice(1)
-        let foregroundColor = map[key]
-        for (let key of Object.keys(map)) {
-          let background = key[0].toUpperCase() + key.slice(1)
-          let backgroundColor = map[key]
-          let group = `CocList${foreground}${background}`
-          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
-        }
-        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
-        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
-      }
-    }
     if (bufnr == 0 && !this.creating) {
       this.creating = true
       let saved = await nvim.call('winsaveview')
       let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`
       nvim.pauseNotification()
       nvim.command(cmd, true)
+      nvim.call('coc#list#setup', [`list:///${name}`], true)
+      nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true)
       nvim.command(`resize ${height}`, true)
       nvim.command('wincmd p', true)
       nvim.call('winrestview', [saved], true)
       nvim.command('wincmd p', true)
-      nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true)
       await nvim.resumeNotification()
-      this._bufnr = await nvim.call('bufnr', '%')
-      this.window = await nvim.window
+      let [bufnr, winid] = await nvim.eval('[bufnr("%"),win_getid()]') as [number, number]
+      this._bufnr = bufnr
+      this.window = nvim.createWindow(winid)
       this.height = height
       this._onDidOpen.fire(this.bufnr)
       this.creating = false
@@ -415,6 +418,7 @@ export default class ListUI {
     }
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
+    if (workspace.isVim) nvim.command('redraw', true)
     nvim.resumeNotification(false, true).catch(_e => {
       // noop
     })

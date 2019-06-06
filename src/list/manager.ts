@@ -110,9 +110,7 @@ export class ListManager implements Disposable {
       if (this.activated) {
         this.updateStatus()
       }
-      if (workspace.isNvim) {
-        this.prompt.drawPrompt()
-      }
+      this.prompt.drawPrompt()
     }, null, this.disposables)
     this.ui.onDidDoubleClick(async () => {
       await this.doAction()
