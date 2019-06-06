@@ -1247,39 +1247,35 @@ Command options 					*coc-list-options*
 
 LIST CONFIGURATION 				*coc-list-configuration*
 
-Coc 列表无需配置即可工作，同时提供了一些配置进行增强。
+CocList 同样使用 `coc-settings.json` 文件来进行配置。
 
-- `"list.indicator"`: 输入栏提示字符。
+安装 coc-json 插件后可以在 coc-settings.json 文件中输入 `list.` 来获取所有
+list 相关可用配置项。
 
-	默认: `>`
+针对特性的 list 源，可使用以 `list.source.{name}` 开头的配置项来设置。
 
-- `"list.maxHeight"`: 列表窗口最大高度。
+修改指定源的默认选项:~
 
-	默认: 12
+使用 `list.source.{name}.defaultOptions` 配置，例如: >
 
-- `"list.autoResize"`: 开启自动调整高度功能。
+	// 让 symbols 列表启用 interactive 模式，同时支持数字键选中
+	"list.source.symbols.defaultOptions": ["--interactive", "--number-select"],
+<
+	注意: 部分源只能在 interactive 模式下工作，所以推荐使用配置让
+	interactive 总是生效。
 
-	默认: `true`
+注意: 如果通过命令行传递了参数，默认选项将不会生效。
 
-- `"list.nextKeymap"`: 输入模式下选中下一个的快捷键。
+设置指定源默认参数:~
 
-	默认: <C-j>
+使用 `list.source.{name}.defaultArgs` 配置，例如： >
 
-- `"list.previousKeymap"`: 输入模式下选中上一个的快捷键。
+	// 配置 grep 源默认使用正则匹配
+	"list.source.grep.defaultArgs": ["-regex"],
 
-	默认: <C-k>
+注意: 默认参数仅在命令行调用参数为空时生效。
 
-- `"list.normalMappings"`: 正常模式下用户定义快捷键。
-
-	默认: `{}`
-
-	详情查看： |coc-list-mappings-custom|
-
-- `"list.insertMappings"`: 插入模式下用户定义快捷键。
-
-	默认: `{}`
-
-	详情查看： |coc-list-mappings-custom|
+在正常模式键入 `？` 可以查看当前源的详细文档。
 
 ------------------------------------------------------------------------------
 
@@ -1375,6 +1371,7 @@ s           - 执行 'split' 操作.
 	'deletebackward' - 删除后一个字符
 	'removetail' - 删除后面全部字符
 	'removeahead' - 删除前面全部字符
+	'paste' - 插入系统粘贴板内容到当前位置
 'action' - 执行特定操作，使用 <tab> 查看当前列表支持操作
 'feedkeys' - 发送按键到列表窗口
 'normal' - 执行 normal 命令
