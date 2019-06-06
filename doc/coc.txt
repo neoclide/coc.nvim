@@ -1326,10 +1326,12 @@ Available Actions ~
 
 	Get a list of available service commands for the current buffer.
 
-"runCommand" [{name}] 				*coc-action-runCommand*
+"runCommand" [{name}] [...{args}] 		*coc-action-runCommand*
 
 	Run a global command provided by the language server. If {name} is not 
 	provided, a prompt with a list of commands is shown to be selected.
+
+	{args} are passed as arguments of command.
 
 	You can bind your custom command like so: >
 

@@ -798,9 +798,11 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	获取当前缓冲区可用命令列表。
 
-"runCommand" [{name}] 				*coc-action-runCommand*
+"runCommand" [{name}]  [...{args}]		*coc-action-runCommand*
 
 	执行 {name} 命令，如果不提供 {name}，则提示进行选择。
+
+	{args} 做为参数传递给对应命令。
 
 	对于常用命令，可以设置更方便使用的命令，例如： >
 

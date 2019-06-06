@@ -1,6 +1,6 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import binarySearch from 'binary-search'
-import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit, TextDocument } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import { Document } from '..'
 import commandManager from '../commands'
@@ -12,7 +12,7 @@ import FloatFactory from '../model/floatFactory'
 import { TextDocumentContentProvider } from '../provider'
 import services from '../services'
 import snippetManager from '../snippets/manager'
-import { Documentation, CodeAction } from '../types'
+import { CodeAction, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
@@ -204,6 +204,19 @@ export default class Handler {
     this.codeLensManager = new CodeLensManager(nvim)
     this.colors = new Colors(nvim)
     this.documentHighlighter = new DocumentHighlighter(nvim, this.colors)
+    this.disposables.push(commandManager.registerCommand('editor.action.orgnizeImport', async (bufnr?: number) => {
+      if (!bufnr) bufnr = await nvim.call('bufnr', '%')
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return
+      let range: Range = Range.create(0, 0, doc.lineCount, 0)
+      let actions = await this.getCodeActions(bufnr, range, [CodeActionKind.SourceOrganizeImports])
+      if (actions && actions.length) {
+        await this.applyCodeAction(actions[0])
+      } else {
+        workspace.showMessage(`Orgnize import action not found.`, 'warning')
+      }
+    }))
+    commandManager.titles.set('editor.action.orgnizeImport', 'run orgnize import code action.')
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {

@@ -314,6 +314,8 @@ command! -nargs=0 Format :call CocAction('format')
 " Use `:Fold` to fold current buffer
 command! -nargs=? Fold :call     CocAction('fold', <f-args>)
 
+" use `:OR` for organize import of current buffer
+command! -nargs=0 OR   :call     CocAction('runCommand', 'editor.action.orgnizeImport')
 
 " Add diagnostic info for https://github.com/itchyny/lightline.vim
 let g:lightline = {
