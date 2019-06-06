@@ -201,7 +201,8 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-angular](https://github.com/iamcco/coc-angular)** for `angular`.
 - **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
 
-Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim).
+Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim),
+or use [coc-marketplace](https://github.com/fannheyward/coc-marketplace), which can search and install extensions in coc.nvim directly.
 
 **Note:** use `:CocConfig` to edit the configuration file. Completion & validation are supported after `coc-json` is installed.
 
