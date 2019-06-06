@@ -53847,7 +53847,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8975d1697b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dac38ed5b4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -71484,7 +71484,7 @@ class Handler {
         this.codeLensManager = new codelens_1.default(nvim);
         this.colors = new colors_1.default(nvim);
         this.documentHighlighter = new documentHighlight_1.default(nvim, this.colors);
-        this.disposables.push(commands_1.default.registerCommand('editor.action.orgnizeImport', async (bufnr) => {
+        this.disposables.push(commands_1.default.registerCommand('editor.action.organizeImport', async (bufnr) => {
             if (!bufnr)
                 bufnr = await nvim.call('bufnr', '%');
             let doc = workspace_1.default.getDocument(bufnr);
@@ -71499,7 +71499,7 @@ class Handler {
                 workspace_1.default.showMessage(`Orgnize import action not found.`, 'warning');
             }
         }));
-        commands_1.default.titles.set('editor.action.orgnizeImport', 'run orgnize import code action.');
+        commands_1.default.titles.set('editor.action.organizeImport', 'run organize import code action.');
     }
     async getCurrentFunctionSymbol() {
         let { position } = await workspace_1.default.getCurrentState();
