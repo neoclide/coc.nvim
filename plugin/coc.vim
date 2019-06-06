@@ -255,6 +255,8 @@ command! -nargs=+ -complete=custom,s:InstallOptions CocInstall   :call coc#util#
 command! -nargs=+ -complete=custom,s:ExtensionList  CocUninstall :call coc#rpc#notify('CocAction', ['uninstallExtension', <f-args>])
 command! -nargs=* -complete=custom,coc#list#options CocList      :call coc#rpc#notify('openList',  [<f-args>])
 command! -nargs=* -complete=custom,s:CommandList -range CocCommand :call coc#rpc#notify('runCommand', [<f-args>])
+command! -nargs=* -range CocAction :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, <f-args>])
+command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<line1>, <line2>, 'quickfix'])
 
 call s:Enable()
 

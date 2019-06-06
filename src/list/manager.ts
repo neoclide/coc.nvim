@@ -22,6 +22,7 @@ import OutputList from './source/output'
 import ServicesList from './source/services'
 import SourcesList from './source/sources'
 import SymbolsList from './source/symbols'
+import ActionsList from './source/actions'
 import UI from './ui'
 import Worker from './worker'
 const logger = require('../util/logger')('list-manager')
@@ -139,6 +140,7 @@ export class ListManager implements Disposable {
     this.registerList(new OutputList(nvim))
     this.registerList(new ListsList(nvim, this.listMap))
     this.registerList(new FolderList(nvim))
+    this.registerList(new ActionsList(nvim))
   }
 
   public async start(args: string[]): Promise<void> {

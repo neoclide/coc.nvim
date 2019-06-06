@@ -34,6 +34,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('listNames', () => {
       return listManager.names
     })
+    this.addMethod('codeActionRange', (start, end, only) => {
+      return this.handler.codeActionRange(start, end, only)
+    })
     this.addMethod('rootPatterns', bufnr => {
       let doc = workspace.getDocument(bufnr)
       if (!doc) return null

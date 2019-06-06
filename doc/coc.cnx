@@ -946,6 +946,17 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		执行某个插件提供的命令，支持使用 <tab> 对 {name} 补全。
 
+:{range}CocAction  [{only}] 			*:CocAction*
+
+		获取当前 buffer 所有的 codeActions 到 actions 列表，
+		支持 {range}。
+
+		{only} 可以为 'quickfix' 或者 'source'。
+
+:{range}CocFix 					*:CocFix*
+
+		同 `:CocAction quickfix` 一样。
+
 :CocOpenLog 					*:CocOpenLog*
 
 		打开 coc 的日志文件，默认级别为 info。
@@ -959,12 +970,6 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 		let $NVIM_COC_LOG_LEVEL='debug'
 <
 		到 .vimrc 。
-
-		日志文件会在 vim 启动后清空，通过命令： >
-
-		node -e 'console.log(path.join(os.tmpdir(), "coc-nvim.log"))'
-<
-		获取日志地址。
 
 :CocInfo 					*:CocInfo*
 
