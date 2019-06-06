@@ -45165,7 +45165,7 @@ augroup end`;
             return;
         const onChange = async (bufnr) => {
             let doc = this.getDocument(bufnr);
-            if (doc)
+            if (doc && doc.shouldAttach)
                 doc.fetchContent();
         };
         events_1.default.on('TextChangedI', onChange, null, this.disposables);
@@ -50126,7 +50126,8 @@ class Document {
             });
         }, 50);
     }
-    shouldAttach(buftype) {
+    get shouldAttach() {
+        let { buftype } = this;
         if (this.uri.endsWith('%5BCommand%20Line%5D'))
             return true;
         return buftype == '' || buftype == 'acwrite';
@@ -50213,7 +50214,7 @@ class Document {
         this._words = this.chars.matchKeywords(this.lines.join('\n'));
     }
     async attach() {
-        if (this.shouldAttach(this.buftype)) {
+        if (this.shouldAttach) {
             let attached = await this.buffer.attach(false);
             if (!attached)
                 return false;
@@ -54355,7 +54356,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "33fdf740aa" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e28502ac07" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -66302,9 +66303,7 @@ class ListManager {
             if (this.activated) {
                 this.updateStatus();
             }
-            if (workspace_1.default.isNvim) {
-                this.prompt.drawPrompt();
-            }
+            this.prompt.drawPrompt();
         }, null, this.disposables);
         this.ui.onDidDoubleClick(async () => {
             await this.doAction();
@@ -69297,6 +69296,22 @@ class ListUI {
             nvim.command('redraw', true);
             await nvim.resumeNotification(false, true);
         }, 50));
+        nvim.call('coc#list#get_colors').then(map => {
+            for (let key of Object.keys(map)) {
+                let foreground = key[0].toUpperCase() + key.slice(1);
+                let foregroundColor = map[key];
+                for (let key of Object.keys(map)) {
+                    let background = key[0].toUpperCase() + key.slice(1);
+                    let backgroundColor = map[key];
+                    let group = `CocList${foreground}${background}`;
+                    this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`);
+                }
+                this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`);
+                this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`);
+            }
+        }, _e => {
+            // noop
+        });
     }
     set index(n) {
         if (n < 0 || n >= this.items.length)
@@ -69538,35 +69553,22 @@ class ListUI {
         let limitLines = config.get('limitLines', 1000);
         let curr = this.items[this.index];
         this.items = items.slice(0, limitLines);
-        if (this.hlGroupMap.size == 0) {
-            let map = await nvim.call('coc#list#get_colors');
-            for (let key of Object.keys(map)) {
-                let foreground = key[0].toUpperCase() + key.slice(1);
-                let foregroundColor = map[key];
-                for (let key of Object.keys(map)) {
-                    let background = key[0].toUpperCase() + key.slice(1);
-                    let backgroundColor = map[key];
-                    let group = `CocList${foreground}${background}`;
-                    this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`);
-                }
-                this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`);
-                this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`);
-            }
-        }
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
             let saved = await nvim.call('winsaveview');
             let cmd = 'keepalt ' + (position == 'top' ? '' : 'botright') + ` ${height}sp list:///${name || 'anonymous'}`;
             nvim.pauseNotification();
             nvim.command(cmd, true);
+            nvim.call('coc#list#setup', [`list:///${name}`], true);
+            nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true);
             nvim.command(`resize ${height}`, true);
             nvim.command('wincmd p', true);
             nvim.call('winrestview', [saved], true);
             nvim.command('wincmd p', true);
-            nvim.command(`nnoremap <silent><nowait><buffer> <esc> <C-w>c`, true);
             await nvim.resumeNotification();
-            this._bufnr = await nvim.call('bufnr', '%');
-            this.window = await nvim.window;
+            let [bufnr, winid] = await nvim.eval('[bufnr("%"),win_getid()]');
+            this._bufnr = bufnr;
+            this.window = nvim.createWindow(winid);
             this.height = height;
             this._onDidOpen.fire(this.bufnr);
             this.creating = false;
@@ -69638,6 +69640,8 @@ class ListUI {
         if (!append)
             window.notify('nvim_win_set_cursor', [[index + 1, 0]]);
         this._onDidChange.fire();
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
         nvim.resumeNotification(false, true).catch(_e => {
             // noop
         });
