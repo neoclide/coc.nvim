@@ -2,7 +2,7 @@ import os from 'os'
 import fs from 'fs'
 import path from 'path'
 import { Emitter, Event, Disposable } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { ConfigurationChangeEvent, ConfigurationInspect, ConfigurationShape, ConfigurationTarget, ErrorItem, IConfigurationData, IConfigurationModel, WorkspaceConfiguration } from '../types'
 import { deepClone, deepFreeze, mixin } from '../util/object'
 import { watchFile, disposeAll } from '../util'
@@ -54,7 +54,7 @@ export default class Configurations {
 
   private parseContentFromFile(filepath: string): IConfigurationModel {
     if (!filepath) return { contents: {} }
-    let uri = Uri.file(filepath).toString()
+    let uri = URI.file(filepath).toString()
     this._errorItems = this._errorItems.filter(o => o.location.uri != uri)
     let res = parseContentFromFile(filepath, errors => {
       this._errorItems.push(...errors)
@@ -158,7 +158,7 @@ export default class Configurations {
     this._onChange.fire({
       affectsConfiguration: (section, resource) => {
         if (!resource || target != ConfigurationTarget.Workspace) return changed.indexOf(section) !== -1
-        let u = Uri.parse(resource)
+        let u = URI.parse(resource)
         if (u.scheme !== 'file') return changed.indexOf(section) !== -1
         let filepath = u.fsPath
         let preRoot = workspaceConfigFile ? path.resolve(workspaceConfigFile, '../..') : ''
@@ -171,7 +171,7 @@ export default class Configurations {
   }
 
   public setFolderConfiguration(uri: string): void {
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let filepath = u.fsPath
     for (let [configFile, model] of this.foldConfigurations) {
@@ -286,7 +286,7 @@ export default class Configurations {
   }
 
   private getFolderConfiguration(uri: string): ConfigurationModel {
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     if (u.scheme != 'file') return new ConfigurationModel()
     let filepath = u.fsPath
     for (let [configFile, model] of this.foldConfigurations) {
@@ -297,7 +297,7 @@ export default class Configurations {
   }
 
   public checkFolderConfiguration(uri: string): void {
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     if (u.scheme != 'file') return
     let rootPath = path.dirname(u.fsPath)
     if (!this.hasFolderConfiguration(rootPath)) {

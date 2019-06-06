@@ -1,5 +1,5 @@
 import { CompletionTriggerKind, Position, TextDocument, TextDocumentItem, TextDocumentSaveReason } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import * as cv from '../../language-client/utils/converter'
 
 describe('converter', () => {
@@ -48,7 +48,7 @@ describe('converter', () => {
   })
 
   it('should asUri', () => {
-    let uri = Uri.file('/tmp/a')
+    let uri = URI.file('/tmp/a')
     expect(cv.asUri(uri)).toBe(uri.toString())
   })
 

@@ -4,7 +4,7 @@ import cp, { exec, ExecOptions } from 'child_process'
 import debounce from 'debounce'
 import fs from 'fs'
 import { Disposable, TextDocumentIdentifier } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
 import isuri from 'isuri'
@@ -44,8 +44,8 @@ function echoMsg(nvim: Neovim, msg: string, hl: string): void {
 
 export function getUri(fullpath: string, id: number, buftype: string): string {
   if (!fullpath) return `untitled:${id}`
-  if (path.isAbsolute(fullpath)) return Uri.file(fullpath).toString()
-  if (isuri.isValid(fullpath)) return Uri.parse(fullpath).toString()
+  if (path.isAbsolute(fullpath)) return URI.file(fullpath).toString()
+  if (isuri.isValid(fullpath)) return URI.parse(fullpath).toString()
   if (buftype != '') return `${buftype}:${id}`
   return `unknown:${id}`
 }

@@ -1,6 +1,6 @@
 import minimatch from 'minimatch'
 import { DocumentFilter, DocumentSelector } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 
 export function score(selector: DocumentSelector | DocumentFilter | string, uri: string, languageId: string): number {
   if (Array.isArray(selector)) {
@@ -28,7 +28,7 @@ export function score(selector: DocumentSelector | DocumentFilter | string, uri:
       return 0
     }
   } else if (selector) {
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     // filter -> select accordingly, use defaults for scheme
     const { language, pattern, scheme } = selector
     let ret = 0

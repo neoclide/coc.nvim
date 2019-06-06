@@ -2,7 +2,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import path from 'path'
 import rimraf from 'rimraf'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import os from 'os'
 import { mkdirp } from '../../util'
 import { isGitIgnored, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
@@ -26,7 +26,7 @@ afterAll(async () => {
 
 describe('score test', () => {
   test('should match schema', () => {
-    let uri = Uri.file('/foo').toString()
+    let uri = URI.file('/foo').toString()
     let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
   })

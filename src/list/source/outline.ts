@@ -1,6 +1,6 @@
 import path from 'path'
 import { DocumentSymbol, Location, Range, SymbolInformation } from 'vscode-languageserver-types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import Document from '../../model/document'
 import { ListContext, ListItem } from '../../types'
@@ -81,7 +81,7 @@ export default class Outline extends LocationList {
   }
 
   public async loadCtagsSymbols(document: Document): Promise<ListItem[]> {
-    let uri = Uri.parse(document.uri)
+    let uri = URI.parse(document.uri)
     let extname = path.extname(uri.fsPath)
     let content = ''
     let tempname = await this.nvim.call('tempname')

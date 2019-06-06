@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 import { CodeLensParams, CompletionContext, CompletionParams, DidChangeTextDocumentParams, DidCloseTextDocumentParams, DidSaveTextDocumentParams, DocumentSelector, DocumentSymbolParams, Position, ReferenceParams, TextDocument, TextDocumentIdentifier, TextDocumentItem, TextDocumentPositionParams, VersionedTextDocumentIdentifier, WillSaveTextDocumentParams } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { TextDocumentWillSaveEvent } from '../../types'
 import { omit } from '../../util/lodash'
 
@@ -70,7 +70,7 @@ export function asSaveTextDocumentParams(document: TextDocument, includeText: bo
   return result
 }
 
-export function asUri(resource: Uri): string {
+export function asUri(resource: URI): string {
   return resource.toString()
 }
 

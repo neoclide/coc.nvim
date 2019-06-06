@@ -7,7 +7,7 @@ import path from 'path'
 import semver from 'semver'
 import util from 'util'
 import { Disposable, Emitter, Event } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import events from './events'
 import DB from './model/db'
 import Memos from './model/memos'
@@ -637,7 +637,7 @@ export class Extensions {
         }, null, disposables)
       } else if (ev == 'workspaceContains') {
         let check = () => {
-          let folders = workspace.workspaceFolders.map(o => Uri.parse(o.uri).fsPath)
+          let folders = workspace.workspaceFolders.map(o => URI.parse(o.uri).fsPath)
           for (let folder of folders) {
             if (inDirectory(folder, parts[1].split(/\s+/))) {
               active()
@@ -649,13 +649,13 @@ export class Extensions {
         workspace.onDidChangeWorkspaceFolders(check, null, disposables)
       } else if (ev == 'onFileSystem') {
         for (let doc of workspace.documents) {
-          let u = Uri.parse(doc.uri)
+          let u = URI.parse(doc.uri)
           if (u.scheme == parts[1]) {
             return active()
           }
         }
         workspace.onDidOpenTextDocument(document => {
-          let u = Uri.parse(document.uri)
+          let u = URI.parse(document.uri)
           if (u.scheme == parts[1]) {
             active()
           }

@@ -6,7 +6,7 @@ import os from 'os'
 import path from 'path'
 import util from 'util'
 import { CancellationTokenSource, CreateFile, CreateFileOptions, DeleteFile, DeleteFileOptions, DidChangeTextDocumentParams, Disposable, DocumentSelector, Emitter, Event, FormattingOptions, Location, LocationLink, Position, Range, RenameFile, RenameFileOptions, TextDocument, TextDocumentEdit, TextDocumentSaveReason, WorkspaceEdit, WorkspaceFolder, WorkspaceFoldersChangeEvent } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import which from 'which'
 import Configurations from './configuration'
 import ConfigurationShape from './configuration/shape'
@@ -113,7 +113,7 @@ export class Workspace implements IWorkspace {
     if (this._env.workspaceFolders) {
       this._workspaceFolders = this._env.workspaceFolders.map(f => {
         return {
-          uri: Uri.file(f).toString(),
+          uri: URI.file(f).toString(),
           name: path.dirname(f)
         }
       })
@@ -175,7 +175,7 @@ export class Workspace implements IWorkspace {
     }, this.disposables)
     let provider: TextDocumentContentProvider = {
       onDidChange: null,
-      provideTextDocumentContent: async (uri: Uri) => {
+      provideTextDocumentContent: async (uri: URI) => {
         let channel = this.outputChannels.get(uri.path.slice(1))
         if (!channel) return ''
         nvim.pauseNotification()
@@ -291,7 +291,7 @@ export class Workspace implements IWorkspace {
     let { rootPath } = this
     if (rootPath == os.homedir()) return null
     return {
-      uri: Uri.file(rootPath).toString(),
+      uri: URI.file(rootPath).toString(),
       name: path.basename(rootPath)
     }
   }
@@ -386,7 +386,7 @@ export class Workspace implements IWorkspace {
     return null
   }
 
-  public async resolveRootFolder(uri: Uri, patterns: string[]): Promise<string> {
+  public async resolveRootFolder(uri: URI, patterns: string[]): Promise<string> {
     let { cwd } = this
     if (uri.scheme != 'file') return cwd
     let filepath = path.normalize(uri.fsPath)
@@ -436,7 +436,7 @@ export class Workspace implements IWorkspace {
     if (typeof uri === 'number') {
       return this.buffers.get(uri)
     }
-    uri = Uri.parse(uri).toString()
+    uri = URI.parse(uri).toString()
     for (let doc of this.buffers.values()) {
       if (doc && doc.uri === uri) return doc
     }
@@ -472,25 +472,25 @@ export class Workspace implements IWorkspace {
         for (let change of documentChanges) {
           if (isDocumentEdit(change)) {
             let { textDocument, edits } = change as TextDocumentEdit
-            if (Uri.parse(textDocument.uri).toString() == currUri) {
+            if (URI.parse(textDocument.uri).toString() == currUri) {
               changed = getChangedFromEdits(pos, edits)
             }
             let doc = await this.loadFile(textDocument.uri)
             await doc.applyEdits(nvim, edits)
           } else if (CreateFile.is(change)) {
-            let file = Uri.parse(change.uri).fsPath
+            let file = URI.parse(change.uri).fsPath
             await this.createFile(file, change.options)
           } else if (RenameFile.is(change)) {
-            await this.renameFile(Uri.parse(change.oldUri).fsPath, Uri.parse(change.newUri).fsPath, change.options)
+            await this.renameFile(URI.parse(change.oldUri).fsPath, URI.parse(change.newUri).fsPath, change.options)
           } else if (DeleteFile.is(change)) {
-            await this.deleteFile(Uri.parse(change.uri).fsPath, change.options)
+            await this.deleteFile(URI.parse(change.uri).fsPath, change.options)
           }
         }
         this.showMessage(`${n} buffers changed.`)
       } else if (changes) {
         for (let uri of Object.keys(changes)) {
           let document = await this.loadFile(uri)
-          if (Uri.parse(uri).toString() == currUri) {
+          if (URI.parse(uri).toString() == currUri) {
             changed = getChangedFromEdits(pos, changes[uri])
           }
           await document.applyEdits(nvim, changes[uri])
@@ -520,7 +520,7 @@ export class Workspace implements IWorkspace {
     }
     let { uri, range } = loc
     let { line, character } = range.start
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : uri
     let bufnr = await nvim.call('bufnr', bufname)
     if (!text && u.scheme == 'file') {
@@ -595,7 +595,7 @@ export class Workspace implements IWorkspace {
     let document = this.getDocument(uri)
     if (document) return document.getline(line) || ''
     if (!uri.startsWith('file:')) return ''
-    return await readFileLine(Uri.parse(uri).fsPath, line)
+    return await readFileLine(URI.parse(uri).fsPath, line)
   }
 
   /**
@@ -603,8 +603,8 @@ export class Workspace implements IWorkspace {
    */
   public getWorkspaceFolder(uri: string): WorkspaceFolder | null {
     this.workspaceFolders.sort((a, b) => b.uri.length - a.uri.length)
-    let filepath = Uri.parse(uri).fsPath
-    return this.workspaceFolders.find(folder => isParentFolder(Uri.parse(folder.uri).fsPath, filepath))
+    let filepath = URI.parse(uri).fsPath
+    return this.workspaceFolders.find(folder => isParentFolder(URI.parse(folder.uri).fsPath, filepath))
   }
 
   /**
@@ -616,7 +616,7 @@ export class Workspace implements IWorkspace {
       document.forceSync()
       return document.content
     }
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     if (u.scheme != 'file') return ''
     let encoding = await this.getFileEncoding()
     return await readFile(u.fsPath, encoding)
@@ -743,7 +743,7 @@ export class Workspace implements IWorkspace {
     let doc = this.getDocument(uri)
     let col = character + 1
     if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     let bufname = u.scheme == 'file' ? u.fsPath : uri
     await nvim.command(`normal! m'`)
     let loaded = await nvim.call('bufloaded', bufname)
@@ -798,7 +798,7 @@ export class Workspace implements IWorkspace {
           this.showMessage(`Can't create ${filepath}: ${e.message}`, 'error')
         }
       } else {
-        let uri = Uri.file(filepath).toString()
+        let uri = URI.file(filepath).toString()
         let doc = this.getDocument(uri)
         if (doc) return
         let encoding = await this.getFileEncoding()
@@ -812,7 +812,7 @@ export class Workspace implements IWorkspace {
    * Load uri as document.
    */
   public async loadFile(uri: string): Promise<Document> {
-    let u = Uri.parse(uri)
+    let u = URI.parse(uri)
     let doc = this.getDocument(uri)
     if (doc) return doc
     let { nvim } = this
@@ -855,7 +855,7 @@ export class Workspace implements IWorkspace {
     if (!stat || overwrite) {
       try {
         await renameAsync(oldPath, newPath)
-        let uri = Uri.file(oldPath).toString()
+        let uri = URI.file(oldPath).toString()
         let doc = this.getDocument(uri)
         if (doc) {
           await doc.buffer.setName(newPath)
@@ -888,7 +888,7 @@ export class Workspace implements IWorkspace {
       let method = isDir ? 'rmdir' : 'unlink'
       await util.promisify(fs[method])(filepath)
       if (!isDir) {
-        let uri = Uri.file(filepath).toString()
+        let uri = URI.file(filepath).toString()
         let doc = this.getDocument(uri)
         if (doc) await this.nvim.command(`silent bwipeout ${doc.bufnr}`)
       }
@@ -1161,7 +1161,7 @@ augroup end`
       return
     }
     let tokenSource = new CancellationTokenSource()
-    let content = await Promise.resolve(provider.provideTextDocumentContent(Uri.parse(uri), tokenSource.token))
+    let content = await Promise.resolve(provider.provideTextDocumentContent(URI.parse(uri), tokenSource.token))
     let buf = await this.nvim.buffer
     await buf.setLines(content.split('\n'), {
       start: 0,
@@ -1210,7 +1210,7 @@ augroup end`
             this.showMessage(`Can't apply edits to ${uri}.`, 'error')
             return false
           }
-          let exists = fs.existsSync(Uri.parse(uri).fsPath)
+          let exists = fs.existsSync(URI.parse(uri).fsPath)
           if (!exists) {
             this.showMessage(`File ${uri} not exists.`, 'error')
             return false
@@ -1304,7 +1304,7 @@ augroup end`
     if (doc) {
       this.configurations.setFolderConfiguration(doc.uri)
       let workspaceFolder = this.getWorkspaceFolder(doc.uri)
-      if (workspaceFolder) this._root = Uri.parse(workspaceFolder.uri).fsPath
+      if (workspaceFolder) this._root = URI.parse(workspaceFolder.uri).fsPath
     }
   }
 
@@ -1382,7 +1382,7 @@ augroup end`
 
   private resolveRoot(document: Document): string {
     let types = [PatternType.Buffer, PatternType.LanguageServer, PatternType.Global]
-    let u = Uri.parse(document.uri)
+    let u = URI.parse(document.uri)
     let dir = path.dirname(u.fsPath)
     for (let patternType of types) {
       let patterns = this.getRootPatterns(document, patternType)
@@ -1412,7 +1412,7 @@ augroup end`
       nvim.errWriteLine('current buffer is not file.')
       return
     }
-    let oldPath = Uri.parse(doc.uri).fsPath
+    let oldPath = URI.parse(doc.uri).fsPath
     let newPath = await nvim.call('input', ['new path:', oldPath, 'file'])
     newPath = newPath ? newPath.trim() : null
     if (newPath == oldPath || !newPath) return
@@ -1477,11 +1477,11 @@ augroup end`
   }
 
   public get folderPaths(): string[] {
-    return this.workspaceFolders.map(f => Uri.parse(f.uri).fsPath)
+    return this.workspaceFolders.map(f => URI.parse(f.uri).fsPath)
   }
 
   public removeWorkspaceFolder(fsPath: string): void {
-    let idx = this._workspaceFolders.findIndex(f => Uri.parse(f.uri).fsPath == fsPath)
+    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == fsPath)
     if (idx != -1) {
       let folder = this._workspaceFolders[idx]
       this._workspaceFolders.splice(idx, 1)
@@ -1493,11 +1493,11 @@ augroup end`
   }
 
   public renameWorkspaceFolder(oldPath: string, newPath: string): void {
-    let idx = this._workspaceFolders.findIndex(f => Uri.parse(f.uri).fsPath == oldPath)
+    let idx = this._workspaceFolders.findIndex(f => URI.parse(f.uri).fsPath == oldPath)
     if (idx == -1) return
     let removed = this._workspaceFolders[idx]
     let added: WorkspaceFolder = {
-      uri: Uri.file(newPath).toString(),
+      uri: URI.file(newPath).toString(),
       name: path.dirname(newPath)
     }
     this._workspaceFolders.splice(idx, 1)
@@ -1547,7 +1547,7 @@ augroup end`
   private addWorkspaceFolder(rootPath: string): WorkspaceFolder {
     if (rootPath == os.homedir()) return
     let { _workspaceFolders } = this
-    let uri = Uri.file(rootPath).toString()
+    let uri = URI.file(rootPath).toString()
     let workspaceFolder: WorkspaceFolder = { uri, name: path.basename(rootPath) }
     if (_workspaceFolders.findIndex(o => o.uri == uri) == -1) {
       _workspaceFolders.push(workspaceFolder)

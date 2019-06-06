@@ -1,6 +1,6 @@
 import { Diagnostic, Emitter, Event } from 'vscode-languageserver-protocol'
 import { DiagnosticCollection } from '../types'
-import URI from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { emptyRange } from '../util/position'
 const logger = require('../util/logger')('diagnostic-collection')
 

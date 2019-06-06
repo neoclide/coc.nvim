@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import { Disposable, Emitter } from 'vscode-languageserver-protocol'
 import { CreateFile, DeleteFile, Location, Position, Range, RenameFile, TextDocumentEdit, TextEdit, VersionedTextDocumentIdentifier, WorkspaceEdit } from 'vscode-languageserver-types'
-import { default as URI, default as Uri } from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import events from '../../events'
 import { TextDocumentContentProvider } from '../../provider'
 import { ConfigurationTarget } from '../../types'
@@ -430,7 +430,7 @@ describe('workspace utility', () => {
 
   it('should loadFile', async () => {
     let doc = await helper.createDocument()
-    let newFile = Uri.file(path.join(__dirname, 'abc')).toString()
+    let newFile = URI.file(path.join(__dirname, 'abc')).toString()
     let document = await workspace.loadFile(newFile)
     let bufnr = await nvim.call('bufnr', '%')
     expect(document.uri.endsWith('abc')).toBe(true)
@@ -685,12 +685,12 @@ describe('workspace utility', () => {
   it('should not findUp from file in other directory', async () => {
     await nvim.command(`edit ${path.join(os.tmpdir(), 'foo')}`)
     let filepath = await workspace.findUp('tsconfig.json')
-    expect(filepath).toBeNull()
+    expect(filepath).toBeUndefined()
   })
 
   it('should resolveRootPath', async () => {
     let file = path.join(__dirname, 'foo')
-    let uri = Uri.file(file)
+    let uri = URI.file(file)
     let res = await workspace.resolveRootFolder(uri, ['.git'])
     expect(res).toMatch('coc.nvim')
   })
@@ -889,7 +889,7 @@ describe('workspace events', () => {
 
   it('should fire onWillSaveUntil', async () => {
     let doc = await helper.createDocument()
-    let filepath = Uri.parse(doc.uri).fsPath
+    let filepath = URI.parse(doc.uri).fsPath
     let fn = jest.fn()
     let disposable = workspace.onWillSaveUntil(event => {
       let promise = new Promise<TextEdit[]>(resolve => {

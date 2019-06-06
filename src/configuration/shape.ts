@@ -1,7 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import { applyEdits, modify } from 'jsonc-parser'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { ConfigurationShape, ConfigurationTarget, IWorkspace } from '../types'
 const logger = require('../util/logger')('configuration-shape')
 
@@ -19,12 +19,12 @@ export default class ConfigurationProxy implements ConfigurationShape {
     let file = workspace.getConfigFile(target)
     if (!file) return
     let formattingOptions = await workspace.getFormatOptions()
-    let content = await workspace.readFile(Uri.file(file).toString())
+    let content = await workspace.readFile(URI.file(file).toString())
     value = value == null ? undefined : value
     let edits = modify(content, [key], value, { formattingOptions })
     content = applyEdits(content, edits)
     fs.writeFileSync(file, content, 'utf8')
-    let doc = workspace.getDocument(Uri.file(file).toString())
+    let doc = workspace.getDocument(URI.file(file).toString())
     if (doc) nvim.command('checktime', true)
     return
   }

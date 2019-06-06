@@ -1,6 +1,6 @@
 import { Neovim } from '@chemzqm/neovim'
 import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
 import FloatFactory from '../model/floatFactory'
@@ -337,7 +337,7 @@ export class DiagnosticManager implements Disposable {
     let res: DiagnosticItem[] = []
     for (let collection of this.collections) {
       collection.forEach((uri, diagnostics) => {
-        let file = Uri.parse(uri).fsPath
+        let file = URI.parse(uri).fsPath
         for (let diagnostic of diagnostics) {
           let { start } = diagnostic.range
           let o: DiagnosticItem = {

@@ -5,7 +5,7 @@
 /*tslint:disable*/
 import path from 'path'
 import { ApplyWorkspaceEditParams, ApplyWorkspaceEditRequest, ApplyWorkspaceEditResponse, CancellationToken, ClientCapabilities, CodeAction, CodeActionContext, CodeActionKind, CodeActionParams, CodeActionRegistrationOptions, CodeActionRequest, CodeLens, CodeLensRegistrationOptions, CodeLensRequest, CodeLensResolveRequest, Command, CompletionContext, CompletionItem, CompletionItemKind, CompletionList, CompletionRegistrationOptions, CompletionRequest, CompletionResolveRequest, createProtocolConnection, Definition, DefinitionRequest, Diagnostic, DidChangeConfigurationNotification, DidChangeConfigurationParams, DidChangeConfigurationRegistrationOptions, DidChangeTextDocumentNotification, DidChangeTextDocumentParams, DidChangeWatchedFilesNotification, DidChangeWatchedFilesParams, DidChangeWatchedFilesRegistrationOptions, DidCloseTextDocumentNotification, DidCloseTextDocumentParams, DidOpenTextDocumentNotification, DidOpenTextDocumentParams, DidSaveTextDocumentNotification, DidSaveTextDocumentParams, Disposable, DocumentFormattingParams, DocumentFormattingRequest, DocumentHighlight, DocumentHighlightRequest, DocumentLink, DocumentLinkRegistrationOptions, DocumentLinkRequest, DocumentLinkResolveRequest, DocumentOnTypeFormattingParams, DocumentOnTypeFormattingRegistrationOptions, DocumentOnTypeFormattingRequest, DocumentRangeFormattingParams, DocumentRangeFormattingRequest, DocumentSelector, DocumentSymbol, DocumentSymbolRequest, Emitter, ErrorCodes, Event, ExecuteCommandParams, ExecuteCommandRegistrationOptions, ExecuteCommandRequest, ExitNotification, FailureHandlingKind, FileChangeType, FileEvent, FormattingOptions, GenericNotificationHandler, GenericRequestHandler, Hover, HoverRequest, InitializedNotification, InitializeError, InitializeParams, InitializeRequest, InitializeResult, Location, Logger, LogMessageNotification, LogMessageParams, MarkupKind, Message, MessageReader, MessageType, MessageWriter, NotificationHandler, NotificationHandler0, NotificationType, NotificationType0, Position, PrepareRenameRequest, PublishDiagnosticsNotification, PublishDiagnosticsParams, Range, ReferencesRequest, RegistrationParams, RegistrationRequest, RenameParams, RenameRegistrationOptions, RenameRequest, RequestHandler, RequestHandler0, RequestType, RequestType0, ResourceOperationKind, ResponseError, RPCMessageType, ServerCapabilities, ShowMessageNotification, ShowMessageParams, ShowMessageRequest, ShutdownRequest, SignatureHelp, SignatureHelpRegistrationOptions, SignatureHelpRequest, SymbolInformation, SymbolKind, TelemetryEventNotification, TextDocument, TextDocumentChangeRegistrationOptions, TextDocumentPositionParams, TextDocumentRegistrationOptions, TextDocumentSaveRegistrationOptions, TextDocumentSyncKind, TextDocumentSyncOptions, TextEdit, Trace, TraceFormat, TraceOptions, Tracer, UnregistrationParams, UnregistrationRequest, WatchKind, WillSaveTextDocumentNotification, WillSaveTextDocumentParams, WillSaveTextDocumentWaitUntilRequest, WorkspaceEdit, WorkspaceFolder, WorkspaceSymbolRequest } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import commands from '../commands'
 import languages from '../languages'
 import FileWatcher from '../model/fileSystemWatcher'
@@ -3557,7 +3557,7 @@ export abstract class BaseLanguageClient {
 
   private resolveRootPath(): string | null {
     if (this._clientOptions.workspaceFolder) {
-      return Uri.parse(this._clientOptions.workspaceFolder.uri).fsPath
+      return URI.parse(this._clientOptions.workspaceFolder.uri).fsPath
     }
     let { ignoredRootPaths } = this._clientOptions
     let config = workspace.getConfiguration(this.id)
@@ -3567,7 +3567,7 @@ export abstract class BaseLanguageClient {
     if (rootPatterns && rootPatterns.length) {
       let doc = workspace.getDocument(workspace.bufnr)
       if (doc && doc.schema == 'file') {
-        let dir = path.dirname(Uri.parse(doc.uri).fsPath)
+        let dir = path.dirname(URI.parse(doc.uri).fsPath)
         resolved = resolveRoot(dir, rootPatterns, workspace.cwd)
       }
     }
@@ -3588,7 +3588,7 @@ export abstract class BaseLanguageClient {
     let initParams: any = {
       processId: process.pid,
       rootPath: rootPath ? rootPath : null,
-      rootUri: rootPath ? cv.asUri(Uri.file(rootPath)) : null,
+      rootUri: rootPath ? cv.asUri(URI.file(rootPath)) : null,
       capabilities: this.computeClientCapabilities(),
       initializationOptions: Is.func(initOption) ? initOption() : initOption,
       trace: Trace.toString(this._trace),

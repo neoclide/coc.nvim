@@ -2,7 +2,7 @@ import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
 import readline from 'readline'
 import { CancellationToken, Position, Disposable, Location, Range } from 'vscode-languageserver-protocol'
-import { default as URI, default as Uri } from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { ProviderResult } from '../provider'
 import { IList, ListAction, ListContext, ListItem, ListTask, LocationWithLine, WorkspaceConfiguration, ListArgument, PreiewOptions } from '../types'
 import { disposeAll } from '../util'
@@ -131,7 +131,7 @@ export default abstract class BasicList implements IList, Disposable {
   public async convertLocation(location: Location | LocationWithLine | string): Promise<Location> {
     if (typeof location == 'string') return Location.create(location, Range.create(0, 0, 0, 0))
     if (Location.is(location)) return location
-    let u = Uri.parse(location.uri)
+    let u = URI.parse(location.uri)
     if (u.scheme != 'file') return Location.create(location.uri, Range.create(0, 0, 0, 0))
     const rl = readline.createInterface({
       input: fs.createReadStream(u.fsPath, { encoding: 'utf8' }),

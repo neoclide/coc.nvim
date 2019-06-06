@@ -1,7 +1,7 @@
 import { Neovim, Window } from '@chemzqm/neovim'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import Configurations from './configuration'
 import { LanguageClient } from './language-client'
 import Document from './model/document'
@@ -118,7 +118,7 @@ export interface TerminalOptions {
   shellArgs?: string[]
 
   /**
-   * A path or Uri for the current working directory to be used for the terminal.
+   * A path or URI for the current working directory to be used for the terminal.
    */
   cwd?: string
 
@@ -300,7 +300,7 @@ export interface ConfigurationChangeEvent {
    * Returns `true` if the given section for the given resource (if provided) is affected.
    *
    * @param section Configuration name, supports _dotted_ names.
-   * @param resource A resource Uri.
+   * @param resource A resource URI.
    * @return `true` if the given section for the given resource (if provided) is affected.
    */
   affectsConfiguration(section: string, resource?: string): boolean
@@ -589,8 +589,8 @@ export interface ConfigurationInspect<T> {
 }
 
 export interface RenameEvent {
-  oldUri: Uri
-  newUri: Uri
+  oldUri: URI
+  newUri: URI
 }
 
 export interface TerminalResult {

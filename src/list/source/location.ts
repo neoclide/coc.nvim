@@ -4,7 +4,7 @@ import path from 'path'
 import { ListContext, ListItem, QuickfixItem } from '../../types'
 import BasicList from '../basic'
 import workspace from '../../workspace'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
@@ -24,7 +24,7 @@ export default class LocationList extends BasicList {
     locs.forEach(loc => {
       if (!loc.uri) {
         let fullpath = path.isAbsolute(loc.filename) ? loc.filename : path.join(context.cwd, loc.filename)
-        loc.uri = Uri.file(fullpath).toString()
+        loc.uri = URI.file(fullpath).toString()
       }
       if (!loc.bufnr && workspace.getDocument(loc.uri) != null) {
         loc.bufnr = workspace.getDocument(loc.uri).bufnr

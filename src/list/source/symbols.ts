@@ -1,6 +1,6 @@
 import path from 'path'
 import { SymbolInformation, SymbolKind } from 'vscode-languageserver-types'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import languages from '../../languages'
 import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
@@ -30,7 +30,7 @@ export default class Symbols extends LocationList {
     for (let s of symbols) {
       if (!this.validWorkspaceSymbol(s)) continue
       let kind = getSymbolKind(s.kind)
-      let file = Uri.parse(s.location.uri).fsPath
+      let file = URI.parse(s.location.uri).fsPath
       if (file.startsWith(workspace.cwd)) {
         file = path.relative(workspace.cwd, file)
       }
@@ -50,7 +50,7 @@ export default class Symbols extends LocationList {
     let resolved = await languages.resolveWorkspaceSymbol(s)
     if (!resolved) return null
     let kind = getSymbolKind(resolved.kind)
-    let file = Uri.parse(resolved.location.uri).fsPath
+    let file = URI.parse(resolved.location.uri).fsPath
     if (file.startsWith(workspace.cwd)) {
       file = path.relative(workspace.cwd, file)
     }

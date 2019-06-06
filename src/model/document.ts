@@ -1,7 +1,7 @@
 import { Buffer, Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
 import { DidChangeTextDocumentParams, Emitter, Event, Position, Range, TextDocument, TextEdit, CancellationToken } from 'vscode-languageserver-protocol'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { BufferOption, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
@@ -90,7 +90,7 @@ export default class Document {
   }
 
   public get schema(): string {
-    return Uri.parse(this.uri).scheme
+    return URI.parse(this.uri).scheme
   }
 
   public get lineCount(): number {
@@ -364,7 +364,7 @@ export default class Document {
   private gitCheck(): void {
     let { uri } = this
     if (!uri.startsWith('file') || this.buftype != '') return
-    let filepath = Uri.parse(uri).fsPath
+    let filepath = URI.parse(uri).fsPath
     isGitIgnored(filepath).then(isIgnored => {
       this.isIgnored = isIgnored
     }, () => {

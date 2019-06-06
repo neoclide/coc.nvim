@@ -16,7 +16,7 @@ import BasicList from './list/basic'
 import diagnosticManager from './diagnostic/manager'
 import { ansiparse } from './util/ansiparse'
 import Watchman from './watchman'
-import Uri from 'vscode-uri'
+import { URI } from 'vscode-uri'
 import { Neovim, Buffer, Window } from '@chemzqm/neovim'
 import { Disposable, Event, Emitter } from 'vscode-languageserver-protocol'
 
@@ -24,6 +24,6 @@ export * from './types'
 export * from './language-client'
 export * from './provider'
 
-export { Neovim, Buffer, Window, Mru, Watchman, Uri, Disposable, Event, Emitter, FloatFactory, FloatBuffer, ansiparse }
+export { Neovim, Buffer, Window, Mru, Watchman, URI as Uri, Disposable, Event, Emitter, FloatFactory, FloatBuffer, ansiparse }
 export { workspace, snippetManager, events, services, commands, sources, languages, diagnosticManager, Document, FileSystemWatcher, extensions, listManager, BasicList }
 export { disposeAll, runCommand, isRunning, executable } from './util'

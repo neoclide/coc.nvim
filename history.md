@@ -17,7 +17,7 @@
 
 - **New feature** load extensions from coc-extensions folder.
 - Add `workspace.renameCurrentFile` command.
-- Add `FloatBuffer`, `FloatFactory` and `Uri` to exports.
+- Add `FloatBuffer`, `FloatFactory` and `URI` to exports.
 - Add `resolveItem` support to list.
 - Fix prompt can't work when execute list action.
 - Fix ansiparser for empty color ranges.

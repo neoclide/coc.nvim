@@ -5,7 +5,7 @@ import { wait } from './util'
 import workspace from './workspace'
 import Plugin from './plugin'
 import snipetsManager from './snippets/manager'
-import URI from 'vscode-uri'
+import { URI } from 'vscode-uri'
 const logger = require('./util/logger')('commands')
 
 // command center
@@ -222,7 +222,7 @@ export class CommandManager implements Disposable {
    *
    * * *Note 1:* When executing an editor command not all types are allowed to
    * be passed as arguments. Allowed are the primitive types `string`, `boolean`,
-   * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`Uri`](#Uri) and [`Location`](#Location).
+   * `number`, `undefined`, and `null`, as well as [`Position`](#Position), [`Range`](#Range), [`URI`](#URI) and [`Location`](#Location).
    * * *Note 2:* There are no restrictions when executing commands that have been contributed
    * by extensions.
    *
