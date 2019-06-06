@@ -125,6 +125,7 @@ Below are the reasons that led coc.nvim to build its own engine:
 
     - [Dart](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dart)
     - [C/C++/Objective-C](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ccobjective-c)
+    - [Rust](https://github.com/neoclide/coc.nvim/wiki/Language-servers#rust)
     - [Go](https://github.com/neoclide/coc.nvim/wiki/Language-servers#go)
     - [PHP](https://github.com/neoclide/coc.nvim/wiki/Language-servers#php)
     - [Dockerfile](https://github.com/neoclide/coc.nvim/wiki/Language-servers#dockerfile)
@@ -136,9 +137,13 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Haskell](https://github.com/neoclide/coc.nvim/wiki/Language-servers#haskell)
     - [vim/erb/markdown](https://github.com/neoclide/coc.nvim/wiki/Language-servers#vimerbmarkdown)
     - [Elixir](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elixir)
+    - [Python](https://github.com/neoclide/coc.nvim/wiki/Language-servers#python)
+    - [Ruby](https://github.com/neoclide/coc.vim/wiki/Language-servers#ruby)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
-    - [Tex](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
+    - [Latext](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
     - [Elm](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elm)
+    - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
+    - [clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
