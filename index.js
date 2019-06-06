@@ -42343,6 +42343,8 @@ function echoMsg(nvim, msg, hl) {
 function getUri(fullpath, id, buftype) {
     if (!fullpath)
         return `untitled:${id}`;
+    if (platform.isWindows)
+        fullpath = path_1.default.win32.normalize(fullpath);
     if (path_1.default.isAbsolute(fullpath))
         return vscode_uri_1.URI.file(fullpath).toString();
     if (isuri_1.default.isValid(fullpath))
@@ -54356,7 +54358,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "453734ae75" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6b99c0c90e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
