@@ -54356,7 +54356,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e28502ac07" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "453734ae75" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -66352,8 +66352,15 @@ class ListManager {
             this.window = await this.nvim.window;
             await this.nvim.command('nohlsearch');
             await this.getCharMap();
-            this.prompt.start(options);
             await this.history.load();
+            if (workspace_1.default.isVim) {
+                setTimeout(() => {
+                    this.prompt.start(options);
+                }, 100);
+            }
+            else {
+                this.prompt.start(options);
+            }
             await this.worker.loadItems();
         }
         catch (e) {
@@ -67613,6 +67620,7 @@ class Prompt {
         this.config = config;
         this.cusorIndex = 0;
         this._input = '';
+        this._mode = 'insert';
         this.interactive = false;
         this._onDidChangeInput = new vscode_languageserver_protocol_1.Emitter();
         this.onDidChangeInput = this._onDidChangeInput.event;
