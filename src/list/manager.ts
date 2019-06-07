@@ -80,7 +80,6 @@ export class ListManager implements Disposable {
       } else {
         nvim.pauseNotification()
         this.prompt.cancel()
-        if (isVim) nvim.call('coc#list#restore', [], true)
         await nvim.resumeNotification()
       }
     }, 100), null, this.disposables)
@@ -155,16 +154,9 @@ export class ListManager implements Disposable {
       this.listArgs = listArgs
       this.cwd = workspace.cwd
       this.window = await this.nvim.window
-      await this.nvim.command('nohlsearch')
       await this.getCharMap()
       await this.history.load()
-      if (workspace.isVim) {
-        setTimeout(() => {
-          this.prompt.start(options)
-        }, 100)
-      } else {
-        this.prompt.start(options)
-      }
+      this.prompt.start(options)
       await this.worker.loadItems()
     } catch (e) {
       await this.cancel()
@@ -232,7 +224,6 @@ export class ListManager implements Disposable {
         if (valid) nvim.call('win_gotoid', this.window.id, true)
       }
     }
-    nvim.call('coc#list#restore', [], true)
     await nvim.resumeNotification()
   }
 
@@ -678,16 +669,13 @@ export class ListManager implements Disposable {
   private async doItemAction(items: ListItem[], action: ListAction): Promise<void> {
     if (this.executing) return
     this.executing = true
-    let { nvim, ui } = this
+    let { nvim } = this
     let shouldCancel = action.persist !== true && action.name != 'preview'
     try {
       if (shouldCancel) {
         await this.cancel()
-      } else {
+      } else if (action.name != 'preview') {
         await nvim.call('coc#list#stop_prompt')
-      }
-      if (action.name == 'preview') {
-        items = items.slice(0, 1)
       }
       if (!shouldCancel && !this.isActivated) return
       if (action.multiple) {
@@ -706,28 +694,18 @@ export class ListManager implements Disposable {
           this.nvim.command('pclose', true)
           return
         }
-        this.prompt.start()
-        let { window } = ui
-        if (!window) return
-        let valid = await window.valid
-        if (!valid) return
-        let winid = await nvim.call('win_getid')
-        if (winid != window.id) {
-          nvim.pauseNotification()
-          nvim.call('win_gotoid', [window.id], true)
-          await this.ui.restoreWindow()
-          nvim.command('redraw', true)
-          await nvim.resumeNotification()
-        } else {
-          await this.ui.restoreWindow()
+        if (action.name != 'preview') {
+          this.prompt.start()
         }
+        await this.ui.restoreWindow()
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {
+      // tslint:disable-next-line: no-console
+      console.error(e)
       if (!shouldCancel && this.activated) {
         this.prompt.start()
       }
-      logger.error(e)
     }
     this.executing = false
   }

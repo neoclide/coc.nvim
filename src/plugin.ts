@@ -168,6 +168,10 @@ export default class Plugin extends EventEmitter {
       }
       logger.info(`coc ${this.version} initialized with node: ${process.version}`)
       this.emit('ready')
+      if (workspace.isVim) {
+        let updatetime = await nvim.getOption('updatetime') as number
+        if (updatetime > 1000) workspace.showMessage(`Option 'updatetime' is ${updatetime}, position jump can be quite slow, consider make it <= 300`, 'warning')
+      }
     } catch (e) {
       this._ready = false
       console.error(`Error on initialize: ${e.stack}`) // tslint:disable-line

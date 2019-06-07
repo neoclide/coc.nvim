@@ -584,7 +584,7 @@ export class Workspace implements IWorkspace {
       nvim.command('copen', true)
     } else {
       await nvim.setVar('coc_jump_locations', items)
-      await nvim.command('doautocmd User CocLocationsChange')
+      nvim.command('silent doautocmd User CocLocationsChange', true)
     }
   }
 
@@ -990,6 +990,11 @@ export class Workspace implements IWorkspace {
     let res = await this.nvim.callAsync('coc#util#with_callback', ['coc#util#prompt_confirm', [title]])
     this._blocking = false
     return res == 1
+  }
+
+  public async callAsync<T>(method: string, args: any[]): Promise<T> {
+    if (this.isNvim) return this.nvim.call(method, args)
+    return this.nvim.callAsync('coc#util#with_callback', [method, args])
   }
 
   /**

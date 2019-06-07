@@ -275,16 +275,6 @@ describe('list configuration', () => {
     expect(items.length).toBe(3)
   })
 
-  it('should activated after cursor moved out and in', async () => {
-    await manager.start(['--normal', 'location'])
-    await helper.wait(100)
-    await nvim.command('wincmd p')
-    await helper.wait(100)
-    await nvim.command('wincmd p')
-    await helper.wait(100)
-    expect(manager.isActivated).toBe(true)
-  })
-
   it('should toggle preview', async () => {
     await manager.start(['--normal', '--auto-preview', 'location'])
     await helper.wait(200)

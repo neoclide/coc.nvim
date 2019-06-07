@@ -204,7 +204,7 @@ export default abstract class BasicList implements IList, Disposable {
         name = name || '[No Name]'
         let filetype = await nvim.call('getbufvar', [bufnr, '&filetype'])
         let lines = await nvim.call('getbufline', [bufnr, 1, '$'])
-        await this.preview({ bufname: name, sketch: true, filetype, lnum, lines }, context)
+        await this.preview({ bufname: name, sketch: true, filetype: filetype || 'txt', lnum, lines }, context)
       } else {
         await this.preview({ bufname: '[No Name]', sketch: true, filetype: 'txt', lines: [] }, context)
       }
@@ -221,9 +221,9 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command('pclose', true)
     if (this.splitRight) {
       if (valid) nvim.call('win_gotoid', [context.window.id], true)
-      nvim.command(`belowright vs +setl\\ previewwindow ${escaped}`, true)
+      nvim.command(`silent belowright vs +setl\\ previewwindow ${escaped}`, true)
     } else {
-      nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
+      nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
     }
     nvim.command(`exe ${lnum}`, true)
     nvim.command('setl winfixheight', true)
@@ -247,7 +247,9 @@ export default abstract class BasicList implements IList, Disposable {
     if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
     nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
-    await nvim.resumeNotification()
+    let [, err] = await nvim.resumeNotification()
+    // tslint:disable-next-line: no-console
+    if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
   public async preview(options: PreiewOptions, context: ListContext): Promise<void> {
@@ -274,12 +276,14 @@ export default abstract class BasicList implements IList, Disposable {
     if (sketch) nvim.command('setl buftype=nofile bufhidden=wipe nobuflisted', true)
     if (filetype == 'detect') {
       nvim.command('filetype detect', true)
-    } else {
+    } else if (filetype) {
       nvim.command(`setf ${filetype}`, true)
     }
     nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
-    await nvim.resumeNotification()
+    let [, err] = await nvim.resumeNotification()
+    // tslint:disable-next-line: no-console
+    if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
   public abstract loadItems(context: ListContext, token?: CancellationToken): Promise<ListItem[] | ListTask | null | undefined>

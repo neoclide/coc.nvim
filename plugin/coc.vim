@@ -120,7 +120,7 @@ function! s:Enable()
     autocmd!
 
     if get(g:,'coc_enable_locationlist', 1)
-      autocmd User CocLocationsChange call coc#rpc#notify('openList',  ['--normal', '--auto-preview', 'location'])
+      autocmd User CocLocationsChange CocList --normal --auto-preview location
     endif
     if exists('##MenuPopupChanged') && exists('*nvim_open_win')
       autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
@@ -171,6 +171,7 @@ function! s:Enable()
     autocmd FocusGained         * call s:Autocmd('FocusGained')
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
+    autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
   augroup end
 endfunction
 

@@ -69,7 +69,8 @@ export default class Floating {
         nvim.call('cursor', [1, 1], true)
         nvim.command(`noa wincmd p`, true)
         let [, err] = await nvim.resumeNotification()
-        if (err) workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
+        // tslint:disable-next-line: no-console
+        if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
       } catch (e) {
         logger.error(`Create preview error:`, e.stack)
       }
@@ -81,7 +82,8 @@ export default class Floating {
       this.floatBuffer.setLines()
       nvim.command(`noa wincmd p`, true)
       let [, err] = await nvim.resumeNotification()
-      if (err) workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
+      // tslint:disable-next-line: no-console
+      if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
     }
   }
 

@@ -176,8 +176,11 @@ describe('list insert mappings', () => {
 
   it('should scroll window by <C-f> and <C-b>', async () => {
     await manager.start(['location'])
+    await helper.wait(200)
     await nvim.eval('feedkeys("\\<C-f>", "in")')
+    await helper.wait(100)
     await nvim.eval('feedkeys("\\<C-b>", "in")')
+    await helper.wait(100)
   })
 
   it('should change input by <Backspace>', async () => {
@@ -430,7 +433,7 @@ describe('User mappings', () => {
       '<C-d>': 'do:exit',
     })
     await manager.start(['location'])
-    await helper.wait(30)
+    await helper.wait(200)
     await nvim.eval('feedkeys("\\<C-r>", "in")')
     await helper.wait(30)
     expect(manager.isActivated).toBe(true)

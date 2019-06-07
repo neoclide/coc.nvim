@@ -80,13 +80,13 @@ function! coc#list#get_chars()
         \}
 endfunction
 
-function! s:getchar()
+function! coc#list#getchar()
   let ch = getchar()
   return (type(ch) == 0 ? nr2char(ch) : ch)
 endfunction
 
 function! coc#list#prompt_start()
-  call timer_start(0, {-> coc#list#start_prompt()})
+  call timer_start(&updatetime, {-> coc#list#start_prompt()})
 endfunction
 
 function! coc#list#start_prompt()
@@ -97,7 +97,7 @@ function! coc#list#start_prompt()
   let s:activated = 1
   try
     while s:activated
-      let ch = s:getchar()
+      let ch = coc#list#getchar()
       if ch ==# "\u26d4"
         break
       endif
@@ -135,21 +135,29 @@ function! coc#list#options(...)
 endfunction
 
 function! coc#list#stop_prompt()
+  if s:is_vim
+    let &t_ve = s:saved_ve
+  endif
   if s:activated
     let s:activated = 0
     call feedkeys("\u26d4", 'int')
   endif
 endfunction
 
-function! coc#list#restore()
-  if s:is_vim
-    let &t_ve = s:saved_ve
-  endif
-endfunction
-
 function! coc#list#status(name)
   if !exists('b:list_status') | return '' | endif
   return get(b:list_status, a:name, '')
+endfunction
+
+function! coc#list#create(position, height, name)
+  nohlsearch
+  let saved = winsaveview()
+  execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
+  execute 'resize '.a:height
+  wincmd p
+  call winrestview(saved)
+  wincmd p
+  return [bufnr('%'), win_getid()]
 endfunction
 
 function! coc#list#setup(source)
@@ -172,6 +180,7 @@ function! coc#list#setup(source)
   let source = a:source[8:]
   let name = toupper(source[0]).source[1:]
   execute 'syntax match Coc'.name.'Line /\v^.*$/'
+  nnoremap <silent><nowait><buffer> <esc> <C-w>c
 endfunction
 
 function! coc#list#has_preview()
@@ -193,4 +202,10 @@ function! coc#list#get_colors()
     let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
   endfor
   return color_map
+endfunction
+
+function! coc#list#restore(winid, height)
+  let res = win_gotoid(a:winid)
+  if res == 0 | return | endif
+  execute 'resize '.a:height
 endfunction
