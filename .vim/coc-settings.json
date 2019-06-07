@@ -1,0 +1,6 @@
+{
+  "typescript.format.insertSpaceAfterFunctionKeywordForAnonymousFunctions": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": true,
+  "typescript.preferences.noSemicolons": true,
+  "typescript.suggestionActions.enabled": false
+}
