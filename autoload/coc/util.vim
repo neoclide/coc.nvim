@@ -520,6 +520,7 @@ function! coc#util#vim_info()
         \ 'workspaceFolders': get(g:, 'WorkspaceFolders', v:null),
         \ 'background': &background,
         \ 'runtimepath': &runtimepath,
+        \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \}
 endfunction
 

@@ -19,7 +19,7 @@ export default class LocationList extends BasicList {
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
     // filename, lnum, col, text, type
-    let locs = await this.nvim.getVar('coc_jump_locations') as QuickfixItem[]
+    let locs = (global as any).locations as QuickfixItem[]
     locs = locs || []
     locs.forEach(loc => {
       if (!loc.uri) {
@@ -37,12 +37,7 @@ export default class LocationList extends BasicList {
         loc.col = loc.col || loc.range.start.character + 1
       }
     })
-    let bufnr: number
-    let valid = await context.window.valid
-    if (valid) {
-      let buf = await context.window.buffer
-      bufnr = buf.id
-    }
+    let bufnr = await this.nvim.call('bufnr', '%')
     let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr)
     let items: ListItem[] = locs.map(loc => {
       let filename = ignoreFilepath ? '' : loc.filename

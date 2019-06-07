@@ -226,8 +226,7 @@ export default abstract class BasicList implements IList, Disposable {
       nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true)
     }
     nvim.command(`exe ${lnum}`, true)
-    nvim.command('setl winfixheight', true)
-    nvim.command('setl nofoldenable', true)
+    nvim.command('setl winfixheight nofoldenable', true)
     if (comparePosition(range.start, range.end) !== 0) {
       let arr: Range[] = []
       for (let i = range.start.line; i <= range.end.line; i++) {
@@ -247,6 +246,7 @@ export default abstract class BasicList implements IList, Disposable {
     if (!exists) nvim.command('setl nobuflisted bufhidden=wipe', true)
     nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
+    if (workspace.isVim) nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
     // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
@@ -263,9 +263,9 @@ export default abstract class BasicList implements IList, Disposable {
     nvim.command('pclose', true)
     if (this.splitRight) {
       if (valid) nvim.call('win_gotoid', [context.window.id], true)
-      nvim.command(`belowright vs +setl\\ previewwindow ${bufname}`, true)
+      nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true)
     } else {
-      nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true)
+      nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true)
     }
     if (lines) {
       nvim.call('append', [0, lines], true)
@@ -281,6 +281,7 @@ export default abstract class BasicList implements IList, Disposable {
     }
     nvim.command('normal! zz', true)
     nvim.call('win_gotoid', [winid], true)
+    if (workspace.isVim) nvim.command('redraw', true)
     let [, err] = await nvim.resumeNotification()
     // tslint:disable-next-line: no-console
     if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)

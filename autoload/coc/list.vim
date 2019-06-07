@@ -151,12 +151,8 @@ endfunction
 
 function! coc#list#create(position, height, name)
   nohlsearch
-  let saved = winsaveview()
   execute 'silent keepalt '.(a:position ==# 'top' ? '' : 'botright').a:height.'sp list:///'.a:name
   execute 'resize '.a:height
-  wincmd p
-  call winrestview(saved)
-  wincmd p
   return [bufnr('%'), win_getid()]
 endfunction
 

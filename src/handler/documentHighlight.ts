@@ -42,6 +42,7 @@ export default class DocumentHighlighter {
       this.clearHighlight()
       return
     }
+    if (workspace.bufnr != bufnr) return
     nvim.pauseNotification()
     this.clearHighlight()
     let groups: { [index: string]: Range[] } = {}

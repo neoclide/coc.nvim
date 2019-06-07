@@ -119,9 +119,6 @@ function! s:Enable()
   augroup coc_nvim
     autocmd!
 
-    if get(g:,'coc_enable_locationlist', 1)
-      autocmd User CocLocationsChange CocList --normal --auto-preview location
-    endif
     if exists('##MenuPopupChanged') && exists('*nvim_open_win')
       autocmd MenuPopupChanged *   call s:Autocmd('MenuPopupChanged', get(v:, 'event', {}), win_screenpos(winnr())[0] + winline() - 2)
     endif
@@ -271,11 +268,11 @@ nnoremap <Plug>(coc-format)              :<C-u>call CocActionAsync('format')<CR>
 nnoremap <Plug>(coc-diagnostic-info)     :<C-u>call CocActionAsync('diagnosticInfo')<CR>
 nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocActionAsync('diagnosticNext')<CR>
 nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocActionAsync('diagnosticPrevious')<CR>
-nnoremap <Plug>(coc-definition)          :<C-u>call CocActionAsync('jumpDefinition')<CR>
-nnoremap <Plug>(coc-declaration)         :<C-u>call CocActionAsync('jumpDeclaration')<CR>
-nnoremap <Plug>(coc-implementation)      :<C-u>call CocActionAsync('jumpImplementation')<CR>
-nnoremap <Plug>(coc-type-definition)     :<C-u>call CocActionAsync('jumpTypeDefinition')<CR>
-nnoremap <Plug>(coc-references)          :<C-u>call CocActionAsync('jumpReferences')<CR>
+nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
+nnoremap <Plug>(coc-declaration)         :<C-u>call CocAction('jumpDeclaration')<CR>
+nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
+nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
+nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
 nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
 nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
 nnoremap <Plug>(coc-float-hide)          :<C-u>call coc#util#float_hide()<CR>

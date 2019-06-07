@@ -514,22 +514,21 @@ export class Workspace implements IWorkspace {
    * Convert location to quickfix item.
    */
   public async getQuickfixItem(loc: Location | LocationLink, text?: string, type = ''): Promise<QuickfixItem> {
-    let { cwd, nvim } = this
     if (LocationLink.is(loc)) {
       loc = Location.create(loc.targetUri, loc.targetRange)
     }
+    let doc = this.getDocument(loc.uri)
     let { uri, range } = loc
     let { line, character } = range.start
     let u = URI.parse(uri)
-    let bufname = u.scheme == 'file' ? u.fsPath : uri
-    let bufnr = await nvim.call('bufnr', bufname)
+    let bufnr = doc ? doc.bufnr : -1
     if (!text && u.scheme == 'file') {
       text = await this.getLine(uri, line)
       character = byteIndex(text, character)
     }
     let item: QuickfixItem = {
       uri,
-      filename: bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname,
+      filename: u.scheme == 'file' ? u.fsPath : uri,
       lnum: line + 1,
       col: character + 1,
       text: text || '',
@@ -583,8 +582,13 @@ export class Workspace implements IWorkspace {
       await nvim.call('setqflist', [items])
       nvim.command('copen', true)
     } else {
-      await nvim.setVar('coc_jump_locations', items)
-      nvim.command('silent doautocmd User CocLocationsChange', true)
+      if (this.env.locationlist) {
+        (global as any).locations = items
+        nvim.command('CocList --normal --auto-preview location', true)
+      } else {
+        await nvim.setVar('coc_jump_locations', items)
+        nvim.command('doautocmd User CocLocationsChange', true)
+      }
     }
   }
 
