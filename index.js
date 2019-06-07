@@ -37378,8 +37378,11 @@ const logger = __webpack_require__(182)('events');
 class Events {
     constructor() {
         this.handlers = new Map();
+        this.paused = false;
     }
     async fire(event, args) {
+        if (this.paused && event == 'CursorHold')
+            return;
         logger.debug('Event:', event, args);
         let handlers = this.handlers.get(event);
         if (handlers) {
@@ -44449,22 +44452,21 @@ class Workspace {
      * Convert location to quickfix item.
      */
     async getQuickfixItem(loc, text, type = '') {
-        let { cwd, nvim } = this;
         if (vscode_languageserver_protocol_1.LocationLink.is(loc)) {
             loc = vscode_languageserver_protocol_1.Location.create(loc.targetUri, loc.targetRange);
         }
+        let doc = this.getDocument(loc.uri);
         let { uri, range } = loc;
         let { line, character } = range.start;
         let u = vscode_uri_1.URI.parse(uri);
-        let bufname = u.scheme == 'file' ? u.fsPath : uri;
-        let bufnr = await nvim.call('bufnr', bufname);
+        let bufnr = doc ? doc.bufnr : -1;
         if (!text && u.scheme == 'file') {
             text = await this.getLine(uri, line);
             character = string_1.byteIndex(text, character);
         }
         let item = {
             uri,
-            filename: bufname.startsWith(cwd) ? path_1.default.relative(cwd, bufname) : bufname,
+            filename: u.scheme == 'file' ? u.fsPath : uri,
             lnum: line + 1,
             col: character + 1,
             text: text || '',
@@ -44518,8 +44520,14 @@ class Workspace {
             nvim.command('copen', true);
         }
         else {
-            await nvim.setVar('coc_jump_locations', items);
-            nvim.command('silent doautocmd User CocLocationsChange', true);
+            if (this.env.locationlist) {
+                global.locations = items;
+                nvim.command('CocList --normal --auto-preview location', true);
+            }
+            else {
+                await nvim.setVar('coc_jump_locations', items);
+                nvim.command('doautocmd User CocLocationsChange', true);
+            }
         }
     }
     /**
@@ -54372,7 +54380,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "754ec7fad3" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "0b97d1b56a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -66363,9 +66371,9 @@ class ListManager {
             this.currList = list;
             this.listArgs = listArgs;
             this.cwd = workspace_1.default.cwd;
-            this.window = await this.nvim.window;
             await this.getCharMap();
             await this.history.load();
+            this.window = await this.nvim.window;
             this.prompt.start(options);
             await this.worker.loadItems();
         }
@@ -68082,8 +68090,7 @@ class BasicList {
             nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${escaped}`, true);
         }
         nvim.command(`exe ${lnum}`, true);
-        nvim.command('setl winfixheight', true);
-        nvim.command('setl nofoldenable', true);
+        nvim.command('setl winfixheight nofoldenable', true);
         if (position_1.comparePosition(range.start, range.end) !== 0) {
             let arr = [];
             for (let i = range.start.line; i <= range.end.line; i++) {
@@ -68105,6 +68112,8 @@ class BasicList {
             nvim.command('setl nobuflisted bufhidden=wipe', true);
         nvim.command('normal! zz', true);
         nvim.call('win_gotoid', [winid], true);
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
         let [, err] = await nvim.resumeNotification();
         // tslint:disable-next-line: no-console
         if (err)
@@ -68122,10 +68131,10 @@ class BasicList {
         if (this.splitRight) {
             if (valid)
                 nvim.call('win_gotoid', [context.window.id], true);
-            nvim.command(`belowright vs +setl\\ previewwindow ${bufname}`, true);
+            nvim.command(`silent belowright vs +setl\\ previewwindow ${bufname}`, true);
         }
         else {
-            nvim.command(`${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true);
+            nvim.command(`silent ${mod} ${height}sp +setl\\ previewwindow ${bufname}`, true);
         }
         if (lines) {
             nvim.call('append', [0, lines], true);
@@ -68144,6 +68153,8 @@ class BasicList {
         }
         nvim.command('normal! zz', true);
         nvim.call('win_gotoid', [winid], true);
+        if (workspace_1.default.isVim)
+            nvim.command('redraw', true);
         let [, err] = await nvim.resumeNotification();
         // tslint:disable-next-line: no-console
         if (err)
@@ -68234,7 +68245,7 @@ class LocationList extends basic_1.default {
     }
     async loadItems(context) {
         // filename, lnum, col, text, type
-        let locs = await this.nvim.getVar('coc_jump_locations');
+        let locs = global.locations;
         locs = locs || [];
         locs.forEach(loc => {
             if (!loc.uri) {
@@ -68253,12 +68264,7 @@ class LocationList extends basic_1.default {
                 loc.col = loc.col || loc.range.start.character + 1;
             }
         });
-        let bufnr;
-        let valid = await context.window.valid;
-        if (valid) {
-            let buf = await context.window.buffer;
-            bufnr = buf.id;
-        }
+        let bufnr = await this.nvim.call('bufnr', '%');
         let ignoreFilepath = locs.every(o => o.bufnr && bufnr && o.bufnr == bufnr);
         let items = locs.map(loc => {
             let filename = ignoreFilepath ? '' : loc.filename;
@@ -73725,6 +73731,8 @@ class DocumentHighlighter {
             this.clearHighlight();
             return;
         }
+        if (workspace_1.default.bufnr != bufnr)
+            return;
         nvim.pauseNotification();
         this.clearHighlight();
         let groups = {};
