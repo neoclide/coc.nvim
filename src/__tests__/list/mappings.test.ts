@@ -74,7 +74,7 @@ const lineList: IList = {
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-  await nvim.setVar('coc_jump_locations', locations)
+    ; (global as any).locations = locations
 })
 
 afterAll(async () => {
