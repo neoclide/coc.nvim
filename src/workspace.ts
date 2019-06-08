@@ -376,7 +376,7 @@ export class Workspace implements IWorkspace {
     let filepath = await this.nvim.call('expand', '%:p') as string
     filepath = path.normalize(filepath)
     let isFile = filepath && path.isAbsolute(filepath)
-    if (isFile && !filepath.startsWith(cwd)) {
+    if (isFile && !isParentFolder(cwd, filepath)) {
       // can't use cwd
       return await findUp(filename, { cwd: path.dirname(filepath) })
     }
@@ -626,6 +626,12 @@ export class Workspace implements IWorkspace {
     return await readFile(u.fsPath, encoding)
   }
 
+  public getFilepath(filepath: string): string {
+    let { cwd } = this
+    let rel = path.relative(cwd, filepath)
+    return rel.startsWith('..') ? filepath : rel
+  }
+
   public onWillSaveUntil(callback: (event: TextDocumentWillSaveEvent) => void, thisArg: any, clientId: string): Disposable {
     return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId)
   }
@@ -747,29 +753,21 @@ export class Workspace implements IWorkspace {
     let doc = this.getDocument(uri)
     let col = character + 1
     if (doc) col = byteLength(doc.getline(line).slice(0, character)) + 1
-    let u = URI.parse(uri)
-    let bufname = u.scheme == 'file' ? u.fsPath : uri
-    await nvim.command(`normal! m'`)
-    let loaded = await nvim.call('bufloaded', bufname)
-    let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname)
+    let bufnr = doc ? doc.bufnr : -1
+    nvim.pauseNotification()
+    nvim.command(`normal! m'`, true)
     let method = this.isVim ? 'callTimer' : 'call'
     if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
-      await nvim.call('cursor', [line + 1, col])
+      nvim.call('cursor', [line + 1, col], true)
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      await nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
+      nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`], true)
     } else {
-      let cwd = await nvim.call('getcwd')
-      let file: string
-      if (bufnr == -1) {
-        file = bufname.startsWith(cwd) ? path.relative(cwd, bufname) : bufname
-      } else {
-        file = await nvim.call('bufname', [bufnr])
-      }
-      file = await nvim.call('fnameescape', file)
+      let bufname = uri.startsWith('file:') ? path.normalize(URI.parse(uri).fsPath) : uri
       let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      await nvim[method]('coc#util#execute', [`${jumpCommand} ${moveCmd} ${file}`])
+      nvim[method]('coc#util#jump', [`${jumpCommand} ${moveCmd}`, bufname], true)
     }
+    await nvim.resumeNotification()
     if (this.isVim) await wait(100)
   }
 
@@ -1400,7 +1398,7 @@ augroup end`
         if (root) return root
       }
     }
-    if (this.cwd != os.homedir() && dir.startsWith(this.cwd)) return this.cwd
+    if (this.cwd != os.homedir() && isParentFolder(this.cwd, dir)) return this.cwd
     return null
   }
 
@@ -1437,7 +1435,7 @@ augroup end`
       }
       fs.renameSync(oldPath, newPath)
     }
-    let filepath = newPath.startsWith(cwd) ? path.relative(cwd, newPath) : newPath
+    let filepath = isParentFolder(cwd, newPath) ? path.relative(cwd, newPath) : newPath
     let cursor = await nvim.call('getcurpos')
     nvim.pauseNotification()
     nvim.command(`keepalt ${bufnr}bwipeout!`, true)

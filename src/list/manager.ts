@@ -161,7 +161,7 @@ export class ListManager implements Disposable {
     } catch (e) {
       await this.cancel()
       let msg = e instanceof Error ? e.message : e.toString()
-      workspace.showMessage(`Error on "CocList ${list.name}" ${msg}`, 'error')
+      workspace.showMessage(`Error on "CocList ${list.name}": ${msg}`, 'error')
       logger.error(e)
     }
   }

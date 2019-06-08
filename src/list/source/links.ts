@@ -6,6 +6,7 @@ import { ListContext, ListItem } from '../../types'
 import BasicList from '../basic'
 import { DocumentLink, Location } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
+import { isParentFolder } from '../../util/fs'
 
 export default class LinksList extends BasicList {
   public defaultAction = 'open'
@@ -71,5 +72,5 @@ export default class LinksList extends BasicList {
 function formatUri(uri: string): string {
   if (!uri.startsWith('file:')) return uri
   let filepath = URI.parse(uri).fsPath
-  return filepath.startsWith(workspace.cwd) ? path.relative(workspace.cwd, filepath) : filepath
+  return isParentFolder(workspace.cwd, filepath) ? path.relative(workspace.cwd, filepath) : filepath
 }

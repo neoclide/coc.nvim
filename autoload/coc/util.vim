@@ -205,13 +205,18 @@ function! coc#util#echo_hover(msg)
 endfunction
 
 function! coc#util#execute(cmd)
-  exe a:cmd
+  silent exe a:cmd
   if &l:filetype ==# ''
     filetype detect
   endif
   if s:is_vim
     redraw!
   endif
+endfunction
+
+function! coc#util#jump(cmd, filepath) abort
+  let file = fnamemodify(a:filepath, ":~:.")
+  call coc#util#execute(a:cmd.' '.file)
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)

@@ -5,8 +5,6 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
-import { isLinux } from './platform'
-import { equalsIgnoreCase } from './string'
 import minimatch = require('minimatch')
 const logger = require('./logger')('util-fs')
 
@@ -60,10 +58,10 @@ export async function isGitIgnored(fullpath: string): Promise<boolean> {
 
 export function resolveRoot(dir: string, subs: string[], cwd?: string): string | null {
   let home = os.homedir()
-  if (home.startsWith(dir)) return null
+  if (isParentFolder(dir, home)) return null
   let { root } = path.parse(dir)
   if (root == dir) return null
-  if (cwd && cwd != home && dir.startsWith(cwd) && inDirectory(cwd, subs)) return cwd
+  if (cwd && cwd != home && isParentFolder(cwd, dir) && inDirectory(cwd, subs)) return cwd
   let parts = dir.split(path.sep)
   let curr: string[] = [parts.shift()]
   for (let part of parts) {
@@ -159,11 +157,6 @@ export function parentDirs(pth: string): string[] {
 }
 
 export function isParentFolder(folder: string, filepath: string): boolean {
-  let dirs = parentDirs(filepath)
-  if (filepath.endsWith(path.sep)) {
-    filepath = filepath.slice(0, - path.sep.length)
-  }
-  if (folder == filepath) return true
-  if (isLinux) return dirs.indexOf(folder) !== -1
-  return dirs.findIndex(s => equalsIgnoreCase(s, folder)) !== -1
+  let rel = path.relative(folder, filepath)
+  return !rel.startsWith('..')
 }

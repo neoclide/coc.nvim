@@ -11,6 +11,7 @@ import { ConfigurationModel } from './model'
 import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
 import { objectLiteral } from '../util/is'
 import findUp from 'find-up'
+import { isParentFolder } from '../util/fs'
 const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -162,7 +163,7 @@ export default class Configurations {
         if (u.scheme !== 'file') return changed.indexOf(section) !== -1
         let filepath = u.fsPath
         let preRoot = workspaceConfigFile ? path.resolve(workspaceConfigFile, '../..') : ''
-        if (configFile && !filepath.startsWith(preRoot) && !filepath.startsWith(path.resolve(configFile, '../..'))) {
+        if (configFile && !isParentFolder(preRoot, filepath) && !isParentFolder(path.resolve(configFile, '../..'), filepath)) {
           return false
         }
         return changed.indexOf(section) !== -1
@@ -176,7 +177,7 @@ export default class Configurations {
     let filepath = u.fsPath
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
-      if (filepath.startsWith(root) && this.workspaceConfigFile != configFile) {
+      if (isParentFolder(root, filepath) && this.workspaceConfigFile != configFile) {
         this.changeConfiguration(ConfigurationTarget.Workspace, model, configFile)
         break
       }
@@ -185,7 +186,7 @@ export default class Configurations {
 
   public hasFolderConfiguration(filepath: string): boolean {
     let { folders } = this
-    return folders.findIndex(f => filepath.startsWith(f)) !== -1
+    return folders.findIndex(f => isParentFolder(f, filepath)) !== -1
   }
 
   public getConfigFile(target: ConfigurationTarget): string {
@@ -291,7 +292,7 @@ export default class Configurations {
     let filepath = u.fsPath
     for (let [configFile, model] of this.foldConfigurations) {
       let root = path.resolve(configFile, '../..')
-      if (filepath.startsWith(root)) return model
+      if (isParentFolder(root, filepath)) return model
     }
     return new ConfigurationModel()
   }

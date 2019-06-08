@@ -5,6 +5,7 @@ import { ListContext, ListItem, QuickfixItem } from '../../types'
 import BasicList from '../basic'
 import workspace from '../../workspace'
 import { URI } from 'vscode-uri'
+import { isParentFolder } from '../../util/fs'
 const logger = require('../../util/logger')('list-location')
 
 export default class LocationList extends BasicList {
@@ -43,7 +44,7 @@ export default class LocationList extends BasicList {
       let filename = ignoreFilepath ? '' : loc.filename
       let filterText = `${filename}${loc.text.trim()}`
       if (path.isAbsolute(filename)) {
-        filename = filename.startsWith(context.cwd) ? path.relative(context.cwd, filename) : filename
+        filename = isParentFolder(context.cwd, filename) ? path.relative(context.cwd, filename) : filename
       }
       return {
         label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,

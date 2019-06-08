@@ -6,6 +6,7 @@ import { ListContext, ListItem } from '../../types'
 import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
+import { isParentFolder } from '../../util/fs'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
@@ -31,7 +32,7 @@ export default class Symbols extends LocationList {
       if (!this.validWorkspaceSymbol(s)) continue
       let kind = getSymbolKind(s.kind)
       let file = URI.parse(s.location.uri).fsPath
-      if (file.startsWith(workspace.cwd)) {
+      if (isParentFolder(workspace.cwd, file)) {
         file = path.relative(workspace.cwd, file)
       }
       items.push({
@@ -51,7 +52,7 @@ export default class Symbols extends LocationList {
     if (!resolved) return null
     let kind = getSymbolKind(resolved.kind)
     let file = URI.parse(resolved.location.uri).fsPath
-    if (file.startsWith(workspace.cwd)) {
+    if (isParentFolder(workspace.cwd, file)) {
       file = path.relative(workspace.cwd, file)
     }
     return {
