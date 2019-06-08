@@ -7,8 +7,9 @@ import os from 'os'
 import { mkdirp } from '../../util'
 import { isGitIgnored, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
+import { score, positions } from '../../util/fzy'
 import { getHiglights } from '../../util/highlight'
-import { score } from '../../util/match'
+import { score as matchScore } from '../../util/match'
 import { mixin } from '../../util/object'
 import { indexOf, resolveVariables } from '../../util/string'
 import helper from '../helper'
@@ -27,8 +28,19 @@ afterAll(async () => {
 describe('score test', () => {
   test('should match schema', () => {
     let uri = URI.file('/foo').toString()
-    let s = score([{ language: '*', scheme: 'file' }], uri, 'typescript')
+    let s = matchScore([{ language: '*', scheme: 'file' }], uri, 'typescript')
     expect(s).toBe(5)
+  })
+
+  test('fzy#score', async () => {
+    let a = score("amuser", "app/models/user.rb")
+    let b = score("amuser", "app/models/customer.rb")
+    expect(a).toBeGreaterThan(b)
+  })
+
+  test('fzy#positions', async () => {
+    let arr = positions("amuser", "app/models/user.rb")
+    expect(arr).toEqual([0, 4, 11, 12, 13, 14])
   })
 })
 
