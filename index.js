@@ -1748,7 +1748,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(347);
+        let json = __webpack_require__(348);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -54127,13 +54127,13 @@ const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(238));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(248));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(240));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(329));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(330));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(293));
 const services_1 = tslib_1.__importDefault(__webpack_require__(280));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(235));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(239));
 const types_1 = __webpack_require__(190);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(335));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(336));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('plugin');
@@ -54368,7 +54368,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7e54f40405" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9458540bdf" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54872,7 +54872,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const Snippets = tslib_1.__importStar(__webpack_require__(236));
 const parser_1 = __webpack_require__(236);
 const session_1 = __webpack_require__(237);
-const variableResolve_1 = __webpack_require__(328);
+const variableResolve_1 = __webpack_require__(329);
 const logger = __webpack_require__(182)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -56059,8 +56059,8 @@ const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(231);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const snippet_1 = __webpack_require__(327);
-const variableResolve_1 = __webpack_require__(328);
+const snippet_1 = __webpack_require__(328);
+const variableResolve_1 = __webpack_require__(329);
 const logger = __webpack_require__(182)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -56371,8 +56371,8 @@ const sources_1 = tslib_1.__importDefault(__webpack_require__(239));
 const util_1 = __webpack_require__(171);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const complete_1 = tslib_1.__importDefault(__webpack_require__(324));
-const floating_1 = tslib_1.__importDefault(__webpack_require__(326));
+const complete_1 = tslib_1.__importDefault(__webpack_require__(325));
+const floating_1 = tslib_1.__importDefault(__webpack_require__(327));
 const logger = __webpack_require__(182)('completion');
 const completeItemKeys = ['abbr', 'menu', 'info', 'kind', 'icase', 'dup', 'empty', 'user_data'];
 class Completion {
@@ -56960,8 +56960,8 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const vscode_jsonrpc_1 = __webpack_require__(147);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(240));
-const source_1 = tslib_1.__importDefault(__webpack_require__(319));
-const source_vim_1 = tslib_1.__importDefault(__webpack_require__(320));
+const source_1 = tslib_1.__importDefault(__webpack_require__(320));
+const source_vim_1 = tslib_1.__importDefault(__webpack_require__(321));
 const types_1 = __webpack_require__(190);
 const util_2 = __webpack_require__(171);
 const fs_2 = __webpack_require__(201);
@@ -56981,9 +56981,9 @@ class Sources {
     }
     async createNativeSources() {
         try {
-            this.disposables.push((__webpack_require__(321)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(322)).regist(this.sourceMap));
             this.disposables.push((__webpack_require__(323)).regist(this.sourceMap));
+            this.disposables.push((__webpack_require__(324)).regist(this.sourceMap));
         }
         catch (e) {
             console.error('Create source error:' + e.message); // tslint:disable-line
@@ -69731,15 +69731,15 @@ exports.default = ListUI;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const ansiparse_1 = __webpack_require__(317);
 const diff_1 = __webpack_require__(210);
-const fuzzy_1 = __webpack_require__(296);
-const score_1 = __webpack_require__(318);
+const fzy_1 = __webpack_require__(318);
+const score_1 = __webpack_require__(319);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const uuidv1 = __webpack_require__(221);
+const vscode_uri_1 = __webpack_require__(174);
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 const logger = __webpack_require__(182)('list-worker');
 const controlCode = '\x1b';
@@ -69748,6 +69748,7 @@ class Worker {
     constructor(nvim, manager) {
         this.nvim = nvim;
         this.manager = manager;
+        this.recentFiles = [];
         this._loading = false;
         this.task = null;
         this.totalItems = [];
@@ -69773,6 +69774,12 @@ class Worker {
                 }, wait);
             }
         });
+    }
+    loadMru() {
+        let mru = workspace_1.default.createMru('mru');
+        mru.load().then(files => {
+            this.recentFiles = files;
+        }, logError);
     }
     set loading(loading) {
         if (this._loading == loading)
@@ -69807,6 +69814,7 @@ class Worker {
         let { context, list, listOptions } = this.manager;
         if (!list)
             return;
+        this.loadMru();
         if (this.timer)
             clearTimeout(this.timer);
         let id = this.taskId = uuidv1();
@@ -70010,61 +70018,86 @@ class Worker {
                 highlights
             };
         }
+        let extended = this.manager.getConfig('extendedSearchMode', true);
         let filtered;
         if (input.length > 0) {
+            let inputs = extended ? input.split(/\s+/) : [input];
             if (matcher == 'strict') {
                 filtered = items.filter(item => {
-                    let text = item.filterText || item.label;
-                    if (!ignorecase)
-                        return text.indexOf(input) !== -1;
-                    return text.toLowerCase().indexOf(input.toLowerCase()) !== -1;
-                });
-                for (let item of filtered) {
+                    let spans = [];
                     let filterLabel = getFilterLabel(item);
-                    let idx = ignorecase ? filterLabel.toLocaleLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
-                    if (idx != -1) {
-                        highlights.push({
-                            spans: [[string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + input.length)]]
-                        });
+                    for (let input of inputs) {
+                        let idx = ignorecase ? filterLabel.toLowerCase().indexOf(input.toLowerCase()) : filterLabel.indexOf(input);
+                        if (idx == -1)
+                            return false;
+                        spans.push([string_1.byteIndex(filterLabel, idx), string_1.byteIndex(filterLabel, idx + string_1.byteLength(input))]);
                     }
-                }
+                    highlights.push({ spans });
+                    return true;
+                });
             }
             else if (matcher == 'regex') {
-                let regex = new RegExp(input, ignorecase ? 'i' : '');
-                filtered = items.filter(item => regex.test(item.filterText || item.label));
-                for (let item of filtered) {
-                    let filterLabel = getFilterLabel(item);
-                    let ms = filterLabel.match(regex);
-                    if (ms && ms.length) {
-                        highlights.push({
-                            spans: [[string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + ms[0].length)]]
-                        });
+                let flags = ignorecase ? 'iu' : 'u';
+                let regexes = inputs.reduce((p, c) => {
+                    try {
+                        let regex = new RegExp(c, flags);
+                        p.push(regex);
+                        // tslint:disable-next-line: no-empty
                     }
-                }
+                    catch (e) { }
+                    return p;
+                }, []);
+                filtered = items.filter(item => {
+                    let spans = [];
+                    let filterLabel = getFilterLabel(item);
+                    for (let regex of regexes) {
+                        let ms = filterLabel.match(regex);
+                        if (ms == null)
+                            return false;
+                        spans.push([string_1.byteIndex(filterLabel, ms.index), string_1.byteIndex(filterLabel, ms.index + string_1.byteLength(ms[0]))]);
+                    }
+                    highlights.push({ spans });
+                    return true;
+                });
             }
             else {
-                let codes = fuzzy_1.getCharCodes(input);
-                filtered = items.filter(item => fuzzy_1.fuzzyMatch(codes, item.filterText || item.label));
+                filtered = items.filter(item => {
+                    let filterText = item.filterText || item.label;
+                    return inputs.every(s => fzy_1.hasMatch(s, filterText));
+                });
                 filtered = filtered.map(item => {
-                    let filename = item.location ? path_1.default.basename(getItemUri(item)) : null;
                     let filterLabel = getFilterLabel(item);
-                    let res = score_1.getMatchResult(filterLabel, input, filename);
+                    let matchScore = 0;
+                    let matches = [];
+                    for (let input of inputs) {
+                        matches.push(...fzy_1.positions(input, filterLabel));
+                        matchScore += fzy_1.score(input, filterLabel);
+                    }
+                    let { recentScore } = item;
+                    if (!recentScore && item.location) {
+                        let uri = getItemUri(item);
+                        if (uri.startsWith('file')) {
+                            let fsPath = vscode_uri_1.URI.parse(uri).fsPath;
+                            recentScore = -this.recentFiles.indexOf(fsPath);
+                        }
+                    }
                     return Object.assign({}, item, {
                         filterLabel,
-                        score: res ? res.score : 0,
-                        matches: res ? res.matches : []
+                        score: matchScore,
+                        recentScore,
+                        matches
                     });
                 });
                 if (sort && items.length) {
                     filtered.sort((a, b) => {
                         if (a.score != b.score)
                             return b.score - a.score;
+                        if (input.length && a.recentScore != b.recentScore) {
+                            return (a.recentScore || -Infinity) - (b.recentScore || -Infinity);
+                        }
                         if (a.location && b.location) {
                             let au = getItemUri(a);
                             let bu = getItemUri(b);
-                            if (au.length != bu.length) {
-                                return au.length - bu.length;
-                            }
                             return au > bu ? 1 : -1;
                         }
                         return a.label > b.label ? 1 : -1;
@@ -70151,6 +70184,9 @@ function getItemUri(item) {
     if (typeof location == 'string')
         return location;
     return location.uri;
+}
+function logError(e) {
+    logger.error(e);
 }
 //# sourceMappingURL=worker.js.map
 
@@ -70351,6 +70387,177 @@ exports.ansiparse = ansiparse;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+let SCORE_MIN = -Infinity;
+let SCORE_MAX = Infinity;
+let SCORE_GAP_LEADING = -0.005;
+let SCORE_GAP_TRAILING = -0.005;
+let SCORE_GAP_INNER = -0.01;
+let SCORE_MATCH_CONSECUTIVE = 1;
+let SCORE_MATCH_SLASH = 0.9;
+let SCORE_MATCH_WORD = 0.8;
+let SCORE_MATCH_CAPITAL = 0.7;
+let SCORE_MATCH_DOT = 0.6;
+function islower(s) {
+    return s.toLowerCase() === s;
+}
+function isupper(s) {
+    return s.toUpperCase() === s;
+}
+function precompute_bonus(haystack) {
+    /* Which positions are beginning of words */
+    let m = haystack.length;
+    let match_bonus = new Array(m);
+    let last_ch = '/';
+    for (let i = 0; i < m; i++) {
+        let ch = haystack[i];
+        if (last_ch === '/') {
+            match_bonus[i] = SCORE_MATCH_SLASH;
+        }
+        else if (last_ch === '-' || last_ch === '_' || last_ch === ' ') {
+            match_bonus[i] = SCORE_MATCH_WORD;
+        }
+        else if (last_ch === '.') {
+            match_bonus[i] = SCORE_MATCH_DOT;
+        }
+        else if (islower(last_ch) && isupper(ch)) {
+            match_bonus[i] = SCORE_MATCH_CAPITAL;
+        }
+        else {
+            match_bonus[i] = 0;
+        }
+        last_ch = ch;
+    }
+    return match_bonus;
+}
+function compute(needle, haystack, D, M) {
+    let n = needle.length;
+    let m = haystack.length;
+    let lower_needle = needle.toLowerCase();
+    let lower_haystack = haystack.toLowerCase();
+    let match_bonus = precompute_bonus(haystack);
+    /*
+     * D[][] Stores the best score for this position ending with a match.
+     * M[][] Stores the best possible score at this position.
+     */
+    for (let i = 0; i < n; i++) {
+        D[i] = new Array(m);
+        M[i] = new Array(m);
+        let prev_score = SCORE_MIN;
+        let gap_score = i === n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
+        for (let j = 0; j < m; j++) {
+            if (lower_needle[i] === lower_haystack[j]) {
+                let score = SCORE_MIN;
+                if (!i) {
+                    score = (j * SCORE_GAP_LEADING) + match_bonus[j];
+                }
+                else if (j) { /* i > 0 && j > 0*/
+                    score = Math.max(M[i - 1][j - 1] + match_bonus[j], 
+                    /* consecutive match, doesn't stack with match_bonus */
+                    D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE);
+                }
+                D[i][j] = score;
+                M[i][j] = prev_score = Math.max(score, prev_score + gap_score);
+            }
+            else {
+                D[i][j] = SCORE_MIN;
+                M[i][j] = prev_score = prev_score + gap_score;
+            }
+        }
+    }
+}
+function score(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    if (!n || !m)
+        return SCORE_MIN;
+    if (n === m) {
+        /* Since this method can only be called with a haystack which
+         * matches needle. If the lengths of the strings are equal the
+         * strings themselves must also be equal (ignoring case).
+         */
+        return SCORE_MAX;
+    }
+    if (m > 1024) {
+        /*
+         * Unreasonably large candidate: return no score
+         * If it is a valid match it will still be returned, it will
+         * just be ranked below any reasonably sized candidates
+         */
+        return SCORE_MIN;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    return M[n - 1][m - 1];
+}
+exports.score = score;
+function positions(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    let positions = new Array(n);
+    if (!n || !m)
+        return positions;
+    if (n === m) {
+        for (let i = 0; i < n; i++)
+            positions[i] = i;
+        return positions;
+    }
+    if (m > 1024) {
+        return positions;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    /* backtrack to find the positions of optimal matching */
+    let match_required = false;
+    for (let i = n - 1, j = m - 1; i >= 0; i--) {
+        for (; j >= 0; j--) {
+            /*
+             * There may be multiple paths which result in
+             * the optimal weight.
+             *
+             * For simplicity, we will pick the first one
+             * we encounter, the latest in the candidate
+             * string.
+             */
+            if (D[i][j] !== SCORE_MIN &&
+                (match_required || D[i][j] === M[i][j])) {
+                /* If this score was determined using
+                 * SCORE_MATCH_CONSECUTIVE, the
+                 * previous character MUST be a match
+                 */
+                match_required =
+                    i && j &&
+                        M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
+                positions[i] = j--;
+                break;
+            }
+        }
+    }
+    return positions;
+}
+exports.positions = positions;
+function hasMatch(needle, haystack) {
+    needle = needle.toLowerCase();
+    haystack = haystack.toLowerCase();
+    let l = needle.length;
+    for (let i = 0, j = 0; i < l; i += 1) {
+        j = haystack.indexOf(needle[i], j) + 1;
+        if (j === 0)
+            return false;
+    }
+    return true;
+}
+exports.hasMatch = hasMatch;
+//# sourceMappingURL=fzy.js.map
+
+/***/ }),
+/* 319 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const path_1 = __webpack_require__(56);
 const fuzzy_1 = __webpack_require__(296);
 // first is start or path start +1, fuzzy +0.5
@@ -70496,7 +70703,7 @@ function bestResult(results) {
 //# sourceMappingURL=score.js.map
 
 /***/ }),
-/* 319 */
+/* 320 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70654,7 +70861,7 @@ exports.default = Source;
 //# sourceMappingURL=source.js.map
 
 /***/ }),
-/* 320 */
+/* 321 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70664,7 +70871,7 @@ const tslib_1 = __webpack_require__(3);
 const fuzzy_1 = __webpack_require__(296);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const source_1 = tslib_1.__importDefault(__webpack_require__(319));
+const source_1 = tslib_1.__importDefault(__webpack_require__(320));
 const logger = __webpack_require__(182)('model-source-vim');
 class VimSource extends source_1.default {
     async callOptinalFunc(fname, args) {
@@ -70761,7 +70968,7 @@ exports.default = VimSource;
 //# sourceMappingURL=source-vim.js.map
 
 /***/ }),
-/* 321 */
+/* 322 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70769,7 +70976,7 @@ exports.default = VimSource;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const source_1 = tslib_1.__importDefault(__webpack_require__(319));
+const source_1 = tslib_1.__importDefault(__webpack_require__(320));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('source-around');
 class Around extends source_1.default {
@@ -70811,7 +71018,7 @@ exports.regist = regist;
 //# sourceMappingURL=around.js.map
 
 /***/ }),
-/* 322 */
+/* 323 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70819,7 +71026,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const source_1 = tslib_1.__importDefault(__webpack_require__(319));
+const source_1 = tslib_1.__importDefault(__webpack_require__(320));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('source-buffer');
 class Buffer extends source_1.default {
@@ -70875,7 +71082,7 @@ exports.regist = regist;
 //# sourceMappingURL=buffer.js.map
 
 /***/ }),
-/* 323 */
+/* 324 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70888,7 +71095,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const source_1 = tslib_1.__importDefault(__webpack_require__(319));
+const source_1 = tslib_1.__importDefault(__webpack_require__(320));
 const fs_2 = __webpack_require__(201);
 const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('source-file');
@@ -71015,7 +71222,7 @@ exports.regist = regist;
 //# sourceMappingURL=file.js.map
 
 /***/ }),
-/* 324 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71024,7 +71231,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const fuzzy_1 = __webpack_require__(296);
 const string_1 = __webpack_require__(212);
-const match_1 = __webpack_require__(325);
+const match_1 = __webpack_require__(326);
 const logger = __webpack_require__(182)('completion-complete');
 // first time completion
 const FIRST_TIMEOUT = 500;
@@ -71380,7 +71587,7 @@ exports.default = Complete;
 //# sourceMappingURL=complete.js.map
 
 /***/ }),
-/* 325 */
+/* 326 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71526,7 +71733,7 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 //# sourceMappingURL=match.js.map
 
 /***/ }),
-/* 326 */
+/* 327 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71694,7 +71901,7 @@ exports.default = Floating;
 //# sourceMappingURL=floating.js.map
 
 /***/ }),
-/* 327 */
+/* 328 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71877,7 +72084,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 328 */
+/* 329 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71944,14 +72151,14 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 329 */
+/* 330 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const binary_search_1 = tslib_1.__importDefault(__webpack_require__(330));
+const binary_search_1 = tslib_1.__importDefault(__webpack_require__(331));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(248));
@@ -71967,9 +72174,9 @@ const object_1 = __webpack_require__(191);
 const position_1 = __webpack_require__(231);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(331));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(332));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(334));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(332));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(333));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(335));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('Handler');
 const pairs = new Map([
@@ -72998,7 +73205,7 @@ function isDocumentSymbols(a) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 330 */
+/* 331 */
 /***/ (function(module, exports) {
 
 module.exports = function(haystack, needle, comparator, low, high) {
@@ -73047,7 +73254,7 @@ module.exports = function(haystack, needle, comparator, low, high) {
 
 
 /***/ }),
-/* 331 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73311,7 +73518,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 332 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73325,7 +73532,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
 const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(191);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(333));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(334));
 const logger = __webpack_require__(182)('colors');
 class Colors {
     constructor(nvim) {
@@ -73528,7 +73735,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 333 */
+/* 334 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73677,7 +73884,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 334 */
+/* 335 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73769,7 +73976,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 335 */
+/* 336 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73778,7 +73985,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(336));
+const glob_1 = tslib_1.__importDefault(__webpack_require__(337));
 const os_1 = __webpack_require__(55);
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const fs_2 = __webpack_require__(201);
@@ -73816,7 +74023,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 336 */
+/* 337 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -73862,26 +74069,26 @@ exports.default = default_1;
 module.exports = glob
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(337)
+var rp = __webpack_require__(338)
 var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(339)
+var inherits = __webpack_require__(340)
 var EE = __webpack_require__(49).EventEmitter
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(341)
-var globSync = __webpack_require__(342)
-var common = __webpack_require__(343)
+var isAbsolute = __webpack_require__(342)
+var globSync = __webpack_require__(343)
+var common = __webpack_require__(344)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(344)
+var inflight = __webpack_require__(345)
 var util = __webpack_require__(40)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(346)
+var once = __webpack_require__(347)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -74612,7 +74819,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 337 */
+/* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = realpath
@@ -74628,7 +74835,7 @@ var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(338)
+var old = __webpack_require__(339)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -74684,7 +74891,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 338 */
+/* 339 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -74993,7 +75200,7 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 339 */
+/* 340 */
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
@@ -75001,12 +75208,12 @@ try {
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
-  module.exports = __webpack_require__(340);
+  module.exports = __webpack_require__(341);
 }
 
 
 /***/ }),
-/* 340 */
+/* 341 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -75035,7 +75242,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 341 */
+/* 342 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -75062,22 +75269,22 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 342 */
+/* 343 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(337)
+var rp = __webpack_require__(338)
 var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(336).Glob
+var Glob = __webpack_require__(337).Glob
 var util = __webpack_require__(40)
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(341)
-var common = __webpack_require__(343)
+var isAbsolute = __webpack_require__(342)
+var common = __webpack_require__(344)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -75554,7 +75761,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 343 */
+/* 344 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -75573,7 +75780,7 @@ function ownProp (obj, field) {
 
 var path = __webpack_require__(56)
 var minimatch = __webpack_require__(202)
-var isAbsolute = __webpack_require__(341)
+var isAbsolute = __webpack_require__(342)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -75800,12 +76007,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 344 */
+/* 345 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(345)
+var wrappy = __webpack_require__(346)
 var reqs = Object.create(null)
-var once = __webpack_require__(346)
+var once = __webpack_require__(347)
 
 module.exports = wrappy(inflight)
 
@@ -75860,7 +76067,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 345 */
+/* 346 */
 /***/ (function(module, exports) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -75899,10 +76106,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 346 */
+/* 347 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(345)
+var wrappy = __webpack_require__(346)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -75947,7 +76154,7 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 347 */
+/* 348 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.68","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^4.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
