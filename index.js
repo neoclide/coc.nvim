@@ -43990,11 +43990,11 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
 const which_1 = tslib_1.__importDefault(__webpack_require__(175));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(189));
-const shape_1 = tslib_1.__importDefault(__webpack_require__(201));
+const shape_1 = tslib_1.__importDefault(__webpack_require__(206));
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
-const db_1 = tslib_1.__importDefault(__webpack_require__(202));
-const task_1 = tslib_1.__importDefault(__webpack_require__(209));
-const document_1 = tslib_1.__importDefault(__webpack_require__(210));
+const db_1 = tslib_1.__importDefault(__webpack_require__(207));
+const task_1 = tslib_1.__importDefault(__webpack_require__(208));
+const document_1 = tslib_1.__importDefault(__webpack_require__(209));
 const fileSystemWatcher_1 = tslib_1.__importDefault(__webpack_require__(215));
 const mru_1 = tslib_1.__importDefault(__webpack_require__(216));
 const outputChannel_1 = tslib_1.__importDefault(__webpack_require__(217));
@@ -44003,10 +44003,10 @@ const status_1 = tslib_1.__importDefault(__webpack_require__(220));
 const terminal_1 = tslib_1.__importDefault(__webpack_require__(224));
 const willSaveHandler_1 = tslib_1.__importDefault(__webpack_require__(225));
 const types_1 = __webpack_require__(190);
-const fs_2 = __webpack_require__(203);
+const fs_2 = __webpack_require__(201);
 const index_1 = __webpack_require__(171);
 const match_1 = __webpack_require__(226);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(227));
 const uuid = __webpack_require__(221);
 const array_1 = __webpack_require__(214);
@@ -44317,7 +44317,7 @@ class Workspace {
         let filepath = await this.nvim.call('expand', '%:p');
         filepath = path_1.default.normalize(filepath);
         let isFile = filepath && path_1.default.isAbsolute(filepath);
-        if (isFile && !filepath.startsWith(cwd)) {
+        if (isFile && !fs_2.isParentFolder(cwd, filepath)) {
             // can't use cwd
             return await find_up_1.default(filename, { cwd: path_1.default.dirname(filepath) });
         }
@@ -44564,6 +44564,11 @@ class Workspace {
         let encoding = await this.getFileEncoding();
         return await fs_2.readFile(u.fsPath, encoding);
     }
+    getFilepath(filepath) {
+        let { cwd } = this;
+        let rel = path_1.default.relative(cwd, filepath);
+        return rel.startsWith('..') ? filepath : rel;
+    }
     onWillSaveUntil(callback, thisArg, clientId) {
         return this.willSaveUntilHandler.addCallback(callback, thisArg, clientId);
     }
@@ -44684,32 +44689,23 @@ class Workspace {
         let col = character + 1;
         if (doc)
             col = string_1.byteLength(doc.getline(line).slice(0, character)) + 1;
-        let u = vscode_uri_1.URI.parse(uri);
-        let bufname = u.scheme == 'file' ? u.fsPath : uri;
-        await nvim.command(`normal! m'`);
-        let loaded = await nvim.call('bufloaded', bufname);
-        let bufnr = loaded == 0 ? -1 : await nvim.call('bufnr', bufname);
+        let bufnr = doc ? doc.bufnr : -1;
+        nvim.pauseNotification();
+        nvim.command(`normal! m'`, true);
         let method = this.isVim ? 'callTimer' : 'call';
         if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
-            await nvim.call('cursor', [line + 1, col]);
+            nvim.call('cursor', [line + 1, col], true);
         }
         else if (bufnr != -1 && jumpCommand == 'edit') {
             let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
-            await nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
+            nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`], true);
         }
         else {
-            let cwd = await nvim.call('getcwd');
-            let file;
-            if (bufnr == -1) {
-                file = bufname.startsWith(cwd) ? path_1.default.relative(cwd, bufname) : bufname;
-            }
-            else {
-                file = await nvim.call('bufname', [bufnr]);
-            }
-            file = await nvim.call('fnameescape', file);
+            let bufname = uri.startsWith('file:') ? path_1.default.normalize(vscode_uri_1.URI.parse(uri).fsPath) : uri;
             let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
-            await nvim[method]('coc#util#execute', [`${jumpCommand} ${moveCmd} ${file}`]);
+            nvim[method]('coc#util#jump', [`${jumpCommand} ${moveCmd}`, bufname], true);
         }
+        await nvim.resumeNotification();
         if (this.isVim)
             await index_1.wait(100);
     }
@@ -45340,7 +45336,7 @@ augroup end`;
                     return root;
             }
         }
-        if (this.cwd != os_1.default.homedir() && dir.startsWith(this.cwd))
+        if (this.cwd != os_1.default.homedir() && fs_2.isParentFolder(this.cwd, dir))
             return this.cwd;
         return null;
     }
@@ -45381,7 +45377,7 @@ augroup end`;
             }
             fs_1.default.renameSync(oldPath, newPath);
         }
-        let filepath = newPath.startsWith(cwd) ? path_1.default.relative(cwd, newPath) : newPath;
+        let filepath = fs_2.isParentFolder(cwd, newPath) ? path_1.default.relative(cwd, newPath) : newPath;
         let cursor = await nvim.call('getcurpos');
         nvim.pauseNotification();
         nvim.command(`keepalt ${bufnr}bwipeout!`, true);
@@ -45843,6 +45839,7 @@ const model_1 = __webpack_require__(194);
 const util_2 = __webpack_require__(195);
 const is_1 = __webpack_require__(192);
 const find_up_1 = tslib_1.__importDefault(__webpack_require__(184));
+const fs_2 = __webpack_require__(201);
 const logger = __webpack_require__(182)('configurations');
 function lookUp(tree, key) {
     if (key) {
@@ -45989,7 +45986,7 @@ class Configurations {
                     return changed.indexOf(section) !== -1;
                 let filepath = u.fsPath;
                 let preRoot = workspaceConfigFile ? path_1.default.resolve(workspaceConfigFile, '../..') : '';
-                if (configFile && !filepath.startsWith(preRoot) && !filepath.startsWith(path_1.default.resolve(configFile, '../..'))) {
+                if (configFile && !fs_2.isParentFolder(preRoot, filepath) && !fs_2.isParentFolder(path_1.default.resolve(configFile, '../..'), filepath)) {
                     return false;
                 }
                 return changed.indexOf(section) !== -1;
@@ -46003,7 +46000,7 @@ class Configurations {
         let filepath = u.fsPath;
         for (let [configFile, model] of this.foldConfigurations) {
             let root = path_1.default.resolve(configFile, '../..');
-            if (filepath.startsWith(root) && this.workspaceConfigFile != configFile) {
+            if (fs_2.isParentFolder(root, filepath) && this.workspaceConfigFile != configFile) {
                 this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, configFile);
                 break;
             }
@@ -46011,7 +46008,7 @@ class Configurations {
     }
     hasFolderConfiguration(filepath) {
         let { folders } = this;
-        return folders.findIndex(f => filepath.startsWith(f)) !== -1;
+        return folders.findIndex(f => fs_2.isParentFolder(f, filepath)) !== -1;
     }
     getConfigFile(target) {
         if (target == types_1.ConfigurationTarget.Global)
@@ -46117,7 +46114,7 @@ class Configurations {
         let filepath = u.fsPath;
         for (let [configFile, model] of this.foldConfigurations) {
             let root = path_1.default.resolve(configFile, '../..');
-            if (filepath.startsWith(root))
+            if (fs_2.isParentFolder(root, filepath))
                 return model;
         }
         return new model_1.ConfigurationModel();
@@ -48321,185 +48318,6 @@ function getLiteralNodeType(value) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const jsonc_parser_1 = __webpack_require__(196);
-const vscode_uri_1 = __webpack_require__(174);
-const logger = __webpack_require__(182)('configuration-shape');
-class ConfigurationProxy {
-    constructor(workspace) {
-        this.workspace = workspace;
-    }
-    get nvim() {
-        return this.workspace.nvim;
-    }
-    async modifyConfiguration(target, key, value) {
-        let { nvim, workspace } = this;
-        let file = workspace.getConfigFile(target);
-        if (!file)
-            return;
-        let formattingOptions = await workspace.getFormatOptions();
-        let content = await workspace.readFile(vscode_uri_1.URI.file(file).toString());
-        value = value == null ? undefined : value;
-        let edits = jsonc_parser_1.modify(content, [key], value, { formattingOptions });
-        content = jsonc_parser_1.applyEdits(content, edits);
-        fs_1.default.writeFileSync(file, content, 'utf8');
-        let doc = workspace.getDocument(vscode_uri_1.URI.file(file).toString());
-        if (doc)
-            nvim.command('checktime', true);
-        return;
-    }
-    $updateConfigurationOption(target, key, value) {
-        this.modifyConfiguration(target, key, value); // tslint:disable-line
-    }
-    $removeConfigurationOption(target, key) {
-        this.modifyConfiguration(target, key); // tslint:disable-line
-    }
-}
-exports.default = ConfigurationProxy;
-//# sourceMappingURL=shape.js.map
-
-/***/ }),
-/* 202 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
-const path_1 = tslib_1.__importDefault(__webpack_require__(56));
-const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const fsAsync = tslib_1.__importStar(__webpack_require__(203));
-const util_1 = __webpack_require__(171);
-class DB {
-    constructor(filepath) {
-        this.filepath = filepath;
-    }
-    async fetch(key) {
-        let obj = await this.load();
-        if (obj == null)
-            return undefined;
-        if (!key)
-            return obj;
-        let parts = key.split('.');
-        for (let part of parts) {
-            if (typeof obj[part] == 'undefined') {
-                return undefined;
-            }
-            obj = obj[part];
-        }
-        return obj;
-    }
-    fetchSync(key) {
-        try {
-            let content = fs_1.default.readFileSync(this.filepath, 'utf8');
-            let obj = JSON.parse(content);
-            if (obj == null)
-                return undefined;
-            let parts = key.split('.');
-            for (let part of parts) {
-                if (typeof obj[part] == 'undefined') {
-                    return undefined;
-                }
-                obj = obj[part];
-            }
-        }
-        catch (e) {
-            return undefined;
-        }
-    }
-    async exists(key) {
-        let obj = await this.load();
-        if (obj == null)
-            return false;
-        let parts = key.split('.');
-        for (let part of parts) {
-            if (typeof obj[part] == 'undefined') {
-                return false;
-            }
-            obj = obj[part];
-        }
-        return true;
-    }
-    async delete(key) {
-        let obj = await this.load();
-        if (obj == null)
-            return;
-        let origin = obj;
-        let parts = key.split('.');
-        let len = parts.length;
-        for (let i = 0; i < len; i++) {
-            if (typeof obj[parts[i]] == 'undefined') {
-                break;
-            }
-            if (i == len - 1) {
-                delete obj[parts[i]];
-                await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2));
-                break;
-            }
-            obj = obj[parts[i]];
-        }
-    }
-    async push(key, data) {
-        let origin = (await this.load()) || {};
-        let obj = origin;
-        let parts = key.split('.');
-        let len = parts.length;
-        if (obj == null) {
-            let dir = path_1.default.dirname(this.filepath);
-            await util_1.mkdirp(dir);
-            obj = origin;
-        }
-        for (let i = 0; i < len; i++) {
-            let key = parts[i];
-            if (i == len - 1) {
-                obj[key] = data;
-                await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2));
-                break;
-            }
-            if (typeof obj[key] == 'undefined') {
-                obj[key] = {};
-                obj = obj[key];
-            }
-            else {
-                obj = obj[key];
-            }
-        }
-    }
-    async load() {
-        let stat = await fsAsync.statAsync(this.filepath);
-        if (!stat || !stat.isFile())
-            return null;
-        let content = await fsAsync.readFile(this.filepath, 'utf8');
-        if (!content.trim())
-            return {};
-        try {
-            return JSON.parse(content);
-        }
-        catch (e) {
-            return null;
-        }
-    }
-    async clear() {
-        let stat = await fsAsync.statAsync(this.filepath);
-        if (!stat || !stat.isFile())
-            return;
-        await fsAsync.writeFile(this.filepath, '');
-    }
-    async destroy() {
-        await fsAsync.unlinkAsync(this.filepath);
-    }
-}
-exports.default = DB;
-//# sourceMappingURL=db.js.map
-
-/***/ }),
-/* 203 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(172);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const net_1 = tslib_1.__importDefault(__webpack_require__(6));
@@ -48507,9 +48325,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const platform_1 = __webpack_require__(179);
-const string_1 = __webpack_require__(204);
-const minimatch = __webpack_require__(205);
+const minimatch = __webpack_require__(202);
 const logger = __webpack_require__(182)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
@@ -48567,12 +48383,12 @@ async function isGitIgnored(fullpath) {
 exports.isGitIgnored = isGitIgnored;
 function resolveRoot(dir, subs, cwd) {
     let home = os_1.default.homedir();
-    if (home.startsWith(dir))
+    if (isParentFolder(dir, home))
         return null;
     let { root } = path_1.default.parse(dir);
     if (root == dir)
         return null;
-    if (cwd && cwd != home && dir.startsWith(cwd) && inDirectory(cwd, subs))
+    if (cwd && cwd != home && isParentFolder(cwd, dir) && inDirectory(cwd, subs))
         return cwd;
     let parts = dir.split(path_1.default.sep);
     let curr = [parts.shift()];
@@ -48671,149 +48487,14 @@ function parentDirs(pth) {
 }
 exports.parentDirs = parentDirs;
 function isParentFolder(folder, filepath) {
-    let dirs = parentDirs(filepath);
-    if (filepath.endsWith(path_1.default.sep)) {
-        filepath = filepath.slice(0, -path_1.default.sep.length);
-    }
-    if (folder == filepath)
-        return true;
-    if (platform_1.isLinux)
-        return dirs.indexOf(folder) !== -1;
-    return dirs.findIndex(s => string_1.equalsIgnoreCase(s, folder)) !== -1;
+    let rel = path_1.default.relative(folder, filepath);
+    return !rel.startsWith('..');
 }
 exports.isParentFolder = isParentFolder;
 //# sourceMappingURL=fs.js.map
 
 /***/ }),
-/* 204 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-// nvim use utf8
-function byteLength(str) {
-    return Buffer.byteLength(str);
-}
-exports.byteLength = byteLength;
-function upperFirst(str) {
-    return str ? str[0].toUpperCase() + str.slice(1) : '';
-}
-exports.upperFirst = upperFirst;
-function byteIndex(content, index) {
-    let s = content.slice(0, index);
-    return Buffer.byteLength(s);
-}
-exports.byteIndex = byteIndex;
-function indexOf(str, ch, count = 1) {
-    let curr = 0;
-    for (let i = 0; i < str.length; i++) {
-        if (str[i] == ch) {
-            curr = curr + 1;
-            if (curr == count) {
-                return i;
-            }
-        }
-    }
-    return -1;
-}
-exports.indexOf = indexOf;
-function characterIndex(content, byteIndex) {
-    let buf = Buffer.from(content, 'utf8');
-    return buf.slice(0, byteIndex).toString('utf8').length;
-}
-exports.characterIndex = characterIndex;
-function byteSlice(content, start, end) {
-    let buf = Buffer.from(content, 'utf8');
-    return buf.slice(start, end).toString('utf8');
-}
-exports.byteSlice = byteSlice;
-function isWord(character) {
-    let code = character.charCodeAt(0);
-    if (code > 128)
-        return false;
-    if (code == 95)
-        return true;
-    if (code >= 48 && code <= 57)
-        return true;
-    if (code >= 65 && code <= 90)
-        return true;
-    if (code >= 97 && code <= 122)
-        return true;
-    return false;
-}
-exports.isWord = isWord;
-function isTriggerCharacter(character) {
-    if (!character)
-        return false;
-    let code = character.charCodeAt(0);
-    if (code > 128)
-        return false;
-    if (code >= 65 && code <= 90)
-        return false;
-    if (code >= 97 && code <= 122)
-        return false;
-    return true;
-}
-exports.isTriggerCharacter = isTriggerCharacter;
-function resolveVariables(str, variables) {
-    const regexp = /\$\{(.*?)\}/g;
-    return str.replace(regexp, (match, name) => {
-        const newValue = variables[name];
-        if (typeof newValue === 'string') {
-            return newValue;
-        }
-        return match;
-    });
-}
-exports.resolveVariables = resolveVariables;
-function isAsciiLetter(code) {
-    if (code >= 65 && code <= 90)
-        return true;
-    if (code >= 97 && code <= 122)
-        return true;
-    return false;
-}
-exports.isAsciiLetter = isAsciiLetter;
-function doEqualsIgnoreCase(a, b, stopAt = a.length) {
-    if (typeof a !== 'string' || typeof b !== 'string') {
-        return false;
-    }
-    for (let i = 0; i < stopAt; i++) {
-        const codeA = a.charCodeAt(i);
-        const codeB = b.charCodeAt(i);
-        if (codeA === codeB) {
-            continue;
-        }
-        // a-z A-Z
-        if (isAsciiLetter(codeA) && isAsciiLetter(codeB)) {
-            const diff = Math.abs(codeA - codeB);
-            if (diff !== 0 && diff !== 32) {
-                return false;
-            }
-        }
-        // Any other charcode
-        else {
-            if (String.fromCharCode(codeA).toLowerCase() !== String.fromCharCode(codeB).toLowerCase()) {
-                return false;
-            }
-        }
-    }
-    return true;
-}
-function equalsIgnoreCase(a, b) {
-    const len1 = a ? a.length : 0;
-    const len2 = b ? b.length : 0;
-    if (len1 !== len2) {
-        return false;
-    }
-    return doEqualsIgnoreCase(a, b);
-}
-exports.equalsIgnoreCase = equalsIgnoreCase;
-//# sourceMappingURL=string.js.map
-
-/***/ }),
-/* 205 */
+/* 202 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = minimatch
@@ -48825,7 +48506,7 @@ try {
 } catch (er) {}
 
 var GLOBSTAR = minimatch.GLOBSTAR = Minimatch.GLOBSTAR = {}
-var expand = __webpack_require__(206)
+var expand = __webpack_require__(203)
 
 var plTypes = {
   '!': { open: '(?:(?!(?:', close: '))[^/]*?)'},
@@ -49742,11 +49423,11 @@ function regExpEscape (s) {
 
 
 /***/ }),
-/* 206 */
+/* 203 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var concatMap = __webpack_require__(207);
-var balanced = __webpack_require__(208);
+var concatMap = __webpack_require__(204);
+var balanced = __webpack_require__(205);
 
 module.exports = expandTop;
 
@@ -49949,7 +49630,7 @@ function expand(str, isTop) {
 
 
 /***/ }),
-/* 207 */
+/* 204 */
 /***/ (function(module, exports) {
 
 module.exports = function (xs, fn) {
@@ -49968,7 +49649,7 @@ var isArray = Array.isArray || function (xs) {
 
 
 /***/ }),
-/* 208 */
+/* 205 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50034,7 +49715,186 @@ function range(a, b, str) {
 
 
 /***/ }),
-/* 209 */
+/* 206 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const jsonc_parser_1 = __webpack_require__(196);
+const vscode_uri_1 = __webpack_require__(174);
+const logger = __webpack_require__(182)('configuration-shape');
+class ConfigurationProxy {
+    constructor(workspace) {
+        this.workspace = workspace;
+    }
+    get nvim() {
+        return this.workspace.nvim;
+    }
+    async modifyConfiguration(target, key, value) {
+        let { nvim, workspace } = this;
+        let file = workspace.getConfigFile(target);
+        if (!file)
+            return;
+        let formattingOptions = await workspace.getFormatOptions();
+        let content = await workspace.readFile(vscode_uri_1.URI.file(file).toString());
+        value = value == null ? undefined : value;
+        let edits = jsonc_parser_1.modify(content, [key], value, { formattingOptions });
+        content = jsonc_parser_1.applyEdits(content, edits);
+        fs_1.default.writeFileSync(file, content, 'utf8');
+        let doc = workspace.getDocument(vscode_uri_1.URI.file(file).toString());
+        if (doc)
+            nvim.command('checktime', true);
+        return;
+    }
+    $updateConfigurationOption(target, key, value) {
+        this.modifyConfiguration(target, key, value); // tslint:disable-line
+    }
+    $removeConfigurationOption(target, key) {
+        this.modifyConfiguration(target, key); // tslint:disable-line
+    }
+}
+exports.default = ConfigurationProxy;
+//# sourceMappingURL=shape.js.map
+
+/***/ }),
+/* 207 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const fsAsync = tslib_1.__importStar(__webpack_require__(201));
+const util_1 = __webpack_require__(171);
+class DB {
+    constructor(filepath) {
+        this.filepath = filepath;
+    }
+    async fetch(key) {
+        let obj = await this.load();
+        if (obj == null)
+            return undefined;
+        if (!key)
+            return obj;
+        let parts = key.split('.');
+        for (let part of parts) {
+            if (typeof obj[part] == 'undefined') {
+                return undefined;
+            }
+            obj = obj[part];
+        }
+        return obj;
+    }
+    fetchSync(key) {
+        try {
+            let content = fs_1.default.readFileSync(this.filepath, 'utf8');
+            let obj = JSON.parse(content);
+            if (obj == null)
+                return undefined;
+            let parts = key.split('.');
+            for (let part of parts) {
+                if (typeof obj[part] == 'undefined') {
+                    return undefined;
+                }
+                obj = obj[part];
+            }
+        }
+        catch (e) {
+            return undefined;
+        }
+    }
+    async exists(key) {
+        let obj = await this.load();
+        if (obj == null)
+            return false;
+        let parts = key.split('.');
+        for (let part of parts) {
+            if (typeof obj[part] == 'undefined') {
+                return false;
+            }
+            obj = obj[part];
+        }
+        return true;
+    }
+    async delete(key) {
+        let obj = await this.load();
+        if (obj == null)
+            return;
+        let origin = obj;
+        let parts = key.split('.');
+        let len = parts.length;
+        for (let i = 0; i < len; i++) {
+            if (typeof obj[parts[i]] == 'undefined') {
+                break;
+            }
+            if (i == len - 1) {
+                delete obj[parts[i]];
+                await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2));
+                break;
+            }
+            obj = obj[parts[i]];
+        }
+    }
+    async push(key, data) {
+        let origin = (await this.load()) || {};
+        let obj = origin;
+        let parts = key.split('.');
+        let len = parts.length;
+        if (obj == null) {
+            let dir = path_1.default.dirname(this.filepath);
+            await util_1.mkdirp(dir);
+            obj = origin;
+        }
+        for (let i = 0; i < len; i++) {
+            let key = parts[i];
+            if (i == len - 1) {
+                obj[key] = data;
+                await fsAsync.writeFile(this.filepath, JSON.stringify(origin, null, 2));
+                break;
+            }
+            if (typeof obj[key] == 'undefined') {
+                obj[key] = {};
+                obj = obj[key];
+            }
+            else {
+                obj = obj[key];
+            }
+        }
+    }
+    async load() {
+        let stat = await fsAsync.statAsync(this.filepath);
+        if (!stat || !stat.isFile())
+            return null;
+        let content = await fsAsync.readFile(this.filepath, 'utf8');
+        if (!content.trim())
+            return {};
+        try {
+            return JSON.parse(content);
+        }
+        catch (e) {
+            return null;
+        }
+    }
+    async clear() {
+        let stat = await fsAsync.statAsync(this.filepath);
+        if (!stat || !stat.isFile())
+            return;
+        await fsAsync.writeFile(this.filepath, '');
+    }
+    async destroy() {
+        await fsAsync.unlinkAsync(this.filepath);
+    }
+}
+exports.default = DB;
+//# sourceMappingURL=db.js.map
+
+/***/ }),
+/* 208 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50100,7 +49960,7 @@ exports.default = Task;
 //# sourceMappingURL=task.js.map
 
 /***/ }),
-/* 210 */
+/* 209 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -50110,10 +49970,10 @@ const tslib_1 = __webpack_require__(3);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
-const diff_1 = __webpack_require__(211);
-const fs_1 = __webpack_require__(203);
+const diff_1 = __webpack_require__(210);
+const fs_1 = __webpack_require__(201);
 const index_1 = __webpack_require__(171);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const chars_1 = __webpack_require__(213);
 const array_1 = __webpack_require__(214);
 const logger = __webpack_require__(182)('model-document');
@@ -50681,15 +50541,15 @@ exports.default = Document;
 //# sourceMappingURL=document.js.map
 
 /***/ }),
-/* 211 */
+/* 210 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(212));
-const string_1 = __webpack_require__(204);
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(211));
+const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('util-diff');
 function diffLines(from, to) {
     let newLines = to.split('\n');
@@ -50781,7 +50641,7 @@ exports.patchLine = patchLine;
 //# sourceMappingURL=diff.js.map
 
 /***/ }),
-/* 212 */
+/* 211 */
 /***/ (function(module, exports) {
 
 /**
@@ -51561,6 +51421,134 @@ module.exports = diff;
 
 
 /***/ }),
+/* 212 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+// nvim use utf8
+function byteLength(str) {
+    return Buffer.byteLength(str);
+}
+exports.byteLength = byteLength;
+function upperFirst(str) {
+    return str ? str[0].toUpperCase() + str.slice(1) : '';
+}
+exports.upperFirst = upperFirst;
+function byteIndex(content, index) {
+    let s = content.slice(0, index);
+    return Buffer.byteLength(s);
+}
+exports.byteIndex = byteIndex;
+function indexOf(str, ch, count = 1) {
+    let curr = 0;
+    for (let i = 0; i < str.length; i++) {
+        if (str[i] == ch) {
+            curr = curr + 1;
+            if (curr == count) {
+                return i;
+            }
+        }
+    }
+    return -1;
+}
+exports.indexOf = indexOf;
+function characterIndex(content, byteIndex) {
+    let buf = Buffer.from(content, 'utf8');
+    return buf.slice(0, byteIndex).toString('utf8').length;
+}
+exports.characterIndex = characterIndex;
+function byteSlice(content, start, end) {
+    let buf = Buffer.from(content, 'utf8');
+    return buf.slice(start, end).toString('utf8');
+}
+exports.byteSlice = byteSlice;
+function isWord(character) {
+    let code = character.charCodeAt(0);
+    if (code > 128)
+        return false;
+    if (code == 95)
+        return true;
+    if (code >= 48 && code <= 57)
+        return true;
+    if (code >= 65 && code <= 90)
+        return true;
+    if (code >= 97 && code <= 122)
+        return true;
+    return false;
+}
+exports.isWord = isWord;
+function isTriggerCharacter(character) {
+    if (!character)
+        return false;
+    let code = character.charCodeAt(0);
+    if (code > 128)
+        return false;
+    if (code >= 65 && code <= 90)
+        return false;
+    if (code >= 97 && code <= 122)
+        return false;
+    return true;
+}
+exports.isTriggerCharacter = isTriggerCharacter;
+function resolveVariables(str, variables) {
+    const regexp = /\$\{(.*?)\}/g;
+    return str.replace(regexp, (match, name) => {
+        const newValue = variables[name];
+        if (typeof newValue === 'string') {
+            return newValue;
+        }
+        return match;
+    });
+}
+exports.resolveVariables = resolveVariables;
+function isAsciiLetter(code) {
+    if (code >= 65 && code <= 90)
+        return true;
+    if (code >= 97 && code <= 122)
+        return true;
+    return false;
+}
+exports.isAsciiLetter = isAsciiLetter;
+function doEqualsIgnoreCase(a, b, stopAt = a.length) {
+    if (typeof a !== 'string' || typeof b !== 'string') {
+        return false;
+    }
+    for (let i = 0; i < stopAt; i++) {
+        const codeA = a.charCodeAt(i);
+        const codeB = b.charCodeAt(i);
+        if (codeA === codeB) {
+            continue;
+        }
+        // a-z A-Z
+        if (isAsciiLetter(codeA) && isAsciiLetter(codeB)) {
+            const diff = Math.abs(codeA - codeB);
+            if (diff !== 0 && diff !== 32) {
+                return false;
+            }
+        }
+        // Any other charcode
+        else {
+            if (String.fromCharCode(codeA).toLowerCase() !== String.fromCharCode(codeB).toLowerCase()) {
+                return false;
+            }
+        }
+    }
+    return true;
+}
+function equalsIgnoreCase(a, b) {
+    const len1 = a ? a.length : 0;
+    const len2 = b ? b.length : 0;
+    if (len1 !== len2) {
+        return false;
+    }
+    return doEqualsIgnoreCase(a, b);
+}
+exports.equalsIgnoreCase = equalsIgnoreCase;
+//# sourceMappingURL=string.js.map
+
+/***/ }),
 /* 213 */
 /***/ (function(module, exports, __webpack_require__) {
 
@@ -52026,7 +52014,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = __webpack_require__(171);
-const fs_1 = __webpack_require__(203);
+const fs_1 = __webpack_require__(201);
 const decorator_1 = __webpack_require__(219);
 const logger = __webpack_require__(182)('model-resolver');
 class Resolver {
@@ -52543,7 +52531,7 @@ exports.default = WillSaveUntilHandler;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(205));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(202));
 const vscode_uri_1 = __webpack_require__(174);
 function score(selector, uri, languageId) {
     if (Array.isArray(selector)) {
@@ -54380,7 +54368,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "0b97d1b56a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7e54f40405" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56069,7 +56057,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const completion_1 = tslib_1.__importDefault(__webpack_require__(238));
 const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(231);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const snippet_1 = __webpack_require__(327);
 const variableResolve_1 = __webpack_require__(328);
@@ -56381,7 +56369,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(239));
 const util_1 = __webpack_require__(171);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const complete_1 = tslib_1.__importDefault(__webpack_require__(324));
 const floating_1 = tslib_1.__importDefault(__webpack_require__(326));
@@ -56965,7 +56953,7 @@ exports.default = new Completion();
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(212));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(211));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
@@ -56976,9 +56964,9 @@ const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const source_vim_1 = tslib_1.__importDefault(__webpack_require__(320));
 const types_1 = __webpack_require__(190);
 const util_2 = __webpack_require__(171);
-const fs_2 = __webpack_require__(203);
+const fs_2 = __webpack_require__(201);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('sources');
 // type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
 // priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
@@ -57318,7 +57306,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const child_process_1 = __webpack_require__(172);
 const debounce_1 = __webpack_require__(173);
-const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(212));
+const fast_diff_1 = tslib_1.__importDefault(__webpack_require__(211));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const isuri_1 = tslib_1.__importDefault(__webpack_require__(180));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
@@ -57327,12 +57315,12 @@ const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
-const db_1 = tslib_1.__importDefault(__webpack_require__(202));
+const db_1 = tslib_1.__importDefault(__webpack_require__(207));
 const memos_1 = tslib_1.__importDefault(__webpack_require__(241));
 const util_2 = __webpack_require__(171);
 const array_1 = __webpack_require__(214);
 const factory_1 = __webpack_require__(242);
-const fs_2 = __webpack_require__(203);
+const fs_2 = __webpack_require__(201);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(227));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
@@ -58377,7 +58365,7 @@ const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 exports.events = events_1.default;
 const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
 exports.languages = languages_1.default;
-const document_1 = tslib_1.__importDefault(__webpack_require__(210));
+const document_1 = tslib_1.__importDefault(__webpack_require__(209));
 exports.Document = document_1.default;
 const mru_1 = tslib_1.__importDefault(__webpack_require__(216));
 exports.Mru = mru_1.default;
@@ -58463,7 +58451,7 @@ const types_1 = __webpack_require__(190);
 const util_1 = __webpack_require__(171);
 const complete = tslib_1.__importStar(__webpack_require__(279));
 const position_1 = __webpack_require__(231);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('languages');
 function fixDocumentation(str) {
@@ -59974,7 +59962,7 @@ exports.default = FloatFactory;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const highlight_1 = __webpack_require__(251);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const array_1 = __webpack_require__(214);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('model-floatBuffer');
@@ -60158,7 +60146,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const lodash_1 = __webpack_require__(244);
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const processes_1 = __webpack_require__(252);
 const uuid = __webpack_require__(253);
 const logger = __webpack_require__(182)('util-highlights');
@@ -60441,7 +60429,7 @@ const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const callSequence_1 = tslib_1.__importDefault(__webpack_require__(255));
 const object_1 = __webpack_require__(191);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const util_1 = __webpack_require__(256);
 const logger = __webpack_require__(182)('diagnostic-buffer');
@@ -61714,7 +61702,7 @@ exports.default = ImplementationManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('onTypeFormatManager');
 class OnTypeFormatManager {
@@ -61998,7 +61986,7 @@ exports.default = WorkspaceSymbolManager;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const parser_1 = __webpack_require__(236);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('util-complete');
 const invalidInsertCharacters = ['(', '<', '{', '[', '\r', '\n'];
 function getPosition(opt) {
@@ -62577,7 +62565,7 @@ const foldingRange_1 = __webpack_require__(289);
 const implementation_1 = __webpack_require__(290);
 const typeDefinition_1 = __webpack_require__(291);
 const workspaceFolders_1 = __webpack_require__(292);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('language-client-index');
 tslib_1.__exportStar(__webpack_require__(282), exports);
 var Executable;
@@ -63025,7 +63013,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
-const fs_1 = __webpack_require__(203);
+const fs_1 = __webpack_require__(201);
 const Is = tslib_1.__importStar(__webpack_require__(192));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const async_1 = __webpack_require__(283);
@@ -66380,7 +66368,7 @@ class ListManager {
         catch (e) {
             await this.cancel();
             let msg = e instanceof Error ? e.message : e.toString();
-            workspace_1.default.showMessage(`Error on "CocList ${list.name}" ${msg}`, 'error');
+            workspace_1.default.showMessage(`Error on "CocList ${list.name}": ${msg}`, 'error');
             logger.error(e);
         }
     }
@@ -67888,7 +67876,7 @@ const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const vscode_uri_1 = __webpack_require__(174);
 const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(231);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const configuration_1 = tslib_1.__importDefault(__webpack_require__(294));
 const logger = __webpack_require__(182)('list-basic');
@@ -68181,6 +68169,7 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(248));
 const location_1 = tslib_1.__importDefault(__webpack_require__(303));
+const fs_1 = __webpack_require__(201);
 const logger = __webpack_require__(182)('list-symbols');
 class DiagnosticsList extends location_1.default {
     constructor() {
@@ -68193,7 +68182,7 @@ class DiagnosticsList extends location_1.default {
         let list = manager_1.default.getDiagnosticList();
         let { cwd } = context;
         return list.map(item => {
-            let file = item.file.startsWith(cwd) ? path_1.default.relative(cwd, item.file) : item.file;
+            let file = fs_1.isParentFolder(cwd, item.file) ? path_1.default.relative(cwd, item.file) : item.file;
             return {
                 label: `${file}:${item.lnum}:${item.col}\t${item.severity}\t${item.message.replace(/\n/g, '')}`,
                 location: item.location
@@ -68234,6 +68223,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const vscode_uri_1 = __webpack_require__(174);
+const fs_1 = __webpack_require__(201);
 const logger = __webpack_require__(182)('list-location');
 class LocationList extends basic_1.default {
     constructor(nvim) {
@@ -68270,7 +68260,7 @@ class LocationList extends basic_1.default {
             let filename = ignoreFilepath ? '' : loc.filename;
             let filterText = `${filename}${loc.text.trim()}`;
             if (path_1.default.isAbsolute(filename)) {
-                filename = filename.startsWith(context.cwd) ? path_1.default.relative(context.cwd, filename) : filename;
+                filename = fs_1.isParentFolder(context.cwd, filename) ? path_1.default.relative(context.cwd, filename) : filename;
             }
             return {
                 label: `${filename} |${loc.type ? loc.type + ' ' : ''}${loc.lnum} col ${loc.col}| ${loc.text}`,
@@ -68450,7 +68440,7 @@ function getPriority(stat) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const fs_1 = __webpack_require__(203);
+const fs_1 = __webpack_require__(201);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
 class FoldList extends basic_1.default {
@@ -68495,6 +68485,7 @@ const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const basic_1 = tslib_1.__importDefault(__webpack_require__(301));
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
+const fs_1 = __webpack_require__(201);
 class LinksList extends basic_1.default {
     constructor(nvim) {
         super(nvim);
@@ -68559,7 +68550,7 @@ function formatUri(uri) {
     if (!uri.startsWith('file:'))
         return uri;
     let filepath = vscode_uri_1.URI.parse(uri).fsPath;
-    return filepath.startsWith(workspace_1.default.cwd) ? path_1.default.relative(workspace_1.default.cwd, filepath) : filepath;
+    return fs_1.isParentFolder(workspace_1.default.cwd, filepath) ? path_1.default.relative(workspace_1.default.cwd, filepath) : filepath;
 }
 //# sourceMappingURL=links.js.map
 
@@ -68637,7 +68628,7 @@ const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
 const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
 const util_1 = __webpack_require__(171);
-const fs_1 = __webpack_require__(203);
+const fs_1 = __webpack_require__(201);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const location_1 = tslib_1.__importDefault(__webpack_require__(303));
 const convert_1 = __webpack_require__(309);
@@ -69013,6 +69004,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const location_1 = tslib_1.__importDefault(__webpack_require__(303));
 const convert_1 = __webpack_require__(309);
+const fs_1 = __webpack_require__(201);
 const logger = __webpack_require__(182)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
@@ -69041,7 +69033,7 @@ class Symbols extends location_1.default {
                 continue;
             let kind = convert_1.getSymbolKind(s.kind);
             let file = vscode_uri_1.URI.parse(s.location.uri).fsPath;
-            if (file.startsWith(workspace_1.default.cwd)) {
+            if (fs_1.isParentFolder(workspace_1.default.cwd, file)) {
                 file = path_1.default.relative(workspace_1.default.cwd, file);
             }
             items.push({
@@ -69062,7 +69054,7 @@ class Symbols extends location_1.default {
             return null;
         let kind = convert_1.getSymbolKind(resolved.kind);
         let file = vscode_uri_1.URI.parse(resolved.location.uri).fsPath;
-        if (file.startsWith(workspace_1.default.cwd)) {
+        if (fs_1.isParentFolder(workspace_1.default.cwd, file)) {
             file = path_1.default.relative(workspace_1.default.cwd, file);
         }
         return {
@@ -69742,10 +69734,10 @@ const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const ansiparse_1 = __webpack_require__(317);
-const diff_1 = __webpack_require__(211);
+const diff_1 = __webpack_require__(210);
 const fuzzy_1 = __webpack_require__(296);
 const score_1 = __webpack_require__(318);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const uuidv1 = __webpack_require__(221);
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -70512,7 +70504,7 @@ function bestResult(results) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const types_1 = __webpack_require__(190);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('model-source');
 class Source {
@@ -70670,7 +70662,7 @@ exports.default = Source;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fuzzy_1 = __webpack_require__(296);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const source_1 = tslib_1.__importDefault(__webpack_require__(319));
 const logger = __webpack_require__(182)('model-source-vim');
@@ -70891,14 +70883,14 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const minimatch_1 = tslib_1.__importDefault(__webpack_require__(205));
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(202));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const source_1 = tslib_1.__importDefault(__webpack_require__(319));
-const fs_2 = __webpack_require__(203);
-const string_1 = __webpack_require__(204);
+const fs_2 = __webpack_require__(201);
+const string_1 = __webpack_require__(212);
 const logger = __webpack_require__(182)('source-file');
 const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
@@ -71031,7 +71023,7 @@ exports.regist = regist;
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const fuzzy_1 = __webpack_require__(296);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const match_1 = __webpack_require__(325);
 const logger = __webpack_require__(182)('completion-complete');
 // first time completion
@@ -71973,7 +71965,7 @@ const util_1 = __webpack_require__(171);
 const convert_1 = __webpack_require__(309);
 const object_1 = __webpack_require__(191);
 const position_1 = __webpack_require__(231);
-const string_1 = __webpack_require__(204);
+const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(331));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(332));
@@ -73789,7 +73781,7 @@ const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const glob_1 = tslib_1.__importDefault(__webpack_require__(336));
 const os_1 = __webpack_require__(55);
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const fs_2 = __webpack_require__(203);
+const fs_2 = __webpack_require__(201);
 async function default_1() {
     if (global.hasOwnProperty('__TEST__'))
         return;
@@ -73871,7 +73863,7 @@ module.exports = glob
 
 var fs = __webpack_require__(54)
 var rp = __webpack_require__(337)
-var minimatch = __webpack_require__(205)
+var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
 var inherits = __webpack_require__(339)
 var EE = __webpack_require__(49).EventEmitter
@@ -75078,7 +75070,7 @@ globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(54)
 var rp = __webpack_require__(337)
-var minimatch = __webpack_require__(205)
+var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
 var Glob = __webpack_require__(336).Glob
 var util = __webpack_require__(40)
@@ -75580,7 +75572,7 @@ function ownProp (obj, field) {
 }
 
 var path = __webpack_require__(56)
-var minimatch = __webpack_require__(205)
+var minimatch = __webpack_require__(202)
 var isAbsolute = __webpack_require__(341)
 var Minimatch = minimatch.Minimatch
 
