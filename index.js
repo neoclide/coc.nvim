@@ -44702,8 +44702,8 @@ class Workspace {
         }
         else {
             let bufname = uri.startsWith('file:') ? path_1.default.normalize(vscode_uri_1.URI.parse(uri).fsPath) : uri;
-            let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
-            nvim[method]('coc#util#jump', [`${jumpCommand} ${moveCmd}`, bufname], true);
+            let pos = position ? [line + 1, col] : [];
+            nvim[method]('coc#util#jump', [jumpCommand, bufname, pos], true);
         }
         await nvim.resumeNotification();
         if (this.isVim)
@@ -54369,7 +54369,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e3adf566d4" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ec73f3f3f1" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
