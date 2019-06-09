@@ -54123,6 +54123,7 @@ const tslib_1 = __webpack_require__(3);
 const events_1 = __webpack_require__(49);
 const https_1 = tslib_1.__importDefault(__webpack_require__(233));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
+const vscode_languageserver_types_1 = __webpack_require__(158);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(238));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(248));
@@ -54368,7 +54369,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9458540bdf" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e3adf566d4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54541,12 +54542,14 @@ class Plugin extends events_1.EventEmitter {
                     return handler.doCodeAction(args[1], args[2]);
                 case 'doCodeAction':
                     return await handler.applyCodeAction(args[1]);
+                case 'codeActions':
+                    return await handler.getCurrentCodeActions(args[1]);
+                case 'quickfixes':
+                    return await handler.getCurrentCodeActions(args[1], [vscode_languageserver_types_1.CodeActionKind.QuickFix]);
                 case 'codeLensAction':
                     return handler.doCodeLensAction();
                 case 'runCommand':
                     return await handler.runCommand(...args.slice(1));
-                case 'quickfixes':
-                    return await handler.getQuickfixActions(args[1]);
                 case 'doQuickfix':
                     return await handler.doQuickfix();
                 case 'repeatCommand':
@@ -72647,12 +72650,12 @@ class Handler {
         }
     }
     /**
-     * Get all quickfix actions of current buffer
+     * Get current codeActions
      *
      * @public
      * @returns {Promise<CodeAction[]>}
      */
-    async getQuickfixActions(mode) {
+    async getCurrentCodeActions(mode, only) {
         let bufnr = await this.nvim.call('bufnr', '%');
         let document = workspace_1.default.getDocument(bufnr);
         if (!document)
@@ -72660,10 +72663,10 @@ class Handler {
         let range;
         if (mode)
             range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr).textDocument);
-        return await this.getCodeActions(bufnr, range, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
+        return await this.getCodeActions(bufnr, range, only);
     }
     async doQuickfix() {
-        let actions = await this.getQuickfixActions();
+        let actions = await this.getCurrentCodeActions(null, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
         if (!actions || actions.length == 0) {
             return workspace_1.default.showMessage('No quickfix action available', 'warning');
         }
@@ -73022,7 +73025,7 @@ class Handler {
         let { document, position } = await workspace_1.default.getCurrentState();
         let selectionRanges = await languages_1.default.getSelectionRanges(document, [position]);
         if (selectionRanges && selectionRanges.length)
-            return selectionRanges[0];
+            return selectionRanges;
         return null;
     }
     async codeActionRange(start, end, only) {
@@ -76157,7 +76160,7 @@ function onceStrict (fn) {
 /* 348 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.68","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^4.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.69","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.5","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^4.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.9.3","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
