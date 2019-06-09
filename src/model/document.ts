@@ -327,12 +327,6 @@ export default class Document {
 
   /**
    * Current word for replacement
-   *
-   * @public
-   * @param {Position} position
-   * @param {string} extraChars?
-   * @param {boolean} current? - use current line
-   * @returns {Range}
    */
   public getWordRangeAtPosition(position: Position, extraChars?: string, current = true): Range | null {
     let chars = this.chars.clone()

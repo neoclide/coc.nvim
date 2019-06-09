@@ -5,7 +5,7 @@ import os from 'os'
 import path from 'path'
 import readline from 'readline'
 import util from 'util'
-import minimatch = require('minimatch')
+import minimatch from 'minimatch'
 const logger = require('./logger')('util-fs')
 
 export type OnReadLine = (line: string) => void
@@ -120,7 +120,7 @@ export function readFileLine(fullpath: string, count: number): Promise<string> {
   })
 }
 
-export async function writeFile(fullpath, content: string): Promise<void> {
+export async function writeFile(fullpath: string, content: string): Promise<void> {
   await util.promisify(fs.writeFile)(fullpath, content, 'utf8')
 }
 
