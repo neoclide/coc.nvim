@@ -4,37 +4,13 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, TextDocumentIdentifier, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions, RequestType } from 'vscode-languageserver-protocol'
-import { SelectionRange, SelectionRangeServerCapabilities, SelectionRangeClientCapabilities } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
+import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
+import { SelectionRange, SelectionRangeRequest, SelectionRangeParams, SelectionRangeClientCapabilities, SelectionRangeServerCapabilities } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import languages from '../languages'
 import { ProviderResult } from '../provider'
 import * as Is from '../util/is'
 import { BaseLanguageClient, TextDocumentFeature } from './client'
 import * as UUID from './utils/uuid'
-/**
- * A parameter literal used in selection range requests.
- */
-export interface SelectionRangeParams {
-	/**
-	 * The text document.
-	 */
-  textDocument: TextDocumentIdentifier
-
-	/**
-	 * The positions inside the text document.
-	 */
-  positions: Position[]
-}
-
-/**
- * A request to provide selection ranges in a document. The request's
- * parameter is of type [TextDocumentPositionParams](#TextDocumentPositionParams), the
- * response is of type [SelectionRange[][]](#SelectionRange[][]) or a Thenable
- * that resolves to such.
- */
-export namespace SelectionRangeRequest {
-  export const type: RequestType<SelectionRangeParams, SelectionRange[][] | null, any, any> = new RequestType('textDocument/selectionRange')
-}
 
 function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   if (target[key] === void 0) {
@@ -43,12 +19,12 @@ function ensure<T, K extends keyof T>(target: T, key: K): T[K] {
   return target[key]
 }
 
-export interface ProvideSelectionRangeSignature {
-  (document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[][]>
+export interface SelectionRangeProviderMiddleware {
+  provideSelectionRanges?: (this: void, document: TextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[]>
 }
 
-export interface SelectionRangeProviderMiddleware {
-  provideSelectionRanges?: (this: void, document: TextDocument, positions: Position[], token: CancellationToken, next: ProvideSelectionRangeSignature) => ProviderResult<SelectionRange[][]>
+export interface ProvideSelectionRangeSignature {
+  (document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
 }
 
 export class SelectionRangeFeature extends TextDocumentFeature<TextDocumentRegistrationOptions> {
@@ -95,7 +71,7 @@ export class SelectionRangeFeature extends TextDocumentFeature<TextDocumentRegis
     }
     let middleware = client.clientOptions.middleware!
     return languages.registerSelectionRangeProvider(options.documentSelector!, {
-      provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[][]> {
+      provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]> {
         return middleware.provideSelectionRanges
           ? middleware.provideSelectionRanges(document, positions, token, provideSelectionRanges)
           : provideSelectionRanges(document, positions, token)

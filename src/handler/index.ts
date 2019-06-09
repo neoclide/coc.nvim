@@ -872,8 +872,8 @@ export default class Handler {
 
   public async getSelectionRanges(): Promise<SelectionRange[] | null> {
     let { document, position } = await workspace.getCurrentState()
-    let selectionRanges: SelectionRange[][] = await languages.getSelectionRanges(document, [position])
-    if (selectionRanges && selectionRanges.length) return selectionRanges[0]
+    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(document, [position])
+    if (selectionRanges && selectionRanges.length) return selectionRanges
     return null
   }
 

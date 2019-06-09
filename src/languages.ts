@@ -331,7 +331,7 @@ class Languages {
   }
 
   @check
-  public async getSelectionRanges(document: TextDocument, positions: Position[]): Promise<SelectionRange[][] | null> {
+  public async getSelectionRanges(document: TextDocument, positions: Position[]): Promise<SelectionRange[] | null> {
     return await this.selectionRangeManager.provideSelectionRanges(document, positions, this.token)
   }
 

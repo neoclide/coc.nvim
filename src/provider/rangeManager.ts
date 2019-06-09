@@ -22,7 +22,7 @@ export default class SelectionRangeManager extends Manager<SelectionRangeProvide
     document: TextDocument,
     positions: Position[],
     token: CancellationToken
-  ): Promise<SelectionRange[][] | null> {
+  ): Promise<SelectionRange[] | null> {
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item

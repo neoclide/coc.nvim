@@ -614,5 +614,5 @@ export interface SelectionRangeProvider {
    * Provide selection ranges starting at a given position. The first range must [contain](#Range.contains)
    * position and subsequent ranges must contain the previous range.
    */
-  provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[][]>
+  provideSelectionRanges(document: TextDocument, positions: Position[], token: CancellationToken): ProviderResult<SelectionRange[]>
 }
