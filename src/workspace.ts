@@ -764,8 +764,8 @@ export class Workspace implements IWorkspace {
       nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`], true)
     } else {
       let bufname = uri.startsWith('file:') ? path.normalize(URI.parse(uri).fsPath) : uri
-      let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      nvim[method]('coc#util#jump', [`${jumpCommand} ${moveCmd}`, bufname], true)
+      let pos = position ? [line + 1, col] : []
+      nvim[method]('coc#util#jump', [jumpCommand, bufname, pos], true)
     }
     await nvim.resumeNotification()
     if (this.isVim) await wait(100)

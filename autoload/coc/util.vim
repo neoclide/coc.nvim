@@ -214,9 +214,18 @@ function! coc#util#execute(cmd)
   endif
 endfunction
 
-function! coc#util#jump(cmd, filepath) abort
+function! coc#util#jump(cmd, filepath, ...) abort
   let file = fnamemodify(a:filepath, ":~:.")
-  call coc#util#execute(a:cmd.' '.file)
+  silent exe a:cmd.' '.file
+  if &l:filetype ==# ''
+    filetype detect
+  endif
+  if !empty(get(a:, 1, []))
+    call cursor(a:1[0], a:1[1])
+  endif
+  if s:is_vim
+    redraw
+  endif
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
