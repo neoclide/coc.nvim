@@ -1,3 +1,21 @@
+# 2019-06-09
+
+- **Break change** `CocHighlightText` link to `CursorColumn` by default.
+- **Break change** logger folder changed to `$XDG_RUNTIME_DIR` when exists.
+- Add `<PageUp>` and `<PageDown>` support for list, #825.
+- Add function `coc#add_command()`.
+- Add `disableDiagnostics` & `disableCompletion` to languageclient configuration.
+- Add `signature.triggerSignatureWait` configuration.
+- Add vim-repeat support for run command and quickfix.
+- Add prefered `codeAction` support.
+- Add `prompt.paste` action to list.
+- Add title as argument support for `codeAction` action.
+- Add `suggest.floatEnable` configuration.
+- Add `editor.action.orgnizeImport` command.
+- Add `:CocAction` and `:CocFix` commands.
+- Add `codeActions` action.
+- Fix issues with list.
+
 # 2019-05-30
 
 - **Break change** logger folder changed.
