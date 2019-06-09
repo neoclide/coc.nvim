@@ -1402,7 +1402,14 @@ Available Actions ~
 	Requires a language server that supports color representation
 	requests.
 
-"quickfixes" [{visualmode}]				*coc-action-quickfixes*
+"codeActions" [{visualmode}]			*coc-action-codeActions*
+
+	Get codeActions of current buffer.
+
+	Add {visualmode} as second argument get code actions with range of
+	latest |visualmode()|
+
+"quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
 	Get quickfix codeActions of current buffer.
 

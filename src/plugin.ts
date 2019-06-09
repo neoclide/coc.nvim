@@ -2,7 +2,7 @@ import { NeovimClient as Neovim } from '@chemzqm/neovim'
 import { EventEmitter } from 'events'
 import https from 'https'
 import semver from 'semver'
-import { Location } from 'vscode-languageserver-types'
+import { Location, CodeActionKind } from 'vscode-languageserver-types'
 import commandManager from './commands'
 import completion from './completion'
 import diagnosticManager from './diagnostic/manager'
@@ -416,12 +416,14 @@ export default class Plugin extends EventEmitter {
           return handler.doCodeAction(args[1], args[2])
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
+        case 'codeActions':
+          return await handler.getCurrentCodeActions(args[1])
+        case 'quickfixes':
+          return await handler.getCurrentCodeActions(args[1], [CodeActionKind.QuickFix])
         case 'codeLensAction':
           return handler.doCodeLensAction()
         case 'runCommand':
           return await handler.runCommand(...args.slice(1))
-        case 'quickfixes':
-          return await handler.getQuickfixActions(args[1])
         case 'doQuickfix':
           return await handler.doQuickfix()
         case 'repeatCommand':

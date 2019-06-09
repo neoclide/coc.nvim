@@ -872,6 +872,11 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 	推荐安装 coc-highlight 插件在所有文件中支持该功能。
 
+"codeActions" [{visualmode}]			*coc-action-codeActions*
+
+	获取当前行的所有 codeActions，指定 {visualmode}
+	获取上一次选择区间的中的 codeActions.
+
 "quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
 	获取当前行的 quickfix codeActions，指定 {visualmode}

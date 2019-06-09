@@ -511,22 +511,22 @@ export default class Handler {
   }
 
   /**
-   * Get all quickfix actions of current buffer
+   * Get current codeActions
    *
    * @public
    * @returns {Promise<CodeAction[]>}
    */
-  public async getQuickfixActions(mode?: string): Promise<CodeAction[]> {
+  public async getCurrentCodeActions(mode?: string, only?: CodeActionKind[]): Promise<CodeAction[]> {
     let bufnr = await this.nvim.call('bufnr', '%') as number
     let document = workspace.getDocument(bufnr)
     if (!document) return []
     let range: Range
     if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr).textDocument)
-    return await this.getCodeActions(bufnr, range, [CodeActionKind.QuickFix])
+    return await this.getCodeActions(bufnr, range, only)
   }
 
   public async doQuickfix(): Promise<void> {
-    let actions = await this.getQuickfixActions()
+    let actions = await this.getCurrentCodeActions(null, [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
       return workspace.showMessage('No quickfix action available', 'warning')
     }
