@@ -219,7 +219,7 @@ endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
   let file = fnamemodify(a:filepath, ":~:.")
-  silent exe a:cmd.' '.file
+  silent exe a:cmd.' '.fnameescape(file)
   if &l:filetype ==# ''
     filetype detect
   endif
