@@ -150,7 +150,7 @@ export default class Document {
       return true
     }
     if (!this.buffer.isAttached) return
-    this.buffer.listen('lines', (...args) => {
+    this.buffer.listen('lines', (...args: any[]) => {
       this.onChange.apply(this, args)
     })
     this.buffer.listen('detach', async () => {
@@ -567,11 +567,6 @@ export default class Document {
 
   /**
    * Real current line
-   *
-   * @public
-   * @param {number} line - zero based line number
-   * @param {boolean} current - use current line
-   * @returns {string}
    */
   public getline(line: number, current = true): string {
     if (current) return this.lines[line] || ''

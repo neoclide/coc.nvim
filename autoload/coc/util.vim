@@ -146,6 +146,9 @@ function! coc#util#valid_state()
   if s:is_vim && mode() !=# 'n'
     return 0
   endif
+  if get(g:, 'coc_smartf_activated', 0)
+    return 0
+  endif
   if get(g: , 'EasyMotion_loaded', 0)
     let line = coc#util#echo_line()
     return line !~# 'Target key'
