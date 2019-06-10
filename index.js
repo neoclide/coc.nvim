@@ -45075,7 +45075,8 @@ class Workspace {
         }
         for (let [id, autocmd] of this.autocmds.entries()) {
             let args = autocmd.arglist && autocmd.arglist.length ? ', ' + autocmd.arglist.join(', ') : '';
-            cmds.push(`autocmd ${autocmd.event} * call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`);
+            let event = Array.isArray(autocmd.event) ? autocmd.event.join(' ') : autocmd.event;
+            cmds.push(`autocmd ${event} * call coc#rpc#${autocmd.request ? 'request' : 'notify'}('doAutocmd', [${id}${args}])`);
         }
         for (let key of this.watchedOptions) {
             cmds.push(`autocmd OptionSet ${key} call coc#rpc#notify('OptionSet',[expand('<amatch>'), v:option_old, v:option_new])`);
@@ -48325,7 +48326,7 @@ const os_1 = tslib_1.__importDefault(__webpack_require__(55));
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const readline_1 = tslib_1.__importDefault(__webpack_require__(59));
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
-const minimatch = __webpack_require__(202);
+const minimatch_1 = tslib_1.__importDefault(__webpack_require__(202));
 const logger = __webpack_require__(182)('util-fs');
 async function statAsync(filepath) {
     let stat = null;
@@ -48409,7 +48410,7 @@ function inDirectory(dir, subs) {
             // note, only '*' expanded
             let is_wildcard = (pattern.indexOf('*') !== -1);
             let res = is_wildcard ?
-                (minimatch.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
+                (minimatch_1.default.match(files, pattern, { nobrace: true, noext: true, nocomment: true, nonegate: true, dot: true }).length !== 0) :
                 (files.indexOf(pattern) !== -1);
             if (res)
                 return true;
@@ -50269,12 +50270,6 @@ class Document {
     }
     /**
      * Current word for replacement
-     *
-     * @public
-     * @param {Position} position
-     * @param {string} extraChars?
-     * @param {boolean} current? - use current line
-     * @returns {Range}
      */
     getWordRangeAtPosition(position, extraChars, current = true) {
         let chars = this.chars.clone();
@@ -54369,7 +54364,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ec73f3f3f1" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "43bf9a0f76" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
