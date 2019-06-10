@@ -39,7 +39,7 @@ export interface KeymapOption {
 }
 
 export interface Autocmd {
-  event: string
+  event: string | string[]
   arglist?: string[]
   request?: boolean
   thisArg?: any

@@ -631,8 +631,7 @@ describe('workspace utility', () => {
     await buf.setLines(['foo', 'bar'], { start: 0, end: -1, strictIndexing: false })
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     let pos = await nvim.call('getcurpos')
-    expect(pos[1]).toBe(2)
-    expect(pos[2]).toBe(2)
+    expect(pos.slice(1, 3)).toEqual([2, 2])
   })
 
   it('should jumpTo uri without normalize', async () => {
@@ -742,7 +741,7 @@ describe('workspace utility', () => {
   })
 
   it('should regist autocmd', async () => {
-    let event
+    let event: any
     let disposable = workspace.registerAutocmd({
       event: 'TextYankPost',
       arglist: ['v:event'],

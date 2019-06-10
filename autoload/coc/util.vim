@@ -223,9 +223,7 @@ function! coc#util#jump(cmd, filepath, ...) abort
   if !empty(get(a:, 1, []))
     call cursor(a:1[0], a:1[1])
   endif
-  if s:is_vim
-    redraw
-  endif
+  redraw
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
