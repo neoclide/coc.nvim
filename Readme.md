@@ -138,7 +138,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [vim/erb/markdown](https://github.com/neoclide/coc.nvim/wiki/Language-servers#vimerbmarkdown)
     - [Elixir](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elixir)
     - [Python](https://github.com/neoclide/coc.nvim/wiki/Language-servers#python)
-    - [Ruby](https://github.com/neoclide/coc.vim/wiki/Language-servers#ruby)
+    - [Ruby](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ruby)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
     - [Latext](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
     - [Elm](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elm)
