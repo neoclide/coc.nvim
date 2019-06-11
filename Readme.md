@@ -190,6 +190,7 @@ Extensions are more powerful than a configured language server. Check out
   use [solargraph](http://solargraph.org/).
 - **[coc-rls](https://github.com/neoclide/coc-rls)** for `rust`, use
   [Rust Language Server](https://github.com/rust-lang/rls)
+- **[coc-r-lsp](https://github.com/neoclide/coc-rls)** for `r`, use [R languageserver](https://github.com/REditorSupport/languageserver).
 - **[coc-yaml](https://github.com/neoclide/coc-yaml)** for `yaml`
 - **[coc-python](https://github.com/neoclide/coc-python)** for `python`, extension forked from [vscode-python](https://github.com/Microsoft/vscode-python).
 - **[coc-highlight](https://github.com/neoclide/coc-highlight)** provides default
@@ -201,7 +202,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-lists](https://github.com/neoclide/coc-lists)** provides some basic
   lists like fzf.vim.
 - **[coc-git](https://github.com/neoclide/coc-git)** provides git integration.
-- **[coc-yank](https://github.com/neoclide/coc-yank)** provides yank highlights
+- **[coc-yank](https://github.com/neoclide/coc-yank)** provides yank highlights & history.
 - **[coc-fsharp](https://github.com/yatli/coc-fsharp)** for `fsharp`.
 - **[coc-svg](https://github.com/iamcco/coc-svg)** for `svg`.
 - **[coc-tailwindcss](https://github.com/iamcco/coc-tailwindcss)** for `tailwindcss`.
@@ -359,7 +360,7 @@ Try these steps when you have problem with coc.nvim.
 - Make sure your vim version >= 8.0.1453 by command `:version`.
 - If service failed to start, use command `:CocInfo` or `:checkhealth` on neovim.
 - Checkout the log of coc.nvim by command `:CocOpenLog`.
-- When you have issue with a languageserver, [checkout output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel) of server by `:CocCommand workspace.showOutput`.
+- When you have issue with a languageserver, it's recommended to [checkout the output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel)
 
 ## Backers
 
