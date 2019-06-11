@@ -632,6 +632,7 @@ describe('workspace utility', () => {
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     let pos = await nvim.call('getcurpos')
     expect(pos.slice(1, 3)).toEqual([2, 2])
+    await nvim.command('bd!')
   })
 
   it('should jumpTo uri without normalize', async () => {
