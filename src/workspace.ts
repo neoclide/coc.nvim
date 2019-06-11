@@ -759,13 +759,12 @@ export class Workspace implements IWorkspace {
       await nvim.call('cursor', [line + 1, col])
     } else if (bufnr != -1 && jumpCommand == 'edit') {
       let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : ''
-      await this.callAsync('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
+      await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`])
     } else {
       let bufname = uri.startsWith('file:') ? path.normalize(URI.parse(uri).fsPath) : uri
       let pos = position ? [line + 1, col] : []
-      await this.callAsync('coc#util#jump', [jumpCommand, bufname, pos])
+      await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos])
     }
-    if (this.isVim) await wait(100)
   }
 
   /**
@@ -992,8 +991,8 @@ export class Workspace implements IWorkspace {
   }
 
   public async callAsync<T>(method: string, args: any[]): Promise<T> {
-    if (this.isNvim) return this.nvim.call(method, args)
-    return this.nvim.callAsync('coc#util#with_callback', [method, args])
+    if (this.isNvim) return await this.nvim.call(method, args)
+    return await this.nvim.callAsync('coc#util#with_callback', [method, args])
   }
 
   /**
