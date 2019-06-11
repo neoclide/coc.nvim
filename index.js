@@ -44696,15 +44696,13 @@ class Workspace {
         }
         else if (bufnr != -1 && jumpCommand == 'edit') {
             let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
-            await this.callAsync('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
+            await this.nvim.call('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
         }
         else {
             let bufname = uri.startsWith('file:') ? path_1.default.normalize(vscode_uri_1.URI.parse(uri).fsPath) : uri;
             let pos = position ? [line + 1, col] : [];
-            await this.callAsync('coc#util#jump', [jumpCommand, bufname, pos]);
+            await this.nvim.call('coc#util#jump', [jumpCommand, bufname, pos]);
         }
-        if (this.isVim)
-            await index_1.wait(100);
     }
     /**
      * Move cursor to position.
@@ -44929,8 +44927,8 @@ class Workspace {
     }
     async callAsync(method, args) {
         if (this.isNvim)
-            return this.nvim.call(method, args);
-        return this.nvim.callAsync('coc#util#with_callback', [method, args]);
+            return await this.nvim.call(method, args);
+        return await this.nvim.callAsync('coc#util#with_callback', [method, args]);
     }
     /**
      * Request input from user
@@ -54356,7 +54354,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6336ab2f57" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f1ca182ebe" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
