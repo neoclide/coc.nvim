@@ -219,14 +219,24 @@ endfunction
 
 function! coc#util#jump(cmd, filepath, ...) abort
   let file = fnamemodify(a:filepath, ":~:.")
-  silent exe a:cmd.' '.fnameescape(file)
+  if a:cmd =~# '^tab'
+    exe a:cmd.' '.fnameescape(file)
+    if !empty(get(a:, 1, []))
+      call cursor(a:1[0], a:1[1])
+    endif
+  else
+    if !empty(get(a:, 1, []))
+      exe a:cmd.' +call\ cursor('.a:1[0].','.a:1[1].')'.' '.fnameescape(file)
+    else
+      exe a:cmd.' '.fnameescape(file)
+    endif
+  endif
   if &l:filetype ==# ''
     filetype detect
   endif
-  if !empty(get(a:, 1, []))
-    call cursor(a:1[0], a:1[1])
+  if s:is_vim
+    redraw
   endif
-  redraw
 endfunction
 
 function! coc#util#echo_messages(hl, msgs)
@@ -380,7 +390,7 @@ function! coc#util#with_callback(method, args, cb)
       call a:cb(v:exception)
     endtry
   endfunction
-  let timeout = s:is_vim ? &updatetime : 0
+  let timeout = s:is_vim ? 10 : 0
   call timer_start(timeout, {-> s:Cb() })
 endfunction
 
