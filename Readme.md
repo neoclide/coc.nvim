@@ -140,11 +140,11 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Python](https://github.com/neoclide/coc.nvim/wiki/Language-servers#python)
     - [Ruby](https://github.com/neoclide/coc.nvim/wiki/Language-servers#ruby)
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
-    - [Latext](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
+    - [Latex](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
     - [Elm](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elm)
     - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
-    - [clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
-    - [julia](https://github.com/neoclide/coc.nvim/wiki/Language-servers#julia)
+    - [Clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
+    - [Julia](https://github.com/neoclide/coc.nvim/wiki/Language-servers#julia)
 
 * [Statusline integration](https://github.com/neoclide/coc.nvim/wiki/Statusline-integration)
 
@@ -168,6 +168,7 @@ For other completion sources, check out:
   integration.
 - [coc-powershell](https://github.com/yatli/coc-powershell): PowerShellEditorService integration.
 - [coc-lbdbq](https://github.com/zidhuss/coc-lbdbq): email address completion.
+- [coc-browser](https://github.com/voldikss/coc-browser): web browser words completion.
 
 Or you can [create a custom source](https://github.com/neoclide/coc.nvim/wiki/Create-custom-source).
 
