@@ -54356,7 +54356,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5915a9e573" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6336ab2f57" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56805,7 +56805,8 @@ class Completion {
             return true;
         if (autoTrigger !== 'always')
             return false;
-        if (document.isWord(pre.slice(-1))) {
+        let last = pre.slice(-1);
+        if (last && (document.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
             let minLength = this.config.minTriggerInputLength;
             if (minLength == 1)
                 return true;
