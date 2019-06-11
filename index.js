@@ -44690,22 +44690,19 @@ class Workspace {
         if (doc)
             col = string_1.byteLength(doc.getline(line).slice(0, character)) + 1;
         let bufnr = doc ? doc.bufnr : -1;
-        nvim.pauseNotification();
-        nvim.command(`normal! m'`, true);
-        let method = this.isVim ? 'callTimer' : 'call';
+        await nvim.command(`normal! m'`);
         if (bufnr == this.bufnr && position && jumpCommand == 'edit') {
-            nvim.call('cursor', [line + 1, col], true);
+            await nvim.call('cursor', [line + 1, col]);
         }
         else if (bufnr != -1 && jumpCommand == 'edit') {
             let moveCmd = position ? `+call\\ cursor(${line + 1},${col})` : '';
-            nvim[method]('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`], true);
+            await this.callAsync('coc#util#execute', [`buffer ${moveCmd} ${bufnr}`]);
         }
         else {
             let bufname = uri.startsWith('file:') ? path_1.default.normalize(vscode_uri_1.URI.parse(uri).fsPath) : uri;
             let pos = position ? [line + 1, col] : [];
-            nvim[method]('coc#util#jump', [jumpCommand, bufname, pos], true);
+            await this.callAsync('coc#util#jump', [jumpCommand, bufname, pos]);
         }
-        await nvim.resumeNotification();
         if (this.isVim)
             await index_1.wait(100);
     }
@@ -50512,11 +50509,6 @@ class Document {
     }
     /**
      * Real current line
-     *
-     * @public
-     * @param {number} line - zero based line number
-     * @param {boolean} current - use current line
-     * @returns {string}
      */
     getline(line, current = true) {
         if (current)
@@ -54364,7 +54356,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "43bf9a0f76" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5915a9e573" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54467,8 +54459,7 @@ class Plugin extends events_1.EventEmitter {
                     break;
                 }
                 case 'fold': {
-                    await handler.fold(args[1]);
-                    break;
+                    return await handler.fold(args[1]);
                 }
                 case 'startCompletion':
                     await completion_1.default.startCompletion(args[1]);
@@ -54493,26 +54484,19 @@ class Plugin extends events_1.EventEmitter {
                 case 'diagnosticList':
                     return manager_1.default.getDiagnosticList();
                 case 'jumpDefinition':
-                    await handler.gotoDefinition(args[1]);
-                    break;
+                    return await handler.gotoDefinition(args[1]);
                 case 'jumpDeclaration':
-                    await handler.gotoDeclaration(args[1]);
-                    break;
+                    return await handler.gotoDeclaration(args[1]);
                 case 'jumpImplementation':
-                    await handler.gotoImplementation(args[1]);
-                    break;
+                    return await handler.gotoImplementation(args[1]);
                 case 'jumpTypeDefinition':
-                    await handler.gotoTypeDefinition(args[1]);
-                    break;
+                    return await handler.gotoTypeDefinition(args[1]);
                 case 'jumpReferences':
-                    await handler.gotoReferences(args[1]);
-                    break;
+                    return await handler.gotoReferences(args[1]);
                 case 'doHover':
-                    await handler.onHover();
-                    break;
+                    return await handler.onHover();
                 case 'showSignatureHelp':
-                    await handler.showSignatureHelp();
-                    break;
+                    return await handler.showSignatureHelp();
                 case 'documentSymbols':
                     return await handler.getDocumentSymbols();
                 case 'selectionRanges':
@@ -58746,7 +58730,6 @@ class Languages {
      */
     async getCodeActions(document, range, context, silent = false) {
         if (!silent && !this.codeActionManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Code action provider not found for current document', 'error');
             return null;
         }
         return await this.codeActionManager.provideCodeActions(document, range, context, this.token);
@@ -58768,7 +58751,6 @@ class Languages {
     }
     async provideFoldingRanges(document, context) {
         if (!this.formatRangeManager.hasProvider(document)) {
-            workspace_1.default.showMessage('Folding ranges provider not found for current document', 'error');
             return null;
         }
         return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token);
@@ -61639,7 +61621,7 @@ class HoverManager extends manager_1.default {
         for (let i = 0, len = items.length; i < len; i += 1) {
             const item = items[i];
             let hover = await Promise.resolve(item.provider.provideHover(document, position, token));
-            if (hover)
+            if (hover && hover.contents != '')
                 res.push(hover);
         }
         return res;
@@ -68659,7 +68641,7 @@ class Outline extends location_1.default {
                 symbols.sort(sortSymbols);
                 for (let s of symbols) {
                     let kind = convert_1.getSymbolKind(s.kind);
-                    if (kind == 'Variable')
+                    if (kind == 'Variable' || s.name.endsWith(') callback'))
                         continue;
                     let location = vscode_languageserver_types_1.Location.create(document.uri, s.selectionRange);
                     items.push({
@@ -68683,6 +68665,8 @@ class Outline extends location_1.default {
             });
             for (let s of symbols) {
                 let kind = convert_1.getSymbolKind(s.kind);
+                if (s.name.endsWith(') callback'))
+                    continue;
                 items.push({
                     label: `${s.name} [${kind}] ${s.location.range.start.line + 1}`,
                     filterText: `${s.name}`,
@@ -72379,67 +72363,66 @@ class Handler {
         let hovers = await languages_1.default.getHover(document, position);
         if (hovers && hovers.length) {
             await this.previewHover(hovers);
+            return true;
         }
-        else {
-            workspace_1.default.showMessage('No definition found.', 'warning');
-            let target = this.preferences.hoverTarget;
-            if (target == 'float') {
-                this.hoverFactory.close();
-            }
-            else if (target == 'preview') {
-                this.nvim.command('pclose', true);
-            }
+        let target = this.preferences.hoverTarget;
+        if (target == 'float') {
+            this.hoverFactory.close();
         }
+        else if (target == 'preview') {
+            this.nvim.command('pclose', true);
+        }
+        return false;
     }
     async gotoDefinition(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getDefinition(document, position);
         if (isEmpty(definition)) {
             this.onEmptyLocation('Definition', definition);
+            return false;
         }
-        else {
-            await this.handleLocations(definition, openCommand);
-        }
+        await this.handleLocations(definition, openCommand);
+        return true;
     }
     async gotoDeclaration(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getDeclaration(document, position);
         if (isEmpty(definition)) {
             this.onEmptyLocation('Declaration', definition);
+            return false;
         }
-        else {
-            await this.handleLocations(definition, openCommand);
-        }
+        await this.handleLocations(definition, openCommand);
+        return true;
     }
     async gotoTypeDefinition(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getTypeDefinition(document, position);
         if (isEmpty(definition)) {
             this.onEmptyLocation('Type definition', definition);
+            return false;
         }
-        else {
-            await this.handleLocations(definition, openCommand);
-        }
+        await this.handleLocations(definition, openCommand);
+        return true;
     }
     async gotoImplementation(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let definition = await languages_1.default.getImplementation(document, position);
         if (isEmpty(definition)) {
             this.onEmptyLocation('Implementation', definition);
+            return false;
         }
-        else {
-            await this.handleLocations(definition, openCommand);
-        }
+        await this.handleLocations(definition, openCommand);
+        return true;
     }
     async gotoReferences(openCommand) {
         let { document, position } = await workspace_1.default.getCurrentState();
         let locs = await languages_1.default.getReferences(document, { includeDeclaration: false }, position);
         if (isEmpty(locs)) {
             this.onEmptyLocation('References', locs);
+            return false;
         }
-        else {
-            await this.handleLocations(locs, openCommand);
-        }
+        await this.handleLocations(locs, openCommand);
+        return true;
     }
     async getDocumentSymbols() {
         let document = await workspace_1.default.document;
@@ -72491,23 +72474,22 @@ class Handler {
     }
     async rename(newName) {
         let { nvim } = this;
-        let { document, position } = await workspace_1.default.getCurrentState();
-        if (!document)
-            return;
-        let res = await languages_1.default.prepareRename(document, position);
+        let buf = await nvim.buffer;
+        let doc = workspace_1.default.getDocument(buf.id);
+        let position = await workspace_1.default.getCursorPosition();
+        if (!doc)
+            return false;
+        let res = await languages_1.default.prepareRename(doc.textDocument, position);
         if (res === false) {
             workspace_1.default.showMessage('Invalid position for rename', 'error');
-            return;
+            return false;
         }
-        let doc = workspace_1.default.getDocument(document.uri);
-        if (!doc)
-            return;
         doc.forceSync();
         let curname;
         if (res == null) {
             let range = doc.getWordRangeAtPosition(position);
             if (range)
-                curname = document.getText(range);
+                curname = doc.textDocument.getText(range);
         }
         else {
             if (vscode_languageserver_protocol_1.Range.is(res)) {
@@ -72520,32 +72502,34 @@ class Handler {
         }
         if (!curname) {
             workspace_1.default.showMessage('Invalid position', 'warning');
-            return;
+            return false;
         }
         if (!newName) {
             newName = await nvim.call('input', ['new name:', curname]);
             nvim.command('normal! :<C-u>', true);
             if (!newName) {
                 workspace_1.default.showMessage('Empty word, canceled', 'warning');
-                return;
+                return false;
             }
         }
-        let edit = await languages_1.default.provideRenameEdits(document, position, newName);
+        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, newName);
         if (!edit) {
             workspace_1.default.showMessage('Server return empty response for rename', 'warning');
-            return;
+            return false;
         }
         await workspace_1.default.applyEdit(edit);
+        return true;
     }
     async documentFormatting() {
         let document = await workspace_1.default.document;
         if (!document)
-            return;
+            return false;
         let options = await workspace_1.default.getFormatOptions(document.uri);
         let textEdits = await languages_1.default.provideDocumentFormattingEdits(document.textDocument, options);
         if (!textEdits || textEdits.length == 0)
-            return;
+            return false;
         await document.applyEdits(this.nvim, textEdits);
+        return true;
     }
     async documentRangeFormatting(mode) {
         let document = await workspace_1.default.document;
@@ -72663,10 +72647,12 @@ class Handler {
     async doQuickfix() {
         let actions = await this.getCurrentCodeActions(null, [vscode_languageserver_protocol_1.CodeActionKind.QuickFix]);
         if (!actions || actions.length == 0) {
-            return workspace_1.default.showMessage('No quickfix action available', 'warning');
+            workspace_1.default.showMessage('No quickfix action available', 'warning');
+            return false;
         }
         await this.applyCodeAction(actions[0]);
         await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`);
+        return true;
     }
     async applyCodeAction(action) {
         let { command, edit } = action;
@@ -72703,12 +72689,12 @@ class Handler {
         let foldmethod = await win.getOption('foldmethod');
         if (foldmethod != 'manual') {
             workspace_1.default.showMessage('foldmethod option should be manual!', 'error');
-            return;
+            return false;
         }
         let ranges = await languages_1.default.provideFoldingRanges(document.textDocument, {});
         if (!ranges || ranges.length == 0) {
             workspace_1.default.showMessage('no range found', 'warning');
-            return;
+            return false;
         }
         if (kind) {
             ranges = ranges.filter(o => o.kind == kind);
@@ -72720,7 +72706,9 @@ class Handler {
                 let cmd = `${startLine + 1}, ${endLine + 1}fold`;
                 this.nvim.command(cmd, true);
             }
+            return true;
         }
+        return false;
     }
     async pickColor() {
         await this.colors.pickColor();
@@ -72767,6 +72755,7 @@ class Handler {
                 return false;
             }
         }
+        return false;
     }
     async getCommands() {
         let list = commands_1.default.commandList;
@@ -72832,8 +72821,6 @@ class Handler {
             this.signatureTokenSource = null;
         }
         let part = document.getline(position.line).slice(0, position.character);
-        if (/\)\s*$/.test(part))
-            return;
         let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('));
         if (idx != -1)
             position.character = idx + 1;
@@ -72846,9 +72833,9 @@ class Handler {
         }, 3000);
         let signatureHelp = await languages_1.default.getSignatureHelp(document.textDocument, position, token);
         clearTimeout(timer);
-        if (token.isCancellationRequested || !signatureHelp) {
+        if (token.isCancellationRequested || !signatureHelp || signatureHelp.signatures.length == 0) {
             this.signatureFactory.close();
-            return;
+            return false;
         }
         let { activeParameter, activeSignature, signatures } = signatureHelp;
         if (activeSignature) {
@@ -72987,14 +72974,15 @@ class Handler {
             }
             this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true);
         }
+        return true;
     }
     async showSignatureHelp() {
         let buffer = await this.nvim.buffer;
         let document = workspace_1.default.getDocument(buffer.id);
         if (!document)
-            return;
+            return false;
         let position = await workspace_1.default.getCursorPosition();
-        await this.triggerSignatureHelp(document, position);
+        return await this.triggerSignatureHelp(document, position);
     }
     async handleLocations(definition, openCommand) {
         if (!definition)
