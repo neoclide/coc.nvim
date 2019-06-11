@@ -1220,6 +1220,7 @@ Available Actions ~
 "jumpDefinition" [{openCommand}] 		*coc-action-jumpDefinition*
 
 	jump to definition position of the current symbol.
+	Return `v:false` when location not found.
 
 	|coc-list| is used when more than one position is available.
 
@@ -1229,6 +1230,7 @@ Available Actions ~
 "jumpDeclaration" [{openCommand}] 		*coc-action-jumpDeclaration*
 
 	jump to declaration position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition".
 
@@ -1237,24 +1239,28 @@ Available Actions ~
 "jumpImplementation" [{openCommand}] 		*coc-action-jumpImplementation*
 
 	Jump to implementation position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpTypeDefinition" [{openCommand}] 		*coc-action-jumpTypeDefinition*
 
 	Jump to type definition position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "jumpReferences" [{openCommand}]		*coc-action-jumpReferences*
 
 	Jump to references position of the current symbol.
+	Return `v:false` when location not found.
 
 	same behavior as "jumpDefinition"
 
 "doHover" 					*coc-action-doHover*
 
 	Show documentation of the current word in a preview window.
+	Return `v:false` when hover not found.
 
 	Use `coc.preferences.hoverTarget` to change hover behavior.
 
@@ -1263,10 +1269,11 @@ Available Actions ~
 
 "showSignatureHelp" 				*coc-action-showSignatureHelp*
 
-	Echo signature help of current function, you may want to set up an 
-	autocmd like this: >
+	Echo signature help of current function, return `v:false` when
+	signature not found.  You may want to set up an autocmd like this: >
 
-	autocmd User CocJumpPlaceholder call CocActionAsync('showSignatureHelp')
+	autocmd User CocJumpPlaceholder call
+				\ CocActionAsync('showSignatureHelp')
 <
 "getCurrentFunctionSymbol" 			 *coc-action-getCurrentFunctionSymbol*
 
@@ -1300,6 +1307,7 @@ Available Actions ~
 "format" 					*coc-action-format*
 
 	Format current buffer using the language server.
+	Return `v:false` when format failed.
 
 "formatSelected" [{mode}] 			*coc-action-formatSelected*
 
@@ -1347,6 +1355,8 @@ Available Actions ~
 	Fold the current buffer, optionally use {kind} for filtering folds, 
 	{kind} could be either 'comment', 'imports' or 'region'
 
+	Return `v:false` when failed.
+
 "highlight" 					*coc-action-highlight*
 
 	Highlight the symbols under the cursor.
@@ -1361,7 +1371,8 @@ Available Actions ~
 
 	Open a link under the cursor with {command}.
 	{command} default to `edit`.
-	File and URL links are supported.
+
+	File and URL links are supported, return `v:false` when failed.
 	
 "extensionStats" 				*coc-action-extensionStats*
 
@@ -1423,6 +1434,7 @@ Available Actions ~
 "doQuickfix" 					*coc-action-doQuickfix*
 
 	Do the first quickfix action for the current line.
+	Return `v:false` when no quickfix action found.
 
 ------------------------------------------------------------------------------
 COMMANDS 					*coc-commands*

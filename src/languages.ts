@@ -408,7 +408,6 @@ class Languages {
   @check
   public async getCodeActions(document: TextDocument, range: Range, context: CodeActionContext, silent = false): Promise<Map<string, CodeAction[]>> {
     if (!silent && !this.codeActionManager.hasProvider(document)) {
-      workspace.showMessage('Code action provider not found for current document', 'error')
       return null
     }
     return await this.codeActionManager.provideCodeActions(document, range, context, this.token)
@@ -440,7 +439,6 @@ class Languages {
   @check
   public async provideFoldingRanges(document: TextDocument, context: FoldingContext): Promise<FoldingRange[] | null> {
     if (!this.formatRangeManager.hasProvider(document)) {
-      workspace.showMessage('Folding ranges provider not found for current document', 'error')
       return null
     }
     return await this.foldingRangeManager.provideFoldingRanges(document, context, this.token)

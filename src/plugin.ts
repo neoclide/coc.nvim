@@ -346,8 +346,7 @@ export default class Plugin extends EventEmitter {
           break
         }
         case 'fold': {
-          await handler.fold(args[1])
-          break
+          return await handler.fold(args[1])
         }
         case 'startCompletion':
           await completion.startCompletion(args[1])
@@ -372,26 +371,19 @@ export default class Plugin extends EventEmitter {
         case 'diagnosticList':
           return diagnosticManager.getDiagnosticList()
         case 'jumpDefinition':
-          await handler.gotoDefinition(args[1])
-          break
+          return await handler.gotoDefinition(args[1])
         case 'jumpDeclaration':
-          await handler.gotoDeclaration(args[1])
-          break
+          return await handler.gotoDeclaration(args[1])
         case 'jumpImplementation':
-          await handler.gotoImplementation(args[1])
-          break
+          return await handler.gotoImplementation(args[1])
         case 'jumpTypeDefinition':
-          await handler.gotoTypeDefinition(args[1])
-          break
+          return await handler.gotoTypeDefinition(args[1])
         case 'jumpReferences':
-          await handler.gotoReferences(args[1])
-          break
+          return await handler.gotoReferences(args[1])
         case 'doHover':
-          await handler.onHover()
-          break
+          return await handler.onHover()
         case 'showSignatureHelp':
-          await handler.showSignatureHelp()
-          break
+          return await handler.showSignatureHelp()
         case 'documentSymbols':
           return await handler.getDocumentSymbols()
         case 'selectionRanges':

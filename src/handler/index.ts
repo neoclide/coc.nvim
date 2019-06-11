@@ -261,70 +261,75 @@ export default class Handler {
     return currentFunctionName
   }
 
-  public async onHover(): Promise<void> {
+  public async onHover(): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let hovers = await languages.getHover(document, position)
     if (hovers && hovers.length) {
       await this.previewHover(hovers)
-    } else {
-      workspace.showMessage('No definition found.', 'warning')
-      let target = this.preferences.hoverTarget
-      if (target == 'float') {
-        this.hoverFactory.close()
-      } else if (target == 'preview') {
-        this.nvim.command('pclose', true)
-      }
+      return true
     }
+    let target = this.preferences.hoverTarget
+    if (target == 'float') {
+      this.hoverFactory.close()
+    } else if (target == 'preview') {
+      this.nvim.command('pclose', true)
+    }
+    return false
   }
 
-  public async gotoDefinition(openCommand?: string): Promise<void> {
+  public async gotoDefinition(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDefinition(document, position)
     if (isEmpty(definition)) {
       this.onEmptyLocation('Definition', definition)
-    } else {
-      await this.handleLocations(definition, openCommand)
+      return false
     }
+    await this.handleLocations(definition, openCommand)
+    return true
   }
 
-  public async gotoDeclaration(openCommand?: string): Promise<void> {
+  public async gotoDeclaration(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getDeclaration(document, position)
     if (isEmpty(definition)) {
       this.onEmptyLocation('Declaration', definition)
-    } else {
-      await this.handleLocations(definition, openCommand)
+      return false
     }
+    await this.handleLocations(definition, openCommand)
+    return true
   }
 
-  public async gotoTypeDefinition(openCommand?: string): Promise<void> {
+  public async gotoTypeDefinition(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getTypeDefinition(document, position)
     if (isEmpty(definition)) {
       this.onEmptyLocation('Type definition', definition)
-    } else {
-      await this.handleLocations(definition, openCommand)
+      return false
     }
+    await this.handleLocations(definition, openCommand)
+    return true
   }
 
-  public async gotoImplementation(openCommand?: string): Promise<void> {
+  public async gotoImplementation(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let definition = await languages.getImplementation(document, position)
     if (isEmpty(definition)) {
       this.onEmptyLocation('Implementation', definition)
-    } else {
-      await this.handleLocations(definition, openCommand)
+      return false
     }
+    await this.handleLocations(definition, openCommand)
+    return true
   }
 
-  public async gotoReferences(openCommand?: string): Promise<void> {
+  public async gotoReferences(openCommand?: string): Promise<boolean> {
     let { document, position } = await workspace.getCurrentState()
     let locs = await languages.getReferences(document, { includeDeclaration: false }, position)
     if (isEmpty(locs)) {
       this.onEmptyLocation('References', locs)
-    } else {
-      await this.handleLocations(locs, openCommand)
+      return false
     }
+    await this.handleLocations(locs, openCommand)
+    return true
   }
 
   public async getDocumentSymbols(): Promise<SymbolInfo[]> {
@@ -370,22 +375,22 @@ export default class Handler {
     return res
   }
 
-  public async rename(newName?: string): Promise<void> {
+  public async rename(newName?: string): Promise<boolean> {
     let { nvim } = this
-    let { document, position } = await workspace.getCurrentState()
-    if (!document) return
-    let res = await languages.prepareRename(document, position)
+    let buf = await nvim.buffer
+    let doc = workspace.getDocument(buf.id)
+    let position = await workspace.getCursorPosition()
+    if (!doc) return false
+    let res = await languages.prepareRename(doc.textDocument, position)
     if (res === false) {
       workspace.showMessage('Invalid position for rename', 'error')
-      return
+      return false
     }
-    let doc = workspace.getDocument(document.uri)
-    if (!doc) return
     doc.forceSync()
     let curname: string
     if (res == null) {
       let range = doc.getWordRangeAtPosition(position)
-      if (range) curname = document.getText(range)
+      if (range) curname = doc.textDocument.getText(range)
     } else {
       if (Range.is(res)) {
         let line = doc.getline(res.start.line)
@@ -396,31 +401,33 @@ export default class Handler {
     }
     if (!curname) {
       workspace.showMessage('Invalid position', 'warning')
-      return
+      return false
     }
     if (!newName) {
       newName = await nvim.call('input', ['new name:', curname])
       nvim.command('normal! :<C-u>', true)
       if (!newName) {
         workspace.showMessage('Empty word, canceled', 'warning')
-        return
+        return false
       }
     }
-    let edit = await languages.provideRenameEdits(document, position, newName)
+    let edit = await languages.provideRenameEdits(doc.textDocument, position, newName)
     if (!edit) {
       workspace.showMessage('Server return empty response for rename', 'warning')
-      return
+      return false
     }
     await workspace.applyEdit(edit)
+    return true
   }
 
-  public async documentFormatting(): Promise<void> {
+  public async documentFormatting(): Promise<boolean> {
     let document = await workspace.document
-    if (!document) return
+    if (!document) return false
     let options = await workspace.getFormatOptions(document.uri)
     let textEdits = await languages.provideDocumentFormattingEdits(document.textDocument, options)
-    if (!textEdits || textEdits.length == 0) return
+    if (!textEdits || textEdits.length == 0) return false
     await document.applyEdits(this.nvim, textEdits)
+    return true
   }
 
   public async documentRangeFormatting(mode: string): Promise<number> {
@@ -525,13 +532,15 @@ export default class Handler {
     return await this.getCodeActions(bufnr, range, only)
   }
 
-  public async doQuickfix(): Promise<void> {
+  public async doQuickfix(): Promise<boolean> {
     let actions = await this.getCurrentCodeActions(null, [CodeActionKind.QuickFix])
     if (!actions || actions.length == 0) {
-      return workspace.showMessage('No quickfix action available', 'warning')
+      workspace.showMessage('No quickfix action available', 'warning')
+      return false
     }
     await this.applyCodeAction(actions[0])
     await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-fix-current)", -1)`)
+    return true
   }
 
   public async applyCodeAction(action: CodeAction): Promise<void> {
@@ -563,18 +572,18 @@ export default class Handler {
     await this.codeLensManager.doAction()
   }
 
-  public async fold(kind?: string): Promise<void> {
+  public async fold(kind?: string): Promise<boolean> {
     let document = await workspace.document
     let win = await this.nvim.window
     let foldmethod = await win.getOption('foldmethod')
     if (foldmethod != 'manual') {
       workspace.showMessage('foldmethod option should be manual!', 'error')
-      return
+      return false
     }
     let ranges = await languages.provideFoldingRanges(document.textDocument, {})
     if (!ranges || ranges.length == 0) {
       workspace.showMessage('no range found', 'warning')
-      return
+      return false
     }
     if (kind) {
       ranges = ranges.filter(o => o.kind == kind)
@@ -586,7 +595,9 @@ export default class Handler {
         let cmd = `${startLine + 1}, ${endLine + 1}fold`
         this.nvim.command(cmd, true)
       }
+      return true
     }
+    return false
   }
 
   public async pickColor(): Promise<void> {
@@ -636,6 +647,7 @@ export default class Handler {
         return false
       }
     }
+    return false
   }
 
   public async getCommands(): Promise<CommandItem[]> {
@@ -691,13 +703,12 @@ export default class Handler {
     }
   }
 
-  private async triggerSignatureHelp(document: Document, position: Position): Promise<void> {
+  private async triggerSignatureHelp(document: Document, position: Position): Promise<boolean> {
     if (this.signatureTokenSource) {
       this.signatureTokenSource.cancel()
       this.signatureTokenSource = null
     }
     let part = document.getline(position.line).slice(0, position.character)
-    if (/\)\s*$/.test(part)) return
     let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('))
     if (idx != -1) position.character = idx + 1
     let tokenSource = this.signatureTokenSource = new CancellationTokenSource()
@@ -709,9 +720,9 @@ export default class Handler {
     }, 3000)
     let signatureHelp = await languages.getSignatureHelp(document.textDocument, position, token)
     clearTimeout(timer)
-    if (token.isCancellationRequested || !signatureHelp) {
+    if (token.isCancellationRequested || !signatureHelp || signatureHelp.signatures.length == 0) {
       this.signatureFactory.close()
-      return
+      return false
     }
     let { activeParameter, activeSignature, signatures } = signatureHelp
     if (activeSignature) {
@@ -842,14 +853,15 @@ export default class Handler {
       }
       this.nvim.callTimer('coc#util#echo_signatures', [signatureList], true)
     }
+    return true
   }
 
-  public async showSignatureHelp(): Promise<void> {
+  public async showSignatureHelp(): Promise<boolean> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
-    if (!document) return
+    if (!document) return false
     let position = await workspace.getCursorPosition()
-    await this.triggerSignatureHelp(document, position)
+    return await this.triggerSignatureHelp(document, position)
   }
 
   public async handleLocations(definition: Definition | LocationLink[], openCommand?: string | false): Promise<void> {
