@@ -444,7 +444,8 @@ export class Completion implements Disposable {
     if (autoTrigger == 'none') return false
     if (sources.shouldTrigger(pre, document.filetype)) return true
     if (autoTrigger !== 'always') return false
-    if (document.isWord(pre.slice(-1))) {
+    let last = pre.slice(-1)
+    if (last && (document.isWord(pre.slice(-1)) || last.codePointAt(0) > 255)) {
       let minLength = this.config.minTriggerInputLength
       if (minLength == 1) return true
       let input = this.getInput(document, pre)
