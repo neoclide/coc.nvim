@@ -241,6 +241,9 @@ endfunction
 
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
+  if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')
+    return
+  endif
   execute 'echohl '.a:hl
   let msgs = filter(copy(a:msgs), '!empty(v:val)')
   for msg in msgs
