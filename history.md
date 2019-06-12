@@ -1,3 +1,18 @@
+# 2019-06-12
+
+- feat(document): add getVar method
+- fix(util): not break selection on message
+- fix(workspace): fix jumpTo not work on vim8
+- fix(completion): trigger completion with word character
+- refactor(handler): return boolean result
+- perf(workspace): improve jump performance
+- fix(util): Escape filename for jump (#862)
+- refactor(plugin): not show empty hover
+- feat(outline): ignore callback function
+- feat(workspace): support list of events with registerAutocmd
+- fix(workspace): fix jump with tab drop
+- refactor(language-client): change API of selectionRanges
+
 # 2019-06-09
 
 - **Break change** `CocHighlightText` link to `CursorColumn` by default.
