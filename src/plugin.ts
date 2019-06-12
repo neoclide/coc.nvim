@@ -59,7 +59,7 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('runCommand', async (...args: string[]) => {
       await this.ready
-      await this.handler.runCommand(...args)
+      return await this.handler.runCommand(...args)
     })
     this.addMethod('listResume', () => {
       return listManager.resume()

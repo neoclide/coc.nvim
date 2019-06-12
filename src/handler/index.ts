@@ -207,14 +207,15 @@ export default class Handler {
     this.disposables.push(commandManager.registerCommand('editor.action.organizeImport', async (bufnr?: number) => {
       if (!bufnr) bufnr = await nvim.call('bufnr', '%')
       let doc = workspace.getDocument(bufnr)
-      if (!doc) return
+      if (!doc) return false
       let range: Range = Range.create(0, 0, doc.lineCount, 0)
       let actions = await this.getCodeActions(bufnr, range, [CodeActionKind.SourceOrganizeImports])
       if (actions && actions.length) {
         await this.applyCodeAction(actions[0])
-      } else {
-        workspace.showMessage(`Orgnize import action not found.`, 'warning')
+        return true
       }
+      workspace.showMessage(`Orgnize import action not found.`, 'warning')
+      return false
     }))
     commandManager.titles.set('editor.action.organizeImport', 'run organize import code action.')
   }
@@ -452,11 +453,12 @@ export default class Handler {
     return 0
   }
 
-  public async runCommand(id?: string, ...args: any[]): Promise<void> {
+  public async runCommand(id?: string, ...args: any[]): Promise<any> {
     if (id) {
       await events.fire('Command', [id])
-      await commandManager.executeCommand(id, ...args)
+      let res = await commandManager.executeCommand(id, ...args)
       await this.nvim.command(`silent! call repeat#set("\\<Plug>(coc-command-repeat)", -1)`)
+      return res
     } else {
       await listManager.start(['commands'])
     }
