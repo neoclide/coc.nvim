@@ -1,5 +1,4 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import binarySearch from 'binary-search'
 import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
 import { Document } from '..'
@@ -80,6 +79,7 @@ export default class Handler {
   private codeLensManager: CodeLensManager
   private signatureTokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
+  private labels: { [key: string]: string } = {}
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -221,10 +221,11 @@ export default class Handler {
   }
 
   public async getCurrentFunctionSymbol(): Promise<string> {
-    let { position } = await workspace.getCurrentState()
-    const buffer = await this.nvim.buffer
-    let symbols = await this.getDocumentSymbols()
-
+    let position = await workspace.getCursorPosition()
+    let buffer = await this.nvim.buffer
+    let document = workspace.getDocument(buffer.id)
+    if (!document) return
+    let symbols = await this.getDocumentSymbols(document)
     if (!symbols || symbols.length === 0) {
       buffer.setVar('coc_current_function', '', true)
       return ''
@@ -233,33 +234,22 @@ export default class Handler {
       'Class',
       'Method',
       'Function',
-      'Interface',
-      'Enum',
-      'Constructor',
-    ].some(k => s.kind === k))
-
-    // If the current line is the same as the range.start of a symbol,
-    // `binarySearch` will return the index of that symbol is the array.
-    //
-    // If the current line number does not match the range.start of a symbol,
-    // `binarySearch` will return a negative index, which is 2 indices offset to the closest symbol.
-    let symbolPosition = binarySearch(symbols, position.line + 1, (e, n) => e.lnum - n)
-    if (symbolPosition < 0) {
-      symbolPosition *= -1
-      symbolPosition -= 2
-    }
-
-    const currentFunctionName = (() => {
-      const sym = symbols[symbolPosition]
-      const range = sym && (sym.range || sym.selectionRange)
-      if (!sym || !range || (position.line > range.end.line)) {
-        return ''
-      } else {
-        return sym.text
+    ].includes(s.kind))
+    let filetype = document.filetype
+    let functionName = ''
+    for (let sym of symbols.reverse()) {
+      if (sym.selectionRange
+        && positionInRange(position, sym.selectionRange) == 0
+        && !sym.text.endsWith(') callback')) {
+        functionName = sym.text
+        let kind = sym.kind.toLowerCase()
+        let label = this.labels[sym.kind.toLowerCase()]
+        if (label) functionName = `${label} ${functionName}`
+        break
       }
-    })()
-    buffer.setVar('coc_current_function', currentFunctionName, true)
-    return currentFunctionName
+    }
+    buffer.setVar('coc_current_function', functionName, true)
+    return functionName
   }
 
   public async onHover(): Promise<boolean> {
@@ -333,8 +323,8 @@ export default class Handler {
     return true
   }
 
-  public async getDocumentSymbols(): Promise<SymbolInfo[]> {
-    let document = await workspace.document
+  public async getDocumentSymbols(document?: Document): Promise<SymbolInfo[]> {
+    document = document || workspace.getDocument(workspace.bufnr)
     if (!document) return []
     let symbols = await languages.getDocumentSymbol(document.textDocument)
     if (!symbols) return null
@@ -968,6 +958,7 @@ export default class Handler {
     if (signatureHelpTarget == 'float' && !workspace.env.floating) {
       signatureHelpTarget = 'echo'
     }
+    this.labels = workspace.getConfiguration('suggest').get<any>('completionItemKindLabels', {})
     this.preferences = {
       hoverTarget,
       signatureHelpTarget,

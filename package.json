@@ -71,7 +71,6 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "5.1.7",
-    "binary-search": "1.3.5",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
