@@ -45196,7 +45196,7 @@ augroup end`;
             let token = source.token;
             this.creatingSources.set(bufnr, source);
             let created = await document.init(this.nvim, token);
-            if (!created)
+            if (!created || document.getVar('enabled', 1) === 0)
                 document = null;
             if (this.creatingSources.get(bufnr) == source) {
                 source.dispose();
@@ -50050,6 +50050,7 @@ class Document {
         if (opts == null)
             return false;
         let buftype = this.buftype = opts.buftype;
+        this.variables = opts.variables;
         this._additionalKeywords = opts.additionalKeywords;
         this._changedtick = opts.changedtick;
         this._rootPatterns = opts.rootPatterns;
@@ -50517,6 +50518,10 @@ class Document {
     getDocumentContent() {
         let content = this.lines.join('\n');
         return this.eol ? content + '\n' : content;
+    }
+    getVar(key, defaultValue) {
+        let val = this.variables[`coc_${key}`];
+        return val === undefined ? defaultValue : val;
     }
     get rootPatterns() {
         return this._rootPatterns;
@@ -54354,7 +54359,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "1c5eb9ef6a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d1b7447328" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
