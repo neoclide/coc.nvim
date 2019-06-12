@@ -1263,7 +1263,7 @@ augroup end`
       let token = source.token
       this.creatingSources.set(bufnr, source)
       let created = await document.init(this.nvim, token)
-      if (!created) document = null
+      if (!created || document.getVar<number>('enabled', 1) === 0) document = null
       if (this.creatingSources.get(bufnr) == source) {
         source.dispose()
         this.creatingSources.delete(bufnr)

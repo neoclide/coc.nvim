@@ -281,6 +281,7 @@ function! coc#util#get_bufoptions(bufnr) abort
   return {
         \ 'bufname': bufname,
         \ 'eol': getbufvar(a:bufnr, '&eol'),
+        \ 'variables': s:variables(a:bufnr),
         \ 'fullpath': empty(bufname) ? '' : fnamemodify(bufname, ':p'),
         \ 'buftype': getbufvar(a:bufnr, '&buftype'),
         \ 'filetype': getbufvar(a:bufnr, '&filetype'),
@@ -289,6 +290,17 @@ function! coc#util#get_bufoptions(bufnr) abort
         \ 'rootPatterns': getbufvar(a:bufnr, 'coc_root_patterns', v:null),
         \ 'additionalKeywords': getbufvar(a:bufnr, 'coc_additional_keywords', []),
         \}
+endfunction
+
+function! s:variables(bufnr) abort
+  let info = getbufinfo({'bufnr':a:bufnr, 'variables': 1})
+  let variables = copy(info[0]['variables'])
+  for key in keys(variables)
+    if key !~# '\v^coc'
+      unlet variables[key]
+    endif
+  endfor
+  return variables
 endfunction
 
 function! coc#util#root_patterns()

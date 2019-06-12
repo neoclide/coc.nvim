@@ -275,6 +275,10 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 变量 						*coc-variables*
 
+b:coc_enabled 					*b:coc_enabled*
+
+			为 `0` 时该缓存区将被 coc.nvim 忽略，仅在缓存区创建时设
+			置有效。
 
 b:coc_root_patterns 				*b:coc_root_patterns*
 

@@ -371,6 +371,7 @@ export interface ChangeItem {
 
 export interface BufferOption {
   eol: number
+  variables: { [key: string]: any }
   bufname: string
   fullpath: string
   buftype: string

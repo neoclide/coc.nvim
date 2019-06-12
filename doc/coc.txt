@@ -743,6 +743,11 @@ normal mode, `v_` works for visual mode.
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
+b:coc_enabled 					*b:coc_enabled*
+
+			Set to `0` on buffer create if you don't want
+			coc.nvim manage this buffer.
+
 b:coc_root_patterns 				*b:coc_root_patterns*
 
 			Root patterns used for resolving workspaceFolder for 

@@ -27,6 +27,7 @@ export default class Document {
   private nvim: Neovim
   private eol = true
   private attached = false
+  private variables: { [key: string]: any }
   // real current lines
   private lines: string[] = []
   private _filetype: string
@@ -104,6 +105,7 @@ export default class Document {
     let opts: BufferOption = await nvim.call('coc#util#get_bufoptions', buffer.id)
     if (opts == null) return false
     let buftype = this.buftype = opts.buftype
+    this.variables = opts.variables
     this._additionalKeywords = opts.additionalKeywords
     this._changedtick = opts.changedtick
     this._rootPatterns = opts.rootPatterns
@@ -577,6 +579,11 @@ export default class Document {
   public getDocumentContent(): string {
     let content = this.lines.join('\n')
     return this.eol ? content + '\n' : content
+  }
+
+  public getVar<T>(key: string, defaultValue?: T): T {
+    let val = this.variables[`coc_${key}`]
+    return val === undefined ? defaultValue : val
   }
 
   public get rootPatterns(): string[] | null {
