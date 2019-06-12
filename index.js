@@ -1748,7 +1748,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(348);
+        let json = __webpack_require__(347);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -54124,7 +54124,7 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(280));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(235));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(239));
 const types_1 = __webpack_require__(190);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(336));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(335));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('plugin');
@@ -54359,7 +54359,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2673317ada" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "59a24c0dc3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72144,7 +72144,6 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const binary_search_1 = tslib_1.__importDefault(__webpack_require__(331));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const commands_1 = tslib_1.__importDefault(__webpack_require__(234));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(248));
@@ -72160,9 +72159,9 @@ const object_1 = __webpack_require__(191);
 const position_1 = __webpack_require__(231);
 const string_1 = __webpack_require__(212);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(332));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(333));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(335));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(331));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(332));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(334));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('Handler');
 const pairs = new Map([
@@ -72177,6 +72176,7 @@ class Handler {
         this.nvim = nvim;
         this.documentLines = [];
         this.disposables = [];
+        this.labels = {};
         this.getPreferences();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('coc.preferences')) {
@@ -72324,9 +72324,12 @@ class Handler {
         commands_1.default.titles.set('editor.action.organizeImport', 'run organize import code action.');
     }
     async getCurrentFunctionSymbol() {
-        let { position } = await workspace_1.default.getCurrentState();
-        const buffer = await this.nvim.buffer;
-        let symbols = await this.getDocumentSymbols();
+        let position = await workspace_1.default.getCursorPosition();
+        let buffer = await this.nvim.buffer;
+        let document = workspace_1.default.getDocument(buffer.id);
+        if (!document)
+            return;
+        let symbols = await this.getDocumentSymbols(document);
         if (!symbols || symbols.length === 0) {
             buffer.setVar('coc_current_function', '', true);
             return '';
@@ -72335,32 +72338,23 @@ class Handler {
             'Class',
             'Method',
             'Function',
-            'Interface',
-            'Enum',
-            'Constructor',
-        ].some(k => s.kind === k));
-        // If the current line is the same as the range.start of a symbol,
-        // `binarySearch` will return the index of that symbol is the array.
-        //
-        // If the current line number does not match the range.start of a symbol,
-        // `binarySearch` will return a negative index, which is 2 indices offset to the closest symbol.
-        let symbolPosition = binary_search_1.default(symbols, position.line + 1, (e, n) => e.lnum - n);
-        if (symbolPosition < 0) {
-            symbolPosition *= -1;
-            symbolPosition -= 2;
+        ].includes(s.kind));
+        let filetype = document.filetype;
+        let functionName = '';
+        for (let sym of symbols.reverse()) {
+            if (sym.selectionRange
+                && position_1.positionInRange(position, sym.selectionRange) == 0
+                && !sym.text.endsWith(') callback')) {
+                functionName = sym.text;
+                let kind = sym.kind.toLowerCase();
+                let label = this.labels[sym.kind.toLowerCase()];
+                if (label)
+                    functionName = `${label} ${functionName}`;
+                break;
+            }
         }
-        const currentFunctionName = (() => {
-            const sym = symbols[symbolPosition];
-            const range = sym && (sym.range || sym.selectionRange);
-            if (!sym || !range || (position.line > range.end.line)) {
-                return '';
-            }
-            else {
-                return sym.text;
-            }
-        })();
-        buffer.setVar('coc_current_function', currentFunctionName, true);
-        return currentFunctionName;
+        buffer.setVar('coc_current_function', functionName, true);
+        return functionName;
     }
     async onHover() {
         let { document, position } = await workspace_1.default.getCurrentState();
@@ -72428,8 +72422,8 @@ class Handler {
         await this.handleLocations(locs, openCommand);
         return true;
     }
-    async getDocumentSymbols() {
-        let document = await workspace_1.default.document;
+    async getDocumentSymbols(document) {
+        document = document || workspace_1.default.getDocument(workspace_1.default.bufnr);
         if (!document)
             return [];
         let symbols = await languages_1.default.getDocumentSymbol(document.textDocument);
@@ -73099,6 +73093,7 @@ class Handler {
         if (signatureHelpTarget == 'float' && !workspace_1.default.env.floating) {
             signatureHelpTarget = 'echo';
         }
+        this.labels = workspace_1.default.getConfiguration('suggest').get('completionItemKindLabels', {});
         this.preferences = {
             hoverTarget,
             signatureHelpTarget,
@@ -73197,55 +73192,6 @@ function isDocumentSymbols(a) {
 
 /***/ }),
 /* 331 */
-/***/ (function(module, exports) {
-
-module.exports = function(haystack, needle, comparator, low, high) {
-  var mid, cmp;
-
-  if(low === undefined)
-    low = 0;
-
-  else {
-    low = low|0;
-    if(low < 0 || low >= haystack.length)
-      throw new RangeError("invalid lower bound");
-  }
-
-  if(high === undefined)
-    high = haystack.length - 1;
-
-  else {
-    high = high|0;
-    if(high < low || high >= haystack.length)
-      throw new RangeError("invalid upper bound");
-  }
-
-  while(low <= high) {
-    /* Note that "(low + high) >>> 1" may overflow, and results in a typecast
-     * to double (which gives the wrong results). */
-    mid = low + (high - low >> 1);
-    cmp = +comparator(haystack[mid], needle, mid, haystack);
-
-    /* Too low. */
-    if(cmp < 0.0)
-      low  = mid + 1;
-
-    /* Too high. */
-    else if(cmp > 0.0)
-      high = mid - 1;
-
-    /* Key found. */
-    else
-      return mid;
-  }
-
-  /* Key not found. */
-  return ~low;
-}
-
-
-/***/ }),
-/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73509,7 +73455,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 333 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73523,7 +73469,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(247));
 const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(191);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(334));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(333));
 const logger = __webpack_require__(182)('colors');
 class Colors {
     constructor(nvim) {
@@ -73726,7 +73672,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 334 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73875,7 +73821,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 335 */
+/* 334 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73967,7 +73913,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 336 */
+/* 335 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73976,7 +73922,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(337));
+const glob_1 = tslib_1.__importDefault(__webpack_require__(336));
 const os_1 = __webpack_require__(55);
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const fs_2 = __webpack_require__(201);
@@ -74014,7 +73960,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 337 */
+/* 336 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -74060,26 +74006,26 @@ exports.default = default_1;
 module.exports = glob
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(338)
+var rp = __webpack_require__(337)
 var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(340)
+var inherits = __webpack_require__(339)
 var EE = __webpack_require__(49).EventEmitter
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(342)
-var globSync = __webpack_require__(343)
-var common = __webpack_require__(344)
+var isAbsolute = __webpack_require__(341)
+var globSync = __webpack_require__(342)
+var common = __webpack_require__(343)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(345)
+var inflight = __webpack_require__(344)
 var util = __webpack_require__(40)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(347)
+var once = __webpack_require__(346)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -74810,7 +74756,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 338 */
+/* 337 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = realpath
@@ -74826,7 +74772,7 @@ var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(339)
+var old = __webpack_require__(338)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -74882,7 +74828,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 339 */
+/* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -75191,7 +75137,7 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 340 */
+/* 339 */
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
@@ -75199,12 +75145,12 @@ try {
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
-  module.exports = __webpack_require__(341);
+  module.exports = __webpack_require__(340);
 }
 
 
 /***/ }),
-/* 341 */
+/* 340 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -75233,7 +75179,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 342 */
+/* 341 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -75260,22 +75206,22 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 343 */
+/* 342 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(338)
+var rp = __webpack_require__(337)
 var minimatch = __webpack_require__(202)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(337).Glob
+var Glob = __webpack_require__(336).Glob
 var util = __webpack_require__(40)
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(342)
-var common = __webpack_require__(344)
+var isAbsolute = __webpack_require__(341)
+var common = __webpack_require__(343)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -75752,7 +75698,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 344 */
+/* 343 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -75771,7 +75717,7 @@ function ownProp (obj, field) {
 
 var path = __webpack_require__(56)
 var minimatch = __webpack_require__(202)
-var isAbsolute = __webpack_require__(342)
+var isAbsolute = __webpack_require__(341)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -75998,12 +75944,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 345 */
+/* 344 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(346)
+var wrappy = __webpack_require__(345)
 var reqs = Object.create(null)
-var once = __webpack_require__(347)
+var once = __webpack_require__(346)
 
 module.exports = wrappy(inflight)
 
@@ -76058,7 +76004,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 346 */
+/* 345 */
 /***/ (function(module, exports) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -76097,10 +76043,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 347 */
+/* 346 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(346)
+var wrappy = __webpack_require__(345)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -76145,10 +76091,10 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 348 */
+/* 347 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.70","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.7","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","binary-search":"1.3.5","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^4.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.70","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/find-up":"^2.1.1","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.7","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","find-up":"^4.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
