@@ -78,6 +78,10 @@ export function getHiglights(lines: string[], filetype: string): Promise<Highlig
       cwd: os.tmpdir(),
       env: omit(process.env, ['NVIM_LISTEN_ADDRESS'])
     })
+    proc.on('error', error => {
+      logger.info('highlight error:', error)
+      resolve([])
+    })
     let timer: NodeJS.Timer
     let exited = false
     const exit = () => {
