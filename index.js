@@ -42307,9 +42307,8 @@ var SelectionRangeRequest;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const neovim_1 = __webpack_require__(4);
 const path_1 = tslib_1.__importStar(__webpack_require__(56));
-const child_process_1 = tslib_1.__importStar(__webpack_require__(172));
+const child_process_1 = __webpack_require__(172);
 const debounce_1 = tslib_1.__importDefault(__webpack_require__(173));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
@@ -42380,14 +42379,6 @@ function executable(command) {
     return true;
 }
 exports.executable = executable;
-function createNvim() {
-    let p = which_1.default.sync('nvim');
-    let proc = child_process_1.default.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
-        shell: false
-    });
-    return neovim_1.attach({ proc });
-}
-exports.createNvim = createNvim;
 function runCommand(cmd, opts = {}, timeout) {
     return new Promise((resolve, reject) => {
         let timer;
@@ -54359,7 +54350,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "417752999c" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "24c5ac7805" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59850,7 +59841,7 @@ class FloatFactory {
                 await nvim.call('feedkeys', ['\x1b', 'in']);
             // helps to fix undo issue, don't know why.
             if (mode.startsWith('i'))
-                await nvim.eval('feedkeys("\\<C-g>u")');
+                await nvim.eval('feedkeys("\\<C-g>u", "n")');
             let reuse = false;
             if (this.window)
                 reuse = await this.window.valid;
@@ -60183,7 +60174,7 @@ function getHiglights(lines, filetype) {
             });
             env.runtimepath = dirs.join(',');
         }
-        let proc = cp.spawn('nvim', ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
+        let proc = cp.spawn(workspace_1.default.env.progpath, ['-u', 'NORC', '-i', 'NONE', '--embed', uuid()], {
             shell: false,
             cwd: os_1.default.tmpdir(),
             env: lodash_1.omit(process.env, ['NVIM_LISTEN_ADDRESS'])
