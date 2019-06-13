@@ -69,14 +69,6 @@ export function executable(command: string): boolean {
   return true
 }
 
-export function createNvim(): Neovim {
-  let p = which.sync('nvim')
-  let proc = cp.spawn(p, ['-u', 'NORC', '-i', 'NONE', '--embed', '--headless'], {
-    shell: false
-  })
-  return attach({ proc })
-}
-
 export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise<string> {
   return new Promise<string>((resolve, reject) => {
     let timer: NodeJS.Timer

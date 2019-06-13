@@ -561,6 +561,7 @@ function! coc#util#vim_info()
         \ 'background': &background,
         \ 'runtimepath': &runtimepath,
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
+        \ 'progpath': v:progpath,
         \}
 endfunction
 

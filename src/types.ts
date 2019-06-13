@@ -234,6 +234,7 @@ export interface Env {
   readonly isMacvim: boolean
   readonly version: string
   readonly locationlist: boolean
+  readonly progpath: string
 }
 
 export interface Fragment {
