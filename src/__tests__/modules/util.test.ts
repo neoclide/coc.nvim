@@ -5,7 +5,7 @@ import rimraf from 'rimraf'
 import { URI } from 'vscode-uri'
 import os from 'os'
 import { mkdirp } from '../../util'
-import { isGitIgnored, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
+import { isGitIgnored, findUp, resolveRoot, statAsync, parentDirs, isParentFolder } from '../../util/fs'
 import { fuzzyChar, fuzzyMatch, getCharCodes } from '../../util/fuzzy'
 import { score, positions } from '../../util/fzy'
 import { getHiglights } from '../../util/highlight'
@@ -151,6 +151,20 @@ describe('resolveRoot', () => {
   test('should not resolve to home', () => {
     let res = resolveRoot(__dirname, ['.config'])
     expect(res != os.homedir()).toBeTruthy()
+  })
+})
+
+describe('findUp', () => {
+  test('findUp by filename', () => {
+    let filepath = findUp('package.json', __dirname)
+    expect(filepath).toMatch('coc.nvim')
+    filepath = findUp('not_exists', __dirname)
+    expect(filepath).toBeNull()
+  })
+
+  test('findUp by filenames', async () => {
+    let filepath = findUp(['src'], __dirname)
+    expect(filepath).toMatch('coc.nvim')
   })
 })
 

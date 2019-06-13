@@ -685,7 +685,7 @@ describe('workspace utility', () => {
   it('should not findUp from file in other directory', async () => {
     await nvim.command(`edit ${path.join(os.tmpdir(), 'foo')}`)
     let filepath = await workspace.findUp('tsconfig.json')
-    expect(filepath).toBeUndefined()
+    expect(filepath).toBeNull()
   })
 
   it('should resolveRootPath', async () => {

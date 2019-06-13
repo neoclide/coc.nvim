@@ -91,6 +91,24 @@ export function inDirectory(dir: string, subs: string[]): boolean {
   return false
 }
 
+export function findUp(name: string | string[], cwd: string): string {
+  let root = path.parse(cwd).root
+  let subs = Array.isArray(name) ? name : [name]
+  while (cwd && cwd !== root) {
+    let find = inDirectory(cwd, subs)
+    if (find) {
+      for (let sub of subs) {
+        let filepath = path.join(cwd, sub)
+        if (fs.existsSync(filepath)) {
+          return filepath
+        }
+      }
+    }
+    cwd = path.dirname(cwd)
+  }
+  return null
+}
+
 export function readFile(fullpath: string, encoding: string): Promise<string> {
   return new Promise((resolve, reject) => {
     fs.readFile(fullpath, encoding, (err, content) => {

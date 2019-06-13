@@ -10,8 +10,7 @@ import { Configuration } from './configuration'
 import { ConfigurationModel } from './model'
 import { addToValueTree, loadDefaultConfigurations, parseContentFromFile, getChangedKeys } from './util'
 import { objectLiteral } from '../util/is'
-import findUp from 'find-up'
-import { isParentFolder } from '../util/fs'
+import { isParentFolder, findUp } from '../util/fs'
 const logger = require('../util/logger')('configurations')
 
 function lookUp(tree: any, key: string): any {
@@ -302,7 +301,7 @@ export default class Configurations {
     if (u.scheme != 'file') return
     let rootPath = path.dirname(u.fsPath)
     if (!this.hasFolderConfiguration(rootPath)) {
-      let folder = findUp.sync('.vim', { cwd: rootPath })
+      let folder = findUp('.vim', rootPath)
       if (folder && folder != os.homedir()) {
         let file = path.join(folder, 'coc-settings.json')
         if (fs.existsSync(file)) {

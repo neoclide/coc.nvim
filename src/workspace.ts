@@ -1,6 +1,5 @@
 import { Buffer, NeovimClient as Neovim } from '@chemzqm/neovim'
 import debounce from 'debounce'
-import findUp from 'find-up'
 import fs from 'fs'
 import os from 'os'
 import path from 'path'
@@ -23,7 +22,7 @@ import TerminalModel from './model/terminal'
 import WillSaveUntilHandler from './model/willSaveHandler'
 import { TextDocumentContentProvider } from './provider'
 import { Autocmd, ConfigurationChangeEvent, ConfigurationTarget, EditerState, Env, IWorkspace, KeymapOption, MapMode, MessageLevel, MsgTypes, OutputChannel, QuickfixItem, StatusBarItem, StatusItemOption, Terminal, TerminalOptions, TerminalResult, TextDocumentWillSaveEvent, WorkspaceConfiguration, LanguageServerConfig, PatternType } from './types'
-import { isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, isParentFolder } from './util/fs'
+import { findUp, isFile, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile, isParentFolder } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isRunning, mkdirp, runCommand, wait, isDocumentEdit } from './util/index'
 import { score } from './util/match'
 import { byteIndex, byteLength } from './util/string'
@@ -378,11 +377,11 @@ export class Workspace implements IWorkspace {
     let isFile = filepath && path.isAbsolute(filepath)
     if (isFile && !isParentFolder(cwd, filepath)) {
       // can't use cwd
-      return await findUp(filename, { cwd: path.dirname(filepath) })
+      return findUp(filename, path.dirname(filepath))
     }
-    let res = await findUp(filename, { cwd })
+    let res = findUp(filename, cwd)
     if (res && res != os.homedir()) return res
-    if (isFile) return findUp(filename, { cwd: path.dirname(filepath) })
+    if (isFile) return findUp(filename, path.dirname(filepath))
     return null
   }
 
