@@ -569,10 +569,14 @@ export default class Handler {
     let win = await this.nvim.window
     let foldmethod = await win.getOption('foldmethod')
     if (foldmethod != 'manual') {
-      workspace.showMessage('foldmethod option should be manual!', 'error')
+      workspace.showMessage('foldmethod option should be manual!', 'warning')
       return false
     }
     let ranges = await languages.provideFoldingRanges(document.textDocument, {})
+    if (ranges == null) {
+      workspace.showMessage('no range provider found', 'warning')
+      return false
+    }
     if (!ranges || ranges.length == 0) {
       workspace.showMessage('no range found', 'warning')
       return false

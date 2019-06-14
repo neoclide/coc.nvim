@@ -21,7 +21,7 @@ export default class FoldingRangeManager extends Manager<FoldingRangeProvider> i
     let item = this.getProvider(document)
     if (!item) return null
     let { provider } = item
-    return await Promise.resolve(provider.provideFoldingRanges(document, context, token))
+    return (await Promise.resolve(provider.provideFoldingRanges(document, context, token)) || [])
   }
 
   public dispose(): void {
