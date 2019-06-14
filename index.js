@@ -1748,7 +1748,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(342);
+        let json = __webpack_require__(343);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -53840,13 +53840,13 @@ const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 const completion_1 = tslib_1.__importDefault(__webpack_require__(233));
 const manager_1 = tslib_1.__importDefault(__webpack_require__(243));
 const extensions_1 = tslib_1.__importDefault(__webpack_require__(235));
-const handler_1 = tslib_1.__importDefault(__webpack_require__(325));
+const handler_1 = tslib_1.__importDefault(__webpack_require__(326));
 const manager_2 = tslib_1.__importDefault(__webpack_require__(288));
 const services_1 = tslib_1.__importDefault(__webpack_require__(275));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const types_1 = __webpack_require__(185);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(330));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(331));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('plugin');
@@ -54081,7 +54081,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3cf91b06a7" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6c3f92a845" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54579,7 +54579,7 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const Snippets = tslib_1.__importStar(__webpack_require__(231));
 const parser_1 = __webpack_require__(231);
 const session_1 = __webpack_require__(232);
-const variableResolve_1 = __webpack_require__(324);
+const variableResolve_1 = __webpack_require__(325);
 const logger = __webpack_require__(182)('snippets-manager');
 class SnippetManager {
     constructor() {
@@ -54656,7 +54656,7 @@ class SnippetManager {
     }
     isPlainText(text) {
         let snippet = (new parser_1.SnippetParser()).parse(text, true);
-        if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+        if (snippet.placeholders.every(p => p.isFinalTabstop == true && p.toString() == '')) {
             return true;
         }
         return false;
@@ -55766,8 +55766,8 @@ const util_1 = __webpack_require__(171);
 const position_1 = __webpack_require__(226);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const snippet_1 = __webpack_require__(323);
-const variableResolve_1 = __webpack_require__(324);
+const snippet_1 = __webpack_require__(324);
+const variableResolve_1 = __webpack_require__(325);
 const logger = __webpack_require__(182)('snippets-session');
 class SnippetSession {
     constructor(nvim, bufnr) {
@@ -71453,6 +71453,7 @@ function nextScore(codes, index, inputCodes, allowFuzzy = true) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const floatBuffer_1 = tslib_1.__importDefault(__webpack_require__(245));
+const popup_1 = tslib_1.__importDefault(__webpack_require__(323));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('floating');
 class Floating {
@@ -71525,25 +71526,40 @@ class Floating {
                 console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
         }
     }
-    async showDocumentationVim(docs) {
-        if (workspace_1.default.completeOpt.indexOf('preview') == -1)
-            return;
-        let lines = [];
-        for (let i = 0; i < docs.length; i++) {
-            let { content } = docs[i];
-            lines.push(...content.split(/\r?\n/));
-            if (i != docs.length - 1) {
-                lines.push('---');
+    async showDocumentationVim(docs, bounding, token) {
+        let textprop = workspace_1.default.env.textprop;
+        if (textprop) {
+            if (this.popup) {
+                let valid = await this.popup.valid();
+                if (!valid)
+                    this.popup = null;
+            }
+            if (!this.popup) {
+                this.popup = await popup_1.default(this.nvim, [], {});
+            }
+            else {
             }
         }
-        await this.nvim.call('coc#util#preview_info', [lines, 'txt']);
+        else {
+            if (workspace_1.default.completeOpt.indexOf('preview') == -1)
+                return;
+            let lines = [];
+            for (let i = 0; i < docs.length; i++) {
+                let { content } = docs[i];
+                lines.push(...content.split(/\r?\n/));
+                if (i != docs.length - 1) {
+                    lines.push('---');
+                }
+            }
+            await this.nvim.call('coc#util#preview_info', [lines, 'txt']);
+        }
     }
     async show(docs, bounding, token) {
         if (workspace_1.default.env.floating) {
             await this.showDocumentationFloating(docs, bounding, token);
         }
         else {
-            await this.showDocumentationVim(docs);
+            await this.showDocumentationVim(docs, bounding, token);
         }
     }
     async calculateBounding(docs, bounding) {
@@ -71619,6 +71635,69 @@ exports.default = Floating;
 "use strict";
 
 Object.defineProperty(exports, "__esModule", { value: true });
+class Popup {
+    constructor(nvim) {
+        this.nvim = nvim;
+    }
+    async create(text, options) {
+        let { nvim } = this;
+        this.id = await nvim.call('popup_create', [text, options]);
+        this.bufferId = await nvim.call('winbufnr', [this.id]);
+    }
+    async hide() {
+        if (!this.id)
+            return;
+        await this.nvim.call('popup_hide', [this.id]);
+    }
+    async valid() {
+        if (!this.bufferId)
+            return false;
+        await this.nvim.call('bufexists', [this.bufferId]);
+    }
+    async show() {
+        if (!this.id)
+            return;
+        await this.nvim.call('popup_show', [this.id]);
+    }
+    async move(options) {
+        if (!this.id)
+            return;
+        await this.nvim.call('popup_move', [this.id, options]);
+    }
+    async getPosition() {
+        return await this.nvim.call('popup_getpos', [this.id]);
+    }
+    async setFiletype(filetype) {
+        if (!this.id)
+            return;
+        let { nvim } = this;
+        nvim.pauseNotification();
+        nvim.call('win_execute', [this.id, 'syntax enable'], true);
+        nvim.call('setbufvar', [this.bufferId, '&filetype', filetype], true);
+        await nvim.resumeNotification();
+    }
+    dispose() {
+        if (this.id) {
+            this.nvim.call('popup_close', [], true);
+        }
+    }
+}
+exports.Popup = Popup;
+async function createPopup(nvim, text, options) {
+    let popup = new Popup(nvim);
+    await popup.create(text, options);
+    return popup;
+}
+exports.default = createPopup;
+//# sourceMappingURL=popup.js.map
+
+/***/ }),
+/* 324 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
 const position_1 = __webpack_require__(226);
@@ -71663,7 +71742,7 @@ class CocSnippet {
         return true;
     }
     get isPlainText() {
-        return this._placeholders.every(p => p.isFinalTabstop);
+        return this._placeholders.every(p => p.isFinalTabstop && p.value == '');
     }
     toString() {
         return this.tmSnippet.toString();
@@ -71796,7 +71875,7 @@ exports.CocSnippet = CocSnippet;
 //# sourceMappingURL=snippet.js.map
 
 /***/ }),
-/* 324 */
+/* 325 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71863,7 +71942,7 @@ exports.SnippetVariableResolver = SnippetVariableResolver;
 //# sourceMappingURL=variableResolve.js.map
 
 /***/ }),
-/* 325 */
+/* 326 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -71885,9 +71964,9 @@ const object_1 = __webpack_require__(186);
 const position_1 = __webpack_require__(226);
 const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const codelens_1 = tslib_1.__importDefault(__webpack_require__(326));
-const colors_1 = tslib_1.__importDefault(__webpack_require__(327));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(329));
+const codelens_1 = tslib_1.__importDefault(__webpack_require__(327));
+const colors_1 = tslib_1.__importDefault(__webpack_require__(328));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(330));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(182)('Handler');
 const pairs = new Map([
@@ -72921,7 +73000,7 @@ function isDocumentSymbols(a) {
 //# sourceMappingURL=index.js.map
 
 /***/ }),
-/* 326 */
+/* 327 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73185,7 +73264,7 @@ exports.default = CodeLensManager;
 //# sourceMappingURL=codelens.js.map
 
 /***/ }),
-/* 327 */
+/* 328 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73199,7 +73278,7 @@ const languages_1 = tslib_1.__importDefault(__webpack_require__(242));
 const util_1 = __webpack_require__(171);
 const object_1 = __webpack_require__(186);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
-const highlighter_1 = tslib_1.__importStar(__webpack_require__(328));
+const highlighter_1 = tslib_1.__importStar(__webpack_require__(329));
 const logger = __webpack_require__(182)('colors');
 class Colors {
     constructor(nvim) {
@@ -73402,7 +73481,7 @@ exports.default = Colors;
 //# sourceMappingURL=colors.js.map
 
 /***/ }),
-/* 328 */
+/* 329 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73551,7 +73630,7 @@ function isDark(color) {
 //# sourceMappingURL=highlighter.js.map
 
 /***/ }),
-/* 329 */
+/* 330 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73643,7 +73722,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 330 */
+/* 331 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -73652,7 +73731,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
-const glob_1 = tslib_1.__importDefault(__webpack_require__(331));
+const glob_1 = tslib_1.__importDefault(__webpack_require__(332));
 const os_1 = __webpack_require__(55);
 const util_1 = tslib_1.__importDefault(__webpack_require__(40));
 const fs_2 = __webpack_require__(196);
@@ -73690,7 +73769,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 331 */
+/* 332 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Approach:
@@ -73736,26 +73815,26 @@ exports.default = default_1;
 module.exports = glob
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(332)
+var rp = __webpack_require__(333)
 var minimatch = __webpack_require__(197)
 var Minimatch = minimatch.Minimatch
-var inherits = __webpack_require__(334)
+var inherits = __webpack_require__(335)
 var EE = __webpack_require__(49).EventEmitter
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(336)
-var globSync = __webpack_require__(337)
-var common = __webpack_require__(338)
+var isAbsolute = __webpack_require__(337)
+var globSync = __webpack_require__(338)
+var common = __webpack_require__(339)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
 var ownProp = common.ownProp
-var inflight = __webpack_require__(339)
+var inflight = __webpack_require__(340)
 var util = __webpack_require__(40)
 var childrenIgnored = common.childrenIgnored
 var isIgnored = common.isIgnored
 
-var once = __webpack_require__(341)
+var once = __webpack_require__(342)
 
 function glob (pattern, options, cb) {
   if (typeof options === 'function') cb = options, options = {}
@@ -74486,7 +74565,7 @@ Glob.prototype._stat2 = function (f, abs, er, stat, cb) {
 
 
 /***/ }),
-/* 332 */
+/* 333 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = realpath
@@ -74502,7 +74581,7 @@ var origRealpathSync = fs.realpathSync
 
 var version = process.version
 var ok = /^v[0-5]\./.test(version)
-var old = __webpack_require__(333)
+var old = __webpack_require__(334)
 
 function newError (er) {
   return er && er.syscall === 'realpath' && (
@@ -74558,7 +74637,7 @@ function unmonkeypatch () {
 
 
 /***/ }),
-/* 333 */
+/* 334 */
 /***/ (function(module, exports, __webpack_require__) {
 
 // Copyright Joyent, Inc. and other Node contributors.
@@ -74867,7 +74946,7 @@ exports.realpath = function realpath(p, cache, cb) {
 
 
 /***/ }),
-/* 334 */
+/* 335 */
 /***/ (function(module, exports, __webpack_require__) {
 
 try {
@@ -74875,12 +74954,12 @@ try {
   if (typeof util.inherits !== 'function') throw '';
   module.exports = util.inherits;
 } catch (e) {
-  module.exports = __webpack_require__(335);
+  module.exports = __webpack_require__(336);
 }
 
 
 /***/ }),
-/* 335 */
+/* 336 */
 /***/ (function(module, exports) {
 
 if (typeof Object.create === 'function') {
@@ -74909,7 +74988,7 @@ if (typeof Object.create === 'function') {
 
 
 /***/ }),
-/* 336 */
+/* 337 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -74936,22 +75015,22 @@ module.exports.win32 = win32;
 
 
 /***/ }),
-/* 337 */
+/* 338 */
 /***/ (function(module, exports, __webpack_require__) {
 
 module.exports = globSync
 globSync.GlobSync = GlobSync
 
 var fs = __webpack_require__(54)
-var rp = __webpack_require__(332)
+var rp = __webpack_require__(333)
 var minimatch = __webpack_require__(197)
 var Minimatch = minimatch.Minimatch
-var Glob = __webpack_require__(331).Glob
+var Glob = __webpack_require__(332).Glob
 var util = __webpack_require__(40)
 var path = __webpack_require__(56)
 var assert = __webpack_require__(107)
-var isAbsolute = __webpack_require__(336)
-var common = __webpack_require__(338)
+var isAbsolute = __webpack_require__(337)
+var common = __webpack_require__(339)
 var alphasort = common.alphasort
 var alphasorti = common.alphasorti
 var setopts = common.setopts
@@ -75428,7 +75507,7 @@ GlobSync.prototype._makeAbs = function (f) {
 
 
 /***/ }),
-/* 338 */
+/* 339 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports.alphasort = alphasort
@@ -75447,7 +75526,7 @@ function ownProp (obj, field) {
 
 var path = __webpack_require__(56)
 var minimatch = __webpack_require__(197)
-var isAbsolute = __webpack_require__(336)
+var isAbsolute = __webpack_require__(337)
 var Minimatch = minimatch.Minimatch
 
 function alphasorti (a, b) {
@@ -75674,12 +75753,12 @@ function childrenIgnored (self, path) {
 
 
 /***/ }),
-/* 339 */
+/* 340 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(340)
+var wrappy = __webpack_require__(341)
 var reqs = Object.create(null)
-var once = __webpack_require__(341)
+var once = __webpack_require__(342)
 
 module.exports = wrappy(inflight)
 
@@ -75734,7 +75813,7 @@ function slice (args) {
 
 
 /***/ }),
-/* 340 */
+/* 341 */
 /***/ (function(module, exports) {
 
 // Returns a wrapper function that returns a wrapped callback
@@ -75773,10 +75852,10 @@ function wrappy (fn, cb) {
 
 
 /***/ }),
-/* 341 */
+/* 342 */
 /***/ (function(module, exports, __webpack_require__) {
 
-var wrappy = __webpack_require__(340)
+var wrappy = __webpack_require__(341)
 module.exports = wrappy(once)
 module.exports.strict = wrappy(onceStrict)
 
@@ -75821,7 +75900,7 @@ function onceStrict (fn) {
 
 
 /***/ }),
-/* 342 */
+/* 343 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.70","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.7","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
