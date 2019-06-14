@@ -130,7 +130,7 @@ endfunction
 
 function! coc#util#close_popup()
   if s:is_vim
-    if has('textprop')
+    if has('*popup_clear')
       call popup_clear()
     endif
   else
