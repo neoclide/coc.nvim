@@ -176,7 +176,7 @@ describe('snippet provider', () => {
     expect(line).toBe('foo bar')
   })
 
-  it('should chek jumpable', async () => {
+  it('should check jumpable', async () => {
     await helper.createDocument()
     await nvim.input('i')
     await snippetManager.insertSnippet('${1:foo} ${2:bar}')
@@ -188,5 +188,10 @@ describe('snippet provider', () => {
     await helper.wait(30)
     jumpable = snippetManager.jumpable()
     expect(jumpable).toBe(false)
+  })
+
+  it('should check plain text snippet', async () => {
+    expect(snippetManager.isPlainText('import ${0}')).toBe(true)
+    expect(snippetManager.isPlainText('import ${0:Data}')).toBe(false)
   })
 })

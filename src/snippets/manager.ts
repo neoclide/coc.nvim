@@ -84,7 +84,7 @@ export class SnippetManager implements types.SnippetManager {
 
   public isPlainText(text: string): boolean {
     let snippet = (new SnippetParser()).parse(text, true)
-    if (snippet.placeholders.every(p => p.isFinalTabstop == true)) {
+    if (snippet.placeholders.every(p => p.isFinalTabstop == true && p.toString() == '')) {
       return true
     }
     return false

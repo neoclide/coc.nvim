@@ -59,7 +59,7 @@ export class CocSnippet {
   }
 
   public get isPlainText(): boolean {
-    return this._placeholders.every(p => p.isFinalTabstop)
+    return this._placeholders.every(p => p.isFinalTabstop && p.value == '')
   }
 
   public toString(): string {
