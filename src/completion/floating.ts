@@ -91,33 +91,30 @@ export default class Floating {
 
   private async showDocumentationVim(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = this
-    let textprop = workspace.env.textprop
-    if (textprop) {
-      await this.checkBuffer()
-      let rect = await this.calculateBounding(docs, bounding)
-      if (token.isCancellationRequested) return this.close()
-      nvim.pauseNotification()
-      this.floatBuffer.setLines()
-      this.popup.move({
-        line: rect.row + 1,
-        col: rect.col + 1,
-        minwidth: rect.width,
-        minheight: rect.height,
-        maxwidth: rect.width,
-        maxheight: rect.height
-      })
-      this.popup.show()
-      nvim.command('redraw', true)
-      let [, err] = await nvim.resumeNotification()
-      // tslint:disable-next-line: no-console
-      if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
-    }
+    await this.checkBuffer()
+    let rect = await this.calculateBounding(docs, bounding)
+    if (token.isCancellationRequested) return this.close()
+    nvim.pauseNotification()
+    this.floatBuffer.setLines()
+    this.popup.move({
+      line: rect.row + 1,
+      col: rect.col + 1,
+      minwidth: rect.width,
+      minheight: rect.height,
+      maxwidth: rect.width,
+      maxheight: rect.height
+    })
+    this.popup.show()
+    nvim.command('redraw', true)
+    let [, err] = await nvim.resumeNotification()
+    // tslint:disable-next-line: no-console
+    if (err) console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`)
   }
 
   public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     if (workspace.env.floating) {
       await this.showDocumentationFloating(docs, bounding, token)
-    } else {
+    } else if (workspace.env.textprop) {
       await this.showDocumentationVim(docs, bounding, token)
     }
   }
@@ -145,10 +142,6 @@ export default class Floating {
 
   private async checkBuffer(): Promise<void> {
     let { buffer, nvim, popup } = this
-    if (buffer) {
-      let valid = await buffer.valid
-      if (valid) return
-    }
     if (workspace.env.textprop) {
       if (popup) {
         let visible = await popup.visible()
@@ -175,6 +168,10 @@ export default class Floating {
       buffer = this.nvim.createBuffer(this.popup.bufferId)
       this.floatBuffer = new FloatBuffer(nvim, buffer, nvim.createWindow(this.popup.id))
     } else {
+      if (buffer) {
+        let valid = await buffer.valid
+        if (valid) return
+      }
       buffer = await this.nvim.createNewBuffer(false, true)
       await buffer.setOption('buftype', 'nofile')
       await buffer.setOption('bufhidden', 'hide')
@@ -183,13 +180,9 @@ export default class Floating {
   }
 
   public close(): void {
-    if (workspace.isVim) {
-      if (workspace.env.textprop) {
-        if (this.popup) {
-          this.popup.dispose()
-        } else {
-          this.nvim.call('coc#util#pclose', [], true)
-        }
+    if (workspace.env.textprop) {
+      if (this.popup) {
+        this.popup.dispose()
       }
       return
     }

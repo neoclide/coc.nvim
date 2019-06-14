@@ -132,8 +132,6 @@ function! coc#util#close_popup()
   if s:is_vim
     if has('textprop')
       call popup_clear()
-    else
-      pclose
     endif
   else
     for winnr in range(1, winnr('$'))
