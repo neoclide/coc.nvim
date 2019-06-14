@@ -4,16 +4,11 @@ about: Create a report to help us improve
 ---
 
 <!--
-If your issue is a simple question, please ask at https://gitter.im/neoclide/coc.nvim
--->
+If you have question, please ask at https://gitter.im/neoclide/coc.nvim
 
-<!--
 If the problem related to specific language server, please checkout: https://git.io/fjCEM
--->
 
-<!--
-If your have performance issue, checkout: https://git.io/fjCEX
-If your still have performance issue, please upload profile log https://git.io/fjCE1
+If your have performance issue, checkout: https://git.io/fjCEX & https://git.io/fjCE1
 -->
 
 ## Result from CocInfo
