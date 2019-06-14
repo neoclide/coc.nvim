@@ -1,4 +1,4 @@
-import { Buffer, Neovim } from '@chemzqm/neovim'
+import { Buffer, Neovim, Window } from '@chemzqm/neovim'
 import { Highlight, getHiglights } from '../util/highlight'
 import { characterIndex, byteLength } from '../util/string'
 import { group } from '../util/array'
@@ -13,8 +13,10 @@ export default class FloatBuffer {
   private enableHighlight = true
   public width = 0
   constructor(
+    private nvim: Neovim,
     public buffer: Buffer,
-    private nvim: Neovim) {
+    private window?: Window
+  ) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
   }
@@ -23,7 +25,7 @@ export default class FloatBuffer {
     let l = 0
     for (let doc of docs) {
       let lines = doc.content.split(/\r?\n/)
-      if (doc.filetype == 'markdown') {
+      if (doc.filetype == 'markdown' && workspace.isNvim) {
         lines = lines.filter(s => !s.startsWith('```'))
       }
       for (let line of lines) {
@@ -82,10 +84,12 @@ export default class FloatBuffer {
   public async setDocuments(docs: Documentation[], maxWidth: number): Promise<void> {
     let fragments = this.calculateFragments(docs, maxWidth)
     let filetype = await this.nvim.eval('&filetype') as string
-    fragments = fragments.reduce((p, c) => {
-      p.push(...this.splitFragment(c, filetype))
-      return p
-    }, [])
+    if (workspace.isNvim) {
+      fragments = fragments.reduce((p, c) => {
+        p.push(...this.splitFragment(c, filetype))
+        return p
+      }, [])
+    }
     if (this.enableHighlight) {
       let arr = await Promise.all(fragments.map(f => {
         return getHiglights(f.lines, f.filetype).then(highlights => {
@@ -136,7 +140,11 @@ export default class FloatBuffer {
 
   public setLines(): void {
     let { buffer, lines, nvim, highlights } = this
-    nvim.call('clearmatches', [], true)
+    if (this.window) {
+      nvim.call('win_execute', [this.window.id, 'call clearmatches([])'], true)
+    } else {
+      nvim.call('clearmatches', [], true)
+    }
     buffer.clearNamespace(-1, 0, -1)
     buffer.setLines(lines, { start: 0, end: -1, strictIndexing: false }, true)
     if (highlights.length) {
@@ -162,12 +170,22 @@ export default class FloatBuffer {
         }
       }
       for (let arr of group(positions, 8)) {
-        nvim.call('matchaddpos', ['Conceal', arr, 11], true)
+        if (this.window) {
+          nvim.call('win_execute', [this.window.id, `call matchaddpos('Conceal', ${JSON.stringify(arr)},11)`], true)
+        } else {
+          nvim.call('matchaddpos', ['Conceal', arr, 11], true)
+        }
       }
     }
     for (let arr of group(this.positions || [], 8)) {
       arr = arr.filter(o => o[2] != 0)
-      if (arr.length) nvim.call('matchaddpos', ['CocUnderline', arr, 12], true)
+      if (arr.length) {
+        if (this.window) {
+          nvim.call('win_execute', [this.window.id, `call matchaddpos('CocUnderline', ${JSON.stringify(arr)},12)`], true)
+        } else {
+          nvim.call('matchaddpos', ['CocUnderline', arr, 12], true)
+        }
+      }
     }
   }
 }

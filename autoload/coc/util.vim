@@ -106,6 +106,10 @@ function! coc#util#cursor()
 endfunction
 
 function! coc#util#close_win(id)
+  if !has('nvim')
+    call popup_close(a:id)
+    return
+  endif
   if exists('*nvim_win_close')
     if nvim_win_is_valid(a:id)
       call nvim_win_close(a:id, 1)
@@ -126,7 +130,11 @@ endfunction
 
 function! coc#util#close_popup()
   if s:is_vim
-    pclose
+    if has('textprop')
+      call popup_clear()
+    else
+      pclose
+    endif
   else
     for winnr in range(1, winnr('$'))
       let popup = getwinvar(winnr, 'popup')
@@ -541,7 +549,7 @@ endfunction
 function! coc#util#vim_info()
   return {
         \ 'mode': mode(),
-        \ 'floating': exists('*nvim_open_win') ? v:true : v:false,
+        \ 'floating': has('nvim') && exists('*nvim_open_win') ? v:true : v:false,
         \ 'extensionRoot': coc#util#extension_root(),
         \ 'watchExtensions': get(g:, 'coc_watch_extensions', []),
         \ 'globalExtensions': get(g:, 'coc_global_extensions', []),
@@ -562,6 +570,7 @@ function! coc#util#vim_info()
         \ 'runtimepath': &runtimepath,
         \ 'locationlist': get(g:,'coc_enable_locationlist', 1),
         \ 'progpath': v:progpath,
+        \ 'textprop': has('textprop') && exists('*popup_show') && !has('nvim') ? v:true : v:false,
         \}
 endfunction
 

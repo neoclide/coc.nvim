@@ -235,6 +235,7 @@ export interface Env {
   readonly version: string
   readonly locationlist: boolean
   readonly progpath: string
+  readonly textprop: boolean
 }
 
 export interface Fragment {
@@ -477,6 +478,54 @@ export interface VimCompleteItem {
   detailShown?: number
   // saved line for apply TextEdit
   line?: string
+}
+
+export interface PopupProps {
+  col: number
+  length: number // or 0
+  type: string
+  end_lnum?: number
+  end_col?: number
+  id?: number
+  transparent?: boolean
+}
+
+export interface TextItem {
+  text: string
+  props?: PopupProps
+}
+
+export interface PopupOptions {
+  line?: number | string
+  col?: number | string
+  pos?: 'topleft' | 'topright' | 'botleft' | 'botright' | 'center'
+  // move float window when content overlap when it's false(default)
+  fixed?: boolean
+  // no overlap of popupmenu-completion, not implemented
+  flip?: boolean
+  maxheight?: number
+  minheight?: number
+  maxwidth?: number
+  minwidth?: number
+  // When out of range the last buffer line will at the top of the window.
+  firstline?: number
+  // not implemented
+  hidden?: boolean
+  // only -1 and 0 are supported
+  tab?: number
+  title?: string
+  wrap?: boolean
+  drag?: boolean
+  highlight?: string
+  padding?: [number, number, number, number]
+  border?: [number, number, number, number]
+  borderhighlight?: [string, string, string, string]
+  borderchars?: string[]
+  zindex?: number
+  time?: number
+  moved?: string | [number, number]
+  filter?: string
+  callback?: string
 }
 
 export interface PopupChangeEvent {

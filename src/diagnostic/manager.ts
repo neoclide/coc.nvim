@@ -56,23 +56,20 @@ export class DiagnosticManager implements Disposable {
     this.disposables.push(Disposable.create(() => {
       if (this.timer) clearTimeout(this.timer)
     }))
-    let hasFloat = workspace.env.floating
     events.on('CursorMoved', async () => {
       if (this.timer) clearTimeout(this.timer)
       this.timer = setTimeout(async () => {
         if (this.config.enableMessage != 'always') return
-        if (hasFloat && this.config.messageTarget == 'float') return
+        if (this.config.messageTarget == 'float') return
         await this.echoMessage(true)
       }, 500)
     }, null, this.disposables)
-    if (hasFloat) {
+    if (this.config.messageTarget == 'float') {
       this.disposables.push(workspace.registerAutocmd({
         event: 'CursorHold',
         request: true,
         callback: async () => {
-          if (this.config.messageTarget == 'float') {
-            await this.echoMessage(true)
-          }
+          await this.echoMessage(true)
         }
       }))
     }
@@ -380,7 +377,7 @@ export class DiagnosticManager implements Disposable {
     let buffer = this.buffers.find(o => o.bufnr == buf.id)
     if (!buffer) return
     let { checkCurrentLine } = this.config
-    let useFloat = workspace.env.floating && this.config.messageTarget == 'float'
+    let useFloat = this.config.messageTarget == 'float'
     let diagnostics = buffer.diagnostics.filter(o => {
       if (checkCurrentLine) return lineInRange(pos.line, o.range)
       return positionInRange(pos, o.range) == 0
@@ -420,8 +417,6 @@ export class DiagnosticManager implements Disposable {
       lines.push(...str.split('\n'))
     })
     if (useFloat) {
-      let hasFloat = await this.nvim.call('coc#util#has_float')
-      if (hasFloat) return
       await this.floatFactory.create(docs)
     } else {
       this.lastMessage = lines[0]
@@ -457,7 +452,12 @@ export class DiagnosticManager implements Disposable {
     function getConfig<T>(key: string, defaultValue: T): T {
       return preferences.get<T>(key, config.get<T>(key, defaultValue))
     }
+    let messageTarget = getConfig<string>('messageTarget', 'float')
+    if (messageTarget == 'float' && !workspace.env.floating && !workspace.env.textprop) {
+      messageTarget = 'echo'
+    }
     this.config = {
+      messageTarget,
       srcId: workspace.createNameSpace('coc-diagnostic') || 1000,
       virtualTextSrcId: workspace.createNameSpace('diagnostic-virtualText'),
       checkCurrentLine: getConfig<boolean>('checkCurrentLine', false),
@@ -465,7 +465,6 @@ export class DiagnosticManager implements Disposable {
       maxWindowHeight: getConfig<number>('maxWindowHeight', 10),
       enableMessage: getConfig<string>('enableMessage', 'always'),
       joinMessageLines: getConfig<boolean>('joinMessageLines', false),
-      messageTarget: getConfig<string>('messageTarget', 'float'),
       virtualText: getConfig<boolean>('virtualText', false),
       virtualTextPrefix: getConfig<string>('virtualTextPrefix', " "),
       virtualTextLineSeparator: getConfig<string>('virtualTextLineSeparator', " \\ "),

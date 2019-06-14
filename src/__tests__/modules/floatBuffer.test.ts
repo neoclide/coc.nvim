@@ -15,7 +15,7 @@ afterAll(async () => {
 
 async function create(): Promise<FloatBuffer> {
   let buf = await nvim.createNewBuffer(false, false)
-  return new FloatBuffer(buf, nvim)
+  return new FloatBuffer(nvim, buf)
 }
 
 describe('FloatBuffer', () => {

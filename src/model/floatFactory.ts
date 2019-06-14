@@ -8,6 +8,7 @@ import { equals } from '../util/object'
 import workspace from '../workspace'
 import FloatBuffer from './floatBuffer'
 import debounce from 'debounce'
+import createPopup, { Popup } from './popup'
 const logger = require('../util/logger')('model-float')
 
 export interface WindowConfig {
@@ -28,12 +29,13 @@ export default class FloatFactory implements Disposable {
   private alignTop = false
   private createTs = 0
   private cursor: [number, number] = [0, 0]
+  private popup: Popup
   constructor(private nvim: Neovim,
     private env: Env,
     private preferTop = false,
     private maxHeight = 999,
     private maxWidth?: number) {
-    if (!env.floating) return
+    if (!env.floating && !env.textprop) return
     events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
       if (bufnr == this.targetBufnr) return
@@ -72,15 +74,36 @@ export default class FloatFactory implements Disposable {
   }
 
   private async checkFloatBuffer(): Promise<void> {
-    let { floatBuffer } = this
-    if (floatBuffer) {
-      let valid = await floatBuffer.valid
-      if (valid) return
+    let { floatBuffer, nvim, window } = this
+    if (this.env.textprop) {
+      let valid = await this.activated()
+      if (!valid) window = null
+      if (!window) {
+        this.popup = await createPopup(nvim, [''], {
+          padding: [0, 1, 0, 1],
+          highlight: 'CocFloating',
+          tab: -1,
+        })
+        let win = this.window = nvim.createWindow(this.popup.id)
+        nvim.pauseNotification()
+        win.setVar('float', 1, true)
+        win.setOption('linebreak', true, true)
+        win.setOption('showbreak', '', true)
+        win.setOption('conceallevel', 2, true)
+        await nvim.resumeNotification()
+      }
+      let buffer = this.nvim.createBuffer(this.popup.bufferId)
+      this.floatBuffer = new FloatBuffer(nvim, buffer, nvim.createWindow(this.popup.id))
+    } else {
+      if (floatBuffer) {
+        let valid = await floatBuffer.valid
+        if (valid) return
+      }
+      let buf = await this.nvim.createNewBuffer(false, true)
+      await buf.setOption('buftype', 'nofile')
+      await buf.setOption('bufhidden', 'hide')
+      this.floatBuffer = new FloatBuffer(this.nvim, buf)
     }
-    let buf = await this.nvim.createNewBuffer(false, true)
-    await buf.setOption('buftype', 'nofile')
-    await buf.setOption('bufhidden', 'hide')
-    this.floatBuffer = new FloatBuffer(buf, this.nvim)
   }
 
   private get columns(): number {
@@ -124,9 +147,66 @@ export default class FloatFactory implements Disposable {
       relative: 'cursor'
     }
   }
-
   public async create(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
-    if (!this.env.floating) return
+    if (this.env.floating) {
+      await this.createNvim(docs, allowSelection, offsetX)
+    } else if (this.env.textprop) {
+      await this.createVim(docs, allowSelection, offsetX)
+    }
+  }
+
+  public async createVim(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
+    if (docs.length == 0) {
+      this.close()
+      return
+    }
+    if (this.tokenSource) {
+      this.tokenSource.cancel()
+    }
+    this.createTs = Date.now()
+    this.targetBufnr = workspace.bufnr
+    let tokenSource = this.tokenSource = new CancellationTokenSource()
+    let token = tokenSource.token
+    await this.checkFloatBuffer()
+    let config = await this.getBoundings(docs, offsetX)
+    let [mode, line, col] = await this.nvim.eval('[mode(),line("."),col(".")]') as [string, number, number]
+    this.cursor = [line, col]
+    if (!config || token.isCancellationRequested) return this.popup.dispose()
+    allowSelection = mode == 's' && allowSelection
+    if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
+      let { nvim, alignTop } = this
+      let reuse = false
+      let filetypes = docs.reduce((p, curr) => {
+        if (p.indexOf(curr.filetype) == -1) {
+          p.push(curr.filetype)
+        }
+        return p
+      }, [] as string[])
+      nvim.pauseNotification()
+      let { popup, window } = this
+      this.popup.move({
+        line: cursorPostion(config.row),
+        col: cursorPostion(config.col),
+        minwidth: config.width - 2,
+        minheight: config.height,
+        maxwidth: config.width - 2,
+        maxheight: config.height
+      })
+      this.floatBuffer.setLines()
+      // nvim.call('win_execute', [window.id, `normal! G`], true)
+      if (filetypes.length == 1) {
+        this.popup.setFiletype(filetypes[0])
+      }
+      let [res, err] = await nvim.resumeNotification()
+      if (err) {
+        workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
+        return
+      }
+      if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
+    }
+  }
+
+  public async createNvim(docs: Documentation[], allowSelection = false, offsetX = 0): Promise<void> {
     if (docs.length == 0) {
       this.close()
       return
@@ -144,7 +224,6 @@ export default class FloatFactory implements Disposable {
     this.cursor = [line, col]
     if (!config || token.isCancellationRequested) return
     allowSelection = mode == 's' && allowSelection
-    if (token.isCancellationRequested) return
     if (['i', 'n', 'ic'].indexOf(mode) !== -1 || allowSelection) {
       let { nvim, alignTop } = this
       // change to normal
@@ -184,12 +263,15 @@ export default class FloatFactory implements Disposable {
    * Close float window
    */
   public close(): void {
-    if (!this.env.floating) return
     if (this.tokenSource) {
       this.tokenSource.cancel()
       this.tokenSource = null
     }
-    this.closeWindow(this.window)
+    if (this.popup) {
+      this.popup.dispose()
+    } else {
+      this.closeWindow(this.window)
+    }
   }
 
   private closeWindow(window: Window): void {
@@ -224,8 +306,18 @@ export default class FloatFactory implements Disposable {
   }
 
   public async activated(): Promise<boolean> {
+    if (this.env.textprop) {
+      if (!this.popup) return false
+      return await this.popup.visible()
+    }
     if (!this.window) return false
     let valid = await this.window.valid
     return valid
   }
+}
+
+function cursorPostion(n: number): string {
+  if (n == 0) return 'cursor'
+  if (n < 0) return `cursor${n}`
+  return `cursor+${n}`
 }

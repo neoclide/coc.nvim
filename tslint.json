@@ -1,6 +1,7 @@
 {
   "extends": "./node_modules/@chemzqm/tslint-config/tslint.json",
   "rules": {
+    "no-unused-variable": true,
     "no-invalid-template-strings": false,
     "no-unused-expression": false,
     "no-console": true
