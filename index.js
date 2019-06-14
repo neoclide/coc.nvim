@@ -54081,7 +54081,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "af77b9eab8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3cf91b06a7" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -59910,6 +59910,10 @@ function getHiglights(lines, filetype) {
             cwd: os_1.default.tmpdir(),
             env: lodash_1.omit(process.env, ['NVIM_LISTEN_ADDRESS'])
         });
+        proc.on('error', error => {
+            logger.info('highlight error:', error);
+            resolve([]);
+        });
         let timer;
         let exited = false;
         const exit = () => {
@@ -61231,7 +61235,7 @@ class FoldingRangeManager extends manager_1.default {
         if (!item)
             return null;
         let { provider } = item;
-        return await Promise.resolve(provider.provideFoldingRanges(document, context, token));
+        return (await Promise.resolve(provider.provideFoldingRanges(document, context, token)) || []);
     }
     dispose() {
         this.providers = new Set();
@@ -72409,10 +72413,14 @@ class Handler {
         let win = await this.nvim.window;
         let foldmethod = await win.getOption('foldmethod');
         if (foldmethod != 'manual') {
-            workspace_1.default.showMessage('foldmethod option should be manual!', 'error');
+            workspace_1.default.showMessage('foldmethod option should be manual!', 'warning');
             return false;
         }
         let ranges = await languages_1.default.provideFoldingRanges(document.textDocument, {});
+        if (ranges == null) {
+            workspace_1.default.showMessage('no range provider found', 'warning');
+            return false;
+        }
         if (!ranges || ranges.length == 0) {
             workspace_1.default.showMessage('no range found', 'warning');
             return false;
