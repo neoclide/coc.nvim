@@ -1378,6 +1378,8 @@ Available Actions ~
 	{command} default to `edit`.
 
 	File and URL links are supported, return `v:false` when failed.
+
+	Note: it needs language server support documentLink feature to work.
 	
 "extensionStats" 				*coc-action-extensionStats*
 
