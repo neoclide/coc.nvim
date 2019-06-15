@@ -1,0 +1,21 @@
+/// <reference types="node" />
+import { Neovim } from '@chemzqm/neovim';
+import { ExecOptions } from 'child_process';
+import { Disposable } from 'vscode-languageserver-protocol';
+import * as platform from './platform';
+import { MapMode } from '../types';
+export { platform };
+export declare function escapeSingleQuote(str: string): string;
+export declare function echoErr(nvim: Neovim, msg: string): void;
+export declare function echoWarning(nvim: Neovim, msg: string): void;
+export declare function echoMessage(nvim: Neovim, msg: string): void;
+export declare function wait(ms: number): Promise<any>;
+export declare function getUri(fullpath: string, id: number, buftype: string): string;
+export declare function disposeAll(disposables: Disposable[]): void;
+export declare function executable(command: string): boolean;
+export declare function runCommand(cmd: string, opts?: ExecOptions, timeout?: number): Promise<string>;
+export declare function watchFile(filepath: string, onChange: () => void): Disposable;
+export declare function isRunning(pid: number): boolean;
+export declare function getKeymapModifier(mode: MapMode): string;
+export declare function mkdirp(path: string, mode?: number): Promise<boolean>;
+export declare function isDocumentEdit(edit: any): boolean;

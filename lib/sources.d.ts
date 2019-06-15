@@ -1,0 +1,35 @@
+import { Disposable, CancellationToken } from 'vscode-jsonrpc';
+import { CompleteOption, ISource, SourceStat, VimCompleteItem, SourceConfig } from './types';
+export declare class Sources {
+    private sourceMap;
+    private disposables;
+    private remoteSourcePaths;
+    private readonly nvim;
+    private createNativeSources;
+    private createVimSourceExtension;
+    private createRemoteSources;
+    private createVimSources;
+    init(): void;
+    readonly names: string[];
+    readonly sources: ISource[];
+    has(name: any): boolean;
+    getSource(name: string): ISource | null;
+    doCompleteResolve(item: VimCompleteItem, token: CancellationToken): Promise<void>;
+    doCompleteDone(item: VimCompleteItem, opt: CompleteOption): Promise<void>;
+    shouldCommit(item: VimCompleteItem, commitCharacter: string): boolean;
+    getCompleteSources(opt: CompleteOption): ISource[];
+    checkTrigger(source: ISource, pre: string, character: string): boolean;
+    shouldTrigger(pre: string, languageId: string): boolean;
+    getTriggerSources(pre: string, languageId: string): ISource[];
+    getSourcesForFiletype(filetype: string, isTriggered: boolean): ISource[];
+    addSource(source: ISource): Disposable;
+    removeSource(source: ISource | string): void;
+    refresh(name?: string): Promise<void>;
+    toggleSource(name: string): void;
+    sourceStats(): SourceStat[];
+    private onDocumentEnter;
+    createSource(config: SourceConfig): Disposable;
+    dispose(): void;
+}
+declare const _default: Sources;
+export default _default;

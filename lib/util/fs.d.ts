@@ -1,0 +1,20 @@
+/// <reference types="node" />
+import fs from 'fs';
+export declare type OnReadLine = (line: string) => void;
+export declare function statAsync(filepath: string): Promise<fs.Stats | null>;
+export declare function isDirectory(filepath: string): Promise<boolean>;
+export declare function unlinkAsync(filepath: string): Promise<void>;
+export declare function renameAsync(oldPath: string, newPath: string): Promise<void>;
+export declare function isGitIgnored(fullpath: string): Promise<boolean>;
+export declare function resolveRoot(dir: string, subs: string[], cwd?: string): string | null;
+export declare function inDirectory(dir: string, subs: string[]): boolean;
+export declare function findUp(name: string | string[], cwd: string): string;
+export declare function readFile(fullpath: string, encoding: string): Promise<string>;
+export declare function readFileLine(fullpath: string, count: number): Promise<string>;
+export declare function writeFile(fullpath: string, content: string): Promise<void>;
+export declare function validSocket(path: string): Promise<boolean>;
+export declare function isFile(uri: string): boolean;
+export declare const readdirAsync: typeof fs.readdir.__promisify__;
+export declare const realpathAsync: typeof fs.realpath.__promisify__;
+export declare function parentDirs(pth: string): string[];
+export declare function isParentFolder(folder: string, filepath: string): boolean;

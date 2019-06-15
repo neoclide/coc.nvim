@@ -7561,7 +7561,7 @@ module.exports = function(val, options) {
   var type = typeof val;
   if (type === 'string' && val.length > 0) {
     return parse(val);
-  } else if (type === 'number' && isNaN(val) === false) {
+  } else if (type === 'number' && isFinite(val)) {
     return options.long ? fmtLong(val) : fmtShort(val);
   }
   throw new Error(
@@ -7583,7 +7583,7 @@ function parse(str) {
   if (str.length > 100) {
     return;
   }
-  var match = /^((?:\d+)?\-?\d?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
+  var match = /^(-?(?:\d+)?\.?\d+) *(milliseconds?|msecs?|ms|seconds?|secs?|s|minutes?|mins?|m|hours?|hrs?|h|days?|d|weeks?|w|years?|yrs?|y)?$/i.exec(
     str
   );
   if (!match) {
@@ -8134,141 +8134,149 @@ module.exports = rfdc
 
 function rfdc (opts) {
   opts = opts || {}
-  const proto = opts.proto || false
-  const circles = opts.circles || false
-  if (circles) return rfdcCircles(opts)
-  return proto ? cloneProto : clone
+
+  if (opts.circles) return rfdcCircles(opts)
+  return opts.proto ? cloneProto : clone
+
+  function cloneArray (a, fn) {
+    var keys = Object.keys(a)
+    var a2 = new Array(keys.length)
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i]
+      var cur = a[k]
+      if (typeof cur !== 'object' || cur === null) {
+        a2[k] = cur
+      } else if (cur instanceof Date) {
+        a2[k] = new Date(cur)
+      } else {
+        a2[k] = fn(cur)
+      }
+    }
+    return a2
+  }
+
   function clone (o) {
-    const type = typeof o
-    if (type === 'function') return o
-    if (o === null || type !== 'object') return o
+    if (typeof o !== 'object' || o === null) return o
     if (o instanceof Date) return new Date(o)
-    const o2 = Array.isArray(o) ? new Array(o.length) : {}
+    if (Array.isArray(o)) return cloneArray(o, clone)
+    var o2 = {}
     for (var k in o) {
       if (Object.hasOwnProperty.call(o, k) === false) continue
       var cur = o[k]
-      if (typeof cur === 'function') {
+      if (typeof cur !== 'object' || cur === null) {
         o2[k] = cur
-        continue
-      }
-      if (cur === null) {
-        o2[k] = null
-        continue
-      }
-      if (typeof cur === 'object') {
-        if (cur instanceof Date) {
-          o2[k] = new Date(cur)
-          continue
-        }
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else {
         o2[k] = clone(cur)
-        continue
       }
-      o2[k] = cur
     }
     return o2
   }
 
   function cloneProto (o) {
-    const type = typeof o
-    if (type === 'function') return o
-    if (o === null || type !== 'object') return o
+    if (typeof o !== 'object' || o === null) return o
     if (o instanceof Date) return new Date(o)
-    const o2 = Array.isArray(o) ? new Array(o.length) : {} 
+    if (Array.isArray(o)) return cloneArray(o, cloneProto)
+    var o2 = {}
     for (var k in o) {
       var cur = o[k]
-      if (typeof cur === 'function') {
+      if (typeof cur !== 'object' || cur === null) {
         o2[k] = cur
-        continue
-      }
-      if (cur === null) {
-        o2[k] = null
-        continue
-      }
-      if (typeof cur === 'object') {
-        if (cur instanceof Date) {
-          o2[k] = new Date(cur)
-          continue
-        }
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else {
         o2[k] = cloneProto(cur)
-        continue
       }
-      o2[k] = cur
     }
     return o2
   }
 }
-
 
 function rfdcCircles (opts) {
-  const proto = opts.proto || false
-  const refs = new WeakMap()
+  var refs = []
+  var refsNew = []
 
-  return proto ? cloneProto : clone
+  return opts.proto ? cloneProto : clone
+
+  function cloneArray (a, fn) {
+    var keys = Object.keys(a)
+    var a2 = new Array(keys.length)
+    for (var i = 0; i < keys.length; i++) {
+      var k = keys[i]
+      var cur = a[k]
+      if (typeof cur !== 'object' || cur === null) {
+        a2[k] = cur
+      } else if (cur instanceof Date) {
+        a2[k] = new Date(cur)
+      } else {
+        var index = refs.indexOf(cur)
+        if (index !== -1) {
+          a2[k] = refsNew[index]
+        } else {
+          a2[k] = fn(cur)
+        }
+      }
+    }
+    return a2
+  }
+
   function clone (o) {
-    const type = typeof o
-    if (type === 'function') return o
-    if (o === null || type !== 'object') return o
+    if (typeof o !== 'object' || o === null) return o
     if (o instanceof Date) return new Date(o)
-    const o2 = Array.isArray(o) ? new Array(o.length) : {}
-    refs.set(o, o2)
+    if (Array.isArray(o)) return cloneArray(o, clone)
+    var o2 = {}
+    refs.push(o)
+    refsNew.push(o2)
     for (var k in o) {
       if (Object.hasOwnProperty.call(o, k) === false) continue
       var cur = o[k]
-      if (typeof cur === 'function') {
+      if (typeof cur !== 'object' || cur === null) {
         o2[k] = cur
-        continue
-      }
-      if (cur === null) {
-        o2[k] = null
-        continue
-      }
-      if (typeof cur === 'object') {
-        if (cur instanceof Date) {
-          o2[k] = new Date(cur)
-          continue
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else {
+        var i = refs.indexOf(cur)
+        if (i !== -1) {
+          o2[k] = refsNew[i]
+        } else {
+          o2[k] = clone(cur)
         }
-        if (refs.has(cur)) o2[k] = refs.get(cur)
-        else o2[k] = clone(cur)
-        continue
       }
-      o2[k] = cur
     }
-    refs.delete(o)
+    refs.pop()
+    refsNew.pop()
     return o2
   }
 
   function cloneProto (o) {
-    const type = typeof o
-    if (type === 'function') return o
-    if (o === null || type !== 'object') return o
+    if (typeof o !== 'object' || o === null) return o
     if (o instanceof Date) return new Date(o)
-    const o2 = Array.isArray(o) ? new Array(o.length) : {}
-    refs.set(o, o2)    
+    if (Array.isArray(o)) return cloneArray(o, cloneProto)
+    var o2 = {}
+    refs.push(o)
+    refsNew.push(o2)
     for (var k in o) {
       var cur = o[k]
-      if (typeof cur === 'function') {
+      if (typeof cur !== 'object' || cur === null) {
         o2[k] = cur
-        continue
-      }
-      if (cur === null) {
-        o2[k] = null
-        continue
-      }
-      if (typeof cur === 'object') {
-        if (cur instanceof Date) {
-          o2[k] = new Date(cur)
-          continue
+      } else if (cur instanceof Date) {
+        o2[k] = new Date(cur)
+      } else {
+        var i = refs.indexOf(cur)
+        if (i !== -1) {
+          o2[k] = refsNew[i]
+        } else {
+          o2[k] = cloneProto(cur)
         }
-        if (refs.has(cur)) o2[k] = refs.get(cur)
-        else o2[k] = cloneProto(cur)
-        continue
       }
-      o2[k] = cur
     }
-    refs.delete(o)
+    refs.pop()
+    refsNew.pop()
     return o2
   }
 }
+
 
 /***/ }),
 /* 73 */
@@ -37482,15 +37490,10 @@ exports.createClientSocketTransport = vscode_jsonrpc_1.createClientSocketTranspo
 exports.createServerSocketTransport = vscode_jsonrpc_1.createServerSocketTransport;
 __export(__webpack_require__(158));
 __export(__webpack_require__(159));
-const callHierarchy = __webpack_require__(168);
-const progress = __webpack_require__(169);
-const sr = __webpack_require__(170);
+const callHierarchy = __webpack_require__(169);
+const progress = __webpack_require__(170);
 var Proposed;
 (function (Proposed) {
-    let SelectionRangeRequest;
-    (function (SelectionRangeRequest) {
-        SelectionRangeRequest.type = sr.SelectionRangeRequest.type;
-    })(SelectionRangeRequest = Proposed.SelectionRangeRequest || (Proposed.SelectionRangeRequest = {}));
     let CallHierarchyRequest;
     (function (CallHierarchyRequest) {
         CallHierarchyRequest.type = callHierarchy.CallHierarchyRequest.type;
@@ -39870,6 +39873,7 @@ __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "CodeLens", function() { return CodeLens; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "FormattingOptions", function() { return FormattingOptions; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "DocumentLink", function() { return DocumentLink; });
+/* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "SelectionRange", function() { return SelectionRange; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "EOL", function() { return EOL; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocument", function() { return TextDocument; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "TextDocumentSaveReason", function() { return TextDocumentSaveReason; });
@@ -41121,6 +41125,27 @@ var DocumentLink = /** @class */ (function () {
     }
     DocumentLink.is = is;
 })(DocumentLink || (DocumentLink = {}));
+/**
+ * The SelectionRange namespace provides helper function to work with
+ * SelectionRange literals.
+ */
+var SelectionRange;
+(function (SelectionRange) {
+    /**
+     * Creates a new SelectionRange
+     * @param range the range.
+     * @param parent an optional parent.
+     */
+    function create(range, parent) {
+        return { range: range, parent: parent };
+    }
+    SelectionRange.create = create;
+    function is(value) {
+        var candidate = value;
+        return candidate !== undefined && Range.is(candidate.range) && (candidate.parent === undefined || SelectionRange.is(candidate.parent));
+    }
+    SelectionRange.is = is;
+})(SelectionRange || (SelectionRange = {}));
 var EOL = ['\n', '\r\n', '\r'];
 var TextDocument;
 (function (TextDocument) {
@@ -41397,6 +41422,8 @@ const protocol_foldingRange_1 = __webpack_require__(166);
 exports.FoldingRangeRequest = protocol_foldingRange_1.FoldingRangeRequest;
 const protocol_declaration_1 = __webpack_require__(167);
 exports.DeclarationRequest = protocol_declaration_1.DeclarationRequest;
+const protocol_selectionRange_1 = __webpack_require__(168);
+exports.SelectionRangeRequest = protocol_selectionRange_1.SelectionRangeRequest;
 // @ts-ignore: to avoid inlining LocatioLink as dynamic import
 let __noDynamicImport;
 var DocumentFilter;
@@ -42183,6 +42210,30 @@ var DeclarationRequest;
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
+
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+Object.defineProperty(exports, "__esModule", { value: true });
+const vscode_jsonrpc_1 = __webpack_require__(147);
+/**
+ * A request to provide selection ranges in a document. The request's
+ * parameter is of type [SelectionRangeParams](#SelectionRangeParams), the
+ * response is of type [SelectionRange[]](#SelectionRange[]) or a Thenable
+ * that resolves to such.
+ */
+var SelectionRangeRequest;
+(function (SelectionRangeRequest) {
+    SelectionRangeRequest.type = new vscode_jsonrpc_1.RequestType('textDocument/selectionRange');
+})(SelectionRangeRequest = exports.SelectionRangeRequest || (exports.SelectionRangeRequest = {}));
+
+
+/***/ }),
+/* 169 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
 /* --------------------------------------------------------------------------------------------
  * Copyright (c) TypeFox and others. All rights reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
@@ -42219,7 +42270,7 @@ var CallHierarchyRequest;
 
 
 /***/ }),
-/* 169 */
+/* 170 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -42262,52 +42313,6 @@ var ProgressCancelNotification;
 (function (ProgressCancelNotification) {
     ProgressCancelNotification.type = new vscode_jsonrpc_1.NotificationType('window/progress/cancel');
 })(ProgressCancelNotification = exports.ProgressCancelNotification || (exports.ProgressCancelNotification = {}));
-
-
-/***/ }),
-/* 170 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-/*---------------------------------------------------------------------------------------------
- *  Copyright (c) Microsoft Corporation. All rights reserved.
- *  Licensed under the MIT License. See License.txt in the project root for license information.
- *--------------------------------------------------------------------------------------------*/
-Object.defineProperty(exports, "__esModule", { value: true });
-const vscode_jsonrpc_1 = __webpack_require__(147);
-const vscode_languageserver_types_1 = __webpack_require__(158);
-/**
- * The SelectionRange namespace provides helper function to work with
- * SelectionRange literals.
- */
-var SelectionRange;
-(function (SelectionRange) {
-    /**
-     * Creates a new SelectionRange
-     * @param range the range.
-     * @param parent an optional parent.
-     */
-    function create(range, parent) {
-        return { range, parent };
-    }
-    SelectionRange.create = create;
-    function is(value) {
-        let candidate = value;
-        return candidate !== undefined && vscode_languageserver_types_1.Range.is(candidate.range) && (candidate.parent === undefined || SelectionRange.is(candidate.parent));
-    }
-    SelectionRange.is = is;
-})(SelectionRange = exports.SelectionRange || (exports.SelectionRange = {}));
-/**
- * A request to provide selection ranges in a document. The request's
- * parameter is of type [SelectionRangeParams](#SelectionRangeParams), the
- * response is of type [SelectionRange[]](#SelectionRange[]) or a Thenable
- * that resolves to such.
- */
-var SelectionRangeRequest;
-(function (SelectionRangeRequest) {
-    SelectionRangeRequest.type = new vscode_jsonrpc_1.RequestType('textDocument/selectionRange');
-})(SelectionRangeRequest = exports.SelectionRangeRequest || (exports.SelectionRangeRequest = {}));
 
 
 /***/ }),
@@ -42697,6 +42702,9 @@ var _empty = '';
 var _slash = '/';
 var _regexp = /^(([^:/?#]+?):)?(\/\/([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))?/;
 function _isQueryStringScheme(scheme) {
+    if (!scheme) {
+        return false;
+    }
     switch (scheme.toLowerCase()) {
         case 'http':
         case 'https':
@@ -42880,7 +42888,7 @@ var URI = (function () {
         var authority = _empty;
         // normalize to fwd-slashes on windows,
         // on other systems bwd-slashes are valid
-        // filename character, eg /f\oo/ba\r.txt
+        // filename character, e.g. /f\oo/ba\r.txt
         if (isWindows) {
             path = path.replace(/\\/g, _slash);
         }
@@ -53999,11 +54007,6 @@ class Plugin extends events_1.EventEmitter {
             }
             logger.info(`coc ${this.version} initialized with node: ${process.version}`);
             this.emit('ready');
-            if (workspace_1.default.isVim) {
-                let updatetime = await nvim.getOption('updatetime');
-                if (updatetime > 1000)
-                    workspace_1.default.showMessage(`Option 'updatetime' is ${updatetime}, position jump can be quite slow, consider make it <= 300`, 'warning');
-            }
         }
         catch (e) {
             this._ready = false;
@@ -54081,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f727d85aad" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "3e0eec9c4f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -60495,7 +60498,7 @@ class DiagnosticBuffer {
             if (lines.has(line))
                 continue;
             lines.add(line);
-            let highlight = util_1.getNameFromSeverity(diagnostic.severity) + 'Sign';
+            let highlight = util_1.getNameFromSeverity(diagnostic.severity) + 'VirtualText';
             let msg = diagnostic.message.split(/\n/)
                 .map((l) => l.trim())
                 .filter((l) => l.length > 0)
@@ -71642,10 +71645,15 @@ class Floating {
     constructor(nvim) {
         this.nvim = nvim;
         let configuration = workspace_1.default.getConfiguration('suggest');
+        let enableFloat = configuration.get('floatEnable', true);
+        let { env } = workspace_1.default;
+        if (enableFloat && !env.floating && !env.textprop) {
+            enableFloat = false;
+        }
         this.config = {
             srcId: workspace_1.default.createNameSpace('coc-pum-float'),
             maxPreviewWidth: configuration.get('maxPreviewWidth', 80),
-            enable: configuration.get('floatEnable', true)
+            enable: enableFloat
         };
     }
     get buffer() {
@@ -71654,9 +71662,6 @@ class Floating {
     }
     async showDocumentationFloating(docs, bounding, token) {
         let { nvim } = this;
-        let { enable } = this.config;
-        if (!enable)
-            return;
         await this.checkBuffer();
         let rect = await this.calculateBounding(docs, bounding);
         let config = Object.assign({ relative: 'editor', }, rect);
@@ -71732,10 +71737,12 @@ class Floating {
             console.error(`Error on ${err[0]}: ${err[1]} - ${err[2]}`);
     }
     async show(docs, bounding, token) {
+        if (!this.config.enable)
+            return;
         if (workspace_1.default.env.floating) {
             await this.showDocumentationFloating(docs, bounding, token);
         }
-        else if (workspace_1.default.env.textprop) {
+        else {
             await this.showDocumentationVim(docs, bounding, token);
         }
     }
@@ -76047,7 +76054,7 @@ function onceStrict (fn) {
 /* 343 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.70","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.13","@types/minimatch":"^3.0.3","@types/node":"^12.0.7","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.1","vscode-languageserver":"^5.3.0-next.7"},"dependencies":{"@chemzqm/neovim":"5.1.7","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"^3.15.0-next.5","vscode-languageserver-types":"^3.15.0-next.1","vscode-uri":"^2.0.1","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.70","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build","release":"pkg . --out-path ./build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.14","@types/minimatch":"^3.0.3","@types/node":"^12.0.8","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);

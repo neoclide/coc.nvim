@@ -1,0 +1,36 @@
+import { Neovim } from '@chemzqm/neovim';
+import { Event } from 'vscode-languageserver-protocol';
+import Document from '../model/document';
+import { CompleteConfig, CompleteOption, CompleteResult, ISource, RecentScore, VimCompleteItem } from '../types';
+export declare type Callback = () => void;
+export default class Complete {
+    option: CompleteOption;
+    private document;
+    private config;
+    private sources;
+    private nvim;
+    results: CompleteResult[];
+    readonly recentScores: RecentScore;
+    private completing;
+    private _canceled;
+    private localBonus;
+    private tokenSources;
+    private readonly _onDidComplete;
+    readonly onDidComplete: Event<void>;
+    constructor(option: CompleteOption, document: Document, recentScores: RecentScore | null, config: CompleteConfig, sources: ISource[], nvim: Neovim);
+    readonly isCompleting: boolean;
+    readonly isCanceled: boolean;
+    readonly isEmpty: boolean;
+    readonly startcol: number;
+    readonly input: string;
+    readonly isIncomplete: boolean;
+    private completeSource;
+    completeInComplete(resumeInput: string): Promise<VimCompleteItem[]>;
+    filterResults(input: string, cid?: number): VimCompleteItem[];
+    private limitCompleteItems;
+    hasMatch(input: string): boolean;
+    doComplete(): Promise<VimCompleteItem[]>;
+    resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null;
+    private getFollowPart;
+    dispose(): void;
+}
