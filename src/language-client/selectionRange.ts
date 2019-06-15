@@ -4,8 +4,7 @@
  * ------------------------------------------------------------------------------------------ */
 'use strict'
 
-import { CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
-import { SelectionRange, SelectionRangeRequest, SelectionRangeParams, SelectionRangeClientCapabilities, SelectionRangeServerCapabilities } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
+import { SelectionRange, SelectionRangeRequest, SelectionRangeParams, SelectionRangeClientCapabilities, SelectionRangeServerCapabilities, CancellationToken, ClientCapabilities, Disposable, DocumentSelector, Position, ServerCapabilities, StaticRegistrationOptions, TextDocument, TextDocumentRegistrationOptions } from 'vscode-languageserver-protocol'
 import languages from '../languages'
 import { ProviderResult } from '../provider'
 import * as Is from '../util/is'

@@ -1,5 +1,4 @@
-import { CancellationToken, Disposable, DocumentSelector, Position, TextDocument } from 'vscode-languageserver-protocol'
-import { SelectionRange } from 'vscode-languageserver-protocol/lib/protocol.selectionRange.proposed'
+import { SelectionRange, CancellationToken, Disposable, DocumentSelector, Position, TextDocument } from 'vscode-languageserver-protocol'
 import { SelectionRangeProvider } from './index'
 import Manager from './manager'
 import uuid = require('uuid/v4')
