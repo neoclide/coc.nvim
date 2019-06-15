@@ -3525,7 +3525,7 @@ export abstract class BaseLanguageClient {
             workspace.showMessage(params.message, msgType as any)
             return Promise.resolve(null)
           }
-          let items = params.actions.map(o => o.title)
+          let items = params.actions.map(o => typeof o === 'string' ? o : o.title)
           return workspace.showQuickpick(items, params.message).then(idx => {
             return params.actions[idx]
           })
