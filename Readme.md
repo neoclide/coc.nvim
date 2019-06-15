@@ -85,17 +85,15 @@ Below are the reasons that led coc.nvim to build its own engine:
   For [vim-plug](https://github.com/junegunn/vim-plug) users:
 
   ```vim
-  " Install nightly build, replace ./install.sh with install.cmd on windows
-  Plug 'neoclide/coc.nvim', {'do': './install.sh nightly'}
-  " Or install latest release tag
-  Plug 'neoclide/coc.nvim', {'tag': '*', 'do': './install.sh'}
+  " Use release branch
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
   " Or build from source code
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
   in your `.vimrc` or `init.vim`, then restart vim and run `:PlugInstall`.
 
-  For other plugin managers, run command `:call coc#util#install()` to download the latest compiled javascript bundle.
+  For other plugin managers, make sure use release branch.
 
   **Note**: The first time building from source code may be slow.
 
