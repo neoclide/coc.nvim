@@ -78,19 +78,27 @@ plugin manager such as vim-plug.
 ==============================================================================
 INSTALL						*coc-install*
 
-To use the [vim-plug](https://github.com/junegunn/vim-plug) plugin manager, add this: >
+To use the [vim-plug](https://github.com/junegunn/vim-plug), add this: >
 
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 to your `init.vim` and run: >
 
   :PlugInstall
 
-For other plugin managers, run `:call coc#util#install()` after the plugin is
-loaded. This command will download the latest compiled javascript code from
-the release branch.
+For other plugin managers, use code from release branch.
 
-Use `:call coc#util#build()` to build coc.nvim from source code.
+Or use vim's buildin package feature like: >
+
+  #!/bin/sh
+  # for vim8
+  mkdir -p ~/.vim/pack/coc/start
+  cd ~/.vim/pack/coc/start
+  curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
+  # for neovim
+  mkdir -p ~/.local/share/nvim/site/pack/coc/start
+  cd ~/.local/share/nvim/site/pack/coc/start
+  curl --fail -L https://github.com/neoclide/coc.nvim/archive/release.tar.gz|tar xzfv -
 
 ==============================================================================
 CONFIGURATION					*coc-configuration*
