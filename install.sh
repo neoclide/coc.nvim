@@ -54,7 +54,7 @@ download() {
   mkdir -p build
   cd build
   if [ "$tag" = "nightly" ]; then
-    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/index.js > index.js
+    fetch https://raw.githubusercontent.com/neoclide/coc.nvim/release/build/index.js > index.js
     return
   fi
   url="https://github.com/neoclide/coc.nvim/releases/download/$tag/coc.tar.gz"

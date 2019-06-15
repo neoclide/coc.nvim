@@ -11,8 +11,7 @@
     "watch": "tsc -p tsconfig.json --watch true --sourceMap",
     "test": "node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit",
     "test-build": "node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit",
-    "prepare": "npm-run-all clean build",
-    "release": "pkg . --out-path ./build"
+    "prepare": "npm-run-all clean build"
   },
   "repository": {
     "type": "git",

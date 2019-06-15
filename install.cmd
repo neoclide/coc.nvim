@@ -16,7 +16,7 @@ if ($args[0]) {
 }
 
 $download = "https://github.com/$repo/releases/download/$tag/$file"
-$url = "https://raw.githubusercontent.com/neoclide/coc.nvim/release/index.js"
+$url = "https://raw.githubusercontent.com/neoclide/coc.nvim/release/build/index.js"
 $zip = "coc.zip"
 $dir = "build"
 
