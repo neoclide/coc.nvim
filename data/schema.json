@@ -1,0 +1,871 @@
+{
+  "$schema": "http://json-schema.org/draft-06/schema",
+  "description": "Configuration file for coc.nvim",
+  "additionalProperties": false,
+  "definitions": {
+    "languageServerBase": {
+      "type": "object",
+      "properties": {
+        "enable": {
+          "type": "boolean",
+          "default": true
+        },
+        "cwd": {
+          "type": "string",
+          "default": "",
+          "description": "Working directory of languageserver, absolute path or relative to workspace folder, use workspace root by default"
+        },
+        "disableWorkspaceFolders": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable workspaceFolders feature for this languageserver."
+        },
+        "disableDiagnostics": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable handle diagnostics for this languageserver."
+        },
+        "disableCompletion": {
+          "type": "boolean",
+          "default": false,
+          "description": "Disable completion feature for this languageserver."
+        },
+        "env": {
+          "type": "object",
+          "default": null,
+          "description": "Environment variables for child process."
+        },
+        "stdioEncoding": {
+          "type": "string",
+          "default": "utf8",
+          "description": "Encoding used for stdio of child process."
+        },
+        "rootPatterns": {
+          "type": "array",
+          "default": [],
+          "description": "Root patterns used for reoslve rootPath from current file, default to workspace root",
+          "items": {
+            "type": "string"
+          }
+        },
+        "requireRootPattern": {
+          "type": "boolean",
+          "default": false,
+          "description": "If true, doesn't start server when root pattern not found."
+        },
+        "ignoredRootPaths": {
+          "type": "array",
+          "default": [],
+          "description": "Absolute root paths that language server should not use as rootPath, higher priority than rootPatterns.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "filetypes": {
+          "type": "array",
+          "default": [],
+          "description": "Supported filetypes, use empty array for all filetypes.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "additionalSchemes": {
+          "type": "array",
+          "default": [],
+          "description": "Additional uri schemes, default schemes including file & untitled.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "revealOutputChannelOn": {
+          "type": "string",
+          "default": "never",
+          "description": "Configure message level to show the output channel buffer",
+          "enum": ["info", "warn", "error", "never"]
+        },
+        "initializationOptions": {
+          "type": "object",
+          "default": {},
+          "description": "initializationOptions passed to languageserver"
+        },
+        "settings": {
+          "type": "object",
+          "default": {},
+          "description": "Settings of languageserver"
+        },
+        "trace.server": {
+          "type": "string",
+          "default": "off",
+          "enum": ["off", "messages", "verbose"],
+          "description": "Trace level of communication between server and client"
+        }
+      }
+    },
+    "languageServerSocket": {
+      "type": "object",
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
+      "required": ["port", "filetypes"],
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "type": "integer",
+          "description": "Port number of socket server"
+        },
+        "host": {
+          "type": "string",
+          "default": "127.0.0.1",
+          "description": "Host of server"
+        },
+        "disableDiagnostics": {},
+        "disableCompletion": {},
+        "enable": {},
+        "disableWorkspaceFolders": {},
+        "rootPatterns": {},
+        "requireRootPattern": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "additionalSchemes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "settings": {},
+        "stdioEncoding": {},
+        "trace.server": {}
+      }
+    },
+    "languageServerModule": {
+      "type": "object",
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
+      "required": ["module", "filetypes"],
+      "additionalProperties": false,
+      "properties": {
+        "module": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path of javascript file, should works in IPC mode"
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "description": "Extra arguments of module",
+          "items": {
+            "type": "string"
+          }
+        },
+        "runtime": {
+          "type": "string",
+          "default": "",
+          "description": "Absolute path of node runtime."
+        },
+        "execArgv": {
+          "type": "array",
+          "default": [],
+          "description": "Argv passed to node when using module, normally used for debugging, ex: [\"--nolazy\", \"--inspect-brk=6045\"]",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transport": {
+          "type": "string",
+          "default": "ipc",
+          "description": "Transport kind used by server, could be 'ipc', 'stdio', 'socket' and 'pipe'",
+          "enum": ["ipc", "stdio", "socket", "pipe"]
+        },
+        "transportPort": {
+          "type": "integer",
+          "description": "Port number used when transport is 'socket'"
+        },
+        "cwd": {},
+        "env": {},
+        "enable": {},
+        "disableWorkspaceFolders": {},
+        "disableDiagnostics": {},
+        "disableCompletion": {},
+        "rootPatterns": {},
+        "requireRootPattern": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "additionalSchemes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "stdioEncoding": {},
+        "settings": {},
+        "trace.server": {}
+      }
+    },
+    "languageServerCommand": {
+      "type": "object",
+      "required": ["command", "filetypes"],
+      "allOf": [{"$ref": "#/definitions/languageServerBase"}],
+      "additionalProperties": false,
+      "properties": {
+        "command": {
+          "type": "string",
+          "default": "",
+          "description": "Executable in $PATH to start languageserver, should not used with module"
+        },
+        "args": {
+          "type": "array",
+          "default": [],
+          "description": "Arguments of command",
+          "items": {
+            "type": "string"
+          }
+        },
+        "detached": {
+          "type": "boolean",
+          "default": false,
+          "description": "Detach the languageserver process"
+        },
+        "shell": {
+          "type": "boolean",
+          "default": false,
+          "description": "Use shell for process"
+        },
+        "cwd": {},
+        "env": {},
+        "enable": {},
+        "disableWorkspaceFolders": {},
+        "disableDiagnostics": {},
+        "disableCompletion": {},
+        "rootPatterns": {},
+        "requireRootPattern": {},
+        "ignoredRootPaths": {},
+        "filetypes": {},
+        "additionalSchemes": {},
+        "revealOutputChannelOn": {},
+        "initializationOptions": {},
+        "stdioEncoding": {},
+        "settings": {},
+        "trace.server": {}
+      }
+    }
+  },
+  "properties": {
+    "http.proxy": {
+      "type": "string",
+      "default": "",
+      "description": "http proxy uri, used for extensions that send request"
+    },
+    "http.proxyStrictSSL": {
+      "type": "boolean",
+      "default": true
+    },
+    "suggest.maxPreviewWidth": {
+      "type": "number",
+      "default": 80,
+      "description": "Maximum width of floating preview window."
+    },
+    "suggest.enablePreview": {
+      "type": "boolean",
+      "description": "Add preview option to completeopt, default: false.",
+      "default": false
+    },
+    "suggest.floatEnable": {
+      "type": "boolean",
+      "description": "Enable floating window for documentation when possible.",
+      "default": true
+    },
+    "suggest.labelMaxLength": {
+      "type": "number",
+      "description": "Max length of abbr that shown as label of complete item.",
+      "default": 200
+    },
+    "suggest.detailMaxLength": {
+      "type": "number",
+      "description": "Max length of detail that should be shown in popup menu.",
+      "default": 100
+    },
+    "suggest.detailField": {
+      "type": "string",
+      "default": "menu",
+      "description": "Where to add the detail in complete item when it's less than max length.",
+      "enum": ["abbr", "menu", "preview"]
+    },
+    "suggest.autoTrigger": {
+      "type": "string",
+      "default": "always",
+      "description": "How should completion be triggered",
+      "enum": ["always", "trigger", "none"]
+    },
+    "suggest.languageSourcePriority": {
+      "type": "number",
+      "default": 99,
+      "description": "Priority of language sources."
+    },
+    "suggest.numberSelect": {
+      "type": "boolean",
+      "description": "Input number to select complete item, it could wrong when using <up> and <down> to select complete item",
+      "default": false
+    },
+    "suggest.disableKind": {
+      "type": "boolean",
+      "description": "Remove kind field from vim complete item.",
+      "default": false
+    },
+    "suggest.disableMenu": {
+      "type": "boolean",
+      "description": "Remove menu field from vim complete item.",
+      "default": false
+    },
+    "suggest.disableMenuShortcut": {
+      "type": "boolean",
+      "description": "Disable shortcut of completion source in menu.",
+      "default": false
+    },
+    "suggest.snippetIndicator": {
+      "type": "string",
+      "default": "~",
+      "description": "The character used in abbr of complete item to indicate the item could be expand as snippet."
+    },
+    "suggest.maxCompleteItemCount": {
+      "type": "number",
+      "default": 50,
+      "description": "Maximum number of complete items shown in vim"
+    },
+    "suggest.preferCompleteThanJumpPlaceholder": {
+      "type": "boolean",
+      "description": "Confirm completion instead of jump to next placeholder when completion is activted.",
+      "default": false
+    },
+    "suggest.fixInsertedWord": {
+      "type": "boolean",
+      "description": "Make inserted word replace word characters after cursor position.",
+      "default": true
+    },
+    "suggest.localityBonus": {
+      "type": "boolean",
+      "description": "Boost suggestions that appear closer to the cursor position.",
+      "default": true
+    },
+    "suggest.triggerAfterInsertEnter": {
+      "type": "boolean",
+      "description": "Trigger completion after InsertEnter, auto trigger should be 'always' to enable this option",
+      "default": false
+    },
+    "suggest.timeout": {
+      "type": "integer",
+      "default": 2000,
+      "minimum": 500,
+      "maximum": 5000,
+      "description": "Timeout for completion, in miliseconds."
+    },
+    "suggest.minTriggerInputLength": {
+      "type": "number",
+      "default": 1,
+      "description": "Mininal input length for trigger completion, default 1"
+    },
+    "suggest.triggerCompletionWait": {
+      "type": "integer",
+      "default": 60,
+      "minimum": 50,
+      "maximum": 300,
+      "description": "Wait time between trigger character type and completion start, for wait server content synchronize."
+    },
+    "suggest.echodocSupport": {
+      "type": "boolean",
+      "default": false,
+      "description": "When enabled, add function signature to user_data.signature to support echodoc.vim"
+    },
+    "suggest.acceptSuggestionOnCommitCharacter": {
+      "type": "boolean",
+      "default": false,
+      "description": "Controls whether suggestions should be accepted on commit characters. For example, in JavaScript, the semi-colon (`;`) can be a commit character that accepts a suggestion and types that character. Requires CompleteChanged event to work."
+    },
+    "suggest.noselect": {
+      "type": "boolean",
+      "description": "Not make vim select first item on completion start",
+      "default": true
+    },
+    "suggest.keepCompleteopt": {
+      "type": "boolean",
+      "description": "When enabled, completeopt is not overriden, auto completion will be disabled if completeopt doesn't have noinsert and noselect.",
+      "default": false
+    },
+    "suggest.lowPrioritySourceLimit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Max items count for source priority lower than 90."
+    },
+    "suggest.highPrioritySourceLimit": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 100,
+      "description": "Max items count for source priority bigger than or equal to 90."
+    },
+    "suggest.completionItemKindLabels": {
+      "type": "object",
+      "default": {},
+      "description": "Set custom labels to completion items' kinds.",
+      "properties": {
+        "text": {"type": "string"},
+        "method": {"type": "string"},
+        "function": {"type": "string"},
+        "constructor": {"type": "string"},
+        "field": {"type": "string"},
+        "variable": {"type": "string"},
+        "class": {"type": "string"},
+        "interface": {"type": "string"},
+        "module": {"type": "string"},
+        "property": {"type": "string"},
+        "unit": {"type": "string"},
+        "value": {"type": "string"},
+        "enum": {"type": "string"},
+        "keyword": {"type": "string"},
+        "snippet": {"type": "string"},
+        "color": {"type": "string"},
+        "file": {"type": "string"},
+        "reference": {"type": "string"},
+        "folder": {"type": "string"},
+        "enumMember": {"type": "string"},
+        "constant": {"type": "string"},
+        "struct": {"type": "string"},
+        "event": {"type": "string"},
+        "operator": {"type": "string"},
+        "typeParameter": {"type": "string"},
+        "default": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "diagnostic.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable diagnostic display",
+      "default": true
+    },
+    "diagnostic.level": {
+      "type": "string",
+      "description": "Used for filter diagnostics by diagnostic severity.",
+      "default": "hint",
+      "enum": ["hint", "information", "warning", "error"]
+    },
+    "diagnostic.checkCurrentLine": {
+      "type": "boolean",
+      "description": "When enabled, show all diagnostics of current line instead of current position.",
+      "default": false
+    },
+    "diagnostic.messageTarget": {
+      "type": "string",
+      "description": "Diagnostic message target.",
+      "default": "float",
+      "enum": ["echo", "float"]
+    },
+    "diagnostic.joinMessageLines": {
+      "type": "boolean",
+      "description": "Join lines messages to reduce lines of floating window.",
+      "default": false
+    },
+    "diagnostic.refreshOnInsertMode": {
+      "type": "boolean",
+      "description": "Enable diagnostic refresh on insert mode, default false.",
+      "default": false
+    },
+    "diagnostic.refreshAfterSave": {
+      "type": "boolean",
+      "description": "Only refresh diagnostics after save, default false.",
+      "default": false
+    },
+    "diagnostic.displayByAle": {
+      "type": "boolean",
+      "description": "Use Ale for display diagnostics in vim, will disable coc for display diagnostics, restart required on change.",
+      "default": false
+    },
+    "diagnostic.virtualText": {
+      "type": "boolean",
+      "description": "Use NeoVim virtual text to display diagnostics",
+      "default": false
+    },
+    "diagnostic.virtualTextPrefix": {
+      "type": "string",
+      "description": "The prefix added virtual text diagnostics",
+      "default": " "
+    },
+    "diagnostic.virtualTextLines": {
+      "type": "number",
+      "description": "The number of non empty lines from a diagnostic to display",
+      "default": 3
+    },
+    "diagnostic.virtualTextLineSeparator": {
+      "type": "string",
+      "description": "The text that will mark a line end from the diagnostic message",
+      "default": " \\ "
+    },
+    "diagnostic.enableSign": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable signs for diagnostics."
+    },
+    "diagnostic.enableMessage": {
+      "type": "string",
+      "default": "always",
+      "description": "When to enable echo messages of diagnostics.",
+      "enum": ["always", "jump", "never"]
+    },
+    "diagnostic.locationlist": {
+      "type": "boolean",
+      "description": "Create location list for error & warning",
+      "default": true
+    },
+    "diagnostic.highlightOffset": {
+      "type": "number",
+      "description": "Offset number of buffer.addHighlight, neovim only.",
+      "default": 1000
+    },
+    "diagnostic.signOffset": {
+      "type": "number",
+      "description": "Offset number of sign",
+      "default": 1000
+    },
+    "diagnostic.errorSign": {
+      "type": "string",
+      "description": "Text of error sign",
+      "default": ">>"
+    },
+    "diagnostic.warningSign": {
+      "type": "string",
+      "description": "Text of warning sign",
+      "default": "⚠"
+    },
+    "diagnostic.infoSign": {
+      "type": "string",
+      "description": "Text of info sign",
+      "default": ">>"
+    },
+    "diagnostic.hintSign": {
+      "type": "string",
+      "description": "Text of hint sign",
+      "default": ">>"
+    },
+    "diagnostic.maxWindowHeight": {
+      "type": "number",
+      "description": "Maximum height of diagnostics floating window.",
+      "default": 8
+    },
+    "signature.enable": {
+      "type": "boolean",
+      "description": "Enable signature help when trigger character typed, require restart service on change.",
+      "default": true
+    },
+    "signature.triggerSignatureWait": {
+      "type": "integer",
+      "default": 50,
+      "minimum": 50,
+      "maximum": 500,
+      "description": "Timeout for trigger signature help, in miliseconds."
+    },
+    "signature.target": {
+      "type": "string",
+      "description": "Target of signature help, use float when possible by default.",
+      "enum": ["float", "echo"]
+    },
+    "signature.preferShownAbove": {
+      "type": "boolean",
+      "description": "Show signature help float window above cursor when possible, require restart service on change.",
+      "default": true
+    },
+    "signature.hideOnTextChange": {
+      "type": "boolean",
+      "description": "Hide signature float window when text changed, require restart service on change.",
+      "default": false
+    },
+    "signature.maxWindowHeight": {
+      "type": "number",
+      "description": "Maximum height of floating signature help window.",
+      "default": 8
+    },
+    "codeLens.enable": {
+      "type": "boolean",
+      "description": "Enable codeLens feature, require neovim with set virtual text feature.",
+      "default": false
+    },
+    "codeLens.separator": {
+      "type": "string",
+      "description": "Separator text for codeLens in virtual text",
+      "default": "‣"
+    },
+    "workspace.ignoredFiletypes": {
+      "type": "array",
+      "default": ["markdown", "log", "txt", "help"],
+      "description": "Filetypes that should be ignored for resolve workspace folder.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "list.indicator": {
+      "type": "string",
+      "default": ">",
+      "description": "The characer used as first characer in prompt line"
+    },
+    "list.maxHeight": {
+      "type": "number",
+      "default": 10,
+      "description": "Maximum height of list window."
+    },
+    "list.signOffset": {
+      "type": "number",
+      "default": 900,
+      "description": "Sign offset of list, should be different from other plugins."
+    },
+    "list.selectedSignText": {
+      "type": "string",
+      "default": "*",
+      "description": "Sign text for selected lines."
+    },
+    "list.extendedSearchMode": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable extended search mode which allows multiple search patterns delimited by spaces."
+    },
+    "list.autoResize": {
+      "type": "boolean",
+      "default": true,
+      "description": "Enable auto resize feature."
+    },
+    "list.limitLines": {
+      "type": "number",
+      "default": 30000,
+      "description": "Limit lines for list buffer."
+    },
+    "list.maxPreviewHeight": {
+      "type": "number",
+      "default": 12,
+      "description": "Max height for preview window of list."
+    },
+    "list.previewSplitRight": {
+      "type": "boolean",
+      "default": false,
+      "description": "Use vsplit for preview window."
+    },
+    "list.previewHighlightGroup": {
+      "type": "string",
+      "default": "Search",
+      "description": "Highlight group used for highlight the range in preview window."
+    },
+    "list.nextKeymap": {
+      "type": "string",
+      "default": "<C-j>",
+      "description": "Key used for select next line on insert mode."
+    },
+    "list.previousKeymap": {
+      "type": "string",
+      "default": "<C-k>",
+      "description": "Key used for select previous line on insert mode."
+    },
+    "list.normalMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on normal mode."
+    },
+    "list.insertMappings": {
+      "type": "object",
+      "default": {},
+      "description": "Custom keymappings on insert mode."
+    },
+    "coc.preferences.useQuickfixForLocations": {
+      "type": "boolean",
+      "description": "Use vim's quickfix list for jump locations,\n need restart on change.",
+      "default": false
+    },
+    "coc.preferences.extensionUpdateCheck": {
+      "type": "string",
+      "default": "daily",
+      "description": "Interval for check extension update, could be daily, weekly, never",
+      "enum": ["daily", "weekly", "never"]
+    },
+    "coc.preferences.snippetStatusText": {
+      "type": "string",
+      "default": "SNIP",
+      "description": "Text shown in statusline to indicate snippet session is activated."
+    },
+    "coc.preferences.hoverTarget": {
+      "type": "string",
+      "description": "Target to show hover information, default is floating window when possible.",
+      "enum": ["preview", "echo", "float"]
+    },
+    "coc.preferences.colorSupport": {
+      "type": "boolean",
+      "description": "Enable color highlight if language server support it.",
+      "default": true
+    },
+    "coc.preferences.previewAutoClose": {
+      "type": "boolean",
+      "description": "Auto close preview window on cursor move.",
+      "default": true
+    },
+    "coc.preferences.currentFunctionSymbolAutoUpdate": {
+      "type": "boolean",
+      "description": "Automatically update the value of b:coc_current_function on CursorHold event",
+      "default": false
+    },
+    "coc.preferences.formatOnSaveFiletypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should run format on save.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.preferences.enableFloatHighlight": {
+      "type": "boolean",
+      "description": "Enable highlight for floating window.",
+      "default": true
+    },
+    "coc.preferences.rootPatterns": {
+      "type": "array",
+      "default": [".vim", ".git", ".hg", ".projections.json"],
+      "description": "Root patterns to resolve workspaceFolder from parent folders of opened files, resolved from up to down.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.preferences.watchmanPath": {
+      "type": "string",
+      "description": "executable path for https://facebook.github.io/watchman/, detected from $PATH by default",
+      "default": null
+    },
+    "coc.preferences.jumpCommand": {
+      "type": "string",
+      "description": "Command used for location jump, like goto definition, goto references etc.",
+      "default": "edit",
+      "enum": ["edit", "split", "vsplit", "tabe", "drop", "tab drop"]
+    },
+    "coc.preferences.messageLevel": {
+      "type": "string",
+      "description": "Message level for filter echoed messages, could be 'more', 'warning' and 'error'",
+      "default": "more",
+      "enum": ["more", "warning", "error"]
+    },
+    "coc.preferences.bracketEnterImprove": {
+      "type": "boolean",
+      "description": "Improve enter inside bracket `<> {} [] ()` by add new empty line below and place cursor to it. Works with `coc#on_enter()`",
+      "default": true
+    },
+    "coc.preferences.formatOnType": {
+      "type": "boolean",
+      "description": "Set to true to enable format on type",
+      "default": false
+    },
+    "coc.preferences.snippets.enable": {
+      "type": "boolean",
+      "description": "Set to false to disable snippets support.",
+      "default": true
+    },
+    "coc.source.around.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.around.shortcut": {
+      "type": "string",
+      "default": "A"
+    },
+    "coc.source.around.priority": {
+      "type": "integer",
+      "default": 1
+    },
+    "coc.source.around.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.buffer.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.buffer.shortcut": {
+      "type": "string",
+      "default": "B"
+    },
+    "coc.source.buffer.priority": {
+      "type": "integer",
+      "default": 1
+    },
+    "coc.source.buffer.ignoreGitignore": {
+      "type": "boolean",
+      "default": true,
+      "description": "Ignore git ignored files for buffer words"
+    },
+    "coc.source.buffer.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.enable": {
+      "type": "boolean",
+      "default": true
+    },
+    "coc.source.file.shortcut": {
+      "type": "string",
+      "default": "F"
+    },
+    "coc.source.file.priority": {
+      "type": "integer",
+      "default": 10
+    },
+    "coc.source.file.disableSyntaxes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.triggerCharacters": {
+      "type": "array",
+      "default": ["/"],
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.trimSameExts": {
+      "type": "array",
+      "default": [".ts", ".js"],
+      "description": "Trim same extension on file completion",
+      "items": {
+        "type": "string"
+      }
+    },
+    "coc.source.file.ignoreHidden": {
+      "type": "boolean",
+      "default": true,
+      "description": "Ignore completion for hidden files"
+    },
+    "coc.source.file.ignorePatterns": {
+      "type": "array",
+      "default": [],
+      "description": "Ignore patterns of matcher",
+      "items": {
+        "type": "string"
+      }
+    },
+    "list.source.outline.ctagsFilestypes": {
+      "type": "array",
+      "default": [],
+      "description": "Filetypes that should use ctags for outline instead of language server.",
+      "items": {
+        "type": "string"
+      }
+    },
+    "languageserver": {
+      "type": "object",
+      "default": {},
+      "description": "Dictionary of languageservers, key is used as id of languageserver.",
+      "patternProperties": {
+        "^[_a-zA-Z]+$": {
+          "oneOf": [
+            {
+              "$ref": "#/definitions/languageServerModule"
+            },
+            {
+              "$ref": "#/definitions/languageServerCommand"
+            },
+            {
+              "$ref": "#/definitions/languageServerSocket"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
