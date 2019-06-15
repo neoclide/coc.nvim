@@ -116,7 +116,7 @@ function! coc#list#getchar() abort
 endfunction
 
 function! coc#list#prompt_start() abort
-  call timer_start(&updatetime, {-> coc#list#start_prompt()})
+  call timer_start(100, {-> coc#list#start_prompt()})
 endfunction
 
 function! coc#list#start_prompt()
