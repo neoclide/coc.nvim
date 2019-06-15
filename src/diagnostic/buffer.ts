@@ -177,7 +177,7 @@ export class DiagnosticBuffer implements Disposable {
       let { line } = diagnostic.range.start
       if (lines.has(line)) continue
       lines.add(line)
-      let highlight = getNameFromSeverity(diagnostic.severity) + 'Sign'
+      let highlight = getNameFromSeverity(diagnostic.severity) + 'VirtualText'
       let msg =
         diagnostic.message.split(/\n/)
           .map((l: string) => l.trim())
