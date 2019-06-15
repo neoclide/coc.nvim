@@ -27,10 +27,15 @@ export default class Floating {
 
   constructor(private nvim: Neovim) {
     let configuration = workspace.getConfiguration('suggest')
+    let enableFloat = configuration.get<boolean>('floatEnable', true)
+    let { env } = workspace
+    if (enableFloat && !env.floating && !env.textprop) {
+      enableFloat = false
+    }
     this.config = {
       srcId: workspace.createNameSpace('coc-pum-float'),
       maxPreviewWidth: configuration.get<number>('maxPreviewWidth', 80),
-      enable: configuration.get<boolean>('floatEnable', true)
+      enable: enableFloat
     }
   }
 
@@ -41,8 +46,6 @@ export default class Floating {
 
   private async showDocumentationFloating(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
     let { nvim } = this
-    let { enable } = this.config
-    if (!enable) return
     await this.checkBuffer()
     let rect = await this.calculateBounding(docs, bounding)
     let config = Object.assign({ relative: 'editor', }, rect)
@@ -112,9 +115,10 @@ export default class Floating {
   }
 
   public async show(docs: Documentation[], bounding: PumBounding, token: CancellationToken): Promise<void> {
+    if (!this.config.enable) return
     if (workspace.env.floating) {
       await this.showDocumentationFloating(docs, bounding, token)
-    } else if (workspace.env.textprop) {
+    } else {
       await this.showDocumentationVim(docs, bounding, token)
     }
   }

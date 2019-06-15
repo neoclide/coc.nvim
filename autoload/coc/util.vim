@@ -106,7 +106,7 @@ function! coc#util#cursor()
 endfunction
 
 function! coc#util#close_win(id)
-  if !has('nvim')
+  if !has('nvim') && exists('*popup_close')
     call popup_close(a:id)
     return
   endif
@@ -130,7 +130,7 @@ endfunction
 
 function! coc#util#close_popup()
   if s:is_vim
-    if has('*popup_clear')
+    if exists('*popup_clear')
       call popup_clear()
     endif
   else
