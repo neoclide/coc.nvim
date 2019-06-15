@@ -1,3 +1,17 @@
+# 2019-06-15
+
+- feat(plugin): add popup support of vim
+- refactor(completion): improve float support
+- refactor(floating): remove unused code
+- refactor(workspace): replace find-up
+- refactor(handler): improve message for fold method
+- fix(virtualtext): invalid highlight tag (#874)
+- fix(snippets): fix plaintext check
+- fix(highlight): catch error of child_process.spawn
+- fix(highlight): use v:progpath, fix #871
+- fix(floatFactory): escape feedkeys
+- fix(handler): fix getCurrentFunctionSymbol not work
+
 # 2019-06-12
 
 - feat(document): add getVar method

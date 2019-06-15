@@ -81,15 +81,13 @@ https://yarnpkg.com/en/docs/install
 
 推荐使用 https://github.com/junegunn/vim-plug 添加
 >
-  Plug 'neoclide/coc.nvim', {'do': { -> coc#util#install()}}
+  Plug 'neoclide/coc.nvim', {'branch': 'release'}
 
 到 `init.vim` 然后执行: >
 
   :PlugInstall
 
-如果使用其它插件进行配置，需要插件安装完成后手工执行 `:call coc#util#install()`
-
-或者使用 `:call coc#util#build()` 从源码安装。
+如果使用其它插件进行配置，请使用 release 分支代码。
 
 ==============================================================================
 
