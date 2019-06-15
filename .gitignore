@@ -4,6 +4,8 @@ coverage
 __pycache__
 .pyc
 .log
+src
+publish.sh
 doc/tags
 doc/tags-cn
 node_modules
