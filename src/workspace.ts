@@ -973,7 +973,7 @@ export class Workspace implements IWorkspace {
     msgs = msgs.concat(items.map((str, index) => {
       return `${index + 1}. ${str}`
     }))
-    let res = await this.nvim.call('inputlist', [msgs])
+    let res = await this.callAsync<string>('inputlist', [msgs])
     let n = parseInt(res, 10)
     if (isNaN(n) || n <= 0 || n > msgs.length) return -1
     return n - 1
@@ -999,7 +999,7 @@ export class Workspace implements IWorkspace {
    */
   public async requestInput(title: string, defaultValue?: string): Promise<string> {
     let { nvim } = this
-    let res = await nvim.call('input', [title + ':', defaultValue || ''])
+    let res = await this.callAsync<string>('input', [title + ':', defaultValue || ''])
     nvim.command('normal! :<C-u>', true)
     if (!res) {
       this.showMessage('Empty word, canceled', 'warning')
