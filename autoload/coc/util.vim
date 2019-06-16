@@ -1,8 +1,6 @@
 let s:root = expand('<sfile>:h:h:h')
 let s:is_win = has('win32') || has('win64')
 let s:is_vim = !has('nvim')
-let s:install_yarn = 0
-let s:package_file = s:root.'/package.json'
 
 let s:activate = ""
 let s:quit = ""
@@ -745,13 +743,7 @@ endfunction
 function! coc#util#install_extension(args) abort
   let yarncmd = coc#util#yarn_cmd()
   if empty(yarncmd)
-    if get(s:, 'install_yarn', 0) == 0 && !s:is_win
-      let s:install_yarn = 1
-      echohl MoreMsg | echom 'Installing yarn' | echohl None
-      exe '!curl --compressed -o- -L https://yarnpkg.com/install.sh | sh +m'
-    else
-      echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
-    endif
+    echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
     return
   endif
   let names = join(filter(copy(a:args), 'v:val !~# "^-"'), ' ')
