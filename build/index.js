@@ -44919,7 +44919,7 @@ class Workspace {
         msgs = msgs.concat(items.map((str, index) => {
             return `${index + 1}. ${str}`;
         }));
-        let res = await this.nvim.call('inputlist', [msgs]);
+        let res = await this.callAsync('inputlist', [msgs]);
         let n = parseInt(res, 10);
         if (isNaN(n) || n <= 0 || n > msgs.length)
             return -1;
@@ -44944,7 +44944,7 @@ class Workspace {
      */
     async requestInput(title, defaultValue) {
         let { nvim } = this;
-        let res = await nvim.call('input', [title + ':', defaultValue || '']);
+        let res = await this.callAsync('input', [title + ':', defaultValue || '']);
         nvim.command('normal! :<C-u>', true);
         if (!res) {
             this.showMessage('Empty word, canceled', 'warning');
@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "446f357e25" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c8b0d21231" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -72459,7 +72459,7 @@ class Handler {
             return false;
         }
         if (!newName) {
-            newName = await nvim.call('input', ['new name:', curname]);
+            newName = await workspace_1.default.callAsync('input', ['new name:', curname]);
             nvim.command('normal! :<C-u>', true);
             if (!newName) {
                 workspace_1.default.showMessage('Empty word, canceled', 'warning');
