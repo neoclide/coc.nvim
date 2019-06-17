@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9dffef7e08" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4991469f1f" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -73487,7 +73487,8 @@ class Colors {
             let doc = workspace_1.default.getDocument(textDocument.uri);
             if (doc && doc.bufnr == workspace_1.default.bufnr) {
                 let { range, text } = contentChanges[0];
-                this.highlightColors(doc); // tslint:disable-line
+                await util_1.wait(50);
+                await this.highlightColors(doc);
             }
         }, null, this.disposables);
         workspace_1.default.onDidChangeConfiguration(async (e) => {
