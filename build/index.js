@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "be2ca2bfea" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9dffef7e08" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -70996,7 +70996,7 @@ const source_1 = tslib_1.__importDefault(__webpack_require__(316));
 const fs_2 = __webpack_require__(196);
 const string_1 = __webpack_require__(207);
 const logger = __webpack_require__(182)('source-file');
-const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
+const pathRe = /(?:\.{0,2}|~|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/;
 class File extends source_1.default {
     constructor() {
         super({
