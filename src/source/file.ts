@@ -9,7 +9,7 @@ import { CompleteOption, CompleteResult, ISource, VimCompleteItem } from '../typ
 import { statAsync } from '../util/fs'
 import { byteSlice } from '../util/string'
 const logger = require('../util/logger')('source-file')
-const pathRe = /(?:\.{0,2}|~|([\w.@()-]+))\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
+const pathRe = /(?:\.{0,2}|~|([\w]+)|)\/(?:[\w.@()-]+\/)*(?:[\w.@()-])*$/
 
 interface PathOption {
   pathstr: string
