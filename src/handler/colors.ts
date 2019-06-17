@@ -4,7 +4,7 @@ import { ColorInformation, Disposable, Position } from 'vscode-languageserver-pr
 import events from '../events'
 import languages from '../languages'
 import Document from '../model/document'
-import { disposeAll } from '../util'
+import { disposeAll, wait } from '../util'
 import { equals } from '../util/object'
 import workspace from '../workspace'
 import Highlighter, { toHexString } from './highlighter'
@@ -71,7 +71,8 @@ export default class Colors {
       let doc = workspace.getDocument(textDocument.uri)
       if (doc && doc.bufnr == workspace.bufnr) {
         let { range, text } = contentChanges[0]
-        this.highlightColors(doc) // tslint:disable-line
+        await wait(50)
+        await this.highlightColors(doc)
       }
     }, null, this.disposables)
 
