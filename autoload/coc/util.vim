@@ -192,13 +192,17 @@ function! coc#util#job_command()
     echohl Error | echom '[coc.nvim] '.node.' is not executable, checkout https://nodejs.org/en/download/' | echohl None
     return
   endif
-  let file = s:root.'/build/index.js'
-  if filereadable(file) && !get(g:, 'coc_force_debug', 0)
+  let bundle = s:root.'/build/index.js'
+  if filereadable(bundle) && !get(g:, 'coc_force_debug', 0)
     return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/build/index.js']
   endif
   let file = s:root.'/lib/attach.js'
   if !filereadable(file)
-    echohl Error | echom '[coc.nvim] compiled javascript file not found!' | echohl None
+    if !filereadable(bundle)
+      echohl Error | echom '[coc.nvim] javascript file not found, please compile the code or use release branch.' | echohl None
+    else
+      echohl Error | echom '[coc.nvim] compiled javascript file not found, remove let g:coc_force_debug = 1 in your vimrc.' | echohl None
+    endif
     return
   endif
   return [node] + get(g:, 'coc_node_args', ['--no-warnings']) + [s:root.'/bin/server.js']
