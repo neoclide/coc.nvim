@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d720b108f5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "97dad97f98" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -64749,10 +64749,6 @@ class BaseLanguageClient {
         if (this._clientOptions.revealOutputChannelOn <= level) {
             this.outputChannel.show(true);
         }
-        if (type == 'Error' && message.indexOf('UnhandledPromiseRejectionWarning') == -1) {
-            message = dataString ? message + '\n' + dataString : message;
-            workspace_1.default.showMessage(`Error output from ${this.id}: ${message}`, 'error');
-        }
     }
     info(message, data) {
         this._appendOutput('Info', message, data);
@@ -72209,7 +72205,7 @@ class Handler {
                 return;
             if (!doc.paused)
                 await this.onCharacterType(pre, bufnr);
-            if (languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+            if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
                 doc.forceSync();
                 await util_1.wait(Math.max(triggerSignatureWait, 50));
                 if (lastInsert > curr)
