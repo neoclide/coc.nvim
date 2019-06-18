@@ -153,7 +153,7 @@ export default class Handler {
       let pre = pos[1] == 0 ? '' : line.slice(pos[1] - 1, pos[1])
       if (!pre || isWord(pre)) return
       if (!doc.paused) await this.onCharacterType(pre, bufnr)
-      if (languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
+      if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
         doc.forceSync()
         await wait(Math.max(triggerSignatureWait, 50))
         if (lastInsert > curr) return
