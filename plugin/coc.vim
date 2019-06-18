@@ -9,8 +9,9 @@ let s:root = expand('<sfile>:h:h')
 let g:did_coc_loaded = 1
 let g:coc_service_initialized = 0
 let s:is_vim = !has('nvim')
+let s:is_gvim = get(v:, 'progname', '') ==# 'gvim'
 
-if get(g:, 'coc_start_at_startup', 1)
+if get(g:, 'coc_start_at_startup', 1) && !s:is_gvim
   call coc#rpc#start_server()
 endif
 
@@ -129,7 +130,11 @@ function! s:Enable()
       autocmd CompleteDone      * call coc#util#close_popup()
     endif
 
-    autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
+    if get(g:, 'coc_start_at_startup', 1) && s:is_gvim
+      autocmd VimEnter            * call coc#rpc#start_server()
+    else
+      autocmd VimEnter            * call coc#rpc#notify('VimEnter', [])
+    endif
     if s:is_vim
       if exists('##DirChanged')
         autocmd DirChanged        * call s:Autocmd('DirChanged', expand('<afile>'))
