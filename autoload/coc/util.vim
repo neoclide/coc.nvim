@@ -9,7 +9,7 @@ if has("gui_macvim") && has('gui_running')
 elseif $TERM_PROGRAM ==# "Apple_Terminal"
   let s:app = "Terminal"
 elseif $TERM_PROGRAM ==# "iTerm.app"
-  let s:app = "iTerm"
+  let s:app = "iTerm2"
 elseif has('mac')
   let s:app = "System Events"
   let s:quit = "quit"
