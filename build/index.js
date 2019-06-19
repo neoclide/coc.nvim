@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "97dad97f98" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4ee27ce232" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -70678,6 +70678,7 @@ class Source {
      * Filter words that too short or doesn't match input
      */
     filterWords(words, opt) {
+        let { firstMatch } = this;
         let res = [];
         let { input } = opt;
         let cword = opt.word;
@@ -70687,7 +70688,9 @@ class Source {
         for (let word of words) {
             if (!word || word.length < 3)
                 continue;
-            if (cFirst && cFirst != word[0])
+            if (firstMatch && cFirst != word[0])
+                continue;
+            if (!firstMatch && cFirst.toLowerCase() != word[0].toLowerCase())
                 continue;
             if (word == cword || word == input)
                 continue;

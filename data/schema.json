@@ -753,6 +753,11 @@
       "type": "boolean",
       "default": true
     },
+    "coc.source.around.firstMatch": {
+      "type": "boolean",
+      "description": "Filter complete items by first letter strict match.",
+      "default": true
+    },
     "coc.source.around.shortcut": {
       "type": "string",
       "default": "A"
@@ -779,6 +784,11 @@
     "coc.source.buffer.priority": {
       "type": "integer",
       "default": 1
+    },
+    "coc.source.buffer.firstMatch": {
+      "type": "boolean",
+      "description": "Filter complete items by first letter strict match.",
+      "default": true
     },
     "coc.source.buffer.ignoreGitignore": {
       "type": "boolean",
