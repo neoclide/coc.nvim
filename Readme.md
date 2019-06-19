@@ -77,7 +77,7 @@ Below are the reasons that led coc.nvim to build its own engine:
   Install [nodejs](https://nodejs.org/en/download/):
 
   ```sh
-  curl -sL install-node.now.sh/lts | sh
+  curl -sL install-node.now.sh/lts | bash
   # Optional install yarn if you want install extension by CocInstall command
   curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
