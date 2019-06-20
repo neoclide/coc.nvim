@@ -7,7 +7,7 @@
     "forceConsistentCasingInFileNames": true,
     "noImplicitAny": false,
     "noImplicitThis": true,
-    "noUnusedLocals": true,
+    "noUnusedLocals": false,
     "noUnusedParameters": false,
     "strictPropertyInitialization": false,
     "target": "es2017",
