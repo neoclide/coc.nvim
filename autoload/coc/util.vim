@@ -144,7 +144,7 @@ function! coc#util#close_popup()
 endfunction
 
 function! coc#util#version()
-  let c = execute('version')
+  let c = execute('silent version')
   return matchstr(c, 'NVIM v\zs[^\n-]*')
 endfunction
 
