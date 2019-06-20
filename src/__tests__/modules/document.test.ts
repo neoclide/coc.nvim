@@ -141,7 +141,7 @@ describe('document model properties', () => {
   it('should get variable form buffer', async () => {
     await nvim.command('autocmd BufNewFile,BufRead * let b:coc_enabled = 1')
     let doc = await helper.createDocument()
-    let val = doc.getVar('enabled')
+    let val = doc.getVar<number>('enabled')
     expect(val).toBe(1)
   })
 })
