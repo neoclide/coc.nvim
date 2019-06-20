@@ -262,25 +262,27 @@ command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<lin
 
 call s:Enable()
 
-nnoremap <Plug>(coc-codelens-action)     :<C-u>call CocActionAsync('codeLensAction')<CR>
-vnoremap <Plug>(coc-format-selected)     :<C-u>call CocActionAsync('formatSelected', visualmode())<CR>
-vnoremap <Plug>(coc-codeaction-selected) :<C-u>call CocActionAsync('codeAction',     visualmode())<CR>
-nnoremap <Plug>(coc-codeaction-selected) :<C-u>set  operatorfunc=<SID>CodeActionFromSelected<CR>g@
-nnoremap <Plug>(coc-codeaction)          :<C-u>call CocActionAsync('codeAction',     '')<CR>
-nnoremap <Plug>(coc-rename)              :<C-u>call CocActionAsync('rename')<CR>
-nnoremap <Plug>(coc-format-selected)     :<C-u>set  operatorfunc=<SID>FormatFromSelected<CR>g@
-nnoremap <Plug>(coc-format)              :<C-u>call CocActionAsync('format')<CR>
-nnoremap <Plug>(coc-diagnostic-info)     :<C-u>call CocActionAsync('diagnosticInfo')<CR>
-nnoremap <Plug>(coc-diagnostic-next)     :<C-u>call CocActionAsync('diagnosticNext')<CR>
-nnoremap <Plug>(coc-diagnostic-prev)     :<C-u>call CocActionAsync('diagnosticPrevious')<CR>
-nnoremap <Plug>(coc-definition)          :<C-u>call CocAction('jumpDefinition')<CR>
-nnoremap <Plug>(coc-declaration)         :<C-u>call CocAction('jumpDeclaration')<CR>
-nnoremap <Plug>(coc-implementation)      :<C-u>call CocAction('jumpImplementation')<CR>
-nnoremap <Plug>(coc-type-definition)     :<C-u>call CocAction('jumpTypeDefinition')<CR>
-nnoremap <Plug>(coc-references)          :<C-u>call CocAction('jumpReferences')<CR>
-nnoremap <Plug>(coc-openlink)            :<C-u>call CocActionAsync('openLink')<CR>
-nnoremap <Plug>(coc-fix-current)         :<C-u>call CocActionAsync('doQuickfix')<CR>
-nnoremap <Plug>(coc-float-hide)          :<C-u>call coc#util#float_hide()<CR>
-nnoremap <Plug>(coc-float-jump)          :<c-u>call coc#util#float_jump()<cr>
-nnoremap <Plug>(coc-command-repeat)      :<C-u>call CocAction('repeatCommand')<CR>
-inoremap <silent> <Plug>CocRefresh       <C-r>=coc#_complete()<CR>
+nnoremap <Plug>(coc-codelens-action)       :<C-u>call       CocActionAsync('codeLensAction')<CR>
+vnoremap <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('formatSelected',     visualmode())<CR>
+vnoremap <Plug>(coc-codeaction-selected)   :<C-u>call       CocActionAsync('codeAction',         visualmode())<CR>
+nnoremap <Plug>(coc-codeaction-selected)   :<C-u>set        operatorfunc=<SID>CodeActionFromSelected<CR>g@
+nnoremap <Plug>(coc-codeaction)            :<C-u>call       CocActionAsync('codeAction',         '')<CR>
+nnoremap <Plug>(coc-rename)                :<C-u>call       CocActionAsync('rename')<CR>
+nnoremap <Plug>(coc-format-selected)       :<C-u>set        operatorfunc=<SID>FormatFromSelected<CR>g@
+nnoremap <Plug>(coc-format)                :<C-u>call       CocActionAsync('format')<CR>
+nnoremap <Plug>(coc-diagnostic-info)       :<C-u>call       CocActionAsync('diagnosticInfo')<CR>
+nnoremap <Plug>(coc-diagnostic-next)       :<C-u>call       CocActionAsync('diagnosticNext')<CR>
+nnoremap <Plug>(coc-diagnostic-prev)       :<C-u>call       CocActionAsync('diagnosticPrevious')<CR>
+nnoremap <Plug>(coc-diagnostic-next-error) :<C-u>call       CocActionAsync('diagnosticNext',     'error')<CR>
+nnoremap <Plug>(coc-diagnostic-prev-error) :<C-u>call       CocActionAsync('diagnosticPrevious', 'error')<CR>
+nnoremap <Plug>(coc-definition)            :<C-u>call       CocAction('jumpDefinition')<CR>
+nnoremap <Plug>(coc-declaration)           :<C-u>call       CocAction('jumpDeclaration')<CR>
+nnoremap <Plug>(coc-implementation)        :<C-u>call       CocAction('jumpImplementation')<CR>
+nnoremap <Plug>(coc-type-definition)       :<C-u>call       CocAction('jumpTypeDefinition')<CR>
+nnoremap <Plug>(coc-references)            :<C-u>call       CocAction('jumpReferences')<CR>
+nnoremap <Plug>(coc-openlink)              :<C-u>call       CocActionAsync('openLink')<CR>
+nnoremap <Plug>(coc-fix-current)           :<C-u>call       CocActionAsync('doQuickfix')<CR>
+nnoremap <Plug>(coc-float-hide)            :<C-u>call       coc#util#float_hide()<CR>
+nnoremap <Plug>(coc-float-jump)            :<c-u>call       coc#util#float_jump()<cr>
+nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
+inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>

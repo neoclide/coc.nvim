@@ -223,11 +223,14 @@ export class DiagnosticManager implements Disposable {
   /**
    * Get diagnostics ranges from document
    */
-  public getSortedRanges(uri: string): Range[] {
+  public getSortedRanges(uri: string, severity?: string): Range[] {
     let collections = this.getCollections(uri)
     let res: Range[] = []
+    let level = severity ? severityLevel(severity) : 0
     for (let collection of collections) {
-      let ranges = collection.get(uri).map(o => o.range)
+      let diagnostics = collection.get(uri)
+      if (level) diagnostics = diagnostics.filter(o => o.severity == level)
+      let ranges = diagnostics.map(o => o.range)
       res.push(...ranges)
     }
     res.sort((a, b) => {
@@ -284,13 +287,13 @@ export class DiagnosticManager implements Disposable {
   /**
    * Jump to previouse diagnostic position
    */
-  public async jumpPrevious(): Promise<void> {
+  public async jumpPrevious(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     if (!document) return
     let offset = await workspace.getOffset()
     if (offset == null) return
-    let ranges = this.getSortedRanges(document.uri)
+    let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       workspace.showMessage('Empty diagnostics', 'warning')
       return
@@ -308,11 +311,11 @@ export class DiagnosticManager implements Disposable {
   /**
    * Jump to next diagnostic position
    */
-  public async jumpNext(): Promise<void> {
+  public async jumpNext(severity?: string): Promise<void> {
     let buffer = await this.nvim.buffer
     let document = workspace.getDocument(buffer.id)
     let offset = await workspace.getOffset()
-    let ranges = this.getSortedRanges(document.uri)
+    let ranges = this.getSortedRanges(document.uri, severity)
     if (ranges.length == 0) {
       workspace.showMessage('Empty diagnostics', 'warning')
       return

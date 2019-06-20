@@ -359,10 +359,10 @@ export default class Plugin extends EventEmitter {
           await diagnosticManager.echoMessage()
           break
         case 'diagnosticNext':
-          await diagnosticManager.jumpNext()
+          await diagnosticManager.jumpNext(args[1])
           break
         case 'diagnosticPrevious':
-          await diagnosticManager.jumpPrevious()
+          await diagnosticManager.jumpPrevious(args[1])
           break
         case 'diagnosticList':
           return diagnosticManager.getDiagnosticList()

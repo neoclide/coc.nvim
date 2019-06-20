@@ -97,6 +97,9 @@ describe('diagnostic manager', () => {
     expect(ranges[0]).toEqual(Range.create(0, 0, 0, 1))
     expect(ranges[1]).toEqual(Range.create(0, 1, 0, 2))
     expect(ranges[2]).toEqual(Range.create(1, 0, 1, 2))
+    ranges = manager.getSortedRanges(doc.uri, 'error')
+    expect(ranges.length).toBe(3)
+    expect(manager.getSortedRanges(doc.uri, 'warning').length).toBe(0)
   })
 
   it('should get diagnostics in range', async () => {
