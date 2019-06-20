@@ -38,8 +38,8 @@ interface SymbolInfo {
   kind: string
   level?: number
   containerName?: string
-  selectionRange: Range
-  range?: Range
+  range: Range
+  selectionRange?: Range
 }
 
 interface CommandItem {
@@ -237,8 +237,8 @@ export default class Handler {
     let filetype = document.filetype
     let functionName = ''
     for (let sym of symbols.reverse()) {
-      if (sym.selectionRange
-        && positionInRange(position, sym.selectionRange) == 0
+      if (sym.range
+        && positionInRange(position, sym.range) == 0
         && !sym.text.endsWith(') callback')) {
         functionName = sym.text
         let kind = sym.kind.toLowerCase()
@@ -355,7 +355,7 @@ export default class Handler {
           text: name,
           level,
           kind: getSymbolKind(kind),
-          selectionRange: location.range,
+          range: location.range,
           containerName
         }
         res.push(o)
