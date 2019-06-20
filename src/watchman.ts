@@ -3,7 +3,7 @@ import os from 'os'
 import path from 'path'
 import { OutputChannel } from './types'
 import uuidv1 = require('uuid/v1')
-import { Disposable } from 'vscode-jsonrpc'
+import { Disposable } from 'vscode-languageserver-protocol'
 const logger = require('./util/logger')('watchman')
 const requiredCapabilities = ['relative_root', 'cmd-watch-project', 'wildmatch']
 
