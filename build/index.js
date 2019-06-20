@@ -54084,7 +54084,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c3f49ba800" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4920904af6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54204,10 +54204,10 @@ class Plugin extends events_1.EventEmitter {
                     await manager_1.default.echoMessage();
                     break;
                 case 'diagnosticNext':
-                    await manager_1.default.jumpNext();
+                    await manager_1.default.jumpNext(args[1]);
                     break;
                 case 'diagnosticPrevious':
-                    await manager_1.default.jumpPrevious();
+                    await manager_1.default.jumpPrevious(args[1]);
                     break;
                 case 'diagnosticList':
                     return manager_1.default.getDiagnosticList();
@@ -59070,11 +59070,15 @@ class DiagnosticManager {
     /**
      * Get diagnostics ranges from document
      */
-    getSortedRanges(uri) {
+    getSortedRanges(uri, severity) {
         let collections = this.getCollections(uri);
         let res = [];
+        let level = severity ? util_2.severityLevel(severity) : 0;
         for (let collection of collections) {
-            let ranges = collection.get(uri).map(o => o.range);
+            let diagnostics = collection.get(uri);
+            if (level)
+                diagnostics = diagnostics.filter(o => o.severity == level);
+            let ranges = diagnostics.map(o => o.range);
             res.push(...ranges);
         }
         res.sort((a, b) => {
@@ -59132,7 +59136,7 @@ class DiagnosticManager {
     /**
      * Jump to previouse diagnostic position
      */
-    async jumpPrevious() {
+    async jumpPrevious(severity) {
         let buffer = await this.nvim.buffer;
         let document = workspace_1.default.getDocument(buffer.id);
         if (!document)
@@ -59140,7 +59144,7 @@ class DiagnosticManager {
         let offset = await workspace_1.default.getOffset();
         if (offset == null)
             return;
-        let ranges = this.getSortedRanges(document.uri);
+        let ranges = this.getSortedRanges(document.uri, severity);
         if (ranges.length == 0) {
             workspace_1.default.showMessage('Empty diagnostics', 'warning');
             return;
@@ -59157,11 +59161,11 @@ class DiagnosticManager {
     /**
      * Jump to next diagnostic position
      */
-    async jumpNext() {
+    async jumpNext(severity) {
         let buffer = await this.nvim.buffer;
         let document = workspace_1.default.getDocument(buffer.id);
         let offset = await workspace_1.default.getOffset();
-        let ranges = this.getSortedRanges(document.uri);
+        let ranges = this.getSortedRanges(document.uri, severity);
         if (ranges.length == 0) {
             workspace_1.default.showMessage('Empty diagnostics', 'warning');
             return;

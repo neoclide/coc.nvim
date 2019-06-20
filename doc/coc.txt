@@ -668,6 +668,14 @@ normal mode, `v_` works for visual mode.
 			
 			Jump to previous diagnostic position.
 
+<Plug>(coc-diagnostic-next-error) 		*n_coc-diagnostic-next-error*
+			
+			Jump to next diagnostic error position.
+
+<Plug>(coc-diagnostic-prev-error) 		*n_coc-diagnostic-prev-error*
+			
+			Jump to previous diagnostic error position.
+
 <Plug>(coc-definition) 				*n_coc-definition*
 
 			Jump to definition(s) of current symbol.
