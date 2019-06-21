@@ -126,7 +126,6 @@ export default class Configurations {
     if (_folderConfigurations.has(filepath)) return
     if (path.resolve(filepath, '../..') == os.homedir()) return
     let model = this.parseContentFromFile(filepath)
-    _folderConfigurations.set(filepath, new ConfigurationModel(model.contents))
     this.watchFile(filepath, ConfigurationTarget.Workspace)
     this.changeConfiguration(ConfigurationTarget.Workspace, model, filepath)
   }
@@ -152,7 +151,10 @@ export default class Configurations {
     }
     let configuration = Configurations.parse(data)
     let changed = getChangedKeys(this._configuration.getValue(), configuration.getValue())
-    if (target == ConfigurationTarget.Workspace) this.workspaceConfigFile = configFile
+    if (target == ConfigurationTarget.Workspace && configFile) {
+      this._folderConfigurations.set(configFile, new ConfigurationModel(model.contents))
+      this.workspaceConfigFile = configFile
+    }
     if (changed.length == 0) return
     this._configuration = configuration
     this._onChange.fire({
@@ -235,13 +237,20 @@ export default class Configurations {
       },
       update: (key: string, value: any, isUser = false) => {
         let s = section ? `${section}.${key}` : key
-        // if (!this.workspaceConfigFile) isUser = true
         let target = isUser ? ConfigurationTarget.User : ConfigurationTarget.Workspace
         let model = target == ConfigurationTarget.User ? this.user.clone() : this.workspace.clone()
         if (value == undefined) {
           model.removeValue(s)
         } else {
           model.setValue(s, value)
+        }
+        if (!this.workspaceConfigFile && this._proxy) {
+          let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile
+          if (!fs.existsSync(file)) {
+            let folder = path.dirname(file)
+            if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true })
+            fs.writeFileSync(file, '{}', { encoding: 'utf8' })
+          }
         }
         this.changeConfiguration(target, model, target == ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile)
         if (this._proxy && !global.hasOwnProperty('__TEST__')) {

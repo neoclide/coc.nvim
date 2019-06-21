@@ -652,6 +652,7 @@ export interface TerminalResult {
 }
 
 export interface ConfigurationShape {
+  workspaceConfigFile: string
   $updateConfigurationOption(target: ConfigurationTarget, key: string, value: any): void
   $removeConfigurationOption(target: ConfigurationTarget, key: string): void
 }
