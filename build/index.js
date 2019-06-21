@@ -45654,7 +45654,6 @@ class Configurations {
         if (path_1.default.resolve(filepath, '../..') == os_1.default.homedir())
             return;
         let model = this.parseContentFromFile(filepath);
-        _folderConfigurations.set(filepath, new model_1.ConfigurationModel(model.contents));
         this.watchFile(filepath, types_1.ConfigurationTarget.Workspace);
         this.changeConfiguration(types_1.ConfigurationTarget.Workspace, model, filepath);
     }
@@ -45680,8 +45679,10 @@ class Configurations {
         };
         let configuration = Configurations.parse(data);
         let changed = util_2.getChangedKeys(this._configuration.getValue(), configuration.getValue());
-        if (target == types_1.ConfigurationTarget.Workspace)
+        if (target == types_1.ConfigurationTarget.Workspace && configFile) {
+            this._folderConfigurations.set(configFile, new model_1.ConfigurationModel(model.contents));
             this.workspaceConfigFile = configFile;
+        }
         if (changed.length == 0)
             return;
         this._configuration = configuration;
@@ -45765,7 +45766,6 @@ class Configurations {
             },
             update: (key, value, isUser = false) => {
                 let s = section ? `${section}.${key}` : key;
-                // if (!this.workspaceConfigFile) isUser = true
                 let target = isUser ? types_1.ConfigurationTarget.User : types_1.ConfigurationTarget.Workspace;
                 let model = target == types_1.ConfigurationTarget.User ? this.user.clone() : this.workspace.clone();
                 if (value == undefined) {
@@ -45773,6 +45773,15 @@ class Configurations {
                 }
                 else {
                     model.setValue(s, value);
+                }
+                if (!this.workspaceConfigFile && this._proxy) {
+                    let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile;
+                    if (!fs_1.default.existsSync(file)) {
+                        let folder = path_1.default.dirname(file);
+                        if (!fs_1.default.existsSync(folder))
+                            fs_1.default.mkdirSync(folder, { recursive: true });
+                        fs_1.default.writeFileSync(file, '{}', { encoding: 'utf8' });
+                    }
                 }
                 this.changeConfiguration(target, model, target == types_1.ConfigurationTarget.Workspace ? this.workspaceConfigFile : this.userConfigFile);
                 if (this._proxy && !global.hasOwnProperty('__TEST__')) {
@@ -49449,6 +49458,7 @@ function range(a, b, str) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const jsonc_parser_1 = __webpack_require__(191);
 const vscode_uri_1 = __webpack_require__(174);
 const logger = __webpack_require__(182)('configuration-shape');
@@ -49464,8 +49474,8 @@ class ConfigurationProxy {
         let file = workspace.getConfigFile(target);
         if (!file)
             return;
-        let formattingOptions = await workspace.getFormatOptions();
-        let content = await workspace.readFile(vscode_uri_1.URI.file(file).toString());
+        let formattingOptions = { tabSize: 2, insertSpaces: true };
+        let content = fs_1.default.readFileSync(file, 'utf8');
         value = value == null ? undefined : value;
         let edits = jsonc_parser_1.modify(content, [key], value, { formattingOptions });
         content = jsonc_parser_1.applyEdits(content, edits);
@@ -49474,6 +49484,10 @@ class ConfigurationProxy {
         if (doc)
             nvim.command('checktime', true);
         return;
+    }
+    get workspaceConfigFile() {
+        let folder = path_1.default.join(this.workspace.root, '.vim');
+        return path_1.default.join(folder, 'coc-settings.json');
     }
     $updateConfigurationOption(target, key, value) {
         this.modifyConfiguration(target, key, value); // tslint:disable-line
@@ -54084,7 +54098,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4920904af6" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5c70b7f16e" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -73516,7 +73530,7 @@ class Colors {
             return;
         let { version, changedtick } = document;
         let highlighter = this.getHighlighter(document.bufnr);
-        if (!highlighter && (highlighter.version == version && !force))
+        if (!highlighter || (highlighter.version == version && !force))
             return;
         let colors;
         try {
