@@ -96,7 +96,7 @@ export default class Colors {
     if (['help', 'terminal', 'quickfix'].indexOf(document.buftype) !== -1) return
     let { version, changedtick } = document
     let highlighter = this.getHighlighter(document.bufnr)
-    if (!highlighter && (highlighter.version == version && !force)) return
+    if (!highlighter || (highlighter.version == version && !force)) return
     let colors: ColorInformation[]
     try {
       colors = await languages.provideDocumentColors(document.textDocument)
