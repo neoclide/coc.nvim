@@ -2345,10 +2345,10 @@ lodash@^4.17.11:
   resolved "https://registry.yarnpkg.com/lodash/-/lodash-4.17.11.tgz#b39ea6229ef607ecd89e2c8df12536891cac9b8d"
   integrity sha512-cQKh8igo5QUhZ7lg38DYWAxMvjSAKG0A8wGSVimP07SIUEK2UO+arSRKbRZWtelMtN5V0Hkwh5ryOto/SshYIg==
 
-log4js@^4.3.1:
-  version "4.3.1"
-  resolved "https://registry.yarnpkg.com/log4js/-/log4js-4.3.1.tgz#026cb6fb3cd5b9c4682a96478c356c97b497686e"
-  integrity sha512-nPGS7w7kBnzNm1j8JycFxwLCbIMae8tHCo0cCdx/khB20Tcod8SZThYEB9E0c27ObcTGA1mlPowaf3hantQ/FA==
+log4js@^4.3.2:
+  version "4.3.2"
+  resolved "https://registry.yarnpkg.com/log4js/-/log4js-4.3.2.tgz#2c1d97c2ebeb5172d92df63ebf8750af4a1d91ea"
+  integrity sha512-72GjgSP+ifL156MD/bXEhE7UlFLKS2KkCXujodb1nl1z6PpKhCfS+41dyNQ7zKi4iM49TQl+aWLEISXGLcGCCQ==
   dependencies:
     date-format "^2.0.0"
     debug "^4.1.1"
