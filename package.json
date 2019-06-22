@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@chemzqm/neovim": "5.1.7",
-    "bser": "^2.0.0",
+    "bser": "^2.1.0",
     "debounce": "^1.2.0",
     "fast-diff": "^1.2.0",
     "fb-watchman": "^2.0.0",
