@@ -73,8 +73,13 @@ export default class DocumentHighlighter {
     if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) {
       return null
     }
-    let highlights: DocumentHighlight[] = await languages.getDocumentHighLight(document.textDocument, position)
-    if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+    let highlights: DocumentHighlight[]
+    try {
+      highlights = await languages.getDocumentHighLight(document.textDocument, position)
+      if (workspace.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+        return null
+      }
+    } catch (_e) {
       return null
     }
     return highlights
