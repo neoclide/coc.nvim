@@ -7,12 +7,13 @@ import workspace from '../../workspace'
 import LocationList from './location'
 import { getSymbolKind } from '../../util/convert'
 import { isParentFolder } from '../../util/fs'
+import { score } from '../../util/fzy'
 const logger = require('../../util/logger')('list-symbols')
 
 export default class Symbols extends LocationList {
   public readonly interactive = true
   public readonly description = 'search workspace symbols'
-  public readonly detail = 'Symbols list if provided by server, it works on interactive mode only.\n'
+  public readonly detail = 'Symbols list is provided by server, it works on interactive mode only.'
   public name = 'symbols'
 
   public async loadItems(context: ListContext): Promise<ListItem[]> {
@@ -29,7 +30,6 @@ export default class Symbols extends LocationList {
     }
     let items: ListItem[] = []
     for (let s of symbols) {
-      if (!this.validWorkspaceSymbol(s)) continue
       let kind = getSymbolKind(s.kind)
       let file = URI.parse(s.location.uri).fsPath
       if (isParentFolder(workspace.cwd, file)) {
@@ -39,9 +39,18 @@ export default class Symbols extends LocationList {
         label: `${s.name} [${kind}]\t${file}`,
         filterText: `${s.name}`,
         location: s.location,
-        data: { original: s }
+        data: { original: s, kind: s.kind, file, score: score(input, s.name) }
       })
     }
+    items.sort((a, b) => {
+      if (a.data.score != b.data.score) {
+        return b.data.score - a.data.score
+      }
+      if (a.data.kind != b.data.kind) {
+        return a.data.kind - b.data.kind
+      }
+      return a.data.file.length - b.data.file.length
+    })
     return items
   }
 
