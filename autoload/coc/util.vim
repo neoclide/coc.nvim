@@ -247,6 +247,16 @@ function! coc#util#jump(cmd, filepath, ...) abort
   endif
 endfunction
 
+function! coc#util#jumpTo(line, character) abort
+  let content = getline(a:line + 1)
+  let pre = strcharpart(content, 0, a:character)
+  let col = strlen(pre) + 1
+  call cursor(a:line + 1, col)
+  if s:is_vim
+    redraw
+  endif
+endfunction
+
 function! coc#util#echo_messages(hl, msgs)
   if empty(a:msgs) | return | endif
   if a:hl !~# 'Error' && (mode() !~# '\v^(i|n)$')

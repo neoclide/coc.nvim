@@ -557,6 +557,11 @@
       "description": "Target of signature help, use float when possible by default.",
       "enum": ["float", "echo"]
     },
+    "signature.floatTimeout": {
+      "type": "integer",
+      "default": 1000,
+      "description": "Timeout for hide float window on cursor moved, in miliseconds."
+    },
     "signature.preferShownAbove": {
       "type": "boolean",
       "description": "Show signature help float window above cursor when possible, require restart service on change.",

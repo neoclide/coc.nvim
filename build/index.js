@@ -44717,10 +44717,7 @@ class Workspace {
      * Move cursor to position.
      */
     async moveTo(position) {
-        let { nvim } = this;
-        let line = await nvim.call('getline', position.line + 1);
-        let col = string_1.byteLength(line.slice(0, position.character)) + 1;
-        await nvim.call('cursor', [position.line + 1, col]);
+        await this.callAsync('coc#util#jumpTo', [position.line, position.character]);
     }
     /**
      * Create a file in vim and disk
@@ -54098,7 +54095,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5c70b7f16e" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "721163331b" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -58116,7 +58113,7 @@ const basic_1 = tslib_1.__importDefault(__webpack_require__(297));
 exports.BasicList = basic_1.default;
 const manager_3 = tslib_1.__importDefault(__webpack_require__(243));
 exports.diagnosticManager = manager_3.default;
-const ansiparse_1 = __webpack_require__(313);
+const ansiparse_1 = __webpack_require__(314);
 exports.ansiparse = ansiparse_1.ansiparse;
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(223));
 exports.Watchman = watchman_1.default;
@@ -59453,12 +59450,13 @@ const popup_1 = tslib_1.__importDefault(__webpack_require__(249));
 const logger = __webpack_require__(182)('model-float');
 // factory class for floating window
 class FloatFactory {
-    constructor(nvim, env, preferTop = false, maxHeight = 999, maxWidth) {
+    constructor(nvim, env, preferTop = false, maxHeight = 999, maxWidth, timeout = 500) {
         this.nvim = nvim;
         this.env = env;
         this.preferTop = preferTop;
         this.maxHeight = maxHeight;
         this.maxWidth = maxWidth;
+        this.timeout = timeout;
         this.disposables = [];
         this.alignTop = false;
         this.createTs = 0;
@@ -59507,7 +59505,7 @@ class FloatFactory {
             if (this.createTs > ts)
                 return;
             this.close();
-        }, 500);
+        }, this.timeout);
     }
     async checkFloatBuffer() {
         let { floatBuffer, nvim, window } = this;
@@ -66140,9 +66138,9 @@ const output_1 = tslib_1.__importDefault(__webpack_require__(306));
 const services_1 = tslib_1.__importDefault(__webpack_require__(307));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(308));
 const symbols_1 = tslib_1.__importDefault(__webpack_require__(309));
-const actions_1 = tslib_1.__importDefault(__webpack_require__(310));
-const ui_1 = tslib_1.__importDefault(__webpack_require__(311));
-const worker_1 = tslib_1.__importDefault(__webpack_require__(312));
+const actions_1 = tslib_1.__importDefault(__webpack_require__(311));
+const ui_1 = tslib_1.__importDefault(__webpack_require__(312));
+const worker_1 = tslib_1.__importDefault(__webpack_require__(313));
 const logger = __webpack_require__(182)('list-manager');
 const mouseKeys = ['<LeftMouse>', '<LeftDrag>', '<LeftRelease>', '<2-LeftMouse>'];
 class ListManager {
@@ -68916,13 +68914,14 @@ const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const location_1 = tslib_1.__importDefault(__webpack_require__(299));
 const convert_1 = __webpack_require__(305);
 const fs_1 = __webpack_require__(196);
+const fzy_1 = __webpack_require__(310);
 const logger = __webpack_require__(182)('list-symbols');
 class Symbols extends location_1.default {
     constructor() {
         super(...arguments);
         this.interactive = true;
         this.description = 'search workspace symbols';
-        this.detail = 'Symbols list if provided by server, it works on interactive mode only.\n';
+        this.detail = 'Symbols list is provided by server, it works on interactive mode only.';
         this.name = 'symbols';
     }
     async loadItems(context) {
@@ -68940,8 +68939,6 @@ class Symbols extends location_1.default {
         }
         let items = [];
         for (let s of symbols) {
-            if (!this.validWorkspaceSymbol(s))
-                continue;
             let kind = convert_1.getSymbolKind(s.kind);
             let file = vscode_uri_1.URI.parse(s.location.uri).fsPath;
             if (fs_1.isParentFolder(workspace_1.default.cwd, file)) {
@@ -68951,9 +68948,18 @@ class Symbols extends location_1.default {
                 label: `${s.name} [${kind}]\t${file}`,
                 filterText: `${s.name}`,
                 location: s.location,
-                data: { original: s }
+                data: { original: s, kind: s.kind, file, score: fzy_1.score(input, s.name) }
             });
         }
+        items.sort((a, b) => {
+            if (a.data.score != b.data.score) {
+                return b.data.score - a.data.score;
+            }
+            if (a.data.kind != b.data.kind) {
+                return a.data.kind - b.data.kind;
+            }
+            return a.data.file.length - b.data.file.length;
+        });
         return items;
     }
     async resolveItem(item) {
@@ -69008,6 +69014,177 @@ exports.default = Symbols;
 
 /***/ }),
 /* 310 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+let SCORE_MIN = -Infinity;
+let SCORE_MAX = Infinity;
+let SCORE_GAP_LEADING = -0.005;
+let SCORE_GAP_TRAILING = -0.005;
+let SCORE_GAP_INNER = -0.01;
+let SCORE_MATCH_CONSECUTIVE = 1;
+let SCORE_MATCH_SLASH = 0.9;
+let SCORE_MATCH_WORD = 0.8;
+let SCORE_MATCH_CAPITAL = 0.7;
+let SCORE_MATCH_DOT = 0.6;
+function islower(s) {
+    return s.toLowerCase() === s;
+}
+function isupper(s) {
+    return s.toUpperCase() === s;
+}
+function precompute_bonus(haystack) {
+    /* Which positions are beginning of words */
+    let m = haystack.length;
+    let match_bonus = new Array(m);
+    let last_ch = '/';
+    for (let i = 0; i < m; i++) {
+        let ch = haystack[i];
+        if (last_ch === '/') {
+            match_bonus[i] = SCORE_MATCH_SLASH;
+        }
+        else if (last_ch === '-' || last_ch === '_' || last_ch === ' ') {
+            match_bonus[i] = SCORE_MATCH_WORD;
+        }
+        else if (last_ch === '.') {
+            match_bonus[i] = SCORE_MATCH_DOT;
+        }
+        else if (islower(last_ch) && isupper(ch)) {
+            match_bonus[i] = SCORE_MATCH_CAPITAL;
+        }
+        else {
+            match_bonus[i] = 0;
+        }
+        last_ch = ch;
+    }
+    return match_bonus;
+}
+function compute(needle, haystack, D, M) {
+    let n = needle.length;
+    let m = haystack.length;
+    let lower_needle = needle.toLowerCase();
+    let lower_haystack = haystack.toLowerCase();
+    let match_bonus = precompute_bonus(haystack);
+    /*
+     * D[][] Stores the best score for this position ending with a match.
+     * M[][] Stores the best possible score at this position.
+     */
+    for (let i = 0; i < n; i++) {
+        D[i] = new Array(m);
+        M[i] = new Array(m);
+        let prev_score = SCORE_MIN;
+        let gap_score = i === n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
+        for (let j = 0; j < m; j++) {
+            if (lower_needle[i] === lower_haystack[j]) {
+                let score = SCORE_MIN;
+                if (!i) {
+                    score = (j * SCORE_GAP_LEADING) + match_bonus[j];
+                }
+                else if (j) { /* i > 0 && j > 0*/
+                    score = Math.max(M[i - 1][j - 1] + match_bonus[j], 
+                    /* consecutive match, doesn't stack with match_bonus */
+                    D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE);
+                }
+                D[i][j] = score;
+                M[i][j] = prev_score = Math.max(score, prev_score + gap_score);
+            }
+            else {
+                D[i][j] = SCORE_MIN;
+                M[i][j] = prev_score = prev_score + gap_score;
+            }
+        }
+    }
+}
+function score(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    if (!n || !m)
+        return SCORE_MIN;
+    if (n === m) {
+        /* Since this method can only be called with a haystack which
+         * matches needle. If the lengths of the strings are equal the
+         * strings themselves must also be equal (ignoring case).
+         */
+        return SCORE_MAX;
+    }
+    if (m > 1024) {
+        /*
+         * Unreasonably large candidate: return no score
+         * If it is a valid match it will still be returned, it will
+         * just be ranked below any reasonably sized candidates
+         */
+        return SCORE_MIN;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    return M[n - 1][m - 1];
+}
+exports.score = score;
+function positions(needle, haystack) {
+    let n = needle.length;
+    let m = haystack.length;
+    let positions = new Array(n);
+    if (!n || !m)
+        return positions;
+    if (n === m) {
+        for (let i = 0; i < n; i++)
+            positions[i] = i;
+        return positions;
+    }
+    if (m > 1024) {
+        return positions;
+    }
+    let D = new Array(n);
+    let M = new Array(n);
+    compute(needle, haystack, D, M);
+    /* backtrack to find the positions of optimal matching */
+    let match_required = false;
+    for (let i = n - 1, j = m - 1; i >= 0; i--) {
+        for (; j >= 0; j--) {
+            /*
+             * There may be multiple paths which result in
+             * the optimal weight.
+             *
+             * For simplicity, we will pick the first one
+             * we encounter, the latest in the candidate
+             * string.
+             */
+            if (D[i][j] !== SCORE_MIN &&
+                (match_required || D[i][j] === M[i][j])) {
+                /* If this score was determined using
+                 * SCORE_MATCH_CONSECUTIVE, the
+                 * previous character MUST be a match
+                 */
+                match_required =
+                    i && j &&
+                        M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
+                positions[i] = j--;
+                break;
+            }
+        }
+    }
+    return positions;
+}
+exports.positions = positions;
+function hasMatch(needle, haystack) {
+    needle = needle.toLowerCase();
+    haystack = haystack.toLowerCase();
+    let l = needle.length;
+    for (let i = 0, j = 0; i < l; i += 1) {
+        j = haystack.indexOf(needle[i], j) + 1;
+        if (j === 0)
+            return false;
+    }
+    return true;
+}
+exports.hasMatch = hasMatch;
+//# sourceMappingURL=fzy.js.map
+
+/***/ }),
+/* 311 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69137,7 +69314,7 @@ exports.default = ActionsList;
 //# sourceMappingURL=actions.js.map
 
 /***/ }),
-/* 311 */
+/* 312 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69635,7 +69812,7 @@ exports.default = ListUI;
 //# sourceMappingURL=ui.js.map
 
 /***/ }),
-/* 312 */
+/* 313 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -69643,9 +69820,9 @@ exports.default = ListUI;
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const vscode_languageserver_protocol_1 = __webpack_require__(146);
-const ansiparse_1 = __webpack_require__(313);
+const ansiparse_1 = __webpack_require__(314);
 const diff_1 = __webpack_require__(204);
-const fzy_1 = __webpack_require__(314);
+const fzy_1 = __webpack_require__(310);
 const score_1 = __webpack_require__(315);
 const string_1 = __webpack_require__(206);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
@@ -70102,7 +70279,7 @@ function logError(e) {
 //# sourceMappingURL=worker.js.map
 
 /***/ }),
-/* 313 */
+/* 314 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -70290,177 +70467,6 @@ function ansiparse(str) {
 }
 exports.ansiparse = ansiparse;
 //# sourceMappingURL=ansiparse.js.map
-
-/***/ }),
-/* 314 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-Object.defineProperty(exports, "__esModule", { value: true });
-let SCORE_MIN = -Infinity;
-let SCORE_MAX = Infinity;
-let SCORE_GAP_LEADING = -0.005;
-let SCORE_GAP_TRAILING = -0.005;
-let SCORE_GAP_INNER = -0.01;
-let SCORE_MATCH_CONSECUTIVE = 1;
-let SCORE_MATCH_SLASH = 0.9;
-let SCORE_MATCH_WORD = 0.8;
-let SCORE_MATCH_CAPITAL = 0.7;
-let SCORE_MATCH_DOT = 0.6;
-function islower(s) {
-    return s.toLowerCase() === s;
-}
-function isupper(s) {
-    return s.toUpperCase() === s;
-}
-function precompute_bonus(haystack) {
-    /* Which positions are beginning of words */
-    let m = haystack.length;
-    let match_bonus = new Array(m);
-    let last_ch = '/';
-    for (let i = 0; i < m; i++) {
-        let ch = haystack[i];
-        if (last_ch === '/') {
-            match_bonus[i] = SCORE_MATCH_SLASH;
-        }
-        else if (last_ch === '-' || last_ch === '_' || last_ch === ' ') {
-            match_bonus[i] = SCORE_MATCH_WORD;
-        }
-        else if (last_ch === '.') {
-            match_bonus[i] = SCORE_MATCH_DOT;
-        }
-        else if (islower(last_ch) && isupper(ch)) {
-            match_bonus[i] = SCORE_MATCH_CAPITAL;
-        }
-        else {
-            match_bonus[i] = 0;
-        }
-        last_ch = ch;
-    }
-    return match_bonus;
-}
-function compute(needle, haystack, D, M) {
-    let n = needle.length;
-    let m = haystack.length;
-    let lower_needle = needle.toLowerCase();
-    let lower_haystack = haystack.toLowerCase();
-    let match_bonus = precompute_bonus(haystack);
-    /*
-     * D[][] Stores the best score for this position ending with a match.
-     * M[][] Stores the best possible score at this position.
-     */
-    for (let i = 0; i < n; i++) {
-        D[i] = new Array(m);
-        M[i] = new Array(m);
-        let prev_score = SCORE_MIN;
-        let gap_score = i === n - 1 ? SCORE_GAP_TRAILING : SCORE_GAP_INNER;
-        for (let j = 0; j < m; j++) {
-            if (lower_needle[i] === lower_haystack[j]) {
-                let score = SCORE_MIN;
-                if (!i) {
-                    score = (j * SCORE_GAP_LEADING) + match_bonus[j];
-                }
-                else if (j) { /* i > 0 && j > 0*/
-                    score = Math.max(M[i - 1][j - 1] + match_bonus[j], 
-                    /* consecutive match, doesn't stack with match_bonus */
-                    D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE);
-                }
-                D[i][j] = score;
-                M[i][j] = prev_score = Math.max(score, prev_score + gap_score);
-            }
-            else {
-                D[i][j] = SCORE_MIN;
-                M[i][j] = prev_score = prev_score + gap_score;
-            }
-        }
-    }
-}
-function score(needle, haystack) {
-    let n = needle.length;
-    let m = haystack.length;
-    if (!n || !m)
-        return SCORE_MIN;
-    if (n === m) {
-        /* Since this method can only be called with a haystack which
-         * matches needle. If the lengths of the strings are equal the
-         * strings themselves must also be equal (ignoring case).
-         */
-        return SCORE_MAX;
-    }
-    if (m > 1024) {
-        /*
-         * Unreasonably large candidate: return no score
-         * If it is a valid match it will still be returned, it will
-         * just be ranked below any reasonably sized candidates
-         */
-        return SCORE_MIN;
-    }
-    let D = new Array(n);
-    let M = new Array(n);
-    compute(needle, haystack, D, M);
-    return M[n - 1][m - 1];
-}
-exports.score = score;
-function positions(needle, haystack) {
-    let n = needle.length;
-    let m = haystack.length;
-    let positions = new Array(n);
-    if (!n || !m)
-        return positions;
-    if (n === m) {
-        for (let i = 0; i < n; i++)
-            positions[i] = i;
-        return positions;
-    }
-    if (m > 1024) {
-        return positions;
-    }
-    let D = new Array(n);
-    let M = new Array(n);
-    compute(needle, haystack, D, M);
-    /* backtrack to find the positions of optimal matching */
-    let match_required = false;
-    for (let i = n - 1, j = m - 1; i >= 0; i--) {
-        for (; j >= 0; j--) {
-            /*
-             * There may be multiple paths which result in
-             * the optimal weight.
-             *
-             * For simplicity, we will pick the first one
-             * we encounter, the latest in the candidate
-             * string.
-             */
-            if (D[i][j] !== SCORE_MIN &&
-                (match_required || D[i][j] === M[i][j])) {
-                /* If this score was determined using
-                 * SCORE_MATCH_CONSECUTIVE, the
-                 * previous character MUST be a match
-                 */
-                match_required =
-                    i && j &&
-                        M[i][j] === D[i - 1][j - 1] + SCORE_MATCH_CONSECUTIVE;
-                positions[i] = j--;
-                break;
-            }
-        }
-    }
-    return positions;
-}
-exports.positions = positions;
-function hasMatch(needle, haystack) {
-    needle = needle.toLowerCase();
-    haystack = haystack.toLowerCase();
-    let l = needle.length;
-    for (let i = 0, j = 0; i < l; i += 1) {
-        j = haystack.indexOf(needle[i], j) + 1;
-        if (j === 0)
-            return false;
-    }
-    return true;
-}
-exports.hasMatch = hasMatch;
-//# sourceMappingURL=fzy.js.map
 
 /***/ }),
 /* 315 */
@@ -72159,7 +72165,7 @@ class Handler {
         this.hoverFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
         this.disposables.push(this.hoverFactory);
         let { signaturePreferAbove, signatureMaxHeight } = this.preferences;
-        this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight);
+        this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight, this.preferences.signatureHelpTimeout);
         this.disposables.push(this.signatureFactory);
         events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
             if (this.preferences.signatureHideOnChange) {
@@ -72797,6 +72803,10 @@ class Handler {
             this.signatureTokenSource = null;
         }
         let part = document.getline(position.line).slice(0, position.character);
+        if (part.endsWith(')')) {
+            this.signatureFactory.close();
+            return;
+        }
         let idx = Math.max(part.lastIndexOf(','), part.lastIndexOf('('));
         if (idx != -1)
             position.character = idx + 1;
@@ -73076,6 +73086,7 @@ class Handler {
             signatureHelpTarget,
             signatureMaxHeight: signatureConfig.get('maxWindowHeight', 8),
             triggerSignatureHelp: signatureConfig.get('enable', true),
+            signatureHelpTimeout: signatureConfig.get('floatTimeout', 1000),
             triggerSignatureWait: signatureConfig.get('triggerSignatureWait', 50),
             signaturePreferAbove: signatureConfig.get('preferShownAbove', true),
             signatureHideOnChange: signatureConfig.get('hideOnTextChange', false),
@@ -73877,8 +73888,14 @@ class DocumentHighlighter {
         if (!ch || !document.isWord(ch) || this.colors.hasColorAtPostion(bufnr, position)) {
             return null;
         }
-        let highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
-        if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+        let highlights;
+        try {
+            highlights = await languages_1.default.getDocumentHighLight(document.textDocument, position);
+            if (workspace_1.default.bufnr != document.bufnr || (this.cursorMoveTs && this.cursorMoveTs > ts)) {
+                return null;
+            }
+        }
+        catch (_e) {
             return null;
         }
         return highlights;
@@ -76072,7 +76089,7 @@ function onceStrict (fn) {
 /* 343 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.71","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.14","@types/minimatch":"^3.0.3","@types/node":"^12.0.8","@types/semver":"^6.0.0","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.17.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.0.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.1","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.71","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/node":"^12.0.8","@types/semver":"^6.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","rimraf":"^2.6.3","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.0.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.2","minimatch":"^3.0.4","semver":"^6.1.1","tslib":"^1.10.0","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
