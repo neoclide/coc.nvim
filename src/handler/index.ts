@@ -57,6 +57,7 @@ interface Preferences {
   signaturePreferAbove: boolean
   signatureHideOnChange: boolean
   signatureHelpTarget: string
+  signatureHelpTimeout: number
   triggerSignatureHelp: boolean
   triggerSignatureWait: number
   formatOnType: boolean
@@ -90,7 +91,12 @@ export default class Handler {
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.hoverFactory)
     let { signaturePreferAbove, signatureMaxHeight } = this.preferences
-    this.signatureFactory = new FloatFactory(nvim, workspace.env, signaturePreferAbove, signatureMaxHeight)
+    this.signatureFactory = new FloatFactory(
+      nvim,
+      workspace.env,
+      signaturePreferAbove,
+      signatureMaxHeight,
+      this.preferences.signatureHelpTimeout)
     this.disposables.push(this.signatureFactory)
 
     events.on(['TextChangedI', 'TextChangedP'], async () => {
@@ -971,6 +977,7 @@ export default class Handler {
       signatureHelpTarget,
       signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
+      signatureHelpTimeout: signatureConfig.get<number>('floatTimeout', 1000),
       triggerSignatureWait: signatureConfig.get<number>('triggerSignatureWait', 50),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),

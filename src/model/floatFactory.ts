@@ -34,7 +34,8 @@ export default class FloatFactory implements Disposable {
     private env: Env,
     private preferTop = false,
     private maxHeight = 999,
-    private maxWidth?: number) {
+    private maxWidth?: number,
+    private timeout = 500) {
     if (!env.floating && !env.textprop) return
     events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
@@ -70,7 +71,7 @@ export default class FloatFactory implements Disposable {
     setTimeout(() => {
       if (this.createTs > ts) return
       this.close()
-    }, 500)
+    }, this.timeout)
   }
 
   private async checkFloatBuffer(): Promise<void> {
