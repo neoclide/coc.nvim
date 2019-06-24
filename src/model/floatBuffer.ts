@@ -11,6 +11,7 @@ export default class FloatBuffer {
   private highlights: Highlight[]
   private positions: [number, number, number?][] = []
   private enableHighlight = true
+  private tabstop = 2
   public width = 0
   constructor(
     private nvim: Neovim,
@@ -19,6 +20,11 @@ export default class FloatBuffer {
   ) {
     let config = workspace.getConfiguration('coc.preferences')
     this.enableHighlight = config.get<boolean>('enableFloatHighlight', true)
+    buffer.getOption('tabstop').then(val => {
+      this.tabstop = val as number
+    }, _e => {
+      // noop
+    })
   }
 
   public getHeight(docs: Documentation[], maxWidth: number): number {
@@ -73,12 +79,18 @@ export default class FloatBuffer {
       }
       idx = idx + 1
     }
-    let width = this.width = Math.min(Math.max(...newLines.map(s => byteLength(s))) + 2, maxWidth)
+    let width = this.width = Math.min(Math.max(...newLines.map(s => this.getWidth(s))) + 2, maxWidth)
     this.lines = newLines.map(s => {
       if (s == '—') return '—'.repeat(width - 2)
       return s
     })
     return fragments
+  }
+
+  private getWidth(line: string): number {
+    let { tabstop } = this
+    line = line.replace(/\t/g, ' '.repeat(tabstop))
+    return byteLength(line)
   }
 
   public async setDocuments(docs: Documentation[], maxWidth: number): Promise<void> {
