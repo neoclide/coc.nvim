@@ -12,7 +12,7 @@ import listManager from './list/manager'
 import services from './services'
 import snippetManager from './snippets/manager'
 import sources from './sources'
-import { Autocmd, OutputChannel, PatternType } from './types'
+import { Autocmd, CodeAction, OutputChannel, PatternType } from './types'
 import clean from './util/clean'
 import workspace from './workspace'
 import debounce = require('debounce')
@@ -88,6 +88,17 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('updateConfig', (section: string, val: any) => {
       workspace.configurations.updateUserConfig({ [section]: val })
+    })
+    this.addMethod('getCurrentCodeActions', async (mode?: string, only?: CodeActionKind[]) => {
+      let codeActions = await this.handler.getCurrentCodeActions(mode, only)
+      if (codeActions && codeActions.length > 0) {
+        return codeActions
+      }
+    })
+    this.addMethod('applyCodeAction', async (codeAction: CodeAction) => {
+      if (codeAction) {
+        await this.handler.applyCodeAction(codeAction)
+      }
     })
     this.addMethod('snippetNext', async () => {
       await snippetManager.nextPlaceholder()
