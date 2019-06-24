@@ -286,3 +286,20 @@ nnoremap <Plug>(coc-float-hide)            :<C-u>call       coc#util#float_hide(
 nnoremap <Plug>(coc-float-jump)            :<c-u>call       coc#util#float_jump()<cr>
 nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
+
+vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, v:true])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, v:true])<CR>
+onoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, v:false])<CR>
+onoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, v:false])<CR>
+if ! hasmapto('<Plug>(argtextobjI)', 'v')
+  xmap if <Plug>(coc-funcobj-i)
+endif
+if ! hasmapto('<Plug>(argtextobjA)', 'v')
+  xmap af <Plug>(coc-funcobj-a)
+endif
+if ! hasmapto('<Plug>(argtextobjI)', 'o')
+  omap if <Plug>(coc-funcobj-i)
+endif
+if ! hasmapto('<Plug>(argtextobjA)', 'o')
+  omap af <Plug>(coc-funcobj-a)
+endif

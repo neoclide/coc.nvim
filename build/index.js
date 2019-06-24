@@ -42360,7 +42360,8 @@ function wait(ms) {
 }
 exports.wait = wait;
 function echoMsg(nvim, msg, hl) {
-    nvim.callTimer('coc#util#echo_messages', [hl, msg.split('\n')], true);
+    let method = process.env.VIM_NODE_RPC == '1' ? 'callTimer' : 'call';
+    nvim[method]('coc#util#echo_messages', [hl, msg.split('\n')], true);
 }
 function getUri(fullpath, id, buftype) {
     if (!fullpath)
@@ -44514,6 +44515,55 @@ class Workspace {
             start: document.positionAt(start),
             end: document.positionAt(end)
         };
+    }
+    /**
+     * Visual select range of current document
+     */
+    async selectRange(range) {
+        let { nvim } = this;
+        let { start, end } = range;
+        let [bufnr, ve, selection, mode] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`);
+        let document = this.getDocument(bufnr);
+        if (!document)
+            return;
+        let line = document.getline(start.line);
+        let col = line ? string_1.byteLength(line.slice(0, start.character)) : 0;
+        let endLine = document.getline(end.line);
+        let endCol = endLine ? string_1.byteLength(endLine.slice(0, end.character)) : 0;
+        let move_cmd = '';
+        let resetVirtualEdit = false;
+        // if (mode != 'n') move_cmd += "\\<Esc>"
+        move_cmd += 'v';
+        endCol = await nvim.eval(`virtcol([${end.line + 1}, ${endCol}])`);
+        if (selection == 'inclusive') {
+            if (end.character == 0) {
+                move_cmd += `${end.line}G`;
+            }
+            else {
+                move_cmd += `${end.line + 1}G${endCol}|`;
+            }
+        }
+        else if (selection == 'old') {
+            move_cmd += `${end.line + 1}G${endCol}|`;
+        }
+        else {
+            move_cmd += `${end.line + 1}G${endCol + 1}|`;
+        }
+        col = await nvim.eval(`virtcol([${start.line + 1}, ${col}])`);
+        move_cmd += `o${start.line + 1}G${col + 1}|o`;
+        nvim.pauseNotification();
+        if (ve != 'onemore') {
+            resetVirtualEdit = true;
+            nvim.setOption('virtualedit', 'onemore', true);
+        }
+        nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true);
+        // nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
+        nvim.command(`normal! ${move_cmd}`, true);
+        if (resetVirtualEdit)
+            nvim.setOption('virtualedit', ve, true);
+        if (this.isVim)
+            nvim.command('redraw', true);
+        await nvim.resumeNotification();
     }
     /**
      * Populate locations to UI.
@@ -50201,6 +50251,13 @@ class Document {
     get rootPatterns() {
         return this._rootPatterns;
     }
+    getPosition(lnum, col) {
+        let line = this.getline(lnum - 1);
+        if (!line)
+            return { line: lnum - 1, character: 0 };
+        let pre = string_1.byteSlice(line, 0, col - 1);
+        return { line: lnum - 1, character: pre.length };
+    }
 }
 exports.default = Document;
 //# sourceMappingURL=document.js.map
@@ -53911,6 +53968,9 @@ class Plugin extends events_1.EventEmitter {
             await this.ready;
             return await this.handler.runCommand(...args);
         });
+        this.addMethod('selectFunction', async (inner, visual) => {
+            return await this.handler.selectFunction(inner, visual);
+        });
         this.addMethod('listResume', () => {
             return manager_2.default.resume();
         });
@@ -54095,7 +54155,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "721163331b" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "d6469e0d81" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -66269,6 +66329,7 @@ class ListManager {
             await this.getCharMap();
             await this.history.load();
             this.window = await this.nvim.window;
+            this.savedHeight = await this.window.height;
             this.prompt.start(options);
             await this.worker.loadItems();
         }
@@ -66319,7 +66380,7 @@ class ListManager {
         await ui.echoMessage(item);
     }
     async cancel(close = true) {
-        let { nvim, ui } = this;
+        let { nvim, ui, savedHeight } = this;
         if (!this.activated) {
             nvim.call('coc#list#stop_prompt', [], true);
             return;
@@ -66333,9 +66394,7 @@ class ListManager {
         if (close) {
             ui.hide();
             if (this.window) {
-                let valid = await this.window.valid;
-                if (valid)
-                    nvim.call('win_gotoid', this.window.id, true);
+                nvim.call('coc#list#restore', [this.window.id, savedHeight], true);
             }
         }
         await nvim.resumeNotification();
@@ -72753,6 +72812,62 @@ class Handler {
             });
         }
         return res;
+    }
+    async selectFunction(inner, visual) {
+        let { nvim } = this;
+        let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`);
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        let range;
+        if (visual) {
+            if (workspace_1.default.isVim) {
+                // await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+            }
+            let [, sl, sc] = await nvim.call('getpos', "'<");
+            let [, el, ec] = await nvim.call('getpos', "'>");
+            range = vscode_languageserver_protocol_1.Range.create(doc.getPosition(sl, sc), doc.getPosition(el, ec));
+            if (position_1.comparePosition(range.start, range.end) > 0) {
+                range = vscode_languageserver_protocol_1.Range.create(range.end, range.start);
+            }
+        }
+        else {
+            let pos = await workspace_1.default.getCursorPosition();
+            range = vscode_languageserver_protocol_1.Range.create(pos, pos);
+        }
+        let symbols = await this.getDocumentSymbols(doc);
+        if (!symbols || symbols.length === 0) {
+            workspace_1.default.showMessage('No symbols found', 'warning');
+            return;
+        }
+        let properties = symbols.filter(s => s.kind == 'Property');
+        symbols = symbols.filter(s => [
+            'Method',
+            'Function',
+        ].includes(s.kind));
+        let selectRange;
+        for (let sym of symbols.reverse()) {
+            if (sym.range && !object_1.equals(sym.range, range) && position_1.rangeInRange(range, sym.range)) {
+                selectRange = sym.range;
+                break;
+            }
+        }
+        if (!selectRange) {
+            for (let sym of properties) {
+                if (sym.range && !object_1.equals(sym.range, range) && position_1.rangeInRange(range, sym.range)) {
+                    selectRange = sym.range;
+                    break;
+                }
+            }
+        }
+        if (inner && selectRange) {
+            let { start, end } = selectRange;
+            let line = doc.getline(start.line + 1);
+            let endLine = doc.getline(end.line - 1);
+            selectRange = vscode_languageserver_protocol_1.Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length);
+        }
+        if (selectRange)
+            await workspace_1.default.selectRange(selectRange);
     }
     async onCharacterType(ch, bufnr, insertLeave = false) {
         if (!ch || string_1.isWord(ch) || !this.preferences.formatOnType)
