@@ -756,6 +756,15 @@ normal mode, `v_` works for visual mode.
 
 			Jump to first float window.
 
+<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *x_coc-funcobj-i*
+
+			Select inside function, mapped to `if` by default.
+
+<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *x_coc-funcobj-a*
+
+			Select current function, mapped to `af` by default.
+
+
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*
 
