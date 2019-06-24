@@ -14,7 +14,7 @@ import { CodeAction, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { positionInRange } from '../util/position'
+import { positionInRange, comparePosition, rangeInRange } from '../util/position'
 import { isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
@@ -664,6 +664,60 @@ export default class Handler {
       })
     }
     return res
+  }
+
+  public async selectFunction(inner: boolean, visual: boolean): Promise<void> {
+    let { nvim } = this
+    let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`) as [number, string]
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    let range: Range
+    if (visual) {
+      if (workspace.isVim) {
+        // await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+      }
+      let [, sl, sc] = await nvim.call('getpos', "'<") as [number, number, number]
+      let [, el, ec] = await nvim.call('getpos', "'>") as [number, number, number]
+      range = Range.create(doc.getPosition(sl, sc), doc.getPosition(el, ec))
+      if (comparePosition(range.start, range.end) > 0) {
+        range = Range.create(range.end, range.start)
+      }
+    } else {
+      let pos = await workspace.getCursorPosition()
+      range = Range.create(pos, pos)
+    }
+    let symbols = await this.getDocumentSymbols(doc)
+    if (!symbols || symbols.length === 0) {
+      workspace.showMessage('No symbols found', 'warning')
+      return
+    }
+    let properties = symbols.filter(s => s.kind == 'Property')
+    symbols = symbols.filter(s => [
+      'Method',
+      'Function',
+    ].includes(s.kind))
+    let selectRange: Range
+    for (let sym of symbols.reverse()) {
+      if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
+        selectRange = sym.range
+        break
+      }
+    }
+    if (!selectRange) {
+      for (let sym of properties) {
+        if (sym.range && !equals(sym.range, range) && rangeInRange(range, sym.range)) {
+          selectRange = sym.range
+          break
+        }
+      }
+    }
+    if (inner && selectRange) {
+      let { start, end } = selectRange
+      let line = doc.getline(start.line + 1)
+      let endLine = doc.getline(end.line - 1)
+      selectRange = Range.create(start.line + 1, line.match(/^\s*/)[0].length, end.line - 1, endLine.length)
+    }
+    if (selectRange) await workspace.selectRange(selectRange)
   }
 
   private async onCharacterType(ch: string, bufnr: number, insertLeave = false): Promise<void> {

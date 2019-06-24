@@ -569,6 +569,50 @@ export class Workspace implements IWorkspace {
   }
 
   /**
+   * Visual select range of current document
+   */
+  public async selectRange(range: Range): Promise<void> {
+    let { nvim } = this
+    let { start, end } = range
+    let [bufnr, ve, selection, mode] = await nvim.eval(`[bufnr('%'), &virtualedit, &selection, mode()]`) as [number, string, string, string]
+    let document = this.getDocument(bufnr)
+    if (!document) return
+    let line = document.getline(start.line)
+    let col = line ? byteLength(line.slice(0, start.character)) : 0
+    let endLine = document.getline(end.line)
+    let endCol = endLine ? byteLength(endLine.slice(0, end.character)) : 0
+    let move_cmd = ''
+    let resetVirtualEdit = false
+    // if (mode != 'n') move_cmd += "\\<Esc>"
+    move_cmd += 'v'
+    endCol = await nvim.eval(`virtcol([${end.line + 1}, ${endCol}])`) as number
+    if (selection == 'inclusive') {
+      if (end.character == 0) {
+        move_cmd += `${end.line}G`
+      } else {
+        move_cmd += `${end.line + 1}G${endCol}|`
+      }
+    } else if (selection == 'old') {
+      move_cmd += `${end.line + 1}G${endCol}|`
+    } else {
+      move_cmd += `${end.line + 1}G${endCol + 1}|`
+    }
+    col = await nvim.eval(`virtcol([${start.line + 1}, ${col}])`) as number
+    move_cmd += `o${start.line + 1}G${col + 1}|o`
+    nvim.pauseNotification()
+    if (ve != 'onemore') {
+      resetVirtualEdit = true
+      nvim.setOption('virtualedit', 'onemore', true)
+    }
+    nvim.command(`noa call cursor(${start.line + 1},${col + (move_cmd == 'a' ? 0 : 1)})`, true)
+    // nvim.call('eval', [`feedkeys("${move_cmd}", 'in')`], true)
+    nvim.command(`normal! ${move_cmd}`, true)
+    if (resetVirtualEdit) nvim.setOption('virtualedit', ve, true)
+    if (this.isVim) nvim.command('redraw', true)
+    await nvim.resumeNotification()
+  }
+
+  /**
    * Populate locations to UI.
    */
   public async showLocations(locations: Location[]): Promise<void> {

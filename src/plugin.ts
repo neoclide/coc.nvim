@@ -61,6 +61,9 @@ export default class Plugin extends EventEmitter {
       await this.ready
       return await this.handler.runCommand(...args)
     })
+    this.addMethod('selectFunction', async (inner: boolean, visual: boolean) => {
+      return await this.handler.selectFunction(inner, visual)
+    })
     this.addMethod('listResume', () => {
       return listManager.resume()
     })

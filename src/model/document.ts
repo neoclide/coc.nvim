@@ -6,7 +6,7 @@ import { BufferOption, ChangeInfo, Env } from '../types'
 import { diffLines, getChange } from '../util/diff'
 import { isGitIgnored } from '../util/fs'
 import { getUri, wait } from '../util/index'
-import { byteIndex, byteLength } from '../util/string'
+import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { group } from '../util/array'
 const logger = require('../util/logger')('model-document')
@@ -588,5 +588,12 @@ export default class Document {
 
   public get rootPatterns(): string[] | null {
     return this._rootPatterns
+  }
+
+  public getPosition(lnum: number, col: number): Position {
+    let line = this.getline(lnum - 1)
+    if (!line) return { line: lnum - 1, character: 0 }
+    let pre = byteSlice(line, 0, col - 1)
+    return { line: lnum - 1, character: pre.length }
   }
 }
