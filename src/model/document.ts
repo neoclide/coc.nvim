@@ -592,7 +592,7 @@ export default class Document {
 
   public getPosition(lnum: number, col: number): Position {
     let line = this.getline(lnum - 1)
-    if (!line) return { line: lnum - 1, character: 0 }
+    if (!line || col == 0) return { line: lnum - 1, character: 0 }
     let pre = byteSlice(line, 0, col - 1)
     return { line: lnum - 1, character: pre.length }
   }

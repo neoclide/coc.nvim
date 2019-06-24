@@ -756,11 +756,26 @@ normal mode, `v_` works for visual mode.
 
 			Jump to first float window.
 
-<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *x_coc-funcobj-i*
+<Plug>(coc-range-select) 			*n_coc-range-select*
+<Plug>(coc-range-select) 			*v_coc-range-select*
+
+			Select next selection range.
+
+			Note: requires selection ranges feature of language
+			server, like: coc-tsserver, coc-python
+
+<Plug>(coc-range-select-backward) 		*v_coc-range-select-backward*
+
+			Select previous selection range.
+
+			Note: requires selection ranges feature of language
+			server, like: coc-tsserver, coc-python
+
+<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *v_coc-funcobj-i*
 
 			Select inside function, mapped to `if` by default.
 
-<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *x_coc-funcobj-a*
+<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *v_coc-funcobj-a*
 
 			Select current function, mapped to `af` by default.
 

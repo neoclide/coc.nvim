@@ -227,6 +227,17 @@ describe('workspace applyEdits', () => {
 })
 
 describe('workspace methods', () => {
+  it('should selected range', async () => {
+    let buf = await helper.edit()
+    await helper.wait(100)
+    await nvim.setLine('foobar')
+    await nvim.command('normal! viw')
+    await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+    let doc = workspace.getDocument(buf.id)
+    let range = await workspace.getSelectedRange('v', doc)
+    expect(range).toEqual({ start: { line: 0, character: 0 }, end: { line: 0, character: 6 } })
+  })
+
   it('should get the document', async () => {
     let buf = await helper.edit()
     await helper.wait(100)

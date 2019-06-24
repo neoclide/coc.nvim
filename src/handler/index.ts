@@ -80,6 +80,7 @@ export default class Handler {
   private signatureTokenSource: CancellationTokenSource
   private disposables: Disposable[] = []
   private labels: { [key: string]: string } = {}
+  private selectionRange: SelectionRange = null
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -435,7 +436,7 @@ export default class Handler {
     if (!document) return -1
     let range: Range
     if (mode) {
-      range = await workspace.getSelectedRange(mode, document.textDocument)
+      range = await workspace.getSelectedRange(mode, document)
       if (!range) return -1
     } else {
       let lnum = await this.nvim.getVvar('lnum') as number
@@ -500,7 +501,7 @@ export default class Handler {
   public async doCodeAction(mode: string | null, only?: CodeActionKind[] | string): Promise<void> {
     let bufnr = await this.nvim.call('bufnr', '%')
     let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr).textDocument)
+    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr))
     let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null)
     if (!codeActions || codeActions.length == 0) {
       workspace.showMessage('No action available', 'warning')
@@ -529,7 +530,7 @@ export default class Handler {
     let document = workspace.getDocument(bufnr)
     if (!document) return []
     let range: Range
-    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr).textDocument)
+    if (mode) range = await workspace.getSelectedRange(mode, workspace.getDocument(bufnr))
     return await this.getCodeActions(bufnr, range, only)
   }
 
@@ -670,19 +671,14 @@ export default class Handler {
     return res
   }
 
-  public async selectFunction(inner: boolean, visual: boolean): Promise<void> {
+  public async selectFunction(inner: boolean, visualmode: string): Promise<void> {
     let { nvim } = this
     let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`) as [number, string]
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let range: Range
-    if (visual) {
-      let [, sl, sc] = await nvim.call('getpos', "'<") as [number, number, number]
-      let [, el, ec] = await nvim.call('getpos', "'>") as [number, number, number]
-      range = Range.create(doc.getPosition(sl, sc), doc.getPosition(el, ec))
-      if (comparePosition(range.start, range.end) > 0) {
-        range = Range.create(range.end, range.start)
-      }
+    if (visualmode) {
+      range = await workspace.getSelectedRange(visualmode, doc)
     } else {
       let pos = await workspace.getCursorPosition()
       range = Range.create(pos, pos)
@@ -947,6 +943,67 @@ export default class Handler {
     let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(document, [position])
     if (selectionRanges && selectionRanges.length) return selectionRanges
     return null
+  }
+
+  public async selectRange(visualmode: string, forward: boolean): Promise<void> {
+    let { nvim } = this
+    let positions: Position[] = []
+    let bufnr = await nvim.call('bufnr', '%')
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    if (!forward && (!this.selectionRange || !visualmode)) return
+    if (visualmode) {
+      let range = await workspace.getSelectedRange(visualmode, doc)
+      positions.push(range.start, range.end)
+    } else {
+      let position = await workspace.getCursorPosition()
+      positions.push(position)
+    }
+    if (!forward) {
+      let curr = Range.create(positions[0], positions[1])
+      let { selectionRange } = this
+      while (selectionRange && selectionRange.parent) {
+        if (equals(selectionRange.parent.range, curr)) {
+          break
+        }
+        selectionRange = selectionRange.parent
+      }
+      if (selectionRange && selectionRange.parent) {
+        await workspace.selectRange(selectionRange.range)
+      }
+      return
+    }
+    let selectionRanges: SelectionRange[] = await languages.getSelectionRanges(doc.textDocument, positions)
+    if (selectionRanges == null) {
+      workspace.showMessage('Selection range provider not found for current document', 'warning')
+      return
+    }
+    if (!selectionRanges || selectionRanges.length == 0) {
+      workspace.showMessage('No selection range found', 'warning')
+      return
+    }
+    let mode = await nvim.eval('mode()')
+    if (mode != 'n') await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
+    let selectionRange: SelectionRange
+    if (selectionRanges.length == 1) {
+      selectionRange = selectionRanges[0]
+    } else if (positions.length > 1) {
+      let r = Range.create(positions[0], positions[1])
+      selectionRange = selectionRanges[0]
+      while (selectionRange) {
+        if (equals(r, selectionRange.range)) {
+          selectionRange = selectionRange.parent
+          continue
+        }
+        if (positionInRange(positions[1], selectionRange.range) == 0) {
+          break
+        }
+        selectionRange = selectionRange.parent
+      }
+    }
+    if (!selectionRange) return
+    this.selectionRange = selectionRanges[0]
+    await workspace.selectRange(selectionRange.range)
   }
 
   public async codeActionRange(start: number, end: number, only: string): Promise<void> {

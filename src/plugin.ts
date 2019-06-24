@@ -61,8 +61,8 @@ export default class Plugin extends EventEmitter {
       await this.ready
       return await this.handler.runCommand(...args)
     })
-    this.addMethod('selectFunction', async (inner: boolean, visual: boolean) => {
-      return await this.handler.selectFunction(inner, visual)
+    this.addMethod('selectFunction', async (inner: boolean, visualmode: string) => {
+      return await this.handler.selectFunction(inner, visualmode)
     })
     this.addMethod('listResume', () => {
       return listManager.resume()
@@ -387,6 +387,8 @@ export default class Plugin extends EventEmitter {
           return await handler.getDocumentSymbols()
         case 'selectionRanges':
           return await handler.getSelectionRanges()
+        case 'rangeSelect':
+          return await handler.selectRange(args[1], args[2])
         case 'rename':
           await handler.rename(args[1])
           return

@@ -26,7 +26,7 @@ import { distinct } from './util/array'
 import { findUp, isFile, isParentFolder, readFile, readFileLine, renameAsync, resolveRoot, statAsync, writeFile } from './util/fs'
 import { disposeAll, echoErr, echoMessage, echoWarning, getKeymapModifier, isDocumentEdit, isRunning, mkdirp, runCommand } from './util/index'
 import { score } from './util/match'
-import { getChangedFromEdits } from './util/position'
+import { getChangedFromEdits, comparePosition } from './util/position'
 import { byteIndex, byteLength } from './util/string'
 import Watchman from './watchman'
 import uuid = require('uuid/v1')
@@ -545,27 +545,20 @@ export class Workspace implements IWorkspace {
     return new Mru(name)
   }
 
-  public async getSelectedRange(mode: string, document: TextDocument): Promise<Range | null> {
+  public async getSelectedRange(mode: string, document: Document): Promise<Range | null> {
     let { nvim } = this
     if (['v', 'V', 'char', 'line'].indexOf(mode) == -1) {
       this.showMessage(`Mode '${mode}' is not supported`, 'error')
       return null
     }
     let isVisual = ['v', 'V'].indexOf(mode) != -1
-    let c = isVisual ? '<' : '['
-    await nvim.command('normal! `' + c)
-    let start = await this.getOffset()
-    c = isVisual ? '>' : ']'
-    await nvim.command('normal! `' + c)
-    let end = await this.getOffset() + 1
-    if (start == null || end == null || start == end) {
-      this.showMessage(`Failed to get selected range`, 'error')
-      return
+    let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`) as [number, number, number]
+    let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`) as [number, number, number]
+    let range = Range.create(document.getPosition(sl, sc), document.getPosition(el, ec))
+    if (mode == 'v') {
+      range.end.character = range.end.character + 1
     }
-    return {
-      start: document.positionAt(start),
-      end: document.positionAt(end)
-    }
+    return range
   }
 
   /**

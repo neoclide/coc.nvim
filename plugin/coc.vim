@@ -262,6 +262,9 @@ command! -nargs=* -range CocFix    :call coc#rpc#notify('codeActionRange', [<lin
 
 call s:Enable()
 
+vnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     visualmode(), v:true)<CR>
+vnoremap <Plug>(coc-range-select-backword) :<C-u>call       CocAction('rangeSelect',     visualmode(), v:false)<CR>
+nnoremap <Plug>(coc-range-select)          :<C-u>call       CocAction('rangeSelect',     '', v:true)<CR>
 nnoremap <Plug>(coc-codelens-action)       :<C-u>call       CocActionAsync('codeLensAction')<CR>
 vnoremap <Plug>(coc-format-selected)       :<C-u>call       CocActionAsync('formatSelected',     visualmode())<CR>
 vnoremap <Plug>(coc-codeaction-selected)   :<C-u>call       CocActionAsync('codeAction',         visualmode())<CR>
@@ -287,19 +290,19 @@ nnoremap <Plug>(coc-float-jump)            :<c-u>call       coc#util#float_jump(
 nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
-vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, v:true])<CR>
-vnoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, v:true])<CR>
-onoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, v:false])<CR>
-onoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, v:false])<CR>
-if ! hasmapto('<Plug>(coc-funcobj-i)', 'v')
+vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>
+vnoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, visualmode()])<CR>
+onoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, ''])<CR>
+onoremap <silent> <Plug>(coc-funcobj-a) :<C-U>call coc#rpc#request('selectFunction', [v:false, ''])<CR>
+if !hasmapto('<Plug>(coc-funcobj-i)', 'v') && empty(maparg('if', 'x'))
   xmap if <Plug>(coc-funcobj-i)
 endif
-if ! hasmapto('<Plug>(coc-funcobj-a)', 'v')
+if !hasmapto('<Plug>(coc-funcobj-a)', 'v') && empty(maparg('af', 'x'))
   xmap af <Plug>(coc-funcobj-a)
 endif
-if ! hasmapto('<Plug>(coc-funcobj-i)', 'o')
+if !hasmapto('<Plug>(coc-funcobj-i)', 'o') && empty(maparg('if', 'o'))
   omap if <Plug>(coc-funcobj-i)
 endif
-if ! hasmapto('<Plug>(coc-funcobj-a)', 'o')
+if !hasmapto('<Plug>(coc-funcobj-a)', 'o') && empty(maparg('af', 'o'))
   omap af <Plug>(coc-funcobj-a)
 endif
