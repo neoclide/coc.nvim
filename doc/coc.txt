@@ -126,7 +126,7 @@ Builtin configurations:~
 
 "suggest.maxPreviewWidth":~
 
-	Maximum width of floating preview window.,  default: `50`
+	Maximum width of floating preview window.,  default: `80`
 
 "suggest.labelMaxLength":~
 
@@ -1585,7 +1585,7 @@ AUTOCMD 					*coc-autocmds*
 		|g:coc_enable_locationlist| to 0 and use this autocmd with 
 		with |g:coc_jump_locations|
 
-		For example, to enable auto preview for coc list, use:
+		For example, to disable auto preview of location list, use:
 >
 		let g:coc_enable_locationlist = 0
 		autocmd User CocLocationsChange CocList --normal -A location
@@ -1627,8 +1627,6 @@ AUTOCMD 					*coc-autocmds*
 
 HIGHLIGHTS 					*coc-highlights*
 
-You can overwrite the highlights provided by coc with the |:hi| command.
-
 To customize a highlight, simply use |:highlight| command of vim in your
 vimrc, like: >
 	
@@ -1637,7 +1635,9 @@ vimrc, like: >
 <
 Note: don't use `:hi default` for overwriting the highlights.
 
-Note: highlight commands should appear after the |:colorscheme| command.
+Note: highlight commands should appear after the |:colorscheme| command or use
+|ColorScheme| autocmd to make sure customized highlight works after color
+scheme change.
 
 CocErrorSign 					*CocErrorSign*
 
