@@ -44501,20 +44501,13 @@ class Workspace {
             return null;
         }
         let isVisual = ['v', 'V'].indexOf(mode) != -1;
-        let c = isVisual ? '<' : '[';
-        await nvim.command('normal! `' + c);
-        let start = await this.getOffset();
-        c = isVisual ? '>' : ']';
-        await nvim.command('normal! `' + c);
-        let end = await this.getOffset() + 1;
-        if (start == null || end == null || start == end) {
-            this.showMessage(`Failed to get selected range`, 'error');
-            return;
+        let [, sl, sc] = await nvim.call('getpos', isVisual ? `'<` : `'[`);
+        let [, el, ec] = await nvim.call('getpos', isVisual ? `'>` : `']`);
+        let range = vscode_languageserver_protocol_1.Range.create(document.getPosition(sl, sc), document.getPosition(el, ec));
+        if (mode == 'v') {
+            range.end.character = range.end.character + 1;
         }
-        return {
-            start: document.positionAt(start),
-            end: document.positionAt(end)
-        };
+        return range;
     }
     /**
      * Visual select range of current document
@@ -50253,7 +50246,7 @@ class Document {
     }
     getPosition(lnum, col) {
         let line = this.getline(lnum - 1);
-        if (!line)
+        if (!line || col == 0)
             return { line: lnum - 1, character: 0 };
         let pre = string_1.byteSlice(line, 0, col - 1);
         return { line: lnum - 1, character: pre.length };
@@ -53968,8 +53961,8 @@ class Plugin extends events_1.EventEmitter {
             await this.ready;
             return await this.handler.runCommand(...args);
         });
-        this.addMethod('selectFunction', async (inner, visual) => {
-            return await this.handler.selectFunction(inner, visual);
+        this.addMethod('selectFunction', async (inner, visualmode) => {
+            return await this.handler.selectFunction(inner, visualmode);
         });
         this.addMethod('listResume', () => {
             return manager_2.default.resume();
@@ -54155,7 +54148,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d6469e0d81" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9740746768" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54300,6 +54293,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.getDocumentSymbols();
                 case 'selectionRanges':
                     return await handler.getSelectionRanges();
+                case 'rangeSelect':
+                    return await handler.selectRange(args[1], args[2]);
                 case 'rename':
                     await handler.rename(args[1]);
                     return;
@@ -59852,9 +59847,15 @@ class FloatBuffer {
         this.lines = [];
         this.positions = [];
         this.enableHighlight = true;
+        this.tabstop = 2;
         this.width = 0;
         let config = workspace_1.default.getConfiguration('coc.preferences');
         this.enableHighlight = config.get('enableFloatHighlight', true);
+        buffer.getOption('tabstop').then(val => {
+            this.tabstop = val;
+        }, _e => {
+            // noop
+        });
     }
     getHeight(docs, maxWidth) {
         let l = 0;
@@ -59906,13 +59907,18 @@ class FloatBuffer {
             }
             idx = idx + 1;
         }
-        let width = this.width = Math.min(Math.max(...newLines.map(s => string_1.byteLength(s))) + 2, maxWidth);
+        let width = this.width = Math.min(Math.max(...newLines.map(s => this.getWidth(s))) + 2, maxWidth);
         this.lines = newLines.map(s => {
             if (s == '—')
                 return '—'.repeat(width - 2);
             return s;
         });
         return fragments;
+    }
+    getWidth(line) {
+        let { tabstop } = this;
+        line = line.replace(/\t/g, ' '.repeat(tabstop));
+        return string_1.byteLength(line);
     }
     async setDocuments(docs, maxWidth) {
         let fragments = this.calculateFragments(docs, maxWidth);
@@ -61132,7 +61138,7 @@ class SelectionRangeManager extends manager_1.default {
         if (!item)
             return null;
         let { provider } = item;
-        return await Promise.resolve(provider.provideSelectionRanges(document, positions, token));
+        return (await Promise.resolve(provider.provideSelectionRanges(document, positions, token)) || []);
     }
     dispose() {
         this.providers = new Set();
@@ -72215,6 +72221,7 @@ class Handler {
         this.documentLines = [];
         this.disposables = [];
         this.labels = {};
+        this.selectionRange = null;
         this.getPreferences();
         workspace_1.default.onDidChangeConfiguration(e => {
             if (e.affectsConfiguration('coc.preferences')) {
@@ -72325,7 +72332,12 @@ class Handler {
         }, 100), null, this.disposables);
         if (this.preferences.currentFunctionSymbolAutoUpdate) {
             events_1.default.on('CursorHold', async () => {
-                await this.getCurrentFunctionSymbol();
+                try {
+                    await this.getCurrentFunctionSymbol();
+                }
+                catch (e) {
+                    logger.error(e);
+                }
             }, null, this.disposables);
         }
         let provider = {
@@ -72573,7 +72585,7 @@ class Handler {
             return -1;
         let range;
         if (mode) {
-            range = await workspace_1.default.getSelectedRange(mode, document.textDocument);
+            range = await workspace_1.default.getSelectedRange(mode, document);
             if (!range)
                 return -1;
         }
@@ -72644,7 +72656,7 @@ class Handler {
         let bufnr = await this.nvim.call('bufnr', '%');
         let range;
         if (mode)
-            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr).textDocument);
+            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
         let codeActions = await this.getCodeActions(bufnr, range, Array.isArray(only) ? only : null);
         if (!codeActions || codeActions.length == 0) {
             workspace_1.default.showMessage('No action available', 'warning');
@@ -72678,7 +72690,7 @@ class Handler {
             return [];
         let range;
         if (mode)
-            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr).textDocument);
+            range = await workspace_1.default.getSelectedRange(mode, workspace_1.default.getDocument(bufnr));
         return await this.getCodeActions(bufnr, range, only);
     }
     async doQuickfix() {
@@ -72813,23 +72825,15 @@ class Handler {
         }
         return res;
     }
-    async selectFunction(inner, visual) {
+    async selectFunction(inner, visualmode) {
         let { nvim } = this;
         let [bufnr, mode] = await nvim.eval(`[bufnr('%'), mode()]`);
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
         let range;
-        if (visual) {
-            if (workspace_1.default.isVim) {
-                // await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
-            }
-            let [, sl, sc] = await nvim.call('getpos', "'<");
-            let [, el, ec] = await nvim.call('getpos', "'>");
-            range = vscode_languageserver_protocol_1.Range.create(doc.getPosition(sl, sc), doc.getPosition(el, ec));
-            if (position_1.comparePosition(range.start, range.end) > 0) {
-                range = vscode_languageserver_protocol_1.Range.create(range.end, range.start);
-            }
+        if (visualmode) {
+            range = await workspace_1.default.getSelectedRange(visualmode, doc);
         }
         else {
             let pos = await workspace_1.default.getCursorPosition();
@@ -73111,6 +73115,72 @@ class Handler {
         if (selectionRanges && selectionRanges.length)
             return selectionRanges;
         return null;
+    }
+    async selectRange(visualmode, forward) {
+        let { nvim } = this;
+        let positions = [];
+        let bufnr = await nvim.call('bufnr', '%');
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        if (!forward && (!this.selectionRange || !visualmode))
+            return;
+        if (visualmode) {
+            let range = await workspace_1.default.getSelectedRange(visualmode, doc);
+            positions.push(range.start, range.end);
+        }
+        else {
+            let position = await workspace_1.default.getCursorPosition();
+            positions.push(position);
+        }
+        if (!forward) {
+            let curr = vscode_languageserver_protocol_1.Range.create(positions[0], positions[1]);
+            let { selectionRange } = this;
+            while (selectionRange && selectionRange.parent) {
+                if (object_1.equals(selectionRange.parent.range, curr)) {
+                    break;
+                }
+                selectionRange = selectionRange.parent;
+            }
+            if (selectionRange && selectionRange.parent) {
+                await workspace_1.default.selectRange(selectionRange.range);
+            }
+            return;
+        }
+        let selectionRanges = await languages_1.default.getSelectionRanges(doc.textDocument, positions);
+        if (selectionRanges == null) {
+            workspace_1.default.showMessage('Selection range provider not found for current document', 'warning');
+            return;
+        }
+        if (!selectionRanges || selectionRanges.length == 0) {
+            workspace_1.default.showMessage('No selection range found', 'warning');
+            return;
+        }
+        let mode = await nvim.eval('mode()');
+        if (mode != 'n')
+            await nvim.eval(`feedkeys("\\<Esc>", 'in')`);
+        let selectionRange;
+        if (selectionRanges.length == 1) {
+            selectionRange = selectionRanges[0];
+        }
+        else if (positions.length > 1) {
+            let r = vscode_languageserver_protocol_1.Range.create(positions[0], positions[1]);
+            selectionRange = selectionRanges[0];
+            while (selectionRange) {
+                if (object_1.equals(r, selectionRange.range)) {
+                    selectionRange = selectionRange.parent;
+                    continue;
+                }
+                if (position_1.positionInRange(positions[1], selectionRange.range) == 0) {
+                    break;
+                }
+                selectionRange = selectionRange.parent;
+            }
+        }
+        if (!selectionRange)
+            return;
+        this.selectionRange = selectionRanges[0];
+        await workspace_1.default.selectRange(selectionRange.range);
     }
     async codeActionRange(start, end, only) {
         let listArgs = ['--normal', '--number-select', 'actions', `-start`, start + '', `-end`, end + ''];

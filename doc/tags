@@ -197,10 +197,17 @@ n_coc-flost-hide	coc.txt	/*n_coc-flost-hide*
 n_coc-flost-jump	coc.txt	/*n_coc-flost-jump*
 n_coc-format	coc.txt	/*n_coc-format*
 n_coc-format-selected	coc.txt	/*n_coc-format-selected*
+n_coc-funcobj-a	coc.txt	/*n_coc-funcobj-a*
+n_coc-funcobj-i	coc.txt	/*n_coc-funcobj-i*
 n_coc-implementation	coc.txt	/*n_coc-implementation*
 n_coc-openlink	coc.txt	/*n_coc-openlink*
+n_coc-range-select	coc.txt	/*n_coc-range-select*
 n_coc-references	coc.txt	/*n_coc-references*
 n_coc-rename	coc.txt	/*n_coc-rename*
 n_coc-type-definition	coc.txt	/*n_coc-type-definition*
 v_coc-codeaction-selected	coc.txt	/*v_coc-codeaction-selected*
 v_coc-format-selected	coc.txt	/*v_coc-format-selected*
+v_coc-funcobj-a	coc.txt	/*v_coc-funcobj-a*
+v_coc-funcobj-i	coc.txt	/*v_coc-funcobj-i*
+v_coc-range-select	coc.txt	/*v_coc-range-select*
+v_coc-range-select-backward	coc.txt	/*v_coc-range-select-backward*
