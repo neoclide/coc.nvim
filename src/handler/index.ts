@@ -189,7 +189,11 @@ export default class Handler {
 
     if (this.preferences.currentFunctionSymbolAutoUpdate) {
       events.on('CursorHold', async () => {
-        await this.getCurrentFunctionSymbol()
+        try {
+          await this.getCurrentFunctionSymbol()
+        } catch (e) {
+          logger.error(e)
+        }
       }, null, this.disposables)
     }
 
@@ -673,9 +677,6 @@ export default class Handler {
     if (!doc) return
     let range: Range
     if (visual) {
-      if (workspace.isVim) {
-        // await nvim.eval(`feedkeys("\\<Esc>", 'in')`)
-      }
       let [, sl, sc] = await nvim.call('getpos', "'<") as [number, number, number]
       let [, el, ec] = await nvim.call('getpos', "'>") as [number, number, number]
       range = Range.create(doc.getPosition(sl, sc), doc.getPosition(el, ec))
