@@ -107,9 +107,9 @@ class Languages {
 
   constructor() {
     workspace.onWillSaveUntil(event => {
-      let config = workspace.getConfiguration('coc.preferences')
-      let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
       let { languageId } = event.document
+      let config = workspace.getConfiguration('coc.preferences', event.document.uri)
+      let filetypes = config.get<string[]>('formatOnSaveFiletypes', [])
       if (filetypes.indexOf(languageId) !== -1) {
         let willSaveWaitUntil = async (): Promise<TextEdit[]> => {
           let options = await workspace.getFormatOptions(event.document.uri)
