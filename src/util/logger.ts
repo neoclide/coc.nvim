@@ -7,7 +7,7 @@ function getLogFile(): string {
   let file = process.env.NVIM_COC_LOG_FILE
   if (file) return file
   let dir = process.env.XDG_RUNTIME_DIR
-  if (dir) return path.join(dir, 'coc-nvim.log')
+  if (dir) return path.join(dir, `coc-nvim-${process.pid}.log`)
   return path.join(os.tmpdir(), `coc-nvim-${process.pid}.log`)
 }
 
