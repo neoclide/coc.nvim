@@ -78,7 +78,7 @@
     "jsonc-parser": "^2.1.0",
     "log4js": "^4.3.2",
     "minimatch": "^3.0.4",
-    "semver": "^6.1.1",
+    "semver": "^6.1.2",
     "tslib": "^1.10.0",
     "uuid": "^3.3.2",
     "vscode-languageserver-protocol": "3.15.0-next.6",
