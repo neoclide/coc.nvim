@@ -410,7 +410,7 @@ export default class Plugin extends EventEmitter {
         case 'doCodeAction':
           return await handler.applyCodeAction(args[1])
         case 'codeActions':
-          return await handler.getCurrentCodeActions(args[1])
+          return await handler.getCurrentCodeActions(args[1], args[2])
         case 'quickfixes':
           return await handler.getCurrentCodeActions(args[1], [CodeActionKind.QuickFix])
         case 'codeLensAction':

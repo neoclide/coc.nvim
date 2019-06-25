@@ -1460,12 +1460,15 @@ Available Actions ~
 	Requires a language server that supports color representation
 	requests.
 
-"codeActions" [{visualmode}]			*coc-action-codeActions*
+"codeActions" [{visualmode}] [{only}]		*coc-action-codeActions*
 
-	Get codeActions of current buffer.
+	Get codeActions of current range.
 
-	Add {visualmode} as second argument get code actions with range of
-	latest |visualmode()|
+	{visualmode} can be result of |visualmode()| for visual selected
+	range, When it's empty string or not exists use current line.
+
+	{only} can be used to limit codeActionKind, possible values:
+	'refactor', 'quickfix' and 'source'.
 
 "quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
