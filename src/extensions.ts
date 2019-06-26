@@ -154,7 +154,7 @@ export class Extensions {
     let {globalExtensions, watchExtensions} = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = globalExtensions.filter(name => !this.has(name))
-      this.installExtensions(globalExtensions).logError()
+      this.installExtensions(names).logError()
     }
     // watch for changes
     if (watchExtensions && watchExtensions.length) {
