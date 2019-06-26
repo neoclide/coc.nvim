@@ -456,6 +456,7 @@ export class Completion implements Disposable {
 
   public async onPumChange(ev: PopupChangeEvent): Promise<void> {
     if (!this.activted) return
+    if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D')) return
     this.cancel()
     let { completed_item, col, row, height, width, scrollbar } = ev
     let bounding: PumBounding = { col, row, height, width, scrollbar }
