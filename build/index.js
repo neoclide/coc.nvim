@@ -1741,9 +1741,6 @@ exports.default = (opts, requestApi = true) => {
             if (typeof plugin[m] !== 'function') {
                 return resp.send(`Method ${m} not found`, true);
             }
-            if (!plugin.isReady) {
-                await plugin.ready;
-            }
             let res = await Promise.resolve(plugin[m].apply(plugin, args));
             resp.send(res);
         }
@@ -54159,7 +54156,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e2a6538e47" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7e46f13a02" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57058,7 +57055,6 @@ const array_1 = __webpack_require__(208);
 const factory_1 = __webpack_require__(248);
 const fs_2 = __webpack_require__(196);
 const watchman_1 = tslib_1.__importDefault(__webpack_require__(223));
-const which_1 = tslib_1.__importDefault(__webpack_require__(175));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const extension_1 = tslib_1.__importDefault(__webpack_require__(327));
 const commands_1 = tslib_1.__importDefault(__webpack_require__(228));
@@ -57158,6 +57154,10 @@ class Extensions {
     async updateExtensions() {
         if (global.hasOwnProperty('__TEST__'))
             return;
+        if (!this.root) {
+            this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+            this.manager = new extension_1.default(this.root);
+        }
         let stats = await this.globalExtensionStats();
         let versionInfo = {};
         stats = stats.filter(o => !o.exotic);
@@ -57200,16 +57200,11 @@ class Extensions {
         let { npm } = this;
         if (!npm)
             return;
-        let db = loadJson(this.db.filepath);
-        let extension = db ? db.extension : null;
+        if (!this.root) {
+            this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+            this.manager = new extension_1.default(this.root);
+        }
         list = array_1.distinct(list);
-        list = list.filter(name => {
-            if (extension && extension[name] && extension[name].disabled == true) {
-                logger.info(`Extension ${name} is disabled, skiped for install.`);
-                return false;
-            }
-            return true;
-        });
         if (global.hasOwnProperty('__TEST__')) {
             for (let name of list) {
                 let dir = path_1.default.join(this.root, 'node_modules', name);
@@ -57220,35 +57215,37 @@ class Extensions {
         let uris = list.filter(name => isuri_1.default.isValid(name));
         if (uris.length) {
             let statusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
-            statusItem.text = `Installing ${uris.join(' ')}`;
-            statusItem.show();
+            if (statusItem) {
+                statusItem.text = `Installing ${uris.join(' ')}`;
+                statusItem.show();
+            }
             try {
                 await util_2.runCommand(`${npm} install ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit`);
             }
             catch (e) {
                 workspace_1.default.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error');
             }
-            statusItem.dispose();
+            if (statusItem)
+                statusItem.dispose();
         }
         let names = list.filter(name => !isuri_1.default.isValid(name));
         for (let name of names) {
             let installed = await this.manager.install(npm, name);
             if (installed)
-                await this.onExtensionInstall(name);
+                this.onExtensionInstall(name).logError();
         }
     }
     get npm() {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
-        try {
-            return which_1.default.sync(npm);
+        if (util_2.executable(npm))
+            return npm;
+        if (util_2.executable('yarn'))
+            return 'yarn';
+        if (npm == 'npm') {
+            workspace_1.default.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error');
         }
-        catch (e) {
-            if (npm == 'npm') {
-                workspace_1.default.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error');
-            }
-            else {
-                workspace_1.default.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error');
-            }
+        else {
+            workspace_1.default.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error');
         }
         return null;
     }
@@ -57350,7 +57347,7 @@ class Extensions {
             let jsonFile = path_1.default.join(this.root, 'package.json');
             status.dispose();
             fs_1.default.writeFileSync(jsonFile, JSON.stringify(json, null, 2), { encoding: 'utf8' });
-            workspace_1.default.showMessage(`Extensions ${ids.join(' ')} removed`);
+            workspace_1.default.showMessage(`Removed: ${ids.join(' ')}`);
         }
         catch (e) {
             status.dispose();
@@ -73171,15 +73168,36 @@ const rimraf_1 = tslib_1.__importDefault(__webpack_require__(235));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const semver_1 = tslib_1.__importDefault(__webpack_require__(1));
 const logger = __webpack_require__(182)('model-extension');
+async function getData(name, field) {
+    let res = await util_1.runCommand(`yarn info ${name} ${field} --json`, { timeout: 60 * 1000 });
+    return JSON.parse(res)['data'];
+}
 class ExtensionManager {
     constructor(root) {
         this.root = root;
         this.proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
     }
     get statusItem() {
-        return workspace_1.default.createStatusBarItem(0, { progress: true });
+        let item = workspace_1.default.createStatusBarItem(0, { progress: true });
+        if (!item) {
+            // tslint:disable-next-line: no-empty
+            let fn = () => { };
+            item = { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true };
+        }
+        return item;
     }
     async getInfo(npm, name) {
+        if (npm == 'yarn') {
+            let obj = {};
+            let keys = ['dist.tarball', 'engines.coc', 'version'];
+            let vals = await Promise.all(keys.map(key => {
+                return getData(name, key);
+            }));
+            for (let i = 0; i < keys.length; i++) {
+                obj[keys[i]] = vals[i];
+            }
+            return obj;
+        }
         let res = await util_1.runCommand(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 });
         return JSON.parse(res);
     }
@@ -73232,7 +73250,8 @@ class ExtensionManager {
         if (dependencies && Object.keys(dependencies).length) {
             onMessage(`Installing dependencies.`);
             let p = new Promise((resolve, reject) => {
-                const child = child_process_1.spawn(npm, ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'], {
+                let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'];
+                const child = child_process_1.spawn(npm, args, {
                     cwd: folder
                 });
                 child.on('error', reject);
