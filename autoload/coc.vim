@@ -182,7 +182,7 @@ endfunction
 function! coc#_unmap()
   if !s:select_api | return | endif
   for i in range(1, 9)
-    exe 'iunmap <buffer> '.i
+    exe 'silent! iunmap <buffer> '.i
   endfor
 endfunction
 

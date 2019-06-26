@@ -200,9 +200,9 @@ export class Completion implements Disposable {
   }
 
   private async showCompletion(col: number, items: VimCompleteItem[]): Promise<void> {
-    let { nvim, document } = this
+    let { nvim, document, option } = this
     let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config
-    if (numberSelect) {
+    if (numberSelect && !/^\d/.test(option.input)) {
       items = items.map((item, i) => {
         let idx = i + 1
         if (i < 9) {
@@ -212,11 +212,9 @@ export class Completion implements Disposable {
         }
         return item
       })
-    }
-    this.changedTick = document.changedtick
-    if (this.config.numberSelect) {
       nvim.call('coc#_map', [], true)
     }
+    this.changedTick = document.changedtick
     let validKeys = completeItemKeys.slice()
     if (disableKind) validKeys = validKeys.filter(s => s != 'kind')
     if (disableMenu) validKeys = validKeys.filter(s => s != 'menu')
