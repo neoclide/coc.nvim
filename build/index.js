@@ -934,7 +934,11 @@ Comparator.prototype.test = function (version) {
   }
 
   if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
+    try {
+      version = new SemVer(version, this.options)
+    } catch (er) {
+      return false
+    }
   }
 
   return cmp(version, this.operator, this.semver, this.options)
@@ -1385,7 +1389,11 @@ Range.prototype.test = function (version) {
   }
 
   if (typeof version === 'string') {
-    version = new SemVer(version, this.options)
+    try {
+      version = new SemVer(version, this.options)
+    } catch (er) {
+      return false
+    }
   }
 
   for (var i = 0; i < this.set.length; i++) {
@@ -9070,7 +9078,8 @@ const loadAppenderModule = (type, config) => coreAppenders.get(type)
 
 const createAppender = (name, config) => {
   const appenderConfig = config.appenders[name];
-  const appenderModule = loadAppenderModule(appenderConfig.type, config);
+  const appenderModule = appenderConfig.type.configure
+    ? appenderConfig.type : loadAppenderModule(appenderConfig.type, config);
   configuration.throwExceptionIf(
     config,
     configuration.not(appenderModule),
@@ -54150,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "9acf7f861f" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e2a6538e47" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56560,6 +56569,8 @@ class Completion {
     async onPumChange(ev) {
         if (!this.activted)
             return;
+        if (this.document && this.document.uri.endsWith('%5BCommand%20Line%5D'))
+            return;
         this.cancel();
         let { completed_item, col, row, height, width, scrollbar } = ev;
         let bounding = { col, row, height, width, scrollbar };
@@ -57160,7 +57171,7 @@ class Extensions {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
             let names = globalExtensions.filter(name => !this.has(name));
-            this.installExtensions(globalExtensions).logError();
+            this.installExtensions(names).logError();
         }
         // watch for changes
         if (watchExtensions && watchExtensions.length) {
@@ -73176,7 +73187,14 @@ class ExtensionManager {
         let { proxy } = this;
         let folder = path_1.default.join(this.root, 'node_modules', name);
         if (fs_1.default.existsSync(folder)) {
-            await util_2.promisify(rimraf_1.default)(`${folder}/*`);
+            let stat = await util_2.promisify(fs_1.default.lstat)(folder);
+            if (stat.isSymbolicLink()) {
+                await util_2.promisify(fs_1.default.unlink)(folder);
+                await util_2.promisify(fs_1.default.mkdir)(folder, { recursive: true });
+            }
+            else {
+                await util_2.promisify(rimraf_1.default)(`${folder}/*`);
+            }
         }
         else {
             await util_2.promisify(fs_1.default.mkdir)(folder, { recursive: true });
@@ -86603,7 +86621,7 @@ exports.default = default_1;
 /* 426 */
 /***/ (function(module) {
 
-module.exports = {"name":"coc.nvim","version":"0.0.71","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/got":"^9.6.0","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/node":"^12.0.8","@types/semver":"^6.0.1","@types/tunnel":"^0.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"rimraf":"^2.6.3","@chemzqm/neovim":"5.1.7","bser":"^2.0.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","got":"^9.6.0","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.3.2","minimatch":"^3.0.4","semver":"^6.1.1","tar":"^4.4.10","tslib":"^1.10.0","tunnel":"^0.0.6","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
+module.exports = {"name":"coc.nvim","version":"0.0.71","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/got":"^9.6.0","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/node":"^12.0.10","@types/semver":"^6.0.1","@types/tunnel":"^0.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.1.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","glob":"^7.1.4","got":"^9.6.0","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.4.0","minimatch":"^3.0.4","rimraf":"^2.6.3","semver":"^6.1.2","tar":"^4.4.10","tslib":"^1.10.0","tunnel":"^0.0.6","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};
 
 /***/ })
 /******/ ]);
