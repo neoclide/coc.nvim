@@ -81,7 +81,7 @@ export function runCommand(cmd: string, opts: ExecOptions = {}, timeout?: number
     exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
       if (err) {
-        reject(new Error(`exited with ${err.code}\n${stderr}`))
+        reject(new Error(`exited with ${err.code}\n${err}\n${stderr}`))
         return
       }
       resolve(stdout)

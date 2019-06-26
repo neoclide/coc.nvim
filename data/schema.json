@@ -250,6 +250,11 @@
       "type": "boolean",
       "default": true
     },
+    "npm.binPath": {
+      "type": "string",
+      "default": "npm",
+      "description": "Absolute path to executable npm."
+    },
     "suggest.maxPreviewWidth": {
       "type": "number",
       "default": 80,

@@ -69,12 +69,6 @@ Node: https://nodejs.org/en/download/ is required to run javascript code.
 If those requirements are not satisfied, the plugin will not be loaded
 at all.
 
-Yarn (https://yarnpkg.com/en/docs/install) is used for managing coc
-extensions.
-
-Note: yarn is not required if you want to manage extensions using a vim
-plugin manager such as vim-plug.
-
 ==============================================================================
 INSTALL						*coc-install*
 
@@ -1129,13 +1123,6 @@ coc#util#install([{config}])
 	- `terminal` use terminal when specified.
 	- `tag` use latest tag when specified.
 
-						*coc#util#build()*
-
-coc#util#build()
-
-	Build coc.nvim from source code, restarting vim is required after the 
-	build.
-
 						*coc#util#extension_root()*
 
 coc#util#extension_root()
@@ -1147,12 +1134,6 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	Rebuild coc extensions.
-
-						*coc#util#update()*
-
-coc#util#update()
-
-	Update extensions by use terminal feature.
 
 						*coc#util#has_float()*
 

@@ -55,13 +55,13 @@ export default class ExtensionList extends BasicList {
       await wait(100)
     }, { persist: true, reload: true })
 
-    this.addAction('uninstall', async item => {
-      let { id, isLocal } = item.data
-      if (isLocal) {
-        echoWarning(nvim, 'Unable to uninstall extension loaded from &rtp.')
-        return
+    this.addMultipleAction('uninstall', async items => {
+      let ids = []
+      for (let item of items) {
+        if (item.data.isLocal) continue
+        ids.push(item.data.id)
       }
-      extensions.uninstallExtension([id]).catch(e => {
+      extensions.uninstallExtension(ids).catch(e => {
         logger.error(e)
       })
     })

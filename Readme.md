@@ -78,8 +78,6 @@ Below are the reasons that led coc.nvim to build its own engine:
 
   ```sh
   curl -sL install-node.now.sh/lts | bash
-  # Optional install yarn if you want install extension by CocInstall command
-  curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
   For [vim-plug](https://github.com/junegunn/vim-plug) users:
@@ -88,6 +86,7 @@ Below are the reasons that led coc.nvim to build its own engine:
   " Use release branch
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
   " Or build from source code
+  " Install yarn from https://yarnpkg.com
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 

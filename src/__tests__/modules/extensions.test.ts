@@ -1,8 +1,8 @@
-import { Neovim } from '@chemzqm/neovim'
+import {Neovim} from '@chemzqm/neovim'
 import path from 'path'
 import events from '../../events'
-import extensions, { API } from '../../extensions'
-import { Extension } from '../../types'
+import extensions, {API} from '../../extensions'
+import {Extension} from '../../types'
 import helper from '../helper'
 import uuidv1 = require('uuid/v1')
 
@@ -39,11 +39,6 @@ describe('extensions', () => {
     expect(root).toBeDefined()
   })
 
-  it('should udpate extensions', async () => {
-    let disposable = await extensions.updateExtensions('', true)
-    if (disposable) disposable.dispose()
-  })
-
   it('should get all extensions', () => {
     let list = extensions.all
     expect(list.length).toBeGreaterThan(0)
@@ -74,7 +69,6 @@ describe('extensions', () => {
     let stat = extensions.getExtensionState('test')
     expect(stat).toBe('unknown')
     let folder = path.resolve(__dirname, '../extensions/test')
-    await extensions.loadExtension(folder)
     await extensions.loadExtension(folder)
   })
 

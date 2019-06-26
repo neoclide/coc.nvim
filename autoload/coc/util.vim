@@ -86,16 +86,6 @@ function! coc#util#float_scroll(forward)
   return ""
 endfunction
 
-function! coc#util#yarn_cmd()
-  if executable('yarnpkg')
-    return 'yarnpkg'
-  endif
-  if executable('yarn')
-    return 'yarn'
-  endif
-  return ''
-endfunction
-
 " get cursor position
 function! coc#util#cursor()
   let pos = getcurpos()
@@ -695,24 +685,6 @@ function! coc#util#install(...) abort
   endif
 endfunction
 
-" build coc from source code
-function! coc#util#build()
-  let yarncmd = coc#util#yarn_cmd()
-  if empty(yarncmd)
-    echohl Error | echom 'yarn not found in $PATH checkout https://yarnpkg.com/en/docs/install.' | echohl None
-    return 0
-  endif
-  let cwd = getcwd()
-  execute 'lcd '.s:root
-  execute '!'.yarncmd.' install --frozen-lockfile'
-  execute 'lcd '.cwd
-  if s:is_win
-    call coc#rpc#start_server()
-  else
-    call coc#rpc#restart()
-  endif
-endfunction
-
 function! coc#util#do_complete(name, opt, cb) abort
   let handler = 'coc#source#'.a:name.'#complete'
   let l:Cb = {res -> a:cb(v:null, res)}
@@ -730,68 +702,40 @@ function! coc#util#extension_root() abort
 endfunction
 
 function! coc#util#update_extensions(...) abort
-  let useTerminal = get(a:, 1, 0)
-  let yarncmd = coc#util#yarn_cmd()
-  if empty(yarncmd)
-    echohl Error | echom '[coc.nvim] yarn command not found!' | echohl None
-  endif
-  let dir = coc#util#extension_root()
-  if !isdirectory(dir)
-    echohl Error | echom '[coc.nvim] extension root '.dir.' not found!' | echohl None
-  endif
-  if !useTerminal
+  let async = get(a:, 1, 0)
+  if !get(g:,'coc_workspace_initialized', 0)
+    let dir = coc#util#extension_root()
     let cwd = getcwd()
     exe 'lcd '.dir
-    exe '!'.yarncmd.' upgrade --latest --ignore-engines --ignore-scripts'
+    exe '!npm upgrade --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit'
     exe 'lcd '.cwd
+    return
+  endif
+  if async
+    call coc#rpc#notify('updateExtensions', [])
   else
-    call coc#util#open_terminal({
-          \ 'cmd': yarncmd.' upgrade --latest --ignore-engines --ignore-scripts',
-          \ 'autoclose': 1,
-          \ 'cwd': dir,
-          \})
-    wincmd p
+    call coc#rpc#request('updateExtensions', [])
   endif
 endfunction
 
 function! coc#util#install_extension(args) abort
-  let yarncmd = coc#util#yarn_cmd()
-  if empty(yarncmd)
-    echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
-    return
-  endif
-  let names = join(filter(copy(a:args), 'v:val !~# "^-"'), ' ')
+  let names = filter(copy(a:args), 'v:val !~# "^-"')
   if empty(names) | return | endif
-  let useTerminal = index(a:args, '-sync') == -1
+  let isRequest = index(a:args, '-sync') != -1
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
-  if res == -1| return | endif
-  if useTerminal
-    function! s:OnExtensionInstalled(status, ...) closure
-      if a:status == 0
-        call coc#util#echo_messages('MoreMsg', ['extension '.names. ' installed!'])
-        call coc#rpc#notify('CocInstalled', [names])
-      else
-        call coc#util#echo_messages('Error', ['install extensions '.names. ' failed!'])
-      endif
-    endfunction
-    call coc#util#open_terminal({
-          \ 'cwd': dir,
-          \ 'cmd': yarncmd.' add '.names.' --ignore-engines --ignore-scripts',
-          \ 'keepfocus': 1,
-          \ 'Callback': funcref('s:OnExtensionInstalled'),
-          \})
+  if !get(g:,'coc_workspace_initialized', 0)
+    " use command
+    let cwd = getcwd()
+    exe 'lcd '.dir
+    exe '!npm install '.join(names, ' ') . ' --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit'
+    exe 'lcd '.cwd
+    return
+  endif
+  if isRequest
+    call coc#rpc#request('installExtensions', names)
   else
-    if $NODE_ENV ==# 'test'
-      for name in split(names, ' ')
-        call mkdir(dir . '/node_modules/'.name, 'p', 0700)
-      endfor
-    else
-      let cwd = getcwd()
-      exe 'lcd '.dir
-      exe '!'.yarncmd.' add '.names . ' --ignore-engines --ignore-scripts'
-      exe 'lcd '.cwd
-    endif
+    call coc#rpc#notify('installExtensions', names)
   endif
 endfunction
 
@@ -815,27 +759,6 @@ function! coc#util#rebuild()
         \ 'cwd': dir,
         \ 'cmd': 'npm rebuild',
         \ 'keepfocus': 1,
-        \})
-endfunction
-
-function! coc#util#update()
-  let yarncmd = coc#util#yarn_cmd()
-  if empty(yarncmd)
-    echohl Error | echom "[coc.nvim] yarn not found, visit https://yarnpkg.com/en/docs/install for installation." | echohl None
-    return
-  endif
-  let dir = coc#util#extension_root()
-  if !isdirectory(dir) | return | endif
-  function! s:OnUpdated(status, ...) closure
-    if a:status == 0
-      call coc#util#echo_messages('MoreMsg', ['coc extensions updated.'])
-    endif
-  endfunction
-  call coc#util#open_terminal({
-        \ 'cwd': dir,
-        \ 'cmd': yarncmd.' upgrade --latest --ignore-engines',
-        \ 'keepfocus': 1,
-        \ 'Callback': funcref('s:OnUpdated'),
         \})
 endfunction
 

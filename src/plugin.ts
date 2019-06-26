@@ -46,10 +46,12 @@ export default class Plugin extends EventEmitter {
         global: workspace.getRootPatterns(doc, PatternType.Global)
       }
     })
-    this.addMethod('installExtensions', debounce(async () => {
-      let list = await nvim.getVar('coc_global_extensions') as string[]
+    this.addMethod('installExtensions', async (...list: string[]) => {
       await extensions.installExtensions(list)
-    }, 200))
+    })
+    this.addMethod('updateExtensions', async () => {
+      await extensions.updateExtensions()
+    })
     this.addMethod('commandList', () => {
       return commandManager.commandList.map(o => o.id)
     })
@@ -99,11 +101,6 @@ export default class Plugin extends EventEmitter {
     })
     this.addMethod('snippetCancel', () => {
       snippetManager.cancel()
-    })
-    this.addMethod('cocInstalled', async (names: string) => {
-      for (let name of names.split(/\s+/)) {
-        await extensions.onExtensionInstall(name)
-      }
     })
     this.addMethod('openLog', () => {
       let file = logger.getLogFile()
@@ -159,7 +156,7 @@ export default class Plugin extends EventEmitter {
       sources.init()
       this.handler = new Handler(nvim)
       services.init()
-      extensions.activateExtensions()
+      await extensions.activateExtensions()
       nvim.setVar('coc_service_initialized', 1, true)
       nvim.call('coc#_init', [], true)
       this._ready = true
@@ -278,49 +275,6 @@ export default class Plugin extends EventEmitter {
       }
     }
     channel.show()
-  }
-
-  public updateExtension(): Promise<void> {
-    let { nvim } = this
-    let statusItem = workspace.createStatusBarItem(0, { progress: true })
-    if (statusItem) {
-      statusItem.text = 'Checking latest release'
-      statusItem.show()
-    }
-    return new Promise((resolve, reject) => {
-      const req = https.request('https://api.github.com/repos/neoclide/coc.nvim/releases/latest', res => {
-        let content = ''
-        res.on('data', d => {
-          content = content + d
-        })
-        res.on('end', async () => {
-          try {
-            let obj = JSON.parse(content)
-            let latest = obj.tag_name.replace(/^v/, '')
-            if (semver.gt(latest, workspace.version)) {
-              console.error(`Please upgrade coc.nvim to latest version: ${latest}`) // tslint:disable-line
-            } else {
-              let cwd = await nvim.call('coc#util#extension_root') as string
-              let yarncmd = await nvim.call('coc#util#yarn_cmd') as string
-              if (!yarncmd) return
-              if (statusItem) statusItem.text = 'Upgrading coc extensions...'
-              await workspace.runCommand(`${yarncmd} upgrade --latest --ignore-engines`, cwd, 300000)
-              if (statusItem) statusItem.dispose()
-            }
-            resolve()
-          } catch (e) {
-            console.error(`Update error: ${e.message}`) // tslint:disable-line
-            if (statusItem) statusItem.hide()
-            resolve()
-          }
-        })
-      })
-      req.on('error', e => {
-        reject(e)
-      })
-      req.setHeader('User-Agent', 'NodeJS')
-      req.end()
-    })
   }
 
   public async cocAction(...args: any[]): Promise<any> {
