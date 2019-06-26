@@ -54156,7 +54156,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7e46f13a02" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "dae0924196" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56288,9 +56288,9 @@ class Completion {
         return this.isResolving;
     }
     async showCompletion(col, items) {
-        let { nvim, document } = this;
+        let { nvim, document, option } = this;
         let { numberSelect, disableKind, labelMaxLength, disableMenuShortcut, disableMenu } = this.config;
-        if (numberSelect) {
+        if (numberSelect && !/^\d/.test(option.input)) {
             items = items.map((item, i) => {
                 let idx = i + 1;
                 if (i < 9) {
@@ -56300,11 +56300,9 @@ class Completion {
                 }
                 return item;
             });
-        }
-        this.changedTick = document.changedtick;
-        if (this.config.numberSelect) {
             nvim.call('coc#_map', [], true);
         }
+        this.changedTick = document.changedtick;
         let validKeys = completeItemKeys.slice();
         if (disableKind)
             validKeys = validKeys.filter(s => s != 'kind');

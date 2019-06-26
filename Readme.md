@@ -38,6 +38,7 @@ Check out [doc/coc.txt](doc/coc.txt) for the vim interface.
 
 <details><summary>Completion experience</summary>
 <p>
+  
 You might be wondering why yet another completion engine since there is the already
 widely used [YouCompleteMe](https://github.com/Valloric/YouCompleteMe) and
 [deoplete.nvim](https://github.com/Shougo/deoplete.nvim).
