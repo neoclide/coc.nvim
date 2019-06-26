@@ -78,8 +78,6 @@ Below are the reasons that led coc.nvim to build its own engine:
 
   ```sh
   curl -sL install-node.now.sh/lts | bash
-  # Optional install yarn if you want install extension by CocInstall command
-  curl --compressed -o- -L https://yarnpkg.com/install.sh | bash
   ```
 
   For [vim-plug](https://github.com/junegunn/vim-plug) users:
@@ -88,6 +86,7 @@ Below are the reasons that led coc.nvim to build its own engine:
   " Use release branch
   Plug 'neoclide/coc.nvim', {'branch': 'release'}
   " Or build from source code
+  " Install yarn from https://yarnpkg.com
   Plug 'neoclide/coc.nvim', {'do': 'yarn install --frozen-lockfile'}
   ```
 
@@ -140,7 +139,7 @@ Below are the reasons that led coc.nvim to build its own engine:
     - [Scala](https://github.com/neoclide/coc.nvim/wiki/Language-servers#scala)
     - [Latex](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
     - [Elm](https://github.com/neoclide/coc.nvim/wiki/Language-servers#elm)
-    - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#latex)
+    - [Fortran](https://github.com/neoclide/coc.nvim/wiki/Language-servers#fortran)
     - [Clojure](https://github.com/neoclide/coc.nvim/wiki/Language-servers#clojure)
     - [Julia](https://github.com/neoclide/coc.nvim/wiki/Language-servers#julia)
 
@@ -206,6 +205,7 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-tailwindcss](https://github.com/iamcco/coc-tailwindcss)** for `tailwindcss`.
 - **[coc-angular](https://github.com/iamcco/coc-angular)** for `angular`.
 - **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
+- **[coc-xml](https://github.com/fannheyward/coc-xml)** for `xml`, use [lsp4xml](https://github.com/angelozerr/lsp4xml).
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim),
 or use [coc-marketplace](https://github.com/fannheyward/coc-marketplace), which can search and install extensions in coc.nvim directly.

@@ -66,7 +66,6 @@ coc#jumpable()	coc.cnx	/*coc#jumpable()*
 coc#on_enter()	coc.cnx	/*coc#on_enter()*
 coc#refresh()	coc.cnx	/*coc#refresh()*
 coc#status()	coc.cnx	/*coc#status()*
-coc#util#build()	coc.cnx	/*coc#util#build()*
 coc#util#extension_root()	coc.cnx	/*coc#util#extension_root()*
 coc#util#float_scroll()	coc.cnx	/*coc#util#float_scroll()*
 coc#util#float_scrollable()	coc.cnx	/*coc#util#float_scrollable()*
@@ -75,7 +74,6 @@ coc#util#has_float()	coc.cnx	/*coc#util#has_float()*
 coc#util#install()	coc.cnx	/*coc#util#install()*
 coc#util#job_command()	coc.cnx	/*coc#util#job_command()*
 coc#util#rebuild()	coc.cnx	/*coc#util#rebuild()*
-coc#util#update()	coc.cnx	/*coc#util#update()*
 coc-action-codeAction	coc.cnx	/*coc-action-codeAction*
 coc-action-codeActions	coc.cnx	/*coc-action-codeActions*
 coc-action-codeLensAction	coc.cnx	/*coc-action-codeLensAction*

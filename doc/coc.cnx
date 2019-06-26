@@ -69,12 +69,6 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 首先需要安装 node https://nodejs.org/en/download/ 用于执行 javascript 代码。
 
-使用 coc.nvim 插件需要安装 yarn (一个 nodejs 包管理工具):
-
-https://yarnpkg.com/en/docs/install
-
-如果你使用 vim-plug 来管理 coc.nvim 插件可以不需要安装 yarn。
-
 ==============================================================================
 
 安装						*coc-install*
@@ -576,12 +570,6 @@ coc#util#install([{config}])
 	- `terminal` 使用 terminal 来异步安装
 	- `tag` 安装最新的已发布版本
 
-						*coc#util#build()*
-
-coc#util#build()
-
-	编译 coc.nvim，需重启 vim 或者执行 |:CocRestart| 生效。
-
 						*coc#util#extension_root()*
 coc#util#extension_root()
 	
@@ -591,11 +579,6 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	对插件执行 `npm rebuild` 命令。
-
-						*coc#util#update()*
-coc#util#update()
-
-	使用终端缓冲区更新插件。
 
 						*coc#util#has_float()*
 

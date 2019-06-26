@@ -69,12 +69,6 @@ Node: https://nodejs.org/en/download/ is required to run javascript code.
 If those requirements are not satisfied, the plugin will not be loaded
 at all.
 
-Yarn (https://yarnpkg.com/en/docs/install) is used for managing coc
-extensions.
-
-Note: yarn is not required if you want to manage extensions using a vim
-plugin manager such as vim-plug.
-
 ==============================================================================
 INSTALL						*coc-install*
 
@@ -126,7 +120,7 @@ Builtin configurations:~
 
 "suggest.maxPreviewWidth":~
 
-	Maximum width of floating preview window.,  default: `50`
+	Maximum width of floating preview window.,  default: `80`
 
 "suggest.labelMaxLength":~
 
@@ -1129,13 +1123,6 @@ coc#util#install([{config}])
 	- `terminal` use terminal when specified.
 	- `tag` use latest tag when specified.
 
-						*coc#util#build()*
-
-coc#util#build()
-
-	Build coc.nvim from source code, restarting vim is required after the 
-	build.
-
 						*coc#util#extension_root()*
 
 coc#util#extension_root()
@@ -1147,12 +1134,6 @@ coc#util#extension_root()
 coc#util#rebuild()
 
 	Rebuild coc extensions.
-
-						*coc#util#update()*
-
-coc#util#update()
-
-	Update extensions by use terminal feature.
 
 						*coc#util#has_float()*
 
@@ -1460,12 +1441,15 @@ Available Actions ~
 	Requires a language server that supports color representation
 	requests.
 
-"codeActions" [{visualmode}]			*coc-action-codeActions*
+"codeActions" [{visualmode}] [{only}]		*coc-action-codeActions*
 
-	Get codeActions of current buffer.
+	Get codeActions of current range.
 
-	Add {visualmode} as second argument get code actions with range of
-	latest |visualmode()|
+	{visualmode} can be result of |visualmode()| for visual selected
+	range, When it's empty string or not exists use current line.
+
+	{only} can be used to limit codeActionKind, possible values:
+	'refactor', 'quickfix' and 'source'.
 
 "quickfixes" [{visualmode}]			*coc-action-quickfixes*
 
@@ -1585,7 +1569,7 @@ AUTOCMD 					*coc-autocmds*
 		|g:coc_enable_locationlist| to 0 and use this autocmd with 
 		with |g:coc_jump_locations|
 
-		For example, to enable auto preview for coc list, use:
+		For example, to disable auto preview of location list, use:
 >
 		let g:coc_enable_locationlist = 0
 		autocmd User CocLocationsChange CocList --normal -A location
@@ -1627,8 +1611,6 @@ AUTOCMD 					*coc-autocmds*
 
 HIGHLIGHTS 					*coc-highlights*
 
-You can overwrite the highlights provided by coc with the |:hi| command.
-
 To customize a highlight, simply use |:highlight| command of vim in your
 vimrc, like: >
 	
@@ -1637,7 +1619,9 @@ vimrc, like: >
 <
 Note: don't use `:hi default` for overwriting the highlights.
 
-Note: highlight commands should appear after the |:colorscheme| command.
+Note: highlight commands should appear after the |:colorscheme| command or use
+|ColorScheme| autocmd to make sure customized highlight works after color
+scheme change.
 
 CocErrorSign 					*CocErrorSign*
 
