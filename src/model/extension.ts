@@ -1,6 +1,6 @@
-import {spawn} from 'child_process'
-import {runCommand} from '../util'
-import {promisify} from 'util'
+import { spawn } from 'child_process'
+import { runCommand } from '../util'
+import { promisify } from 'util'
 import tar from 'tar'
 import got from 'got'
 import tunnel from 'tunnel'
@@ -9,7 +9,7 @@ import path from 'path'
 import rimraf from 'rimraf'
 import workspace from '../workspace'
 import semver from 'semver'
-import {StatusBarItem} from '../types'
+import { StatusBarItem } from '../types'
 const logger = require('../util/logger')('model-extension')
 
 export interface Info {
@@ -25,25 +25,31 @@ export default class ExtensionManager {
   }
 
   private get statusItem(): StatusBarItem {
-    return workspace.createStatusBarItem(0, {progress: true})
+    return workspace.createStatusBarItem(0, { progress: true })
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
-    let res = await runCommand(`${npm} view ${name} dist.tarball engines.coc version --json`, {timeout: 60 * 1000})
+    let res = await runCommand(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 })
     return JSON.parse(res)
   }
 
   private async _install(npm: string, name: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    let {proxy} = this
+    let { proxy } = this
     let folder = path.join(this.root, 'node_modules', name)
     if (fs.existsSync(folder)) {
-      await promisify(rimraf)(`${folder}/*`)
+      let stat = await promisify(fs.lstat)(folder)
+      if (stat.isSymbolicLink()) {
+        await promisify(fs.unlink)(folder)
+        await promisify(fs.mkdir)(folder, { recursive: true })
+      } else {
+        await promisify(rimraf)(`${folder}/*`)
+      }
     } else {
-      await promisify(fs.mkdir)(folder, {recursive: true})
+      await promisify(fs.mkdir)(folder, { recursive: true })
     }
     let url = info['dist.tarball']
     onMessage(`Downloading ${url.match(/[^/]*$/)[0]}`)
-    let options: any = {encoding: null}
+    let options: any = { encoding: null }
     if (proxy) {
       let parts = proxy.split(':', 2)
       options.agent = tunnel.httpsOverHttp({
@@ -62,7 +68,7 @@ export default class ExtensionManager {
       stream.on('error', err => {
         reject(new Error(`Download error: ${err}`))
       })
-      stream.pipe(tar.x({strip: 1, C: folder}))
+      stream.pipe(tar.x({ strip: 1, C: folder }))
       stream.on('end', () => {
         setTimeout(resolve, 50)
       })
@@ -70,7 +76,7 @@ export default class ExtensionManager {
     await p
     let file = path.join(folder, 'package.json')
     let content = await promisify(fs.readFile)(file, 'utf8')
-    let {dependencies} = JSON.parse(content)
+    let { dependencies } = JSON.parse(content)
     if (dependencies && Object.keys(dependencies).length) {
       onMessage(`Installing dependencies.`)
       let p = new Promise((resolve, reject) => {
@@ -86,11 +92,11 @@ export default class ExtensionManager {
     let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
     obj.dependencies = obj.dependencies || {}
     obj.dependencies[name] = '>=' + info.version
-    fs.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), {encoding: 'utf8'})
+    fs.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' })
   }
 
   public async install(npm: string, name: string): Promise<boolean> {
-    let {statusItem} = this
+    let { statusItem } = this
     try {
       logger.info(`Using npm from: ${npm}`)
       statusItem.text = `Loading info of ${name}.`
@@ -117,7 +123,7 @@ export default class ExtensionManager {
 
   public async update(npm: string, name: string): Promise<boolean> {
     let folder = path.join(this.root, 'node_modules', name)
-    let {statusItem} = this
+    let { statusItem } = this
     try {
       let stat = await promisify(fs.lstat)(folder)
       if (stat.isSymbolicLink()) {
