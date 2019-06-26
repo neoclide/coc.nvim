@@ -703,14 +703,6 @@ endfunction
 
 function! coc#util#update_extensions(...) abort
   let async = get(a:, 1, 0)
-  if !get(g:,'coc_workspace_initialized', 0)
-    let dir = coc#util#extension_root()
-    let cwd = getcwd()
-    exe 'lcd '.dir
-    exe '!npm upgrade --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit'
-    exe 'lcd '.cwd
-    return
-  endif
   if async
     call coc#rpc#notify('updateExtensions', [])
   else
@@ -724,14 +716,6 @@ function! coc#util#install_extension(args) abort
   let isRequest = index(a:args, '-sync') != -1
   let dir = coc#util#extension_root()
   let res = coc#util#init_extension_root(dir)
-  if !get(g:,'coc_workspace_initialized', 0)
-    " use command
-    let cwd = getcwd()
-    exe 'lcd '.dir
-    exe '!npm install '.join(names, ' ') . ' --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit'
-    exe 'lcd '.cwd
-    return
-  endif
   if isRequest
     call coc#rpc#request('installExtensions', names)
   else

@@ -253,7 +253,7 @@
     "npm.binPath": {
       "type": "string",
       "default": "npm",
-      "description": "Absolute path to executable npm."
+      "description": "Command or absolute path to npm or yarn."
     },
     "suggest.maxPreviewWidth": {
       "type": "number",

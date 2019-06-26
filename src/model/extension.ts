@@ -18,6 +18,11 @@ export interface Info {
   version: string
 }
 
+async function getData(name: string, field: string): Promise<string> {
+  let res = await runCommand(`yarn info ${name} ${field} --json`, { timeout: 60 * 1000 })
+  return JSON.parse(res)['data']
+}
+
 export default class ExtensionManager {
   private proxy: string
   constructor(private root: string) {
@@ -25,10 +30,27 @@ export default class ExtensionManager {
   }
 
   private get statusItem(): StatusBarItem {
-    return workspace.createStatusBarItem(0, { progress: true })
+    let item = workspace.createStatusBarItem(0, { progress: true })
+    if (!item) {
+      // tslint:disable-next-line: no-empty
+      let fn = () => { }
+      item = { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true }
+    }
+    return item
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
+    if (npm == 'yarn') {
+      let obj = {}
+      let keys = ['dist.tarball', 'engines.coc', 'version']
+      let vals = await Promise.all(keys.map(key => {
+        return getData(name, key)
+      }))
+      for (let i = 0; i < keys.length; i++) {
+        obj[keys[i]] = vals[i]
+      }
+      return obj as Info
+    }
     let res = await runCommand(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 })
     return JSON.parse(res)
   }
@@ -80,7 +102,8 @@ export default class ExtensionManager {
     if (dependencies && Object.keys(dependencies).length) {
       onMessage(`Installing dependencies.`)
       let p = new Promise((resolve, reject) => {
-        const child = spawn(npm, ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'], {
+        let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
+        const child = spawn(npm, args, {
           cwd: folder
         })
         child.on('error', reject)
