@@ -92,6 +92,8 @@ export default class File extends Source {
     let option = this.getPathOption(opt)
     if (!option) return null
     let { pathstr, part, startcol, input } = option
+    if (startcol < opt.col) return null
+    let startPart = opt.col == startcol ? '' : byteSlice(opt.line, opt.col, startcol)
     let dirname = path.dirname(filepath)
     let ext = path.extname(path.basename(filepath))
     let cwd = await this.nvim.call('getcwd', [])
@@ -115,12 +117,12 @@ export default class File extends Source {
     let first = input[0]
     if (first && col == startcol) items = items.filter(o => o.word[0] === first)
     return {
-      startcol,
       items: items.map(item => {
         let ex = path.extname(item.word)
         item.word = trimExt && ex === ext ? item.word.replace(ext, '') : item.word
         return {
-          ...item,
+          word: `${startPart}${item.word}`,
+          abbr: `${startPart}${item.abbr}`,
           menu: this.menu
         }
       })
