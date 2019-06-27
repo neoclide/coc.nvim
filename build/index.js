@@ -45039,11 +45039,11 @@ class Workspace {
         let silent = opts.silent ? '<silent>' : '';
         for (let m of modes) {
             if (m == 'i') {
-                nvim.command(`imap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true);
+                nvim.command(`inoremap ${silent}<expr> <Plug>(coc-${key}) coc#_insert_key('${method}', '${key}', ${opts.cancel ? 1 : 0})`, true);
             }
             else {
                 let modify = this.isNvim ? '<Cmd>' : index_1.getKeymapModifier(m);
-                nvim.command(`${m}map ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
+                nvim.command(`${m}noremap ${silent} <Plug>(coc-${key}) ${modify}:call coc#rpc#${method}('doKeymap', ['${key}'])<cr>`, true);
             }
         }
         return vscode_languageserver_protocol_1.Disposable.create(() => {
@@ -45075,8 +45075,11 @@ class Workspace {
      * Create StatusBarItem
      */
     createStatusBarItem(priority = 0, opt = {}) {
-        if (!this.statusLine)
-            return null;
+        if (!this.statusLine) {
+            // tslint:disable-next-line: no-empty
+            let fn = () => { };
+            return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true };
+        }
         return this.statusLine.createStatusBarItem(priority, opt.progress || false);
     }
     dispose() {
@@ -54156,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "c8e414ba17" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f11e0a19fb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -73182,15 +73185,11 @@ class ExtensionManager {
     constructor(root) {
         this.root = root;
         this.proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
+        fs_1.default.mkdirSync(path_1.default.join(root, '.cache'), { recursive: true });
+        fs_1.default.mkdirSync(path_1.default.join(root, 'node_modules'), { recursive: true });
     }
     get statusItem() {
-        let item = workspace_1.default.createStatusBarItem(0, { progress: true });
-        if (!item) {
-            // tslint:disable-next-line: no-empty
-            let fn = () => { };
-            item = { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true };
-        }
-        return item;
+        return workspace_1.default.createStatusBarItem(0, { progress: true });
     }
     async getInfo(npm, name) {
         if (npm == 'yarn') {
@@ -73204,37 +73203,39 @@ class ExtensionManager {
             }
             return obj;
         }
-        let res = await util_1.runCommand(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 });
+        let res = await safeRun(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 });
         return JSON.parse(res);
     }
-    async _install(npm, name, info, onMessage) {
-        let { proxy } = this;
-        let folder = path_1.default.join(this.root, 'node_modules', name);
+    async removeFolder(folder) {
         if (fs_1.default.existsSync(folder)) {
             let stat = await util_2.promisify(fs_1.default.lstat)(folder);
             if (stat.isSymbolicLink()) {
                 await util_2.promisify(fs_1.default.unlink)(folder);
-                await util_2.promisify(fs_1.default.mkdir)(folder, { recursive: true });
             }
             else {
-                await util_2.promisify(rimraf_1.default)(`${folder}/*`);
+                await util_2.promisify(rimraf_1.default)(folder, { glob: false });
             }
         }
-        else {
-            await util_2.promisify(fs_1.default.mkdir)(folder, { recursive: true });
-        }
+    }
+    async _install(npm, name, info, onMessage) {
+        let { proxy } = this;
+        let tmpFolder = await util_2.promisify(fs_1.default.mkdtemp)(path_1.default.join(this.root, '.cache', `${name}-`));
         let url = info['dist.tarball'];
         onMessage(`Downloading ${url.match(/[^/]*$/)[0]}`);
         let options = { encoding: null };
         if (proxy) {
-            let parts = proxy.split(':', 2);
-            options.agent = tunnel_1.default.httpsOverHttp({
-                proxy: {
-                    headers: {},
-                    host: parts[0],
-                    port: Number(parts[1])
-                }
-            });
+            let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : '';
+            let parts = auth.length ? proxy.slice(auth.length + 1).split(':') : proxy.split(':');
+            if (parts.length > 1) {
+                options.agent = tunnel_1.default.httpsOverHttp({
+                    proxy: {
+                        headers: {},
+                        host: parts[0],
+                        port: parseInt(parts[1], 10),
+                        proxyAuth: auth
+                    }
+                });
+            }
         }
         let p = new Promise((resolve, reject) => {
             let stream = got_1.default.stream(url, options).on('downloadProgress', progress => {
@@ -73244,22 +73245,18 @@ class ExtensionManager {
             stream.on('error', err => {
                 reject(new Error(`Download error: ${err}`));
             });
-            stream.pipe(tar_1.default.x({ strip: 1, C: folder }));
-            stream.on('end', () => {
-                setTimeout(resolve, 50);
-            });
+            stream.pipe(tar_1.default.x({ strip: 1, C: tmpFolder }));
+            stream.on('end', () => { setTimeout(resolve, 50); });
         });
         await p;
-        let file = path_1.default.join(folder, 'package.json');
+        let file = path_1.default.join(tmpFolder, 'package.json');
         let content = await util_2.promisify(fs_1.default.readFile)(file, 'utf8');
         let { dependencies } = JSON.parse(content);
         if (dependencies && Object.keys(dependencies).length) {
             onMessage(`Installing dependencies.`);
             let p = new Promise((resolve, reject) => {
                 let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production'];
-                const child = child_process_1.spawn(npm, args, {
-                    cwd: folder
-                });
+                const child = child_process_1.spawn(npm, args, { cwd: tmpFolder });
                 child.on('error', reject);
                 child.once('exit', resolve);
             });
@@ -73270,6 +73267,10 @@ class ExtensionManager {
         obj.dependencies = obj.dependencies || {};
         obj.dependencies[name] = '>=' + info.version;
         fs_1.default.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' });
+        onMessage(`Moving to new folder.`);
+        let folder = path_1.default.join(this.root, 'node_modules', name);
+        await this.removeFolder(folder);
+        await util_2.promisify(fs_1.default.rename)(tmpFolder, folder);
     }
     async install(npm, name) {
         let { statusItem } = this;
@@ -73278,6 +73279,11 @@ class ExtensionManager {
             statusItem.text = `Loading info of ${name}.`;
             statusItem.show();
             let info = await this.getInfo(npm, name);
+            if (info.error) {
+                let { code, summary } = info.error;
+                let msg = code == 'E404' ? `module ${name} not exists!` : summary;
+                throw new Error(msg);
+            }
             let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : '';
             if (required && !semver_1.default.satisfies(workspace_1.default.version, required)) {
                 throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
@@ -73314,6 +73320,8 @@ class ExtensionManager {
             statusItem.text = `Loading info of ${name}.`;
             statusItem.show();
             let info = await this.getInfo(npm, name);
+            if (info.error)
+                return;
             if (version && info.version && semver_1.default.gte(version, info.version)) {
                 logger.info(`Extension ${name} is up to date.`);
                 statusItem.dispose();
@@ -73323,9 +73331,7 @@ class ExtensionManager {
             if (required && !semver_1.default.satisfies(workspace_1.default.version, required)) {
                 throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
             }
-            await this._install(npm, name, info, msg => {
-                statusItem.text = msg;
-            });
+            await this._install(npm, name, info, msg => { statusItem.text = msg; });
             statusItem.dispose();
             workspace_1.default.showMessage(`Update extension: ${name}`, 'more');
             logger.info(`Update extension: ${name}`);
@@ -73340,6 +73346,27 @@ class ExtensionManager {
     }
 }
 exports.default = ExtensionManager;
+function safeRun(cmd, opts = {}, timeout) {
+    return new Promise((resolve, reject) => {
+        let timer;
+        let cp = child_process_1.exec(cmd, opts, (err, stdout, stderr) => {
+            if (timer)
+                clearTimeout(timer);
+            resolve(stdout);
+        });
+        cp.on('error', e => {
+            if (timer)
+                clearTimeout(timer);
+            reject(e);
+        });
+        if (timeout) {
+            timer = setTimeout(() => {
+                cp.kill();
+                reject(new Error(`timeout after ${timeout}s`));
+            }, timeout * 1000);
+        }
+    });
+}
 //# sourceMappingURL=extension.js.map
 
 /***/ }),
