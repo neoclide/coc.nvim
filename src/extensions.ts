@@ -205,7 +205,7 @@ export class Extensions {
         statusItem.show()
       }
       try {
-        await runCommand(`${npm} install ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit`)
+        await runCommand(`${npm} install ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
       } catch (e) {
         workspace.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error')
       }
