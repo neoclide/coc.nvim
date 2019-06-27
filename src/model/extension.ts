@@ -73,14 +73,31 @@ export default class ExtensionManager {
     onMessage(`Downloading ${url.match(/[^/]*$/)[0]}`)
     let options: any = { encoding: null }
     if (proxy) {
-      let parts = proxy.split(':', 2)
-      options.agent = tunnel.httpsOverHttp({
-        proxy: {
-          headers: {},
-          host: parts[0],
-          port: Number(parts[1])
-        }
-      })
+      let auth = ''
+      let host = ''
+      let port = 0
+      if (proxy.includes('@')) {
+        let parts = proxy.split('@', 2)
+        auth = parts[0]
+
+        let proxyParts = parts[1].split(':', 2)
+        host = proxyParts[0]
+        port = Number(proxyParts[1])
+      } else {
+        let parts = proxy.split(':', 2)
+        host = parts[0]
+        port = Number(parts[1])
+      }
+      if (host && port) {
+        options.agent = tunnel.httpsOverHttp({
+          proxy: {
+            headers: {},
+            host: host,
+            port: port,
+            proxyAuth: auth
+          }
+        })
+      }
     }
     let p = new Promise((resolve, reject) => {
       let stream = got.stream(url, options).on('downloadProgress', progress => {
