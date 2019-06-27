@@ -54156,7 +54156,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5f07fabd43" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "c8e414ba17" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57172,7 +57172,7 @@ class Extensions {
             let json = this.loadJson();
             if (json && json.dependencies) {
                 let vals = Object.values(json.dependencies);
-                names = names.filter(s => !isuri_1.default.isValid(s) || vals.indexOf(s) == -1);
+                names = names.filter(s => !isuri_1.default.isValid(s) || vals.findIndex(val => val.indexOf(s) !== -1) == -1);
             }
             this.installExtensions(names).logError();
         }
