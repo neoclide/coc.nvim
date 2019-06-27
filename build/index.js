@@ -54156,7 +54156,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f2e008e036" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "5f07fabd43" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57169,6 +57169,11 @@ class Extensions {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
             let names = globalExtensions.filter(name => !this.has(name));
+            let json = this.loadJson();
+            if (json && json.dependencies) {
+                let vals = Object.values(json.dependencies);
+                names = names.filter(s => !isuri_1.default.isValid(s) || vals.indexOf(s) == -1);
+            }
             this.installExtensions(names).logError();
         }
         // watch for changes
@@ -57218,7 +57223,8 @@ class Extensions {
                 statusItem.show();
             }
             try {
-                await util_2.runCommand(`${npm} install ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --only=prod --no-audit`);
+                let method = npm == 'yarn' ? 'install' : 'add';
+                await util_2.runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root });
             }
             catch (e) {
                 workspace_1.default.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error');
@@ -57545,12 +57551,14 @@ class Extensions {
                     }
                     let version = obj ? obj.version || '' : '';
                     let description = obj ? obj.description || '' : '';
+                    let uri = isuri_1.default.isValid(val) ? val : null;
                     resolve({
                         id: key,
                         isLocal: false,
                         version,
                         description,
-                        exotic: isuri_1.default.isValid(val),
+                        exotic: uri != null,
+                        uri,
                         root,
                         state: this.getExtensionState(key)
                     });
