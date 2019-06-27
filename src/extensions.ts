@@ -160,8 +160,8 @@ export class Extensions {
       let names = globalExtensions.filter(name => !this.has(name))
       let json = this.loadJson()
       if (json && json.dependencies) {
-        let vals = Object.values(json.dependencies)
-        names = names.filter(s => !isuri.isValid(s) || vals.indexOf(s) == -1)
+        let vals = Object.values(json.dependencies) as string[]
+        names = names.filter(s => !isuri.isValid(s) || vals.findIndex(val => val.indexOf(s) !== -1) == -1)
       }
       this.installExtensions(names).logError()
     }
