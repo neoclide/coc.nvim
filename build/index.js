@@ -42471,7 +42471,7 @@ async function mkdirp(path, mode) {
         catch (err) {
             if (err.code === 'EEXIST') {
                 const stat = await nfcall(fs_1.default.stat, path);
-                if (stat.isDirectory) {
+                if (stat.isDirectory()) {
                     return;
                 }
                 throw new Error(`'${path}' exists and is not a directory.`);
@@ -45828,7 +45828,7 @@ class Configurations {
                     if (!fs_1.default.existsSync(file)) {
                         let folder = path_1.default.dirname(file);
                         if (!fs_1.default.existsSync(folder))
-                            fs_1.default.mkdirSync(folder, { recursive: true });
+                            fs_1.default.mkdirSync(folder);
                         fs_1.default.writeFileSync(file, '{}', { encoding: 'utf8' });
                     }
                 }
@@ -54159,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f11e0a19fb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "28bc498ad2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57095,7 +57095,7 @@ class Extensions {
         }
         this.manager = new extension_1.default(this.root);
         if (!fs_1.default.existsSync(this.root)) {
-            await util_1.default.promisify(fs_1.default.mkdir)(this.root, { recursive: true });
+            await util_2.mkdirp(this.root);
             await util_1.default.promisify(fs_1.default.writeFile)(path_1.default.join(this.root, 'package.json'), '{"dependencies":{}}', 'utf8');
         }
         let filepath = path_1.default.join(this.root, 'db.json');
@@ -57214,7 +57214,7 @@ class Extensions {
         if (global.hasOwnProperty('__TEST__')) {
             for (let name of list) {
                 let dir = path_1.default.join(this.root, 'node_modules', name);
-                await util_1.default.promisify(fs_1.default.mkdir)(dir, { recursive: true });
+                await util_2.mkdirp(dir);
             }
             return;
         }
@@ -73185,8 +73185,13 @@ class ExtensionManager {
     constructor(root) {
         this.root = root;
         this.proxy = workspace_1.default.getConfiguration('http').get('proxy', '');
-        fs_1.default.mkdirSync(path_1.default.join(root, '.cache'), { recursive: true });
-        fs_1.default.mkdirSync(path_1.default.join(root, 'node_modules'), { recursive: true });
+    }
+    async init() {
+        let { root } = this;
+        await util_1.mkdirp(root);
+        for (let name of ['.cache', 'node_modules']) {
+            await util_1.mkdirp(path_1.default.join(root, name));
+        }
     }
     get statusItem() {
         return workspace_1.default.createStatusBarItem(0, { progress: true });
@@ -73275,6 +73280,7 @@ class ExtensionManager {
     async install(npm, name) {
         let { statusItem } = this;
         try {
+            await this.init();
             logger.info(`Using npm from: ${npm}`);
             statusItem.text = `Loading info of ${name}.`;
             statusItem.show();
@@ -73304,6 +73310,7 @@ class ExtensionManager {
         }
     }
     async update(npm, name) {
+        await this.init();
         let folder = path_1.default.join(this.root, 'node_modules', name);
         let { statusItem } = this;
         try {
