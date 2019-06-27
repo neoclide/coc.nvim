@@ -97,6 +97,7 @@ export default class Handler {
       workspace.env,
       signaturePreferAbove,
       signatureMaxHeight,
+      80,
       this.preferences.signatureHelpTimeout)
     this.disposables.push(this.signatureFactory)
 
