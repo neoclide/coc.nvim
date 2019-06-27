@@ -54159,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "28bc498ad2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "82fb710606" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -84774,7 +84774,7 @@ class Handler {
         this.hoverFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
         this.disposables.push(this.hoverFactory);
         let { signaturePreferAbove, signatureMaxHeight } = this.preferences;
-        this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight, this.preferences.signatureHelpTimeout);
+        this.signatureFactory = new floatFactory_1.default(nvim, workspace_1.default.env, signaturePreferAbove, signatureMaxHeight, 80, this.preferences.signatureHelpTimeout);
         this.disposables.push(this.signatureFactory);
         events_1.default.on(['TextChangedI', 'TextChangedP'], async () => {
             if (this.preferences.signatureHideOnChange) {
