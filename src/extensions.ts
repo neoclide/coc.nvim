@@ -158,6 +158,11 @@ export class Extensions {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = globalExtensions.filter(name => !this.has(name))
+      let json = this.loadJson()
+      if (json && json.dependencies) {
+        let vals = Object.values(json.dependencies)
+        names = names.filter(s => !isuri.isValid(s) || vals.indexOf(s) == -1)
+      }
       this.installExtensions(names).logError()
     }
     // watch for changes
@@ -205,7 +210,8 @@ export class Extensions {
         statusItem.show()
       }
       try {
-        await runCommand(`${npm} install ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
+        let method = npm == 'yarn' ? 'install' : 'add'
+        await runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
       } catch (e) {
         workspace.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error')
       }
@@ -518,12 +524,14 @@ export class Extensions {
           }
           let version = obj ? obj.version || '' : ''
           let description = obj ? obj.description || '' : ''
+          let uri = isuri.isValid(val) ? val : null
           resolve({
             id: key,
             isLocal: false,
             version,
             description,
-            exotic: isuri.isValid(val),
+            exotic: uri != null,
+            uri,
             root,
             state: this.getExtensionState(key)
           })

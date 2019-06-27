@@ -52,6 +52,7 @@ export interface ExtensionInfo {
   description: string
   root: string
   exotic: boolean
+  uri?: string
   state: ExtensionState
   isLocal: boolean
 }
