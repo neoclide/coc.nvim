@@ -54156,7 +54156,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "dae0924196" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f2e008e036" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -83653,6 +83653,9 @@ class File extends source_1.default {
         if (!option)
             return null;
         let { pathstr, part, startcol, input } = option;
+        if (startcol < opt.col)
+            return null;
+        let startPart = opt.col == startcol ? '' : string_1.byteSlice(opt.line, opt.col, startcol);
         let dirname = path_1.default.dirname(filepath);
         let ext = path_1.default.extname(path_1.default.basename(filepath));
         let cwd = await this.nvim.call('getcwd', []);
@@ -83682,11 +83685,14 @@ class File extends source_1.default {
         if (first && col == startcol)
             items = items.filter(o => o.word[0] === first);
         return {
-            startcol,
             items: items.map(item => {
                 let ex = path_1.default.extname(item.word);
                 item.word = trimExt && ex === ext ? item.word.replace(ext, '') : item.word;
-                return Object.assign({}, item, { menu: this.menu });
+                return {
+                    word: `${startPart}${item.word}`,
+                    abbr: `${startPart}${item.abbr}`,
+                    menu: this.menu
+                };
             })
         };
     }
