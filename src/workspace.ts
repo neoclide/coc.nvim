@@ -1119,7 +1119,11 @@ export class Workspace implements IWorkspace {
    * Create StatusBarItem
    */
   public createStatusBarItem(priority = 0, opt: StatusItemOption = {}): StatusBarItem {
-    if (!this.statusLine) return null
+    if (!this.statusLine) {
+      // tslint:disable-next-line: no-empty
+      let fn = () => { }
+      return { text: '', show: fn, dispose: fn, hide: fn, priority: 0, isProgress: true }
+    }
     return this.statusLine.createStatusBarItem(priority, opt.progress || false)
   }
 
