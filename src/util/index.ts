@@ -133,11 +133,9 @@ export async function mkdirp(path: string, mode?: number): Promise<boolean> {
     } catch (err) {
       if (err.code === 'EEXIST') {
         const stat = await nfcall<fs.Stats>(fs.stat, path)
-
-        if (stat.isDirectory) {
+        if (stat.isDirectory()) {
           return
         }
-
         throw new Error(`'${path}' exists and is not a directory.`)
       }
 
@@ -156,7 +154,6 @@ export async function mkdirp(path: string, mode?: number): Promise<boolean> {
     if (err.code !== 'ENOENT') {
       throw err
     }
-
     await mkdirp(dirname(path), mode)
     await mkdir()
   }

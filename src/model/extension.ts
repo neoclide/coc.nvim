@@ -1,5 +1,5 @@
 import { spawn, ExecOptions, exec } from 'child_process'
-import { runCommand } from '../util'
+import { runCommand, mkdirp } from '../util'
 import { promisify } from 'util'
 import tar from 'tar'
 import got from 'got'
@@ -31,8 +31,14 @@ export default class ExtensionManager {
   private proxy: string
   constructor(private root: string) {
     this.proxy = workspace.getConfiguration('http').get<string>('proxy', '')
-    fs.mkdirSync(path.join(root, '.cache'), { recursive: true })
-    fs.mkdirSync(path.join(root, 'node_modules'), { recursive: true })
+  }
+
+  private async init(): Promise<void> {
+    let { root } = this
+    await mkdirp(root)
+    for (let name of ['.cache', 'node_modules']) {
+      await mkdirp(path.join(root, name))
+    }
   }
 
   private get statusItem(): StatusBarItem {
@@ -125,6 +131,7 @@ export default class ExtensionManager {
   public async install(npm: string, name: string): Promise<boolean> {
     let { statusItem } = this
     try {
+      await this.init()
       logger.info(`Using npm from: ${npm}`)
       statusItem.text = `Loading info of ${name}.`
       statusItem.show()
@@ -154,6 +161,7 @@ export default class ExtensionManager {
   }
 
   public async update(npm: string, name: string): Promise<boolean> {
+    await this.init()
     let folder = path.join(this.root, 'node_modules', name)
     let { statusItem } = this
     try {

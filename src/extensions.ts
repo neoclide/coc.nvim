@@ -13,7 +13,7 @@ import events from './events'
 import DB from './model/db'
 import Memos from './model/memos'
 import { Extension, ExtensionContext, ExtensionInfo, ExtensionState } from './types'
-import { disposeAll, runCommand, wait, executable } from './util'
+import { disposeAll, runCommand, wait, executable, mkdirp } from './util'
 import { distinct } from './util/array'
 import { createExtension, ExtensionExport } from './util/factory'
 import { readFile, inDirectory, statAsync, readdirAsync, realpathAsync } from './util/fs'
@@ -82,7 +82,7 @@ export class Extensions {
     }
     this.manager = new ExtensionManager(this.root)
     if (!fs.existsSync(this.root)) {
-      await util.promisify(fs.mkdir)(this.root, { recursive: true })
+      await mkdirp(this.root)
       await util.promisify(fs.writeFile)(path.join(this.root, 'package.json'), '{"dependencies":{}}', 'utf8')
     }
     let filepath = path.join(this.root, 'db.json')
@@ -198,7 +198,7 @@ export class Extensions {
     if (global.hasOwnProperty('__TEST__')) {
       for (let name of list) {
         let dir = path.join(this.root, 'node_modules', name)
-        await util.promisify(fs.mkdir)(dir, { recursive: true })
+        await mkdirp(dir)
       }
       return
     }

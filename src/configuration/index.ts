@@ -248,7 +248,7 @@ export default class Configurations {
           let file = this.workspaceConfigFile = this._proxy.workspaceConfigFile
           if (!fs.existsSync(file)) {
             let folder = path.dirname(file)
-            if (!fs.existsSync(folder)) fs.mkdirSync(folder, { recursive: true })
+            if (!fs.existsSync(folder)) fs.mkdirSync(folder)
             fs.writeFileSync(file, '{}', { encoding: 'utf8' })
           }
         }
