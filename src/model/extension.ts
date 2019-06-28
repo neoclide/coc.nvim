@@ -1,5 +1,5 @@
 import { spawn, ExecOptions, exec } from 'child_process'
-import { runCommand, mkdirp } from '../util'
+import { runCommand } from '../util'
 import { promisify } from 'util'
 import tar from 'tar'
 import got from 'got'
@@ -9,6 +9,7 @@ import path from 'path'
 import rimraf from 'rimraf'
 import workspace from '../workspace'
 import semver from 'semver'
+import mkdirp from 'mkdirp'
 import { StatusBarItem } from '../types'
 const logger = require('../util/logger')('model-extension')
 
@@ -29,20 +30,12 @@ async function getData(name: string, field: string): Promise<string> {
 
 export default class ExtensionManager {
   private proxy: string
+  private created: boolean
   constructor(private root: string) {
     this.proxy = workspace.getConfiguration('http').get<string>('proxy', '')
-  }
-
-  private async init(): Promise<void> {
-    let { root } = this
-    await mkdirp(root)
-    for (let name of ['.cache', 'node_modules']) {
-      await mkdirp(path.join(root, name))
-    }
-  }
-
-  private get statusItem(): StatusBarItem {
-    return workspace.createStatusBarItem(0, { progress: true })
+    mkdirp.sync(root)
+    mkdirp.sync(path.join(root, '.cache'))
+    mkdirp.sync(path.join(root, 'node_modules'))
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
@@ -84,6 +77,9 @@ export default class ExtensionManager {
     let url = info['dist.tarball']
     onMessage(`Downloading ${url.match(/[^/]*$/)[0]}`)
     let options: any = { encoding: null }
+    if (!proxy && process.env.HTTP_PROXY) {
+      proxy = process.env.HTTP_PROXY.replace(/^https?:\/\//, '').replace(/\/$/, '')
+    }
     if (proxy) {
       let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : ''
       let parts = auth.length ? proxy.slice(auth.length + 1).split(':') : proxy.split(':')
@@ -135,76 +131,53 @@ export default class ExtensionManager {
   }
 
   public async install(npm: string, name: string): Promise<boolean> {
-    let { statusItem } = this
-    try {
-      await this.init()
-      logger.info(`Using npm from: ${npm}`)
-      statusItem.text = `Loading info of ${name}.`
-      statusItem.show()
-      let info = await this.getInfo(npm, name)
-      if (info.error) {
-        let { code, summary } = info.error
-        let msg = code == 'E404' ? `module ${name} not exists!` : summary
-        throw new Error(msg)
-      }
-      let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
-      if (required && !semver.satisfies(workspace.version, required)) {
-        throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
-      }
-      await this._install(npm, name, info, msg => {
-        statusItem.text = msg
-      })
-      statusItem.dispose()
-      workspace.showMessage(`Installed extension: ${name}`, 'more')
-      logger.info(`Installed extension: ${name}`)
-      return true
-    } catch (e) {
-      statusItem.dispose()
-      logger.error(e)
-      workspace.showMessage(`Install ${name} error: ${e.message}`, 'error')
-      return false
+    logger.info(`Using npm from: ${npm}`)
+    logger.info(`Loading info of ${name}.`)
+    let info = await this.getInfo(npm, name)
+    if (info.error) {
+      let { code, summary } = info.error
+      let msg = code == 'E404' ? `module ${name} not exists!` : summary
+      throw new Error(msg)
     }
+    let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
+    if (required && !semver.satisfies(workspace.version, required)) {
+      throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
+    }
+    await this._install(npm, name, info, msg => {
+      logger.info(msg)
+    })
+    workspace.showMessage(`Installed extension: ${name}`, 'more')
+    logger.info(`Installed extension: ${name}`)
+    return true
   }
 
   public async update(npm: string, name: string): Promise<boolean> {
-    await this.init()
     let folder = path.join(this.root, 'node_modules', name)
-    let { statusItem } = this
-    try {
-      let stat = await promisify(fs.lstat)(folder)
-      if (stat.isSymbolicLink()) {
-        logger.info(`skipped update of ${name}`)
-        return false
-      }
-      let version: string
-      if (fs.existsSync(path.join(folder, 'package.json'))) {
-        let content = await promisify(fs.readFile)(path.join(folder, 'package.json'), 'utf8')
-        version = JSON.parse(content).version
-      }
-      statusItem.text = `Loading info of ${name}.`
-      statusItem.show()
-      let info = await this.getInfo(npm, name)
-      if (info.error) return
-      if (version && info.version && semver.gte(version, info.version)) {
-        logger.info(`Extension ${name} is up to date.`)
-        statusItem.dispose()
-        return false
-      }
-      let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
-      if (required && !semver.satisfies(workspace.version, required)) {
-        throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
-      }
-      await this._install(npm, name, info, msg => { statusItem.text = msg })
-      statusItem.dispose()
-      workspace.showMessage(`Update extension: ${name}`, 'more')
-      logger.info(`Update extension: ${name}`)
-      return true
-    } catch (e) {
-      statusItem.dispose()
-      logger.error(e)
-      workspace.showMessage(`Update ${name} error: ${e.message}`, 'error')
+    let stat = await promisify(fs.lstat)(folder)
+    if (stat.isSymbolicLink()) {
+      logger.info(`skipped update of ${name}`)
       return false
     }
+    let version: string
+    if (fs.existsSync(path.join(folder, 'package.json'))) {
+      let content = await promisify(fs.readFile)(path.join(folder, 'package.json'), 'utf8')
+      version = JSON.parse(content).version
+    }
+    logger.info(`Loading info of ${name}.`)
+    let info = await this.getInfo(npm, name)
+    if (info.error) return
+    if (version && info.version && semver.gte(version, info.version)) {
+      logger.info(`Extension ${name} is up to date.`)
+      return false
+    }
+    let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
+    if (required && !semver.satisfies(workspace.version, required)) {
+      throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
+    }
+    await this._install(npm, name, info, msg => { logger.info(msg) })
+    workspace.showMessage(`Updated extension: ${name} to ${info.version}`, 'more')
+    logger.info(`Update extension: ${name}`)
+    return true
   }
 }
 

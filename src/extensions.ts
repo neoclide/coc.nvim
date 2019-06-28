@@ -149,10 +149,19 @@ export class Extensions {
     let stats = await this.globalExtensionStats()
     let versionInfo: { [index: string]: string } = {}
     stats = stats.filter(o => !o.exotic && !this.disabled.has(o.id) && !lockedList.includes(o.id))
-    for (let stat of stats) {
-      let updated = await this.manager.update(this.npm, stat.id)
-      if (updated) this.reloadExtension(stat.id).logError()
-    }
+    let names = stats.map(o => o.id)
+    let statusItem = workspace.createStatusBarItem(0, { progress: true })
+    statusItem.text = `Updating extensions.`
+    statusItem.show()
+    await Promise.all(names.map(name => {
+      return this.manager.update(this.npm, name).then(updated => {
+        if (updated) this.reloadExtension(name).logError()
+      }, err => {
+        workspace.showMessage(`Error on update ${name}: ${err}`)
+      })
+    }))
+    workspace.showMessage('Update completed', 'more')
+    statusItem.dispose()
   }
 
   private async checkExtensions(): Promise<void> {
@@ -204,30 +213,32 @@ export class Extensions {
       return
     }
     let uris = list.filter(name => isuri.isValid(name))
+    let statusItem = workspace.createStatusBarItem(0, { progress: true })
+    statusItem.show()
     if (uris.length) {
-      let statusItem = workspace.createStatusBarItem(0, { progress: true })
-      if (statusItem) {
-        statusItem.text = `Installing ${uris.join(' ')}`
-        statusItem.show()
-      }
+      statusItem.text = `Installing ${uris.join(' ')}`
       try {
         let method = npm == 'yarn' ? 'install' : 'add'
         await runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
       } catch (e) {
         workspace.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error')
       }
-      if (statusItem) statusItem.dispose()
     }
-    let names = list.filter(name => !isuri.isValid(name))
-    for (let name of names) {
-      let installed = await this.manager.install(npm, name)
-      if (installed) this.onExtensionInstall(name).logError()
-    }
+    let names = list.filter(name => !isuri.isValid(name)) as string[]
+    statusItem.text = `Installing ${names.join(' ')}`
+    await Promise.all(names.map(name => {
+      return this.manager.install(npm, name).then(installed => {
+        if (installed) this.onExtensionInstall(name).logError()
+      }, err => {
+        workspace.showMessage(`Error on install ${name}: ${err}`)
+      })
+    }))
+    statusItem.dispose()
   }
 
   private get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
-    if (executable(npm)) return npm
+    if (executable(npm)) return which.sync(npm)
     if (executable('yarn')) return 'yarn'
     if (npm == 'npm') {
       workspace.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error')

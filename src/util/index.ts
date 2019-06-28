@@ -8,6 +8,7 @@ import { URI } from 'vscode-uri'
 import which from 'which'
 import * as platform from './platform'
 import isuri from 'isuri'
+import mkdir from 'mkdirp'
 import { MapMode } from '../types'
 
 export { platform }
@@ -127,38 +128,12 @@ export function getKeymapModifier(mode: MapMode): string {
 }
 
 export async function mkdirp(path: string, mode?: number): Promise<boolean> {
-  const mkdir = async () => {
-    try {
-      await nfcall(fs.mkdir, path, mode)
-    } catch (err) {
-      if (err.code === 'EEXIST') {
-        const stat = await nfcall<fs.Stats>(fs.stat, path)
-        if (stat.isDirectory()) {
-          return
-        }
-        throw new Error(`'${path}' exists and is not a directory.`)
-      }
-
-      throw err
-    }
-  }
-
-  // is root?
-  if (path === dirname(path)) {
-    return true
-  }
-
-  try {
-    await mkdir()
-  } catch (err) {
-    if (err.code !== 'ENOENT') {
-      throw err
-    }
-    await mkdirp(dirname(path), mode)
-    await mkdir()
-  }
-
-  return true
+  return new Promise(resolve => {
+    mkdir(path, { mode }, err => {
+      if (err) return resolve(false)
+      resolve(true)
+    })
+  })
 }
 
 function nfcall<R>(fn: Function, ...args: any[]): Promise<R> {
