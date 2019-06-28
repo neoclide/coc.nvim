@@ -57,8 +57,14 @@ export default class ExtensionManager {
       }
       return obj as Info
     }
-    let res = await safeRun(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 })
-    return JSON.parse(res)
+    let content = await safeRun(`${npm} view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 })
+    let lines = content.split(/\r?\n/)
+    let obj = {}
+    for (let line of lines) {
+      let ms = line.match(/^(\S+)\s*=\s*'(.*)'/)
+      if (ms) obj[ms[1]] = ms[2]
+    }
+    return obj as Info
   }
 
   private async removeFolder(folder: string): Promise<void> {
