@@ -389,6 +389,10 @@ function! coc#util#get_complete_option()
   if !empty(blacklist) && index(blacklist, input) >= 0
     return
   endif
+  let synname = synIDattr(synID(pos[1], l:start, 1),"name")
+  if !synname
+    let synname = ''
+  endif
   return {
         \ 'word': matchstr(line[l:start : ], '^\k\+'),
         \ 'input': input,
@@ -399,7 +403,7 @@ function! coc#util#get_complete_option()
         \ 'linenr': pos[1],
         \ 'colnr' : pos[2],
         \ 'col': l:start,
-        \ 'synname': synIDattr(synID(pos[1], l:start, 1),"name"),
+        \ 'synname': synname,
         \ 'blacklist': blacklist,
         \}
 endfunction

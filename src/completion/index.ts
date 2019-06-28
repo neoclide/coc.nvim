@@ -367,9 +367,20 @@ export class Completion implements Disposable {
     }
     let option: CompleteOption = await this.nvim.call('coc#util#get_complete_option')
     if (!option) return
+    this.fixCompleteOption(option)
     option.triggerCharacter = pre.slice(-1)
     logger.debug('trigger completion with', option)
     await this.startCompletion(option)
+  }
+
+  private fixCompleteOption(opt: CompleteOption): void {
+    if (workspace.isVim) {
+      for (let key of ['word', 'input', 'line', 'filetype']) {
+        if (opt[key] == null) {
+          opt[key] = ''
+        }
+      }
+    }
   }
 
   private async onCompleteDone(item: VimCompleteItem): Promise<void> {
@@ -409,6 +420,7 @@ export class Completion implements Disposable {
   private async onInsertEnter(): Promise<void> {
     if (!this.config.triggerAfterInsertEnter) return
     let option = await this.nvim.call('coc#util#get_complete_option')
+    this.fixCompleteOption(option)
     if (option && option.input.length >= this.config.minTriggerInputLength) {
       await this.startCompletion(option)
     }

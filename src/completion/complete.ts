@@ -315,11 +315,18 @@ export default class Complete {
 
   public resolveCompletionItem(item: VimCompleteItem): VimCompleteItem | null {
     let { results } = this
-    if (!results || !item.user_data) return null
+    if (!results) return null
     try {
-      let { source } = JSON.parse(item.user_data)
-      let result = results.find(res => res.source == source)
-      return result.items.find(o => o.user_data == item.user_data)
+      if (item.user_data) {
+        let { source } = JSON.parse(item.user_data)
+        let result = results.find(res => res.source == source)
+        return result.items.find(o => o.user_data == item.user_data)
+      }
+      for (let result of results) {
+        let res = result.items.find(o => o.abbr == item.abbr && o.info == item.info)
+        if (res) return res
+      }
+      return null
     } catch (e) {
       return null
     }

@@ -17,7 +17,7 @@
 
 Coc is an intellisense engine for vim8 & neovim.
 
-It works on `vim >= 8.0.1453` and `neovim >= 0.3.1`.
+It works on `vim >= 8.0` and `neovim >= 0.3.1`.
 
 It's a completion framework and language server client which supports [extension features of VSCode](https://github.com/neoclide/coc.nvim/wiki/Using-coc-extensions).
 
@@ -361,7 +361,7 @@ nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 
 Try these steps when you have problem with coc.nvim.
 
-- Make sure your vim version >= 8.0.1453 by command `:version`.
+- Make sure your vim version >= 8.0 by command `:version`.
 - If service failed to start, use command `:CocInfo` or `:checkhealth` on neovim.
 - Checkout the log of coc.nvim by command `:CocOpenLog`.
 - When you have issue with a languageserver, it's recommended to [checkout the output](https://github.com/neoclide/coc.nvim/wiki/Debug-language-server#using-output-channel)

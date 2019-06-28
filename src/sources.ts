@@ -15,9 +15,6 @@ import workspace from './workspace'
 import { byteSlice } from './util/string'
 const logger = require('./util/logger')('sources')
 
-// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
-// priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
-
 export class Sources {
   private sourceMap: Map<string, ISource> = new Map()
   private disposables: Disposable[] = []

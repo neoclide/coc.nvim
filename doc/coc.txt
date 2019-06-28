@@ -62,7 +62,7 @@ off any feature whenever you want.
 ==============================================================================
 REQUIREMENT					*coc-requirement*
 
-Note: this plugin requires neovim >= 0.3.0 or vim >= 8.0.1453.
+Note: this plugin requires neovim >= 0.3.0 or vim >= 8.0.
 
 Node: https://nodejs.org/en/download/ is required to run javascript code.
 
