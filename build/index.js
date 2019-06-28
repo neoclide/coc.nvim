@@ -54159,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "82fb710606" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8298b7b620" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57159,9 +57159,10 @@ class Extensions {
             this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
             this.manager = new extension_1.default(this.root);
         }
+        let lockedList = await this.getLockedList();
         let stats = await this.globalExtensionStats();
         let versionInfo = {};
-        stats = stats.filter(o => !o.exotic);
+        stats = stats.filter(o => !o.exotic && !this.disabled.has(o.id) && !lockedList.includes(o.id));
         for (let stat of stats) {
             let updated = await this.manager.update(this.npm, stat.id);
             if (updated)
@@ -57276,6 +57277,23 @@ class Extensions {
         let globalStats = await this.globalExtensionStats();
         let localStats = await this.localExtensionStats(globalStats);
         return globalStats.concat(localStats);
+    }
+    async getLockedList() {
+        let obj = await this.db.fetch('extension');
+        obj = obj || {};
+        return Object.keys(obj).filter(id => {
+            return obj[id].locked === true;
+        });
+    }
+    async toggleLock(id) {
+        let key = `extension.${id}.locked`;
+        let locked = await this.db.fetch(key);
+        if (locked) {
+            await this.db.delete(key);
+        }
+        else {
+            await this.db.push(key, true);
+        }
     }
     async toggleExtension(id) {
         let state = this.getExtensionState(id);
@@ -70741,10 +70759,13 @@ exports.default = LocationList;
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
-const extensions_1 = tslib_1.__importDefault(__webpack_require__(234));
-const basic_1 = tslib_1.__importDefault(__webpack_require__(308));
 const os_1 = tslib_1.__importDefault(__webpack_require__(55));
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
+const extensions_1 = tslib_1.__importDefault(__webpack_require__(234));
 const util_1 = __webpack_require__(171);
+const fs_1 = __webpack_require__(196);
+const basic_1 = tslib_1.__importDefault(__webpack_require__(308));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const logger = __webpack_require__(182)('list-extensions');
 class ExtensionList extends basic_1.default {
     constructor(nvim) {
@@ -70774,15 +70795,17 @@ class ExtensionList extends basic_1.default {
             if (state == 'disabled')
                 await extensions_1.default.toggleExtension(id);
         }, { persist: true, reload: true, parallel: true });
-        this.addAction('open', async (item) => {
+        this.addAction('lock', async (item) => {
+            let { id } = item.data;
+            await extensions_1.default.toggleLock(id);
+        }, { persist: true, reload: true });
+        this.addAction('doc', async (item) => {
             let { root } = item.data;
-            let escaped = await nvim.call('fnameescape', root);
-            if (process.platform === 'darwin') {
-                nvim.call('coc#util#iterm_open', [escaped], true);
-            }
-            else {
-                await nvim.command(`lcd ${escaped}`);
-                nvim.command('terminal', true);
+            let files = await fs_1.readdirAsync(root);
+            let file = files.find(f => /^readme/i.test(f));
+            if (file) {
+                let escaped = await nvim.call('fnameescape', [path_1.default.join(root, file)]);
+                await workspace_1.default.callAsync('coc#util#execute', [`edit ${escaped}`]);
             }
         });
         this.addAction('reload', async (item) => {
@@ -70810,6 +70833,7 @@ class ExtensionList extends basic_1.default {
     async loadItems(_context) {
         let items = [];
         let list = await extensions_1.default.getExtensionStates();
+        let lockedList = await extensions_1.default.getLockedList();
         for (let stat of list) {
             let prefix = '+';
             if (stat.state == 'disabled') {
@@ -70822,8 +70846,9 @@ class ExtensionList extends basic_1.default {
                 prefix = '?';
             }
             let root = await this.nvim.call('resolve', stat.root);
+            let locked = lockedList.indexOf(stat.id) !== -1;
             items.push({
-                label: `${prefix} ${stat.id}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os_1.default.homedir(), '~')}`,
+                label: `${prefix} ${stat.id}${locked ? ' ' : ''}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os_1.default.homedir(), '~')}`,
                 filterText: stat.id,
                 data: {
                     id: stat.id,
@@ -73208,8 +73233,15 @@ class ExtensionManager {
             }
             return obj;
         }
-        let res = await safeRun(`${npm} view ${name} dist.tarball engines.coc version --json`, { timeout: 60 * 1000 });
-        return JSON.parse(res);
+        let content = await safeRun(`${npm} view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 });
+        let lines = content.split(/\r?\n/);
+        let obj = {};
+        for (let line of lines) {
+            let ms = line.match(/^(\S+)\s*=\s*'(.*)'/);
+            if (ms)
+                obj[ms[1]] = ms[2];
+        }
+        return obj;
     }
     async removeFolder(folder) {
         if (fs_1.default.existsSync(folder)) {
