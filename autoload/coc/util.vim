@@ -732,14 +732,17 @@ function! coc#util#install_extension(args) abort
 endfunction
 
 function! coc#util#init_extension_root(root) abort
+  let file = a:root.'/package.json'
   if !isdirectory(a:root)
     call mkdir(a:root, 'p')
-    let file = a:root.'/package.json'
     let res = writefile(['{"dependencies":{}}'], file)
     if res == -1
       echohl Error | echom 'Create package.json failed: '.v:errmsg | echohl None
       return -1
     endif
+  endif
+  if !filereadable(a:root.'/package.json')
+    call writefile(['{"dependencies":{}}'], file)
   endif
   return 0
 endfunction

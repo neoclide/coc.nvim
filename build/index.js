@@ -54241,7 +54241,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "5288471ef8" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "a1e2f4afac" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57273,7 +57273,7 @@ class Extensions {
     async checkExtensions() {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
-            let names = globalExtensions.filter(name => !this.has(name));
+            let names = globalExtensions.filter(name => !this.has(name) && !this.isDisabled(name));
             let json = this.loadJson();
             if (json && json.dependencies) {
                 let vals = Object.values(json.dependencies);
