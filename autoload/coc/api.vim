@@ -1,5 +1,10 @@
+" ============================================================================
+" Description: Client api used by vim8
+" Author: Qiming Zhao <chemzqm@gmail.com>
+" Licence: MIT licence
+" Last Modified:  June 28, 2019
+" ============================================================================
 if has('nvim') | finish | endif
-scriptencoding utf-8
 let s:funcs = {}
 let s:prop_id = 1000
 let s:namespace_id = 1
@@ -245,6 +250,9 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
 endfunction
 
 function! s:funcs.buf_clear_namespace(bufnr, srcId, startLine, endLine) abort
+  if !has('textprop')
+    return
+  endif
   if a:srcId == 0
     if a:endLine == -1
       call prop_clear(a:startLine + 1, {'bufnr': a:bufnr})
@@ -278,12 +286,12 @@ endfunction
 
 function! s:funcs.buf_attach(...)
   " not supported
-  return 0
+  return 1
 endfunction
 
 function! s:funcs.buf_detach()
   " not supported
-  return 0
+  return 1
 endfunction
 
 function! s:funcs.buf_get_lines(bufnr, start, end, strict) abort
@@ -316,16 +324,18 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
     endif
   else
-    " replace
-    if delCount == len(replacement)
-      call setbufline(a:bufnr, startLnum, replacement)
-    else
-      if len(replacement)
-        call appendbufline(a:bufnr, startLnum - 1, replacement)
-      endif
-      if delCount
-        let start = startLnum + len(replacement)
-        call deletebufline(a:bufnr, start, start + delCount - 1)
+    if exists('*setbufline')
+      " replace
+      if delCount == len(replacement)
+        call setbufline(a:bufnr, startLnum, replacement)
+      else
+        if len(replacement)
+          call appendbufline(a:bufnr, startLnum - 1, replacement)
+        endif
+        if delCount
+          let start = startLnum + len(replacement)
+          call deletebufline(a:bufnr, start, start + delCount - 1)
+        endif
       endif
     endif
   endif
@@ -335,6 +345,7 @@ function! s:funcs.buf_set_name(bufnr, name) abort
   let nr = bufnr('%')
   if a:bufnr != nr
     throw 'buf_set_name support current buffer only'
+  else
     execute '0f'
     execute 'file '.fnameescape(a:name)
   endif
