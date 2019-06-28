@@ -145,9 +145,10 @@ export class Extensions {
       this.root = await workspace.nvim.call('coc#util#extension_root')
       this.manager = new ExtensionManager(this.root)
     }
+    let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
     let versionInfo: { [index: string]: string } = {}
-    stats = stats.filter(o => !o.exotic)
+    stats = stats.filter(o => !o.exotic && !this.disabled.has(o.id) && !lockedList.includes(o.id))
     for (let stat of stats) {
       let updated = await this.manager.update(this.npm, stat.id)
       if (updated) this.reloadExtension(stat.id).logError()
@@ -257,6 +258,24 @@ export class Extensions {
     let globalStats = await this.globalExtensionStats()
     let localStats = await this.localExtensionStats(globalStats)
     return globalStats.concat(localStats)
+  }
+
+  public async getLockedList(): Promise<string[]> {
+    let obj = await this.db.fetch('extension')
+    obj = obj || {}
+    return Object.keys(obj).filter(id => {
+      return obj[id].locked === true
+    })
+  }
+
+  public async toggleLock(id: string): Promise<void> {
+    let key = `extension.${id}.locked`
+    let locked = await this.db.fetch(key)
+    if (locked) {
+      await this.db.delete(key)
+    } else {
+      await this.db.push(key, true)
+    }
   }
 
   public async toggleExtension(id: string): Promise<void> {

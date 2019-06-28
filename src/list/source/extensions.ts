@@ -1,9 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
+import os from 'os'
+import path from 'path'
 import extensions from '../../extensions'
 import { ListContext, ListItem } from '../../types'
+import { wait } from '../../util'
+import { readdirAsync } from '../../util/fs'
 import BasicList from '../basic'
-import os from 'os'
-import { wait, echoWarning } from '../../util'
+import workspace from '../../workspace'
 const logger = require('../../util/logger')('list-extensions')
 
 export default class ExtensionList extends BasicList {
@@ -34,14 +37,18 @@ export default class ExtensionList extends BasicList {
       if (state == 'disabled') await extensions.toggleExtension(id)
     }, { persist: true, reload: true, parallel: true })
 
-    this.addAction('open', async item => {
+    this.addAction('lock', async item => {
+      let { id } = item.data
+      await extensions.toggleLock(id)
+    }, { persist: true, reload: true })
+
+    this.addAction('doc', async item => {
       let { root } = item.data
-      let escaped = await nvim.call('fnameescape', root)
-      if (process.platform === 'darwin') {
-        nvim.call('coc#util#iterm_open', [escaped], true)
-      } else {
-        await nvim.command(`lcd ${escaped}`)
-        nvim.command('terminal', true)
+      let files = await readdirAsync(root)
+      let file = files.find(f => /^readme/i.test(f))
+      if (file) {
+        let escaped = await nvim.call('fnameescape', [path.join(root, file)])
+        await workspace.callAsync('coc#util#execute', [`edit ${escaped}`])
       }
     })
 
@@ -70,6 +77,7 @@ export default class ExtensionList extends BasicList {
   public async loadItems(_context: ListContext): Promise<ListItem[]> {
     let items: ListItem[] = []
     let list = await extensions.getExtensionStates()
+    let lockedList = await extensions.getLockedList()
     for (let stat of list) {
       let prefix = '+'
       if (stat.state == 'disabled') {
@@ -80,8 +88,9 @@ export default class ExtensionList extends BasicList {
         prefix = '?'
       }
       let root = await this.nvim.call('resolve', stat.root)
+      let locked = lockedList.indexOf(stat.id) !== -1
       items.push({
-        label: `${prefix} ${stat.id}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os.homedir(), '~')}`,
+        label: `${prefix} ${stat.id}${locked ? ' ' : ''}\t${stat.isLocal ? '[RTP]\t' : ''}${stat.version}\t${root.replace(os.homedir(), '~')}`,
         filterText: stat.id,
         data: {
           id: stat.id,
