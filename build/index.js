@@ -54241,7 +54241,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "3b49fda460" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "1c6fd1f6b9" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -73329,7 +73329,7 @@ class ExtensionManager {
             }
             return obj;
         }
-        let content = await safeRun(`${npm} view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 });
+        let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 });
         let lines = content.split(/\r?\n/);
         let obj = {};
         for (let line of lines) {
@@ -73465,6 +73465,8 @@ function safeRun(cmd, opts = {}, timeout) {
         let cp = child_process_1.exec(cmd, opts, (err, stdout, stderr) => {
             if (timer)
                 clearTimeout(timer);
+            if (err)
+                return reject(err);
             resolve(stdout);
         });
         cp.on('error', e => {
