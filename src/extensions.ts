@@ -167,7 +167,7 @@ export class Extensions {
   private async checkExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
-      let names = globalExtensions.filter(name => !this.has(name))
+      let names = globalExtensions.filter(name => !this.has(name) && !this.isDisabled(name))
       let json = this.loadJson()
       if (json && json.dependencies) {
         let vals = Object.values(json.dependencies) as string[]
