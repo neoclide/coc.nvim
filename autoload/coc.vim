@@ -79,6 +79,9 @@ function! coc#_do_complete(start, items)
 endfunction
 
 function! coc#_select_confirm()
+  if !exists('##TextChangedP')
+    return "\<C-y>"
+  endif
   let hasSelected = coc#rpc#request('hasSelected', [])
   if hasSelected | return "\<C-y>" | endif
   return "\<down>\<C-y>"

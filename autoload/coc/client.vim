@@ -32,16 +32,14 @@ endfunction
 function! s:start() dict
   if self.running | return | endif
   if s:is_vim
+    let $VIM_NODE_RPC = 1
+    let $COC_NVIM = 1
     let options = {
           \ 'in_mode': 'json',
           \ 'out_mode': 'json',
           \ 'err_mode': 'nl',
           \ 'err_cb': {channel, message -> s:on_stderr(self.name, split(message, "\n"))},
           \ 'exit_cb': {channel, code -> s:on_exit(self.name, code)},
-          \ 'env': {
-          \   'VIM_NODE_RPC': 1,
-          \   'COC_NVIM': 1,
-          \ }
           \}
     if has("patch-8.1.350")
       let options['noblock'] = 1

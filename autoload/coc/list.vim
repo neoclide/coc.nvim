@@ -153,7 +153,8 @@ function! coc#list#setlines(lines, append)
     call append(line('$'), a:lines)
   else
     call append(0, a:lines)
-    call deletebufline('%', len(a:lines) + 1, '$')
+    let n = len(a:lines) + 1
+    execute n.',$d'
   endif
 endfunction
 

@@ -54159,7 +54159,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8298b7b620" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f34a593153" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -56474,9 +56474,19 @@ class Completion {
         let option = await this.nvim.call('coc#util#get_complete_option');
         if (!option)
             return;
+        this.fixCompleteOption(option);
         option.triggerCharacter = pre.slice(-1);
         logger.debug('trigger completion with', option);
         await this.startCompletion(option);
+    }
+    fixCompleteOption(opt) {
+        if (workspace_1.default.isVim) {
+            for (let key of ['word', 'input', 'line', 'filetype']) {
+                if (opt[key] == null) {
+                    opt[key] = '';
+                }
+            }
+        }
     }
     async onCompleteDone(item) {
         let { document } = this;
@@ -56520,6 +56530,7 @@ class Completion {
         if (!this.config.triggerAfterInsertEnter)
             return;
         let option = await this.nvim.call('coc#util#get_complete_option');
+        this.fixCompleteOption(option);
         if (option && option.input.length >= this.config.minTriggerInputLength) {
             await this.startCompletion(option);
         }
@@ -56702,8 +56713,6 @@ const fs_2 = __webpack_require__(196);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(183));
 const string_1 = __webpack_require__(206);
 const logger = __webpack_require__(182)('sources');
-// type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>
-// priority,triggerPatterns,shortcut,enable,filetypes,disableSyntaxes,firstMatch
 class Sources {
     constructor() {
         this.sourceMap = new Map();
@@ -84113,12 +84122,20 @@ class Complete {
     }
     resolveCompletionItem(item) {
         let { results } = this;
-        if (!results || !item.user_data)
+        if (!results)
             return null;
         try {
-            let { source } = JSON.parse(item.user_data);
-            let result = results.find(res => res.source == source);
-            return result.items.find(o => o.user_data == item.user_data);
+            if (item.user_data) {
+                let { source } = JSON.parse(item.user_data);
+                let result = results.find(res => res.source == source);
+                return result.items.find(o => o.user_data == item.user_data);
+            }
+            for (let result of results) {
+                let res = result.items.find(o => o.abbr == item.abbr && o.info == item.info);
+                if (res)
+                    return res;
+            }
+            return null;
         }
         catch (e) {
             return null;

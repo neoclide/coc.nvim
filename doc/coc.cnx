@@ -65,7 +65,7 @@ coc.nvim 使用 coc-settings.json 文件进行配置，该文件格式与工作�
 
 依赖						*coc-requirement*
 
-该插件需要 neovim 0.3 版本以上或者 vim 8.0.1453 版本以上
+该插件需要 neovim 0.3 版本以上或者 vim 8.0 版本以上
 
 首先需要安装 node https://nodejs.org/en/download/ 用于执行 javascript 代码。
 

@@ -302,16 +302,31 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
   let startLnum = a:start >= 0 ? a:start + 1 : lineCount + a:start + 1
   let end = a:end >= 0 ? a:end : lineCount + a:end + 1
   let delCount = end - (startLnum - 1)
-  " replace
-  if delCount == len(replacement)
-    call setbufline(a:bufnr, startLnum, replacement)
-  else
-    if len(replacement)
-      call appendbufline(a:bufnr, startLnum - 1, replacement)
+  if a:bufnr == bufnr('%')
+    " replace
+    if delCount == len(replacement)
+      call setline(startLnum, replacement)
+    else
+      if len(replacement)
+        call append(a:bufnr, startLnum - 1, replacement)
+      endif
+      if delCount
+        let start = startLnum + len(replacement)
+        execute start . ','.(start + delCount - 1).'d'
+      endif
     endif
-    if delCount
-      let start = startLnum + len(replacement)
-      call deletebufline(a:bufnr, start, start + delCount - 1)
+  else
+    " replace
+    if delCount == len(replacement)
+      call setbufline(a:bufnr, startLnum, replacement)
+    else
+      if len(replacement)
+        call appendbufline(a:bufnr, startLnum - 1, replacement)
+      endif
+      if delCount
+        let start = startLnum + len(replacement)
+        call deletebufline(a:bufnr, start, start + delCount - 1)
+      endif
     endif
   endif
 endfunction
