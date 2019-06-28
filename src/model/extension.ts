@@ -50,7 +50,7 @@ export default class ExtensionManager {
       }
       return obj as Info
     }
-    let content = await safeRun(`${npm} view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 })
+    let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 })
     let lines = content.split(/\r?\n/)
     let obj = {}
     for (let line of lines) {
@@ -186,6 +186,7 @@ function safeRun(cmd: string, opts: ExecOptions = {}, timeout?: number): Promise
     let timer: NodeJS.Timer
     let cp = exec(cmd, opts, (err, stdout, stderr) => {
       if (timer) clearTimeout(timer)
+      if (err) return reject(err)
       resolve(stdout)
     })
     cp.on('error', e => {
