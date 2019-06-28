@@ -316,7 +316,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       call setline(startLnum, replacement)
     else
       if len(replacement)
-        call append(a:bufnr, startLnum - 1, replacement)
+        call append(startLnum - 1, replacement)
       endif
       if delCount
         let start = startLnum + len(replacement)
