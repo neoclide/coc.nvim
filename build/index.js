@@ -934,11 +934,7 @@ Comparator.prototype.test = function (version) {
   }
 
   if (typeof version === 'string') {
-    try {
-      version = new SemVer(version, this.options)
-    } catch (er) {
-      return false
-    }
+    version = new SemVer(version, this.options)
   }
 
   return cmp(version, this.operator, this.semver, this.options)
@@ -1389,11 +1385,7 @@ Range.prototype.test = function (version) {
   }
 
   if (typeof version === 'string') {
-    try {
-      version = new SemVer(version, this.options)
-    } catch (er) {
-      return false
-    }
+    version = new SemVer(version, this.options)
   }
 
   for (var i = 0; i < this.set.length; i++) {
@@ -54241,7 +54233,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "a1e2f4afac" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "7653757d60" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57186,10 +57178,11 @@ class Extensions {
             this.root = await nvim.call('coc#util#extension_root');
         }
         this.manager = new extension_1.default(this.root);
-        if (!fs_1.default.existsSync(this.root)) {
+        if (!fs_1.default.existsSync(this.root))
             await util_2.mkdirp(this.root);
-            await util_1.default.promisify(fs_1.default.writeFile)(path_1.default.join(this.root, 'package.json'), '{"dependencies":{}}', 'utf8');
-        }
+        let jsonFile = path_1.default.join(this.root, 'package.json');
+        if (!fs_1.default.existsSync(jsonFile))
+            await util_1.default.promisify(fs_1.default.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8');
         let filepath = path_1.default.join(this.root, 'db.json');
         let db = this.db = new db_1.default(filepath);
         let data = loadJson(db.filepath) || {};
@@ -57251,6 +57244,8 @@ class Extensions {
             this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
             this.manager = new extension_1.default(this.root);
         }
+        if (!this.npm)
+            return;
         let lockedList = await this.getLockedList();
         let stats = await this.globalExtensionStats();
         let versionInfo = {};
@@ -57326,7 +57321,7 @@ class Extensions {
         if (uris.length) {
             statusItem.text = `Installing ${uris.join(' ')}`;
             try {
-                let method = npm == 'yarn' ? 'install' : 'add';
+                let method = npm.endsWith('yarn') ? 'install' : 'add';
                 await util_2.runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root });
             }
             catch (e) {
@@ -57347,15 +57342,18 @@ class Extensions {
     }
     get npm() {
         let npm = workspace_1.default.getConfiguration('npm').get('binPath', 'npm');
-        if (util_2.executable(npm))
+        try {
             return which_1.default.sync(npm);
-        if (util_2.executable('yarn'))
-            return 'yarn';
-        if (npm == 'npm') {
-            workspace_1.default.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error');
         }
-        else {
-            workspace_1.default.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error');
+        catch (_e) {
+            if (util_2.executable('yarn'))
+                return which_1.default.sync('yarn');
+            if (npm == 'npm') {
+                workspace_1.default.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error');
+            }
+            else {
+                workspace_1.default.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error');
+            }
         }
         return null;
     }
@@ -73318,7 +73316,7 @@ class ExtensionManager {
         mkdirp_1.default.sync(path_1.default.join(root, 'node_modules'));
     }
     async getInfo(npm, name) {
-        if (npm == 'yarn') {
+        if (npm.endsWith('yarn')) {
             let obj = {};
             let keys = ['dist.tarball', 'engines.coc', 'version'];
             let vals = await Promise.all(keys.map(key => {
