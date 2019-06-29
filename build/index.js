@@ -54233,7 +54233,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "8f9fe16864" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "6ed2171e13" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -62346,8 +62346,6 @@ class FloatFactory {
                 workspace_1.default.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error');
                 return;
             }
-            if (!reuse)
-                this.window = res[0];
             if (mode == 's')
                 await manager_1.default.selectCurrentPlaceholder(false);
         }
