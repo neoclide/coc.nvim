@@ -232,11 +232,15 @@ export default class FloatFactory implements Disposable {
       // helps to fix undo issue, don't know why.
       if (mode.startsWith('i')) await nvim.eval('feedkeys("\\<C-g>u", "n")')
       let reuse = false
-      if (this.window) reuse = await this.window.valid
+      if (!this.window) {
+        this.window = await nvim.openFloatWindow(this.buffer, false, config)
+      } else {
+        reuse = await this.window.valid
+      }
       if (token.isCancellationRequested) return
       nvim.pauseNotification()
       if (!reuse) {
-        nvim.notify('nvim_open_win', [this.buffer, true, config])
+        nvim.command(`noa call win_gotoid(${this.window.id})`, true)
         nvim.command(`let w:float = 1`, true)
         nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true)
         nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true)
