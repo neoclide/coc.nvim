@@ -54233,7 +54233,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "7653757d60" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "8f9fe16864" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -62316,13 +62316,17 @@ class FloatFactory {
             if (mode.startsWith('i'))
                 await nvim.eval('feedkeys("\\<C-g>u", "n")');
             let reuse = false;
-            if (this.window)
+            if (!this.window) {
+                this.window = await nvim.openFloatWindow(this.buffer, false, config);
+            }
+            else {
                 reuse = await this.window.valid;
+            }
             if (token.isCancellationRequested)
                 return;
             nvim.pauseNotification();
             if (!reuse) {
-                nvim.notify('nvim_open_win', [this.buffer, true, config]);
+                nvim.command(`noa call win_gotoid(${this.window.id})`, true);
                 nvim.command(`let w:float = 1`, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
