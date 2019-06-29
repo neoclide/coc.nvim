@@ -259,7 +259,6 @@ export default class FloatFactory implements Disposable {
         workspace.showMessage(`Error on ${err[0]}: ${err[1]} - ${err[2]}`, 'error')
         return
       }
-      if (!reuse) this.window = res[0]
       if (mode == 's') await snippetsManager.selectCurrentPlaceholder(false)
     }
   }
