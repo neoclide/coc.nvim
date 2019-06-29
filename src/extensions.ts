@@ -81,10 +81,9 @@ export class Extensions {
       this.root = await nvim.call('coc#util#extension_root')
     }
     this.manager = new ExtensionManager(this.root)
-    if (!fs.existsSync(this.root)) {
-      await mkdirp(this.root)
-      await util.promisify(fs.writeFile)(path.join(this.root, 'package.json'), '{"dependencies":{}}', 'utf8')
-    }
+    if (!fs.existsSync(this.root)) await mkdirp(this.root)
+    let jsonFile = path.join(this.root, 'package.json')
+    if (!fs.existsSync(jsonFile)) await util.promisify(fs.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8')
     let filepath = path.join(this.root, 'db.json')
     let db = this.db = new DB(filepath)
     let data = loadJson(db.filepath) || {}
@@ -145,6 +144,7 @@ export class Extensions {
       this.root = await workspace.nvim.call('coc#util#extension_root')
       this.manager = new ExtensionManager(this.root)
     }
+    if (!this.npm) return
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
     let versionInfo: { [index: string]: string } = {}
@@ -218,7 +218,7 @@ export class Extensions {
     if (uris.length) {
       statusItem.text = `Installing ${uris.join(' ')}`
       try {
-        let method = npm == 'yarn' ? 'install' : 'add'
+        let method = npm.endsWith('yarn') ? 'install' : 'add'
         await runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
       } catch (e) {
         workspace.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error')
@@ -238,12 +238,15 @@ export class Extensions {
 
   private get npm(): string {
     let npm = workspace.getConfiguration('npm').get<string>('binPath', 'npm')
-    if (executable(npm)) return which.sync(npm)
-    if (executable('yarn')) return 'yarn'
-    if (npm == 'npm') {
-      workspace.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error')
-    } else {
-      workspace.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error')
+    try {
+      return which.sync(npm)
+    } catch (_e) {
+      if (executable('yarn')) return which.sync('yarn')
+      if (npm == 'npm') {
+        workspace.showMessage(`npm is not in not in your $PATH, add npm to your $PATH or use "npm.binPath" configuration.`, 'error')
+      } else {
+        workspace.showMessage(`Invalid "npm.binPath", ${npm} is not executable.`, 'error')
+      }
     }
     return null
   }

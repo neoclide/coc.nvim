@@ -39,7 +39,7 @@ export default class ExtensionManager {
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
-    if (npm == 'yarn') {
+    if (npm.endsWith('yarn')) {
       let obj = {}
       let keys = ['dist.tarball', 'engines.coc', 'version']
       let vals = await Promise.all(keys.map(key => {
