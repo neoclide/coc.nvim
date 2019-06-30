@@ -239,6 +239,7 @@ export default class Handler {
     let symbols = await this.getDocumentSymbols(document)
     if (!symbols || symbols.length === 0) {
       buffer.setVar('coc_current_function', '', true)
+      this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
       return ''
     }
     symbols = symbols.filter(s => [
@@ -260,6 +261,7 @@ export default class Handler {
       }
     }
     buffer.setVar('coc_current_function', functionName, true)
+    this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true)
     return functionName
   }
 

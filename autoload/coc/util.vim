@@ -747,6 +747,12 @@ function! coc#util#init_extension_root(root) abort
   return 0
 endfunction
 
+function! coc#util#do_autocmd(name) abort
+  if exists('#User#'.a:name)
+    exe 'doautocmd User '.a:name
+  endif
+endfunction
+
 function! coc#util#rebuild()
   let dir = coc#util#extension_root()
   if !isdirectory(dir) | return | endif
