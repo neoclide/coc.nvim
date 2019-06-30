@@ -45,6 +45,7 @@ CocNvimInit	coc.cnx	/*CocNvimInit*
 CocPrev	coc.cnx	/*CocPrev*
 CocRequest()	coc.cnx	/*CocRequest()*
 CocRequestAsync()	coc.cnx	/*CocRequestAsync()*
+CocStatusChange	coc.cnx	/*CocStatusChange*
 CocWarningFloat	coc.cnx	/*CocWarningFloat*
 CocWarningHighlight	coc.cnx	/*CocWarningHighlight*
 CocWarningLine	coc.cnx	/*CocWarningLine*

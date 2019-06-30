@@ -1562,7 +1562,6 @@ AUTOCMD 					*coc-autocmds*
 
 						*CocLocationsChange*
 
-
 :autocmd User CocLocationsChange {command}
 
 		For building a custom view of locations, set 
@@ -1583,6 +1582,13 @@ AUTOCMD 					*coc-autocmds*
 		If you want to trigger an action of coc after vim has started, 
 		this autocmd should be used because coc is always started 
 		asynchronously.
+
+						*CocStatusChange*
+
+:autocmd User CocStatusChange {command}
+
+		Triggered after `g:coc_status` changed, can be used for
+		refresh stautsline.
 
 						*CocDiagnosticChange*
 

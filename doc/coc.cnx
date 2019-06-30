@@ -989,6 +989,12 @@ CocActionAsync({action}, [...{args}, [{callback}]])
 
 		服务启动后触发。可用于服务启动后自动执行命令。
 
+						*CocStatusChange*
+
+:autocmd User CocStatusChange {command}
+
+		`g:coc_status` 改变时触发，可用于刷新状态栏。
+
 						*CocDiagnosticChange*
 
 :autocmd User CocDiagnosticChange {command}

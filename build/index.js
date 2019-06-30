@@ -51954,10 +51954,14 @@ class StatusLine {
     }
     async setStatusText() {
         let text = this.getText();
+        let { nvim } = this;
         if (text != this._text) {
             this._text = text;
-            await this.nvim.setVar('coc_status', text);
+            nvim.pauseNotification();
+            this.nvim.setVar('coc_status', text, true);
             this.nvim.command('redraws', true);
+            this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
+            await nvim.resumeNotification(false, true);
         }
     }
 }
@@ -54233,7 +54237,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "6ed2171e13" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "9ea28c5a51" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -62327,7 +62331,7 @@ class FloatFactory {
             nvim.pauseNotification();
             if (!reuse) {
                 nvim.command(`noa call win_gotoid(${this.window.id})`, true);
-                nvim.command(`let w:float = 1`, true);
+                this.window.setVar('float', 1, true);
                 nvim.command(`setl nospell nolist wrap linebreak foldcolumn=1`, true);
                 nvim.command(`setl nonumber norelativenumber nocursorline nocursorcolumn`, true);
                 nvim.command(`setl signcolumn=no conceallevel=2`, true);
@@ -84937,6 +84941,7 @@ class Handler {
         let symbols = await this.getDocumentSymbols(document);
         if (!symbols || symbols.length === 0) {
             buffer.setVar('coc_current_function', '', true);
+            this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
             return '';
         }
         symbols = symbols.filter(s => [
@@ -84959,6 +84964,7 @@ class Handler {
             }
         }
         buffer.setVar('coc_current_function', functionName, true);
+        this.nvim.call('coc#util#do_autocmd', ['CocStatusChange'], true);
         return functionName;
     }
     async onHover() {

@@ -49,6 +49,7 @@ CocPrev	coc.txt	/*CocPrev*
 CocRegistNotification()	coc.txt	/*CocRegistNotification()*
 CocRequest()	coc.txt	/*CocRequest()*
 CocRequestAsync()	coc.txt	/*CocRequestAsync()*
+CocStatusChange	coc.txt	/*CocStatusChange*
 CocWarningFloat	coc.txt	/*CocWarningFloat*
 CocWarningHighlight	coc.txt	/*CocWarningHighlight*
 CocWarningLine	coc.txt	/*CocWarningLine*
