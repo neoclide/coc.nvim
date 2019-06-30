@@ -32,6 +32,7 @@ describe('FloatFactory', () => {
     await floatFactory.create(docs)
     let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(1)
+    await nvim.call('coc#util#float_hide')
   })
 
   it('should hide on BufEnter', async () => {
@@ -42,7 +43,7 @@ describe('FloatFactory', () => {
     }]
     await floatFactory.create(docs)
     await nvim.command(`edit foo`)
-    await helper.wait(30)
+    await helper.wait(100)
     let hasFloat = await nvim.call('coc#util#has_float')
     expect(hasFloat).toBe(0)
   })
