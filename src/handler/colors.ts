@@ -23,7 +23,7 @@ export default class Colors {
       this._highlightCurrent().catch(e => {
         logger.error('highlight error:', e.stack)
       })
-    }, 100)
+    }, 200)
     let config = workspace.getConfiguration('coc.preferences')
     this._enabled = config.get<boolean>('colorSupport', true)
     this.srcId = workspace.createNameSpace('coc-colors')
@@ -36,22 +36,9 @@ export default class Colors {
     }))
 
     events.on('BufEnter', async () => {
-      if (!global.hasOwnProperty('__TEST__')) {
-        this.highlightCurrent()
-      }
+      if (global.hasOwnProperty('__TEST__')) return
+      this.highlightCurrent()
     }, null, this.disposables)
-
-    if (workspace.isVim) {
-      events.on('BufWinEnter', async (bufnr, winid) => {
-        for (let highlighter of this.highlighters.values()) {
-          if (highlighter.winid == winid && highlighter.bufnr != bufnr) {
-            highlighter.clearHighlight()
-          }
-        }
-        let doc = workspace.getDocument(bufnr)
-        if (doc) await this.highlightColors(doc, true)
-      }, null, this.disposables)
-    }
 
     events.on('InsertLeave', async () => {
       this.highlightCurrent()
@@ -60,7 +47,6 @@ export default class Colors {
     events.on('BufUnload', async bufnr => {
       let highlighter = this.highlighters.get(bufnr)
       if (highlighter) {
-        highlighter.clearHighlight()
         highlighter.dispose()
         this.highlighters.delete(bufnr)
       }

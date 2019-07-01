@@ -9,6 +9,7 @@ import { getUri, wait } from '../util/index'
 import { byteIndex, byteLength, byteSlice } from '../util/string'
 import { Chars } from './chars'
 import { group } from '../util/array'
+import { comparePosition } from '../util/position'
 const logger = require('../util/logger')('model-document')
 
 export type LastChangeType = 'insert' | 'change' | 'delete'
@@ -22,7 +23,7 @@ export default class Document {
   public textDocument: TextDocument
   public fireContentChanges: Function & { clear(): void }
   public fetchContent: Function & { clear(): void }
-  // vim only, for matchaddpos
+  // start id for matchaddpos
   private colorId = 1080
   private nvim: Neovim
   private eol = true
@@ -451,9 +452,11 @@ export default class Document {
     return col
   }
 
+  /**
+   * Use matchaddpos for highlight ranges, must use `redraw` command on vim
+   */
   public matchAddRanges(ranges: Range[], hlGroup: string, priority = 10): number[] {
     let res: number[] = []
-    let method = this.env.isVim ? 'callTimer' : 'call'
     let arr: number[][] = []
     let splited: Range[] = ranges.reduce((p, c) => {
       for (let i = c.start.line; i <= c.end.line; i++) {
@@ -474,19 +477,39 @@ export default class Document {
     for (let grouped of group(arr, 8)) {
       let id = this.colorId
       this.colorId = this.colorId + 1
-      this.nvim[method]('matchaddpos', [hlGroup, grouped, priority, id], true)
+      this.nvim.call('matchaddpos', [hlGroup, grouped, priority, id], true)
       res.push(id)
     }
+    this.nvim.call('coc#util#add_matchids', [res], true)
     return res
   }
 
   public highlightRanges(ranges: Range[], hlGroup: string, srcId: number): number[] {
     let res: number[] = []
-    if (this.env.isVim) {
+    if (this.env.isVim && !this.env.textprop) {
       res = this.matchAddRanges(ranges, hlGroup, 10)
     } else {
+      let lineRanges = []
       for (let range of ranges) {
+        if (range.start.line == range.end.line) {
+          lineRanges.push(range)
+        } else {
+          // split range by lines
+          for (let i = range.start.line; i < range.end.line; i++) {
+            let line = this.getline(i)
+            if (i == range.start.line) {
+              lineRanges.push(Range.create(i, range.start.character, i, line.length))
+            } else if (i == range.end.line) {
+              lineRanges.push(Range.create(i, Math.min(line.match(/^\s*/)[0].length, range.end.character), i, range.end.character))
+            } else {
+              lineRanges.push(Range.create(i, Math.min(line.match(/^\s*/)[0].length, line.length), i, line.length))
+            }
+          }
+        }
+      }
+      for (let range of lineRanges) {
         let { start, end } = range
+        if (comparePosition(start, end) == 0) continue
         let line = this.getline(start.line)
         // tslint:disable-next-line: no-floating-promises
         this.buffer.addHighlight({
@@ -496,14 +519,14 @@ export default class Document {
           colStart: byteIndex(line, start.character),
           colEnd: end.line - start.line == 1 && end.character == 0 ? -1 : byteIndex(line, end.character)
         })
-        res.push(srcId)
       }
+      res.push(srcId)
     }
     return res
   }
 
   public clearMatchIds(ids: Set<number> | number[]): void {
-    if (this.env.isVim) {
+    if (this.env.isVim && !this.env.textprop) {
       this.nvim.call('coc#util#clearmatches', [Array.from(ids)], true)
     } else {
       for (let id of ids) {

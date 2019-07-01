@@ -232,7 +232,7 @@ function! s:funcs.buf_add_highlight(bufnr, srcId, hlGroup, line, colStart, colEn
   endif
   let key = 'Coc'.a:hlGroup
   if empty(prop_type_get(key))
-    call prop_type_add(key, {'highlight': a:hlGroup})
+    call prop_type_add(key, {'highlight': a:hlGroup, 'combine': 1})
   endif
   let end = a:colEnd
   if end == -1

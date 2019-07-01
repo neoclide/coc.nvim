@@ -114,7 +114,7 @@ describe('diagnostic buffer', () => {
     let winid = await nvim.call('bufwinid', buf.bufnr) as number
     buf.addHighlight([diagnostic], winid)
     await wait(100)
-    expect(buf.hasMatch(1000)).toBe(true)
+    expect(buf.matchIds.size).toBeGreaterThan(0)
   })
 
   it('should clear all diagnostics', async () => {

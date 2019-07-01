@@ -139,12 +139,10 @@ export class DiagnosticManager implements Disposable {
       }
       await buf.clear()
     }, null, this.disposables)
-
     this.setConfigurationErrors(true)
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
     }, null, this.disposables)
-
     let { errorSign, warningSign, infoSign, hintSign } = this.config
     nvim.pauseNotification()
     nvim.command(`sign define CocError   text=${errorSign}   linehl=CocErrorLine texthl=CocErrorSign`, true)

@@ -10,15 +10,14 @@ import { DiagnosticConfig } from './manager'
 import { getLocationListItem, getNameFromSeverity } from './util'
 const logger = require('../util/logger')('diagnostic-buffer')
 const severityNames = ['CocError', 'CocWarning', 'CocInfo', 'CocHint']
-const STARTMATCHID = 1090
 
 // maintains sign and highlightId
 export class DiagnosticBuffer implements Disposable {
-  private matchIds: Set<number> = new Set()
+  private srdId: number
   private signIds: Set<number> = new Set()
   private sequence: CallSequence = null
-  private matchId = STARTMATCHID
   private readonly _onDidRefresh = new Emitter<void>()
+  public matchIds: Set<number> = new Set()
   public diagnostics: ReadonlyArray<Diagnostic> = []
   public readonly onDidRefresh: Event<void> = this._onDidRefresh.event
   public readonly bufnr: number
@@ -28,6 +27,7 @@ export class DiagnosticBuffer implements Disposable {
   constructor(doc: Document, private config: DiagnosticConfig) {
     this.bufnr = doc.bufnr
     this.uri = doc.uri
+    this.srdId = workspace.createNameSpace('coc-diagnostic')
     let timer: NodeJS.Timer = null
     let time = Date.now()
     this.refresh = (diagnostics: ReadonlyArray<Diagnostic>) => {
@@ -51,22 +51,20 @@ export class DiagnosticBuffer implements Disposable {
 
   private _refresh(diagnostics: ReadonlyArray<Diagnostic>): void {
     if (equals(this.diagnostics, diagnostics)) return
+    let { nvim, bufnr } = this
     let sequence = this.sequence = new CallSequence()
     let winid: number
     sequence.addFunction(async () => {
-      let valid = await this.nvim.call('coc#util#valid_state')
-      return valid ? false : true
+      let [valid, id] = await nvim.eval(`[coc#util#valid_state(), bufwinid(${bufnr})]`) as [number, number]
+      if (valid == 0) return false
+      winid = id
     })
     sequence.addFunction(async () => {
-      let { nvim, bufnr } = this
-      winid = await nvim.call('bufwinid', bufnr) as number
-    })
-    sequence.addFunction(async () => {
-      this.nvim.pauseNotification()
+      nvim.pauseNotification()
       this.setDiagnosticInfo(diagnostics)
       this.addDiagnosticVText(diagnostics)
-      this.setLocationlist(diagnostics, winid)
       this.addSigns(diagnostics)
+      this.setLocationlist(diagnostics, winid)
       this.addHighlight(diagnostics, winid)
       await this.nvim.resumeNotification()
     })
@@ -192,89 +190,29 @@ export class DiagnosticBuffer implements Disposable {
 
   public clearHighlight(): void {
     let { bufnr, nvim, matchIds } = this
-    if (workspace.isVim) {
-      nvim.call('coc#util#clearmatches', [Array.from(matchIds)], true)
-      this.matchId = STARTMATCHID
-    } else {
-      let buffer = nvim.createBuffer(bufnr)
-      if (this.nvim.hasFunction('nvim_create_namespace')) {
-        buffer.clearNamespace(this.config.srcId)
-      } else {
-        buffer.clearHighlight({ srcId: this.config.srcId })
-      }
-    }
+    let doc = workspace.getDocument(bufnr)
+    if (!doc) return
+    doc.clearMatchIds(matchIds)
     this.matchIds.clear()
   }
 
   public addHighlight(diagnostics: ReadonlyArray<Diagnostic>, winid): void {
     this.clearHighlight()
     if (diagnostics.length == 0) return
-    if (winid == -1 && workspace.isVim) return
-    for (let diagnostic of diagnostics.slice().reverse()) {
+    if (winid == -1 && workspace.isVim && !workspace.env.textprop) return
+    let document = workspace.getDocument(this.bufnr)
+    if (!document) return
+    const highlights: Map<string, Range[]> = new Map()
+    for (let diagnostic of diagnostics) {
       let { range, severity } = diagnostic
-      if (workspace.isVim) {
-        this.addHighlightVim(winid, range, severity)
-      } else {
-        this.addHighlightNvim(range, severity)
-      }
+      let hlGroup = getNameFromSeverity(severity) + 'Highlight'
+      let ranges = highlights.get(hlGroup) || []
+      ranges.push(range)
+      highlights.set(hlGroup, ranges)
     }
-  }
-
-  private addHighlightNvim(range: Range, severity: DiagnosticSeverity): void {
-    let { srcId } = this.config
-    let { start, end } = range
-    let document = workspace.getDocument(this.bufnr)
-    if (!document) return
-    let { buffer } = document
-    for (let i = start.line; i <= end.line; i++) {
-      let line = document.getline(i)
-      if (!line || !line.length) continue
-      let s = i == start.line ? start.character : 0
-      let e = i == end.line ? end.character : -1
-      buffer.addHighlight({
-        srcId,
-        hlGroup: getNameFromSeverity(severity) + 'Highlight',
-        line: i,
-        colStart: s == 0 ? 0 : byteIndex(line, s),
-        colEnd: e == -1 ? -1 : byteIndex(line, e),
-      }).catch(_e => {
-        // noop
-      })
-    }
-    this.matchIds.add(srcId)
-  }
-
-  private addHighlightVim(winid: number, range: Range, severity: DiagnosticSeverity): void {
-    let { start, end } = range
-    let { matchIds } = this
-    let document = workspace.getDocument(this.bufnr)
-    if (!document) return
-    try {
-      let list: any[] = []
-      for (let i = start.line; i <= end.line; i++) {
-        let line = document.getline(i)
-        if (!line || !line.length) continue
-        if (list.length == 8) break
-        if (i == start.line && i == end.line) {
-          let s = byteIndex(line, start.character) + 1
-          let e = byteIndex(line, end.character) + 1
-          list.push([i + 1, s, e - s])
-        } else if (i == start.line) {
-          let s = byteIndex(line, start.character) + 1
-          let l = byteLength(line)
-          list.push([i + 1, s, l - s + 1])
-        } else if (i == end.line) {
-          let e = byteIndex(line, end.character) + 1
-          list.push([i + 1, 0, e])
-        } else {
-          list.push(i + 1)
-        }
-      }
-      this.nvim.callTimer('matchaddpos', [getNameFromSeverity(severity) + 'highlight', list, 99, this.matchId, { window: winid }], true)
-      matchIds.add(this.matchId)
-      this.matchId = this.matchId + 1
-    } catch (e) {
-      logger.error(e.stack)
+    for (let [hlGroup, ranges] of highlights.entries()) {
+      let matchIds = document.highlightRanges(ranges, hlGroup, this.srdId)
+      for (let id of matchIds) this.matchIds.add(id)
     }
   }
 
@@ -297,10 +235,6 @@ export class DiagnosticBuffer implements Disposable {
     }
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
     await nvim.resumeNotification(false, true)
-  }
-
-  public hasMatch(match: number): boolean {
-    return this.matchIds.has(match)
   }
 
   public dispose(): void {
