@@ -207,8 +207,8 @@ Extensions are more powerful than a configured language server. Check out
 - **[coc-angular](https://github.com/iamcco/coc-angular)** for `angular`.
 - **[coc-vimlsp](https://github.com/iamcco/coc-vimlsp)** for `viml`.
 - **[coc-xml](https://github.com/fannheyward/coc-xml)** for `xml`, use [lsp4xml](https://github.com/angelozerr/lsp4xml).
-
 - **[coc-elixir](https://github.com/amiralies/coc-elixir)** for `elixir`, based on [elixir-ls](https://github.com/JakeBecker/elixir-ls/).
+- **[coc-tabnine](https://github.com/neoclide/coc-tabnine)** for [tabnine](https://tabnine.com/).
 
 Plus more! To get a full list of coc extensions, [search coc.nvim on npm](https://www.npmjs.com/search?q=keywords%3Acoc.nvim),
 or use [coc-marketplace](https://github.com/fannheyward/coc-marketplace), which can search and install extensions in coc.nvim directly.
@@ -338,7 +338,7 @@ let g:lightline = {
       \ },
       \ }
 
-
+autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
 
 " Using CocList
 " Show all diagnostics

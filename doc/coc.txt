@@ -2245,10 +2245,10 @@ Use configuration like: >
 	\   'cocstatus': 'coc#status'
 	\ },
 	\ }
-<
-Use autocmd |CocDiagnosticChange| to force lightline refresh on diagnostics
-change.
 
+  " Use auocmd to force lightline update.
+  autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
+<
 ==============================================================================
 CUSTOM SOURCE					*coc-custom-source*
 
