@@ -15,7 +15,7 @@ import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
 import { positionInRange, comparePosition, rangeInRange } from '../util/position'
-import { isWord } from '../util/string'
+import { isWord, byteLength } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
@@ -57,7 +57,7 @@ interface Preferences {
   signaturePreferAbove: boolean
   signatureHideOnChange: boolean
   signatureHelpTarget: string
-  signatureHelpTimeout: number
+  signatureFloatMaxWidth: number
   triggerSignatureHelp: boolean
   triggerSignatureWait: number
   formatOnType: boolean
@@ -81,6 +81,7 @@ export default class Handler {
   private disposables: Disposable[] = []
   private labels: { [key: string]: string } = {}
   private selectionRange: SelectionRange = null
+  private signaturePosition: Position
 
   constructor(private nvim: Neovim) {
     this.getPreferences()
@@ -91,15 +92,31 @@ export default class Handler {
     })
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.hoverFactory)
-    let { signaturePreferAbove, signatureMaxHeight } = this.preferences
+    let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
     this.signatureFactory = new FloatFactory(
       nvim,
       workspace.env,
       signaturePreferAbove,
       signatureMaxHeight,
-      80,
-      this.preferences.signatureHelpTimeout)
+      signatureFloatMaxWidth,
+      false)
     this.disposables.push(this.signatureFactory)
+
+    events.on('CursorMovedI', async (bufnr, cursor) => {
+      if (!this.signaturePosition) return
+      let doc = workspace.getDocument(bufnr)
+      if (!doc) return
+      let { line, character } = this.signaturePosition
+      if (cursor[0] - 1 == line) {
+        let currline = doc.getline(cursor[0] - 1)
+        let col = byteLength(currline.slice(0, character)) + 1
+        if (cursor[1] > col) return
+      }
+      this.signatureFactory.close()
+    }, null, this.disposables)
+    events.on('InsertLeave', bufnr => {
+      this.signatureFactory.close()
+    }, null, this.disposables)
 
     events.on(['TextChangedI', 'TextChangedP'], async () => {
       if (this.preferences.signatureHideOnChange) {
@@ -844,15 +861,12 @@ export default class Handler {
         return p
       }, [])
       let offset = 0
-      if (docs.length && docs[0].active) {
-        let [start, end] = docs[0].active
-        offset = end < 80 ? start + 1 : docs[0].content.indexOf('(') + 1
-      }
       let session = snippetManager.getSession(document.bufnr)
       if (session && session.isActive) {
         let { value } = session.placeholder
-        if (value.indexOf('\n') == -1) offset += value.length - 1
+        if (value.indexOf('\n') == -1) offset = value.length
       }
+      this.signaturePosition = position
       await this.signatureFactory.create(docs, true, offset)
       // show float
     } else {
@@ -1092,9 +1106,9 @@ export default class Handler {
       signatureHelpTarget,
       signatureMaxHeight: signatureConfig.get<number>('maxWindowHeight', 8),
       triggerSignatureHelp: signatureConfig.get<boolean>('enable', true),
-      signatureHelpTimeout: signatureConfig.get<number>('floatTimeout', 1000),
       triggerSignatureWait: signatureConfig.get<number>('triggerSignatureWait', 50),
       signaturePreferAbove: signatureConfig.get<boolean>('preferShownAbove', true),
+      signatureFloatMaxWidth: signatureConfig.get<number>('floatMaxWidth', 80),
       signatureHideOnChange: signatureConfig.get<boolean>('hideOnTextChange', false),
       formatOnType: config.get<boolean>('formatOnType', false),
       bracketEnterImprove: config.get<boolean>('bracketEnterImprove', true),

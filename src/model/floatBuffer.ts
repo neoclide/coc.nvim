@@ -170,14 +170,16 @@ export default class FloatBuffer {
         })
         if (highlight.isMarkdown) {
           let line = lines[highlight.line]
-          let before = line[characterIndex(line, highlight.colStart)]
-          let after = line[characterIndex(line, highlight.colEnd) - 1]
-          if (before == after && ['_', '`', '*'].indexOf(before) !== -1) {
-            positions.push([highlight.line + 1, highlight.colStart + 1])
-            positions.push([highlight.line + 1, highlight.colEnd])
-          }
-          if (highlight.colEnd - highlight.colStart == 2 && before == '\\') {
-            positions.push([highlight.line + 1, highlight.colStart + 1])
+          if (line) {
+            let before = line[characterIndex(line, highlight.colStart)]
+            let after = line[characterIndex(line, highlight.colEnd) - 1]
+            if (before == after && ['_', '`', '*'].indexOf(before) !== -1) {
+              positions.push([highlight.line + 1, highlight.colStart + 1])
+              positions.push([highlight.line + 1, highlight.colEnd])
+            }
+            if (highlight.colEnd - highlight.colStart == 2 && before == '\\') {
+              positions.push([highlight.line + 1, highlight.colStart + 1])
+            }
           }
         }
       }

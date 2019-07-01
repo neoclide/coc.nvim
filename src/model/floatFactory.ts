@@ -35,8 +35,9 @@ export default class FloatFactory implements Disposable {
     private preferTop = false,
     private maxHeight = 999,
     private maxWidth?: number,
-    private timeout = 500) {
+    private autoHide = true) {
     if (!env.floating && !env.textprop) return
+    this.maxWidth = Math.min(maxWidth || 80, this.columns - 10)
     events.on('BufEnter', bufnr => {
       if (this.buffer && bufnr == this.buffer.id) return
       if (bufnr == this.targetBufnr) return
@@ -55,8 +56,10 @@ export default class FloatFactory implements Disposable {
       }
     }, null, this.disposables)
     let onCursorMoved = debounce(this.onCursorMoved.bind(this), 100)
-    events.on('CursorMovedI', onCursorMoved, this, this.disposables)
     events.on('CursorMoved', onCursorMoved, this, this.disposables)
+    if (autoHide) {
+      events.on('CursorMovedI', onCursorMoved, this, this.disposables)
+    }
   }
 
   private onCursorMoved(bufnr: number, cursor: [number, number]): void {
@@ -67,11 +70,7 @@ export default class FloatFactory implements Disposable {
       this.close()
       return
     }
-    let ts = Date.now()
-    setTimeout(() => {
-      if (this.createTs > ts) return
-      this.close()
-    }, this.timeout)
+    this.close()
   }
 
   private async checkFloatBuffer(): Promise<void> {
@@ -120,7 +119,7 @@ export default class FloatFactory implements Disposable {
     let { columns, lines } = this
     let alignTop = false
     let [row, col] = await nvim.call('coc#util#win_position') as [number, number]
-    let maxWidth = this.maxWidth || Math.min(columns - 10, 82)
+    let maxWidth = this.maxWidth
     let height = this.floatBuffer.getHeight(docs, maxWidth)
     height = Math.min(height, this.maxHeight)
     if (!preferTop) {
@@ -135,13 +134,15 @@ export default class FloatFactory implements Disposable {
     if (alignTop) docs.reverse()
     await this.floatBuffer.setDocuments(docs, maxWidth)
     let { width } = this.floatBuffer
-    offsetX = Math.min(col - 1, offsetX)
-    if (col - offsetX + width > columns) {
-      offsetX = col - offsetX + width - columns
+    if (offsetX) {
+      offsetX = Math.min(col - 1, offsetX)
+      if (col - offsetX + width > columns) {
+        offsetX = col - offsetX + width - columns
+      }
     }
     this.alignTop = alignTop
     return {
-      height: alignTop ? Math.min(row, height) : Math.min(height, (lines - row)),
+      height: alignTop ? Math.max(1, Math.min(row, height)) : Math.max(1, Math.min(height, (lines - row))),
       width: Math.min(columns, width),
       row: alignTop ? - height : 1,
       col: offsetX == 0 ? 0 : - offsetX,
