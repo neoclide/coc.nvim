@@ -44,8 +44,8 @@ export class ConfigurationFeature implements StaticFeature {
     let { id } = this._client
     if (section) {
       if (id.startsWith('languageserver')) {
-        let config = workspace.getConfiguration(`${this._client.id}`, resource).get<any>('settings')
-        if (config[section]) return config[section]
+        let config = workspace.getConfiguration(id, resource).get<any>('settings')
+        if (config && config[section] != null) return config[section]
       }
       let index = section.lastIndexOf('.')
       if (index === -1) {
