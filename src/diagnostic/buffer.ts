@@ -286,24 +286,17 @@ export class DiagnosticBuffer implements Disposable {
    */
   public async clear(): Promise<void> {
     if (this.sequence) await this.sequence.cancel()
+    let { nvim } = this
+    nvim.pauseNotification()
     this.setDiagnosticInfo([])
     this.clearHighlight()
     this.clearSigns()
-    // clear locationlist
-    if (this.config.locationlist) {
-      let winid = await this.nvim.call('bufwinid', this.bufnr) as number
-      // not shown
-      if (winid == -1) return
-      let curr = await this.nvim.call('getloclist', [winid, { title: 1 }])
-      if ((curr.title && curr.title.indexOf('Diagnostics of coc') != -1)) {
-        this.nvim.call('setloclist', [winid, [], 'f'], true)
-      }
-    }
     if (this.config.virtualText) {
       let buffer = this.nvim.createBuffer(this.bufnr)
       buffer.clearNamespace(this.config.virtualTextSrcId)
     }
     this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
+    await nvim.resumeNotification(false, true)
   }
 
   public hasMatch(match: number): boolean {

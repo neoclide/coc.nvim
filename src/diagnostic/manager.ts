@@ -104,18 +104,6 @@ export class DiagnosticManager implements Disposable {
       }
     }, null, this.disposables)
 
-    events.on('BufUnload', async bufnr => {
-      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
-      if (idx == -1) return
-      let buf = this.buffers[idx]
-      buf.dispose()
-      this.buffers.splice(idx, 1)
-      for (let collection of this.collections) {
-        collection.delete(buf.uri)
-      }
-      await buf.clear()
-    }, null, this.disposables)
-
     events.on('BufWritePost', async bufnr => {
       let buf = this.buffers.find(buf => buf.bufnr == bufnr)
       if (buf) await buf.checkSigns()
@@ -137,6 +125,21 @@ export class DiagnosticManager implements Disposable {
       let doc = workspace.getDocument(textDocument.uri)
       this.createDiagnosticBuffer(doc)
     }, null, this.disposables)
+    workspace.onDidCloseTextDocument(async ({ uri }) => {
+      let doc = workspace.getDocument(uri)
+      if (!doc) return
+      let { bufnr } = doc
+      let idx = this.buffers.findIndex(buf => buf.bufnr == bufnr)
+      if (idx == -1) return
+      let buf = this.buffers[idx]
+      buf.dispose()
+      this.buffers.splice(idx, 1)
+      for (let collection of this.collections) {
+        collection.delete(buf.uri)
+      }
+      await buf.clear()
+    }, null, this.disposables)
+
     this.setConfigurationErrors(true)
     workspace.configurations.onError(async () => {
       this.setConfigurationErrors()
