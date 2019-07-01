@@ -172,6 +172,11 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 注意: `i_` 打头的映射仅在插入模式下工作，`n_ `打头的映射仅在正常模式下工作。
 
+<Plug>(coc-diagnostic-related) 			*n_coc-diagnostic-related*
+
+			跳转到当前问题的相关位置。
+			注意：需要 languageserver 支持。
+
 <Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
 
 			显示当前位置下的错误信息，没有截断。

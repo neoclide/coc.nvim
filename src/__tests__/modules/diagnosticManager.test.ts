@@ -1,6 +1,7 @@
 import { Neovim } from '@chemzqm/neovim'
 import { severityLevel, getNameFromSeverity } from '../../diagnostic/util'
-import { Range, DiagnosticSeverity, Diagnostic } from 'vscode-languageserver-types'
+import { Range, DiagnosticSeverity, Diagnostic, Location } from 'vscode-languageserver-types'
+import { URI } from 'vscode-uri'
 import Document from '../../model/document'
 import workspace from '../../workspace'
 import manager from '../../diagnostic/manager'
@@ -118,6 +119,29 @@ describe('diagnostic manager', () => {
     collection.set(doc.uri, diagnostics)
     let res = manager.getDiagnosticsInRange(doc.textDocument, Range.create(0, 0, 0, 3))
     expect(res.length).toBe(2)
+  })
+
+  it('should get diagnostics under corsor', async () => {
+    let doc = await createDocument()
+    let diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(0)
+    await nvim.call('cursor', [1, 4])
+    diagnostics = await manager.getCurrentDiagnostics()
+    expect(diagnostics.length).toBe(1)
+  })
+
+  it('should jump to related position', async () => {
+    let doc = await helper.createDocument()
+    let range = Range.create(0, 0, 0, 10)
+    let location = Location.create(URI.file(__filename).toString(), range)
+    let diagnostic = Diagnostic.create(range, 'msg', DiagnosticSeverity.Error, 1000, 'test',
+      [{ location, message: 'test' }])
+    let collection = manager.create('positions')
+    collection.set(doc.uri, [diagnostic])
+    await helper.wait(300)
+    await manager.jumpRelated()
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toMatch('diagnosticManager')
   })
 
   it('should jump to previous', async () => {

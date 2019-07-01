@@ -1,5 +1,5 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument } from 'vscode-languageserver-protocol'
+import { Diagnostic, DiagnosticSeverity, Disposable, Location, Range, TextDocument, Position } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
 import events from '../events'
 import Document from '../model/document'
@@ -370,22 +370,27 @@ export class DiagnosticManager implements Disposable {
     return res
   }
 
+  public async getCurrentDiagnostics(): Promise<Diagnostic[]> {
+    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let pos = Position.create(cursor[0], cursor[1])
+    let buffer = this.buffers.find(o => o.bufnr == bufnr)
+    if (!buffer) return []
+    let { checkCurrentLine } = this.config
+    let diagnostics = buffer.diagnostics.filter(o => {
+      if (checkCurrentLine) return lineInRange(pos.line, o.range)
+      return positionInRange(pos, o.range) == 0
+    })
+    return diagnostics
+  }
+
   /**
    * Echo diagnostic message of currrent position
    */
   public async echoMessage(truncate = false): Promise<void> {
     if (!this.enabled || this.config.enableMessage == 'never') return
     if (this.timer) clearTimeout(this.timer)
-    let buf = await this.nvim.buffer
-    let pos = await workspace.getCursorPosition()
-    let buffer = this.buffers.find(o => o.bufnr == buf.id)
-    if (!buffer) return
-    let { checkCurrentLine } = this.config
     let useFloat = this.config.messageTarget == 'float'
-    let diagnostics = buffer.diagnostics.filter(o => {
-      if (checkCurrentLine) return lineInRange(pos.line, o.range)
-      return positionInRange(pos, o.range) == 0
-    })
+    let diagnostics = await this.getCurrentDiagnostics()
     if (diagnostics.length == 0) {
       if (useFloat) {
         this.floatFactory.close()
@@ -426,6 +431,19 @@ export class DiagnosticManager implements Disposable {
       this.lastMessage = lines[0]
       await this.nvim.command('echo ""')
       await workspace.echoLines(lines, truncate)
+    }
+  }
+
+  public async jumpRelated(): Promise<void> {
+    let diagnostics = await this.getCurrentDiagnostics()
+    if (!diagnostics) return
+    let diagnostic = diagnostics.find(o => o.relatedInformation != null)
+    if (!diagnostic) return
+    let locations = diagnostic.relatedInformation.map(o => o.location)
+    if (locations.length == 1) {
+      await workspace.jumpTo(locations[0].uri, locations[0].range.start)
+    } else if (locations.length > 1) {
+      await workspace.showLocations(locations)
     }
   }
 

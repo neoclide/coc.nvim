@@ -117,7 +117,6 @@ export default class Handler {
     events.on('InsertLeave', bufnr => {
       this.signatureFactory.close()
     }, null, this.disposables)
-
     events.on(['TextChangedI', 'TextChangedP'], async () => {
       if (this.preferences.signatureHideOnChange) {
         this.signatureFactory.close()

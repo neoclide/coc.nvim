@@ -323,6 +323,8 @@ export default class Plugin extends EventEmitter {
           break
         case 'diagnosticList':
           return diagnosticManager.getDiagnosticList()
+        case 'diagnosticRelated':
+          return diagnosticManager.jumpRelated()
         case 'jumpDefinition':
           return await handler.gotoDefinition(args[1])
         case 'jumpDeclaration':
