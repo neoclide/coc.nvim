@@ -94,7 +94,7 @@ export default class ExtensionManager {
         })
       }
     }
-    let p = new Promise((resolve, reject) => {
+    let p = new Promise<void>((resolve, reject) => {
       let stream = got.stream(url, options).on('downloadProgress', progress => {
         let p = (progress.percent * 100).toFixed(0)
         onMessage(`${p}% downloaded.`)
@@ -111,7 +111,7 @@ export default class ExtensionManager {
     let { dependencies } = JSON.parse(content)
     if (dependencies && Object.keys(dependencies).length) {
       onMessage(`Installing dependencies.`)
-      let p = new Promise((resolve, reject) => {
+      let p = new Promise<void>((resolve, reject) => {
         let args = ['install', '--ignore-scripts', '--no-lockfile', '--no-bin-links', '--production']
         const child = spawn(npm, args, { cwd: tmpFolder })
         child.on('error', reject)
