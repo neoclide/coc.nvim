@@ -649,6 +649,12 @@ Keymappings 					*coc-key-mappings*
 Note: Mappings that start with `i_` works for insert mode `n_` works for 
 normal mode, `v_` works for visual mode.
 
+<Plug>(coc-diagnostic-related) 			*n_coc-diagnostic-related*
+
+			Jump to related locations of current diagnostic.
+			Note: need languageserver support related information
+			feature of diagnostic.
+
 <Plug>(coc-diagnostic-info) 			*n_coc-diagnostic-info*
 
 			Show diagnostic message of current position, no

@@ -277,6 +277,7 @@ nnoremap <Plug>(coc-diagnostic-next)       :<C-u>call       CocActionAsync('diag
 nnoremap <Plug>(coc-diagnostic-prev)       :<C-u>call       CocActionAsync('diagnosticPrevious')<CR>
 nnoremap <Plug>(coc-diagnostic-next-error) :<C-u>call       CocActionAsync('diagnosticNext',     'error')<CR>
 nnoremap <Plug>(coc-diagnostic-prev-error) :<C-u>call       CocActionAsync('diagnosticPrevious', 'error')<CR>
+nnoremap <Plug>(coc-diagnostic-related)    :<C-u>call       CocActionAsync('diagnosticRelated', 'error')<CR>
 nnoremap <Plug>(coc-definition)            :<C-u>call       CocAction('jumpDefinition')<CR>
 nnoremap <Plug>(coc-declaration)           :<C-u>call       CocAction('jumpDeclaration')<CR>
 nnoremap <Plug>(coc-implementation)        :<C-u>call       CocAction('jumpImplementation')<CR>

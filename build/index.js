@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "46e0f4d8e5" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ebc38dd7ce" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54343,6 +54343,8 @@ class Plugin extends events_1.EventEmitter {
                     break;
                 case 'diagnosticList':
                     return manager_1.default.getDiagnosticList();
+                case 'diagnosticRelated':
+                    return manager_1.default.jumpRelated();
                 case 'jumpDefinition':
                     return await handler.gotoDefinition(args[1]);
                 case 'jumpDeclaration':
@@ -61909,6 +61911,20 @@ class DiagnosticManager {
         });
         return res;
     }
+    async getCurrentDiagnostics() {
+        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        let pos = vscode_languageserver_protocol_1.Position.create(cursor[0], cursor[1]);
+        let buffer = this.buffers.find(o => o.bufnr == bufnr);
+        if (!buffer)
+            return [];
+        let { checkCurrentLine } = this.config;
+        let diagnostics = buffer.diagnostics.filter(o => {
+            if (checkCurrentLine)
+                return position_1.lineInRange(pos.line, o.range);
+            return position_1.positionInRange(pos, o.range) == 0;
+        });
+        return diagnostics;
+    }
     /**
      * Echo diagnostic message of currrent position
      */
@@ -61917,18 +61933,8 @@ class DiagnosticManager {
             return;
         if (this.timer)
             clearTimeout(this.timer);
-        let buf = await this.nvim.buffer;
-        let pos = await workspace_1.default.getCursorPosition();
-        let buffer = this.buffers.find(o => o.bufnr == buf.id);
-        if (!buffer)
-            return;
-        let { checkCurrentLine } = this.config;
         let useFloat = this.config.messageTarget == 'float';
-        let diagnostics = buffer.diagnostics.filter(o => {
-            if (checkCurrentLine)
-                return position_1.lineInRange(pos.line, o.range);
-            return position_1.positionInRange(pos, o.range) == 0;
-        });
+        let diagnostics = await this.getCurrentDiagnostics();
         if (diagnostics.length == 0) {
             if (useFloat) {
                 this.floatFactory.close();
@@ -61972,6 +61978,21 @@ class DiagnosticManager {
             this.lastMessage = lines[0];
             await this.nvim.command('echo ""');
             await workspace_1.default.echoLines(lines, truncate);
+        }
+    }
+    async jumpRelated() {
+        let diagnostics = await this.getCurrentDiagnostics();
+        if (!diagnostics)
+            return;
+        let diagnostic = diagnostics.find(o => o.relatedInformation != null);
+        if (!diagnostic)
+            return;
+        let locations = diagnostic.relatedInformation.map(o => o.location);
+        if (locations.length == 1) {
+            await workspace_1.default.jumpTo(locations[0].uri, locations[0].range.start);
+        }
+        else if (locations.length > 1) {
+            await workspace_1.default.showLocations(locations);
         }
     }
     hideFloat() {

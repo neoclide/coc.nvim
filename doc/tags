@@ -191,6 +191,7 @@ n_coc-diagnostic-next	coc.txt	/*n_coc-diagnostic-next*
 n_coc-diagnostic-next-error	coc.txt	/*n_coc-diagnostic-next-error*
 n_coc-diagnostic-prev	coc.txt	/*n_coc-diagnostic-prev*
 n_coc-diagnostic-prev-error	coc.txt	/*n_coc-diagnostic-prev-error*
+n_coc-diagnostic-related	coc.txt	/*n_coc-diagnostic-related*
 n_coc-fix-current	coc.txt	/*n_coc-fix-current*
 n_coc-flost-hide	coc.txt	/*n_coc-flost-hide*
 n_coc-flost-jump	coc.txt	/*n_coc-flost-jump*
