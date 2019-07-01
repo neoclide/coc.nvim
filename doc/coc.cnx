@@ -1586,6 +1586,8 @@ Lightline.vim: https://github.com/itchyny/lightline.vim 支持：
 	\   'cocstatus': 'coc#status'
 	\ },
 	\ }
+
+  autocmd User CocStatusChange,CocDiagnosticChange call lightline#update()
 <
 ==============================================================================
 
