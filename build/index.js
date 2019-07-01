@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ebc38dd7ce" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "b669bfbd0a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -68305,7 +68305,13 @@ class ConfigurationFeature {
     }
     getConfiguration(resource, section) {
         let result = null;
+        let { id } = this._client;
         if (section) {
+            if (id.startsWith('languageserver')) {
+                let config = workspace_1.default.getConfiguration(`${this._client.id}`, resource).get('settings');
+                if (config[section])
+                    return config[section];
+            }
             let index = section.lastIndexOf('.');
             if (index === -1) {
                 result = workspace_1.default.getConfiguration(undefined, resource).get(section, {});
