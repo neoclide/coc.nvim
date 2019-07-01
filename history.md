@@ -1,3 +1,24 @@
+# 2019-07-01
+
+- feat(plugin): add CocStatusChange autocmd
+- feat(extension): support both npm and yarn.
+- feat(plugin): work on vim 8.0
+- feat(extensions): add lock & doc actions to extension source
+- feat(extension): add proxy auth support (#920)
+- feat(source): not change startcol for file source
+- feat(completion): no numberSelect for number input
+- feat(extensions): Use yarn when npm not found
+- feat(completion): no popup for command line buffer
+- feat(plugin): support only for codeActions action
+- feat(task): debounce stdout
+- feat(plugin): add keymaps for selection ranges
+- feat(plugin): add function textobj
+- feat(list): restore window height, closes #905
+- feat(handler): support signature.floatTimeout
+- feat(configuration): support change of workspace configuration
+- feat(diagnostic): add keymaps for jump error diagnostics
+- feat(plugin): delay start on gvim, fix #659
+
 # 2019-06-15
 
 - feat(plugin): add popup support of vim
