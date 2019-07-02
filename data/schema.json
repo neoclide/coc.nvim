@@ -554,7 +554,7 @@
       "type": "integer",
       "default": 50,
       "minimum": 50,
-      "maximum": 500,
+      "maximum": 300,
       "description": "Timeout for trigger signature help, in miliseconds."
     },
     "signature.target": {

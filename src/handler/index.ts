@@ -179,10 +179,11 @@ export default class Handler {
       if (!doc.paused) await this.onCharacterType(pre, bufnr)
       if (triggerSignatureHelp && languages.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
         doc.forceSync()
-        await wait(Math.max(triggerSignatureWait, 50))
-        if (lastInsert > curr) return
+        await wait(Math.min(Math.max(triggerSignatureWait, 50), 300))
+        if (!workspace.insertMode) return
         try {
-          await this.triggerSignatureHelp(doc, { line: pos[0], character: pos[1] })
+          let cursor = await nvim.call('coc#util#cursor')
+          await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] })
         } catch (e) {
           logger.error(`Error on signature help:`, e)
         }
