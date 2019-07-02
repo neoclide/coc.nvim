@@ -359,6 +359,12 @@ nnoremap <silent> <space>k  :<C-u>CocPrev<CR>
 nnoremap <silent> <space>p  :<C-u>CocListResume<CR>
 ```
 
+## Articles
+
+- [coc.nvim 插件体系介绍](https://zhuanlan.zhihu.com/p/65524706)
+- [CocList 入坑指南](https://zhuanlan.zhihu.com/p/71846145)
+- [Create coc.nvim extension to improve vim experience](https://medium.com/@chemzqm/create-coc-nvim-extension-to-improve-vim-experience-4461df269173)
+
 ## Trouble shooting
 
 Try these steps when you have problem with coc.nvim.
