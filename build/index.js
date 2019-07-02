@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f9856a2687" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "ac3f1933e3" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -68308,8 +68308,8 @@ class ConfigurationFeature {
         let { id } = this._client;
         if (section) {
             if (id.startsWith('languageserver')) {
-                let config = workspace_1.default.getConfiguration(`${this._client.id}`, resource).get('settings');
-                if (config[section])
+                let config = workspace_1.default.getConfiguration(id, resource).get('settings');
+                if (config && config[section] != null)
                     return config[section];
             }
             let index = section.lastIndexOf('.');
@@ -70508,7 +70508,8 @@ class BasicList {
                     });
                 }));
                 await nvim.call('setqflist', [quickfixItems]);
-                nvim.command('copen', true);
+                let openCommand = await nvim.getVar('coc_quickfix_open_command');
+                nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true);
             }
         });
         for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {

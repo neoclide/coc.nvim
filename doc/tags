@@ -171,6 +171,7 @@ g:coc_last_hover_message	coc.txt	/*g:coc_last_hover_message*
 g:coc_node_args	coc.txt	/*g:coc_node_args*
 g:coc_node_path	coc.txt	/*g:coc_node_path*
 g:coc_process_pid	coc.txt	/*g:coc_process_pid*
+g:coc_quickfix_open_command	coc.txt	/*g:coc_quickfix_open_command*
 g:coc_selectmode_mapping	coc.txt	/*g:coc_selectmode_mapping*
 g:coc_snippet_next	coc.txt	/*g:coc_snippet_next*
 g:coc_snippet_prev	coc.txt	/*g:coc_snippet_prev*
