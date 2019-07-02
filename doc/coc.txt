@@ -963,6 +963,12 @@ g:coc_watch_extensions 				*g:coc_watch_extensions*
 			Extensions to watch for reload, used for developing 
 			extensions only, need watchman installed.
 
+g:coc_quickfix_open_command 			*g:coc_quickfix_open_command*
+
+			Open command used for open quickfix.
+			Used by quickfix action of list sources.
+			Default: |copen|
+
 g:WorkspaceFolders 				*g:WorkspaceFolders*
 
 			Current workspace folders, used for restoring from a 

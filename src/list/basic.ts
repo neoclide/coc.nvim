@@ -115,7 +115,8 @@ export default abstract class BasicList implements IList, Disposable {
           })
         }))
         await nvim.call('setqflist', [quickfixItems])
-        nvim.command('copen', true)
+        let openCommand = await nvim.getVar('coc_quickfix_open_command') as string
+        nvim.command(typeof openCommand === 'string' ? openCommand : 'copen', true)
       }
     })
     for (let name of ['open', 'tabe', 'drop', 'vsplit', 'split']) {
