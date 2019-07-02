@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "740db2377a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "e1f68bda54" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57204,18 +57204,9 @@ class Extensions {
         this.onDidUnloadExtension = this._onDidUnloadExtension.event;
     }
     async init(nvim) {
-        if (global.hasOwnProperty('__TEST__')) {
+        if (global.hasOwnProperty('__TEST__'))
             this.root = path_1.default.join(__dirname, './__tests__/extensions');
-        }
-        else {
-            this.root = await nvim.call('coc#util#extension_root');
-        }
-        this.manager = new extension_1.default(this.root);
-        if (!fs_1.default.existsSync(this.root))
-            await util_2.mkdirp(this.root);
-        let jsonFile = path_1.default.join(this.root, 'package.json');
-        if (!fs_1.default.existsSync(jsonFile))
-            await util_1.default.promisify(fs_1.default.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8');
+        await this.initializeRoot();
         let filepath = path_1.default.join(this.root, 'db.json');
         let db = this.db = new db_1.default(filepath);
         let data = loadJson(db.filepath) || {};
@@ -57273,10 +57264,8 @@ class Extensions {
     async updateExtensions() {
         if (global.hasOwnProperty('__TEST__'))
             return;
-        if (!this.root) {
-            this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
-            this.manager = new extension_1.default(this.root);
-        }
+        if (!this.root)
+            await this.initializeRoot();
         if (!this.npm)
             return;
         let lockedList = await this.getLockedList();
@@ -57330,16 +57319,17 @@ class Extensions {
             }
         }
     }
+    /**
+     * Install extensions, can be called without initialize.
+     */
     async installExtensions(list) {
         if (!list || !list.length)
             return;
         let { npm } = this;
         if (!npm)
             return;
-        if (!this.root) {
-            this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
-            this.manager = new extension_1.default(this.root);
-        }
+        if (!this.root)
+            await this.initializeRoot();
         list = array_1.distinct(list);
         if (global.hasOwnProperty('__TEST__')) {
             for (let name of list) {
@@ -57390,6 +57380,9 @@ class Extensions {
         }
         return null;
     }
+    /**
+     * Get all loaded extensions.
+     */
     get all() {
         return this.list.map(o => o.extension);
     }
@@ -57973,6 +57966,15 @@ class Extensions {
             this.setupActiveEvents(id, packageJSON);
         }
         return id;
+    }
+    async initializeRoot() {
+        let root = this.root = await workspace_1.default.nvim.call('coc#util#extension_root');
+        this.manager = new extension_1.default(this.root);
+        let jsonFile = path_1.default.join(this.root, 'package.json');
+        if (fs_1.default.existsSync(jsonFile))
+            return;
+        await util_2.mkdirp(root);
+        await util_1.default.promisify(fs_1.default.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8');
     }
 }
 exports.Extensions = Extensions;

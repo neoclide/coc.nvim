@@ -163,6 +163,7 @@ coc-status-manual	coc.txt	/*coc-status-manual*
 coc-variables	coc.txt	/*coc-variables*
 g:WorkspaceFolders	coc.txt	/*g:WorkspaceFolders*
 g:coc_enable_locationlist	coc.txt	/*g:coc_enable_locationlist*
+g:coc_extension_root	coc.txt	/*g:coc_extension_root*
 g:coc_filetype_map	coc.txt	/*g:coc_filetype_map*
 g:coc_force_debug	coc.txt	/*g:coc_force_debug*
 g:coc_global_extensions	coc.txt	/*g:coc_global_extensions*
