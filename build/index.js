@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "d6c8066515" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "740db2377a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -84841,7 +84841,7 @@ class Handler {
         }, null, this.disposables);
         events_1.default.on('TextChangedI', async (bufnr) => {
             let curr = Date.now();
-            if (!lastInsert || curr - lastInsert > 50)
+            if (!lastInsert || curr - lastInsert > 500)
                 return;
             let doc = workspace_1.default.getDocument(bufnr);
             if (!doc)
@@ -84857,11 +84857,12 @@ class Handler {
                 await this.onCharacterType(pre, bufnr);
             if (triggerSignatureHelp && languages_1.default.shouldTriggerSignatureHelp(doc.textDocument, pre)) {
                 doc.forceSync();
-                await util_1.wait(Math.max(triggerSignatureWait, 50));
-                if (lastInsert > curr)
+                await util_1.wait(Math.min(Math.max(triggerSignatureWait, 50), 300));
+                if (!workspace_1.default.insertMode)
                     return;
                 try {
-                    await this.triggerSignatureHelp(doc, { line: pos[0], character: pos[1] });
+                    let cursor = await nvim.call('coc#util#cursor');
+                    await this.triggerSignatureHelp(doc, { line: cursor[0], character: cursor[1] });
                 }
                 catch (e) {
                     logger.error(`Error on signature help:`, e);
