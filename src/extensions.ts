@@ -75,15 +75,8 @@ export class Extensions {
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   public async init(nvim: Neovim): Promise<void> {
-    if (global.hasOwnProperty('__TEST__')) {
-      this.root = path.join(__dirname, './__tests__/extensions')
-    } else {
-      this.root = await nvim.call('coc#util#extension_root')
-    }
-    this.manager = new ExtensionManager(this.root)
-    if (!fs.existsSync(this.root)) await mkdirp(this.root)
-    let jsonFile = path.join(this.root, 'package.json')
-    if (!fs.existsSync(jsonFile)) await util.promisify(fs.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8')
+    if (global.hasOwnProperty('__TEST__')) this.root = path.join(__dirname, './__tests__/extensions')
+    await this.initializeRoot()
     let filepath = path.join(this.root, 'db.json')
     let db = this.db = new DB(filepath)
     let data = loadJson(db.filepath) || {}
@@ -140,10 +133,7 @@ export class Extensions {
 
   public async updateExtensions(): Promise<Disposable | null> {
     if (global.hasOwnProperty('__TEST__')) return
-    if (!this.root) {
-      this.root = await workspace.nvim.call('coc#util#extension_root')
-      this.manager = new ExtensionManager(this.root)
-    }
+    if (!this.root) await this.initializeRoot()
     if (!this.npm) return
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
@@ -196,14 +186,14 @@ export class Extensions {
     }
   }
 
+  /**
+   * Install extensions, can be called without initialize.
+   */
   public async installExtensions(list: string[]): Promise<void> {
     if (!list || !list.length) return
     let { npm } = this
     if (!npm) return
-    if (!this.root) {
-      this.root = await workspace.nvim.call('coc#util#extension_root')
-      this.manager = new ExtensionManager(this.root)
-    }
+    if (!this.root) await this.initializeRoot()
     list = distinct(list)
     if (global.hasOwnProperty('__TEST__')) {
       for (let name of list) {
@@ -251,6 +241,9 @@ export class Extensions {
     return null
   }
 
+  /**
+   * Get all loaded extensions.
+   */
   public get all(): Extension<API>[] {
     return this.list.map(o => o.extension)
   }
@@ -822,6 +815,14 @@ export class Extensions {
     return id
   }
 
+  private async initializeRoot(): Promise<void> {
+    let root = this.root = await workspace.nvim.call('coc#util#extension_root')
+    this.manager = new ExtensionManager(this.root)
+    let jsonFile = path.join(this.root, 'package.json')
+    if (fs.existsSync(jsonFile)) return
+    await mkdirp(root)
+    await util.promisify(fs.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8')
+  }
 }
 
 export default new Extensions()

@@ -722,29 +722,11 @@ function! coc#util#install_extension(args) abort
   let names = filter(copy(a:args), 'v:val !~# "^-"')
   if empty(names) | return | endif
   let isRequest = index(a:args, '-sync') != -1
-  let dir = coc#util#extension_root()
-  let res = coc#util#init_extension_root(dir)
   if isRequest
     call coc#rpc#request('installExtensions', names)
   else
     call coc#rpc#notify('installExtensions', names)
   endif
-endfunction
-
-function! coc#util#init_extension_root(root) abort
-  let file = a:root.'/package.json'
-  if !isdirectory(a:root)
-    call mkdir(a:root, 'p')
-    let res = writefile(['{"dependencies":{}}'], file)
-    if res == -1
-      echohl Error | echom 'Create package.json failed: '.v:errmsg | echohl None
-      return -1
-    endif
-  endif
-  if !filereadable(a:root.'/package.json')
-    call writefile(['{"dependencies":{}}'], file)
-  endif
-  return 0
 endfunction
 
 function! coc#util#do_autocmd(name) abort
