@@ -168,7 +168,7 @@ export default class Handler {
 
     events.on('TextChangedI', async bufnr => {
       let curr = Date.now()
-      if (!lastInsert || curr - lastInsert > 50) return
+      if (!lastInsert || curr - lastInsert > 500) return
       let doc = workspace.getDocument(bufnr)
       if (!doc) return
       let { triggerSignatureHelp, triggerSignatureWait, formatOnType } = this.preferences
