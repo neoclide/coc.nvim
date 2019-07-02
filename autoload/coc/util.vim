@@ -698,10 +698,13 @@ function! coc#util#do_complete(name, opt, cb) abort
 endfunction
 
 function! coc#util#extension_root() abort
-  if s:is_win
-    let dir = $HOME.'/AppData/Local/coc/extensions'
-  else
-    let dir = $HOME.'/.config/coc/extensions'
+  let dir = get(g:, 'coc_extension_root', '')
+  if empty(dir)
+    if s:is_win
+      let dir = $HOME.'/AppData/Local/coc/extensions'
+    else
+      let dir = $HOME.'/.config/coc/extensions'
+    endif
   endif
   return dir
 endfunction

@@ -847,6 +847,15 @@ g:coc_user_config 				*g:coc_user_config*
 			User configuration object, define this variable when
 			you can't use |coc#config()|
 
+g:coc_extension_root 				*g:coc_extension_root*
+
+			Location that coc extensions would be installed to,
+			empty to use default location:
+			Windows:
+				`~/AppData/Local/coc/extensions`
+			Other:
+				`~/.config/coc/extensions`
+
 g:coc_global_extensions 			*g:coc_global_extensions*
 
 			Global extension names to install when they aren't 
