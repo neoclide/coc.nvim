@@ -141,13 +141,14 @@ export class Extensions {
     let lockedList = await this.getLockedList()
     let stats = await this.globalExtensionStats()
     let versionInfo: { [index: string]: string } = {}
-    stats = stats.filter(o => !o.exotic && !this.disabled.has(o.id) && !lockedList.includes(o.id))
+    stats = stats.filter(o => !this.disabled.has(o.id) && !lockedList.includes(o.id))
     let names = stats.map(o => o.id)
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.text = `Updating extensions.`
     statusItem.show()
     await Promise.all(names.map(name => {
-      return this.manager.update(this.npm, name).then(updated => {
+      let o = stats.find(o => o.id == name)
+      return this.manager.update(this.npm, name, o.exotic ? o.uri : undefined).then(updated => {
         if (updated) this.reloadExtension(name).logError()
       }, err => {
         workspace.showMessage(`Error on update ${name}: ${err}`)
@@ -160,11 +161,14 @@ export class Extensions {
   private async checkExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
-      let names = globalExtensions.filter(name => !this.has(name) && !this.isDisabled(name))
+      let names = globalExtensions.filter(name => !this.isDisabled(name))
+      let folder = path.join(this.root, 'node_modules')
+      let files = await util.promisify(fs.readdir)(folder)
+      names = names.filter(s => files.indexOf(s) == -1)
       let json = this.loadJson()
       if (json && json.dependencies) {
         let vals = Object.values(json.dependencies) as string[]
-        names = names.filter(s => !isuri.isValid(s) || vals.findIndex(val => val.indexOf(s) !== -1) == -1)
+        names = names.filter(s => vals.findIndex(val => val.indexOf(s) !== -1) == -1)
       }
       this.installExtensions(names).logError()
     }
@@ -205,21 +209,10 @@ export class Extensions {
       }
       return
     }
-    let uris = list.filter(name => isuri.isValid(name))
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
-    if (uris.length) {
-      statusItem.text = `Installing ${uris.join(' ')}`
-      try {
-        let method = npm.endsWith('yarn') ? 'install' : 'add'
-        await runCommand(`${npm} ${method} ${uris.join(' ')} --global-style --ignore-scripts --no-bin-links --no-package-lock --production --no-audit`, { cwd: this.root })
-      } catch (e) {
-        workspace.showMessage(`Install ${uris.join(' ')} error: ` + e.message, 'error')
-      }
-    }
-    let names = list.filter(name => !isuri.isValid(name)) as string[]
-    statusItem.text = `Installing ${names.join(' ')}`
-    await Promise.all(names.map(name => {
+    statusItem.text = `Installing ${list.join(' ')}`
+    await Promise.all(list.map(name => {
       return this.manager.install(npm, name).then(installed => {
         if (installed) this.onExtensionInstall(name).logError()
       }, err => {
@@ -559,7 +552,7 @@ export class Extensions {
             isLocal: false,
             version,
             description,
-            exotic: uri != null,
+            exotic: /^https?:/.test(val),
             uri,
             root,
             state: this.getExtensionState(key)
@@ -821,7 +814,7 @@ export class Extensions {
   private async initializeRoot(): Promise<void> {
     let root = this.root = await workspace.nvim.call('coc#util#extension_root')
     this.manager = new ExtensionManager(this.root)
-    let jsonFile = path.join(this.root, 'package.json')
+    let jsonFile = path.join(root, 'package.json')
     if (fs.existsSync(jsonFile)) return
     await mkdirp(root)
     await util.promisify(fs.writeFile)(jsonFile, '{"dependencies":{}}', 'utf8')

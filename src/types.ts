@@ -1,4 +1,5 @@
 import { Neovim, Window } from '@chemzqm/neovim'
+import { RequestOptions } from 'http'
 import log4js from 'log4js'
 import { CancellationToken, CompletionTriggerKind, CreateFileOptions, DeleteFileOptions, Diagnostic, DidChangeTextDocumentParams, Disposable, DocumentSelector, Event, FormattingOptions, Location, Position, Range, RenameFileOptions, TextDocument, TextDocumentSaveReason, TextEdit, WorkspaceEdit, WorkspaceFolder } from 'vscode-languageserver-protocol'
 import { URI } from 'vscode-uri'
@@ -842,6 +843,12 @@ export interface PreiewOptions {
   filetype: string
   lines?: string[]
   lnum?: number
+}
+
+export interface DownloadOptions extends RequestOptions {
+  // absolute folder path
+  dest: string
+  onProgress?: (percent: number) => void
 }
 
 export interface AnsiItem {

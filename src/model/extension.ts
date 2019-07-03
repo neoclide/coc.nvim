@@ -1,22 +1,21 @@
-import { spawn, ExecOptions, exec } from 'child_process'
-import { runCommand } from '../util'
-import { promisify } from 'util'
-import tar from 'tar'
-import got from 'got'
-import tunnel from 'tunnel'
+import { exec, ExecOptions, spawn } from 'child_process'
 import fs from 'fs'
+import mkdirp from 'mkdirp'
 import path from 'path'
 import rimraf from 'rimraf'
-import workspace from '../workspace'
 import semver from 'semver'
-import mkdirp from 'mkdirp'
-import { StatusBarItem } from '../types'
+import { promisify } from 'util'
+import { runCommand } from '../util'
+import workspace from '../workspace'
+import download from './download'
+import fetch from './fetch'
 const logger = require('../util/logger')('model-extension')
 
 export interface Info {
-  'dist.tarball': string
-  'engines.coc': string
-  version: string
+  'dist.tarball'?: string
+  'engines.coc'?: string
+  version?: string
+  name?: string
   error?: {
     code: string
     summary: string
@@ -29,18 +28,23 @@ async function getData(name: string, field: string): Promise<string> {
 }
 
 export default class ExtensionManager {
-  private proxy: string
-  private created: boolean
+  private checked = false
   constructor(private root: string) {
-    this.proxy = workspace.getConfiguration('http').get<string>('proxy', '')
+  }
+
+  private checkFolder(): void {
+    if (this.checked) return
+    this.checked = true
+    let { root } = this
     mkdirp.sync(root)
     mkdirp.sync(path.join(root, '.cache'))
     mkdirp.sync(path.join(root, 'node_modules'))
   }
 
   private async getInfo(npm: string, name: string): Promise<Info> {
+    if (name.startsWith('https:')) return await this.getInfoFromUri(name)
     if (npm.endsWith('yarn')) {
-      let obj = {}
+      let obj = { name }
       let keys = ['dist.tarball', 'engines.coc', 'version']
       let vals = await Promise.all(keys.map(key => {
         return getData(name, key)
@@ -52,7 +56,7 @@ export default class ExtensionManager {
     }
     let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 })
     let lines = content.split(/\r?\n/)
-    let obj = {}
+    let obj = { name }
     for (let line of lines) {
       let ms = line.match(/^(\S+)\s*=\s*'(.*)'/)
       if (ms) obj[ms[1]] = ms[2]
@@ -72,42 +76,11 @@ export default class ExtensionManager {
   }
 
   private async _install(npm: string, name: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
-    let { proxy } = this
-    let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, '.cache', `${name}-`))
+    let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, '.cache', `${info.name}-`))
     let url = info['dist.tarball']
-    onMessage(`Downloading ${url.match(/[^/]*$/)[0]}`)
-    let options: any = { encoding: null }
-    if (!proxy && process.env.HTTP_PROXY) {
-      proxy = process.env.HTTP_PROXY.replace(/^https?:\/\//, '').replace(/\/$/, '')
-    }
-    if (proxy) {
-      let auth = proxy.includes('@') ? proxy.split('@', 2)[0] : ''
-      let parts = auth.length ? proxy.slice(auth.length + 1).split(':') : proxy.split(':')
-      if (parts.length > 1) {
-        options.agent = tunnel.httpsOverHttp({
-          proxy: {
-            headers: {},
-            host: parts[0],
-            port: parseInt(parts[1], 10),
-            proxyAuth: auth
-          }
-        })
-      }
-    }
-    let p = new Promise<void>((resolve, reject) => {
-      let stream = got.stream(url, options).on('downloadProgress', progress => {
-        let p = (progress.percent * 100).toFixed(0)
-        onMessage(`${p}% downloaded.`)
-      })
-      stream.on('error', err => {
-        reject(new Error(`Download error: ${err}`))
-      })
-      stream.pipe(tar.x({ strip: 1, C: tmpFolder }))
-      stream.on('end', () => { setTimeout(resolve, 50) })
-    })
-    await p
-    let file = path.join(tmpFolder, 'package.json')
-    let content = await promisify(fs.readFile)(file, 'utf8')
+    onMessage(`Downloading from ${url}`)
+    await download(url, { dest: tmpFolder })
+    let content = await promisify(fs.readFile)(path.join(tmpFolder, 'package.json'), 'utf8')
     let { dependencies } = JSON.parse(content)
     if (dependencies && Object.keys(dependencies).length) {
       onMessage(`Installing dependencies.`)
@@ -122,15 +95,20 @@ export default class ExtensionManager {
     let jsonFile = path.join(this.root, 'package.json')
     let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
     obj.dependencies = obj.dependencies || {}
-    obj.dependencies[name] = '>=' + info.version
+    if (/^https?:/.test(name)) {
+      obj.dependencies[info.name] = name
+    } else {
+      obj.dependencies[name] = '>=' + info.version
+    }
     fs.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' })
     onMessage(`Moving to new folder.`)
-    let folder = path.join(this.root, 'node_modules', name)
+    let folder = path.join(this.root, 'node_modules', info.name)
     await this.removeFolder(folder)
     await promisify(fs.rename)(tmpFolder, folder)
   }
 
   public async install(npm: string, name: string): Promise<boolean> {
+    this.checkFolder()
     logger.info(`Using npm from: ${npm}`)
     logger.info(`Loading info of ${name}.`)
     let info = await this.getInfo(npm, name)
@@ -151,7 +129,8 @@ export default class ExtensionManager {
     return true
   }
 
-  public async update(npm: string, name: string): Promise<boolean> {
+  public async update(npm: string, name: string, uri?: string): Promise<boolean> {
+    this.checkFolder()
     let folder = path.join(this.root, 'node_modules', name)
     let stat = await promisify(fs.lstat)(folder)
     if (stat.isSymbolicLink()) {
@@ -164,7 +143,7 @@ export default class ExtensionManager {
       version = JSON.parse(content).version
     }
     logger.info(`Loading info of ${name}.`)
-    let info = await this.getInfo(npm, name)
+    let info = await this.getInfo(npm, uri ? uri : name)
     if (info.error) return
     if (version && info.version && semver.gte(version, info.version)) {
       logger.info(`Extension ${name} is up to date.`)
@@ -178,6 +157,20 @@ export default class ExtensionManager {
     workspace.showMessage(`Updated extension: ${name} to ${info.version}`, 'more')
     logger.info(`Update extension: ${name}`)
     return true
+  }
+
+  private async getInfoFromUri(uri: string): Promise<Info> {
+    if (uri.indexOf('github.com') == -1) return
+    uri = uri.replace(/\/$/, '')
+    let fileUrl = uri.replace('github.com', 'raw.githubusercontent.com') + '/master/package.json'
+    let content = await fetch(fileUrl)
+    let obj = typeof content == 'string' ? JSON.parse(content) : content
+    return {
+      'dist.tarball': `${uri}/archive/master.tar.gz`,
+      'engines.coc': obj['engines'] ? obj['engines']['coc'] : undefined,
+      name: obj.name,
+      version: obj.version
+    }
   }
 }
 
