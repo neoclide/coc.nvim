@@ -679,13 +679,11 @@ export default class Handler {
   public async getCommands(): Promise<CommandItem[]> {
     let list = commandManager.commandList
     let res: CommandItem[] = []
-    let document = await workspace.document
-    if (!document) return []
     let { titles } = commandManager
-    for (let key of Object.keys(list)) {
+    for (let item of list) {
       res.push({
-        id: key,
-        title: titles[key] || ''
+        id: item.id,
+        title: titles.get(item.id) || ''
       })
     }
     return res
