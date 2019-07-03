@@ -286,6 +286,14 @@ describe('list configuration', () => {
     expect(has).toBe(1)
   })
 
+  it('should show help of current list', async () => {
+    await manager.start(['--normal', '--auto-preview', 'location'])
+    await helper.wait(200)
+    await manager.showHelp()
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toBe('[LIST HELP]')
+  })
+
   it('should resolve list item', async () => {
     let list: IList = {
       name: 'test',

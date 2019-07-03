@@ -75,8 +75,11 @@ export class Extensions {
   public readonly onDidUnloadExtension: Event<string> = this._onDidUnloadExtension.event
 
   public async init(nvim: Neovim): Promise<void> {
-    if (global.hasOwnProperty('__TEST__')) this.root = path.join(__dirname, './__tests__/extensions')
-    await this.initializeRoot()
+    if (global.hasOwnProperty('__TEST__')) {
+      this.root = path.join(__dirname, './__tests__/extensions')
+    } else {
+      await this.initializeRoot()
+    }
     let filepath = path.join(this.root, 'db.json')
     let db = this.db = new DB(filepath)
     let data = loadJson(db.filepath) || {}

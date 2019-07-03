@@ -636,6 +636,7 @@ describe('workspace utility', () => {
   it('should jumpTo position', async () => {
     let uri = URI.file('/tmp/foo').toString()
     await workspace.jumpTo(uri, { line: 1, character: 1 })
+    await nvim.command('setl buftype=nofile')
     let buf = await nvim.buffer
     let name = await buf.name
     expect(name).toMatch('/foo')
@@ -643,7 +644,6 @@ describe('workspace utility', () => {
     await workspace.jumpTo(uri, { line: 1, character: 1 })
     let pos = await nvim.call('getcurpos')
     expect(pos.slice(1, 3)).toEqual([2, 2])
-    await nvim.command('bd!')
   })
 
   it('should jumpTo uri without normalize', async () => {
