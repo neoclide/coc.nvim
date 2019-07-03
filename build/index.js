@@ -54264,7 +54264,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "e1f68bda54" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "471db1a4c4" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -85375,14 +85375,11 @@ class Handler {
     async getCommands() {
         let list = commands_1.default.commandList;
         let res = [];
-        let document = await workspace_1.default.document;
-        if (!document)
-            return [];
         let { titles } = commands_1.default;
-        for (let key of Object.keys(list)) {
+        for (let item of list) {
             res.push({
-                id: key,
-                title: titles[key] || ''
+                id: item.id,
+                title: titles.get(item.id) || ''
             });
         }
         return res;
