@@ -618,11 +618,10 @@ export class Workspace implements IWorkspace {
       await nvim.call('setqflist', [items])
       nvim.command('copen', true)
     } else {
+      await nvim.setVar('coc_jump_locations', items)
       if (this.env.locationlist) {
-        (global as any).locations = items
         nvim.command('CocList --normal --auto-preview location', true)
       } else {
-        await nvim.setVar('coc_jump_locations', items)
         nvim.command('doautocmd User CocLocationsChange', true)
       }
     }
