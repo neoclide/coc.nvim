@@ -54075,9 +54075,6 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('installExtensions', async (...list) => {
             await extensions_1.default.installExtensions(list);
         });
-        this.addMethod('saveRefactor', async (bufnr) => {
-            await this.handler.saveRefactor(bufnr);
-        });
         this.addMethod('updateExtensions', async () => {
             await extensions_1.default.updateExtensions();
         });
@@ -54274,7 +54271,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2124281d2a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "f7cd062403" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54405,8 +54402,6 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.runCommand(...args.slice(1));
                 case 'doQuickfix':
                     return await handler.doQuickfix();
-                case 'refactor':
-                    return await handler.doRefactor();
                 case 'repeatCommand':
                     return await commands_1.default.repeatCommand();
                 case 'extensionStats':
@@ -79511,7 +79506,7 @@ class Worker {
                     await this.loadItems();
                 }, 100);
             }
-            else if (!this._loading && this.length) {
+            else if (this.length) {
                 let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50);
                 this.timer = setTimeout(async () => {
                     await this.drawItems();
