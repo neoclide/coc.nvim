@@ -62,11 +62,12 @@ export class DiagnosticBuffer implements Disposable {
     sequence.addFunction(async () => {
       nvim.pauseNotification()
       this.setDiagnosticInfo(diagnostics)
-      this.addDiagnosticVText(diagnostics)
       this.addSigns(diagnostics)
       this.setLocationlist(diagnostics, winid)
       this.addHighlight(diagnostics, winid)
-      await this.nvim.resumeNotification()
+      this.addDiagnosticVText(diagnostics)
+      let [, err] = await this.nvim.resumeNotification()
+      if (err) logger.error('Diagnostic error:', err)
     })
     sequence.start().then(async canceled => {
       if (!canceled) {

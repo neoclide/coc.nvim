@@ -149,7 +149,7 @@ export class DiagnosticManager implements Disposable {
     nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true)
     nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true)
     nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true)
-    if (this.config.virtualText) {
+    if (this.config.virtualText && workspace.isNvim) {
       nvim.call('coc#util#init_virtual_hl', [], true)
     }
     nvim.resumeNotification(false, true).catch(_e => {
