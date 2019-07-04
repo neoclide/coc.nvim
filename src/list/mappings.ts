@@ -70,15 +70,6 @@ export default class Mappings {
     this.add('insert', '<C-u>', () => {
       prompt.removeAhead()
     })
-    this.add('insert', '<C-d>', () => {
-      return manager.feedkeys('<C-d>')
-    })
-    this.add('insert', '<PageUp>', () => {
-      return manager.feedkeys('<PageUp>')
-    })
-    this.add('insert', '<PageDown>', () => {
-      return manager.feedkeys('<PageDown>')
-    })
     this.add('insert', '<down>', () => {
       return manager.normal('j')
     })

@@ -2,7 +2,7 @@ let s:activated = 0
 let s:is_vim = !has('nvim')
 let s:saved_ve = &t_ve
 let s:saved_cursor = &guicursor
-let s:gui = has('gui_running')
+let s:gui = has('gui_running') || has('nvim')
 
 function! coc#list#get_chars()
   return {
@@ -122,7 +122,7 @@ endfunction
 function! coc#list#start_prompt()
   if s:activated | return | endif
   if s:gui
-    set guicursor+=a:ver1-Cursor-blinkon0
+    set guicursor+=a:ver1-Cursor-blinkoff999
   elseif s:is_vim
     set t_ve=
   endif
@@ -167,11 +167,13 @@ function! coc#list#options(...)
   return join(list, "\n")
 endfunction
 
-function! coc#list#stop_prompt()
-  if s:gui
-    let &guicursor = s:saved_cursor
-  elseif s:is_vim
-    let &t_ve = s:saved_ve
+function! coc#list#stop_prompt(...)
+  if get(a:, 1, 0) == 0
+    if s:gui
+      let &guicursor = s:saved_cursor
+    elseif s:is_vim
+      let &t_ve = s:saved_ve
+    endif
   endif
   if s:activated
     let s:activated = 0

@@ -73,7 +73,7 @@ export default class Prompt {
   public drawPrompt(): void {
     let indicator = this.config.get<string>('indicator', '>')
     let { cusorIndex, interactive, input, _matcher } = this
-    let cmds = workspace.isVim ? ['echo ""'] : ['redraw']
+    let cmds = ['echo ""']
     if (this.mode == 'insert') {
       if (interactive) {
         cmds.push(`echohl MoreMsg | echon 'INTERACTIVE ' | echohl None`)
@@ -83,9 +83,7 @@ export default class Prompt {
       cmds.push(`echohl Special | echon '${indicator} ' | echohl None`)
       if (cusorIndex == input.length) {
         cmds.push(`echon '${input.replace(/'/g, "''")}'`)
-        if (workspace.isVim) {
-          cmds.push(`echohl Cursor | echon ' ' | echohl None`)
-        }
+        cmds.push(`echohl Cursor | echon ' ' | echohl None`)
       } else {
         let pre = input.slice(0, cusorIndex)
         if (pre) cmds.push(`echon '${pre.replace(/'/g, "''")}'`)
@@ -96,7 +94,7 @@ export default class Prompt {
     } else {
       cmds.push(`echohl MoreMsg | echo "" | echohl None`)
     }
-    if (workspace.isVim) cmds.push('redraw')
+    cmds.push('redraw')
     let cmd = cmds.join('|')
     this.nvim.command(cmd, true)
   }

@@ -466,23 +466,25 @@ export class ListManager implements Disposable {
   public async feedkeys(key: string): Promise<void> {
     let { nvim } = this
     key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key
-    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.call('coc#list#stop_prompt', [1])
     await nvim.eval(`feedkeys("${key}")`)
     this.prompt.start()
   }
 
   public async command(command: string): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [])
+    await nvim.call('coc#list#stop_prompt', [1])
     await nvim.command(command)
     this.prompt.start()
   }
 
   public async normal(command: string, bang = true): Promise<void> {
     let { nvim } = this
-    await nvim.call('coc#list#stop_prompt', [])
-    await nvim.command(`normal${bang ? '!' : ''} ${command}`)
+    nvim.pauseNotification()
+    nvim.call('coc#list#stop_prompt', [1], true)
+    nvim.command(`normal${bang ? '!' : ''} ${command}`, true)
     this.prompt.start()
+    await nvim.resumeNotification(false, true)
   }
 
   public async call(fname: string): Promise<any> {
@@ -511,7 +513,7 @@ export class ListManager implements Disposable {
     let previewHeight = await nvim.eval('&previewheight')
     nvim.pauseNotification()
     nvim.command(`belowright ${previewHeight}sp +setl\\ previewwindow [LIST HELP]`, true)
-    nvim.command('setl nobuflisted noswapfile filetype=nofile bufhidden=wipe', true)
+    nvim.command('setl nobuflisted noswapfile buftype=nofile bufhidden=wipe', true)
     await nvim.resumeNotification()
     let hasOptions = list.options && list.options.length
     let buf = await nvim.buffer

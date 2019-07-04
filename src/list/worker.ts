@@ -47,7 +47,7 @@ export default class Worker {
           await this.loadItems()
         }, 100)
       } else if (!this._loading && this.length) {
-        let wait = Math.max(Math.min(Math.floor(this.length / 200), 200), 50)
+        let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
         this.timer = setTimeout(async () => {
           await this.drawItems()
         }, wait)
@@ -72,7 +72,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', frames[idx], true)
         nvim.command('redraws', true)
-        await nvim.resumeNotification(false, true)
+        nvim.resumeNotification(false, true).logError()
       }, 100)
     } else {
       if (this.interval) {
@@ -80,9 +80,7 @@ export default class Worker {
         nvim.pauseNotification()
         nvim.setVar('coc_list_loading_status', '', true)
         nvim.command('redraws', true)
-        nvim.resumeNotification(false, true).catch(_e => {
-          // noop
-        })
+        nvim.resumeNotification(false, true).logError()
       }
     }
   }
@@ -174,13 +172,12 @@ export default class Worker {
         item.label = this.fixLabel(item.label)
         this.parseListItemAnsi(item)
         totalItems.push(item)
+        if (this.input != currInput) return
         if ((!lastTs && totalItems.length == 500)
           || Date.now() - lastTs > 200) {
           _onData()
-        } else if (lastTs && this.input != currInput) {
-          _onData()
         } else {
-          timer = setTimeout(_onData, 60)
+          timer = setTimeout(_onData, 50)
         }
       })
       let disposable = token.onCancellationRequested(() => {
