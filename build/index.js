@@ -44660,12 +44660,11 @@ class Workspace {
             nvim.command('copen', true);
         }
         else {
+            await nvim.setVar('coc_jump_locations', items);
             if (this.env.locationlist) {
-                global.locations = items;
                 nvim.command('CocList --normal --auto-preview location', true);
             }
             else {
-                await nvim.setVar('coc_jump_locations', items);
                 nvim.command('doautocmd User CocLocationsChange', true);
             }
         }
@@ -54076,6 +54075,9 @@ class Plugin extends events_1.EventEmitter {
         this.addMethod('installExtensions', async (...list) => {
             await extensions_1.default.installExtensions(list);
         });
+        this.addMethod('saveRefactor', async (bufnr) => {
+            await this.handler.saveRefactor(bufnr);
+        });
         this.addMethod('updateExtensions', async () => {
             await extensions_1.default.updateExtensions();
         });
@@ -54272,7 +54274,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "ede278185a" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2124281d2a" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54403,6 +54405,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.runCommand(...args.slice(1));
                 case 'doQuickfix':
                     return await handler.doQuickfix();
+                case 'refactor':
+                    return await handler.doRefactor();
                 case 'repeatCommand':
                     return await commands_1.default.repeatCommand();
                 case 'extensionStats':
@@ -61694,7 +61698,7 @@ class DiagnosticManager {
         nvim.command(`sign define CocWarning text=${warningSign} linehl=CocWarningLine texthl=CocWarningSign`, true);
         nvim.command(`sign define CocInfo    text=${infoSign}    linehl=CocInfoLine  texthl=CocInfoSign`, true);
         nvim.command(`sign define CocHint    text=${hintSign}    linehl=CocHintLine  texthl=CocHintSign`, true);
-        if (this.config.virtualText) {
+        if (this.config.virtualText && workspace_1.default.isNvim) {
             nvim.call('coc#util#init_virtual_hl', [], true);
         }
         nvim.resumeNotification(false, true).catch(_e => {
@@ -63118,11 +63122,13 @@ class DiagnosticBuffer {
         sequence.addFunction(async () => {
             nvim.pauseNotification();
             this.setDiagnosticInfo(diagnostics);
-            this.addDiagnosticVText(diagnostics);
             this.addSigns(diagnostics);
             this.setLocationlist(diagnostics, winid);
             this.addHighlight(diagnostics, winid);
-            await this.nvim.resumeNotification();
+            this.addDiagnosticVText(diagnostics);
+            let [, err] = await this.nvim.resumeNotification();
+            if (err)
+                logger.error('Diagnostic error:', err);
         });
         sequence.start().then(async (canceled) => {
             if (!canceled) {
@@ -76163,21 +76169,23 @@ class ListManager {
     async feedkeys(key) {
         let { nvim } = this;
         key = key.startsWith('<') && key.endsWith('>') ? `\\${key}` : key;
-        await nvim.call('coc#list#stop_prompt', []);
+        await nvim.call('coc#list#stop_prompt', [1]);
         await nvim.eval(`feedkeys("${key}")`);
         this.prompt.start();
     }
     async command(command) {
         let { nvim } = this;
-        await nvim.call('coc#list#stop_prompt', []);
+        await nvim.call('coc#list#stop_prompt', [1]);
         await nvim.command(command);
         this.prompt.start();
     }
     async normal(command, bang = true) {
         let { nvim } = this;
-        await nvim.call('coc#list#stop_prompt', []);
-        await nvim.command(`normal${bang ? '!' : ''} ${command}`);
+        nvim.pauseNotification();
+        nvim.call('coc#list#stop_prompt', [1], true);
+        nvim.command(`normal${bang ? '!' : ''} ${command}`, true);
         this.prompt.start();
+        await nvim.resumeNotification(false, true);
     }
     async call(fname) {
         if (!this.currList || !this.window)
@@ -76206,7 +76214,7 @@ class ListManager {
         let previewHeight = await nvim.eval('&previewheight');
         nvim.pauseNotification();
         nvim.command(`belowright ${previewHeight}sp +setl\\ previewwindow [LIST HELP]`, true);
-        nvim.command('setl nobuflisted noswapfile filetype=nofile bufhidden=wipe', true);
+        nvim.command('setl nobuflisted noswapfile buftype=nofile bufhidden=wipe', true);
         await nvim.resumeNotification();
         let hasOptions = list.options && list.options.length;
         let buf = await nvim.buffer;
@@ -76853,15 +76861,6 @@ class Mappings {
         this.add('insert', '<C-u>', () => {
             prompt.removeAhead();
         });
-        this.add('insert', '<C-d>', () => {
-            return manager.feedkeys('<C-d>');
-        });
-        this.add('insert', '<PageUp>', () => {
-            return manager.feedkeys('<PageUp>');
-        });
-        this.add('insert', '<PageDown>', () => {
-            return manager.feedkeys('<PageDown>');
-        });
         this.add('insert', '<down>', () => {
             return manager.normal('j');
         });
@@ -77217,7 +77216,7 @@ class Prompt {
     drawPrompt() {
         let indicator = this.config.get('indicator', '>');
         let { cusorIndex, interactive, input, _matcher } = this;
-        let cmds = workspace_1.default.isVim ? ['echo ""'] : ['redraw'];
+        let cmds = ['echo ""'];
         if (this.mode == 'insert') {
             if (interactive) {
                 cmds.push(`echohl MoreMsg | echon 'INTERACTIVE ' | echohl None`);
@@ -77228,9 +77227,7 @@ class Prompt {
             cmds.push(`echohl Special | echon '${indicator} ' | echohl None`);
             if (cusorIndex == input.length) {
                 cmds.push(`echon '${input.replace(/'/g, "''")}'`);
-                if (workspace_1.default.isVim) {
-                    cmds.push(`echohl Cursor | echon ' ' | echohl None`);
-                }
+                cmds.push(`echohl Cursor | echon ' ' | echohl None`);
             }
             else {
                 let pre = input.slice(0, cusorIndex);
@@ -77244,8 +77241,7 @@ class Prompt {
         else {
             cmds.push(`echohl MoreMsg | echo "" | echohl None`);
         }
-        if (workspace_1.default.isVim)
-            cmds.push('redraw');
+        cmds.push('redraw');
         let cmd = cmds.join('|');
         this.nvim.command(cmd, true);
     }
@@ -77794,7 +77790,7 @@ class LocationList extends basic_1.default {
     }
     async loadItems(context) {
         // filename, lnum, col, text, type
-        let locs = global.locations;
+        let locs = await this.nvim.getVar('coc_jump_locations');
         locs = locs || [];
         locs.forEach(loc => {
             if (!loc.uri) {
@@ -79516,7 +79512,7 @@ class Worker {
                 }, 100);
             }
             else if (!this._loading && this.length) {
-                let wait = Math.max(Math.min(Math.floor(this.length / 200), 200), 50);
+                let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50);
                 this.timer = setTimeout(async () => {
                     await this.drawItems();
                 }, wait);
@@ -79540,7 +79536,7 @@ class Worker {
                 nvim.pauseNotification();
                 nvim.setVar('coc_list_loading_status', frames[idx], true);
                 nvim.command('redraws', true);
-                await nvim.resumeNotification(false, true);
+                nvim.resumeNotification(false, true).logError();
             }, 100);
         }
         else {
@@ -79549,9 +79545,7 @@ class Worker {
                 nvim.pauseNotification();
                 nvim.setVar('coc_list_loading_status', '', true);
                 nvim.command('redraws', true);
-                nvim.resumeNotification(false, true).catch(_e => {
-                    // noop
-                });
+                nvim.resumeNotification(false, true).logError();
             }
         }
     }
@@ -79655,15 +79649,14 @@ class Worker {
                 item.label = this.fixLabel(item.label);
                 this.parseListItemAnsi(item);
                 totalItems.push(item);
+                if (this.input != currInput)
+                    return;
                 if ((!lastTs && totalItems.length == 500)
                     || Date.now() - lastTs > 200) {
                     _onData();
                 }
-                else if (lastTs && this.input != currInput) {
-                    _onData();
-                }
                 else {
-                    timer = setTimeout(_onData, 60);
+                    timer = setTimeout(_onData, 50);
                 }
             });
             let disposable = token.onCancellationRequested(() => {
