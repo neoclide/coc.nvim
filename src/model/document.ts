@@ -599,6 +599,10 @@ export default class Document {
     return lines[line] || ''
   }
 
+  public getLines(start: number, end: number): string[] {
+    return this.lines.slice(start, end)
+  }
+
   public getDocumentContent(): string {
     let content = this.lines.join('\n')
     return this.eol ? content + '\n' : content

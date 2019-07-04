@@ -1,5 +1,5 @@
 import { NeovimClient as Neovim } from '@chemzqm/neovim'
-import { CancellationTokenSource, SelectionRange, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
+import { CancellationTokenSource, CodeActionContext, CodeActionKind, Definition, Disposable, DocumentLink, DocumentSymbol, ExecuteCommandParams, ExecuteCommandRequest, Hover, Location, LocationLink, MarkedString, MarkupContent, Position, Range, SelectionRange, SymbolInformation, TextEdit } from 'vscode-languageserver-protocol'
 import { Document } from '..'
 import commandManager from '../commands'
 import diagnosticManager from '../diagnostic/manager'
@@ -14,11 +14,12 @@ import { CodeAction, Documentation } from '../types'
 import { disposeAll, wait } from '../util'
 import { getSymbolKind } from '../util/convert'
 import { equals } from '../util/object'
-import { positionInRange, comparePosition, rangeInRange } from '../util/position'
-import { isWord, byteLength } from '../util/string'
+import { positionInRange, rangeInRange } from '../util/position'
+import { byteLength, isWord } from '../util/string'
 import workspace from '../workspace'
 import CodeLensManager from './codelens'
 import Colors from './colors'
+import Refactor from './refactor'
 import DocumentHighlighter from './documentHighlight'
 import debounce = require('debounce')
 const logger = require('../util/logger')('Handler')
@@ -75,6 +76,7 @@ export default class Handler {
   private colors: Colors
   private hoverFactory: FloatFactory
   private signatureFactory: FloatFactory
+  private refactor: Refactor
   private documentLines: string[] = []
   private codeLensManager: CodeLensManager
   private signatureTokenSource: CancellationTokenSource
@@ -90,6 +92,7 @@ export default class Handler {
         this.getPreferences()
       }
     })
+    this.refactor = new Refactor()
     this.hoverFactory = new FloatFactory(nvim, workspace.env)
     this.disposables.push(this.hoverFactory)
     let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences
@@ -1029,6 +1032,16 @@ export default class Handler {
       listArgs.push('-source')
     }
     await listManager.start(listArgs)
+  }
+
+  /**
+   * Refactor of current symbol
+   */
+  public async doRefactor(): Promise<void> {
+    await this.refactor.start()
+  }
+  public async saveRefactor(bufnr: number): Promise<void> {
+    await this.refactor.saveRefactor(bufnr)
   }
 
   private async previewHover(hovers: Hover[]): Promise<void> {

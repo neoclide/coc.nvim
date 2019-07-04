@@ -1,9 +1,9 @@
 import { byteLength } from '../util/string'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 
-interface HighlightItem {
+export interface HighlightItem {
   // all zero indexed
-  lnum: number
+  line: number
   colStart: number
   // default to -1
   colEnd?: number
@@ -29,7 +29,7 @@ export default class Highlighter {
     }
     if (hlGroup) {
       this.highlights.push({
-        lnum: this.lines.length,
+        line: this.lines.length,
         colStart: line.match(/^\s*/)[0].length,
         colEnd: byteLength(line),
         hlGroup
@@ -38,13 +38,17 @@ export default class Highlighter {
     this.lines.push(line)
   }
 
+  public addLines(lines): void {
+    this.lines.push(...lines)
+  }
+
   public addText(text: string, hlGroup?: string): void {
     let { lines } = this
     let pre = lines[lines.length - 1] || ''
     if (hlGroup) {
       let colStart = byteLength(pre)
       this.highlights.push({
-        lnum: lines.length ? lines.length - 1 : 0,
+        line: lines.length ? lines.length - 1 : 0,
         colStart,
         colEnd: colStart + byteLength(text),
         hlGroup
@@ -69,11 +73,9 @@ export default class Highlighter {
         hlGroup: item.hlGroup,
         colStart: item.colStart,
         colEnd: item.colEnd,
-        line: start + item.lnum,
+        line: start + item.line,
         srcId: this.srcId
-      }).catch(_e => {
-        // noop
-      })
+      }).logError()
     }
   }
 }

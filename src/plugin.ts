@@ -49,6 +49,9 @@ export default class Plugin extends EventEmitter {
     this.addMethod('installExtensions', async (...list: string[]) => {
       await extensions.installExtensions(list)
     })
+    this.addMethod('saveRefactor', async (bufnr: number) => {
+      await this.handler.saveRefactor(bufnr)
+    })
     this.addMethod('updateExtensions', async () => {
       await extensions.updateExtensions()
     })
@@ -375,6 +378,8 @@ export default class Plugin extends EventEmitter {
           return await handler.runCommand(...args.slice(1))
         case 'doQuickfix':
           return await handler.doQuickfix()
+        case 'refactor':
+          return await handler.doRefactor()
         case 'repeatCommand':
           return await commandManager.repeatCommand()
         case 'extensionStats':

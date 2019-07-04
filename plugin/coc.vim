@@ -173,6 +173,7 @@ function! s:Enable()
     autocmd VimResized          * call s:Autocmd('VimResized', &columns, &lines)
     autocmd VimLeavePre         * let g:coc_vim_leaving = 1
     autocmd BufReadCmd,FileReadCmd,SourceCmd list://* call coc#list#setup(expand('<amatch>'))
+    autocmd BufWriteCmd __coc_refactor__* :call coc#rpc#request('saveRefactor', [+expand('<abuf>')])
   augroup end
 endfunction
 
@@ -288,6 +289,7 @@ nnoremap <Plug>(coc-fix-current)           :<C-u>call       CocActionAsync('doQu
 nnoremap <Plug>(coc-float-hide)            :<C-u>call       coc#util#float_hide()<CR>
 nnoremap <Plug>(coc-float-jump)            :<c-u>call       coc#util#float_jump()<cr>
 nnoremap <Plug>(coc-command-repeat)        :<C-u>call       CocAction('repeatCommand')<CR>
+nnoremap <Plug>(coc-refactor)              :<C-u>call       CocActionAsync('refactor')<CR>
 inoremap <silent>                          <Plug>CocRefresh <C-r>=coc#_complete()<CR>
 
 vnoremap <silent> <Plug>(coc-funcobj-i) :<C-U>call coc#rpc#request('selectFunction', [v:true, visualmode()])<CR>

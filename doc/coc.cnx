@@ -268,6 +268,33 @@ coc 不会向 vim 添加自己的快捷键，你需要手工配置来满足需�
 
 			跳转到第一个浮动窗口。
 
+<Plug>(coc-refactor) 				*n_coc-refactor*
+
+			打开重构窗口，用于重构当前函数或重命名。
+
+<Plug>(coc-range-select) 			*n_coc-range-select*
+<Plug>(coc-range-select) 			*v_coc-range-select*
+
+			选择下一个可选区域。
+
+			注意：仅部分语言服务支持。
+
+<Plug>(coc-range-select-backward) 		*v_coc-range-select-backward*
+
+			选择上一个可选区域。
+
+			注意：仅部分语言服务支持。
+
+<Plug>(coc-funcobj-i) 			*n_coc-funcobj-i* *v_coc-funcobj-i*
+
+			选择函数内所有行，默认映射到 `if` 。
+
+			例如：使用 `cif` 重写当前函数。
+
+<Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *v_coc-funcobj-a*
+
+			选择当前函数所在区间，默认映射到 `af`。
+
 ==============================================================================
 
 变量 						*coc-variables*
@@ -336,6 +363,16 @@ g:coc_user_config 				*g:coc_user_config*
 			进行配置，而不是该变量。
 
 			该设置仅在服务启动前有效。
+
+g:coc_extension_root 				*g:coc_extension_root*
+
+			自定义插件安装根目录，为空时使用默认地址。
+
+			Windows 系统:
+				`~/AppData/Local/coc/extensions`
+			其它:
+				`~/.config/coc/extensions`
+
 
 g:coc_global_extensions 			*g:coc_global_extensions*
 

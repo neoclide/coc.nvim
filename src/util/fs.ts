@@ -118,6 +118,31 @@ export function readFile(fullpath: string, encoding: string): Promise<string> {
   })
 }
 
+export function readFileLines(fullpath: string, start: number, end: number): Promise<string[]> {
+  let res: string[] = []
+  const rl = readline.createInterface({
+    input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
+    crlfDelay: Infinity,
+    terminal: false
+  } as any)
+  let n = 0
+  return new Promise((resolve, reject) => {
+    rl.on('line', line => {
+      if (n >= start && n <= end) {
+        res.push(line)
+      }
+      if (n == end) {
+        rl.close()
+      }
+      n = n + 1
+    })
+    rl.on('close', () => {
+      resolve(res)
+    })
+    rl.on('error', reject)
+  })
+}
+
 export function readFileLine(fullpath: string, count: number): Promise<string> {
   const rl = readline.createInterface({
     input: fs.createReadStream(fullpath, { encoding: 'utf8' }),
