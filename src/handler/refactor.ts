@@ -117,7 +117,7 @@ export default class Refactor {
     highligher.render(buffer)
     nvim.command('exe 1', true)
     nvim.command('setl nomod', true)
-    nvim.command(`execute 'normal! /'.escape('${curname}', '\\\\/.*$^~[]')."\\<cr>"`, true)
+    nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true)
     await nvim.resumeNotification()
   }
 
@@ -208,6 +208,7 @@ export default class Refactor {
     }
     await workspace.applyEdit({ changes })
     nvim.command('setl nomod', true)
+    nvim.command('noa wa', true)
   }
 }
 
