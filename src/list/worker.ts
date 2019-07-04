@@ -46,7 +46,7 @@ export default class Worker {
         this.timer = setTimeout(async () => {
           await this.loadItems()
         }, 100)
-      } else if (!this._loading && this.length) {
+      } else if (this.length) {
         let wait = Math.max(Math.min(Math.floor(this.length / 200), 300), 50)
         this.timer = setTimeout(async () => {
           await this.drawItems()
