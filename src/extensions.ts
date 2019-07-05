@@ -161,16 +161,13 @@ export class Extensions {
   private async checkExtensions(): Promise<void> {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
-      let names = globalExtensions.filter(name => !this.isDisabled(name))
-      let folder = path.join(this.root, 'node_modules')
-      let files = await util.promisify(fs.readdir)(folder)
-      names = names.filter(s => files.indexOf(s) == -1)
+      let extensions = globalExtensions.filter(name => !this.isDisabled(name))
       let json = this.loadJson()
       if (json && json.dependencies) {
-        let vals = Object.values(json.dependencies) as string[]
-        names = names.filter(s => vals.findIndex(val => val.indexOf(s) !== -1) == -1)
+        let installedExtensions = Object.keys(json.dependencies)
+        extensions = extensions.filter(extension => (installedExtensions.indexOf(extension) === -1))
       }
-      this.installExtensions(names).logError()
+      this.installExtensions(extensions).logError()
     }
     // watch for changes
     if (watchExtensions && watchExtensions.length) {
