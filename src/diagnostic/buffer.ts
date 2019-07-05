@@ -160,7 +160,7 @@ export class DiagnosticBuffer implements Disposable {
     buffer.setVar('coc_diagnostic_info', info, true)
     if (!workspace.getDocument(this.bufnr)) return
     if (workspace.bufnr == this.bufnr) this.nvim.command('redraws', true)
-    this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
+    this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true)
   }
 
   private addDiagnosticVText(diagnostics: ReadonlyArray<Diagnostic>): void {
@@ -183,9 +183,7 @@ export class DiagnosticBuffer implements Disposable {
           .filter((l: string) => l.length > 0)
           .slice(0, this.config.virtualTextLines)
           .join(this.config.virtualTextLineSeparator)
-      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).catch(_e => {
-        // noop
-      })
+      buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).logError()
     }
   }
 
@@ -227,14 +225,12 @@ export class DiagnosticBuffer implements Disposable {
     if (this.sequence) await this.sequence.cancel()
     let { nvim } = this
     nvim.pauseNotification()
-    this.setDiagnosticInfo([])
     this.clearHighlight()
     this.clearSigns()
-    if (this.config.virtualText) {
+    if (this.config.virtualText && workspace.isNvim) {
       let buffer = this.nvim.createBuffer(this.bufnr)
       buffer.clearNamespace(this.config.virtualTextSrcId)
     }
-    this.nvim.command('silent doautocmd User CocDiagnosticChange', true)
     await nvim.resumeNotification(false, true)
   }
 
