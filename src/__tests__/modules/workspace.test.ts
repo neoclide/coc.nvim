@@ -404,7 +404,7 @@ describe('workspace methods', () => {
 
   it('should create terminal', async () => {
     let terminal = await workspace.createTerminal({ name: 'test' })
-    let pid = await terminal.processId
+    let pid = terminal.processId
     expect(typeof pid == 'number').toBe(true)
     terminal.dispose()
   })
