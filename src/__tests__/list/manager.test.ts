@@ -23,7 +23,7 @@ const locations: ReadonlyArray<QuickfixItem> = [{
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
-    ; (global as any).locations = locations
+  await nvim.setVar('coc_jump_locations', locations)
 })
 
 afterEach(async () => {
