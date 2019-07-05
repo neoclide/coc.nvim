@@ -45152,6 +45152,16 @@ class Workspace {
             nvim.command(`${mode}unmap ${buffer ? '<buffer>' : ''} ${key}`, true);
         });
     }
+    registerLocalKeymap(mode, key, fn, notify = false) {
+        let id = uuid();
+        let { nvim } = this;
+        this.keymaps.set(id, [fn, false]);
+        nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true);
+        return vscode_languageserver_protocol_1.Disposable.create(() => {
+            this.keymaps.delete(id);
+            nvim.command(`${mode}unmap <buffer> ${key}`, true);
+        });
+    }
     /**
      * Create StatusBarItem
      */
@@ -54277,7 +54287,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "36b226e965" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "eed5413bc6" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -83822,11 +83832,12 @@ function isDark(color) {
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
 const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const path_1 = tslib_1.__importDefault(__webpack_require__(56));
 const vscode_languageserver_types_1 = __webpack_require__(158);
 const vscode_uri_1 = __webpack_require__(174);
-const fs_2 = __webpack_require__(197);
-const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
+const fs_2 = __webpack_require__(197);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('refactor');
 const name = '__coc_refactor__';
@@ -83842,7 +83853,7 @@ class Refactor {
         };
     }
     async start() {
-        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        let [bufnr, cursor, winid] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid()]');
         let doc = workspace_1.default.getDocument(bufnr);
         if (!doc)
             return;
@@ -83877,9 +83888,9 @@ class Refactor {
             return;
         }
         let items = this.getFileItems(edit);
-        await this.createRefactorWindow(items, curname);
+        await this.createRefactorWindow(items, curname, winid);
     }
-    async createRefactorWindow(items, curname) {
+    async createRefactorWindow(items, curname, winid) {
         let { nvim } = this;
         let highligher = new highligher_1.default();
         highligher.addLine('Save current buffer to make changes', 'Comment');
@@ -83917,6 +83928,29 @@ class Refactor {
         nvim.command('exe 1', true);
         nvim.command('setl nomod', true);
         nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true);
+        workspace_1.default.registerLocalKeymap('n', '<CR>', async () => {
+            let currwin = await nvim.call('win_getid');
+            let lines = await nvim.eval('getline(3,line("."))');
+            let len = lines.length;
+            for (let i = 0; i < len; i++) {
+                let line = lines[len - i - 1];
+                let ms = line.match(/^—(.*?):(\d+):(\d+)/);
+                if (ms) {
+                    let filepath = ms[1];
+                    let start = parseInt(ms[2], 10);
+                    let lnum = i == 0 ? start : start + i - 1;
+                    let bufname = filepath.startsWith(workspace_1.default.cwd) ? path_1.default.relative(workspace_1.default.cwd, filepath) : filepath;
+                    nvim.pauseNotification();
+                    nvim.call('win_gotoid', [winid], true);
+                    this.nvim.call('coc#util#jump', ['edit', bufname, [lnum, 1]], true);
+                    nvim.command('normal! zz', true);
+                    let [, err] = await nvim.resumeNotification();
+                    if (err)
+                        workspace_1.default.showMessage(`Error on open ${filepath}: ${err}`, 'error');
+                    break;
+                }
+            }
+        }, true);
         await nvim.resumeNotification();
     }
     getFileItems(edit) {
