@@ -702,10 +702,12 @@ export class ListManager implements Disposable {
           this.nvim.command('pclose', true)
           return
         }
+        nvim.pauseNotification()
         if (action.name != 'preview') {
           this.prompt.start()
         }
-        await this.ui.restoreWindow()
+        this.ui.restoreWindow()
+        nvim.resumeNotification(false, true).logError()
         if (action.reload) await this.worker.loadItems(true)
       }
     } catch (e) {

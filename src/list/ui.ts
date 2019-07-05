@@ -69,14 +69,13 @@ export default class ListUI {
 
     events.on('CursorMoved', debounce(async bufnr => {
       if (bufnr != this.bufnr) return
-      // if (this.length < 500) return
       let [start, end] = await nvim.eval('[line("w0"),line("w$")]') as number[]
-      // if (end < 500) return
+      if (end < 500) return
       nvim.pauseNotification()
       this.doHighlight(start - 1, end)
       nvim.command('redraw', true)
       await nvim.resumeNotification(false, true)
-    }, 50))
+    }, 100))
     nvim.call('coc#list#get_colors').then(map => {
       for (let key of Object.keys(map)) {
         let foreground = key[0].toUpperCase() + key.slice(1)
@@ -330,12 +329,12 @@ export default class ListUI {
     let { bufnr, config, nvim } = this
     let maxHeight = config.get<number>('maxHeight', 12)
     let height = Math.max(1, Math.min(items.length, maxHeight))
-    let limitLines = config.get<number>('limitLines', 1000)
+    let limitLines = config.get<number>('limitLines', 30000)
     let curr = this.items[this.index]
     this.items = items.slice(0, limitLines)
     if (bufnr == 0 && !this.creating) {
       this.creating = true
-      let [bufnr, winid] = await workspace.callAsync('coc#list#create', [position, height, name])
+      let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name])
       this._bufnr = bufnr
       this.window = nvim.createWindow(winid)
       this.height = height
@@ -410,10 +409,10 @@ export default class ListUI {
     })
   }
 
-  public async restoreWindow(): Promise<void> {
+  public restoreWindow(): void {
     let { window, height } = this
     if (window && height) {
-      await workspace.callAsync('coc#list#restore', [window.id, height])
+      this.nvim.call('coc#list#restore', [window.id, height], true)
     }
   }
 

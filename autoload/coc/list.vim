@@ -150,11 +150,11 @@ endfunction
 function! coc#list#setlines(lines, append)
   let total = line('$')
   if a:append
-    call append(line('$'), a:lines)
+    silent call append(line('$'), a:lines)
   else
-    call append(0, a:lines)
+    silent call append(0, a:lines)
     let n = len(a:lines) + 1
-    execute n.',$d'
+    silent execute n.',$d'
   endif
 endfunction
 
@@ -232,10 +232,10 @@ function! coc#list#get_colors()
   let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
   for i in range(0, len(names) - 1)
     let name = names[i]
-    if has('nvim')
-      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
-    elseif exists('g:terminal_ansi_colors')
+    if exists('g:terminal_ansi_colors')
       let color_map[name] = get(g:, 'terminal_ansi_colors', i)
+    else
+      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
     endif
   endfor
   return color_map
@@ -245,4 +245,7 @@ function! coc#list#restore(winid, height)
   let res = win_gotoid(a:winid)
   if res == 0 | return | endif
   execute 'resize '.a:height
+  if s:is_vim
+    redraw
+  endif
 endfunction
