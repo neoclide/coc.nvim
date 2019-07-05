@@ -162,9 +162,11 @@ export class Extensions {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = globalExtensions.filter(name => !this.isDisabled(name))
-      let folder = path.join(this.root, 'node_modules')
-      let files = await util.promisify(fs.readdir)(folder)
-      names = names.filter(s => files.indexOf(s) == -1)
+      let folder = path.join(this.root, extensionFolder)
+      if (fs.existsSync(folder)) {
+        let files = await util.promisify(fs.readdir)(folder)
+        names = names.filter(s => files.indexOf(s) == -1)
+      }
       let json = this.loadJson()
       if (json && json.dependencies) {
         let vals = Object.values(json.dependencies) as string[]
@@ -345,7 +347,7 @@ export class Extensions {
       let json = this.loadJson() || { dependencies: {} }
       for (let id of removed) {
         delete json.dependencies[id]
-        let folder = path.join(this.root, 'node_modules', id)
+        let folder = path.join(this.root, extensionFolder, id)
         if (fs.existsSync(folder)) {
           await util.promisify(rimraf)(`${folder}`, { glob: false })
         }
