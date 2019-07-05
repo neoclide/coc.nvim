@@ -54277,7 +54277,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2454a4d1e0" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "709928f6fb" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -63225,7 +63225,7 @@ class DiagnosticBuffer {
             return;
         if (workspace_1.default.bufnr == this.bufnr)
             this.nvim.command('redraws', true);
-        this.nvim.command('silent doautocmd User CocDiagnosticChange', true);
+        this.nvim.call('coc#util#do_autocmd', ['CocDiagnosticChange'], true);
     }
     addDiagnosticVText(diagnostics) {
         let { bufnr, nvim } = this;
@@ -63249,9 +63249,7 @@ class DiagnosticBuffer {
                 .filter((l) => l.length > 0)
                 .slice(0, this.config.virtualTextLines)
                 .join(this.config.virtualTextLineSeparator);
-            buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).catch(_e => {
-                // noop
-            });
+            buffer.setVirtualText(srcId, line, [[prefix + msg, highlight]], {}).logError();
         }
     }
     clearHighlight() {
@@ -63296,14 +63294,12 @@ class DiagnosticBuffer {
             await this.sequence.cancel();
         let { nvim } = this;
         nvim.pauseNotification();
-        this.setDiagnosticInfo([]);
         this.clearHighlight();
         this.clearSigns();
-        if (this.config.virtualText) {
+        if (this.config.virtualText && workspace_1.default.isNvim) {
             let buffer = this.nvim.createBuffer(this.bufnr);
             buffer.clearNamespace(this.config.virtualTextSrcId);
         }
-        this.nvim.command('silent doautocmd User CocDiagnosticChange', true);
         await nvim.resumeNotification(false, true);
     }
     dispose() {
