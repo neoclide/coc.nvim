@@ -54277,7 +54277,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "709928f6fb" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "36b226e965" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -76396,10 +76396,12 @@ class ListManager {
                     this.nvim.command('pclose', true);
                     return;
                 }
+                nvim.pauseNotification();
                 if (action.name != 'preview') {
                     this.prompt.start();
                 }
-                await this.ui.restoreWindow();
+                this.ui.restoreWindow();
+                nvim.resumeNotification(false, true).logError();
                 if (action.reload)
                     await this.worker.loadItems(true);
             }
@@ -79037,14 +79039,14 @@ class ListUI {
         events_1.default.on('CursorMoved', debounce(async (bufnr) => {
             if (bufnr != this.bufnr)
                 return;
-            // if (this.length < 500) return
             let [start, end] = await nvim.eval('[line("w0"),line("w$")]');
-            // if (end < 500) return
+            if (end < 500)
+                return;
             nvim.pauseNotification();
             this.doHighlight(start - 1, end);
             nvim.command('redraw', true);
             await nvim.resumeNotification(false, true);
-        }, 50));
+        }, 100));
         nvim.call('coc#list#get_colors').then(map => {
             for (let key of Object.keys(map)) {
                 let foreground = key[0].toUpperCase() + key.slice(1);
@@ -79299,12 +79301,12 @@ class ListUI {
         let { bufnr, config, nvim } = this;
         let maxHeight = config.get('maxHeight', 12);
         let height = Math.max(1, Math.min(items.length, maxHeight));
-        let limitLines = config.get('limitLines', 1000);
+        let limitLines = config.get('limitLines', 30000);
         let curr = this.items[this.index];
         this.items = items.slice(0, limitLines);
         if (bufnr == 0 && !this.creating) {
             this.creating = true;
-            let [bufnr, winid] = await workspace_1.default.callAsync('coc#list#create', [position, height, name]);
+            let [bufnr, winid] = await nvim.call('coc#list#create', [position, height, name]);
             this._bufnr = bufnr;
             this.window = nvim.createWindow(winid);
             this.height = height;
@@ -79383,10 +79385,10 @@ class ListUI {
             // noop
         });
     }
-    async restoreWindow() {
+    restoreWindow() {
         let { window, height } = this;
         if (window && height) {
-            await workspace_1.default.callAsync('coc#list#restore', [window.id, height]);
+            this.nvim.call('coc#list#restore', [window.id, height], true);
         }
     }
     dispose() {
