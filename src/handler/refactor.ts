@@ -1,12 +1,12 @@
 import { Neovim } from '@chemzqm/neovim'
 import fs from 'fs'
-import { Range, TextDocumentEdit, WorkspaceEdit, TextEdit } from 'vscode-languageserver-types'
+import path from 'path'
+import { Range, TextDocumentEdit, TextEdit, WorkspaceEdit } from 'vscode-languageserver-types'
 import { URI } from 'vscode-uri'
-import { readFileLines } from '../util/fs'
-import Highlighter, { HighlightItem } from '../model/highligher'
 import languages from '../languages'
+import Highlighter from '../model/highligher'
+import { readFileLines } from '../util/fs'
 import workspace from '../workspace'
-import { byteIndex } from '../util/string'
 const logger = require('../util/logger')('refactor')
 
 const name = '__coc_refactor__'
@@ -46,7 +46,7 @@ export default class Refactor {
   }
 
   public async start(): Promise<void> {
-    let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]') as [number, [number, number]]
+    let [bufnr, cursor, winid] = await this.nvim.eval('[bufnr("%"),coc#util#cursor(),win_getid()]') as [number, [number, number], number]
     let doc = workspace.getDocument(bufnr)
     if (!doc) return
     let position = { line: cursor[0], character: cursor[1] }
@@ -77,10 +77,10 @@ export default class Refactor {
       return
     }
     let items = this.getFileItems(edit)
-    await this.createRefactorWindow(items, curname)
+    await this.createRefactorWindow(items, curname, winid)
   }
 
-  public async createRefactorWindow(items: FileItem[], curname: string): Promise<void> {
+  public async createRefactorWindow(items: FileItem[], curname: string, winid: number): Promise<void> {
     let { nvim } = this
     let highligher = new Highlighter()
     highligher.addLine('Save current buffer to make changes', 'Comment')
@@ -118,6 +118,28 @@ export default class Refactor {
     nvim.command('exe 1', true)
     nvim.command('setl nomod', true)
     nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true)
+    workspace.registerLocalKeymap('n', '<CR>', async () => {
+      let currwin = await nvim.call('win_getid')
+      let lines = await nvim.eval('getline(3,line("."))') as string[]
+      let len = lines.length
+      for (let i = 0; i < len; i++) {
+        let line = lines[len - i - 1]
+        let ms = line.match(/^—(.*?):(\d+):(\d+)/)
+        if (ms) {
+          let filepath = ms[1]
+          let start = parseInt(ms[2], 10)
+          let lnum = i == 0 ? start : start + i - 1
+          let bufname = filepath.startsWith(workspace.cwd) ? path.relative(workspace.cwd, filepath) : filepath
+          nvim.pauseNotification()
+          nvim.call('win_gotoid', [winid], true)
+          this.nvim.call('coc#util#jump', ['edit', bufname, [lnum, 1]], true)
+          nvim.command('normal! zz', true)
+          let [, err] = await nvim.resumeNotification()
+          if (err) workspace.showMessage(`Error on open ${filepath}: ${err}`, 'error')
+          break
+        }
+      }
+    }, true)
     await nvim.resumeNotification()
   }
 

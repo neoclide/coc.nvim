@@ -1114,6 +1114,17 @@ export class Workspace implements IWorkspace {
     })
   }
 
+  public registerLocalKeymap(mode: 'n' | 'v' | 's' | 'x', key: string, fn: Function, notify = false): Disposable {
+    let id = uuid()
+    let { nvim } = this
+    this.keymaps.set(id, [fn, false])
+    nvim.command(`${mode}noremap <silent><nowait><buffer> ${key} :call coc#rpc#${notify ? 'notify' : 'request'}('doKeymap', ['${id}'])<CR>`, true)
+    return Disposable.create(() => {
+      this.keymaps.delete(id)
+      nvim.command(`${mode}unmap <buffer> ${key}`, true)
+    })
+  }
+
   /**
    * Create StatusBarItem
    */
