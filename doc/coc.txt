@@ -745,7 +745,7 @@ normal mode, `v_` works for visual mode.
 
 <Plug>(coc-fix-current) 			*n_coc-fix-current*
 
-			Try to run quickfix action for diagnostics on the  
+			Try to run quickfix action for diagnostics on the
 			current line.
 
 <Plug>(coc-float-hide) 				*n_coc-flost-hide*
@@ -755,6 +755,10 @@ normal mode, `v_` works for visual mode.
 <Plug>(coc-float-jump) 				*n_coc-flost-jump*
 
 			Jump to first float window.
+
+<Plug>(coc-refactor) 				*n_coc-refactor*
+
+			Open refactor window for refactor of current symbol.
 
 <Plug>(coc-range-select) 			*n_coc-range-select*
 <Plug>(coc-range-select) 			*v_coc-range-select*
@@ -778,7 +782,6 @@ normal mode, `v_` works for visual mode.
 <Plug>(coc-funcobj-a) 			*n_coc-funcobj-a* *v_coc-funcobj-a*
 
 			Select current function, mapped to `af` by default.
-
 
 ------------------------------------------------------------------------------
 VARIABLES 					*coc-variables*

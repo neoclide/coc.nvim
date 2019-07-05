@@ -592,6 +592,21 @@
       "description": "Separator text for codeLens in virtual text",
       "default": "‣"
     },
+    "refactor.openCommand": {
+      "type": "string",
+      "description": "Open command for refactor window.",
+      "default": "vsplit"
+    },
+    "refactor.beforeContext": {
+      "type": "number",
+      "default": 3,
+      "description": "Print num lines of leading context before each match."
+    },
+    "refactor.afterContext": {
+      "type": "number",
+      "default": 3,
+      "description": "Print num lines of trailing context after each match."
+    },
     "workspace.ignoredFiletypes": {
       "type": "array",
       "default": ["markdown", "log", "txt", "help"],

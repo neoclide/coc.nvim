@@ -1753,7 +1753,7 @@ exports.default = (opts, requestApi = true) => {
         clientReady = true;
         if (isTest)
             nvim.command(`let g:coc_node_channel_id = ${channelId}`, true);
-        let json = __webpack_require__(390);
+        let json = __webpack_require__(391);
         let { major, minor, patch } = semver_1.default.parse(json.version);
         nvim.setClientInfo('coc', { major, minor, patch }, 'remote', {}, {});
         let entered = await nvim.getVvar('vim_did_enter');
@@ -48296,6 +48296,31 @@ function readFile(fullpath, encoding) {
     });
 }
 exports.readFile = readFile;
+function readFileLines(fullpath, start, end) {
+    let res = [];
+    const rl = readline_1.default.createInterface({
+        input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
+        crlfDelay: Infinity,
+        terminal: false
+    });
+    let n = 0;
+    return new Promise((resolve, reject) => {
+        rl.on('line', line => {
+            if (n >= start && n <= end) {
+                res.push(line);
+            }
+            if (n == end) {
+                rl.close();
+            }
+            n = n + 1;
+        });
+        rl.on('close', () => {
+            resolve(res);
+        });
+        rl.on('error', reject);
+    });
+}
+exports.readFileLines = readFileLines;
 function readFileLine(fullpath, count) {
     const rl = readline_1.default.createInterface({
         input: fs_1.default.createReadStream(fullpath, { encoding: 'utf8' }),
@@ -50349,6 +50374,9 @@ class Document {
             return this.lines[line] || '';
         let lines = this.textDocument.getText().split(/\r?\n/);
         return lines[line] || '';
+    }
+    getLines(start, end) {
+        return this.lines.slice(start, end);
     }
     getDocumentContent() {
         let content = this.lines.join('\n');
@@ -54042,7 +54070,7 @@ const services_1 = tslib_1.__importDefault(__webpack_require__(332));
 const manager_3 = tslib_1.__importDefault(__webpack_require__(230));
 const sources_1 = tslib_1.__importDefault(__webpack_require__(234));
 const types_1 = __webpack_require__(186);
-const clean_1 = tslib_1.__importDefault(__webpack_require__(389));
+const clean_1 = tslib_1.__importDefault(__webpack_require__(390));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const logger = __webpack_require__(183)('plugin');
 class Plugin extends events_1.EventEmitter {
@@ -54074,6 +54102,9 @@ class Plugin extends events_1.EventEmitter {
         });
         this.addMethod('installExtensions', async (...list) => {
             await extensions_1.default.installExtensions(list);
+        });
+        this.addMethod('saveRefactor', async (bufnr) => {
+            await this.handler.saveRefactor(bufnr);
         });
         this.addMethod('updateExtensions', async () => {
             await extensions_1.default.updateExtensions();
@@ -54271,7 +54302,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "f7cd062403" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2b39f43ac2" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54402,6 +54433,8 @@ class Plugin extends events_1.EventEmitter {
                     return await handler.runCommand(...args.slice(1));
                 case 'doQuickfix':
                     return await handler.doQuickfix();
+                case 'refactor':
+                    return await handler.doRefactor();
                 case 'repeatCommand':
                     return await commands_1.default.repeatCommand();
                 case 'extensionStats':
@@ -76464,7 +76497,7 @@ class Highlighter {
         }
         if (hlGroup) {
             this.highlights.push({
-                lnum: this.lines.length,
+                line: this.lines.length,
                 colStart: line.match(/^\s*/)[0].length,
                 colEnd: string_1.byteLength(line),
                 hlGroup
@@ -76472,13 +76505,16 @@ class Highlighter {
         }
         this.lines.push(line);
     }
+    addLines(lines) {
+        this.lines.push(...lines);
+    }
     addText(text, hlGroup) {
         let { lines } = this;
         let pre = lines[lines.length - 1] || '';
         if (hlGroup) {
             let colStart = string_1.byteLength(pre);
             this.highlights.push({
-                lnum: lines.length ? lines.length - 1 : 0,
+                line: lines.length ? lines.length - 1 : 0,
                 colStart,
                 colEnd: colStart + string_1.byteLength(text),
                 hlGroup
@@ -76502,11 +76538,9 @@ class Highlighter {
                 hlGroup: item.hlGroup,
                 colStart: item.colStart,
                 colEnd: item.colEnd,
-                line: start + item.lnum,
+                line: start + item.line,
                 srcId: this.srcId
-            }).catch(_e => {
-                // noop
-            });
+            }).logError();
         }
     }
 }
@@ -81999,7 +82033,8 @@ const string_1 = __webpack_require__(207);
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const codelens_1 = tslib_1.__importDefault(__webpack_require__(385));
 const colors_1 = tslib_1.__importDefault(__webpack_require__(386));
-const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(388));
+const refactor_1 = tslib_1.__importDefault(__webpack_require__(388));
+const documentHighlight_1 = tslib_1.__importDefault(__webpack_require__(389));
 const debounce = __webpack_require__(173);
 const logger = __webpack_require__(183)('Handler');
 const pairs = new Map([
@@ -82022,6 +82057,7 @@ class Handler {
                 this.getPreferences();
             }
         });
+        this.refactor = new refactor_1.default();
         this.hoverFactory = new floatFactory_1.default(nvim, workspace_1.default.env);
         this.disposables.push(this.hoverFactory);
         let { signaturePreferAbove, signatureFloatMaxWidth, signatureMaxHeight } = this.preferences;
@@ -83001,6 +83037,15 @@ class Handler {
         }
         await manager_2.default.start(listArgs);
     }
+    /**
+     * Refactor of current symbol
+     */
+    async doRefactor() {
+        await this.refactor.start();
+    }
+    async saveRefactor(bufnr) {
+        await this.refactor.saveRefactor(bufnr);
+    }
     async previewHover(hovers) {
         let lines = [];
         let target = this.preferences.hoverTarget;
@@ -83797,6 +83842,214 @@ function isDark(color) {
 
 Object.defineProperty(exports, "__esModule", { value: true });
 const tslib_1 = __webpack_require__(3);
+const fs_1 = tslib_1.__importDefault(__webpack_require__(54));
+const vscode_languageserver_types_1 = __webpack_require__(158);
+const vscode_uri_1 = __webpack_require__(174);
+const fs_2 = __webpack_require__(197);
+const highligher_1 = tslib_1.__importDefault(__webpack_require__(346));
+const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
+const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
+const logger = __webpack_require__(183)('refactor');
+const name = '__coc_refactor__';
+class Refactor {
+    constructor() {
+        this.id = 0;
+        this.nvim = workspace_1.default.nvim;
+        let config = workspace_1.default.getConfiguration('refactor');
+        this.config = {
+            afterContext: config.get('afterContext', 3),
+            beforeContext: config.get('beforeContext', 3),
+            openCommand: config.get('openCommand', 'edit')
+        };
+    }
+    async start() {
+        let [bufnr, cursor] = await this.nvim.eval('[bufnr("%"),coc#util#cursor()]');
+        let doc = workspace_1.default.getDocument(bufnr);
+        if (!doc)
+            return;
+        let position = { line: cursor[0], character: cursor[1] };
+        let res = await languages_1.default.prepareRename(doc.textDocument, position);
+        if (res === false) {
+            workspace_1.default.showMessage('Invalid position for rename', 'error');
+            return;
+        }
+        let curname;
+        if (res == null) {
+            let range = doc.getWordRangeAtPosition(position);
+            if (range)
+                curname = doc.textDocument.getText(range);
+        }
+        else {
+            if (vscode_languageserver_types_1.Range.is(res)) {
+                let line = doc.getline(res.start.line);
+                curname = line.slice(res.start.character, res.end.character);
+            }
+            else {
+                curname = res.placeholder;
+            }
+        }
+        if (!curname) {
+            workspace_1.default.showMessage('Invalid position', 'warning');
+            return;
+        }
+        let edit = await languages_1.default.provideRenameEdits(doc.textDocument, position, 'newname');
+        if (!edit) {
+            workspace_1.default.showMessage('Server return empty response', 'warning');
+            return;
+        }
+        let items = this.getFileItems(edit);
+        await this.createRefactorWindow(items, curname);
+    }
+    async createRefactorWindow(items, curname) {
+        let { nvim } = this;
+        let highligher = new highligher_1.default();
+        highligher.addLine('Save current buffer to make changes', 'Comment');
+        highligher.addLine('—');
+        for (let item of items) {
+            for (let range of item.ranges) {
+                highligher.addLine('—');
+                highligher.addText(`${item.filepath}`, 'Label');
+                highligher.addText(':');
+                highligher.addText(String(range.start + 1), 'LineNr');
+                highligher.addText(':');
+                highligher.addText(String(range.end + 1), 'LineNr');
+                let start = highligher.length;
+                let lines = await this.getLines(item.filepath, range.start, range.end);
+                highligher.addLines(lines);
+                highligher.addLine('—');
+            }
+        }
+        let { openCommand } = this.config;
+        nvim.pauseNotification();
+        nvim.command(`${openCommand} ${name}${this.id++}`, true);
+        nvim.command(`setl buftype=acwrite nobuflisted bufhidden=hide nofen wrap conceallevel=3 concealcursor=n`, true);
+        nvim.call('bufnr', ['%'], true);
+        nvim.call('matchadd', ['Conceal', '^—'], true);
+        nvim.call('coc#util#do_autocmd', ['CocRefactorOpen'], true);
+        let [res, err] = await nvim.resumeNotification();
+        if (err) {
+            logger.error(err);
+            workspace_1.default.showMessage(`Error on open refactor window: ${err}`, 'error');
+            return;
+        }
+        let buffer = nvim.createBuffer(res[2]);
+        nvim.pauseNotification();
+        highligher.render(buffer);
+        nvim.command('exe 1', true);
+        nvim.command('setl nomod', true);
+        nvim.command(`execute 'normal! /\\<'.escape('${curname.replace(/'/g, "''")}', '\\\\/.*$^~[]')."\\\\>\\<cr>"`, true);
+        await nvim.resumeNotification();
+    }
+    getFileItems(edit) {
+        let res = [];
+        let { beforeContext, afterContext } = this.config;
+        let { changes, documentChanges } = edit;
+        changes = changes || {};
+        for (let change of documentChanges || []) {
+            if (vscode_languageserver_types_1.TextDocumentEdit.is(change)) {
+                let { textDocument, edits } = change;
+                changes[textDocument.uri] = edits;
+            }
+        }
+        for (let key of Object.keys(changes)) {
+            let max = this.getLineCount(key);
+            let edits = changes[key];
+            let ranges = [];
+            // start end highlights
+            let start = null;
+            let end = null;
+            let highlights = [];
+            edits.sort((a, b) => a.range.start.line - b.range.start.line);
+            for (let edit of edits) {
+                let { line } = edit.range.start;
+                let s = Math.max(0, line - beforeContext);
+                if (start != null && s <= end) {
+                    end = Math.min(max, line + afterContext);
+                    highlights.push(adjustRange(edit.range, start));
+                }
+                else {
+                    if (start != null)
+                        ranges.push({ start, end, highlights });
+                    start = s;
+                    end = Math.min(max, line + afterContext);
+                    highlights = [adjustRange(edit.range, start)];
+                }
+            }
+            if (start != null)
+                ranges.push({ start, end, highlights });
+            res.push({
+                ranges,
+                filepath: vscode_uri_1.URI.parse(key).fsPath
+            });
+        }
+        return res;
+    }
+    getLineCount(uri) {
+        let doc = workspace_1.default.getDocument(uri);
+        if (doc)
+            return doc.lineCount;
+        let content = fs_1.default.readFileSync(vscode_uri_1.URI.parse(uri).fsPath, 'utf8');
+        return content.split(/\r?\n/).length;
+    }
+    async getLines(fsPath, start, end) {
+        let uri = vscode_uri_1.URI.file(fsPath).toString();
+        let doc = workspace_1.default.getDocument(uri);
+        if (doc)
+            return doc.getLines(start, end + 1);
+        return await fs_2.readFileLines(fsPath, start, end);
+    }
+    async saveRefactor(bufnr) {
+        let { nvim } = this;
+        let buffer = nvim.createBuffer(bufnr);
+        let lines = await buffer.lines;
+        let changes = {};
+        let arr = [];
+        let uri;
+        let start;
+        let end;
+        for (let line of lines.slice(2)) {
+            if (line.startsWith('—') && line.length == 1 && uri) {
+                let edits = changes[uri] || [];
+                let r = vscode_languageserver_types_1.Range.create(start - 1, 0, end, 0);
+                edits.push(vscode_languageserver_types_1.TextEdit.replace(r, arr.join('\n') + '\n'));
+                changes[uri] = edits;
+                arr = [];
+            }
+            else if (line.startsWith('—')) {
+                let ms = line.match(/^—(.*?):(\d+):(\d+)/);
+                if (ms) {
+                    uri = vscode_uri_1.URI.file(ms[1]).toString();
+                    start = parseInt(ms[2], 10);
+                    end = parseInt(ms[3], 10);
+                }
+                else {
+                    arr.push(line);
+                }
+            }
+            else {
+                arr.push(line);
+            }
+        }
+        await workspace_1.default.applyEdit({ changes });
+        nvim.command('setl nomod', true);
+        nvim.command('noa wa', true);
+    }
+}
+exports.default = Refactor;
+function adjustRange(range, offset) {
+    let { start, end } = range;
+    return vscode_languageserver_types_1.Range.create(start.line - offset, start.character, end.line - offset, end.character);
+}
+//# sourceMappingURL=refactor.js.map
+
+/***/ }),
+/* 389 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+Object.defineProperty(exports, "__esModule", { value: true });
+const tslib_1 = __webpack_require__(3);
 const events_1 = tslib_1.__importDefault(__webpack_require__(145));
 const workspace_1 = tslib_1.__importDefault(__webpack_require__(184));
 const languages_1 = tslib_1.__importDefault(__webpack_require__(254));
@@ -83891,7 +84144,7 @@ exports.default = DocumentHighlighter;
 //# sourceMappingURL=documentHighlight.js.map
 
 /***/ }),
-/* 389 */
+/* 390 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
@@ -83938,7 +84191,7 @@ exports.default = default_1;
 //# sourceMappingURL=clean.js.map
 
 /***/ }),
-/* 390 */
+/* 391 */
 /***/ (function(module) {
 
 module.exports = {"name":"coc.nvim","version":"0.0.72","description":"LSP based intellisense engine for neovim & vim8.","main":"./lib/index.js","bin":"./bin/server.js","scripts":{"clean":"rimraf lib build","lint":"tslint -c tslint.json -p .","build":"tsc -p tsconfig.json","watch":"tsc -p tsconfig.json --watch true --sourceMap","test":"node --trace-warnings node_modules/.bin/jest --runInBand --detectOpenHandles --forceExit","test-build":"node --trace-warnings node_modules/.bin/jest --runInBand --coverage --forceExit","prepare":"npm-run-all clean build"},"repository":{"type":"git","url":"git+https://github.com/neoclide/coc.nvim.git"},"keywords":["complete","neovim"],"author":"Qiming Zhao <chemzqm@gmail.com>","license":"MIT","bugs":{"url":"https://github.com/neoclide/coc.nvim/issues"},"homepage":"https://github.com/neoclide/coc.nvim#readme","jest":{"globals":{"__TEST__":true},"watchman":false,"clearMocks":true,"globalSetup":"./jest.js","testEnvironment":"node","moduleFileExtensions":["ts","tsx","json","js"],"transform":{"^.+\\.tsx?$":"ts-jest"},"testRegex":"src/__tests__/.*\\.(test|spec)\\.ts$","coverageDirectory":"./coverage/"},"devDependencies":{"@chemzqm/tslint-config":"^1.0.18","@types/debounce":"^3.0.0","@types/fb-watchman":"^2.0.0","@types/glob":"^7.1.1","@types/jest":"^24.0.15","@types/minimatch":"^3.0.3","@types/mkdirp":"^0.5.2","@types/node":"^12.0.10","@types/semver":"^6.0.1","@types/tunnel":"^0.0.1","@types/uuid":"^3.4.4","@types/which":"^1.3.1","colors":"^1.3.3","jest":"24.8.0","npm-run-all":"^4.1.5","ts-jest":"^24.0.2","tslint":"^5.18.0","typescript":"3.5.2","vscode-languageserver":"5.3.0-next.8"},"dependencies":{"@chemzqm/neovim":"5.1.7","bser":"^2.1.0","debounce":"^1.2.0","fast-diff":"^1.2.0","fb-watchman":"^2.0.0","follow-redirects":"^1.7.0","glob":"^7.1.4","isuri":"^2.0.3","jsonc-parser":"^2.1.0","log4js":"^4.4.0","minimatch":"^3.0.4","mkdirp":"^0.5.1","rimraf":"^2.6.3","semver":"^6.1.2","tar":"^4.4.10","tslib":"^1.10.0","tunnel":"^0.0.6","uuid":"^3.3.2","vscode-languageserver-protocol":"3.15.0-next.6","vscode-languageserver-types":"3.15.0-next.2","vscode-uri":"^2.0.2","which":"^1.3.1"}};

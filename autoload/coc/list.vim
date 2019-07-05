@@ -121,7 +121,7 @@ endfunction
 
 function! coc#list#start_prompt()
   if s:activated | return | endif
-  if s:gui
+  if s:gui && !empty(s:saved_cursor)
     set guicursor+=a:ver1-Cursor-blinkoff999
   elseif s:is_vim
     set t_ve=

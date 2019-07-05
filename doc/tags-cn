@@ -156,6 +156,7 @@ coc-status-manual	coc.cnx	/*coc-status-manual*
 coc-variables	coc.cnx	/*coc-variables*
 g:WorkspaceFolders	coc.cnx	/*g:WorkspaceFolders*
 g:coc_enable_locationlist	coc.cnx	/*g:coc_enable_locationlist*
+g:coc_extension_root	coc.cnx	/*g:coc_extension_root*
 g:coc_filetype_map	coc.cnx	/*g:coc_filetype_map*
 g:coc_force_debug	coc.cnx	/*g:coc_force_debug*
 g:coc_global_extensions	coc.cnx	/*g:coc_global_extensions*
@@ -185,10 +186,18 @@ n_coc-flost-hide	coc.cnx	/*n_coc-flost-hide*
 n_coc-flost-jump	coc.cnx	/*n_coc-flost-jump*
 n_coc-format	coc.cnx	/*n_coc-format*
 n_coc-format-selected	coc.cnx	/*n_coc-format-selected*
+n_coc-funcobj-a	coc.cnx	/*n_coc-funcobj-a*
+n_coc-funcobj-i	coc.cnx	/*n_coc-funcobj-i*
 n_coc-implementation	coc.cnx	/*n_coc-implementation*
 n_coc-openlink	coc.cnx	/*n_coc-openlink*
+n_coc-range-select	coc.cnx	/*n_coc-range-select*
+n_coc-refactor	coc.cnx	/*n_coc-refactor*
 n_coc-references	coc.cnx	/*n_coc-references*
 n_coc-rename	coc.cnx	/*n_coc-rename*
 n_coc-type-definition	coc.cnx	/*n_coc-type-definition*
 v_coc-codeaction-selected	coc.cnx	/*v_coc-codeaction-selected*
 v_coc-format-selected	coc.cnx	/*v_coc-format-selected*
+v_coc-funcobj-a	coc.cnx	/*v_coc-funcobj-a*
+v_coc-funcobj-i	coc.cnx	/*v_coc-funcobj-i*
+v_coc-range-select	coc.cnx	/*v_coc-range-select*
+v_coc-range-select-backward	coc.cnx	/*v_coc-range-select-backward*
