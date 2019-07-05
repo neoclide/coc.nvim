@@ -54302,7 +54302,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "2b39f43ac2" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "4aee0cab77" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -57335,9 +57335,11 @@ class Extensions {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
             let names = globalExtensions.filter(name => !this.isDisabled(name));
-            let folder = path_1.default.join(this.root, 'node_modules');
-            let files = await util_1.default.promisify(fs_1.default.readdir)(folder);
-            names = names.filter(s => files.indexOf(s) == -1);
+            let folder = path_1.default.join(this.root, extensionFolder);
+            if (fs_1.default.existsSync(folder)) {
+                let files = await util_1.default.promisify(fs_1.default.readdir)(folder);
+                names = names.filter(s => files.indexOf(s) == -1);
+            }
             let json = this.loadJson();
             if (json && json.dependencies) {
                 let vals = Object.values(json.dependencies);
@@ -57525,7 +57527,7 @@ class Extensions {
             let json = this.loadJson() || { dependencies: {} };
             for (let id of removed) {
                 delete json.dependencies[id];
-                let folder = path_1.default.join(this.root, 'node_modules', id);
+                let folder = path_1.default.join(this.root, extensionFolder, id);
                 if (fs_1.default.existsSync(folder)) {
                     await util_1.default.promisify(rimraf_1.default)(`${folder}`, { glob: false });
                 }
@@ -76209,11 +76211,9 @@ class ListManager {
     }
     async normal(command, bang = true) {
         let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.call('coc#list#stop_prompt', [1], true);
-        nvim.command(`normal${bang ? '!' : ''} ${command}`, true);
+        await nvim.call('coc#list#stop_prompt', [1]);
+        await nvim.command(`normal${bang ? '!' : ''} ${command}`);
         this.prompt.start();
-        await nvim.resumeNotification(false, true);
     }
     async call(fname) {
         if (!this.currList || !this.window)
@@ -76889,6 +76889,15 @@ class Mappings {
         });
         this.add('insert', '<C-u>', () => {
             prompt.removeAhead();
+        });
+        this.add('insert', '<C-d>', () => {
+            return manager.feedkeys('<C-d>');
+        });
+        this.add('insert', '<PageUp>', () => {
+            return manager.feedkeys('<PageUp>');
+        });
+        this.add('insert', '<PageDown>', () => {
+            return manager.feedkeys('<PageDown>');
         });
         this.add('insert', '<down>', () => {
             return manager.normal('j');
