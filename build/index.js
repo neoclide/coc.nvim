@@ -44847,7 +44847,7 @@ class Workspace {
      * Move cursor to position.
      */
     async moveTo(position) {
-        await this.callAsync('coc#util#jumpTo', [position.line, position.character]);
+        await this.nvim.call('coc#util#jumpTo', [position.line, position.character]);
     }
     /**
      * Create a file in vim and disk
@@ -52418,50 +52418,25 @@ class TerminalModel {
         this.args = args;
         this.nvim = nvim;
         this._name = _name;
+        this.pid = 0;
     }
     async start(cwd, env) {
         let { nvim } = this;
-        nvim.pauseNotification();
-        nvim.command('belowright 5new', true);
-        nvim.command('setl winfixheight', true);
-        nvim.command('setl norelativenumber', true);
-        nvim.command('setl nonumber', true);
-        if (env && Object.keys(env).length) {
-            for (let key of Object.keys(env)) {
-                nvim.command(`let $${key}='${env[key].replace(/'/g, "''")}'`, true);
-            }
-        }
-        await nvim.resumeNotification();
-        this.bufnr = await nvim.call('bufnr', '%');
         let cmd = [this.cmd, ...this.args];
-        let opts = {};
-        if (cwd)
-            opts.cwd = cwd;
-        this.chanId = await nvim.call('termopen', [cmd, opts]);
-        if (env && Object.keys(env).length) {
-            for (let key of Object.keys(env)) {
-                nvim.command(`unlet $${key}`, true);
-            }
-        }
-        await nvim.command('wincmd p');
+        let [bufnr, pid] = await nvim.call('coc#terminal#start', [cmd, cwd, env || {}]);
+        this.bufnr = bufnr;
+        this.pid = pid;
     }
     get name() {
         return this._name || this.cmd;
     }
     get processId() {
-        if (!this.chanId)
-            return null;
-        return this.nvim.call('jobpid', this.chanId);
+        return this.pid;
     }
     sendText(text, addNewLine = true) {
-        let { chanId, nvim } = this;
-        if (!chanId)
+        if (!this.bufnr)
             return;
-        let lines = text.split(/\r?\n/);
-        if (addNewLine && lines[lines.length - 1].length > 0) {
-            lines.push('');
-        }
-        nvim.call('chansend', [chanId, lines], true);
+        this.nvim.call('coc#terminal#send', [this.bufnr, text, addNewLine], true);
     }
     async show(preserveFocus) {
         let { bufnr, nvim } = this;
@@ -52471,7 +52446,8 @@ class TerminalModel {
         nvim.pauseNotification();
         if (winnr == -1) {
             nvim.command(`below ${bufnr}sb`, true);
-            nvim.command('resize 5', true);
+            nvim.command('resize 8', true);
+            nvim.call('coc#util#do_autocmd', ['CocTerminalOpen'], true);
         }
         else {
             nvim.command(`${winnr}wincmd w`, true);
@@ -52492,11 +52468,10 @@ class TerminalModel {
         await nvim.command(`${winnr}close!`);
     }
     dispose() {
-        let { bufnr, chanId, nvim } = this;
-        if (!chanId)
+        let { bufnr, nvim } = this;
+        if (!bufnr)
             return;
-        nvim.call('chanclose', [chanId], true);
-        nvim.command(`silent! bd! ${bufnr}`, true);
+        nvim.call('coc#terminal#close', [bufnr], true);
     }
 }
 exports.default = TerminalModel;
@@ -54302,7 +54277,7 @@ class Plugin extends events_1.EventEmitter {
         return false;
     }
     get version() {
-        return workspace_1.default.version + ( true ? '-' + "4aee0cab77" : undefined);
+        return workspace_1.default.version + ( true ? '-' + "2454a4d1e0" : undefined);
     }
     async showInfo() {
         if (!this.infoChannel) {
@@ -54617,6 +54592,21 @@ class CommandManager {
             id: 'workspace.renameCurrentFile',
             execute: async () => {
                 await workspace_1.default.renameCurrent();
+            }
+        });
+        this.register({
+            id: 'extensions.toggleAutoUpdate',
+            execute: async () => {
+                let config = workspace_1.default.getConfiguration('coc.preferences');
+                let interval = config.get('extensionUpdateCheck', 'daily');
+                if (interval == 'never') {
+                    config.update('extensionUpdateCheck', 'daily', true);
+                    workspace_1.default.showMessage('Extension auto update enabled.', 'more');
+                }
+                else {
+                    config.update('extensionUpdateCheck', 'never', true);
+                    workspace_1.default.showMessage('Extension auto update disabled.', 'more');
+                }
             }
         });
         this.register({
@@ -57219,7 +57209,6 @@ const commands_1 = tslib_1.__importDefault(__webpack_require__(229));
 __webpack_require__(351);
 const createLogger = __webpack_require__(183);
 const logger = createLogger('extensions');
-const extensionFolder = global.hasOwnProperty('__TEST__') ? '' : 'node_modules';
 function loadJson(file) {
     try {
         let content = fs_1.default.readFileSync(file, 'utf8');
@@ -57246,6 +57235,7 @@ class Extensions {
     async init(nvim) {
         if (global.hasOwnProperty('__TEST__')) {
             this.root = path_1.default.join(__dirname, './__tests__/extensions');
+            this.manager = new extension_1.default(this.root);
         }
         else {
             await this.initializeRoot();
@@ -57286,6 +57276,8 @@ class Extensions {
     }
     async activateExtensions() {
         this.activated = true;
+        if (global.hasOwnProperty('__TEST__'))
+            return;
         for (let item of this.list) {
             let { id, packageJSON } = item.extension;
             this.setupActiveEvents(id, packageJSON);
@@ -57305,8 +57297,6 @@ class Extensions {
         }
     }
     async updateExtensions() {
-        if (global.hasOwnProperty('__TEST__'))
-            return;
         if (!this.root)
             await this.initializeRoot();
         if (!this.npm)
@@ -57335,7 +57325,7 @@ class Extensions {
         let { globalExtensions, watchExtensions } = workspace_1.default.env;
         if (globalExtensions && globalExtensions.length) {
             let names = globalExtensions.filter(name => !this.isDisabled(name));
-            let folder = path_1.default.join(this.root, extensionFolder);
+            let folder = path_1.default.join(this.root, 'node_modules');
             if (fs_1.default.existsSync(folder)) {
                 let files = await util_1.default.promisify(fs_1.default.readdir)(folder);
                 names = names.filter(s => files.indexOf(s) == -1);
@@ -57380,22 +57370,15 @@ class Extensions {
         if (!this.root)
             await this.initializeRoot();
         list = array_1.distinct(list);
-        if (global.hasOwnProperty('__TEST__')) {
-            for (let name of list) {
-                let dir = path_1.default.join(this.root, 'node_modules', name);
-                await util_2.mkdirp(dir);
-            }
-            return;
-        }
         let statusItem = workspace_1.default.createStatusBarItem(0, { progress: true });
         statusItem.show();
         statusItem.text = `Installing ${list.join(' ')}`;
-        await Promise.all(list.map(name => {
-            return this.manager.install(npm, name).then(installed => {
-                if (installed)
+        await Promise.all(list.map(def => {
+            return this.manager.install(npm, def).then(name => {
+                if (name)
                     this.onExtensionInstall(name).logError();
             }, err => {
-                workspace_1.default.showMessage(`Error on install ${name}: ${err}`);
+                workspace_1.default.showMessage(`Error on install ${def}: ${err}`);
             });
         }));
         statusItem.dispose();
@@ -57475,7 +57458,8 @@ class Extensions {
         }
         else {
             this.disabled.delete(id);
-            let folder = path_1.default.join(this.root, extensionFolder, id);
+            let p = global.hasOwnProperty('__TEST__') ? '' : 'node_modules';
+            let folder = path_1.default.join(this.root, p, id);
             try {
                 await this.loadExtension(folder);
             }
@@ -57522,12 +57506,10 @@ class Extensions {
                     this._onDidUnloadExtension.fire(id);
                 }
             }
-            if (global.hasOwnProperty('__TEST__'))
-                return;
             let json = this.loadJson() || { dependencies: {} };
             for (let id of removed) {
                 delete json.dependencies[id];
-                let folder = path_1.default.join(this.root, extensionFolder, id);
+                let folder = path_1.default.join(this.root, 'node_modules', id);
                 if (fs_1.default.existsSync(folder)) {
                     await util_1.default.promisify(rimraf_1.default)(`${folder}`, { glob: false });
                 }
@@ -57546,14 +57528,12 @@ class Extensions {
         return this.disabled.has(id);
     }
     async onExtensionInstall(id) {
-        if (/^\w+:/.test(id))
-            id = this.packageNameFromUrl(id);
-        if (!id || /^-/.test(id))
+        if (!id)
             return;
         let item = this.list.find(o => o.id == id);
         if (item)
             item.deactivate();
-        let folder = path_1.default.join(this.root, extensionFolder, id);
+        let folder = path_1.default.join(this.root, 'node_modules', id);
         let stat = await fs_2.statAsync(folder);
         if (stat && stat.isDirectory()) {
             let jsonFile = path_1.default.join(folder, 'package.json');
@@ -57605,7 +57585,7 @@ class Extensions {
         }
     }
     async loadFileExtensions() {
-        if (global.hasOwnProperty('__TEST__'))
+        if (!process.env.VIMCONFIG)
             return;
         let folder = path_1.default.join(process.env.VIMCONFIG, 'coc-extensions');
         if (!fs_1.default.existsSync(folder))
@@ -57721,7 +57701,7 @@ class Extensions {
             return new Promise(async (resolve) => {
                 try {
                     let val = json.dependencies[key];
-                    let root = path_1.default.join(this.root, extensionFolder, key);
+                    let root = path_1.default.join(this.root, 'node_modules', key);
                     let jsonFile = path_1.default.join(root, 'package.json');
                     let stat = await fs_2.statAsync(jsonFile);
                     if (!stat || !stat.isFile())
@@ -57809,17 +57789,6 @@ class Extensions {
         if (!fs_1.default.existsSync(jsonFile))
             return null;
         return loadJson(jsonFile);
-    }
-    packageNameFromUrl(url) {
-        let json = this.loadJson();
-        if (!json || !json.dependencies)
-            return null;
-        for (let key of Object.keys(json.dependencies)) {
-            let val = json.dependencies[key];
-            if (val == url)
-                return key;
-        }
-        return null;
     }
     get schemes() {
         return this._additionalSchemes;
@@ -62047,9 +62016,11 @@ class DiagnosticManager {
         for (let collection of this.collections) {
             collection.dispose();
         }
+        if (this.floatFactory) {
+            this.floatFactory.dispose();
+        }
         this.buffers.splice(0, this.buffers.length);
         this.collections = [];
-        this.floatFactory.dispose();
         util_1.disposeAll(this.disposables);
     }
     get nvim() {
@@ -80353,7 +80324,7 @@ class ExtensionManager {
             return await this.getInfoFromUri(name);
         if (npm.endsWith('yarn')) {
             let obj = { name };
-            let keys = ['dist.tarball', 'engines.coc', 'version'];
+            let keys = ['dist.tarball', 'engines.coc', 'version', 'name'];
             let vals = await Promise.all(keys.map(key => {
                 return getData(name, key);
             }));
@@ -80362,7 +80333,7 @@ class ExtensionManager {
             }
             return obj;
         }
-        let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 });
+        let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version name`, { timeout: 60 * 1000 });
         let lines = content.split(/\r?\n/);
         let obj = { name };
         for (let line of lines) {
@@ -80383,7 +80354,7 @@ class ExtensionManager {
             }
         }
     }
-    async _install(npm, name, info, onMessage) {
+    async _install(npm, def, info, onMessage) {
         let tmpFolder = await util_1.promisify(fs_1.default.mkdtemp)(path_1.default.join(this.root, '.cache', `${info.name}-`));
         let url = info['dist.tarball'];
         onMessage(`Downloading from ${url}`);
@@ -80403,11 +80374,11 @@ class ExtensionManager {
         let jsonFile = path_1.default.join(this.root, 'package.json');
         let obj = JSON.parse(fs_1.default.readFileSync(jsonFile, 'utf8'));
         obj.dependencies = obj.dependencies || {};
-        if (/^https?:/.test(name)) {
-            obj.dependencies[info.name] = name;
+        if (/^https?:/.test(def)) {
+            obj.dependencies[info.name] = def;
         }
         else {
-            obj.dependencies[name] = '>=' + info.version;
+            obj.dependencies[info.name] = '>=' + info.version;
         }
         fs_1.default.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' });
         onMessage(`Moving to new folder.`);
@@ -80415,26 +80386,27 @@ class ExtensionManager {
         await this.removeFolder(folder);
         await util_1.promisify(fs_1.default.rename)(tmpFolder, folder);
     }
-    async install(npm, name) {
+    async install(npm, def) {
         this.checkFolder();
         logger.info(`Using npm from: ${npm}`);
-        logger.info(`Loading info of ${name}.`);
-        let info = await this.getInfo(npm, name);
+        logger.info(`Loading info of ${def}.`);
+        let info = await this.getInfo(npm, def);
         if (info.error) {
             let { code, summary } = info.error;
-            let msg = code == 'E404' ? `module ${name} not exists!` : summary;
+            let msg = code == 'E404' ? `module ${def} not exists!` : summary;
             throw new Error(msg);
         }
+        let { name } = info;
         let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : '';
         if (required && !semver_1.default.satisfies(workspace_1.default.version, required)) {
             throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
         }
-        await this._install(npm, name, info, msg => {
+        await this._install(npm, def, info, msg => {
             logger.info(msg);
         });
         workspace_1.default.showMessage(`Installed extension: ${name}`, 'more');
         logger.info(`Installed extension: ${name}`);
-        return true;
+        return name;
     }
     async update(npm, name, uri) {
         this.checkFolder();
@@ -80461,7 +80433,7 @@ class ExtensionManager {
         if (required && !semver_1.default.satisfies(workspace_1.default.version, required)) {
             throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`);
         }
-        await this._install(npm, name, info, msg => { logger.info(msg); });
+        await this._install(npm, uri ? uri : name, info, msg => { logger.info(msg); });
         workspace_1.default.showMessage(`Updated extension: ${name} to ${info.version}`, 'more');
         logger.info(`Update extension: ${name}`);
         return true;

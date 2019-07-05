@@ -1636,6 +1636,12 @@ AUTOCMD 					*coc-autocmds*
 :autocmd User CocOpenFloat {command}
 
 		Triggered when floating window opened.
+						*CocTerminalOpen*
+
+:autocmd User CocTerminalOpen {command}
+
+		Triggered when terminal shown, can be used for adjust window
+		height.
 
 ------------------------------------------------------------------------------
 

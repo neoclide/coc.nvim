@@ -50,6 +50,7 @@ CocRegistNotification()	coc.txt	/*CocRegistNotification()*
 CocRequest()	coc.txt	/*CocRequest()*
 CocRequestAsync()	coc.txt	/*CocRequestAsync()*
 CocStatusChange	coc.txt	/*CocStatusChange*
+CocTerminalOpen	coc.txt	/*CocTerminalOpen*
 CocWarningFloat	coc.txt	/*CocWarningFloat*
 CocWarningHighlight	coc.txt	/*CocWarningHighlight*
 CocWarningLine	coc.txt	/*CocWarningLine*

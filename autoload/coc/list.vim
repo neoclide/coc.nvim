@@ -232,7 +232,11 @@ function! coc#list#get_colors()
   let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
   for i in range(0, len(names) - 1)
     let name = names[i]
-    let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
+    if has('nvim')
+      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
+    elseif exists('g:terminal_ansi_colors')
+      let color_map[name] = get(g:, 'terminal_ansi_colors', i)
+    endif
   endfor
   return color_map
 endfunction
