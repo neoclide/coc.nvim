@@ -457,9 +457,11 @@ export class DiagnosticManager implements Disposable {
     for (let collection of this.collections) {
       collection.dispose()
     }
+    if (this.floatFactory) {
+      this.floatFactory.dispose()
+    }
     this.buffers.splice(0, this.buffers.length)
     this.collections = []
-    this.floatFactory.dispose()
     disposeAll(this.disposables)
   }
 

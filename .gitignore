@@ -1,4 +1,5 @@
 lib
+.cache
 *.map
 coverage
 __pycache__

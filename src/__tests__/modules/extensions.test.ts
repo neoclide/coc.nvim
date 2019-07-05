@@ -1,8 +1,9 @@
-import {Neovim} from '@chemzqm/neovim'
+import { Neovim } from '@chemzqm/neovim'
+import fs from 'fs'
 import path from 'path'
 import events from '../../events'
-import extensions, {API} from '../../extensions'
-import {Extension} from '../../types'
+import extensions, { API } from '../../extensions'
+import { Extension } from '../../types'
 import helper from '../helper'
 import uuidv1 = require('uuid/v1')
 
@@ -10,6 +11,8 @@ let nvim: Neovim
 beforeAll(async () => {
   await helper.setup()
   nvim = helper.nvim
+  let folder = path.join(__dirname, '../extensions/test')
+  await extensions.loadExtension(folder)
 })
 
 afterAll(async () => {
@@ -25,7 +28,7 @@ describe('extensions', () => {
     expect(stat).toBe('activated')
   })
 
-  it('should load local extensions', async () => {
+  it('should load local extensions from &rtp', async () => {
     let folder = path.resolve(__dirname, '../extensions/local')
     await nvim.command(`set runtimepath^=${folder}`)
     await helper.wait(200)
@@ -33,15 +36,29 @@ describe('extensions', () => {
     expect(stat).toBe('activated')
   })
 
-  it('should install extension', async () => {
-    await extensions.installExtensions(['coc-json', 'https://github.com/neoclide/coc-tsserver'])
-    let root = await nvim.call('coc#util#extension_root', [])
-    expect(root).toBeDefined()
+  it('should install/uninstall extension', async () => {
+    await extensions.installExtensions(['coc-omni'])
+    let folder = path.join(__dirname, '../extensions/node_modules/coc-omni')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await extensions.uninstallExtension(['coc-omni'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
+  })
+
+  it('should install/uninstall extension by url', async () => {
+    await extensions.installExtensions(['https://github.com/dsznajder/vscode-es7-javascript-react-snippets'])
+    let folder = path.join(__dirname, '../extensions/node_modules/es7-react-js-snippets')
+    let exists = fs.existsSync(folder)
+    expect(exists).toBe(true)
+    await extensions.uninstallExtension(['es7-react-js-snippets'])
+    exists = fs.existsSync(folder)
+    expect(exists).toBe(false)
   })
 
   it('should get all extensions', () => {
     let list = extensions.all
-    expect(list.length).toBeGreaterThan(0)
+    expect(Array.isArray(list)).toBe(true)
   })
 
   it('should get extensions stat', async () => {
@@ -61,20 +78,6 @@ describe('extensions', () => {
   it('should reload extension', async () => {
     await extensions.reloadExtension('test')
     let stat = extensions.getExtensionState('test')
-    expect(stat).toBe('activated')
-  })
-
-  it('should unload extension', async () => {
-    await extensions.uninstallExtension(['test'])
-    let stat = extensions.getExtensionState('test')
-    expect(stat).toBe('unknown')
-    let folder = path.resolve(__dirname, '../extensions/test')
-    await extensions.loadExtension(folder)
-  })
-
-  it('should load extension on install', async () => {
-    await extensions.onExtensionInstall('coc-json')
-    let stat = extensions.getExtensionState('coc-json')
     expect(stat).toBe('activated')
   })
 
@@ -107,11 +110,6 @@ describe('extensions', () => {
   it('should get extension API', () => {
     let res = extensions.getExtensionApi('test') as any
     expect(typeof res.echo).toBe('function')
-  })
-
-  it('should get package name from url', () => {
-    let name = extensions.packageNameFromUrl('https://github.com/neoclide/coc-tsserver')
-    expect(name).toBe('coc-tsserver')
   })
 })
 

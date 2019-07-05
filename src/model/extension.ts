@@ -45,7 +45,7 @@ export default class ExtensionManager {
     if (name.startsWith('https:')) return await this.getInfoFromUri(name)
     if (npm.endsWith('yarn')) {
       let obj = { name }
-      let keys = ['dist.tarball', 'engines.coc', 'version']
+      let keys = ['dist.tarball', 'engines.coc', 'version', 'name']
       let vals = await Promise.all(keys.map(key => {
         return getData(name, key)
       }))
@@ -54,7 +54,7 @@ export default class ExtensionManager {
       }
       return obj as Info
     }
-    let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version`, { timeout: 60 * 1000 })
+    let content = await safeRun(`"${npm}" view ${name} dist.tarball engines.coc version name`, { timeout: 60 * 1000 })
     let lines = content.split(/\r?\n/)
     let obj = { name }
     for (let line of lines) {
@@ -75,7 +75,7 @@ export default class ExtensionManager {
     }
   }
 
-  private async _install(npm: string, name: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
+  private async _install(npm: string, def: string, info: Info, onMessage: (msg: string) => void): Promise<void> {
     let tmpFolder = await promisify(fs.mkdtemp)(path.join(this.root, '.cache', `${info.name}-`))
     let url = info['dist.tarball']
     onMessage(`Downloading from ${url}`)
@@ -95,10 +95,10 @@ export default class ExtensionManager {
     let jsonFile = path.join(this.root, 'package.json')
     let obj = JSON.parse(fs.readFileSync(jsonFile, 'utf8'))
     obj.dependencies = obj.dependencies || {}
-    if (/^https?:/.test(name)) {
-      obj.dependencies[info.name] = name
+    if (/^https?:/.test(def)) {
+      obj.dependencies[info.name] = def
     } else {
-      obj.dependencies[name] = '>=' + info.version
+      obj.dependencies[info.name] = '>=' + info.version
     }
     fs.writeFileSync(jsonFile, JSON.stringify(obj, null, 2), { encoding: 'utf8' })
     onMessage(`Moving to new folder.`)
@@ -107,26 +107,27 @@ export default class ExtensionManager {
     await promisify(fs.rename)(tmpFolder, folder)
   }
 
-  public async install(npm: string, name: string): Promise<boolean> {
+  public async install(npm: string, def: string): Promise<string> {
     this.checkFolder()
     logger.info(`Using npm from: ${npm}`)
-    logger.info(`Loading info of ${name}.`)
-    let info = await this.getInfo(npm, name)
+    logger.info(`Loading info of ${def}.`)
+    let info = await this.getInfo(npm, def)
     if (info.error) {
       let { code, summary } = info.error
-      let msg = code == 'E404' ? `module ${name} not exists!` : summary
+      let msg = code == 'E404' ? `module ${def} not exists!` : summary
       throw new Error(msg)
     }
+    let { name } = info
     let required = info['engines.coc'] ? info['engines.coc'].replace(/^\^/, '>=') : ''
     if (required && !semver.satisfies(workspace.version, required)) {
       throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
     }
-    await this._install(npm, name, info, msg => {
+    await this._install(npm, def, info, msg => {
       logger.info(msg)
     })
     workspace.showMessage(`Installed extension: ${name}`, 'more')
     logger.info(`Installed extension: ${name}`)
-    return true
+    return name
   }
 
   public async update(npm: string, name: string, uri?: string): Promise<boolean> {
@@ -153,7 +154,7 @@ export default class ExtensionManager {
     if (required && !semver.satisfies(workspace.version, required)) {
       throw new Error(`${name} ${info.version} requires coc.nvim >= ${required}, please update coc.nvim.`)
     }
-    await this._install(npm, name, info, msg => { logger.info(msg) })
+    await this._install(npm, uri ? uri : name, info, msg => { logger.info(msg) })
     workspace.showMessage(`Updated extension: ${name} to ${info.version}`, 'more')
     logger.info(`Update extension: ${name}`)
     return true

@@ -137,6 +137,20 @@ export class CommandManager implements Disposable {
       }
     })
     this.register({
+      id: 'extensions.toggleAutoUpdate',
+      execute: async () => {
+        let config = workspace.getConfiguration('coc.preferences')
+        let interval = config.get<string>('extensionUpdateCheck', 'daily')
+        if (interval == 'never') {
+          config.update('extensionUpdateCheck', 'daily', true)
+          workspace.showMessage('Extension auto update enabled.', 'more')
+        } else {
+          config.update('extensionUpdateCheck', 'never', true)
+          workspace.showMessage('Extension auto update disabled.', 'more')
+        }
+      }
+    })
+    this.register({
       id: 'workspace.showOutput',
       execute: async (name?: string) => {
         if (name) {

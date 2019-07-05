@@ -27,7 +27,6 @@ import './util/extensions'
 
 const createLogger = require('./util/logger')
 const logger = createLogger('extensions')
-const extensionFolder = global.hasOwnProperty('__TEST__') ? '' : 'node_modules'
 
 export type API = { [index: string]: any } | void | null | undefined
 
@@ -77,6 +76,7 @@ export class Extensions {
   public async init(nvim: Neovim): Promise<void> {
     if (global.hasOwnProperty('__TEST__')) {
       this.root = path.join(__dirname, './__tests__/extensions')
+      this.manager = new ExtensionManager(this.root)
     } else {
       await this.initializeRoot()
     }
@@ -116,6 +116,7 @@ export class Extensions {
 
   public async activateExtensions(): Promise<void> {
     this.activated = true
+    if (global.hasOwnProperty('__TEST__')) return
     for (let item of this.list) {
       let { id, packageJSON } = item.extension
       this.setupActiveEvents(id, packageJSON)
@@ -135,7 +136,6 @@ export class Extensions {
   }
 
   public async updateExtensions(): Promise<Disposable | null> {
-    if (global.hasOwnProperty('__TEST__')) return
     if (!this.root) await this.initializeRoot()
     if (!this.npm) return
     let lockedList = await this.getLockedList()
@@ -162,7 +162,7 @@ export class Extensions {
     let { globalExtensions, watchExtensions } = workspace.env
     if (globalExtensions && globalExtensions.length) {
       let names = globalExtensions.filter(name => !this.isDisabled(name))
-      let folder = path.join(this.root, extensionFolder)
+      let folder = path.join(this.root, 'node_modules')
       if (fs.existsSync(folder)) {
         let files = await util.promisify(fs.readdir)(folder)
         names = names.filter(s => files.indexOf(s) == -1)
@@ -204,21 +204,14 @@ export class Extensions {
     if (!npm) return
     if (!this.root) await this.initializeRoot()
     list = distinct(list)
-    if (global.hasOwnProperty('__TEST__')) {
-      for (let name of list) {
-        let dir = path.join(this.root, 'node_modules', name)
-        await mkdirp(dir)
-      }
-      return
-    }
     let statusItem = workspace.createStatusBarItem(0, { progress: true })
     statusItem.show()
     statusItem.text = `Installing ${list.join(' ')}`
-    await Promise.all(list.map(name => {
-      return this.manager.install(npm, name).then(installed => {
-        if (installed) this.onExtensionInstall(name).logError()
+    await Promise.all(list.map(def => {
+      return this.manager.install(npm, def).then(name => {
+        if (name) this.onExtensionInstall(name).logError()
       }, err => {
-        workspace.showMessage(`Error on install ${name}: ${err}`)
+        workspace.showMessage(`Error on install ${def}: ${err}`)
       })
     }))
     statusItem.dispose()
@@ -298,7 +291,8 @@ export class Extensions {
       this.list.splice(idx, 1)
     } else {
       this.disabled.delete(id)
-      let folder = path.join(this.root, extensionFolder, id)
+      let p = global.hasOwnProperty('__TEST__') ? '' : 'node_modules'
+      let folder = path.join(this.root, p, id)
       try {
         await this.loadExtension(folder)
       } catch (e) {
@@ -343,11 +337,10 @@ export class Extensions {
           this._onDidUnloadExtension.fire(id)
         }
       }
-      if (global.hasOwnProperty('__TEST__')) return
       let json = this.loadJson() || { dependencies: {} }
       for (let id of removed) {
         delete json.dependencies[id]
-        let folder = path.join(this.root, extensionFolder, id)
+        let folder = path.join(this.root, 'node_modules', id)
         if (fs.existsSync(folder)) {
           await util.promisify(rimraf)(`${folder}`, { glob: false })
         }
@@ -366,12 +359,11 @@ export class Extensions {
     return this.disabled.has(id)
   }
 
-  public async onExtensionInstall(id: string): Promise<void> {
-    if (/^\w+:/.test(id)) id = this.packageNameFromUrl(id)
-    if (!id || /^-/.test(id)) return
+  private async onExtensionInstall(id: string): Promise<void> {
+    if (!id) return
     let item = this.list.find(o => o.id == id)
     if (item) item.deactivate()
-    let folder = path.join(this.root, extensionFolder, id)
+    let folder = path.join(this.root, 'node_modules', id)
     let stat = await statAsync(folder)
     if (stat && stat.isDirectory()) {
       let jsonFile = path.join(folder, 'package.json')
@@ -422,7 +414,7 @@ export class Extensions {
   }
 
   private async loadFileExtensions(): Promise<void> {
-    if (global.hasOwnProperty('__TEST__')) return
+    if (!process.env.VIMCONFIG) return
     let folder = path.join(process.env.VIMCONFIG, 'coc-extensions')
     if (!fs.existsSync(folder)) return
     let files = await readdirAsync(folder)
@@ -535,7 +527,7 @@ export class Extensions {
       return new Promise<ExtensionInfo>(async resolve => {
         try {
           let val = json.dependencies[key]
-          let root = path.join(this.root, extensionFolder, key)
+          let root = path.join(this.root, 'node_modules', key)
           let jsonFile = path.join(root, 'package.json')
           let stat = await statAsync(jsonFile)
           if (!stat || !stat.isFile()) return resolve(null)
@@ -621,16 +613,6 @@ export class Extensions {
     let jsonFile = path.join(root, 'package.json')
     if (!fs.existsSync(jsonFile)) return null
     return loadJson(jsonFile)
-  }
-
-  public packageNameFromUrl(url: string): string {
-    let json = this.loadJson()
-    if (!json || !json.dependencies) return null
-    for (let key of Object.keys(json.dependencies)) {
-      let val = json.dependencies[key]
-      if (val == url) return key
-    }
-    return null
   }
 
   public get schemes(): { [key: string]: PropertyScheme } {

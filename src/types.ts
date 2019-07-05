@@ -178,6 +178,11 @@ export interface Memento {
 export interface Terminal {
 
   /**
+   * The bufnr of terminal buffer.
+   */
+  readonly bufnr: number
+
+  /**
    * The name of the terminal.
    */
   readonly name: string
