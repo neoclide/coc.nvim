@@ -386,6 +386,9 @@ describe('list normal mappings', () => {
     await nvim.eval('feedkeys("?", "in")')
     await helper.wait(30)
     await nvim.input('<CR>')
+    await helper.wait(100)
+    let bufname = await nvim.call('bufname', '%')
+    expect(bufname).toBe('[LIST HELP]')
   })
 
   it('should tabopen by t', async () => {

@@ -20,6 +20,7 @@ export interface MousePosition {
 export default class ListUI {
   public window: Window
   private height: number
+  private newTab = false
   private _bufnr = 0
   private currIndex = 0
   private highlights: ListHighlights[] = []
@@ -310,6 +311,7 @@ export default class ListUI {
 
   public async drawItems(items: ListItem[], name: string, position = 'bottom', reload = false): Promise<void> {
     let { bufnr, config, nvim } = this
+    this.newTab = position == 'tab'
     let maxHeight = config.get<number>('maxHeight', 12)
     let height = Math.max(1, Math.min(items.length, maxHeight))
     let limitLines = config.get<number>('limitLines', 30000)
@@ -353,7 +355,7 @@ export default class ListUI {
   private async setLines(lines: string[], append = false, index: number): Promise<void> {
     let { nvim, bufnr, window, config } = this
     if (!bufnr || !window) return
-    let resize = config.get<boolean>('autoResize', true)
+    let resize = !this.newTab && config.get<boolean>('autoResize', true)
     let buf = nvim.createBuffer(bufnr)
     nvim.pauseNotification()
     nvim.call('win_gotoid', window.id, true)
@@ -364,7 +366,7 @@ export default class ListUI {
       let maxHeight = config.get<number>('maxHeight', 12)
       let height = Math.max(1, Math.min(this.items.length, maxHeight))
       this.height = height
-      window.notify(`nvim_win_set_height`, [height])
+      nvim.call('coc#list#set_height', [height], true)
     }
     if (!append) {
       if (!lines.length) {
@@ -380,9 +382,10 @@ export default class ListUI {
     }
     nvim.command('setl nomodifiable', true)
     if (!append && index == 0) {
-      this.doHighlight(0, 500)
+      this.doHighlight(0, 300)
     } else {
-      this.doHighlight(Math.max(0, index - this.height), Math.min(index + this.height + 1, this.length - 1))
+      let height = this.newTab ? workspace.env.lines : this.height
+      this.doHighlight(Math.max(0, index - height), Math.min(index + height + 1, this.length - 1))
     }
     if (!append) window.notify('nvim_win_set_cursor', [[index + 1, 0]])
     this._onDidChange.fire()
@@ -393,6 +396,7 @@ export default class ListUI {
   }
 
   public restoreWindow(): void {
+    if (this.newTab) return
     let { window, height } = this
     if (window && height) {
       this.nvim.call('coc#list#restore', [window.id, height], true)

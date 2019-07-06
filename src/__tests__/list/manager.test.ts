@@ -164,7 +164,6 @@ describe('list options', () => {
 
   it('should respect auto preview option', async () => {
     await manager.start(['--auto-preview', 'location'])
-    expect(manager.isActivated).toBe(true)
     await helper.wait(300)
     let previewWinnr = await nvim.call('coc#util#has_preview')
     expect(previewWinnr).toBe(2)
@@ -176,6 +175,14 @@ describe('list options', () => {
     await helper.wait(100)
     let winnr = await nvim.call('coc#util#has_preview')
     expect(winnr).toBe(previewWinnr)
+  })
+
+  it('should respect tab option', async () => {
+    await manager.start(['--tab', '--auto-preview', 'location'])
+    await helper.wait(300)
+    await nvim.command('wincmd l')
+    let previewwindow = await nvim.eval('&previewwindow')
+    expect(previewwindow).toBe(1)
   })
 })
 
@@ -210,6 +217,7 @@ describe('list configuration', () => {
     await nvim.call('win_gotoid', [win.id])
     await nvim.command('wincmd l')
     let curr = await nvim.window
+    let bufname = await nvim.eval('bufname("%")')
     let isPreview = await curr.getOption('previewwindow')
     expect(isPreview).toBe(true)
     helper.updateConfiguration('list.previewSplitRight', false)

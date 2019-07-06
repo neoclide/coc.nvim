@@ -320,7 +320,7 @@ function! s:funcs.buf_set_lines(bufnr, start, end, strict, ...) abort
       endif
       if delCount
         let start = startLnum + len(replacement)
-        execute start . ','.(start + delCount - 1).'d'
+        silent execute start . ','.(start + delCount - 1).'d'
       endif
     endif
   else

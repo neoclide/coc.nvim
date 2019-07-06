@@ -146,8 +146,8 @@ export class ListManager implements Disposable {
     if (this.activated) return
     let res = this.parseArgs(args)
     if (!res) return
+    this.args = args
     this.activated = true
-    this.args = [...res.listOptions, res.list.name, ...res.listArgs]
     let { list, options, listArgs } = res
     try {
       this.reset()
@@ -290,7 +290,7 @@ export class ListManager implements Disposable {
     return this.currList
   }
 
-  public parseArgs(args: string[]): { list: IList, options: ListOptions, listOptions: string[], listArgs: string[] } | null {
+  public parseArgs(args: string[]): { list: IList, options: ListOptions, listArgs: string[] } | null {
     let options: string[] = []
     let interactive = false
     let autoPreview = false
@@ -298,6 +298,7 @@ export class ListManager implements Disposable {
     let name: string
     let input = ''
     let matcher: Matcher = 'fuzzy'
+    let position = 'bottom'
     let listArgs: string[] = []
     let listOptions: string[] = []
     for (let arg of args) {
@@ -330,7 +331,11 @@ export class ListManager implements Disposable {
         matcher = 'strict'
       } else if (opt == '--interactive' || opt == '-I') {
         interactive = true
-      } else if (opt == '--ignore-case' || opt == '--top' || opt == '--normal' || opt == '--no-sort') {
+      } else if (opt == '--top') {
+        position = 'top'
+      } else if (opt == '--tab') {
+        position = 'tab'
+      } else if (opt == '--ignore-case' || opt == '--normal' || opt == '--no-sort') {
         options.push(opt.slice(2))
       } else {
         workspace.showMessage(`Invalid option "${opt}" of list`, 'error')
@@ -343,21 +348,20 @@ export class ListManager implements Disposable {
       return null
     }
     if (interactive && !list.interactive) {
-      workspace.showMessage(`Interactive mode of "${name}" not supported`, 'error')
+      workspace.showMessage(`Interactive mode of "${name}" list not supported`, 'error')
       return null
     }
     return {
       list,
       listArgs,
-      listOptions,
       options: {
         numberSelect,
         autoPreview,
         input,
         interactive,
         matcher,
+        position,
         ignorecase: options.indexOf('ignore-case') != -1 ? true : false,
-        position: options.indexOf('top') == -1 ? 'bottom' : 'top',
         mode: options.indexOf('normal') == -1 ? 'insert' : 'normal',
         sort: options.indexOf('no-sort') == -1 ? true : false
       },
@@ -607,7 +611,7 @@ export class ListManager implements Disposable {
       uniqueItems: true,
       items: {
         type: 'string',
-        enum: ['--top', '--normal', '--no-sort', '--input',
+        enum: ['--top', '--normal', '--no-sort', '--input', '--tab',
           '--strict', '--regex', '--ignore-case', '--number-select',
           '--interactive', '--auto-preview']
       }

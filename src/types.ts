@@ -843,7 +843,7 @@ export interface IList {
 }
 
 export interface PreiewOptions {
-  bufname: string
+  bufname?: string
   sketch: boolean
   filetype: string
   lines?: string[]
