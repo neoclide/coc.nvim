@@ -369,6 +369,7 @@ export class LanguageClient extends BaseLanguageClient {
         if (!serverProcess || !serverProcess.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }
+        logger.info(`${this.id} started with ${serverProcess.pid}`)
         this._serverProcess = serverProcess
         serverProcess.stdout.on('data', data => this.appendOutput(data, encoding))
         serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
@@ -381,6 +382,7 @@ export class LanguageClient extends BaseLanguageClient {
         if (!serverProcess || !serverProcess.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }
+        logger.info(`${this.id} started with ${serverProcess.pid}`)
         this._serverProcess = serverProcess
         serverProcess.stderr.on('data', data => this.appendOutput(data, encoding))
         return {
@@ -393,6 +395,7 @@ export class LanguageClient extends BaseLanguageClient {
         if (!process || !process.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }
+        logger.info(`${this.id} started with ${process.pid}`)
         this._serverProcess = process
         process.stderr.on('data', data => this.appendOutput(data, encoding))
         process.stdout.on('data', data => this.appendOutput(data, encoding))
@@ -404,6 +407,7 @@ export class LanguageClient extends BaseLanguageClient {
         if (!process || !process.pid) {
           throw new Error(`Launching server ${node.module} failed.`)
         }
+        logger.info(`${this.id} started with ${process.pid}`)
         this._serverProcess = process
         process.stderr.on('data', data => this.appendOutput(data, encoding))
         process.stdout.on('data', data => this.appendOutput(data, encoding))
@@ -433,6 +437,7 @@ export class LanguageClient extends BaseLanguageClient {
       if (!serverProcess || !serverProcess.pid) {
         throw new Error(`Launching server using command ${command.command} failed.`)
       }
+      logger.info(`${this.id} started with ${serverProcess.pid}`)
       serverProcess.on('exit', code => {
         if (code != 0) this.error(`${command.command} exited with code: ${code}`)
       })
