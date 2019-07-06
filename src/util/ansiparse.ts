@@ -1,4 +1,5 @@
-import { AnsiItem } from '../types'
+import { AnsiItem, AnsiHighlight } from '../types'
+import { byteLength, upperFirst } from './string'
 
 const foregroundColors = {
   30: 'black',
@@ -27,6 +28,31 @@ const styles = {
   1: 'bold',
   3: 'italic',
   4: 'underline'
+}
+
+export function parseAnsiHighlights(line: string): { line: string, highlights: AnsiHighlight[] } {
+  let items = ansiparse(line)
+  let highlights: AnsiHighlight[] = []
+  let newLabel = ''
+  for (let item of items) {
+    if (!item.text) continue
+    let { foreground, background } = item
+    let len = byteLength(newLabel)
+    if (foreground || background) {
+      let span: [number, number] = [len, len + byteLength(item.text)]
+      let hlGroup = ''
+      if (foreground && background) {
+        hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
+      } else if (foreground) {
+        hlGroup = `CocListFg${upperFirst(foreground)}`
+      } else if (background) {
+        hlGroup = `CocListBg${upperFirst(background)}`
+      }
+      highlights.push({ span, hlGroup })
+    }
+    newLabel = newLabel + item.text
+  }
+  return { line: newLabel, highlights }
 }
 
 export function ansiparse(str: string): AnsiItem[] {

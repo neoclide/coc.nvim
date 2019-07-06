@@ -35,7 +35,6 @@ export default class ListUI {
   private _onDidChange = new Emitter<void>()
   private _onDidLineChange = new Emitter<number>()
   private _onDoubleClick = new Emitter<void>()
-  private hlGroupMap: Map<string, string> = new Map()
   public readonly onDidChangeLine: Event<number> = this._onDidChangeLine.event
   public readonly onDidLineChange: Event<number> = this._onDidLineChange.event
   public readonly onDidOpen: Event<number> = this._onDidOpen.event
@@ -76,22 +75,6 @@ export default class ListUI {
       nvim.command('redraw', true)
       await nvim.resumeNotification(false, true)
     }, 100))
-    nvim.call('coc#list#get_colors').then(map => {
-      for (let key of Object.keys(map)) {
-        let foreground = key[0].toUpperCase() + key.slice(1)
-        let foregroundColor = map[key]
-        for (let key of Object.keys(map)) {
-          let background = key[0].toUpperCase() + key.slice(1)
-          let backgroundColor = map[key]
-          let group = `CocList${foreground}${background}`
-          this.hlGroupMap.set(group, `hi default CocList${foreground}${background} guifg=${foregroundColor} guibg=${backgroundColor}`)
-        }
-        this.hlGroupMap.set(`CocListFg${foreground}`, `hi default CocListFg${foreground} guifg=${foregroundColor}`)
-        this.hlGroupMap.set(`CocListBg${foreground}`, `hi default CocListBg${foreground} guibg=${foregroundColor}`)
-      }
-    }, _e => {
-      // noop
-    })
   }
 
   public set index(n: number) {
@@ -442,7 +425,6 @@ export default class ListUI {
       if (ansiHighlights) {
         for (let hi of ansiHighlights) {
           let { span, hlGroup } = hi
-          this.setHighlightGroup(hlGroup)
           nvim.call('matchaddpos', [hlGroup, [[i + 1, span[0] + 1, span[1] - span[0]]], 9], true)
         }
       }
@@ -452,15 +434,6 @@ export default class ListUI {
           nvim.call('matchaddpos', [hlGroup || 'Search', [[i + 1, span[0] + 1, span[1] - span[0]]], 11], true)
         }
       }
-    }
-  }
-
-  private setHighlightGroup(hlGroup: string): void {
-    let { nvim } = workspace
-    if (this.hlGroupMap.has(hlGroup)) {
-      let cmd = this.hlGroupMap.get(hlGroup)
-      this.hlGroupMap.delete(hlGroup)
-      nvim.command(cmd, true)
     }
   }
 

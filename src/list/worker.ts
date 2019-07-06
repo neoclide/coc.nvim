@@ -1,16 +1,15 @@
 import { Neovim } from '@chemzqm/neovim'
-import { Emitter, Event, CancellationTokenSource } from 'vscode-languageserver-protocol'
-import { AnsiHighlight, ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
-import { ansiparse } from '../util/ansiparse'
+import { CancellationTokenSource, Emitter, Event } from 'vscode-languageserver-protocol'
+import { URI } from 'vscode-uri'
+import { ListHighlights, ListItem, ListItemsEvent, ListTask } from '../types'
+import { parseAnsiHighlights } from '../util/ansiparse'
 import { patchLine } from '../util/diff'
-import { fuzzyMatch, getCharCodes } from '../util/fuzzy'
 import { hasMatch, positions, score } from '../util/fzy'
 import { getMatchResult } from '../util/score'
-import { byteIndex, byteLength, upperFirst } from '../util/string'
-import { ListManager } from './manager'
+import { byteIndex, byteLength } from '../util/string'
 import workspace from '../workspace'
+import { ListManager } from './manager'
 import uuidv1 = require('uuid/v1')
-import { URI } from 'vscode-uri'
 const frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
 const logger = require('../util/logger')('list-worker')
 const controlCode = '\x1b'
@@ -395,28 +394,8 @@ export default class Worker {
   private parseListItemAnsi(item: ListItem): void {
     let { label } = item
     if (item.ansiHighlights || label.indexOf(controlCode) == -1) return
-    let ansiItems = ansiparse(label)
-    let newLabel = ''
-    let highlights: AnsiHighlight[] = []
-    for (let item of ansiItems) {
-      if (!item.text) continue
-      let old = newLabel
-      newLabel = newLabel + item.text
-      let { foreground, background } = item
-      if (foreground || background) {
-        let span: [number, number] = [byteLength(old), byteLength(newLabel)]
-        let hlGroup = ''
-        if (foreground && background) {
-          hlGroup = `CocList${upperFirst(foreground)}${upperFirst(background)}`
-        } else if (foreground) {
-          hlGroup = `CocListFg${upperFirst(foreground)}`
-        } else if (background) {
-          hlGroup = `CocListBg${upperFirst(background)}`
-        }
-        highlights.push({ span, hlGroup })
-      }
-    }
-    item.label = newLabel
+    let { line, highlights } = parseAnsiHighlights(label)
+    item.label = line
     item.ansiHighlights = highlights
   }
 

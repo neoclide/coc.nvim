@@ -1,4 +1,5 @@
 import { byteLength } from '../util/string'
+import { parseAnsiHighlights } from '../util/ansiparse'
 import { Buffer, Neovim } from '@chemzqm/neovim'
 
 export interface HighlightItem {
@@ -34,8 +35,24 @@ export default class Highlighter {
         colEnd: byteLength(line),
         hlGroup
       })
+    } // '\x1b'
+    if (line.indexOf('\x1b') !== -1) {
+      let res = parseAnsiHighlights(line)
+      for (let hl of res.highlights) {
+        let { span, hlGroup } = hl
+        if (span[0] != span[1]) {
+          this.highlights.push({
+            line: this.lines.length,
+            colStart: span[0],
+            colEnd: span[1],
+            hlGroup
+          })
+        }
+      }
+      this.lines.push(res.line)
+    } else {
+      this.lines.push(line)
     }
-    this.lines.push(line)
   }
 
   public addLines(lines): void {
@@ -72,7 +89,7 @@ export default class Highlighter {
       buffer.addHighlight({
         hlGroup: item.hlGroup,
         colStart: item.colStart,
-        colEnd: item.colEnd,
+        colEnd: item.colEnd == null ? -1 : item.colEnd,
         line: start + item.line,
         srcId: this.srcId
       }).logError()

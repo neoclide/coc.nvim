@@ -226,21 +226,6 @@ function! coc#list#has_preview()
   return 0
 endfunction
 
-function! coc#list#get_colors()
-  let color_map = {}
-  let colors = ['#282828', '#cc241d', '#98971a', '#d79921', '#458588', '#b16286', '#689d6a', '#a89984', '#928374']
-  let names = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white', 'grey']
-  for i in range(0, len(names) - 1)
-    let name = names[i]
-    if exists('g:terminal_ansi_colors')
-      let color_map[name] = get(g:, 'terminal_ansi_colors', i)
-    else
-      let color_map[name] = get(g:, 'terminal_color_'.i, colors[i])
-    endif
-  endfor
-  return color_map
-endfunction
-
 function! coc#list#restore(winid, height)
   let res = win_gotoid(a:winid)
   if res == 0 | return | endif
